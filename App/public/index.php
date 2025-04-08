@@ -13,10 +13,33 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Handle asset requests directly
-if (preg_match('/\.(css|js|jpg|jpeg|png|gif|webp|svg|ico|woff|woff2|ttf|eot)$/', $_SERVER['REQUEST_URI'])) {
-    $requestPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-    $filePath = dirname(__DIR__) . '/public' . $requestPath;
+// Handle static file requests (assets, css, js)
+$requestPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+
+// Serve static files if requested
+if (preg_match('/\.(css|js|jpg|jpeg|png|gif|webp|svg|ico|woff|woff2|ttf|eot)$/', $requestPath)) {
+    // Remove any query string
+    $requestPath = preg_replace('/\?.*$/', '', $requestPath);
+    
+    // Determine file path based on the request
+    $filePath = '';
+    
+    if (strpos($requestPath, '/assets/') === 0) {
+        // Assets are in public/assets
+        $filePath = PUBLIC_PATH . $requestPath;
+    } 
+    else if (strpos($requestPath, '/css/') === 0) {
+        // CSS files are in public/css
+        $filePath = PUBLIC_PATH . $requestPath;
+    } 
+    else if (strpos($requestPath, '/js/') === 0) {
+        // JS files are in public/js
+        $filePath = PUBLIC_PATH . $requestPath;
+    } 
+    else {
+        // Try the public directory directly
+        $filePath = PUBLIC_PATH . $requestPath;
+    }
     
     // If file exists, serve it with proper content type
     if (file_exists($filePath)) {
@@ -50,6 +73,12 @@ if (preg_match('/\.(css|js|jpg|jpeg|png|gif|webp|svg|ico|woff|woff2|ttf|eot)$/',
         
         // Output file contents
         readfile($filePath);
+        exit;
+    } else {
+        // Debug information when file not found
+        header('HTTP/1.0 404 Not Found');
+        echo "404 Not Found: " . htmlspecialchars($requestPath) . "<br>";
+        echo "Looked for file at: " . htmlspecialchars($filePath);
         exit;
     }
 }

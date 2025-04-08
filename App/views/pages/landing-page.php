@@ -54,11 +54,11 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
         }
     </script>
     <!-- External CSS file -->
-    <link rel="stylesheet" href="<?php echo asset('/css/landing-page.css'); ?>">
+    <link rel="stylesheet" href="<?php echo css('landing-page'); ?>">
     <style>
         /* Set the background image dynamically via CSS variables */
         :root {
-            --background-image-url: url('<?php echo asset('/landing-page/background.png'); ?>');
+            --background-image-url: url('<?php echo asset('landing-page/background.png'); ?>');
         }
     </style>
 </head>
@@ -350,6 +350,6 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
     </footer>
 
     <!-- External JavaScript file -->
-    <script src="<?php echo asset('/js/landing-page.js'); ?>"></script>
+    <script src="<?php echo js('landing-page'); ?>"></script>
 </body>
 </html>
