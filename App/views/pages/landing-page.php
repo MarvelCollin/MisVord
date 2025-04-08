@@ -53,219 +53,12 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
             }
         }
     </script>
+    <!-- External CSS file -->
+    <link rel="stylesheet" href="<?php echo asset('/css/landing-page.css'); ?>">
     <style>
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-20px); }
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        @keyframes wobble {
-            0%, 100% { transform: rotate(-3deg); }
-            50% { transform: rotate(3deg); }
-        }
-        
-        @keyframes scale-pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-        
-        @keyframes glow {
-            0%, 100% { filter: drop-shadow(0 0 5px rgba(88, 101, 242, 0.7)); }
-            50% { filter: drop-shadow(0 0 20px rgba(88, 101, 242, 0.9)); }
-        }
-        
-        @keyframes shine {
-            0% {
-                background-position: -100% 0;
-            }
-            100% {
-                background-position: 200% 0;
-            }
-        }
-        
-        /* Custom animations */
-        .animate-float {
-            animation: float 6s ease-in-out infinite;
-        }
-        
-        .animate-float-delay {
-            animation: float 7s ease-in-out infinite;
-            animation-delay: 2s;
-        }
-        
-        .animate-spin-slow {
-            animation: spin 12s linear infinite;
-        }
-        
-        .animate-wobble {
-            animation: wobble 3s ease-in-out infinite;
-        }
-        
-        .animate-scale-pulse {
-            animation: scale-pulse 3s ease-in-out infinite;
-        }
-        
-        .animate-glow {
-            animation: glow 3s ease-in-out infinite;
-        }
-
-        /* For smooth scrolling */
-        html {
-            scroll-behavior: smooth;
-        }
-
-        /* Full page background */
-        body {
-            background-image: url('<?php echo asset('/landing-page/background.png'); ?>');
-            background-attachment: fixed;
-            background-size: cover;
-            background-position: center;
-            min-height: 100vh;
-            font-family: 'Whitney', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-        }
-        
-        /* Modernized transparent container styles */
-        .glass-nav {
-            background: rgba(35, 39, 42, 0.4);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-        
-        .glass-hero {
-            background: rgba(35, 39, 42, 0.5);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
-        }
-        
-        .content-card {
-            background: rgba(255, 255, 255, 0.06);
-            backdrop-filter: blur(7px);
-            -webkit-backdrop-filter: blur(7px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
-        }
-        
-        .dark-content-card {
-            background: rgba(35, 39, 42, 0.4);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
-        }
-        
-        /* Modern button styles */
-        .discord-btn {
-            position: relative;
-            overflow: hidden;
-            transition: all 0.3s ease;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-        
-        .discord-btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(
-                90deg,
-                transparent,
-                rgba(255, 255, 255, 0.2),
-                transparent
-            );
-            transition: 0.5s;
-        }
-        
-        .discord-btn:hover::before {
-            left: 100%;
-        }
-        
-        .discord-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 25px rgba(88, 101, 242, 0.3);
-        }
-        
-        /* Modern image styles */
-        .modern-image {
-            border-radius: 1.5rem;
-            overflow: hidden;
-            transform: perspective(1000px) rotateY(0deg);
-            transition: transform 0.8s ease;
-            box-shadow: 0 20px 30px rgba(0, 0, 0, 0.15);
-            position: relative;
-        }
-        
-        .modern-image:hover {
-            transform: perspective(1000px) rotateY(5deg);
-        }
-        
-        .modern-image::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(45deg, transparent 65%, rgba(255, 255, 255, 0.2));
-            pointer-events: none;
-        }
-        
-        /* Text styles */
-        .section-title {
-            background: linear-gradient(90deg, #fff, #d7d9f2, #fff);
-            background-size: 200% auto;
-            background-clip: text;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            animation: shine 8s linear infinite;
-        }
-        
-        /* Neon effect */
-        .neon-text {
-            text-shadow: 0 0 10px rgba(88, 101, 242, 0.8), 
-                         0 0 20px rgba(88, 101, 242, 0.5), 
-                         0 0 30px rgba(88, 101, 242, 0.3);
-        }
-        
-        /* Custom scrollbar */
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-        
-        ::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.05);
-        }
-        
-        ::-webkit-scrollbar-thumb {
-            background: #5865F2;
-            border-radius: 10px;
-        }
-        
-        ::-webkit-scrollbar-thumb:hover {
-            background: #404EED;
-        }
-        
-        /* Particle background */
-        .particle {
-            position: absolute;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.6);
-            pointer-events: none;
-        }
-        
-        /* Modern divider */
-        .divider {
-            height: 1px;
-            background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.3), transparent);
+        /* Set the background image dynamically via CSS variables */
+        :root {
+            --background-image-url: url('<?php echo asset('/landing-page/background.png'); ?>');
         }
     </style>
 </head>
@@ -301,47 +94,62 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
             </div>
         </nav>
         
-        <!-- Animated floating elements -->
-        <div class="absolute inset-0 overflow-hidden pointer-events-none">
-            <img src="<?php echo asset('/landing-page/flying-cat.webp'); ?>" alt="Flying Cat" 
-                 class="absolute left-[15%] top-[15%] w-28 md:w-36 animate-float z-10" data-speed="0.3">
-            
-            <img src="<?php echo asset('/landing-page/robot.webp'); ?>" alt="Robot" 
-                 class="absolute right-[15%] bottom-[25%] w-28 md:w-36 animate-float-delay z-10" data-speed="0.2">
-            
-            <img src="<?php echo asset('/landing-page/leaf.webp'); ?>" alt="Leaf" 
-                 class="absolute left-[20%] bottom-[30%] w-20 md:w-24 animate-spin-slow z-10" data-speed="0.1">
-                 
-            <img src="<?php echo asset('/landing-page/box.webp'); ?>" alt="Box" 
-                 class="absolute right-[25%] top-[30%] w-20 md:w-24 animate-wobble z-10" data-speed="0.15">
-        </div>
-        
-        <!-- Hero content with transparent glass effect -->
+        <!-- Hero content with transparent glass effect and improved z-index layering -->
         <div class="flex-1 flex items-center justify-center px-6 md:px-10 py-24">
-            <div class="max-w-4xl glass-hero p-10 md:p-16 rounded-3xl text-center mt-16 relative overflow-hidden">
+            <div class="max-w-4xl glass-hero p-10 md:p-16 rounded-3xl text-center mt-16 relative overflow-hidden hero-glass-container">
                 <!-- Shimmering overlay -->
                 <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-10 -translate-x-full animate-[shine_3s_infinite]"></div>
                 
-                <h1 class="text-4xl md:text-6xl lg:text-7xl font-extrabold mb-6 tracking-wide hero-title neon-text">IMAGINE A PLACE...</h1>
-                <p class="text-lg md:text-xl max-w-3xl mx-auto mb-8 hero-text text-gray-200">
-                    ...where you can belong to a school club, a gaming group, or a worldwide art community. 
-                    Where just you and a handful of friends can spend time together. A place that makes it easy 
-                    to talk every day and hang out more often.
-                </p>
-                
-                <!-- Call to action buttons with enhanced hover effects -->
-                <div class="flex flex-col md:flex-row justify-center gap-4 md:gap-6 hero-buttons">
-                    <button class="discord-btn bg-white bg-opacity-10 backdrop-filter backdrop-blur-sm text-white px-8 py-4 rounded-full text-lg font-medium transition-all">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                        Download for Windows
-                    </button>
-                    <button class="discord-btn bg-discord-dark bg-opacity-50 backdrop-filter backdrop-blur-sm text-white px-8 py-4 rounded-full text-lg font-medium transition-all">
-                        Open MiscVord in your browser
-                    </button>
+                <!-- Text content with highest z-index -->
+                <div class="hero-text-content">
+                    <!-- Scramble text animation for title with fixed implementation -->
+                    <h1 class="text-4xl md:text-6xl lg:text-7xl font-extrabold mb-6 tracking-wide hero-title neon-text scramble-text" id="heroTitle">IMAGINE A PLACE...</h1>
+                    
+                    <p class="text-lg md:text-xl max-w-3xl mx-auto mb-8 text-gray-200">
+                        ...where you can belong to a school club, a gaming group, or a worldwide art community. 
+                        Where just you and a handful of friends can spend time together. A place that makes it easy 
+                        to talk every day and hang out more often.
+                    </p>
+                    
+                    <!-- Call to action buttons -->
+                    <div class="flex flex-col md:flex-row justify-center gap-4 md:gap-6 hero-buttons">
+                        <button class="discord-btn bg-white bg-opacity-10 backdrop-filter backdrop-blur-sm text-white px-8 py-4 rounded-full text-lg font-medium transition-all">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            Download for Windows
+                        </button>
+                        <button class="discord-btn bg-discord-dark bg-opacity-50 backdrop-filter backdrop-blur-sm text-white px-8 py-4 rounded-full text-lg font-medium transition-all">
+                            Open MiscVord in your browser
+                        </button>
+                    </div>
                 </div>
             </div>
+        </div>
+        
+        <!-- Animated floating elements moved after hero content in DOM but visually between glass and text -->
+        <div class="absolute inset-0 overflow-hidden pointer-events-none floating-layer">
+            <img src="<?php echo asset('/landing-page/flying-cat.webp'); ?>" alt="Flying Cat" 
+                 class="absolute left-[15%] top-[15%] w-28 md:w-36 animate-float-enhanced floating-element floating-cat z-10" data-speed="0.35" data-rotation="8" data-amplitude="25">
+            
+            <img src="<?php echo asset('/landing-page/robot.webp'); ?>" alt="Robot" 
+                 class="absolute right-[15%] bottom-[25%] w-28 md:w-36 animate-float-enhanced floating-element z-10" data-speed="0.28" data-rotation="-5" data-amplitude="20">
+            
+            <img src="<?php echo asset('/landing-page/leaf.webp'); ?>" alt="Leaf" 
+                 class="absolute left-[20%] bottom-[30%] w-20 md:w-24 animate-spin-enhanced floating-element floating-leaf z-10" data-speed="0.15" data-rotation="15" data-amplitude="30">
+                 
+            <img src="<?php echo asset('/landing-page/box.webp'); ?>" alt="Box" 
+                 class="absolute right-[25%] top-[30%] w-20 md:w-24 animate-wobble floating-element z-10" data-speed="0.2" data-rotation="-10" data-amplitude="15">
+                 
+            <!-- Additional floating elements with enhanced styling -->
+            <img src="<?php echo asset('/landing-page/green-egg.webp'); ?>" alt="Green Egg" 
+                 class="absolute left-[45%] top-[60%] w-16 md:w-20 animate-float-enhanced floating-element floating-egg z-10" data-speed="0.3" data-rotation="12" data-amplitude="35">
+                 
+            <img src="<?php echo asset('/landing-page/discord-logo.webp'); ?>" alt="Discord Logo" 
+                 class="absolute right-[40%] top-[10%] w-12 md:w-16 animate-spin-enhanced floating-element floating-logo z-10" data-speed="0.22" data-rotation="-15" data-amplitude="25">
+                 
+            <img src="<?php echo asset('/landing-page/thropy.webp'); ?>" alt="Trophy" 
+                 class="absolute left-[60%] top-[40%] w-14 md:w-18 animate-float-enhanced floating-element floating-trophy z-10" data-speed="0.25" data-rotation="10" data-amplitude="20">
         </div>
     </header>
 
@@ -427,10 +235,10 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
                 
                 <!-- Floating elements with advanced animations -->
                 <img src="<?php echo asset('/landing-page/green-egg.webp'); ?>" alt="Green Egg" 
-                     class="absolute -left-6 top-1/4 w-20 md:w-24 animate-float hidden md:block" data-speed="0.2">
+                     class="absolute -left-6 top-1/4 w-20 md:w-24 animate-float-enhanced floating-element floating-egg hidden md:block" data-speed="0.25" data-rotation="8" data-amplitude="30">
                 
                 <img src="<?php echo asset('/landing-page/thropy.webp'); ?>" alt="Trophy" 
-                     class="absolute -right-6 bottom-1/4 w-20 md:w-24 animate-float-delay hidden md:block" data-speed="0.25">
+                     class="absolute -right-6 bottom-1/4 w-20 md:w-24 animate-float-enhanced floating-element floating-trophy hidden md:block" data-speed="0.3" data-rotation="-10" data-amplitude="25">
                 
                 <div class="relative z-10 journey-content">
                     <h2 class="text-3xl md:text-5xl font-bold mb-8 neon-text">Ready to start your journey?</h2>
@@ -541,172 +349,7 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
         </div>
     </footer>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Initialize GSAP for advanced animations
-            gsap.registerPlugin(ScrollTrigger);
-            
-            // Hero animations
-            gsap.from(".hero-title", {
-                opacity: 0,
-                y: 50,
-                duration: 1,
-                ease: "power3.out"
-            });
-            
-            gsap.from(".hero-text", {
-                opacity: 0,
-                y: 30,
-                duration: 1,
-                delay: 0.3,
-                ease: "power3.out"
-            });
-            
-            gsap.from(".hero-buttons", {
-                opacity: 0,
-                y: 30,
-                duration: 1,
-                delay: 0.6,
-                ease: "power3.out"
-            });
-            
-            // Feature section animations
-            gsap.utils.toArray(".feature-section").forEach((section, i) => {
-                // Staggered animation for alternating sections
-                const direction = i % 2 === 0 ? 1 : -1;
-                
-                // Content animation
-                gsap.from(section.querySelector(".feature-content"), {
-                    scrollTrigger: {
-                        trigger: section,
-                        start: "top 75%",
-                        toggleActions: "play none none none"
-                    },
-                    x: 50 * direction,
-                    opacity: 0,
-                    duration: 1,
-                    ease: "power2.out"
-                });
-                
-                // Image animation with slight delay
-                gsap.from(section.querySelector(".feature-image"), {
-                    scrollTrigger: {
-                        trigger: section,
-                        start: "top 75%",
-                        toggleActions: "play none none none"
-                    },
-                    x: -50 * direction,
-                    opacity: 0,
-                    duration: 1,
-                    delay: 0.2,
-                    ease: "power2.out"
-                });
-            });
-            
-            // Journey section animation
-            gsap.from(".journey-content", {
-                scrollTrigger: {
-                    trigger: ".journey-content",
-                    start: "top 80%",
-                    toggleActions: "play none none none"
-                },
-                opacity: 0,
-                y: 50,
-                duration: 1,
-                ease: "power2.out"
-            });
-            
-            // Parallax scrolling effect
-            const parallaxElements = document.querySelectorAll('[data-speed]');
-            
-            window.addEventListener('scroll', function() {
-                const scrollY = window.pageYOffset;
-                
-                parallaxElements.forEach(element => {
-                    const speed = element.getAttribute('data-speed') || 0.3;
-                    // Calculate transformation based on scroll position and speed
-                    const yPos = -(scrollY * parseFloat(speed));
-                    element.style.transform = `translateY(${yPos}px)`;
-                });
-            });
-            
-            // Mobile menu toggle
-            const menuButton = document.querySelector('.md\\:hidden');
-            menuButton.addEventListener('click', function() {
-                alert("Mobile menu coming soon!");
-            });
-            
-            // Smooth scroll functionality
-            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-                anchor.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const targetId = this.getAttribute('href');
-                    if (targetId !== '#') {
-                        document.querySelector(targetId).scrollIntoView({
-                            behavior: 'smooth'
-                        });
-                    }
-                });
-            });
-            
-            // Create particle background effect
-            createParticles();
-            
-            // Add 3D tilt effect to images
-            const images = document.querySelectorAll('.modern-image');
-            images.forEach(image => {
-                image.addEventListener('mousemove', function(e) {
-                    const rect = image.getBoundingClientRect();
-                    const x = e.clientX - rect.left;
-                    const y = e.clientY - rect.top;
-                    
-                    const xRotation = ((y - rect.height / 2) / rect.height) * 10;
-                    const yRotation = ((x - rect.width / 2) / rect.width) * -10;
-                    
-                    image.style.transform = `perspective(1000px) rotateX(${xRotation}deg) rotateY(${yRotation}deg)`;
-                });
-                
-                image.addEventListener('mouseout', function() {
-                    image.style.transform = 'perspective(1000px) rotateX(0) rotateY(0)';
-                });
-            });
-        });
-        
-        // Function to create floating particles in the background
-        function createParticles() {
-            const container = document.getElementById('particles-container');
-            const particleCount = 50;
-            
-            for (let i = 0; i < particleCount; i++) {
-                const particle = document.createElement('div');
-                particle.className = 'particle';
-                
-                // Random position
-                const posX = Math.random() * 100;
-                const posY = Math.random() * 100;
-                
-                // Random size
-                const size = Math.random() * 3 + 1;
-                
-                // Random opacity
-                const opacity = Math.random() * 0.2 + 0.1;
-                
-                // Set particle properties
-                particle.style.left = posX + '%';
-                particle.style.top = posY + '%';
-                particle.style.width = size + 'px';
-                particle.style.height = size + 'px';
-                particle.style.opacity = opacity;
-                
-                // Add animation with random duration
-                const duration = Math.random() * 20 + 10;
-                particle.style.animation = `float ${duration}s ease-in-out infinite`;
-                particle.style.animationDelay = Math.random() * 10 + 's';
-                
-                // Add particle to container
-                container.appendChild(particle);
-            }
-        }
-    </script>
+    <!-- External JavaScript file -->
+    <script src="<?php echo asset('/js/landing-page.js'); ?>"></script>
 </body>
 </html>

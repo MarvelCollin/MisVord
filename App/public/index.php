@@ -13,6 +13,47 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Handle asset requests directly
+if (preg_match('/\.(css|js|jpg|jpeg|png|gif|webp|svg|ico|woff|woff2|ttf|eot)$/', $_SERVER['REQUEST_URI'])) {
+    $requestPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+    $filePath = dirname(__DIR__) . '/public' . $requestPath;
+    
+    // If file exists, serve it with proper content type
+    if (file_exists($filePath)) {
+        $extension = pathinfo($filePath, PATHINFO_EXTENSION);
+        
+        // Set content type header based on file extension
+        $contentTypes = [
+            'css' => 'text/css',
+            'js' => 'application/javascript',
+            'jpg' => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'gif' => 'image/gif',
+            'webp' => 'image/webp',
+            'svg' => 'image/svg+xml',
+            'ico' => 'image/x-icon',
+            'woff' => 'font/woff',
+            'woff2' => 'font/woff2',
+            'ttf' => 'font/ttf',
+            'eot' => 'application/vnd.ms-fontobject'
+        ];
+        
+        if (isset($contentTypes[$extension])) {
+            header('Content-Type: ' . $contentTypes[$extension]);
+        }
+        
+        // Set cache headers for better performance
+        $maxAge = 60 * 60 * 24 * 7; // 1 week
+        header('Cache-Control: max-age=' . $maxAge);
+        header('Expires: ' . gmdate('D, d M Y H:i:s', time() + $maxAge) . ' GMT');
+        
+        // Output file contents
+        readfile($filePath);
+        exit;
+    }
+}
+
 // Simple router function
 function routeToPage($route) {
     $route = trim($route, '/');

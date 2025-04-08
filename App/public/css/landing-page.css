@@ -1,0 +1,354 @@
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-20px); }
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes wobble {
+    0%, 100% { transform: rotate(-3deg); }
+    50% { transform: rotate(3deg); }
+}
+
+@keyframes scale-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+@keyframes glow {
+    0%, 100% { filter: drop-shadow(0 0 5px rgba(88, 101, 242, 0.7)); }
+    50% { filter: drop-shadow(0 0 20px rgba(88, 101, 242, 0.9)); }
+}
+
+@keyframes shine {
+    0% {
+        background-position: -100% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+/* Custom animations */
+.animate-float {
+    animation: float 6s ease-in-out infinite;
+}
+
+.animate-float-delay {
+    animation: float 7s ease-in-out infinite;
+    animation-delay: 2s;
+}
+
+.animate-spin-slow {
+    animation: spin 12s linear infinite;
+}
+
+.animate-wobble {
+    animation: wobble 3s ease-in-out infinite;
+}
+
+.animate-scale-pulse {
+    animation: scale-pulse 3s ease-in-out infinite;
+}
+
+.animate-glow {
+    animation: glow 3s ease-in-out infinite;
+}
+
+/* For smooth scrolling */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Enhanced background with 75% opacity and additional layer */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: var(--background-image-url);
+    background-size: cover;
+    background-position: center;
+    opacity: 0.75;
+    z-index: -2;
+}
+
+body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(88, 101, 242, 0.1), rgba(87, 242, 135, 0.1));
+    opacity: 0.5;
+    z-index: -1;
+}
+
+body {
+    background: none;
+    min-height: 100vh;
+    font-family: 'Whitney', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+/* Modernized transparent container styles */
+.glass-nav {
+    background: rgba(35, 39, 42, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-hero {
+    background: rgba(35, 39, 42, 0.5);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+}
+
+.content-card {
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+}
+
+.dark-content-card {
+    background: rgba(35, 39, 42, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+}
+
+/* Modern button styles */
+.discord-btn {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.discord-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.2),
+        transparent
+    );
+    transition: 0.5s;
+}
+
+.discord-btn:hover::before {
+    left: 100%;
+}
+
+.discord-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(88, 101, 242, 0.3);
+}
+
+/* Modern image styles */
+.modern-image {
+    border-radius: 1.5rem;
+    overflow: hidden;
+    transform: perspective(1000px) rotateY(0deg);
+    transition: transform 0.8s ease;
+    box-shadow: 0 20px 30px rgba(0, 0, 0, 0.15);
+    position: relative;
+}
+
+.modern-image:hover {
+    transform: perspective(1000px) rotateY(5deg);
+}
+
+.modern-image::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(45deg, transparent 65%, rgba(255, 255, 255, 0.2));
+    pointer-events: none;
+}
+
+/* Text styles */
+.section-title {
+    background: linear-gradient(90deg, #fff, #d7d9f2, #fff);
+    background-size: 200% auto;
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shine 8s linear infinite;
+}
+
+/* Neon effect */
+.neon-text {
+    text-shadow: 0 0 10px rgba(88, 101, 242, 0.8), 
+                 0 0 20px rgba(88, 101, 242, 0.5), 
+                 0 0 30px rgba(88, 101, 242, 0.3);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+::-webkit-scrollbar-thumb {
+    background: #5865F2;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #404EED;
+}
+
+/* Particle background */
+.particle {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.6);
+    pointer-events: none;
+}
+
+/* Modern divider */
+.divider {
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.3), transparent);
+}
+
+/* Enhanced floating elements */
+.floating-element {
+    transition: all 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+    will-change: transform;
+    filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.15));
+    transform-style: preserve-3d;
+}
+
+/* Glowing effect for floating elements */
+.floating-element::after {
+    content: '';
+    position: absolute;
+    top: -10%;
+    left: -10%;
+    width: 120%;
+    height: 120%;
+    background: radial-gradient(circle, rgba(88, 101, 242, 0.3) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    z-index: -1;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.floating-element:hover::after {
+    opacity: 0.8;
+}
+
+/* Enhanced animations for floating elements */
+@keyframes float-enhanced {
+    0% { transform: translateY(0) rotate(0deg) scale(1); }
+    25% { transform: translateY(-15px) rotate(3deg) scale(1.02); }
+    50% { transform: translateY(-25px) rotate(-2deg) scale(1.05); }
+    75% { transform: translateY(-10px) rotate(1deg) scale(1.02); }
+    100% { transform: translateY(0) rotate(0deg) scale(1); }
+}
+
+@keyframes spin-enhanced {
+    0% { transform: rotate(0deg) translateY(0) scale(1); }
+    25% { transform: rotate(90deg) translateY(-15px) scale(1.05); }
+    50% { transform: rotate(180deg) translateY(-20px) scale(1.1); }
+    75% { transform: rotate(270deg) translateY(-10px) scale(1.05); }
+    100% { transform: rotate(360deg) translateY(0) scale(1); }
+}
+
+/* Specific element styling for more distinct visuals */
+.floating-egg {
+    filter: drop-shadow(0 0 15px rgba(87, 242, 135, 0.5));
+}
+
+.floating-logo {
+    filter: drop-shadow(0 0 15px rgba(88, 101, 242, 0.6));
+}
+
+.floating-cat {
+    filter: drop-shadow(0 0 15px rgba(235, 69, 158, 0.4));
+}
+
+.floating-leaf {
+    filter: drop-shadow(0 0 15px rgba(254, 231, 92, 0.4));
+}
+
+.floating-trophy {
+    filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.5));
+}
+
+/* Ensure floating elements don't block text */
+.floating-layer {
+    z-index: 8;
+}
+
+.hero-content {
+    position: relative;
+    z-index: 10;
+}
+
+/* Revised z-index layering system */
+.hero-glass-container {
+    position: relative;
+    z-index: 5;
+}
+
+.hero-text-content {
+    position: relative;
+    z-index: 15;
+}
+
+/* Text scramble animation effect */
+.scramble-text {
+    position: relative;
+}
+
+.char.scrambled {
+    animation: textScramble 0.8s ease forwards;
+}
+
+@keyframes textScramble {
+    0% {
+        color: white;
+        text-shadow: 0 0 5px #5865F2;
+    }
+    20% {
+        color: #5865F2;
+        text-shadow: 0 0 10px #5865F2;
+        transform: translateY(-5px);
+    }
+    40% {
+        color: white;
+        text-shadow: 0 0 15px #5865F2;
+    }
+    100% {
+        color: white;
+        text-shadow: 0 0 10px rgba(88, 101, 242, 0.8), 
+                     0 0 20px rgba(88, 101, 242, 0.5), 
+                     0 0 30px rgba(88, 101, 242, 0.3);
+    }
+}
