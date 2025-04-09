@@ -1,4 +1,9 @@
 <?php
+// Ensure helper functions are included
+if (!function_exists('asset')) {
+    require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
+}
+
 // Set variables for main-app layout
 $page_title = 'MiscVord - Your Place to Talk and Hang Out';
 $page_css = 'landing-page';
@@ -13,6 +18,10 @@ $additional_head = '
         --background-image-url: url(\'' . asset('landing-page/background.png') . '\');
     }
 </style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@8/swiper-bundle.min.css">
+<script src="https://cdn.jsdelivr.net/npm/swiper@8/swiper-bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.4/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.4/ScrollTrigger.min.js"></script>
 ';
 
 // Start output buffering to capture content for the layout
@@ -39,7 +48,7 @@ ob_start();
             </div>
             
             <!-- Mobile menu button -->
-            <button class="md:hidden text-white">
+            <button class="md:hidden text-white mobile-menu-toggle">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
                 </svg>
@@ -49,6 +58,23 @@ ob_start();
             <a href="#" class="hidden md:block bg-white bg-opacity-10 backdrop-blur-sm text-white font-medium px-6 py-2 rounded-full hover:bg-opacity-20 transition-all duration-300 transform hover:-translate-y-1">Login</a>
         </div>
     </nav>
+    
+    <!-- Mobile navigation menu overlay -->
+    <div class="mobile-menu fixed inset-0 bg-discord-dark bg-opacity-95 z-40 hidden flex-col items-center justify-center">
+        <button class="absolute top-6 right-6 text-white mobile-menu-close">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </button>
+        <div class="flex flex-col items-center space-y-6 text-2xl">
+            <a href="#" class="text-white hover:text-discord-blue transition-all duration-300">Download</a>
+            <a href="#" class="text-white hover:text-discord-blue transition-all duration-300">Nitro</a>
+            <a href="#" class="text-white hover:text-discord-blue transition-all duration-300">Discover</a>
+            <a href="#" class="text-white hover:text-discord-blue transition-all duration-300">Safety</a>
+            <a href="#" class="text-white hover:text-discord-blue transition-all duration-300">Support</a>
+            <a href="#" class="mt-6 bg-discord-blue bg-opacity-70 text-white font-medium px-8 py-3 rounded-full">Login</a>
+        </div>
+    </div>
     
     <!-- Hero content with transparent glass effect and improved z-index layering -->
     <div class="flex-1 flex items-center justify-center px-6 md:px-10 py-24">
@@ -61,7 +87,7 @@ ob_start();
                 <!-- Scramble text animation for title with fixed implementation -->
                 <h1 class="text-4xl md:text-6xl lg:text-7xl font-extrabold mb-6 tracking-wide hero-title neon-text scramble-text" id="heroTitle">IMAGINE A PLACE...</h1>
                 
-                <p class="text-lg md:text-xl max-w-3xl mx-auto mb-8 text-gray-200">
+                <p class="text-lg md:text-xl max-w-3xl mx-auto mb-8 text-gray-200 hero-text">
                     ...where you can belong to a school club, a gaming group, or a worldwide art community. 
                     Where just you and a handful of friends can spend time together. A place that makes it easy 
                     to talk every day and hang out more often.
@@ -113,6 +139,85 @@ ob_start();
 <main class="container mx-auto px-4 py-16 space-y-32">
     <!-- Feature sections from component files -->
     <?php include_once dirname(__DIR__) . '/components/landing-sections/section-1.php'; ?>
+    
+    <!-- Interactive 3D Carousel Section -->
+    <section class="py-16 feature-section carousel-section">
+        <h2 class="text-3xl md:text-5xl font-bold mb-10 text-center section-title">Discover MiscVord Features</h2>
+        
+        <div class="swiper-container feature-carousel">
+            <div class="swiper-wrapper">
+                <!-- Carousel Item 1 -->
+                <div class="swiper-slide">
+                    <div class="carousel-card glass-card">
+                        <div class="card-icon bg-discord-blue bg-opacity-20">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
+                            </svg>
+                        </div>
+                        <h3 class="card-title">Text Chat</h3>
+                        <p class="card-description">Send messages, share files, and stay connected with your community.</p>
+                        <div class="card-image-container">
+                            <img src="<?php echo asset('/landing-page/feature-chat.webp'); ?>" alt="Text Chat Feature" class="card-image">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Carousel Item 2 -->
+                <div class="swiper-slide">
+                    <div class="carousel-card glass-card">
+                        <div class="card-icon bg-discord-green bg-opacity-20">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                            </svg>
+                        </div>
+                        <h3 class="card-title">Voice Chat</h3>
+                        <p class="card-description">High quality, low-latency voice calls for seamless conversations.</p>
+                        <div class="card-image-container">
+                            <img src="<?php echo asset('/landing-page/feature-voice.webp'); ?>" alt="Voice Chat Feature" class="card-image">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Carousel Item 3 -->
+                <div class="swiper-slide">
+                    <div class="carousel-card glass-card">
+                        <div class="card-icon bg-discord-pink bg-opacity-20">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                        </div>
+                        <h3 class="card-title">Video Calls</h3>
+                        <p class="card-description">Face-to-face meetings with crystal clear video quality.</p>
+                        <div class="card-image-container">
+                            <img src="<?php echo asset('/landing-page/feature-video.webp'); ?>" alt="Video Call Feature" class="card-image">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Carousel Item 4 -->
+                <div class="swiper-slide">
+                    <div class="carousel-card glass-card">
+                        <div class="card-icon bg-discord-yellow bg-opacity-20">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <h3 class="card-title">Nitro Boost</h3>
+                        <p class="card-description">Level up your experience with premium features and perks.</p>
+                        <div class="card-image-container">
+                            <img src="<?php echo asset('/landing-page/feature-nitro.webp'); ?>" alt="Nitro Boost Feature" class="card-image">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Navigation controls -->
+            <div class="swiper-pagination"></div>
+            <div class="swiper-button-prev"></div>
+            <div class="swiper-button-next"></div>
+        </div>
+    </section>
+    
     <?php include_once dirname(__DIR__) . '/components/landing-sections/section-3.php'; ?>
     <?php include_once dirname(__DIR__) . '/components/landing-sections/section-2.php'; ?>
 
@@ -131,6 +236,78 @@ ob_start();
             <div class="modern-image">
                 <img src="<?php echo asset('/landing-page/computer.webp'); ?>" alt="Screen share" class="w-full h-auto">
             </div>
+        </div>
+    </section>
+    
+    <!-- Interactive User Testimonials Carousel -->
+    <section class="py-16 feature-section testimonial-section">
+        <h2 class="text-3xl md:text-5xl font-bold mb-10 text-center section-title">What Our Users Say</h2>
+        
+        <div class="swiper-container testimonial-carousel">
+            <div class="swiper-wrapper">
+                <!-- Testimonial 1 -->
+                <div class="swiper-slide">
+                    <div class="testimonial-card">
+                        <div class="user-avatar">
+                            <img src="<?php echo asset('/landing-page/avatar-1.webp'); ?>" alt="User Avatar" class="rounded-full">
+                        </div>
+                        <div class="testimonial-content">
+                            <div class="quote-icon">❝</div>
+                            <p class="testimonial-text">MiscVord completely transformed how our gaming group stays connected. The voice quality is amazing and the screen sharing feature is flawless!</p>
+                            <div class="user-info">
+                                <h4 class="user-name">Alex Johnson</h4>
+                                <p class="user-title">Gaming Community Leader</p>
+                                <div class="rating">
+                                    <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Testimonial 2 -->
+                <div class="swiper-slide">
+                    <div class="testimonial-card">
+                        <div class="user-avatar">
+                            <img src="<?php echo asset('/landing-page/avatar-2.webp'); ?>" alt="User Avatar" class="rounded-full">
+                        </div>
+                        <div class="testimonial-content">
+                            <div class="quote-icon">❝</div>
+                            <p class="testimonial-text">As a digital artist, I love how MiscVord makes it easy to share my work and collaborate with other artists in real-time. The community features are unmatched!</p>
+                            <div class="user-info">
+                                <h4 class="user-name">Sarah Chen</h4>
+                                <p class="user-title">Digital Artist</p>
+                                <div class="rating">
+                                    <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Testimonial 3 -->
+                <div class="swiper-slide">
+                    <div class="testimonial-card">
+                        <div class="user-avatar">
+                            <img src="<?php echo asset('/landing-page/avatar-3.webp'); ?>" alt="User Avatar" class="rounded-full">
+                        </div>
+                        <div class="testimonial-content">
+                            <div class="quote-icon">❝</div>
+                            <p class="testimonial-text">Our study group relies on MiscVord for everything from quick questions to full-on virtual study sessions. The organization tools are perfect for keeping topics separate!</p>
+                            <div class="user-info">
+                                <h4 class="user-name">Michael Torres</h4>
+                                <p class="user-title">Student</p>
+                                <div class="rating">
+                                    <span>★</span><span>★</span><span>★</span><span>★</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Custom scrollbar pagination -->
+            <div class="testimonial-scrollbar"></div>
         </div>
     </section>
 
@@ -167,6 +344,81 @@ ob_start();
                     </button>
                 </div>
             </div>
+        </div>
+    </section>
+
+    <!-- Interactive circular carousel at the bottom of the page before footer -->
+    <section class="py-16 relative overflow-hidden">
+        <h2 class="text-3xl md:text-5xl font-bold mb-10 text-center section-title">More to Explore</h2>
+        
+        <div class="max-w-6xl mx-auto relative">
+            <!-- 3D Circular Carousel -->
+            <div class="swiper-container circular-carousel">
+                <div class="swiper-wrapper">
+                    <!-- Circular Item 1 -->
+                    <div class="swiper-slide">
+                        <div class="circular-item animate-morph">
+                            <img src="<?php echo asset('/landing-page/circular-1.webp'); ?>" alt="Community" class="circular-image">
+                            <div class="circular-content">
+                                <h3>Join Communities</h3>
+                                <p>Find your people in thousands of diverse communities</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Circular Item 2 -->
+                    <div class="swiper-slide">
+                        <div class="circular-item animate-morph">
+                            <img src="<?php echo asset('/landing-page/circular-2.webp'); ?>" alt="Voice Channels" class="circular-image">
+                            <div class="circular-content">
+                                <h3>Voice Channels</h3>
+                                <p>Hang out together with high-quality audio</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Circular Item 3 -->
+                    <div class="swiper-slide">
+                        <div class="circular-item animate-morph">
+                            <img src="<?php echo asset('/landing-page/circular-3.webp'); ?>" alt="Screen Share" class="circular-image">
+                            <div class="circular-content">
+                                <h3>Screen Share</h3>
+                                <p>Stream your gameplay or collaborate on projects</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Circular Item 4 -->
+                    <div class="swiper-slide">
+                        <div class="circular-item animate-morph">
+                            <img src="<?php echo asset('/landing-page/circular-4.webp'); ?>" alt="Roles" class="circular-image">
+                            <div class="circular-content">
+                                <h3>Custom Roles</h3>
+                                <p>Organize your server with customized member roles</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Circular Item 5 -->
+                    <div class="swiper-slide">
+                        <div class="circular-item animate-morph">
+                            <img src="<?php echo asset('/landing-page/circular-5.webp'); ?>" alt="Bots" class="circular-image">
+                            <div class="circular-content">
+                                <h3>Helpful Bots</h3>
+                                <p>Enhance your server with powerful automation</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Custom pagination with progress indicators -->
+            <div class="circular-pagination flex justify-center mt-8 space-x-2"></div>
+        </div>
+        
+        <!-- Floating bubbles background -->
+        <div class="absolute inset-0 -z-10 bubbles-container overflow-hidden pointer-events-none">
+            <!-- Bubbles will be generated by JS -->
         </div>
     </section>
 </main>

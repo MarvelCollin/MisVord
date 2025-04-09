@@ -1,76 +1,205 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize GSAP for advanced animations
-    gsap.registerPlugin(ScrollTrigger);
+    // Page loading animation
+    const pageLoader = document.createElement('div');
+    pageLoader.className = 'page-transition-overlay';
+    pageLoader.innerHTML = '<div class="page-loader"></div>';
+    document.body.appendChild(pageLoader);
     
-    // Hero animations
-    gsap.from(".hero-title", {
-        opacity: 0,
-        y: 50,
-        duration: 1,
-        ease: "power3.out"
-    });
+    setTimeout(() => {
+        pageLoader.style.opacity = '0';
+        setTimeout(() => {
+            pageLoader.remove();
+        }, 800);
+    }, 500);
     
-    gsap.from(".hero-text", {
-        opacity: 0,
-        y: 30,
-        duration: 1,
-        delay: 0.3,
-        ease: "power3.out"
-    });
-    
-    gsap.from(".hero-buttons", {
-        opacity: 0,
-        y: 30,
-        duration: 1,
-        delay: 0.6,
-        ease: "power3.out"
-    });
-    
-    // Feature section animations
-    gsap.utils.toArray(".feature-section").forEach((section, i) => {
-        // Staggered animation for alternating sections
-        const direction = i % 2 === 0 ? 1 : -1;
+    // Check if GSAP is available
+    if (typeof gsap !== 'undefined') {
+        // Initialize GSAP for advanced animations
+        if (typeof ScrollTrigger !== 'undefined') {
+            gsap.registerPlugin(ScrollTrigger);
+        }
         
-        // Content animation
-        gsap.from(section.querySelector(".feature-content"), {
-            scrollTrigger: {
+        // Hero animations with staggered appearance
+        const heroElements = [".hero-title", ".hero-text", ".hero-buttons"];
+        
+        gsap.set(heroElements, { opacity: 0, y: 50 });
+        
+        const heroTl = gsap.timeline({ defaults: { ease: "power3.out" } });
+        
+        heroTl.to(".hero-title", {
+            opacity: 1,
+            y: 0,
+            duration: 1.2
+        })
+        .to(".hero-text", {
+            opacity: 1,
+            y: 0,
+            duration: 1
+        }, "-=0.8")
+        .to(".hero-buttons", {
+            opacity: 1,
+            y: 0,
+            duration: 1,
+            stagger: 0.2
+        }, "-=0.6");
+        
+        // Feature section animations with better scroll triggers
+        gsap.utils.toArray(".feature-section").forEach((section, i) => {
+            // Staggered animation for alternating sections
+            const direction = i % 2 === 0 ? 1 : -1;
+            
+            // Set initial state
+            gsap.set(section.querySelector(".feature-content"), { 
+                opacity: 0, 
+                x: 50 * direction 
+            });
+            
+            if (section.querySelector(".feature-image")) {
+                gsap.set(section.querySelector(".feature-image"), { 
+                    opacity: 0, 
+                    x: -50 * direction 
+                });
+            }
+            
+            // Create scroll-triggered animations
+            ScrollTrigger.create({
                 trigger: section,
                 start: "top 75%",
-                toggleActions: "play none none none"
-            },
-            x: 50 * direction,
-            opacity: 0,
-            duration: 1,
-            ease: "power2.out"
+                onEnter: () => {
+                    // Content animation
+                    gsap.to(section.querySelector(".feature-content"), {
+                        x: 0,
+                        opacity: 1,
+                        duration: 1.2,
+                        ease: "power2.out"
+                    });
+                    
+                    // Image animation with slight delay
+                    if (section.querySelector(".feature-image")) {
+                        gsap.to(section.querySelector(".feature-image"), {
+                            x: 0,
+                            opacity: 1,
+                            duration: 1.2,
+                            delay: 0.2,
+                            ease: "power2.out"
+                        });
+                    }
+                },
+                once: true
+            });
         });
         
-        // Image animation with slight delay
-        gsap.from(section.querySelector(".feature-image"), {
-            scrollTrigger: {
-                trigger: section,
-                start: "top 75%",
-                toggleActions: "play none none none"
-            },
-            x: -50 * direction,
-            opacity: 0,
-            duration: 1,
-            delay: 0.2,
-            ease: "power2.out"
+        // Journey section animation with enhanced entrance
+        if (document.querySelector(".journey-content")) {
+            ScrollTrigger.create({
+                trigger: ".journey-content",
+                start: "top 80%",
+                onEnter: () => {
+                    gsap.fromTo(".journey-content", 
+                        { opacity: 0, y: 50 },
+                        {
+                            opacity: 1,
+                            y: 0,
+                            duration: 1.2,
+                            ease: "power3.out"
+                        }
+                    );
+                    
+                    // Add particle burst animation to the wiggle gif
+                    if (document.querySelector('.journey-content img')) {
+                        createParticleBurst(document.querySelector('.journey-content img'));
+                    }
+                },
+                once: true
+            });
+        }
+    } else {
+        // Fallback animations for when GSAP is not available
+        document.querySelectorAll(".hero-title, .hero-text, .hero-buttons").forEach(el => {
+            el.style.opacity = "1";
         });
-    });
+    }
     
-    // Journey section animation
-    gsap.from(".journey-content", {
-        scrollTrigger: {
-            trigger: ".journey-content",
-            start: "top 80%",
-            toggleActions: "play none none none"
-        },
-        opacity: 0,
-        y: 50,
-        duration: 1,
-        ease: "power2.out"
-    });
+    // Initialize Swiper carousels
+    initCarousels();
+    
+    // Function to create particle burst animation
+    function createParticleBurst(element) {
+        if (!element || typeof gsap === 'undefined') return;
+        
+        const container = document.createElement('div');
+        container.className = 'particle-burst-container';
+        container.style.position = 'absolute';
+        container.style.top = '50%';
+        container.style.left = '50%';
+        container.style.transform = 'translate(-50%, -50%)';
+        container.style.width = '100%';
+        container.style.height = '100%';
+        container.style.pointerEvents = 'none';
+        container.style.zIndex = '5';
+        
+        element.parentNode.style.position = 'relative';
+        element.parentNode.appendChild(container);
+        
+        const particleCount = 20;
+        
+        for (let i = 0; i < particleCount; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'burst-particle';
+            particle.style.position = 'absolute';
+            particle.style.backgroundColor = getRandomColor();
+            particle.style.width = `${Math.random() * 10 + 5}px`;
+            particle.style.height = `${Math.random() * 10 + 5}px`;
+            particle.style.borderRadius = '50%';
+            particle.style.top = '50%';
+            particle.style.left = '50%';
+            particle.style.transform = 'translate(-50%, -50%)';
+            particle.style.opacity = '0';
+            
+            container.appendChild(particle);
+            
+            const angle = Math.random() * Math.PI * 2;
+            const distance = Math.random() * 100 + 50;
+            const duration = Math.random() * 1 + 0.8;
+            
+            gsap.to(particle, {
+                x: Math.cos(angle) * distance,
+                y: Math.sin(angle) * distance,
+                opacity: 1,
+                duration: duration / 3,
+                ease: "power2.out",
+                onComplete: () => {
+                    gsap.to(particle, {
+                        opacity: 0,
+                        duration: duration / 2,
+                        delay: duration / 3,
+                        ease: "power2.in",
+                        onComplete: () => {
+                            particle.remove();
+                        }
+                    });
+                }
+            });
+        }
+        
+        // Create pulsating effect for the element
+        gsap.timeline({ repeat: 1 })
+            .to(element, {
+                scale: 1.2,
+                duration: 0.5,
+                ease: "elastic.out(1, 0.5)"
+            })
+            .to(element, {
+                scale: 1,
+                duration: 0.5,
+                ease: "elastic.out(1, 0.5)"
+            });
+    }
+    
+    function getRandomColor() {
+        const colors = ['#5865F2', '#57F287', '#EB459E', '#FEE75C', '#FFFFFF'];
+        return colors[Math.floor(Math.random() * colors.length)];
+    }
     
     // Enhanced parallax scrolling effect with more active movement
     const floatingElements = document.querySelectorAll('.floating-element');
@@ -126,13 +255,10 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Add rotation based on scroll and direction for more dynamic movement
             const rotationAmount = (Math.sin(scrollTop * 0.001) * rotation) + 
-                                  (scrollDirection * scrollSpeed * 0.2 * rotation);
-            
-            // Add subtle scale effect based on scroll speed
-            const scaleAmount = 1 + (Math.min(scrollSpeed, 10) * 0.005 * speed);
+                                  (scrollDirection * Math.min(scrollSpeed, 5) * 0.2 * rotation);
             
             // Apply enhanced transformation with easing
-            element.style.transform = `translate3d(${xPos}px, ${yPos}px, 0) rotate(${rotationAmount}deg) scale(${scaleAmount})`;
+            element.style.transform = `translate3d(${xPos}px, ${yPos}px, 0) rotate(${rotationAmount}deg)`;
             
             // Update the trail position and opacity based on movement
             if (element.trail) {
@@ -148,48 +274,97 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Enhanced mouse interaction with 3D effect
-    document.addEventListener('mousemove', function(e) {
-        const mouseX = e.clientX;
-        const mouseY = e.clientY;
+    // Add scramble text animation for hero title
+    function initScrambleText() {
+        const heroTitle = document.getElementById('heroTitle');
+        if (!heroTitle) return;
         
-        floatingElements.forEach(element => {
-            const rect = element.getBoundingClientRect();
-            const centerX = rect.left + rect.width / 2;
-            const centerY = rect.top + rect.height / 2;
-            
-            // Calculate distance from mouse to element center
-            const distanceX = mouseX - centerX;
-            const distanceY = mouseY - centerY;
-            const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
-            
-            // Only affect elements within a certain range of the mouse
-            if (distance < 400) {
-                // Calculate movement based on distance (move away from mouse)
-                const moveX = distanceX * 0.05 * (1 - distance / 400);
-                const moveY = distanceY * 0.05 * (1 - distance / 400);
-                
-                // Add subtle 3D rotation effect
-                const rotateX = -moveY * 0.2;
-                const rotateY = moveX * 0.2;
-                
-                // Apply smooth movement transformation
-                gsap.to(element, {
-                    x: moveX,
-                    y: moveY,
-                    rotateX: rotateX,
-                    rotateY: rotateY,
-                    duration: 0.8,
-                    ease: "power2.out"
-                });
-            }
+        const originalText = heroTitle.textContent;
+        
+        // Clear the element
+        heroTitle.innerHTML = '';
+        
+        // Create individual character spans
+        originalText.split('').forEach(char => {
+            const span = document.createElement('span');
+            span.className = 'char';
+            span.textContent = char;
+            heroTitle.appendChild(span);
         });
-    });
+        
+        // Initial effect with each character being revealed one by one
+        const chars = heroTitle.querySelectorAll('.char');
+        chars.forEach((char, index) => {
+            // Initially hide all characters
+            char.style.opacity = '0';
+            
+            // Reveal characters one by one with delay
+            setTimeout(() => {
+                char.style.opacity = '1';
+                char.classList.add('scrambled');
+            }, 80 * index);
+        });
+        
+        // Periodic scramble effect
+        setInterval(() => {
+            // Get a random character
+            const randomIndex = Math.floor(Math.random() * chars.length);
+            if (chars[randomIndex].textContent !== ' ') {
+                scrambleCharacter(chars[randomIndex]);
+            }
+        }, 2000);
+    }
+    
+    // Scramble a single character
+    function scrambleCharacter(charElement) {
+        const originalChar = charElement.textContent;
+        const glitchChars = '!<>-_\\/[]{}—=+*^?#';
+        let iterations = 0;
+        
+        // Create glitch effect
+        const interval = setInterval(() => {
+            charElement.textContent = glitchChars[Math.floor(Math.random() * glitchChars.length)];
+            
+            iterations++;
+            if (iterations > 3) {
+                clearInterval(interval);
+                charElement.textContent = originalChar;
+                charElement.classList.add('scrambled');
+                
+                setTimeout(() => {
+                    charElement.classList.remove('scrambled');
+                }, 800);
+            }
+        }, 50);
+    }
+
+    // Mobile menu toggle functionality
+    const menuToggle = document.querySelector('.mobile-menu-toggle');
+    const menuClose = document.querySelector('.mobile-menu-close');
+    const mobileMenu = document.querySelector('.mobile-menu');
+    
+    if (menuToggle && menuClose && mobileMenu) {
+        menuToggle.addEventListener('click', () => {
+            mobileMenu.style.display = 'flex';
+            setTimeout(() => {
+                mobileMenu.classList.add('active');
+            }, 10);
+        });
+        
+        menuClose.addEventListener('click', () => {
+            mobileMenu.classList.remove('active');
+            setTimeout(() => {
+                mobileMenu.style.display = 'none';
+            }, 500);
+        });
+    }
     
     // Function to create enhanced floating particles
     function createEnhancedParticles() {
         const container = document.getElementById('particles-container');
-        const particleCount = 120; // More particles for a richer effect
+        if (!container) return;
+        
+        const particleCount = 50; // Reduced for better performance
         
         const particleTypes = [
             { 
@@ -264,70 +439,149 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    // Initialize all components
     createEnhancedParticles();
-    
-    // Add scramble text animation for hero title
-    function initScrambleText() {
-        const heroTitle = document.getElementById('heroTitle');
-        const originalText = heroTitle.textContent;
-        
-        // Clear the element
-        heroTitle.innerHTML = '';
-        
-        // Create individual character spans
-        originalText.split('').forEach(char => {
-            const span = document.createElement('span');
-            span.className = 'char';
-            span.textContent = char;
-            heroTitle.appendChild(span);
-        });
-        
-        // Initial effect with each character being revealed one by one
-        const chars = heroTitle.querySelectorAll('.char');
-        chars.forEach((char, index) => {
-            // Initially hide all characters
-            char.style.opacity = '0';
-            
-            // Reveal characters one by one with delay
-            setTimeout(() => {
-                char.style.opacity = '1';
-                char.classList.add('scrambled');
-            }, 80 * index);
-        });
-        
-        // Periodic scramble effect
-        setInterval(() => {
-            // Get a random character
-            const randomIndex = Math.floor(Math.random() * chars.length);
-            if (chars[randomIndex].textContent !== ' ') {
-                scrambleCharacter(chars[randomIndex]);
-            }
-        }, 2000);
-    }
-    
-    // Scramble a single character
-    function scrambleCharacter(charElement) {
-        const originalChar = charElement.textContent;
-        const glitchChars = '!<>-_\\/[]{}—=+*^?#';
-        let iterations = 0;
-        
-        // Create glitch effect
-        const interval = setInterval(() => {
-            charElement.textContent = glitchChars[Math.floor(Math.random() * glitchChars.length)];
-            
-            iterations++;
-            if (iterations > 3) {
-                clearInterval(interval);
-                charElement.textContent = originalChar;
-                charElement.classList.add('scrambled');
-                
-                setTimeout(() => {
-                    charElement.classList.remove('scrambled');
-                }, 800);
-            }
-        }, 50);
-    }
-    
-    // Initialize the fixed scramble text animation
     initScrambleText();
 });
+
+// Initialize the carousels separately to ensure Swiper is loaded
+function initCarousels() {
+    if (typeof Swiper === 'undefined') {
+        console.warn('Swiper is not loaded. Carousels will not be initialized.');
+        return;
+    }
+
+    // Feature carousel with 3D effect
+    if (document.querySelector('.feature-carousel')) {
+        const featureCarousel = new Swiper('.feature-carousel', {
+            effect: 'coverflow',
+            grabCursor: true,
+            centeredSlides: true,
+            slidesPerView: 'auto',
+            coverflowEffect: {
+                rotate: 20,
+                stretch: 0,
+                depth: 200,
+                modifier: 1,
+                slideShadows: true
+            },
+            loop: true,
+            autoplay: {
+                delay: 5000,
+                disableOnInteraction: false,
+                pauseOnMouseEnter: true
+            },
+            pagination: {
+                el: '.swiper-pagination',
+                clickable: true,
+                dynamicBullets: true
+            },
+            navigation: {
+                nextEl: '.swiper-button-next',
+                prevEl: '.swiper-button-prev'
+            },
+            breakpoints: {
+                320: {
+                    slidesPerView: 1,
+                    spaceBetween: 20
+                },
+                640: {
+                    slidesPerView: 2,
+                    spaceBetween: 30
+                },
+                1024: {
+                    slidesPerView: 'auto',
+                    spaceBetween: 40
+                }
+            }
+        });
+
+        // Add slide change animation if GSAP is available
+        if (typeof gsap !== 'undefined') {
+            featureCarousel.on('slideChange', function() {
+                const activeSlide = this.slides[this.activeIndex];
+                if (!activeSlide) return;
+                
+                const icon = activeSlide.querySelector('.card-icon');
+                const title = activeSlide.querySelector('.card-title');
+                const description = activeSlide.querySelector('.card-description');
+                const image = activeSlide.querySelector('.card-image-container');
+                
+                if (icon && title && description && image) {
+                    gsap.fromTo([icon, title, description, image], 
+                        { 
+                            opacity: 0.6, 
+                            y: 20, 
+                            scale: 0.95 
+                        }, 
+                        { 
+                            opacity: 1, 
+                            y: 0, 
+                            scale: 1, 
+                            duration: 0.6, 
+                            stagger: 0.1, 
+                            ease: "power2.out"
+                        }
+                    );
+                }
+            });
+        }
+    }
+    
+    // Testimonial carousel with smooth scrolling effect
+    if (document.querySelector('.testimonial-carousel')) {
+        const testimonialCarousel = new Swiper('.testimonial-carousel', {
+            slidesPerView: 1,
+            spaceBetween: 30,
+            grabCursor: true,
+            loop: true,
+            autoplay: {
+                delay: 6000,
+                disableOnInteraction: false
+            },
+            scrollbar: {
+                el: '.testimonial-scrollbar',
+                draggable: true,
+            },
+            breakpoints: {
+                768: {
+                    slidesPerView: 2,
+                    spaceBetween: 30
+                },
+                1024: {
+                    slidesPerView: 3,
+                    spaceBetween: 40
+                }
+            }
+        });
+
+        // Add slide change animation if GSAP is available
+        if (typeof gsap !== 'undefined') {
+            testimonialCarousel.on('slideChange', function() {
+                const activeSlides = document.querySelectorAll('.swiper-slide-active, .swiper-slide-next, .swiper-slide-next + .swiper-slide');
+                
+                activeSlides.forEach(slide => {
+                    if (!slide) return;
+                    
+                    // Animate testimonial content
+                    const avatar = slide.querySelector('.user-avatar');
+                    const content = slide.querySelector('.testimonial-content');
+                    
+                    if (avatar) {
+                        gsap.fromTo(avatar, 
+                            { scale: 0.8, opacity: 0.6 }, 
+                            { scale: 1, opacity: 1, duration: 0.8, ease: "elastic.out(1, 0.5)" }
+                        );
+                    }
+                    
+                    if (content) {
+                        gsap.fromTo(content, 
+                            { x: 20, opacity: 0.6 }, 
+                            { x: 0, opacity: 1, duration: 0.6, ease: "power2.out" }
+                        );
+                    }
+                });
+            });
+        }
+    }
+}
