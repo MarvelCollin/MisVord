@@ -994,3 +994,383 @@ body {
     bottom: -15px;
     border-color: rgba(88, 101, 242, 0.3);
 }
+
+/* Modern Interactive Carousel Additional Styles */
+
+/* Stats dashboard styles */
+.stats-dashboard {
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.stats-header {
+    font-weight: bold;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stats-metrics {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+}
+
+.metric {
+    text-align: center;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    min-width: 80px;
+}
+
+.metric-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 0.25rem;
+}
+
+.metric-label {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 0.5rem;
+}
+
+.metric-growth {
+    font-size: 0.8rem;
+    font-weight: bold;
+    padding: 2px 6px;
+    border-radius: 10px;
+}
+
+.metric-growth.positive {
+    background: rgba(87, 242, 135, 0.2);
+    color: #57F287;
+}
+
+.metric-growth.negative {
+    background: rgba(237, 66, 69, 0.2);
+    color: #ED4245;
+}
+
+.stats-chart {
+    flex-grow: 1;
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    height: 120px;
+    margin-top: auto;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.chart-bar {
+    flex-grow: 1;
+    height: var(--growth);
+    background: rgba(88, 101, 242, 0.5);
+    border-radius: 4px 4px 0 0;
+    position: relative;
+    transition: height 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+    opacity: 0.7;
+    transform: scaleY(0);
+    transform-origin: bottom;
+}
+
+.chart-bar.animate {
+    transform: scaleY(1);
+}
+
+.chart-bar.active {
+    background: rgba(88, 101, 242, 0.8);
+    opacity: 1;
+}
+
+.chart-bar.highlight {
+    background: #57F287;
+    opacity: 1;
+}
+
+.chart-bar::before {
+    content: '';
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: white;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.chart-bar:hover::before {
+    opacity: 1;
+}
+
+/* Card 3D effects and animations */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(-100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes bounce-right {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    50% {
+        transform: translateX(5px);
+    }
+}
+
+@keyframes fade-in-up {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-in-up {
+    animation: fade-in-up 1s forwards;
+}
+
+.animate-bounce-right {
+    animation: bounce-right 1s infinite;
+}
+
+.animate-fade-in {
+    animation: fadeIn 1s forwards;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes pulse-slow {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+.animate-pulse-slow {
+    animation: pulse-slow 3s infinite ease-in-out;
+}
+
+/* Layer animations for 3D cards */
+.feature-highlight {
+    position: relative;
+    min-height: 300px;
+    perspective: 1000px;
+}
+
+.highlight-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.highlight-card {
+    position: relative;
+    width: 100%;
+    max-width: 600px;
+    height: 250px;
+    transform-style: preserve-3d;
+    perspective: 1000px;
+    padding: 2rem;
+}
+
+.card-3d-layer {
+    position: absolute;
+    inset: 0;
+    border-radius: 20px;
+    transform-style: preserve-3d;
+}
+
+.layer-1 {
+    background: rgba(35, 39, 42, 0.3);
+    transform: translateZ(-20px);
+    filter: blur(2px);
+}
+
+.layer-2 {
+    background: rgba(35, 39, 42, 0.6);
+    transform: translateZ(-10px);
+    width: 95%;
+    height: 95%;
+    margin: auto;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    filter: blur(1px);
+}
+
+.layer-3 {
+    background: rgba(35, 39, 42, 0.9);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    width: 90%;
+    height: 90%;
+    margin: auto;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
+
+.highlight-content {
+    position: relative;
+    z-index: 1;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 2rem;
+}
+
+.highlight-icons {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.highlight-icon {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.highlight-icon:hover {
+    background: rgba(88, 101, 242, 0.2);
+    transform: scale(1.1);
+}
+
+.connector {
+    height: 2px;
+    width: 40px;
+    background: linear-gradient(to right, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.1));
+}
+
+.particles-container {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    z-index: -1;
+}
+
+.particle {
+    position: absolute;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0));
+    border-radius: 50%;
+    animation: particle-float 8s infinite ease-in-out;
+}
+
+@keyframes particle-float {
+    0%, 100% {
+        transform: translate(0, 0);
+    }
+    50% {
+        transform: translate(20px, -20px);
+    }
+}
+
+/* Modern mobile responsive styles */
+@media (max-width: 768px) {
+    .feature-card {
+        height: auto;
+    }
+
+    .card-content {
+        height: auto;
+        min-height: 350px;
+    }
+
+    .stats-metrics {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .highlight-card {
+        height: auto;
+        padding: 1rem;
+    }
+
+    .highlight-icons {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .connector {
+        width: 2px;
+        height: 20px;
+    }
+
+    .card-front, .card-back {
+        padding: 1.5rem 1rem;
+    }
+}
+
+/* Discord custom colors */
+.bg-discord-purple {
+    background-color: #7C4EFF;
+}
+
+.bg-discord-cyan {
+    background-color: #00C6E0;
+}
+
+.bg-discord-red {
+    background-color: #ED4245;
+}
+
+.purple-glow {
+    background-color: rgba(124, 78, 255, 0.6);
+}
+
+.cyan-glow {
+    background-color: rgba(0, 198, 224, 0.6);
+}
+
+.red-glow {
+    background-color: rgba(237, 66, 69, 0.6);
+}

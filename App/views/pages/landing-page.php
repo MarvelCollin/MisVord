@@ -140,83 +140,8 @@ ob_start();
     <!-- Feature sections from component files -->
     <?php include_once dirname(__DIR__) . '/components/landing-sections/section-1.php'; ?>
     
-    <!-- Interactive 3D Carousel Section -->
-    <section class="py-16 feature-section carousel-section">
-        <h2 class="text-3xl md:text-5xl font-bold mb-10 text-center section-title">Discover MiscVord Features</h2>
-        
-        <div class="swiper-container feature-carousel">
-            <div class="swiper-wrapper">
-                <!-- Carousel Item 1 -->
-                <div class="swiper-slide">
-                    <div class="carousel-card glass-card">
-                        <div class="card-icon bg-discord-blue bg-opacity-20">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
-                            </svg>
-                        </div>
-                        <h3 class="card-title">Text Chat</h3>
-                        <p class="card-description">Send messages, share files, and stay connected with your community.</p>
-                        <div class="card-image-container">
-                            <img src="<?php echo asset('/landing-page/feature-chat.webp'); ?>" alt="Text Chat Feature" class="card-image">
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Carousel Item 2 -->
-                <div class="swiper-slide">
-                    <div class="carousel-card glass-card">
-                        <div class="card-icon bg-discord-green bg-opacity-20">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                            </svg>
-                        </div>
-                        <h3 class="card-title">Voice Chat</h3>
-                        <p class="card-description">High quality, low-latency voice calls for seamless conversations.</p>
-                        <div class="card-image-container">
-                            <img src="<?php echo asset('/landing-page/feature-voice.webp'); ?>" alt="Voice Chat Feature" class="card-image">
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Carousel Item 3 -->
-                <div class="swiper-slide">
-                    <div class="carousel-card glass-card">
-                        <div class="card-icon bg-discord-pink bg-opacity-20">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                            </svg>
-                        </div>
-                        <h3 class="card-title">Video Calls</h3>
-                        <p class="card-description">Face-to-face meetings with crystal clear video quality.</p>
-                        <div class="card-image-container">
-                            <img src="<?php echo asset('/landing-page/feature-video.webp'); ?>" alt="Video Call Feature" class="card-image">
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Carousel Item 4 -->
-                <div class="swiper-slide">
-                    <div class="carousel-card glass-card">
-                        <div class="card-icon bg-discord-yellow bg-opacity-20">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                        </div>
-                        <h3 class="card-title">Nitro Boost</h3>
-                        <p class="card-description">Level up your experience with premium features and perks.</p>
-                        <div class="card-image-container">
-                            <img src="<?php echo asset('/landing-page/feature-nitro.webp'); ?>" alt="Nitro Boost Feature" class="card-image">
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Navigation controls -->
-            <div class="swiper-pagination"></div>
-            <div class="swiper-button-prev"></div>
-            <div class="swiper-button-next"></div>
-        </div>
-    </section>
+    <!-- Include the enhanced carousel component -->
+    <?php include_once dirname(__DIR__) . '/components/landing-sections/landing-carousel.php'; ?>
     
     <?php include_once dirname(__DIR__) . '/components/landing-sections/section-3.php'; ?>
     <?php include_once dirname(__DIR__) . '/components/landing-sections/section-2.php'; ?>

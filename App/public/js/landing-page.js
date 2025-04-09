@@ -1,587 +1,673 @@
-document.addEventListener('DOMContentLoaded', function() {
-    // Page loading animation
-    const pageLoader = document.createElement('div');
-    pageLoader.className = 'page-transition-overlay';
-    pageLoader.innerHTML = '<div class="page-loader"></div>';
-    document.body.appendChild(pageLoader);
-    
-    setTimeout(() => {
-        pageLoader.style.opacity = '0';
-        setTimeout(() => {
-            pageLoader.remove();
-        }, 800);
-    }, 500);
-    
-    // Check if GSAP is available
-    if (typeof gsap !== 'undefined') {
-        // Initialize GSAP for advanced animations
-        if (typeof ScrollTrigger !== 'undefined') {
-            gsap.registerPlugin(ScrollTrigger);
-        }
-        
-        // Hero animations with staggered appearance
-        const heroElements = [".hero-title", ".hero-text", ".hero-buttons"];
-        
-        gsap.set(heroElements, { opacity: 0, y: 50 });
-        
-        const heroTl = gsap.timeline({ defaults: { ease: "power3.out" } });
-        
-        heroTl.to(".hero-title", {
-            opacity: 1,
-            y: 0,
-            duration: 1.2
-        })
-        .to(".hero-text", {
-            opacity: 1,
-            y: 0,
-            duration: 1
-        }, "-=0.8")
-        .to(".hero-buttons", {
-            opacity: 1,
-            y: 0,
-            duration: 1,
-            stagger: 0.2
-        }, "-=0.6");
-        
-        // Feature section animations with better scroll triggers
-        gsap.utils.toArray(".feature-section").forEach((section, i) => {
-            // Staggered animation for alternating sections
-            const direction = i % 2 === 0 ? 1 : -1;
-            
-            // Set initial state
-            gsap.set(section.querySelector(".feature-content"), { 
-                opacity: 0, 
-                x: 50 * direction 
-            });
-            
-            if (section.querySelector(".feature-image")) {
-                gsap.set(section.querySelector(".feature-image"), { 
-                    opacity: 0, 
-                    x: -50 * direction 
-                });
-            }
-            
-            // Create scroll-triggered animations
-            ScrollTrigger.create({
-                trigger: section,
-                start: "top 75%",
-                onEnter: () => {
-                    // Content animation
-                    gsap.to(section.querySelector(".feature-content"), {
-                        x: 0,
-                        opacity: 1,
-                        duration: 1.2,
-                        ease: "power2.out"
-                    });
-                    
-                    // Image animation with slight delay
-                    if (section.querySelector(".feature-image")) {
-                        gsap.to(section.querySelector(".feature-image"), {
-                            x: 0,
-                            opacity: 1,
-                            duration: 1.2,
-                            delay: 0.2,
-                            ease: "power2.out"
-                        });
-                    }
-                },
-                once: true
-            });
-        });
-        
-        // Journey section animation with enhanced entrance
-        if (document.querySelector(".journey-content")) {
-            ScrollTrigger.create({
-                trigger: ".journey-content",
-                start: "top 80%",
-                onEnter: () => {
-                    gsap.fromTo(".journey-content", 
-                        { opacity: 0, y: 50 },
-                        {
-                            opacity: 1,
-                            y: 0,
-                            duration: 1.2,
-                            ease: "power3.out"
-                        }
-                    );
-                    
-                    // Add particle burst animation to the wiggle gif
-                    if (document.querySelector('.journey-content img')) {
-                        createParticleBurst(document.querySelector('.journey-content img'));
-                    }
-                },
-                once: true
-            });
-        }
-    } else {
-        // Fallback animations for when GSAP is not available
-        document.querySelectorAll(".hero-title, .hero-text, .hero-buttons").forEach(el => {
-            el.style.opacity = "1";
-        });
-    }
-    
-    // Initialize Swiper carousels
-    initCarousels();
-    
-    // Function to create particle burst animation
-    function createParticleBurst(element) {
-        if (!element || typeof gsap === 'undefined') return;
-        
-        const container = document.createElement('div');
-        container.className = 'particle-burst-container';
-        container.style.position = 'absolute';
-        container.style.top = '50%';
-        container.style.left = '50%';
-        container.style.transform = 'translate(-50%, -50%)';
-        container.style.width = '100%';
-        container.style.height = '100%';
-        container.style.pointerEvents = 'none';
-        container.style.zIndex = '5';
-        
-        element.parentNode.style.position = 'relative';
-        element.parentNode.appendChild(container);
-        
-        const particleCount = 20;
-        
-        for (let i = 0; i < particleCount; i++) {
-            const particle = document.createElement('div');
-            particle.className = 'burst-particle';
-            particle.style.position = 'absolute';
-            particle.style.backgroundColor = getRandomColor();
-            particle.style.width = `${Math.random() * 10 + 5}px`;
-            particle.style.height = `${Math.random() * 10 + 5}px`;
-            particle.style.borderRadius = '50%';
-            particle.style.top = '50%';
-            particle.style.left = '50%';
-            particle.style.transform = 'translate(-50%, -50%)';
-            particle.style.opacity = '0';
-            
-            container.appendChild(particle);
-            
-            const angle = Math.random() * Math.PI * 2;
-            const distance = Math.random() * 100 + 50;
-            const duration = Math.random() * 1 + 0.8;
-            
-            gsap.to(particle, {
-                x: Math.cos(angle) * distance,
-                y: Math.sin(angle) * distance,
-                opacity: 1,
-                duration: duration / 3,
-                ease: "power2.out",
-                onComplete: () => {
-                    gsap.to(particle, {
-                        opacity: 0,
-                        duration: duration / 2,
-                        delay: duration / 3,
-                        ease: "power2.in",
-                        onComplete: () => {
-                            particle.remove();
-                        }
-                    });
-                }
-            });
-        }
-        
-        // Create pulsating effect for the element
-        gsap.timeline({ repeat: 1 })
-            .to(element, {
-                scale: 1.2,
-                duration: 0.5,
-                ease: "elastic.out(1, 0.5)"
-            })
-            .to(element, {
-                scale: 1,
-                duration: 0.5,
-                ease: "elastic.out(1, 0.5)"
-            });
-    }
-    
-    function getRandomColor() {
-        const colors = ['#5865F2', '#57F287', '#EB459E', '#FEE75C', '#FFFFFF'];
-        return colors[Math.floor(Math.random() * colors.length)];
-    }
-    
-    // Enhanced parallax scrolling effect with more active movement
-    const floatingElements = document.querySelectorAll('.floating-element');
-    
-    // Create floating trails and setup enhanced effect
-    floatingElements.forEach(element => {
-        // Create trail effect
-        const trail = document.createElement('div');
-        trail.className = 'floating-trail';
-        element.parentNode.insertBefore(trail, element);
-        element.trail = trail;
-        
-        // Add random starting position offset for more natural movement
-        const randomOffset = (Math.random() - 0.5) * 20;
-        element.style.transform = `translate3d(${randomOffset}px, ${randomOffset}px, 0)`;
-    });
-    
-    // More active scroll handler with smoother animations
-    let lastScrollTop = 0;
-    let scrollDirection = 0;
-    let scrollSpeed = 0;
-    let ticking = false;
-    
-    window.addEventListener('scroll', function() {
-        const scrollTop = window.pageYOffset;
-        
-        // Calculate scroll direction and speed
-        scrollDirection = scrollTop > lastScrollTop ? 1 : -1;
-        scrollSpeed = Math.abs(scrollTop - lastScrollTop) * 0.1;
-        lastScrollTop = scrollTop;
-        
-        // Use requestAnimationFrame for smoother animations
-        if (!ticking) {
-            window.requestAnimationFrame(function() {
-                updateFloatingElements(scrollTop, scrollDirection, scrollSpeed);
-                ticking = false;
-            });
-            ticking = true;
-        }
-    });
-    
-    function updateFloatingElements(scrollTop, scrollDirection, scrollSpeed) {
-        floatingElements.forEach(element => {
-            const speed = parseFloat(element.getAttribute('data-speed')) || 0.3;
-            const rotation = parseFloat(element.getAttribute('data-rotation')) || 0;
-            const amplitude = parseFloat(element.getAttribute('data-amplitude')) || 20;
-            
-            // Calculate vertical movement based on scroll position with enhanced amplitude
-            const yPos = -(scrollTop * speed);
-            
-            // Add horizontal sway based on scroll with dynamic amplitude
-            const xPos = Math.sin(scrollTop * 0.002) * amplitude * speed;
-            
-            // Add rotation based on scroll and direction for more dynamic movement
-            const rotationAmount = (Math.sin(scrollTop * 0.001) * rotation) + 
-                                  (scrollDirection * Math.min(scrollSpeed, 5) * 0.2 * rotation);
-            
-            // Apply enhanced transformation with easing
-            element.style.transform = `translate3d(${xPos}px, ${yPos}px, 0) rotate(${rotationAmount}deg)`;
-            
-            // Update the trail position and opacity based on movement
-            if (element.trail) {
-                element.trail.style.width = element.offsetWidth * 1.5 + 'px';
-                element.trail.style.height = element.offsetHeight * 1.5 + 'px';
-                element.trail.style.left = element.offsetLeft - element.offsetWidth * 0.25 + 'px';
-                element.trail.style.top = element.offsetTop - element.offsetHeight * 0.25 + 'px';
-                
-                // Increase trail opacity based on scroll speed for more visible effect
-                const trailOpacity = Math.min((scrollSpeed * speed) / 10, 0.5);
-                element.trail.style.opacity = trailOpacity;
-            }
-        });
-    }
-    
-    // Add scramble text animation for hero title
-    function initScrambleText() {
-        const heroTitle = document.getElementById('heroTitle');
-        if (!heroTitle) return;
-        
-        const originalText = heroTitle.textContent;
-        
-        // Clear the element
-        heroTitle.innerHTML = '';
-        
-        // Create individual character spans
-        originalText.split('').forEach(char => {
-            const span = document.createElement('span');
-            span.className = 'char';
-            span.textContent = char;
-            heroTitle.appendChild(span);
-        });
-        
-        // Initial effect with each character being revealed one by one
-        const chars = heroTitle.querySelectorAll('.char');
-        chars.forEach((char, index) => {
-            // Initially hide all characters
-            char.style.opacity = '0';
-            
-            // Reveal characters one by one with delay
-            setTimeout(() => {
-                char.style.opacity = '1';
-                char.classList.add('scrambled');
-            }, 80 * index);
-        });
-        
-        // Periodic scramble effect
-        setInterval(() => {
-            // Get a random character
-            const randomIndex = Math.floor(Math.random() * chars.length);
-            if (chars[randomIndex].textContent !== ' ') {
-                scrambleCharacter(chars[randomIndex]);
-            }
-        }, 2000);
-    }
-    
-    // Scramble a single character
-    function scrambleCharacter(charElement) {
-        const originalChar = charElement.textContent;
-        const glitchChars = '!<>-_\\/[]{}—=+*^?#';
-        let iterations = 0;
-        
-        // Create glitch effect
-        const interval = setInterval(() => {
-            charElement.textContent = glitchChars[Math.floor(Math.random() * glitchChars.length)];
-            
-            iterations++;
-            if (iterations > 3) {
-                clearInterval(interval);
-                charElement.textContent = originalChar;
-                charElement.classList.add('scrambled');
-                
-                setTimeout(() => {
-                    charElement.classList.remove('scrambled');
-                }, 800);
-            }
-        }, 50);
-    }
+/**
+ * MiscVord Landing Page JavaScript
+ * Handles all interactive elements and animations for the landing page
+ */
 
-    // Mobile menu toggle functionality
-    const menuToggle = document.querySelector('.mobile-menu-toggle');
-    const menuClose = document.querySelector('.mobile-menu-close');
-    const mobileMenu = document.querySelector('.mobile-menu');
+// Wait for DOM to be fully loaded
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialize the feature carousel
+    initializeFeatureCarousel();
     
-    if (menuToggle && menuClose && mobileMenu) {
-        menuToggle.addEventListener('click', () => {
-            mobileMenu.style.display = 'flex';
-            setTimeout(() => {
-                mobileMenu.classList.add('active');
-            }, 10);
-        });
-        
-        menuClose.addEventListener('click', () => {
-            mobileMenu.classList.remove('active');
-            setTimeout(() => {
-                mobileMenu.style.display = 'none';
-            }, 500);
-        });
-    }
+    // Create dynamic background effects
+    createBackgroundEffects();
     
-    // Function to create enhanced floating particles
-    function createEnhancedParticles() {
-        const container = document.getElementById('particles-container');
-        if (!container) return;
-        
-        const particleCount = 50; // Reduced for better performance
-        
-        const particleTypes = [
-            { 
-                color: '#5865F2', 
-                size: [1, 3], 
-                speed: [15, 30], 
-                opacity: [0.1, 0.3],
-                glow: true
-            },
-            { 
-                color: '#57F287', 
-                size: [2, 4], 
-                speed: [20, 35], 
-                opacity: [0.1, 0.25],
-                glow: true
-            },
-            { 
-                color: '#EB459E', 
-                size: [1, 2.5], 
-                speed: [25, 40], 
-                opacity: [0.05, 0.2],
-                glow: true
-            },
-            { 
-                color: '#FEE75C', 
-                size: [0.5, 2], 
-                speed: [10, 25], 
-                opacity: [0.1, 0.3],
-                glow: true
-            },
-            { 
-                color: '#FFFFFF', 
-                size: [0.5, 3], 
-                speed: [15, 30], 
-                opacity: [0.05, 0.15],
-                glow: false
-            }
-        ];
-        
-        for (let i = 0; i < particleCount; i++) {
-            const typeIndex = Math.floor(Math.random() * particleTypes.length);
-            const type = particleTypes[typeIndex];
-            
-            const particle = document.createElement('div');
-            particle.className = 'particle';
-            
-            const posX = Math.random() * 100;
-            const posY = Math.random() * 100;
-            
-            const size = Math.random() * (type.size[1] - type.size[0]) + type.size[0];
-            const opacity = Math.random() * (type.opacity[1] - type.opacity[0]) + type.opacity[0];
-            
-            particle.style.left = posX + '%';
-            particle.style.top = posY + '%';
-            particle.style.width = size + 'px';
-            particle.style.height = size + 'px';
-            particle.style.opacity = opacity;
-            
-            if (type.glow) {
-                particle.style.background = type.color;
-                particle.style.boxShadow = `0 0 10px ${type.color}`;
-            } else {
-                particle.style.background = 'rgba(255, 255, 255, 0.6)';
-            }
-            
-            const duration = Math.random() * (type.speed[1] - type.speed[0]) + type.speed[0];
-            const delay = Math.random() * 15;
-            particle.style.animation = `float ${duration}s ease-in-out infinite`;
-            particle.style.animationDelay = `${delay}s`;
-            
-            container.appendChild(particle);
-        }
-    }
+    // Setup interactive elements
+    setupInteractions();
     
-    // Initialize all components
-    createEnhancedParticles();
-    initScrambleText();
+    // Initialize other carousels
+    initializeOtherCarousels();
+    
+    // Add text scramble effect to hero title
+    initTextScramble();
 });
 
-// Initialize the carousels separately to ensure Swiper is loaded
-function initCarousels() {
-    if (typeof Swiper === 'undefined') {
-        console.warn('Swiper is not loaded. Carousels will not be initialized.');
-        return;
-    }
+/**
+ * Initialize the main feature carousel with enhanced interactions
+ */
+function initializeFeatureCarousel() {
+    const track = document.querySelector('.carousel-track');
+    if (!track) return;
+    
+    const cards = document.querySelectorAll('.feature-card');
+    const indicators = document.querySelectorAll('.nav-indicators .indicator');
+    const prevBtn = document.querySelector('.prev-btn');
+    const nextBtn = document.querySelector('.next-btn');
+    let currentIndex = 0;
 
-    // Feature carousel with 3D effect
-    if (document.querySelector('.feature-carousel')) {
-        const featureCarousel = new Swiper('.feature-carousel', {
+    // Determine how many cards to show based on screen size
+    const cardsPerView = window.innerWidth > 768 ? 3 : 1;
+    const cardWidth = 100 / cardsPerView;
+    
+    // Set initial state
+    updateCarousel();
+    
+    // Add button event listeners
+    if (prevBtn && nextBtn) {
+        prevBtn.addEventListener('click', () => {
+            currentIndex = Math.max(0, currentIndex - 1);
+            updateCarousel();
+        });
+        
+        nextBtn.addEventListener('click', () => {
+            currentIndex = Math.min(cards.length - cardsPerView, currentIndex + 1);
+            updateCarousel();
+        });
+    }
+    
+    // Add indicator event listeners
+    indicators.forEach(indicator => {
+        indicator.addEventListener('click', () => {
+            currentIndex = parseInt(indicator.dataset.index || 0);
+            if (currentIndex > cards.length - cardsPerView) {
+                currentIndex = cards.length - cardsPerView;
+            }
+            updateCarousel();
+        });
+    });
+    
+    // Add keyboard navigation
+    document.addEventListener('keydown', e => {
+        if (e.key === 'ArrowLeft') {
+            currentIndex = Math.max(0, currentIndex - 1);
+            updateCarousel();
+        } else if (e.key === 'ArrowRight') {
+            currentIndex = Math.min(cards.length - cardsPerView, currentIndex + 1);
+            updateCarousel();
+        }
+    });
+    
+    // Update carousel position and active states
+    function updateCarousel() {
+        if (!track) return;
+        track.style.transform = `translateX(-${currentIndex * cardWidth}%)`;
+        
+        // Update indicators
+        indicators.forEach((indicator, index) => {
+            if (index === currentIndex) {
+                indicator.classList.add('active');
+            } else {
+                indicator.classList.remove('active');
+            }
+        });
+        
+        // Update button states
+        if (prevBtn) prevBtn.disabled = currentIndex === 0;
+        if (nextBtn) nextBtn.disabled = currentIndex >= cards.length - cardsPerView;
+        
+        // Add active class to visible cards for animations
+        cards.forEach((card, index) => {
+            if (index >= currentIndex && index < currentIndex + cardsPerView) {
+                card.classList.add('visible');
+                // Trigger feature-specific animations when card becomes visible
+                setupFeatureSpecificAnimations(card);
+            } else {
+                card.classList.remove('visible');
+            }
+        });
+    }
+    
+    // Setup expand/collapse for each card
+    cards.forEach(card => {
+        const expandBtn = card.querySelector('.card-expand-btn');
+        const collapseBtn = card.querySelector('.card-collapse-btn');
+        
+        if (expandBtn) {
+            expandBtn.addEventListener('click', () => {
+                cards.forEach(c => c.classList.remove('expanded'));
+                card.classList.add('expanded');
+            });
+        }
+        
+        if (collapseBtn) {
+            collapseBtn.addEventListener('click', () => {
+                card.classList.remove('expanded');
+            });
+        }
+        
+        // Add hover 3D effect
+        card.addEventListener('mousemove', e => {
+            if (card.classList.contains('expanded')) return;
+            
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            
+            const angleX = (y - centerY) / 20;
+            const angleY = (centerX - x) / 20;
+            
+            const cardContent = card.querySelector('.card-content');
+            if (cardContent) {
+                cardContent.style.transform = 
+                    `perspective(1000px) rotateX(${angleX}deg) rotateY(${angleY}deg)`;
+            }
+        });
+        
+        card.addEventListener('mouseleave', () => {
+            if (card.classList.contains('expanded')) return;
+            const cardContent = card.querySelector('.card-content');
+            if (cardContent) {
+                cardContent.style.transform = 
+                    'perspective(1000px) rotateX(0) rotateY(0)';
+            }
+        });
+    });
+    
+    // Add auto rotation if desired
+    let autoRotationInterval;
+    
+    function startAutoRotation() {
+        autoRotationInterval = setInterval(() => {
+            if (currentIndex < cards.length - cardsPerView) {
+                currentIndex++;
+                updateCarousel();
+            } else {
+                currentIndex = 0;
+                updateCarousel();
+            }
+        }, 5000);
+    }
+    
+    function stopAutoRotation() {
+        clearInterval(autoRotationInterval);
+    }
+    
+    // Uncomment to enable auto rotation
+    // startAutoRotation();
+    
+    // Stop rotation on hover or touch
+    const carouselSection = document.querySelector('.carousel-section');
+    if (carouselSection) {
+        carouselSection.addEventListener('mouseenter', stopAutoRotation);
+        carouselSection.addEventListener('mouseleave', startAutoRotation);
+        carouselSection.addEventListener('touchstart', stopAutoRotation, { passive: true });
+    }
+    
+    // Handle window resize
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+            const newCardsPerView = window.innerWidth > 768 ? 3 : 1;
+            if (cardsPerView !== newCardsPerView) {
+                location.reload();
+            }
+        }, 250);
+    });
+}
+
+/**
+ * Creates background effects for the carousel section
+ */
+function createBackgroundEffects() {
+    // Create animated orbs in background
+    animateBackgroundOrbs();
+    
+    // Create particles for feature highlight section
+    createParticles();
+}
+
+/**
+ * Animates background orbs with parallax effect
+ */
+function animateBackgroundOrbs() {
+    const orbs = document.querySelectorAll('.gradient-orb');
+    
+    window.addEventListener('mousemove', e => {
+        const mouseX = e.clientX / window.innerWidth;
+        const mouseY = e.clientY / window.innerHeight;
+        
+        orbs.forEach((orb, index) => {
+            const speed = 0.05 + (index * 0.01);
+            const x = (mouseX - 0.5) * speed * 100;
+            const y = (mouseY - 0.5) * speed * 100;
+            
+            orb.style.transform = `translate(${x}px, ${y}px)`;
+        });
+    });
+}
+
+/**
+ * Creates particles for feature highlight section
+ */
+function createParticles() {
+    const container = document.querySelector('.particles-container');
+    if (!container) return;
+    
+    const particleCount = Math.min(30, Math.floor(window.innerWidth / 30));
+    
+    for (let i = 0; i < particleCount; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        
+        // Random size, position and animation delay
+        const size = Math.random() * 5 + 2;
+        particle.style.width = `${size}px`;
+        particle.style.height = `${size}px`;
+        particle.style.left = `${Math.random() * 100}%`;
+        particle.style.top = `${Math.random() * 100}%`;
+        particle.style.animationDelay = `${Math.random() * 5}s`;
+        particle.style.opacity = Math.random() * 0.5 + 0.1;
+        
+        container.appendChild(particle);
+    }
+}
+
+/**
+ * Sets up feature-specific animations for each card
+ */
+function setupFeatureSpecificAnimations(card) {
+    if (!card || !card.dataset.feature) return;
+    
+    const feature = card.dataset.feature;
+    
+    // Clear existing animations/intervals
+    if (card.animationInterval) {
+        clearInterval(card.animationInterval);
+    }
+    
+    switch(feature) {
+        case 'chat':
+            // Typing animation for chat messages
+            const messages = card.querySelectorAll('.chat-message');
+            messages.forEach((msg, index) => {
+                if (msg.classList.contains('incoming')) {
+                    setTimeout(() => {
+                        simulateTyping(msg.querySelector('.message-text'));
+                    }, index * 1000);
+                }
+            });
+            break;
+            
+        case 'voice':
+            // Animate audio wave for speaking users
+            const audioWaves = card.querySelectorAll('.audio-waves');
+            audioWaves.forEach(wave => {
+                if (!wave.parentElement.classList.contains('speaking')) {
+                    return;
+                }
+                
+                // Randomly activate/deactivate waves to simulate speech
+                card.animationInterval = setInterval(() => {
+                    const spans = wave.querySelectorAll('span');
+                    spans.forEach(span => {
+                        // Random height for each bar
+                        const height = Math.floor(Math.random() * 12) + 3;
+                        span.style.height = `${height}px`;
+                    });
+                }, 200);
+            });
+            break;
+            
+        case 'video':
+            // Pulse animation for video frames
+            const videoFrames = card.querySelectorAll('.video-frame');
+            videoFrames.forEach(frame => {
+                frame.classList.add('pulse-subtle');
+                
+                // Add small random movements to video placeholders
+                const placeholder = frame.querySelector('.video-placeholder');
+                if (placeholder) {
+                    card.animationInterval = setInterval(() => {
+                        const x = (Math.random() - 0.5) * 10;
+                        const y = (Math.random() - 0.5) * 10;
+                        placeholder.style.transform = `translate(${x}px, ${y}px)`;
+                    }, 2000);
+                }
+            });
+            break;
+            
+        case 'nitro':
+            // Rocket animation
+            const rocket = card.querySelector('.rocket');
+            if (rocket) {
+                card.animationInterval = setInterval(() => {
+                    rocket.classList.add('launch');
+                    
+                    setTimeout(() => {
+                        rocket.classList.remove('launch');
+                    }, 2000);
+                }, 4000);
+            }
+            break;
+            
+        case 'community':
+            // Animate community bubbles
+            const bubbles = card.querySelectorAll('.community-bubble');
+            bubbles.forEach((bubble, index) => {
+                // Slightly different animation for each bubble
+                const delay = index * 0.5;
+                bubble.style.animation = `float ${3 + index}s ease-in-out ${delay}s infinite alternate`;
+            });
+            break;
+            
+        case 'stats':
+            // Animate chart bars
+            const chartBars = card.querySelectorAll('.chart-bar');
+            chartBars.forEach((bar, index) => {
+                setTimeout(() => {
+                    bar.classList.add('animate');
+                }, index * 100);
+            });
+            
+            // Periodically update numbers to show "live" data
+            card.animationInterval = setInterval(() => {
+                const metricValues = card.querySelectorAll('.metric-value');
+                metricValues.forEach(value => {
+                    // Get current value and add small random change
+                    let currentValue = parseInt(value.textContent.replace(/,/g, ''));
+                    const change = Math.floor(Math.random() * 5) - 2; // -2 to +2
+                    currentValue += change;
+                    
+                    // Format with commas
+                    value.textContent = currentValue.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+                    
+                    // Update growth indicators
+                    const growthElement = value.parentElement.querySelector('.metric-growth');
+                    if (growthElement) {
+                        const isPositive = Math.random() > 0.3; // 70% chance of positive
+                        const growthValue = Math.floor(Math.random() * 10) + 1;
+                        
+                        growthElement.textContent = isPositive ? `+${growthValue}%` : `-${growthValue}%`;
+                        growthElement.className = isPositive ? 'metric-growth positive' : 'metric-growth negative';
+                    }
+                });
+            }, 5000);
+            break;
+    }
+}
+
+/**
+ * Simulates typing text character by character
+ */
+function simulateTyping(element) {
+    if (!element) return;
+    
+    const text = element.textContent;
+    element.textContent = '';
+    element.style.opacity = 1;
+    
+    let i = 0;
+    const interval = setInterval(() => {
+        if (i < text.length) {
+            element.textContent += text.charAt(i);
+            i++;
+        } else {
+            clearInterval(interval);
+        }
+    }, 40);
+}
+
+/**
+ * Sets up interactive elements throughout the page
+ */
+function setupInteractions() {
+    // Add 3D tilt effect to highlight card
+    const highlightCard = document.querySelector('.highlight-card');
+    if (highlightCard) {
+        document.addEventListener('mousemove', e => {
+            const { clientX, clientY } = e;
+            const rect = highlightCard.getBoundingClientRect();
+            
+            // Calculate mouse position relative to card center
+            const x = clientX - rect.left - rect.width / 2;
+            const y = clientY - rect.top - rect.height / 2;
+            
+            // Calculate rotation angle based on mouse position
+            const maxRotation = 5; // max rotation in degrees
+            const angleX = (y / rect.height) * maxRotation * -1;
+            const angleY = (x / rect.width) * maxRotation;
+            
+            // Apply the rotation
+            highlightCard.style.transform = `perspective(1000px) rotateX(${angleX}deg) rotateY(${angleY}deg)`;
+            
+            // Move 3D layers slightly for parallax effect
+            const layers = highlightCard.querySelectorAll('.card-3d-layer');
+            layers.forEach((layer, index) => {
+                const depth = (layers.length - index) * 10;
+                layer.style.transform = `translateZ(-${depth}px) translateX(${x * 0.01}px) translateY(${y * 0.01}px)`;
+            });
+        });
+        
+        // Reset rotation when mouse leaves
+        highlightCard.addEventListener('mouseleave', () => {
+            highlightCard.style.transform = 'perspective(1000px) rotateX(0) rotateY(0)';
+            
+            const layers = highlightCard.querySelectorAll('.card-3d-layer');
+            layers.forEach((layer, index) => {
+                const depth = (layers.length - index) * 10;
+                layer.style.transform = `translateZ(-${depth}px)`;
+            });
+        });
+    }
+    
+    // Add mouse trail effect to cursor
+    addMouseTrail();
+    
+    // Add parallax effect to floating elements
+    addParallaxEffects();
+    
+    // Mobile menu toggle
+    setupMobileMenu();
+}
+
+/**
+ * Adds a mouse trail effect
+ */
+function addMouseTrail() {
+    const trailElements = 20;
+    const trail = [];
+    const trailContainer = document.createElement('div');
+    trailContainer.className = 'mouse-trail-container';
+    trailContainer.style.position = 'fixed';
+    trailContainer.style.pointerEvents = 'none';
+    trailContainer.style.zIndex = '9999';
+    document.body.appendChild(trailContainer);
+    
+    // Create trail elements
+    for (let i = 0; i < trailElements; i++) {
+        const dot = document.createElement('div');
+        dot.className = 'trail-dot';
+        dot.style.position = 'absolute';
+        dot.style.width = '5px';
+        dot.style.height = '5px';
+        dot.style.borderRadius = '50%';
+        dot.style.backgroundColor = 'rgba(88, 101, 242, 0.7)';
+        dot.style.transition = 'transform 0.1s, opacity 0.5s';
+        dot.style.opacity = (trailElements - i) / trailElements * 0.6;
+        dot.style.transform = 'scale(0)';
+        trailContainer.appendChild(dot);
+        trail.push({
+            element: dot,
+            x: 0,
+            y: 0,
+            scale: (trailElements - i) / trailElements
+        });
+    }
+    
+    // Move trail based on mouse position with delay
+    document.addEventListener('mousemove', e => {
+        const mouseX = e.clientX;
+        const mouseY = e.clientY;
+        
+        setTimeout(() => {
+            trail[0].x = mouseX;
+            trail[0].y = mouseY;
+            trail[0].element.style.transform = `translate(${mouseX}px, ${mouseY}px) scale(${trail[0].scale})`;
+            
+            // Update trail positions with delay
+            for (let i = 1; i < trail.length; i++) {
+                setTimeout(() => {
+                    trail[i].x = trail[i - 1].x;
+                    trail[i].y = trail[i - 1].y;
+                    trail[i].element.style.transform = `translate(${trail[i].x}px, ${trail[i].y}px) scale(${trail[i].scale})`;
+                }, i * 20);
+            }
+        }, 10);
+    });
+}
+
+/**
+ * Adds parallax effects to floating elements
+ */
+function addParallaxEffects() {
+    const floatingElements = document.querySelectorAll('.floating-element');
+    
+    document.addEventListener('mousemove', e => {
+        const mouseX = e.clientX / window.innerWidth;
+        const mouseY = e.clientY / window.innerHeight;
+        
+        floatingElements.forEach(element => {
+            const speed = parseFloat(element.dataset.speed || 0.2);
+            const rotation = parseFloat(element.dataset.rotation || 0);
+            const amplitude = parseFloat(element.dataset.amplitude || 20);
+            
+            const xOffset = (mouseX - 0.5) * amplitude * speed;
+            const yOffset = (mouseY - 0.5) * amplitude * speed;
+            const rotate = (mouseX - 0.5) * rotation;
+            
+            element.style.transform = `translate(${xOffset}px, ${yOffset}px) rotate(${rotate}deg)`;
+        });
+    });
+}
+
+/**
+ * Initializes other carousels on the page
+ */
+function initializeOtherCarousels() {
+    // Initialize testimonial carousel if it exists
+    const testimonialCarousel = document.querySelector('.testimonial-carousel');
+    if (testimonialCarousel && window.Swiper) {
+        new Swiper(testimonialCarousel, {
+            slidesPerView: window.innerWidth > 768 ? 2 : 1,
+            spaceBetween: 30,
+            grabCursor: true,
+            pagination: {
+                el: '.testimonial-scrollbar',
+                type: 'progressbar'
+            },
+            keyboard: {
+                enabled: true
+            },
+            autoplay: {
+                delay: 5000,
+                disableOnInteraction: true
+            },
+            effect: 'coverflow',
+            coverflowEffect: {
+                rotate: 30,
+                stretch: 0,
+                depth: 100,
+                modifier: 1,
+                slideShadows: false
+            }
+        });
+    }
+    
+    // Initialize circular carousel if it exists
+    const circularCarousel = document.querySelector('.circular-carousel');
+    if (circularCarousel && window.Swiper) {
+        new Swiper(circularCarousel, {
             effect: 'coverflow',
             grabCursor: true,
             centeredSlides: true,
             slidesPerView: 'auto',
             coverflowEffect: {
-                rotate: 20,
+                rotate: 50,
                 stretch: 0,
-                depth: 200,
+                depth: 100,
                 modifier: 1,
-                slideShadows: true
-            },
-            loop: true,
-            autoplay: {
-                delay: 5000,
-                disableOnInteraction: false,
-                pauseOnMouseEnter: true
+                slideShadows: false
             },
             pagination: {
-                el: '.swiper-pagination',
+                el: '.circular-pagination',
                 clickable: true,
-                dynamicBullets: true
-            },
-            navigation: {
-                nextEl: '.swiper-button-next',
-                prevEl: '.swiper-button-prev'
-            },
-            breakpoints: {
-                320: {
-                    slidesPerView: 1,
-                    spaceBetween: 20
-                },
-                640: {
-                    slidesPerView: 2,
-                    spaceBetween: 30
-                },
-                1024: {
-                    slidesPerView: 'auto',
-                    spaceBetween: 40
+                renderBullet: function (index, className) {
+                    return `<span class="circular-pagination-bullet ${className}"></span>`;
                 }
-            }
-        });
-
-        // Add slide change animation if GSAP is available
-        if (typeof gsap !== 'undefined') {
-            featureCarousel.on('slideChange', function() {
-                const activeSlide = this.slides[this.activeIndex];
-                if (!activeSlide) return;
-                
-                const icon = activeSlide.querySelector('.card-icon');
-                const title = activeSlide.querySelector('.card-title');
-                const description = activeSlide.querySelector('.card-description');
-                const image = activeSlide.querySelector('.card-image-container');
-                
-                if (icon && title && description && image) {
-                    gsap.fromTo([icon, title, description, image], 
-                        { 
-                            opacity: 0.6, 
-                            y: 20, 
-                            scale: 0.95 
-                        }, 
-                        { 
-                            opacity: 1, 
-                            y: 0, 
-                            scale: 1, 
-                            duration: 0.6, 
-                            stagger: 0.1, 
-                            ease: "power2.out"
-                        }
-                    );
-                }
-            });
-        }
-    }
-    
-    // Testimonial carousel with smooth scrolling effect
-    if (document.querySelector('.testimonial-carousel')) {
-        const testimonialCarousel = new Swiper('.testimonial-carousel', {
-            slidesPerView: 1,
-            spaceBetween: 30,
-            grabCursor: true,
+            },
             loop: true,
             autoplay: {
-                delay: 6000,
+                delay: 3000,
                 disableOnInteraction: false
-            },
-            scrollbar: {
-                el: '.testimonial-scrollbar',
-                draggable: true,
-            },
-            breakpoints: {
-                768: {
-                    slidesPerView: 2,
-                    spaceBetween: 30
-                },
-                1024: {
-                    slidesPerView: 3,
-                    spaceBetween: 40
-                }
             }
         });
+    }
+}
 
-        // Add slide change animation if GSAP is available
-        if (typeof gsap !== 'undefined') {
-            testimonialCarousel.on('slideChange', function() {
-                const activeSlides = document.querySelectorAll('.swiper-slide-active, .swiper-slide-next, .swiper-slide-next + .swiper-slide');
+/**
+ * Initializes the text scramble effect on hero title
+ */
+function initTextScramble() {
+    const heroTitle = document.getElementById('heroTitle');
+    if (!heroTitle) return;
+    
+    const text = heroTitle.textContent;
+    const chars = text.split('');
+    
+    // Clear the title and create span for each character
+    heroTitle.textContent = '';
+    chars.forEach(char => {
+        const span = document.createElement('span');
+        span.className = 'char';
+        span.textContent = char;
+        heroTitle.appendChild(span);
+    });
+    
+    // Scramble animation on load
+    setTimeout(() => {
+        const charElements = heroTitle.querySelectorAll('.char');
+        
+        charElements.forEach((char, i) => {
+            setTimeout(() => {
+                char.classList.add('scrambled');
                 
-                activeSlides.forEach(slide => {
-                    if (!slide) return;
-                    
-                    // Animate testimonial content
-                    const avatar = slide.querySelector('.user-avatar');
-                    const content = slide.querySelector('.testimonial-content');
-                    
-                    if (avatar) {
-                        gsap.fromTo(avatar, 
-                            { scale: 0.8, opacity: 0.6 }, 
-                            { scale: 1, opacity: 1, duration: 0.8, ease: "elastic.out(1, 0.5)" }
-                        );
-                    }
-                    
-                    if (content) {
-                        gsap.fromTo(content, 
-                            { x: 20, opacity: 0.6 }, 
-                            { x: 0, opacity: 1, duration: 0.6, ease: "power2.out" }
-                        );
-                    }
-                });
-            });
-        }
+                setTimeout(() => {
+                    char.classList.remove('scrambled');
+                }, 1000);
+                
+            }, i * 50);
+        });
+    }, 500);
+    
+    // Scramble animation on hover
+    heroTitle.addEventListener('mouseenter', () => {
+        const charElements = heroTitle.querySelectorAll('.char');
+        
+        charElements.forEach((char, i) => {
+            setTimeout(() => {
+                char.classList.add('scrambled');
+                
+                setTimeout(() => {
+                    char.classList.remove('scrambled');
+                }, 500);
+                
+            }, i * 30);
+        });
+    });
+}
+
+/**
+ * Sets up the mobile menu
+ */
+function setupMobileMenu() {
+    const mobileMenu = document.querySelector('.mobile-menu');
+    const menuToggle = document.querySelector('.mobile-menu-toggle');
+    const closeBtn = document.querySelector('.mobile-menu-close');
+    
+    if (!mobileMenu || !menuToggle) return;
+    
+    menuToggle.addEventListener('click', () => {
+        mobileMenu.classList.add('active');
+        document.body.classList.add('menu-open');
+    });
+    
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            mobileMenu.classList.remove('active');
+            document.body.classList.remove('menu-open');
+        });
     }
 }
