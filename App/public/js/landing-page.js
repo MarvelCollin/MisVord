@@ -1,673 +1,757 @@
-/**
- * MiscVord Landing Page JavaScript
- * Handles all interactive elements and animations for the landing page
- */
-
-// Wait for DOM to be fully loaded
-document.addEventListener('DOMContentLoaded', () => {
-    // Initialize the feature carousel
-    initializeFeatureCarousel();
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize scroll based animations with Intersection Observer
+    initScrollAnimations();
     
-    // Create dynamic background effects
-    createBackgroundEffects();
+    // Add floating element effects with vertical movement only
+    initFloatingElements();
     
-    // Setup interactive elements
-    setupInteractions();
+    // Initialize particle effects 
+    createEnhancedParticles();
     
-    // Initialize other carousels
-    initializeOtherCarousels();
+    // Add text scramble animation for hero title
+    initScrambleText();
     
-    // Add text scramble effect to hero title
-    initTextScramble();
+    // Initialize the new carousel
+    initCarousel();
 });
 
 /**
- * Initialize the main feature carousel with enhanced interactions
+ * Initialize scroll-based animations with Intersection Observer
  */
-function initializeFeatureCarousel() {
-    const track = document.querySelector('.carousel-track');
-    if (!track) return;
-    
-    const cards = document.querySelectorAll('.feature-card');
-    const indicators = document.querySelectorAll('.nav-indicators .indicator');
-    const prevBtn = document.querySelector('.prev-btn');
-    const nextBtn = document.querySelector('.next-btn');
-    let currentIndex = 0;
-
-    // Determine how many cards to show based on screen size
-    const cardsPerView = window.innerWidth > 768 ? 3 : 1;
-    const cardWidth = 100 / cardsPerView;
-    
-    // Set initial state
-    updateCarousel();
-    
-    // Add button event listeners
-    if (prevBtn && nextBtn) {
-        prevBtn.addEventListener('click', () => {
-            currentIndex = Math.max(0, currentIndex - 1);
-            updateCarousel();
-        });
-        
-        nextBtn.addEventListener('click', () => {
-            currentIndex = Math.min(cards.length - cardsPerView, currentIndex + 1);
-            updateCarousel();
-        });
-    }
-    
-    // Add indicator event listeners
-    indicators.forEach(indicator => {
-        indicator.addEventListener('click', () => {
-            currentIndex = parseInt(indicator.dataset.index || 0);
-            if (currentIndex > cards.length - cardsPerView) {
-                currentIndex = cards.length - cardsPerView;
-            }
-            updateCarousel();
-        });
+function initScrollAnimations() {
+    // Elements that fade in
+    const fadeElements = document.querySelectorAll('.hero-title, .hero-text, .hero-buttons, .journey-content');
+    fadeElements.forEach(element => {
+        element.classList.add('animated-fade-in');
     });
     
-    // Add keyboard navigation
-    document.addEventListener('keydown', e => {
-        if (e.key === 'ArrowLeft') {
-            currentIndex = Math.max(0, currentIndex - 1);
-            updateCarousel();
-        } else if (e.key === 'ArrowRight') {
-            currentIndex = Math.min(cards.length - cardsPerView, currentIndex + 1);
-            updateCarousel();
+    // Feature section animations
+    const featureSections = document.querySelectorAll('.feature-section');
+    featureSections.forEach((section, i) => {
+        // Alternate slide-in directions
+        const contentElement = section.querySelector('.feature-content');
+        const imageElement = section.querySelector('.feature-image');
+        
+        if (i % 2 === 0) {
+            contentElement?.classList.add('animated-slide-in-left');
+            imageElement?.classList.add('animated-slide-in-right');
+        } else {
+            contentElement?.classList.add('animated-slide-in-right');
+            imageElement?.classList.add('animated-slide-in-left');
         }
     });
     
-    // Update carousel position and active states
-    function updateCarousel() {
-        if (!track) return;
-        track.style.transform = `translateX(-${currentIndex * cardWidth}%)`;
-        
-        // Update indicators
-        indicators.forEach((indicator, index) => {
-            if (index === currentIndex) {
-                indicator.classList.add('active');
-            } else {
-                indicator.classList.remove('active');
+    // Create intersection observer
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('animated-visible');
+                // Unobserve after animation is triggered
+                observer.unobserve(entry.target);
             }
         });
-        
-        // Update button states
-        if (prevBtn) prevBtn.disabled = currentIndex === 0;
-        if (nextBtn) nextBtn.disabled = currentIndex >= cards.length - cardsPerView;
-        
-        // Add active class to visible cards for animations
-        cards.forEach((card, index) => {
-            if (index >= currentIndex && index < currentIndex + cardsPerView) {
-                card.classList.add('visible');
-                // Trigger feature-specific animations when card becomes visible
-                setupFeatureSpecificAnimations(card);
-            } else {
-                card.classList.remove('visible');
-            }
-        });
-    }
+    }, {
+        root: null, // viewport
+        threshold: 0.1, // trigger when 10% is visible
+        rootMargin: '0px 0px -50px 0px' // trigger earlier
+    });
     
-    // Setup expand/collapse for each card
-    cards.forEach(card => {
-        const expandBtn = card.querySelector('.card-expand-btn');
-        const collapseBtn = card.querySelector('.card-collapse-btn');
+    // Elements to observe
+    const elementsToAnimate = document.querySelectorAll(
+        '.animated-fade-in, .animated-slide-in-left, .animated-slide-in-right'
+    );
+    
+    // Add elements to observer
+    elementsToAnimate.forEach(element => {
+        observer.observe(element);
+    });
+    
+    // Trigger hero animations immediately
+    setTimeout(() => {
+        document.querySelectorAll('.hero-title, .hero-text, .hero-buttons').forEach(el => {
+            el.classList.add('animated-visible');
+        });
+    }, 100);
+}
+
+/**
+ * Initialize floating elements with vertical-only parallax
+ */
+function initFloatingElements() {
+    const floatingElements = document.querySelectorAll('.floating-element');
+    
+    // Create floating trails
+    floatingElements.forEach(element => {
+        // Create trail effect
+        const trail = document.createElement('div');
+        trail.className = 'floating-trail';
+        element.parentNode.insertBefore(trail, element);
+        element.trail = trail;
         
-        if (expandBtn) {
-            expandBtn.addEventListener('click', () => {
-                cards.forEach(c => c.classList.remove('expanded'));
-                card.classList.add('expanded');
+        // Add random starting position offset for more natural movement
+        const randomOffset = (Math.random() - 0.5) * 10;
+        element.style.transform = `translateY(${randomOffset}px)`;
+    });
+    
+    // Handle scroll parallax effect
+    let lastScrollTop = 0;
+    let scrollSpeed = 0;
+    let ticking = false;
+    
+    window.addEventListener('scroll', function() {
+        const scrollTop = window.pageYOffset;
+        
+        // Calculate scroll speed
+        scrollSpeed = Math.abs(scrollTop - lastScrollTop) * 0.1;
+        lastScrollTop = scrollTop;
+        
+        // Use requestAnimationFrame for smoother animations
+        if (!ticking) {
+            window.requestAnimationFrame(function() {
+                updateFloatingElements(scrollTop, scrollSpeed);
+                ticking = false;
             });
+            ticking = true;
         }
+    });
+    
+    // Handle mouse movement - vertical effect only
+    document.addEventListener('mousemove', function(e) {
+        const mouseY = e.clientY;
         
-        if (collapseBtn) {
-            collapseBtn.addEventListener('click', () => {
-                card.classList.remove('expanded');
-            });
+        floatingElements.forEach(element => {
+            const rect = element.getBoundingClientRect();
+            const centerY = rect.top + rect.height / 2;
+            
+            // Calculate vertical distance from mouse to element center
+            const distanceY = mouseY - centerY;
+            const distance = Math.abs(distanceY);
+            
+            // Only affect elements within a certain range of the mouse
+            if (distance < 300) {
+                // Calculate movement based on vertical distance (move away from mouse)
+                const moveY = distanceY * 0.02 * (1 - distance / 300);
+                
+                // Apply smooth vertical movement using CSS transitions
+                element.style.transition = 'transform 0.8s ease-out';
+                element.style.transform = `translateY(${moveY}px)`;
+            }
+        });
+    });
+    
+    // Initial position update
+    updateFloatingElements(window.pageYOffset, 0);
+}
+
+/**
+ * Update floating elements position based on scroll - vertical movement only
+ */
+function updateFloatingElements(scrollTop, scrollSpeed) {
+    const floatingElements = document.querySelectorAll('.floating-element');
+    
+    floatingElements.forEach(element => {
+        const speed = parseFloat(element.getAttribute('data-speed')) || 0.3;
+        const rotation = parseFloat(element.getAttribute('data-rotation')) || 0;
+        
+        // Calculate vertical movement based on scroll position
+        const yPos = -(scrollTop * speed);
+        
+        // Add rotation based on scroll for subtle effect
+        const rotationAmount = Math.sin(scrollTop * 0.001) * rotation;
+        
+        // Add subtle scale effect based on scroll speed
+        const scaleAmount = 1 + (Math.min(scrollSpeed, 10) * 0.003 * speed);
+        
+        // Apply vertical-only transformation
+        element.style.transform = `translateY(${yPos}px) rotate(${rotationAmount}deg) scale(${scaleAmount})`;
+        
+        // Update the trail position and opacity based on movement
+        if (element.trail) {
+            element.trail.style.width = element.offsetWidth * 1.5 + 'px';
+            element.trail.style.height = element.offsetHeight * 1.5 + 'px';
+            element.trail.style.left = element.offsetLeft - element.offsetWidth * 0.25 + 'px';
+            element.trail.style.top = element.offsetTop - element.offsetHeight * 0.25 + 'px';
+            
+            // Increase trail opacity based on scroll speed for more visible effect
+            const trailOpacity = Math.min((scrollSpeed * speed) / 10, 0.5);
+            element.trail.style.opacity = trailOpacity;
         }
-        
-        // Add hover 3D effect
-        card.addEventListener('mousemove', e => {
-            if (card.classList.contains('expanded')) return;
-            
-            const rect = card.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            
-            const centerX = rect.width / 2;
-            const centerY = rect.height / 2;
-            
-            const angleX = (y - centerY) / 20;
-            const angleY = (centerX - x) / 20;
-            
-            const cardContent = card.querySelector('.card-content');
-            if (cardContent) {
-                cardContent.style.transform = 
-                    `perspective(1000px) rotateX(${angleX}deg) rotateY(${angleY}deg)`;
-            }
-        });
-        
-        card.addEventListener('mouseleave', () => {
-            if (card.classList.contains('expanded')) return;
-            const cardContent = card.querySelector('.card-content');
-            if (cardContent) {
-                cardContent.style.transform = 
-                    'perspective(1000px) rotateX(0) rotateY(0)';
-            }
-        });
-    });
-    
-    // Add auto rotation if desired
-    let autoRotationInterval;
-    
-    function startAutoRotation() {
-        autoRotationInterval = setInterval(() => {
-            if (currentIndex < cards.length - cardsPerView) {
-                currentIndex++;
-                updateCarousel();
-            } else {
-                currentIndex = 0;
-                updateCarousel();
-            }
-        }, 5000);
-    }
-    
-    function stopAutoRotation() {
-        clearInterval(autoRotationInterval);
-    }
-    
-    // Uncomment to enable auto rotation
-    // startAutoRotation();
-    
-    // Stop rotation on hover or touch
-    const carouselSection = document.querySelector('.carousel-section');
-    if (carouselSection) {
-        carouselSection.addEventListener('mouseenter', stopAutoRotation);
-        carouselSection.addEventListener('mouseleave', startAutoRotation);
-        carouselSection.addEventListener('touchstart', stopAutoRotation, { passive: true });
-    }
-    
-    // Handle window resize
-    let resizeTimer;
-    window.addEventListener('resize', () => {
-        clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(() => {
-            const newCardsPerView = window.innerWidth > 768 ? 3 : 1;
-            if (cardsPerView !== newCardsPerView) {
-                location.reload();
-            }
-        }, 250);
     });
 }
 
 /**
- * Creates background effects for the carousel section
+ * Create enhanced particle effects without external libraries
  */
-function createBackgroundEffects() {
-    // Create animated orbs in background
-    animateBackgroundOrbs();
-    
-    // Create particles for feature highlight section
-    createParticles();
-}
-
-/**
- * Animates background orbs with parallax effect
- */
-function animateBackgroundOrbs() {
-    const orbs = document.querySelectorAll('.gradient-orb');
-    
-    window.addEventListener('mousemove', e => {
-        const mouseX = e.clientX / window.innerWidth;
-        const mouseY = e.clientY / window.innerHeight;
-        
-        orbs.forEach((orb, index) => {
-            const speed = 0.05 + (index * 0.01);
-            const x = (mouseX - 0.5) * speed * 100;
-            const y = (mouseY - 0.5) * speed * 100;
-            
-            orb.style.transform = `translate(${x}px, ${y}px)`;
-        });
-    });
-}
-
-/**
- * Creates particles for feature highlight section
- */
-function createParticles() {
-    const container = document.querySelector('.particles-container');
+function createEnhancedParticles() {
+    const container = document.getElementById('particles-container');
     if (!container) return;
     
-    const particleCount = Math.min(30, Math.floor(window.innerWidth / 30));
+    const particleCount = 120; // More particles for a richer effect
+    
+    const particleTypes = [
+        { 
+            color: '#5865F2', 
+            size: [1, 3], 
+            speed: [15, 30], 
+            opacity: [0.1, 0.3],
+            glow: true
+        },
+        { 
+            color: '#57F287', 
+            size: [2, 4], 
+            speed: [20, 35], 
+            opacity: [0.1, 0.25],
+            glow: true
+        },
+        { 
+            color: '#EB459E', 
+            size: [1, 2.5], 
+            speed: [25, 40], 
+            opacity: [0.05, 0.2],
+            glow: true
+        },
+        { 
+            color: '#FEE75C', 
+            size: [0.5, 2], 
+            speed: [10, 25], 
+            opacity: [0.1, 0.3],
+            glow: true
+        },
+        { 
+            color: '#FFFFFF', 
+            size: [0.5, 3], 
+            speed: [15, 30], 
+            opacity: [0.05, 0.15],
+            glow: false
+        }
+    ];
     
     for (let i = 0; i < particleCount; i++) {
+        const typeIndex = Math.floor(Math.random() * particleTypes.length);
+        const type = particleTypes[typeIndex];
+        
         const particle = document.createElement('div');
         particle.className = 'particle';
         
-        // Random size, position and animation delay
-        const size = Math.random() * 5 + 2;
-        particle.style.width = `${size}px`;
-        particle.style.height = `${size}px`;
-        particle.style.left = `${Math.random() * 100}%`;
-        particle.style.top = `${Math.random() * 100}%`;
-        particle.style.animationDelay = `${Math.random() * 5}s`;
-        particle.style.opacity = Math.random() * 0.5 + 0.1;
+        const posX = Math.random() * 100;
+        const posY = Math.random() * 100;
+        
+        const size = Math.random() * (type.size[1] - type.size[0]) + type.size[0];
+        const opacity = Math.random() * (type.opacity[1] - type.opacity[0]) + type.opacity[0];
+        
+        particle.style.left = posX + '%';
+        particle.style.top = posY + '%';
+        particle.style.width = size + 'px';
+        particle.style.height = size + 'px';
+        particle.style.opacity = opacity;
+        
+        if (type.glow) {
+            particle.style.background = type.color;
+            particle.style.boxShadow = `0 0 10px ${type.color}`;
+        } else {
+            particle.style.background = 'rgba(255, 255, 255, 0.6)';
+        }
+        
+        // Custom animation styles
+        const duration = Math.random() * (type.speed[1] - type.speed[0]) + type.speed[0];
+        const delay = Math.random() * 15;
+        
+        // Custom animation properties
+        const startX = posX;
+        const startY = posY;
+        const endX = startX + (Math.random() * 20 - 10);
+        const endY = startY + (Math.random() * 20 - 10);
+        
+        // Apply CSS animation
+        particle.style.animation = `float ${duration}s ease-in-out infinite`;
+        particle.style.animationDelay = `${delay}s`;
         
         container.appendChild(particle);
     }
 }
 
 /**
- * Sets up feature-specific animations for each card
+ * Initialize scramble text effect for hero title
  */
-function setupFeatureSpecificAnimations(card) {
-    if (!card || !card.dataset.feature) return;
-    
-    const feature = card.dataset.feature;
-    
-    // Clear existing animations/intervals
-    if (card.animationInterval) {
-        clearInterval(card.animationInterval);
-    }
-    
-    switch(feature) {
-        case 'chat':
-            // Typing animation for chat messages
-            const messages = card.querySelectorAll('.chat-message');
-            messages.forEach((msg, index) => {
-                if (msg.classList.contains('incoming')) {
-                    setTimeout(() => {
-                        simulateTyping(msg.querySelector('.message-text'));
-                    }, index * 1000);
-                }
-            });
-            break;
-            
-        case 'voice':
-            // Animate audio wave for speaking users
-            const audioWaves = card.querySelectorAll('.audio-waves');
-            audioWaves.forEach(wave => {
-                if (!wave.parentElement.classList.contains('speaking')) {
-                    return;
-                }
-                
-                // Randomly activate/deactivate waves to simulate speech
-                card.animationInterval = setInterval(() => {
-                    const spans = wave.querySelectorAll('span');
-                    spans.forEach(span => {
-                        // Random height for each bar
-                        const height = Math.floor(Math.random() * 12) + 3;
-                        span.style.height = `${height}px`;
-                    });
-                }, 200);
-            });
-            break;
-            
-        case 'video':
-            // Pulse animation for video frames
-            const videoFrames = card.querySelectorAll('.video-frame');
-            videoFrames.forEach(frame => {
-                frame.classList.add('pulse-subtle');
-                
-                // Add small random movements to video placeholders
-                const placeholder = frame.querySelector('.video-placeholder');
-                if (placeholder) {
-                    card.animationInterval = setInterval(() => {
-                        const x = (Math.random() - 0.5) * 10;
-                        const y = (Math.random() - 0.5) * 10;
-                        placeholder.style.transform = `translate(${x}px, ${y}px)`;
-                    }, 2000);
-                }
-            });
-            break;
-            
-        case 'nitro':
-            // Rocket animation
-            const rocket = card.querySelector('.rocket');
-            if (rocket) {
-                card.animationInterval = setInterval(() => {
-                    rocket.classList.add('launch');
-                    
-                    setTimeout(() => {
-                        rocket.classList.remove('launch');
-                    }, 2000);
-                }, 4000);
-            }
-            break;
-            
-        case 'community':
-            // Animate community bubbles
-            const bubbles = card.querySelectorAll('.community-bubble');
-            bubbles.forEach((bubble, index) => {
-                // Slightly different animation for each bubble
-                const delay = index * 0.5;
-                bubble.style.animation = `float ${3 + index}s ease-in-out ${delay}s infinite alternate`;
-            });
-            break;
-            
-        case 'stats':
-            // Animate chart bars
-            const chartBars = card.querySelectorAll('.chart-bar');
-            chartBars.forEach((bar, index) => {
-                setTimeout(() => {
-                    bar.classList.add('animate');
-                }, index * 100);
-            });
-            
-            // Periodically update numbers to show "live" data
-            card.animationInterval = setInterval(() => {
-                const metricValues = card.querySelectorAll('.metric-value');
-                metricValues.forEach(value => {
-                    // Get current value and add small random change
-                    let currentValue = parseInt(value.textContent.replace(/,/g, ''));
-                    const change = Math.floor(Math.random() * 5) - 2; // -2 to +2
-                    currentValue += change;
-                    
-                    // Format with commas
-                    value.textContent = currentValue.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-                    
-                    // Update growth indicators
-                    const growthElement = value.parentElement.querySelector('.metric-growth');
-                    if (growthElement) {
-                        const isPositive = Math.random() > 0.3; // 70% chance of positive
-                        const growthValue = Math.floor(Math.random() * 10) + 1;
-                        
-                        growthElement.textContent = isPositive ? `+${growthValue}%` : `-${growthValue}%`;
-                        growthElement.className = isPositive ? 'metric-growth positive' : 'metric-growth negative';
-                    }
-                });
-            }, 5000);
-            break;
-    }
-}
-
-/**
- * Simulates typing text character by character
- */
-function simulateTyping(element) {
-    if (!element) return;
-    
-    const text = element.textContent;
-    element.textContent = '';
-    element.style.opacity = 1;
-    
-    let i = 0;
-    const interval = setInterval(() => {
-        if (i < text.length) {
-            element.textContent += text.charAt(i);
-            i++;
-        } else {
-            clearInterval(interval);
-        }
-    }, 40);
-}
-
-/**
- * Sets up interactive elements throughout the page
- */
-function setupInteractions() {
-    // Add 3D tilt effect to highlight card
-    const highlightCard = document.querySelector('.highlight-card');
-    if (highlightCard) {
-        document.addEventListener('mousemove', e => {
-            const { clientX, clientY } = e;
-            const rect = highlightCard.getBoundingClientRect();
-            
-            // Calculate mouse position relative to card center
-            const x = clientX - rect.left - rect.width / 2;
-            const y = clientY - rect.top - rect.height / 2;
-            
-            // Calculate rotation angle based on mouse position
-            const maxRotation = 5; // max rotation in degrees
-            const angleX = (y / rect.height) * maxRotation * -1;
-            const angleY = (x / rect.width) * maxRotation;
-            
-            // Apply the rotation
-            highlightCard.style.transform = `perspective(1000px) rotateX(${angleX}deg) rotateY(${angleY}deg)`;
-            
-            // Move 3D layers slightly for parallax effect
-            const layers = highlightCard.querySelectorAll('.card-3d-layer');
-            layers.forEach((layer, index) => {
-                const depth = (layers.length - index) * 10;
-                layer.style.transform = `translateZ(-${depth}px) translateX(${x * 0.01}px) translateY(${y * 0.01}px)`;
-            });
-        });
-        
-        // Reset rotation when mouse leaves
-        highlightCard.addEventListener('mouseleave', () => {
-            highlightCard.style.transform = 'perspective(1000px) rotateX(0) rotateY(0)';
-            
-            const layers = highlightCard.querySelectorAll('.card-3d-layer');
-            layers.forEach((layer, index) => {
-                const depth = (layers.length - index) * 10;
-                layer.style.transform = `translateZ(-${depth}px)`;
-            });
-        });
-    }
-    
-    // Add mouse trail effect to cursor
-    addMouseTrail();
-    
-    // Add parallax effect to floating elements
-    addParallaxEffects();
-    
-    // Mobile menu toggle
-    setupMobileMenu();
-}
-
-/**
- * Adds a mouse trail effect
- */
-function addMouseTrail() {
-    const trailElements = 20;
-    const trail = [];
-    const trailContainer = document.createElement('div');
-    trailContainer.className = 'mouse-trail-container';
-    trailContainer.style.position = 'fixed';
-    trailContainer.style.pointerEvents = 'none';
-    trailContainer.style.zIndex = '9999';
-    document.body.appendChild(trailContainer);
-    
-    // Create trail elements
-    for (let i = 0; i < trailElements; i++) {
-        const dot = document.createElement('div');
-        dot.className = 'trail-dot';
-        dot.style.position = 'absolute';
-        dot.style.width = '5px';
-        dot.style.height = '5px';
-        dot.style.borderRadius = '50%';
-        dot.style.backgroundColor = 'rgba(88, 101, 242, 0.7)';
-        dot.style.transition = 'transform 0.1s, opacity 0.5s';
-        dot.style.opacity = (trailElements - i) / trailElements * 0.6;
-        dot.style.transform = 'scale(0)';
-        trailContainer.appendChild(dot);
-        trail.push({
-            element: dot,
-            x: 0,
-            y: 0,
-            scale: (trailElements - i) / trailElements
-        });
-    }
-    
-    // Move trail based on mouse position with delay
-    document.addEventListener('mousemove', e => {
-        const mouseX = e.clientX;
-        const mouseY = e.clientY;
-        
-        setTimeout(() => {
-            trail[0].x = mouseX;
-            trail[0].y = mouseY;
-            trail[0].element.style.transform = `translate(${mouseX}px, ${mouseY}px) scale(${trail[0].scale})`;
-            
-            // Update trail positions with delay
-            for (let i = 1; i < trail.length; i++) {
-                setTimeout(() => {
-                    trail[i].x = trail[i - 1].x;
-                    trail[i].y = trail[i - 1].y;
-                    trail[i].element.style.transform = `translate(${trail[i].x}px, ${trail[i].y}px) scale(${trail[i].scale})`;
-                }, i * 20);
-            }
-        }, 10);
-    });
-}
-
-/**
- * Adds parallax effects to floating elements
- */
-function addParallaxEffects() {
-    const floatingElements = document.querySelectorAll('.floating-element');
-    
-    document.addEventListener('mousemove', e => {
-        const mouseX = e.clientX / window.innerWidth;
-        const mouseY = e.clientY / window.innerHeight;
-        
-        floatingElements.forEach(element => {
-            const speed = parseFloat(element.dataset.speed || 0.2);
-            const rotation = parseFloat(element.dataset.rotation || 0);
-            const amplitude = parseFloat(element.dataset.amplitude || 20);
-            
-            const xOffset = (mouseX - 0.5) * amplitude * speed;
-            const yOffset = (mouseY - 0.5) * amplitude * speed;
-            const rotate = (mouseX - 0.5) * rotation;
-            
-            element.style.transform = `translate(${xOffset}px, ${yOffset}px) rotate(${rotate}deg)`;
-        });
-    });
-}
-
-/**
- * Initializes other carousels on the page
- */
-function initializeOtherCarousels() {
-    // Initialize testimonial carousel if it exists
-    const testimonialCarousel = document.querySelector('.testimonial-carousel');
-    if (testimonialCarousel && window.Swiper) {
-        new Swiper(testimonialCarousel, {
-            slidesPerView: window.innerWidth > 768 ? 2 : 1,
-            spaceBetween: 30,
-            grabCursor: true,
-            pagination: {
-                el: '.testimonial-scrollbar',
-                type: 'progressbar'
-            },
-            keyboard: {
-                enabled: true
-            },
-            autoplay: {
-                delay: 5000,
-                disableOnInteraction: true
-            },
-            effect: 'coverflow',
-            coverflowEffect: {
-                rotate: 30,
-                stretch: 0,
-                depth: 100,
-                modifier: 1,
-                slideShadows: false
-            }
-        });
-    }
-    
-    // Initialize circular carousel if it exists
-    const circularCarousel = document.querySelector('.circular-carousel');
-    if (circularCarousel && window.Swiper) {
-        new Swiper(circularCarousel, {
-            effect: 'coverflow',
-            grabCursor: true,
-            centeredSlides: true,
-            slidesPerView: 'auto',
-            coverflowEffect: {
-                rotate: 50,
-                stretch: 0,
-                depth: 100,
-                modifier: 1,
-                slideShadows: false
-            },
-            pagination: {
-                el: '.circular-pagination',
-                clickable: true,
-                renderBullet: function (index, className) {
-                    return `<span class="circular-pagination-bullet ${className}"></span>`;
-                }
-            },
-            loop: true,
-            autoplay: {
-                delay: 3000,
-                disableOnInteraction: false
-            }
-        });
-    }
-}
-
-/**
- * Initializes the text scramble effect on hero title
- */
-function initTextScramble() {
+function initScrambleText() {
     const heroTitle = document.getElementById('heroTitle');
     if (!heroTitle) return;
     
-    const text = heroTitle.textContent;
-    const chars = text.split('');
+    const originalText = heroTitle.textContent;
     
-    // Clear the title and create span for each character
-    heroTitle.textContent = '';
-    chars.forEach(char => {
+    // Clear the element
+    heroTitle.innerHTML = '';
+    
+    // Create individual character spans
+    originalText.split('').forEach(char => {
         const span = document.createElement('span');
         span.className = 'char';
         span.textContent = char;
         heroTitle.appendChild(span);
     });
     
-    // Scramble animation on load
-    setTimeout(() => {
-        const charElements = heroTitle.querySelectorAll('.char');
+    // Initial effect with each character being revealed one by one
+    const chars = heroTitle.querySelectorAll('.char');
+    chars.forEach((char, index) => {
+        // Initially hide all characters
+        char.style.opacity = '0';
         
-        charElements.forEach((char, i) => {
-            setTimeout(() => {
-                char.classList.add('scrambled');
-                
-                setTimeout(() => {
-                    char.classList.remove('scrambled');
-                }, 1000);
-                
-            }, i * 50);
-        });
-    }, 500);
-    
-    // Scramble animation on hover
-    heroTitle.addEventListener('mouseenter', () => {
-        const charElements = heroTitle.querySelectorAll('.char');
-        
-        charElements.forEach((char, i) => {
-            setTimeout(() => {
-                char.classList.add('scrambled');
-                
-                setTimeout(() => {
-                    char.classList.remove('scrambled');
-                }, 500);
-                
-            }, i * 30);
-        });
+        // Reveal characters one by one with delay
+        setTimeout(() => {
+            char.style.opacity = '1';
+            char.classList.add('scrambled');
+        }, 80 * index);
     });
+    
+    // Periodic scramble effect
+    setInterval(() => {
+        // Get a random character
+        const randomIndex = Math.floor(Math.random() * chars.length);
+        if (chars[randomIndex].textContent !== ' ') {
+            scrambleCharacter(chars[randomIndex]);
+        }
+    }, 2000);
 }
 
 /**
- * Sets up the mobile menu
+ * Scramble a single character with glitch effect
  */
-function setupMobileMenu() {
-    const mobileMenu = document.querySelector('.mobile-menu');
-    const menuToggle = document.querySelector('.mobile-menu-toggle');
-    const closeBtn = document.querySelector('.mobile-menu-close');
+function scrambleCharacter(charElement) {
+    const originalChar = charElement.textContent;
+    const glitchChars = '!<>-_\\/[]{}—=+*^?#';
+    let iterations = 0;
     
-    if (!mobileMenu || !menuToggle) return;
+    // Create glitch effect
+    const interval = setInterval(() => {
+        charElement.textContent = glitchChars[Math.floor(Math.random() * glitchChars.length)];
+        
+        iterations++;
+        if (iterations > 3) {
+            clearInterval(interval);
+            charElement.textContent = originalChar;
+            charElement.classList.add('scrambled');
+            
+            setTimeout(() => {
+                charElement.classList.remove('scrambled');
+            }, 800);
+        }
+    }, 50);
+}
+
+/**
+ * Initialize the feature carousel with enhanced animations and interactions
+ */
+function initCarousel() {
+    const carousel = document.querySelector('.feature-carousel');
+    if (!carousel) return;
     
-    menuToggle.addEventListener('click', () => {
-        mobileMenu.classList.add('active');
-        document.body.classList.add('menu-open');
-    });
+    const track = carousel.querySelector('.carousel-track');
+    const slides = carousel.querySelectorAll('.carousel-slide');
+    const dotsContainer = carousel.querySelector('.carousel-dots');
+    const nextButton = carousel.querySelector('.carousel-next');
+    const prevButton = carousel.querySelector('.carousel-prev');
     
-    if (closeBtn) {
-        closeBtn.addEventListener('click', () => {
-            mobileMenu.classList.remove('active');
-            document.body.classList.remove('menu-open');
+    if (!track || slides.length === 0) return;
+    
+    // Create dots with enhanced styling and previews
+    if (dotsContainer) {
+        slides.forEach((slide, index) => {
+            // Create the dot
+            const dot = document.createElement('button');
+            dot.className = index === 0 ? 'carousel-dot active' : 'carousel-dot';
+            dot.setAttribute('aria-label', `View feature ${index + 1}`);
+            dot.dataset.slide = index;
+            
+            // Extract the feature title for the tooltip
+            const featureTitle = slide.querySelector('h3').textContent;
+            dot.setAttribute('title', featureTitle);
+            
+            // Add to container
+            dotsContainer.appendChild(dot);
         });
     }
+    
+    // Variables
+    const dots = carousel.querySelectorAll('.carousel-dot');
+    let currentSlide = 0;
+    let isMoving = false;
+    const slideWidth = 100; // percentage
+    
+    // Enhanced carousel navigation logic
+    function updateCarousel(newIndex, direction = null) {
+        if (isMoving) return;
+        if (newIndex < 0 || newIndex >= slides.length) return;
+        
+        isMoving = true;
+        
+        // Determine animation direction
+        const outgoingSlide = currentSlide;
+        currentSlide = newIndex;
+        
+        // Apply transition based on direction
+        track.style.transition = 'transform 0.5s cubic-bezier(0.645, 0.045, 0.355, 1.000)';
+        track.style.transform = `translateX(-${currentSlide * slideWidth}%)`;
+        
+        // Update slide states with delay for better visual transitions
+        slides.forEach((slide, index) => {
+            setTimeout(() => {
+                if (index === currentSlide) {
+                    slide.setAttribute('aria-hidden', 'false');
+                    slide.classList.add('active');
+                } else {
+                    slide.setAttribute('aria-hidden', 'true');
+                    slide.classList.remove('active');
+                }
+            }, index === currentSlide ? 100 : 0);
+        });
+        
+        // Update dot states with smooth transition
+        dots.forEach((dot, index) => {
+            // Add special animation class for the transitions
+            if (index === currentSlide) {
+                dot.classList.add('active');
+                dot.setAttribute('aria-current', 'true');
+            } else {
+                dot.classList.remove('active');
+                dot.removeAttribute('aria-current');
+            }
+        });
+        
+        // Update button states with transitions
+        if (prevButton) {
+            prevButton.disabled = currentSlide === 0;
+            prevButton.classList.toggle('disabled', currentSlide === 0);
+            
+            // Add ripple effect on click
+            if (direction === 'prev' && !prevButton.disabled) {
+                addButtonRipple(prevButton);
+            }
+        }
+        
+        if (nextButton) {
+            nextButton.disabled = currentSlide === slides.length - 1;
+            nextButton.classList.toggle('disabled', currentSlide === slides.length - 1);
+            
+            // Add ripple effect on click
+            if (direction === 'next' && !nextButton.disabled) {
+                addButtonRipple(nextButton);
+            }
+        }
+        
+        // Animate the content of the active slide
+        animateActiveSlideContent(slides[currentSlide]);
+        
+        // Reset isMoving after transition
+        setTimeout(() => {
+            isMoving = false;
+        }, 500);
+    }
+    
+    // Add ripple effect to carousel buttons
+    function addButtonRipple(button) {
+        const ripple = document.createElement('span');
+        ripple.className = 'ripple';
+        button.appendChild(ripple);
+        
+        const rect = button.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height);
+        
+        ripple.style.width = ripple.style.height = `${size}px`;
+        ripple.style.left = `${rect.width / 2 - size / 2}px`;
+        ripple.style.top = `${rect.height / 2 - size / 2}px`;
+        
+        setTimeout(() => {
+            ripple.remove();
+        }, 600);
+    }
+    
+    // Animate the active slide content with staggered animations
+    function animateActiveSlideContent(slide) {
+        // Find elements to animate
+        const icon = slide.querySelector('.feature-icon');
+        const heading = slide.querySelector('h3');
+        const listItems = slide.querySelectorAll('li');
+        const button = slide.querySelector('button');
+        const visual = slide.querySelector('.md\\:w-1\\/2:last-child > div');
+        
+        // Reset animations
+        [icon, heading, button, visual].forEach(el => {
+            if (el) {
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(20px)';
+            }
+        });
+        
+        listItems.forEach(item => {
+            item.style.opacity = '0';
+            item.style.transform = 'translateY(15px)';
+        });
+        
+        // Apply staggered animations
+        setTimeout(() => {
+            if (icon) {
+                icon.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                icon.style.opacity = '1';
+                icon.style.transform = 'translateY(0)';
+            }
+        }, 100);
+        
+        setTimeout(() => {
+            if (heading) {
+                heading.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                heading.style.opacity = '1';
+                heading.style.transform = 'translateY(0)';
+            }
+        }, 200);
+        
+        listItems.forEach((item, i) => {
+            setTimeout(() => {
+                item.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                item.style.opacity = '1';
+                item.style.transform = 'translateY(0)';
+            }, 300 + (i * 100));
+        });
+        
+        setTimeout(() => {
+            if (button) {
+                button.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                button.style.opacity = '1';
+                button.style.transform = 'translateY(0)';
+            }
+        }, 300 + (listItems.length * 100) + 100);
+        
+        setTimeout(() => {
+            if (visual) {
+                visual.style.transition = 'opacity 0.8s ease, transform 0.8s ease';
+                visual.style.opacity = '1';
+                visual.style.transform = 'translateY(0) scale(1)';
+            }
+        }, 200);
+    }
+    
+    // Navigate to previous/next slide
+    function goToSlide(index, direction = null) {
+        updateCarousel(index, direction);
+    }
+    
+    // Event listeners
+    if (nextButton) {
+        nextButton.addEventListener('click', () => {
+            goToSlide(currentSlide + 1, 'next');
+            stopAutoRotate(); // Stop auto-rotation on user interaction
+            setTimeout(startAutoRotate, 5000); // Resume after 5 seconds
+        });
+    }
+    
+    if (prevButton) {
+        prevButton.addEventListener('click', () => {
+            goToSlide(currentSlide - 1, 'prev');
+            stopAutoRotate(); // Stop auto-rotation on user interaction
+            setTimeout(startAutoRotate, 5000); // Resume after 5 seconds
+        });
+    }
+    
+    // Dot navigation with enhanced interaction
+    dots.forEach(dot => {
+        dot.addEventListener('click', () => {
+            const slideIndex = parseInt(dot.dataset.slide);
+            const direction = slideIndex > currentSlide ? 'next' : 'prev';
+            goToSlide(slideIndex, direction);
+            stopAutoRotate(); // Stop auto-rotation on user interaction
+            setTimeout(startAutoRotate, 5000); // Resume after 5 seconds
+        });
+        
+        // Add hover effect
+        dot.addEventListener('mouseenter', () => {
+            dot.style.transform = 'scaleY(1.2)';
+        });
+        
+        dot.addEventListener('mouseleave', () => {
+            dot.style.transform = 'scaleY(1)';
+        });
+    });
+    
+    // Keyboard navigation
+    carousel.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') {
+            goToSlide(currentSlide - 1, 'prev');
+            stopAutoRotate();
+            setTimeout(startAutoRotate, 5000);
+        } else if (e.key === 'ArrowRight') {
+            goToSlide(currentSlide + 1, 'next');
+            stopAutoRotate();
+            setTimeout(startAutoRotate, 5000);
+        }
+    });
+    
+    // Enhanced touch events for swiping with animations
+    let touchStartX = 0;
+    let touchEndX = 0;
+    let touchStartTime = 0;
+    
+    carousel.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartTime = new Date().getTime();
+        stopAutoRotate();
+    }, {passive: true});
+    
+    carousel.addEventListener('touchmove', (e) => {
+        const currentX = e.changedTouches[0].screenX;
+        const diff = touchStartX - currentX;
+        const offset = (diff / carousel.offsetWidth) * 100;
+        
+        // Only apply drag if it's not at the edges or the drag isn't too large
+        if ((currentSlide > 0 || diff < 0) && (currentSlide < slides.length - 1 || diff > 0) && Math.abs(diff) < 100) {
+            track.style.transition = 'none';
+            track.style.transform = `translateX(-${(currentSlide * 100) + offset}%)`;
+        }
+    }, {passive: true});
+    
+    carousel.addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        const touchEndTime = new Date().getTime();
+        
+        // Calculate swipe speed and distance
+        const swipeDistance = touchStartX - touchEndX;
+        const swipeTime = touchEndTime - touchStartTime;
+        const swipeSpeed = Math.abs(swipeDistance / swipeTime);
+        
+        // Determine if swipe was intentional based on speed and distance
+        if (swipeSpeed > 0.5 || Math.abs(swipeDistance) > 50) {
+            if (swipeDistance > 0 && currentSlide < slides.length - 1) {
+                // Swipe left - go to next
+                goToSlide(currentSlide + 1, 'next');
+            } else if (swipeDistance < 0 && currentSlide > 0) {
+                // Swipe right - go to previous
+                goToSlide(currentSlide - 1, 'prev');
+            } else {
+                // Snap back to current slide
+                track.style.transition = 'transform 0.3s ease';
+                track.style.transform = `translateX(-${currentSlide * 100}%)`;
+            }
+        } else {
+            // If the swipe wasn't fast enough, revert to current slide
+            track.style.transition = 'transform 0.3s ease';
+            track.style.transform = `translateX(-${currentSlide * 100}%)`;
+        }
+        
+        // Resume auto-rotation after delay
+        setTimeout(startAutoRotate, 5000);
+    }, {passive: true});
+    
+    // Automatic rotation with progress indicator
+    let autoRotateInterval;
+    let progressBar;
+    
+    function addProgressIndicator() {
+        if (dotsContainer) {
+            progressBar = document.createElement('div');
+            progressBar.className = 'carousel-progress';
+            progressBar.style.cssText = `
+                width: 0%;
+                height: 2px;
+                background: rgba(88, 101, 242, 0.5);
+                position: absolute;
+                bottom: -10px;
+                left: 0;
+                transition: width 5000ms linear;
+            `;
+            dotsContainer.style.position = 'relative';
+            dotsContainer.appendChild(progressBar);
+        }
+    }
+    
+    function updateProgressBar(reset = false) {
+        if (progressBar) {
+            if (reset) {
+                progressBar.style.transition = 'none';
+                progressBar.style.width = '0%';
+                setTimeout(() => {
+                    progressBar.style.transition = 'width 5000ms linear';
+                    progressBar.style.width = '100%';
+                }, 50);
+            } else {
+                progressBar.style.width = '100%';
+            }
+        }
+    }
+    
+    function startAutoRotate() {
+        // Clear any existing intervals
+        stopAutoRotate();
+        
+        // Reset and start progress bar
+        updateProgressBar(true);
+        
+        // Start new interval
+        autoRotateInterval = setInterval(() => {
+            // Loop back to the beginning if we're at the end
+            const nextSlide = currentSlide === slides.length - 1 ? 0 : currentSlide + 1;
+            goToSlide(nextSlide, 'next');
+            
+            // Reset progress bar
+            updateProgressBar(true);
+        }, 5000); // Change slide every 5 seconds
+    }
+    
+    function stopAutoRotate() {
+        clearInterval(autoRotateInterval);
+        if (progressBar) {
+            progressBar.style.width = '0%';
+        }
+    }
+    
+    // Add progress indicator
+    addProgressIndicator();
+    
+    // Set up interaction listeners for pausing/resuming auto-rotation
+    carousel.addEventListener('mouseenter', stopAutoRotate);
+    carousel.addEventListener('mouseleave', startAutoRotate);
+    carousel.addEventListener('focusin', stopAutoRotate);
+    carousel.addEventListener('focusout', () => {
+        if (!carousel.contains(document.activeElement)) {
+            startAutoRotate();
+        }
+    });
+    
+    // Initial animations and setup
+    animateActiveSlideContent(slides[0]);
+    updateCarousel(0);
+    startAutoRotate();
+    
+    // Set up typing animation for demo
+    setupTypingAnimation();
+}
+
+/**
+ * Set up typing animations for the carousel demos
+ */
+function setupTypingAnimation() {
+    const typingElements = document.querySelectorAll('.typing-animation');
+    
+    typingElements.forEach(element => {
+        const text = element.textContent;
+        element.textContent = '';
+        
+        let i = 0;
+        function typeWriter() {
+            if (i < text.length) {
+                element.textContent += text.charAt(i);
+                i++;
+                setTimeout(typeWriter, 50 + Math.random() * 50);
+            }
+        }
+        
+        // Start typing animation when element is in view
+        const observer = new IntersectionObserver(entries => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    setTimeout(typeWriter, 500);
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.5 });
+        
+        observer.observe(element);
+    });
 }

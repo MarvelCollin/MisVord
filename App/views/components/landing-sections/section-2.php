@@ -6,46 +6,61 @@ if (!function_exists('asset')) {
 ?>
 
 <!-- Feature section 2: Where hanging out is easy - Horizontal Timeline Layout -->
-<section class="feature-section-2 py-20 px-6 relative overflow-hidden">
-    <!-- Background gradient wave effect -->
-    <div class="absolute inset-0 overflow-hidden pointer-events-none z-0 bg-wave">
-        <!-- Animated wave patterns -->
-        <div class="wave wave1"></div>
-        <div class="wave wave2"></div>
-        <div class="wave wave3"></div>
+<section class="py-20 px-6 relative overflow-hidden bg-gradient-to-b from-[#36393f] to-[#2f3136] feature-section-hangout">
+    <!-- Background animated waves -->
+    <div class="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+        <div class="wave-bg wave-1"></div>
+        <div class="wave-bg wave-2"></div>
+        <div class="wave-bg wave-3"></div>
     </div>
 
     <div class="container mx-auto relative z-10">
-        <!-- Section Heading with Split Text Animation -->
-        <div class="text-center mb-12 split-text-container">
-            <h2 class="text-4xl md:text-6xl font-bold mb-6 gradient-text-purple section-title-2">Where hanging out is easy</h2>
-            <p class="text-xl md:text-2xl text-gray-200 max-w-3xl mx-auto split-text">
+        <!-- Section heading with nice animation -->
+        <div class="text-center mb-16">
+            <h2 class="text-4xl md:text-6xl font-bold mb-6 text-white section-title animated-fade-in">
+                <span class="bg-gradient-to-r from-discord-pink to-discord-blue bg-clip-text text-transparent">
+                    Where hanging out is easy
+                </span>
+            </h2>
+            <p class="text-xl md:text-2xl text-gray-200 max-w-3xl mx-auto animated-fade-in">
                 Drop in, hang out, and talk with your friends without complicated scheduling
             </p>
         </div>
         
-        <!-- Horizontal Timeline Layout -->
-        <div class="timeline-container mt-20">
-            <!-- Timeline Track -->
-            <div class="timeline-track"></div>
+        <!-- Timeline container -->
+        <div class="timeline-container my-24 relative">
+            <!-- Vertical timeline line -->
+            <div class="absolute left-0 md:left-1/2 top-0 bottom-0 w-1 bg-gradient-to-b from-discord-blue to-discord-pink transform md:translate-x-[-50%] z-0"></div>
             
-            <!-- Timeline Nodes -->
-            <div class="timeline-items">
+            <!-- Timeline items -->
+            <div class="timeline-items space-y-32">
                 <!-- Item 1 -->
-                <div class="timeline-item" data-step="1">
-                    <div class="timeline-node"></div>
-                    <div class="timeline-content left">
-                        <h3 class="text-2xl font-bold mb-4 glitch-hover">Join Voice Channels</h3>
-                        <p class="text-gray-300">Grab a seat in a voice channel when you're free. Friends in your server can see you're around and instantly pop in to talk without having to call.</p>
+                <div class="timeline-item flex flex-col md:flex-row">
+                    <div class="timeline-dot absolute left-[-10px] md:left-1/2 top-12 w-5 h-5 rounded-full bg-discord-blue shadow-glow-blue transform md:translate-x-[-50%] z-10"></div>
+                    
+                    <!-- Content for larger screens -->
+                    <div class="md:w-1/2 pr-0 md:pr-16 timeline-content animated-slide-in-left">
+                        <div class="glass-panel p-6 md:p-8 rounded-xl">
+                            <h3 class="text-2xl font-bold mb-4 text-white hover:text-discord-blue transition-colors">Join Voice Channels</h3>
+                            <p class="text-gray-300">
+                                Grab a seat in a voice channel when you're free. Friends in your server can see you're around and instantly pop in to talk without having to call.
+                            </p>
+                        </div>
                     </div>
-                    <div class="timeline-visual right">
-                        <div class="visual-container">
-                            <img src="<?php echo asset('/landing-page/actor-sit.webp'); ?>" alt="Voice channels" class="timeline-image">
+                    
+                    <!-- Image for larger screens -->
+                    <div class="md:w-1/2 pl-0 md:pl-16 mt-6 md:mt-0 timeline-visual animated-slide-in-right">
+                        <div class="glass-panel p-2 rounded-xl overflow-hidden hover-float">
+                            <img src="<?php echo asset('/landing-page/actor-sit.webp'); ?>" alt="Voice channels" class="w-full h-auto rounded-lg">
                             
-                            <!-- Audio wave animation overlay -->
-                            <div class="audio-wave-container">
-                                <div class="audio-wave">
-                                    <span></span><span></span><span></span><span></span><span></span>
+                            <!-- Audio wave indicator -->
+                            <div class="audio-wave-overlay">
+                                <div class="audio-wave flex items-center justify-center h-8 px-4">
+                                    <span></span>
+                                    <span></span>
+                                    <span></span>
+                                    <span></span>
+                                    <span></span>
                                 </div>
                             </div>
                         </div>
@@ -53,39 +68,60 @@ if (!function_exists('asset')) {
                 </div>
                 
                 <!-- Item 2 -->
-                <div class="timeline-item" data-step="2">
-                    <div class="timeline-node"></div>
-                    <div class="timeline-content right">
-                        <h3 class="text-2xl font-bold mb-4 glitch-hover">Share Your Screen</h3>
-                        <p class="text-gray-300">Stream your gameplay, share your desktop, or collaborate on projects with high-quality, low-latency screen sharing.</p>
+                <div class="timeline-item flex flex-col md:flex-row-reverse">
+                    <div class="timeline-dot absolute left-[-10px] md:left-1/2 top-12 w-5 h-5 rounded-full bg-discord-pink shadow-glow-pink transform md:translate-x-[-50%] z-10"></div>
+                    
+                    <!-- Content for larger screens -->
+                    <div class="md:w-1/2 pl-0 md:pl-16 timeline-content animated-slide-in-right">
+                        <div class="glass-panel p-6 md:p-8 rounded-xl">
+                            <h3 class="text-2xl font-bold mb-4 text-white hover:text-discord-pink transition-colors">Share Your Screen</h3>
+                            <p class="text-gray-300">
+                                Stream your gameplay, share your desktop, or collaborate on projects with high-quality, low-latency screen sharing.
+                            </p>
+                        </div>
                     </div>
-                    <div class="timeline-visual left">
-                        <div class="visual-container">
-                            <img src="<?php echo asset('/landing-page/computer.webp'); ?>" alt="Screen share" class="timeline-image">
+                    
+                    <!-- Image for larger screens -->
+                    <div class="md:w-1/2 pr-0 md:pr-16 mt-6 md:mt-0 timeline-visual animated-slide-in-left">
+                        <div class="glass-panel p-2 rounded-xl overflow-hidden hover-float">
+                            <img src="<?php echo asset('/landing-page/computer.webp'); ?>" alt="Screen share" class="w-full h-auto rounded-lg">
                             
-                            <!-- Screen glitch effect overlay -->
-                            <div class="screen-glitch"></div>
+                            <!-- Screen sharing overlay -->
+                            <div class="screen-overlay">
+                                <div class="screen-controls flex justify-center space-x-3 p-2">
+                                    <div class="control-btn bg-discord-dark hover:bg-discord-pink transition-colors"></div>
+                                    <div class="control-btn bg-discord-dark hover:bg-discord-blue transition-colors"></div>
+                                    <div class="control-btn bg-discord-dark hover:bg-discord-green transition-colors"></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
                 
                 <!-- Item 3 -->
-                <div class="timeline-item" data-step="3">
-                    <div class="timeline-node"></div>
-                    <div class="timeline-content left">
-                        <h3 class="text-2xl font-bold mb-4 glitch-hover">Video Chat</h3>
-                        <p class="text-gray-300">Turn on your camera to wave hello, watch friends stream their games, or gather up for a virtual hangout.</p>
+                <div class="timeline-item flex flex-col md:flex-row">
+                    <div class="timeline-dot absolute left-[-10px] md:left-1/2 top-12 w-5 h-5 rounded-full bg-discord-green shadow-glow-green transform md:translate-x-[-50%] z-10"></div>
+                    
+                    <!-- Content for larger screens -->
+                    <div class="md:w-1/2 pr-0 md:pr-16 timeline-content animated-slide-in-left">
+                        <div class="glass-panel p-6 md:p-8 rounded-xl">
+                            <h3 class="text-2xl font-bold mb-4 text-white hover:text-discord-green transition-colors">Video Chat</h3>
+                            <p class="text-gray-300">
+                                Turn on your camera to wave hello, watch friends stream their games, or gather up for a virtual hangout.
+                            </p>
+                        </div>
                     </div>
-                    <div class="timeline-visual right">
-                        <div class="visual-container">
-                            <img src="<?php echo asset('/landing-page/wumpus_happy.webp'); ?>" alt="Video chat" class="timeline-image">
+                    
+                    <!-- Image for larger screens -->
+                    <div class="md:w-1/2 pl-0 md:pl-16 mt-6 md:mt-0 timeline-visual animated-slide-in-right">
+                        <div class="glass-panel p-2 rounded-xl overflow-hidden hover-float">
+                            <img src="<?php echo asset('/landing-page/wumpus_happy.webp'); ?>" alt="Video chat" class="w-full h-auto rounded-lg">
                             
-                            <!-- Video frame overlay -->
-                            <div class="video-overlay">
-                                <div class="video-controls">
-                                    <span class="video-mic"></span>
-                                    <span class="video-cam"></span>
-                                    <span class="video-screen"></span>
+                            <!-- Video chat overlay -->
+                            <div class="video-chat-overlay">
+                                <div class="video-frame absolute inset-0 border-4 border-discord-green rounded-lg opacity-0 transition-opacity duration-300"></div>
+                                <div class="video-controls absolute bottom-2 right-2 bg-black bg-opacity-50 rounded-full p-2">
+                                    <div class="w-3 h-3 bg-discord-green rounded-full pulse-animation"></div>
                                 </div>
                             </div>
                         </div>
@@ -94,75 +130,171 @@ if (!function_exists('asset')) {
             </div>
         </div>
         
-        <!-- Interactive Demo -->
-        <div class="mt-16 demo-container">
-            <div class="demo-header text-center mb-8">
-                <h3 class="text-2xl font-bold gradient-text-purple">Try it out</h3>
-            </div>
-            <div class="demo-interface glass-panel">
-                <div class="server-list">
-                    <div class="server-icon active"><span>M</span></div>
-                    <div class="server-icon"><span>G</span></div>
-                    <div class="server-icon"><span>D</span></div>
-                    <div class="server-icon add-server">+</div>
-                </div>
-                <div class="channel-area">
-                    <div class="channel-header">
-                        <h4>MiscVord Server</h4>
+        <!-- Server demo UI section -->
+        <div class="server-demo mt-32 max-w-4xl mx-auto">
+            <h2 class="text-3xl font-bold text-center mb-10">
+                <span class="bg-gradient-to-r from-discord-blue to-discord-green bg-clip-text text-transparent">
+                    Experience it yourself
+                </span>
+            </h2>
+            
+            <div class="demo-ui flex flex-col md:flex-row bg-discord-dark rounded-xl overflow-hidden shadow-2xl">
+                <!-- Server sidebar -->
+                <div class="server-sidebar bg-[#202225] w-20 py-4 flex flex-col items-center space-y-4">
+                    <div class="server-icon w-12 h-12 rounded-full bg-discord-blue flex items-center justify-center text-white font-bold">
+                        M
                     </div>
-                    <div class="channel-list">
-                        <div class="channel-category">TEXT CHANNELS</div>
-                        <div class="channel-item"># general</div>
-                        <div class="channel-item"># announcements</div>
-                        <div class="channel-item"># off-topic</div>
+                    <div class="server-divider w-8 h-0.5 bg-gray-700"></div>
+                    <div class="server-icon w-12 h-12 rounded-2xl bg-[#36393f] hover:bg-discord-green hover:rounded-xl transition-all duration-300 flex items-center justify-center text-white font-bold">
+                        G
+                    </div>
+                    <div class="server-icon w-12 h-12 rounded-2xl bg-[#36393f] hover:bg-discord-pink hover:rounded-xl transition-all duration-300 flex items-center justify-center text-white font-bold">
+                        D
+                    </div>
+                    <div class="server-icon w-12 h-12 rounded-2xl bg-[#36393f] hover:bg-discord-blue hover:rounded-xl transition-all duration-300 flex items-center justify-center text-green-500 font-bold">
+                        +
+                    </div>
+                </div>
+                
+                <!-- Channel sidebar -->
+                <div class="channel-sidebar bg-[#2f3136] w-60 py-4 px-3 hidden md:block">
+                    <div class="channel-header border-b border-gray-700 pb-3 mb-4">
+                        <h3 class="text-white font-semibold">MiscVord Server</h3>
+                    </div>
+                    
+                    <div class="channel-category text-xs text-gray-400 font-semibold mt-4 mb-1">TEXT CHANNELS</div>
+                    <div class="channel-item flex items-center py-1 px-2 text-gray-400 hover:bg-gray-700 hover:text-gray-200 rounded transition-colors">
+                        # welcome
+                    </div>
+                    <div class="channel-item flex items-center py-1 px-2 text-gray-400 hover:bg-gray-700 hover:text-gray-200 rounded transition-colors">
+                        # announcements
+                    </div>
+                    <div class="channel-item flex items-center py-1 px-2 text-gray-400 hover:bg-gray-700 hover:text-gray-200 rounded transition-colors">
+                        # general
+                    </div>
+                    
+                    <div class="channel-category text-xs text-gray-400 font-semibold mt-4 mb-1">VOICE CHANNELS</div>
+                    <div class="channel-item flex items-center py-1 px-2 text-gray-200 bg-gray-700 bg-opacity-30 rounded transition-colors">
+                        <div class="flex flex-col w-full">
+                            <div class="flex items-center">
+                                <svg class="w-5 h-5 mr-1 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 2c-1.1 0-2 .9-2 2v7c0 1.1.9 2 2 2s2-.9 2-2V4c0-1.1-.9-2-2-2z"></path>
+                                    <path d="M19 10h-2c0 2.2-1.8 4-4 4s-4-1.8-4-4H7c0 3.3 2.7 6 6 6s6-2.7 6-6z"></path>
+                                    <path d="M7 19h10v2H7z"></path>
+                                </svg>
+                                <span>General Voice</span>
+                            </div>
+                            <div class="ml-6 mt-1">
+                                <div class="flex items-center text-xs text-gray-400">
+                                    <div class="w-2 h-2 bg-discord-green rounded-full mr-2"></div>
+                                    <span>User 1</span>
+                                </div>
+                                <div class="flex items-center text-xs text-gray-400">
+                                    <div class="w-2 h-2 bg-discord-green rounded-full mr-2"></div>
+                                    <span>User 2</span>
+                                </div>
+                                <div class="flex items-center text-xs text-discord-green">
+                                    <div class="w-2 h-2 bg-discord-green rounded-full mr-2 pulse-animation"></div>
+                                    <span>You</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="channel-item flex items-center py-1 px-2 text-gray-400 hover:bg-gray-700 hover:text-gray-200 rounded transition-colors">
+                        <svg class="w-5 h-5 mr-1" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2c-1.1 0-2 .9-2 2v7c0 1.1.9 2 2 2s2-.9 2-2V4c0-1.1-.9-2-2-2z"></path>
+                            <path d="M19 10h-2c0 2.2-1.8 4-4 4s-4-1.8-4-4H7c0 3.3 2.7 6 6 6s6-2.7 6-6z"></path>
+                            <path d="M7 19h10v2H7z"></path>
+                        </svg>
+                        <span>Gaming</span>
+                    </div>
+                </div>
+                
+                <!-- Chat area -->
+                <div class="chat-area bg-[#36393f] flex-1 flex flex-col">
+                    <div class="chat-header border-b border-gray-700 py-3 px-4 flex justify-between items-center">
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2c-1.1 0-2 .9-2 2v7c0 1.1.9 2 2 2s2-.9 2-2V4c0-1.1-.9-2-2-2z"></path>
+                                <path d="M19 10h-2c0 2.2-1.8 4-4 4s-4-1.8-4-4H7c0 3.3 2.7 6 6 6s6-2.7 6-6z"></path>
+                                <path d="M7 19h10v2H7z"></path>
+                            </svg>
+                            <span class="font-semibold">General Voice</span>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="p-1.5 rounded-full hover:bg-gray-700 transition-colors">
+                                <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"></path>
+                                </svg>
+                            </button>
+                            <button class="p-1.5 rounded-full hover:bg-gray-700 transition-colors">
+                                <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="flex-1 p-4">
+                        <div class="voice-indicator bg-discord-dark bg-opacity-40 rounded-md p-3 flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 bg-discord-green rounded-full pulse-animation mr-3"></div>
+                                <span class="text-sm text-gray-300">Voice Connected</span>
+                            </div>
+                            <div class="flex space-x-2">
+                                <button class="p-1.5 rounded-full bg-discord-dark hover:bg-discord-blue transition-colors">
+                                    <svg class="w-5 h-5 text-gray-200" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M12 2c-1.1 0-2 .9-2 2v7c0 1.1.9 2 2 2s2-.9 2-2V4c0-1.1-.9-2-2-2z"></path>
+                                        <path d="M19 10h-2c0 2.2-1.8 4-4 4s-4-1.8-4-4H7c0 3.3 2.7 6 6 6s6-2.7 6-6z"></path>
+                                        <path d="M7 19h10v2H7z"></path>
+                                    </svg>
+                                </button>
+                                <button class="p-1.5 rounded-full bg-discord-dark hover:bg-discord-blue transition-colors">
+                                    <svg class="w-5 h-5 text-gray-200" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M12 3a9 9 0 00-9 9v7a3 3 0 003 3h12a3 3 0 003-3v-7a9 9 0 00-9-9zm0 2a7 7 0 017 7v7a1 1 0 01-1 1h-4v-2h-4v2H6a1 1 0 01-1-1v-7a7 7 0 017-7z"></path>
+                                    </svg>
+                                </button>
+                                <button class="p-1.5 rounded-full bg-discord-dark hover:bg-discord-blue transition-colors">
+                                    <svg class="w-5 h-5 text-gray-200" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.45.17-.49.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
                         
-                        <div class="channel-category">VOICE CHANNELS</div>
-                        <div class="channel-item voice active">
-                            <span>🔊 General Voice</span>
-                            <div class="voice-users">
-                                <div class="voice-user">👤 User 1</div>
-                                <div class="voice-user">👤 User 2</div>
+                        <!-- Voice participants -->
+                        <div class="voice-participants mt-4 space-y-3">
+                            <div class="participant flex items-center bg-discord-dark bg-opacity-20 rounded-md p-3">
+                                <div class="w-9 h-9 bg-discord-blue rounded-full flex items-center justify-center text-white font-semibold mr-3">U1</div>
+                                <div class="flex-1 text-gray-300">User 1</div>
+                                <div class="audio-indicator flex space-x-0.5">
+                                    <span class="w-0.5 h-3 bg-gray-500 rounded"></span>
+                                    <span class="w-0.5 h-4 bg-gray-500 rounded"></span>
+                                    <span class="w-0.5 h-2 bg-gray-500 rounded"></span>
+                                    <span class="w-0.5 h-3 bg-gray-500 rounded"></span>
+                                </div>
                             </div>
-                        </div>
-                        <div class="channel-item voice">🔊 Gaming</div>
-                        <div class="channel-item voice">🔊 Music</div>
-                    </div>
-                </div>
-                <div class="chat-area">
-                    <div class="chat-header">
-                        <h4>General Voice</h4>
-                    </div>
-                    <div class="voice-status">
-                        <div class="connected-voice">
-                            <div class="status-indicator"></div>
-                            <span>Voice Connected</span>
-                        </div>
-                        <div class="voice-controls">
-                            <button class="control-btn">🎤</button>
-                            <button class="control-btn">🎧</button>
-                            <button class="control-btn">⚙️</button>
-                        </div>
-                    </div>
-                    <div class="voice-participants">
-                        <div class="participant">
-                            <div class="avatar">U1</div>
-                            <div class="participant-name">User 1</div>
-                            <div class="speaking-indicator">
-                                <span></span><span></span><span></span>
+                            
+                            <div class="participant flex items-center bg-discord-dark bg-opacity-20 rounded-md p-3">
+                                <div class="w-9 h-9 bg-discord-pink rounded-full flex items-center justify-center text-white font-semibold mr-3">U2</div>
+                                <div class="flex-1 text-gray-300">User 2</div>
+                                <div class="audio-indicator flex space-x-0.5">
+                                    <span class="w-0.5 h-3 bg-gray-500 rounded"></span>
+                                    <span class="w-0.5 h-4 bg-gray-500 rounded"></span>
+                                    <span class="w-0.5 h-2 bg-gray-500 rounded"></span>
+                                    <span class="w-0.5 h-3 bg-gray-500 rounded"></span>
+                                </div>
                             </div>
-                        </div>
-                        <div class="participant">
-                            <div class="avatar">U2</div>
-                            <div class="participant-name">User 2</div>
-                            <div class="speaking-indicator">
-                                <span></span><span></span><span></span>
-                            </div>
-                        </div>
-                        <div class="participant you">
-                            <div class="avatar">Y</div>
-                            <div class="participant-name">You</div>
-                            <div class="speaking-indicator active">
-                                <span></span><span></span><span></span>
+                            
+                            <div class="participant flex items-center bg-discord-dark bg-opacity-30 rounded-md p-3 border border-discord-green border-opacity-50">
+                                <div class="w-9 h-9 bg-discord-green rounded-full flex items-center justify-center text-white font-semibold mr-3">Y</div>
+                                <div class="flex-1 text-discord-green font-medium">You</div>
+                                <div class="audio-indicator flex space-x-0.5">
+                                    <span class="w-0.5 h-3 bg-discord-green rounded speaking"></span>
+                                    <span class="w-0.5 h-4 bg-discord-green rounded speaking speaking-delay-1"></span>
+                                    <span class="w-0.5 h-2 bg-discord-green rounded speaking speaking-delay-2"></span>
+                                    <span class="w-0.5 h-3 bg-discord-green rounded speaking speaking-delay-3"></span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -173,212 +305,119 @@ if (!function_exists('asset')) {
 </section>
 
 <style>
-/* Section 2 specific styles */
-.feature-section-2 {
+/* Custom styles for section-2 */
+.feature-section-hangout {
     min-height: 100vh;
 }
 
-.gradient-text-purple {
-    background: linear-gradient(to right, #EB459E, #5865F2);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    display: inline-block;
-}
-
-/* Animated background waves */
-.bg-wave {
-    background: linear-gradient(135deg, rgba(88, 101, 242, 0.05), rgba(235, 69, 158, 0.05));
-}
-
-.wave {
+/* Wave background animation */
+.wave-bg {
     position: absolute;
-    width: 100%;
-    height: 100%;
-    opacity: 0.3;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    opacity: 0.05;
     background-size: 400% 400%;
 }
 
-.wave1 {
+.wave-1 {
     background-image: linear-gradient(45deg, #5865F2, #EB459E);
-    animation: wave 15s ease-in-out infinite;
+    animation: wave-animation 25s ease infinite;
 }
 
-.wave2 {
+.wave-2 {
     background-image: linear-gradient(-45deg, #57F287, #5865F2);
-    animation: wave 18s ease-in-out infinite;
+    animation: wave-animation 30s ease infinite;
     animation-delay: -5s;
 }
 
-.wave3 {
+.wave-3 {
     background-image: linear-gradient(135deg, #EB459E, #FEE75C);
-    animation: wave 20s ease-in-out infinite;
+    animation: wave-animation 35s ease infinite;
     animation-delay: -10s;
 }
 
-@keyframes wave {
-    0% {
-        background-position: 0% 50%;
-    }
-    50% {
-        background-position: 100% 50%;
-    }
-    100% {
-        background-position: 0% 50%;
-    }
+@keyframes wave-animation {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
 }
 
-/* Split text animation */
-.split-text-container {
-    opacity: 0;
-    transform: translateY(30px);
-}
-
-.split-text span {
-    display: inline-block;
-    opacity: 0;
-    transform: translateY(20px);
-    transition: transform 0.5s ease, opacity 0.5s ease;
-}
-
-/* Timeline layout */
-.timeline-container {
-    position: relative;
-    padding: 2rem 0;
-    max-width: 1200px;
-    margin: 0 auto;
-}
-
-.timeline-track {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 50%;
-    width: 4px;
-    background: linear-gradient(to bottom, #5865F2, #EB459E);
-    transform: translateX(-50%);
-    opacity: 0.7;
-}
-
-.timeline-items {
-    position: relative;
-}
-
-.timeline-item {
-    position: relative;
-    margin-bottom: 120px;
-    opacity: 0;
-    transform: translateY(30px);
-    transition: opacity 0.8s ease, transform 0.8s ease;
-}
-
-.timeline-node {
-    position: absolute;
-    left: 50%;
-    width: 20px;
-    height: 20px;
-    background: #5865F2;
-    border-radius: 50%;
-    transform: translate(-50%, 0);
-    box-shadow: 0 0 15px rgba(88, 101, 242, 0.8);
-    z-index: 2;
-}
-
-.timeline-node::before {
-    content: attr(data-step);
-    position: absolute;
-    width: 40px;
-    height: 40px;
-    border: 2px solid rgba(88, 101, 242, 0.5);
-    border-radius: 50%;
-    transform: translate(-50%, -50%);
-    top: 50%;
-    left: 50%;
-    opacity: 0.7;
-}
-
-.timeline-content {
-    width: 45%;
-    padding: 20px;
-    background: rgba(30, 30, 40, 0.6);
+/* Glass panel styling */
+.glass-panel {
+    background: rgba(32, 34, 37, 0.6);
     backdrop-filter: blur(10px);
-    border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-.timeline-content.left {
-    margin-right: 55%;
+.glass-panel:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
 }
 
-.timeline-content.right {
-    margin-left: 55%;
+/* Timeline styling */
+.timeline-dot {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-.timeline-visual {
+.timeline-item:hover .timeline-dot {
+    transform: scale(1.5) translateX(-50%);
+}
+
+/* Shadow glow effects */
+.shadow-glow-blue {
+    box-shadow: 0 0 15px rgba(88, 101, 242, 0.7);
+}
+
+.shadow-glow-pink {
+    box-shadow: 0 0 15px rgba(235, 69, 158, 0.7);
+}
+
+.shadow-glow-green {
+    box-shadow: 0 0 15px rgba(87, 242, 135, 0.7);
+}
+
+/* Hover float effect */
+.hover-float {
+    transition: transform 0.3s ease;
+}
+
+.hover-float:hover {
+    transform: translateY(-7px);
+}
+
+/* Audio wave effects */
+.audio-wave-overlay {
     position: absolute;
-    width: 45%;
-    top: 0;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.timeline-visual.left {
     left: 0;
-}
-
-.timeline-visual.right {
     right: 0;
+    bottom: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
+    padding: 20px 10px 5px 10px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
 }
 
-.visual-container {
-    position: relative;
-    width: 100%;
-    max-width: 350px;
-    overflow: hidden;
-    border-radius: 10px;
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
-}
-
-.timeline-image {
-    width: 100%;
-    height: auto;
-    display: block;
-    transition: transform 0.5s ease;
-}
-
-.visual-container:hover .timeline-image {
-    transform: scale(1.05);
-}
-
-/* Audio wave animation */
-.audio-wave-container {
-    position: absolute;
-    bottom: 10px;
-    left: 10px;
-    right: 10px;
-    background: rgba(0, 0, 0, 0.5);
-    border-radius: 5px;
-    padding: 8px;
+.glass-panel:hover .audio-wave-overlay {
+    opacity: 1;
 }
 
 .audio-wave {
     display: flex;
-    align-items: center;
     justify-content: center;
-    height: 20px;
+    align-items: center;
 }
 
 .audio-wave span {
-    display: inline-block;
     width: 3px;
-    height: 5px;
+    height: 10px;
     margin: 0 2px;
     background-color: #5865F2;
-    border-radius: 1px;
-    animation: wave-jump 1.2s ease infinite alternate;
+    border-radius: 3px;
+    animation: audio-wave 0.8s ease infinite alternate;
 }
 
 .audio-wave span:nth-child(2) {
@@ -397,286 +436,57 @@ if (!function_exists('asset')) {
     animation-delay: 0.8s;
 }
 
-@keyframes wave-jump {
-    0% {
-        height: 5px;
-    }
-    50% {
-        height: 15px;
-    }
-    100% {
-        height: 5px;
-    }
+@keyframes audio-wave {
+    0% { height: 3px; }
+    100% { height: 15px; }
 }
 
-/* Screen glitch effect */
-.screen-glitch {
+/* Screen overlay effects */
+.screen-overlay {
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(88, 101, 242, 0.1);
-    opacity: 0;
-    pointer-events: none;
-}
-
-.visual-container:hover .screen-glitch {
-    opacity: 1;
-    animation: glitch 0.5s cubic-bezier(.25, .46, .45, .94) both infinite;
-}
-
-@keyframes glitch {
-    0% {
-        transform: translate(0);
-    }
-    20% {
-        transform: translate(-3px, 3px);
-    }
-    40% {
-        transform: translate(-3px, -3px);
-    }
-    60% {
-        transform: translate(3px, 3px);
-    }
-    80% {
-        transform: translate(3px, -3px);
-    }
-    100% {
-        transform: translate(0);
-    }
-}
-
-/* Video overlay */
-.video-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.3), transparent, rgba(0, 0, 0, 0.3));
+    display: flex;
+    align-items: flex-end;
+    padding-bottom: 10px;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.4), transparent);
     opacity: 0;
     transition: opacity 0.3s ease;
 }
 
-.visual-container:hover .video-overlay {
+.glass-panel:hover .screen-overlay {
     opacity: 1;
 }
 
-.video-controls {
+.control-btn {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.control-btn:hover {
+    transform: scale(1.2);
+}
+
+/* Video chat overlay */
+.video-chat-overlay {
     position: absolute;
-    bottom: 10px;
+    top: 0;
     left: 0;
     right: 0;
-    display: flex;
-    justify-content: center;
-    gap: 15px;
+    bottom: 0;
+    opacity: 0;
+    transition: opacity 0.3s ease;
 }
 
-.video-controls span {
-    width: 30px;
-    height: 30px;
-    background-color: rgba(0, 0, 0, 0.5);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: transform 0.2s ease, background-color 0.2s ease;
+.glass-panel:hover .video-chat-overlay {
+    opacity: 1;
 }
 
-.video-controls span:hover {
-    transform: scale(1.1);
-    background-color: rgba(88, 101, 242, 0.7);
-}
-
-.video-mic::before {
-    content: "🎤";
-    font-size: 12px;
-}
-
-.video-cam::before {
-    content: "📷";
-    font-size: 12px;
-}
-
-.video-screen::before {
-    content: "💻";
-    font-size: 12px;
-}
-
-/* Glitch hover effect for headings */
-.glitch-hover {
-    position: relative;
-    cursor: pointer;
-}
-
-.glitch-hover:hover {
-    animation: glitch-text 0.4s linear both;
-}
-
-@keyframes glitch-text {
-    0% {
-        text-shadow: 0 0 0 transparent;
-    }
-    20% {
-        text-shadow: 3px 0 0 rgba(235, 69, 158, 0.5), -3px 0 0 rgba(88, 101, 242, 0.5);
-    }
-    40%, 60% {
-        text-shadow: -3px 0 0 rgba(235, 69, 158, 0.5), 3px 0 0 rgba(88, 101, 242, 0.5);
-    }
-    80%, 100% {
-        text-shadow: 0 0 0 transparent;
-    }
-}
-
-/* Interactive demo interface */
-.demo-container {
-    margin-top: 80px;
-}
-
-.glass-panel {
-    background: rgba(30, 30, 40, 0.6);
-    backdrop-filter: blur(10px);
-    border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-    height: 400px;
-    display: flex;
-}
-
-.demo-interface {
-    display: flex;
-    max-width: 900px;
-    margin: 0 auto;
-    height: 400px;
-}
-
-.server-list {
-    width: 70px;
-    background: rgba(20, 20, 30, 0.8);
-    padding: 15px 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 15px;
-}
-
-.server-icon {
-    width: 50px;
-    height: 50px;
-    border-radius: 15px;
-    background: rgba(60, 60, 70, 0.8);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-weight: bold;
-    font-size: 20px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.server-icon:hover, .server-icon.active {
-    background: #5865F2;
-    border-radius: 15px;
-}
-
-.add-server {
-    background: rgba(60, 60, 70, 0.4);
-    color: #57F287;
-}
-
-.add-server:hover {
-    background: #57F287;
-    color: white;
-}
-
-.channel-area {
-    width: 240px;
-    background: rgba(40, 40, 50, 0.7);
-    padding: 15px;
-    display: flex;
-    flex-direction: column;
-}
-
-.channel-header {
-    padding-bottom: 15px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    font-weight: bold;
-}
-
-.channel-list {
-    margin-top: 15px;
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-}
-
-.channel-category {
-    font-size: 12px;
-    color: #aaa;
-    margin-bottom: 5px;
-    margin-top: 10px;
-}
-
-.channel-item {
-    padding: 5px 8px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-}
-
-.channel-item:hover, .channel-item.active {
-    background: rgba(88, 101, 242, 0.3);
-}
-
-.channel-item.voice {
-    display: flex;
-    flex-direction: column;
-}
-
-.voice-users {
-    margin-left: 20px;
-    margin-top: 5px;
-    font-size: 12px;
-    color: #ddd;
-}
-
-.chat-area {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    padding: 15px;
-}
-
-.chat-header {
-    padding-bottom: 15px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    font-weight: bold;
-}
-
-.voice-status {
-    margin-top: 15px;
-    background: rgba(30, 30, 40, 0.7);
-    padding: 10px 15px;
-    border-radius: 5px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.connected-voice {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.status-indicator {
-    width: 10px;
-    height: 10px;
-    background: #57F287;
-    border-radius: 50%;
+.pulse-animation {
     animation: pulse 2s infinite;
 }
 
@@ -692,237 +502,92 @@ if (!function_exists('asset')) {
     }
 }
 
-.voice-controls {
-    display: flex;
-    gap: 10px;
+/* Voice speaking indicators */
+.audio-indicator .speaking {
+    animation: audio-speaking 0.8s ease-in-out infinite alternate;
 }
 
-.control-btn {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    background: rgba(60, 60, 70, 0.8);
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s ease;
+.speaking-delay-1 {
+    animation-delay: 0.2s !important;
 }
 
-.control-btn:hover {
-    background: #5865F2;
+.speaking-delay-2 {
+    animation-delay: 0.4s !important;
 }
 
-.voice-participants {
-    margin-top: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
+.speaking-delay-3 {
+    animation-delay: 0.6s !important;
 }
 
-.participant {
-    display: flex;
-    align-items: center;
-    padding: 8px 15px;
-    border-radius: 5px;
-    background: rgba(40, 40, 50, 0.5);
+@keyframes audio-speaking {
+    0% { height: 2px; }
+    100% { height: 15px; }
 }
 
-.avatar {
-    width: 35px;
-    height: 35px;
-    border-radius: 50%;
-    background: #5865F2;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    margin-right: 10px;
-}
-
-.you .avatar {
-    background: #EB459E;
-}
-
-.participant-name {
-    flex: 1;
-}
-
-.speaking-indicator {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-}
-
-.speaking-indicator span {
-    width: 3px;
-    height: 5px;
-    background-color: #888;
-    border-radius: 1px;
-}
-
-.speaking-indicator.active span {
-    background-color: #57F287;
-    animation: wave-jump 1.2s ease infinite alternate;
-}
-
-.speaking-indicator.active span:nth-child(2) {
-    animation-delay: 0.2s;
-}
-
-.speaking-indicator.active span:nth-child(3) {
-    animation-delay: 0.4s;
-}
-
-/* Media queries for responsiveness */
-@media screen and (max-width: 768px) {
-    .timeline-track {
-        left: 30px;
+/* Responsive styling */
+@media (max-width: 768px) {
+    .timeline-dot {
+        top: 0;
     }
     
-    .timeline-node {
-        left: 30px;
-    }
-    
-    .timeline-content {
-        width: calc(100% - 80px);
-        margin-left: 80px !important;
-        margin-right: 0 !important;
-    }
-    
-    .timeline-visual {
-        position: relative;
-        width: calc(100% - 80px);
-        margin-left: 80px;
-        margin-top: 20px;
-        height: auto;
-    }
-    
-    .timeline-item {
-        margin-bottom: 60px;
-        display: flex;
-        flex-direction: column;
-    }
-    
-    .demo-interface {
-        flex-direction: column;
-        height: auto;
-    }
-    
-    .server-list {
-        width: 100%;
-        flex-direction: row;
-        padding: 10px 0;
-        overflow-x: auto;
-        justify-content: center;
-    }
-    
-    .channel-area {
-        width: 100%;
+    .timeline-content, .timeline-visual {
+        margin-left: 15px;
     }
 }
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize GSAP animations for Section 2
-    gsap.registerPlugin(ScrollTrigger);
-    
-    // Split text animation for the heading
-    const splitTextContainer = document.querySelector('.split-text-container');
-    const splitTextElement = document.querySelector('.split-text');
-    const splitTextContent = splitTextElement.textContent;
-    
-    // Clear the text and create individual spans
-    splitTextElement.textContent = '';
-    splitTextContent.split('').forEach(char => {
-        const span = document.createElement('span');
-        span.textContent = char === ' ' ? '\u00A0' : char;
-        splitTextElement.appendChild(span);
-    });
-    
-    // Animate the split text container and characters
-    gsap.to(splitTextContainer, {
-        opacity: 1,
-        y: 0,
-        duration: 1,
-        scrollTrigger: {
-            trigger: '.feature-section-2',
-            start: 'top 80%'
-        }
-    });
-    
-    // Animate each character with a staggered delay
-    gsap.to('.split-text span', {
-        opacity: 1,
-        y: 0,
-        stagger: 0.03,
-        delay: 0.5,
-        scrollTrigger: {
-            trigger: '.feature-section-2',
-            start: 'top 80%'
-        }
-    });
-    
-    // Timeline animation
-    gsap.utils.toArray('.timeline-item').forEach((item, index) => {
-        // Set step number
-        const node = item.querySelector('.timeline-node');
-        node.setAttribute('data-step', index + 1);
-        
-        // Animate timeline items when scrolled into view
-        gsap.to(item, {
-            opacity: 1,
-            y: 0,
-            duration: 1,
-            scrollTrigger: {
-                trigger: item,
-                start: 'top 80%'
+    // Initialize animations using Intersection Observer
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('animated-visible');
+                observer.unobserve(entry.target);
             }
         });
+    }, {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
     });
     
-    // Interactive elements for demo
-    const serverIcons = document.querySelectorAll('.server-icon');
-    const channelItems = document.querySelectorAll('.channel-item');
-    const participantSpeaking = document.querySelector('.speaking-indicator.active');
-    
-    // Server icon interaction
-    serverIcons.forEach(icon => {
-        icon.addEventListener('click', () => {
-            serverIcons.forEach(i => i.classList.remove('active'));
-            icon.classList.add('active');
-        });
+    // Observe elements with animation classes
+    document.querySelectorAll('.animated-fade-in, .animated-slide-in-left, .animated-slide-in-right').forEach(element => {
+        observer.observe(element);
     });
     
-    // Channel item interaction
-    channelItems.forEach(channel => {
-        channel.addEventListener('click', () => {
-            channelItems.forEach(c => c.classList.remove('active'));
-            channel.classList.add('active');
-        });
-    });
-    
-    // Simulate speaking animation
-    let speakingActive = true;
-    setInterval(() => {
-        if (speakingActive) {
-            participantSpeaking.classList.remove('active');
-            speakingActive = false;
-        } else {
-            participantSpeaking.classList.add('active');
-            speakingActive = true;
+    // Audio wave hover effect
+    const timelineVisuals = document.querySelectorAll('.timeline-visual');
+    timelineVisuals.forEach(visual => {
+        const overlayElement = visual.querySelector('.audio-wave-overlay, .screen-overlay, .video-chat-overlay');
+        if (overlayElement) {
+            visual.addEventListener('mouseenter', () => {
+                overlayElement.style.opacity = '1';
+            });
+            
+            visual.addEventListener('mouseleave', () => {
+                overlayElement.style.opacity = '0';
+            });
         }
-    }, 3000);
-    
-    // Audio wave animation trigger on hover
-    const audioWaveContainers = document.querySelectorAll('.audio-wave-container');
-    audioWaveContainers.forEach(container => {
-        const parentContainer = container.closest('.visual-container');
-        parentContainer.addEventListener('mouseenter', () => {
-            container.style.opacity = '1';
-        });
-        parentContainer.addEventListener('mouseleave', () => {
-            container.style.opacity = '0.7';
-        });
     });
+    
+    // Simulate voice activity for the demo
+    function toggleSpeakingAnimation() {
+        const audioIndicators = document.querySelectorAll('.audio-indicator');
+        audioIndicators.forEach(indicator => {
+            // Toggle between active and inactive state randomly
+            if (Math.random() > 0.7) {
+                const spans = indicator.querySelectorAll('span');
+                spans.forEach(span => {
+                    if (Math.random() > 0.5) {
+                        span.classList.toggle('speaking');
+                    }
+                });
+            }
+        });
+    }
+    
+    // Start the speaking simulation
+    setInterval(toggleSpeakingAnimation, 2000);
 });
 </script>

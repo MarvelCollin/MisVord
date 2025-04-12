@@ -16,24 +16,14 @@ class Query {
     private $distinct = false;
     private $unionQueries = [];
     private $raw = [];
-    
-    public function __construct($pdo = null) {
+      public function __construct($pdo = null) {
         if ($pdo) {
             $this->pdo = $pdo;
         } else {
             try {
-                $envFile = __DIR__ . '/../../.env';
-                $config = self::parseEnvFile($envFile);
-                
-                $host = $config['DB_HOST'] ?? 'localhost';
-                $dbname = $config['DB_NAME'] ?? 'your_database';
-                $username = $config['DB_USER'] ?? 'root';
-                $password = $config['DB_PASS'] ?? '';
-                $charset = $config['DB_CHARSET'] ?? 'utf8mb4';
-                
-                $dsn = "mysql:host=$host;dbname=$dbname;charset=$charset";
-                $this->pdo = new PDO($dsn, $username, $password);
-                $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+                // Use the EnvLoader to get database connection
+                require_once __DIR__ . '/../config/env.php';
+                $this->pdo = EnvLoader::getPDOConnection();
             } catch (PDOException $e) {
                 die("Database connection failed: " . $e->getMessage());
             }

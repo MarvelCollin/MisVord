@@ -1,0 +1,40 @@
+#!/usr/bin/env php
+<?php
+
+// Load environment configuration first - using absolute paths to avoid issues
+$basePath = __DIR__;
+require_once $basePath . '/config/env.php';
+require_once $basePath . '/database/migration.php';
+
+$command = isset($argv[1]) ? $argv[1] : null;
+$option = isset($argv[2]) ? $argv[2] : null;
+$steps = isset($argv[3]) ? (int)$argv[3] : 1;
+
+$runner = new MigrationRunner();
+
+switch ($command) {
+    case 'migrate':
+        switch ($option) {
+            case 'up':
+                echo "Running migrations...\n";
+                $runner->run();
+                break;
+            case 'down':
+            case 'rollback':
+                echo "Rolling back migrations...\n";
+                $runner->rollback($steps);
+                break;            case 'fresh':
+                echo "Rolling back all migrations and running them again...\n";
+                $runner->dropAllTables(); // Drop all tables first
+                $runner->run();
+                break;
+            default:
+                echo "Running migrations...\n";
+                $runner->run();
+                break;
+        }
+        break;
+    default:
+        echo "Usage: php artisan migrate [up|down|rollback|fresh] [steps]\n";
+        break;
+}

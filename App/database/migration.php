@@ -21,26 +21,17 @@ class Migration {
             $this->pdo = $pdo;
         } else {
             try {
-                $envFile = __DIR__ . '/../../.env';
-                $config = self::parseEnvFile($envFile);
-                
-                $host = $config['DB_HOST'] ?? 'localhost';
-                $dbname = $config['DB_NAME'] ?? 'your_database';
-                $username = $config['DB_USER'] ?? 'root';
-                $password = $config['DB_PASS'] ?? '';
-                $charset = $config['DB_CHARSET'] ?? 'utf8mb4';
-                
-                $dsn = "mysql:host=$host;dbname=$dbname;charset=$charset";
-                $this->pdo = new PDO($dsn, $username, $password);
-                $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-                
-                // Set default engine and charset from config if available
-                if (isset($config['DB_CHARSET'])) {
-                    $this->charset = $config['DB_CHARSET'];
-                    // Default collation for utf8mb4
-                    if ($config['DB_CHARSET'] === 'utf8mb4') {
-                        $this->collation = 'utf8mb4_unicode_ci';
-                    }
+                // Use the EnvLoader to get database connection
+                require_once __DIR__ . '/../config/env.php';
+                $this->pdo = EnvLoader::getPDOConnection();
+
+                // Set default engine and charset from config
+                $charset = EnvLoader::get('DB_CHARSET', 'utf8mb4');
+                $this->charset = $charset;
+
+                // Default collation for utf8mb4
+                if ($charset === 'utf8mb4') {
+                    $this->collation = 'utf8mb4_unicode_ci';
                 }
             } catch (PDOException $e) {
                 die("Database connection failed: " . $e->getMessage());
@@ -58,33 +49,33 @@ class Migration {
         if (!file_exists($filePath)) {
             return [];
         }
-        
+
         $env = [];
         $lines = file($filePath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-        
+
         foreach ($lines as $line) {
             // Skip comments
             if (strpos(trim($line), '//') === 0) {
                 continue;
             }
-            
+
             // Split by first equals sign
             if (strpos($line, '=') !== false) {
                 list($key, $value) = explode('=', $line, 2);
                 $key = trim($key);
                 $value = trim($value);
-                
+
                 // Remove quotes if they exist
                 if (preg_match('/^"(.*)"$/', $value, $matches)) {
                     $value = $matches[1];
                 } elseif (preg_match("/^'(.*)'$/", $value, $matches)) {
                     $value = $matches[1];
                 }
-                
+
                 $env[$key] = $value;
             }
         }
-        
+
         return $env;
     }
 
@@ -108,9 +99,9 @@ class Migration {
         $this->uniqueIndexes = [];
         $this->fulltextIndexes = [];
         $this->spatialIndexes = [];
-        
+
         $callback($this);
-        
+
         $sql = $this->buildCreateTableSQL();
         return $this->pdo->exec($sql);
     }
@@ -139,39 +130,39 @@ class Migration {
         $this->uniqueIndexes = [];
         $this->fulltextIndexes = [];
         $this->spatialIndexes = [];
-        
+
         $callback($this);
-        
+
         $alterCommands = [];
-        
+
         foreach ($this->columns as $column) {
             $alterCommands[] = "ADD COLUMN " . $column;
         }
-        
+
         foreach ($this->foreignKeys as $foreignKey) {
             $alterCommands[] = "ADD " . $foreignKey;
         }
-        
+
         foreach ($this->indexes as $index) {
             $alterCommands[] = "ADD " . $index;
         }
-        
+
         foreach ($this->uniqueIndexes as $index) {
             $alterCommands[] = "ADD " . $index;
         }
-        
+
         foreach ($this->fulltextIndexes as $index) {
             $alterCommands[] = "ADD " . $index;
         }
-        
+
         foreach ($this->spatialIndexes as $index) {
             $alterCommands[] = "ADD " . $index;
         }
-        
+
         if (empty($alterCommands)) {
             return true;
         }
-        
+
         $sql = "ALTER TABLE `$tableName` " . implode(", ", $alterCommands);
         return $this->pdo->exec($sql);
     }
@@ -196,343 +187,152 @@ class Migration {
         return $this->pdo->exec($sql);
     }
 
-    public function id($columnName = 'id') {
-        $this->primaryKey = $columnName;
-        return $this->bigInteger($columnName, true, true);
-    }
-
-    public function string($columnName, $length = 255, $nullable = false, $default = null) {
-        $nullStatement = $nullable ? 'NULL' : 'NOT NULL';
-        $defaultStatement = $default !== null ? "DEFAULT '$default'" : '';
-        
-        $this->columns[] = "`$columnName` VARCHAR($length) $nullStatement $defaultStatement";
+    // Basic data types
+    public function id() {
+        $this->columns[] = "`id` BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY";
         return $this;
     }
 
-    public function text($columnName, $nullable = false) {
-        $nullStatement = $nullable ? 'NULL' : 'NOT NULL';
-        
-        $this->columns[] = "`$columnName` TEXT $nullStatement";
+    public function bigInteger($name, $autoIncrement = false, $unsigned = false, $nullable = false) {
+        $type = "BIGINT(20)";
+        if ($unsigned) {
+            $type .= " UNSIGNED";
+        }
+        $nullable = $nullable ? "NULL" : "NOT NULL";
+        $autoInc = $autoIncrement ? "AUTO_INCREMENT" : "";
+        $this->columns[] = "`$name` $type $nullable $autoInc";
         return $this;
     }
 
-    public function mediumText($columnName, $nullable = false) {
-        $nullStatement = $nullable ? 'NULL' : 'NOT NULL';
-        
-        $this->columns[] = "`$columnName` MEDIUMTEXT $nullStatement";
+    public function integer($name, $autoIncrement = false, $unsigned = false, $nullable = false) {
+        $type = "INT(11)";
+        if ($unsigned) {
+            $type .= " UNSIGNED";
+        }
+        $nullable = $nullable ? "NULL" : "NOT NULL";
+        $autoInc = $autoIncrement ? "AUTO_INCREMENT" : "";
+        $this->columns[] = "`$name` $type $nullable $autoInc";
         return $this;
     }
 
-    public function longText($columnName, $nullable = false) {
-        $nullStatement = $nullable ? 'NULL' : 'NOT NULL';
-        
-        $this->columns[] = "`$columnName` LONGTEXT $nullStatement";
+    public function string($name, $length = 255, $nullable = false) {
+        $nullable = $nullable ? "NULL" : "NOT NULL";
+        $this->columns[] = "`$name` VARCHAR($length) $nullable";
         return $this;
     }
 
-    public function integer($columnName, $autoIncrement = false, $unsigned = false, $nullable = false, $default = null) {
-        $unsignedStatement = $unsigned ? 'UNSIGNED' : '';
-        $nullStatement = $nullable ? 'NULL' : 'NOT NULL';
-        $autoIncrementStatement = $autoIncrement ? 'AUTO_INCREMENT' : '';
-        $defaultStatement = ($default !== null && !$autoIncrement) ? "DEFAULT $default" : '';
-        
-        $this->columns[] = "`$columnName` INT $unsignedStatement $nullStatement $autoIncrementStatement $defaultStatement";
-        
-        if ($autoIncrement && $this->primaryKey === $columnName) {
-            $this->columns[] = "PRIMARY KEY (`$columnName`)";
+    public function text($name, $nullable = false) {
+        $nullable = $nullable ? "NULL" : "NOT NULL";
+        $this->columns[] = "`$name` TEXT $nullable";
+        return $this;
+    }
+
+    public function boolean($name, $nullable = false) {
+        $nullable = $nullable ? "NULL" : "NOT NULL";
+        $this->columns[] = "`$name` TINYINT(1) $nullable DEFAULT 0";
+        return $this;
+    }
+    
+    public function default($value) {
+        // Find the last column added and add DEFAULT to it
+        if (!empty($this->columns)) {
+            $lastIndex = count($this->columns) - 1;
+            $lastColumn = $this->columns[$lastIndex];
+            
+            // Format the default value based on type
+            if (is_bool($value)) {
+                $formattedValue = $value ? '1' : '0';
+            } elseif (is_null($value)) {
+                $formattedValue = 'NULL';
+            } elseif (is_string($value)) {
+                $formattedValue = "'" . addslashes($value) . "'";
+            } else {
+                $formattedValue = $value;
+            }
+            
+            $this->columns[$lastIndex] = $lastColumn . " DEFAULT " . $formattedValue;
         }
         
         return $this;
     }
 
-    public function tinyInteger($columnName, $autoIncrement = false, $unsigned = false, $nullable = false, $default = null) {
-        $unsignedStatement = $unsigned ? 'UNSIGNED' : '';
-        $nullStatement = $nullable ? 'NULL' : 'NOT NULL';
-        $autoIncrementStatement = $autoIncrement ? 'AUTO_INCREMENT' : '';
-        $defaultStatement = ($default !== null && !$autoIncrement) ? "DEFAULT $default" : '';
-        
-        $this->columns[] = "`$columnName` TINYINT $unsignedStatement $nullStatement $autoIncrementStatement $defaultStatement";
-        
-        if ($autoIncrement && $this->primaryKey === $columnName) {
-            $this->columns[] = "PRIMARY KEY (`$columnName`)";
-        }
-        
+    public function date($name, $nullable = false) {
+        $nullable = $nullable ? "NULL" : "NOT NULL";
+        $this->columns[] = "`$name` DATE $nullable";
         return $this;
     }
 
-    public function smallInteger($columnName, $autoIncrement = false, $unsigned = false, $nullable = false, $default = null) {
-        $unsignedStatement = $unsigned ? 'UNSIGNED' : '';
-        $nullStatement = $nullable ? 'NULL' : 'NOT NULL';
-        $autoIncrementStatement = $autoIncrement ? 'AUTO_INCREMENT' : '';
-        $defaultStatement = ($default !== null && !$autoIncrement) ? "DEFAULT $default" : '';
-        
-        $this->columns[] = "`$columnName` SMALLINT $unsignedStatement $nullStatement $autoIncrementStatement $defaultStatement";
-        
-        if ($autoIncrement && $this->primaryKey === $columnName) {
-            $this->columns[] = "PRIMARY KEY (`$columnName`)";
-        }
-        
+    public function dateTime($name, $nullable = false) {
+        $nullable = $nullable ? "NULL" : "NOT NULL";
+        $this->columns[] = "`$name` DATETIME $nullable";
         return $this;
     }
 
-    public function mediumInteger($columnName, $autoIncrement = false, $unsigned = false, $nullable = false, $default = null) {
-        $unsignedStatement = $unsigned ? 'UNSIGNED' : '';
-        $nullStatement = $nullable ? 'NULL' : 'NOT NULL';
-        $autoIncrementStatement = $autoIncrement ? 'AUTO_INCREMENT' : '';
-        $defaultStatement = ($default !== null && !$autoIncrement) ? "DEFAULT $default" : '';
-        
-        $this->columns[] = "`$columnName` MEDIUMINT $unsignedStatement $nullStatement $autoIncrementStatement $defaultStatement";
-        
-        if ($autoIncrement && $this->primaryKey === $columnName) {
-            $this->columns[] = "PRIMARY KEY (`$columnName`)";
-        }
-        
+    public function timestamp($name, $nullable = false) {
+        $nullable = $nullable ? "NULL" : "NOT NULL";
+        $this->columns[] = "`$name` TIMESTAMP $nullable";
         return $this;
     }
 
-    public function bigInteger($columnName, $autoIncrement = false, $unsigned = false, $nullable = false, $default = null) {
-        $unsignedStatement = $unsigned ? 'UNSIGNED' : '';
-        $nullStatement = $nullable ? 'NULL' : 'NOT NULL';
-        $autoIncrementStatement = $autoIncrement ? 'AUTO_INCREMENT' : '';
-        $defaultStatement = ($default !== null && !$autoIncrement) ? "DEFAULT $default" : '';
-        
-        $this->columns[] = "`$columnName` BIGINT $unsignedStatement $nullStatement $autoIncrementStatement $defaultStatement";
-        
-        if ($autoIncrement && $this->primaryKey === $columnName) {
-            $this->columns[] = "PRIMARY KEY (`$columnName`)";
-        }
-        
+    public function timestamps() {
+        $this->columns[] = "`created_at` TIMESTAMP NULL DEFAULT NULL";
+        $this->columns[] = "`updated_at` TIMESTAMP NULL DEFAULT NULL";
         return $this;
     }
 
-    public function float($columnName, $total = 8, $places = 2, $nullable = false, $default = null) {
-        $nullStatement = $nullable ? 'NULL' : 'NOT NULL';
-        $defaultStatement = $default !== null ? "DEFAULT $default" : '';
-        
-        $this->columns[] = "`$columnName` FLOAT($total, $places) $nullStatement $defaultStatement";
-        return $this;
-    }
-
-    public function decimal($columnName, $total = 8, $places = 2, $nullable = false, $default = null) {
-        $nullStatement = $nullable ? 'NULL' : 'NOT NULL';
-        $defaultStatement = $default !== null ? "DEFAULT $default" : '';
-        
-        $this->columns[] = "`$columnName` DECIMAL($total, $places) $nullStatement $defaultStatement";
-        return $this;
-    }
-
-    public function double($columnName, $total = 8, $places = 2, $nullable = false, $default = null) {
-        $nullStatement = $nullable ? 'NULL' : 'NOT NULL';
-        $defaultStatement = $default !== null ? "DEFAULT $default" : '';
-        
-        $this->columns[] = "`$columnName` DOUBLE($total, $places) $nullStatement $defaultStatement";
-        return $this;
-    }
-
-    public function boolean($columnName, $nullable = false, $default = null) {
-        $nullStatement = $nullable ? 'NULL' : 'NOT NULL';
-        $defaultStatement = $default !== null ? "DEFAULT " . ($default ? 1 : 0) : '';
-        
-        $this->columns[] = "`$columnName` TINYINT(1) $nullStatement $defaultStatement";
-        return $this;
-    }
-
-    public function enum($columnName, array $values, $nullable = false, $default = null) {
-        $valuesEscaped = array_map(function($value) {
-            return "'" . addslashes($value) . "'";
-        }, $values);
-        
-        $nullStatement = $nullable ? 'NULL' : 'NOT NULL';
-        $defaultStatement = $default !== null ? "DEFAULT '$default'" : '';
-        
-        $this->columns[] = "`$columnName` ENUM(" . implode(', ', $valuesEscaped) . ") $nullStatement $defaultStatement";
-        return $this;
-    }
-
-    public function date($columnName, $nullable = false, $default = null) {
-        $nullStatement = $nullable ? 'NULL' : 'NOT NULL';
-        $defaultStatement = $default !== null ? "DEFAULT '$default'" : '';
-        
-        $this->columns[] = "`$columnName` DATE $nullStatement $defaultStatement";
-        return $this;
-    }
-
-    public function dateTime($columnName, $nullable = false, $default = null) {
-        $nullStatement = $nullable ? 'NULL' : 'NOT NULL';
-        $defaultStatement = $default !== null ? "DEFAULT '$default'" : '';
-        
-        $this->columns[] = "`$columnName` DATETIME $nullStatement $defaultStatement";
-        return $this;
-    }
-
-    public function timestamp($columnName, $nullable = false, $default = 'CURRENT_TIMESTAMP', $onUpdate = false) {
-        $nullStatement = $nullable ? 'NULL' : 'NOT NULL';
-        $defaultStatement = $default !== null ? "DEFAULT $default" : '';
-        $onUpdateStatement = $onUpdate ? "ON UPDATE CURRENT_TIMESTAMP" : '';
-        
-        $this->columns[] = "`$columnName` TIMESTAMP $nullStatement $defaultStatement $onUpdateStatement";
-        return $this;
-    }
-
-    public function time($columnName, $nullable = false, $default = null) {
-        $nullStatement = $nullable ? 'NULL' : 'NOT NULL';
-        $defaultStatement = $default !== null ? "DEFAULT '$default'" : '';
-        
-        $this->columns[] = "`$columnName` TIME $nullStatement $defaultStatement";
-        return $this;
-    }
-
-    public function year($columnName, $nullable = false, $default = null) {
-        $nullStatement = $nullable ? 'NULL' : 'NOT NULL';
-        $defaultStatement = $default !== null ? "DEFAULT '$default'" : '';
-        
-        $this->columns[] = "`$columnName` YEAR $nullStatement $defaultStatement";
-        return $this;
-    }
-
-    public function binary($columnName, $length = 255, $nullable = false) {
-        $nullStatement = $nullable ? 'NULL' : 'NOT NULL';
-        
-        $this->columns[] = "`$columnName` BINARY($length) $nullStatement";
-        return $this;
-    }
-
-    public function blob($columnName, $nullable = false) {
-        $nullStatement = $nullable ? 'NULL' : 'NOT NULL';
-        
-        $this->columns[] = "`$columnName` BLOB $nullStatement";
-        return $this;
-    }
-
-    public function json($columnName, $nullable = false) {
-        $nullStatement = $nullable ? 'NULL' : 'NOT NULL';
-        
-        $this->columns[] = "`$columnName` JSON $nullStatement";
-        return $this;
-    }
-
-    public function timestamps($createdAt = 'created_at', $updatedAt = 'updated_at') {
-        $this->timestamp($createdAt, false, 'CURRENT_TIMESTAMP', false);
-        $this->timestamp($updatedAt, false, 'CURRENT_TIMESTAMP', true);
-        return $this;
-    }
-
-    public function softDeletes($columnName = 'deleted_at') {
-        $this->timestamp($columnName, true, null, false);
-        return $this;
-    }
-
-    public function primaryKey($columns) {
-        $columns = is_array($columns) ? $columns : [$columns];
-        $columnsStr = implode('`, `', $columns);
-        $this->columns[] = "PRIMARY KEY (`$columnsStr`)";
-        return $this;
-    }
-
-    public function unique($indexName, $columns) {
-        $columns = is_array($columns) ? $columns : [$columns];
-        $columnsStr = implode('`, `', $columns);
-        $this->uniqueIndexes[] = "UNIQUE INDEX `$indexName` (`$columnsStr`)";
-        return $this;
-    }
-
-    public function index($indexName, $columns) {
-        $columns = is_array($columns) ? $columns : [$columns];
-        $columnsStr = implode('`, `', $columns);
-        $this->indexes[] = "INDEX `$indexName` (`$columnsStr`)";
-        return $this;
-    }
-
-    public function fulltext($indexName, $columns) {
-        $columns = is_array($columns) ? $columns : [$columns];
-        $columnsStr = implode('`, `', $columns);
-        $this->fulltextIndexes[] = "FULLTEXT INDEX `$indexName` (`$columnsStr`)";
-        return $this;
-    }
-
-    public function spatial($indexName, $columns) {
-        $columns = is_array($columns) ? $columns : [$columns];
-        $columnsStr = implode('`, `', $columns);
-        $this->spatialIndexes[] = "SPATIAL INDEX `$indexName` (`$columnsStr`)";
-        return $this;
-    }
-
-    public function foreignKey($columns, $referencedTable, $referencedColumns, $onDelete = 'CASCADE', $onUpdate = 'CASCADE') {
-        $columns = is_array($columns) ? $columns : [$columns];
-        $referencedColumns = is_array($referencedColumns) ? $referencedColumns : [$referencedColumns];
-        
-        $columnsStr = implode('`, `', $columns);
-        $referencedColumnsStr = implode('`, `', $referencedColumns);
-        $constraintName = "fk_" . $this->tableName . "_" . implode('_', $columns);
-        
-        $this->foreignKeys[] = "CONSTRAINT `$constraintName` FOREIGN KEY (`$columnsStr`) REFERENCES `$referencedTable` (`$referencedColumnsStr`) ON DELETE $onDelete ON UPDATE $onUpdate";
-        return $this;
-    }
-
-    public function engine($engine) {
-        $this->engine = $engine;
-        return $this;
-    }
-
-    public function charset($charset) {
-        $this->charset = $charset;
-        return $this;
-    }
-
-    public function collation($collation) {
-        $this->collation = $collation;
-        return $this;
-    }
-
-    public function temporary() {
-        $this->temporary = true;
-        return $this;
-    }
-
-    public function ifNotExists() {
-        $this->ifNotExists = true;
+    public function foreignKey($column, $referencedTable, $referencedColumn, $onDelete = 'CASCADE', $onUpdate = 'CASCADE') {
+        $name = "fk_{$this->tableName}_{$column}";
+        $this->foreignKeys[] = "CONSTRAINT `$name` FOREIGN KEY (`$column`) REFERENCES `$referencedTable`(`$referencedColumn`) ON DELETE $onDelete ON UPDATE $onUpdate";
         return $this;
     }
 
     protected function buildCreateTableSQL() {
         $temporary = $this->temporary ? 'TEMPORARY' : '';
         $ifNotExists = $this->ifNotExists ? 'IF NOT EXISTS' : '';
-        
+
         $sql = "CREATE $temporary TABLE $ifNotExists `{$this->tableName}` (";
         $sql .= implode(", ", $this->columns);
-        
+
         if (!empty($this->foreignKeys)) {
             $sql .= ", " . implode(", ", $this->foreignKeys);
         }
-        
+
         if (!empty($this->indexes)) {
             $sql .= ", " . implode(", ", $this->indexes);
         }
-        
+
         if (!empty($this->uniqueIndexes)) {
             $sql .= ", " . implode(", ", $this->uniqueIndexes);
         }
-        
+
         if (!empty($this->fulltextIndexes)) {
             $sql .= ", " . implode(", ", $this->fulltextIndexes);
         }
-        
+
         if (!empty($this->spatialIndexes)) {
             $sql .= ", " . implode(", ", $this->spatialIndexes);
         }
-        
+
         $sql .= ") ENGINE={$this->engine} DEFAULT CHARSET={$this->charset} COLLATE={$this->collation}";
-        
+
         return $sql;
     }
 
     public function createMigrationTable() {
-        return $this->createTable('migrations', function($table) {
-            $table->id();
-            $table->string('migration');
-            $table->integer('batch');
-            $table->timestamps();
-        });
+        try {
+            // Check if migrations table exists
+            $stmt = $this->pdo->prepare("SELECT 1 FROM migrations LIMIT 1");
+            $stmt->execute();
+            return true; // Table exists
+        } catch (PDOException $e) {
+            // Table doesn't exist, create it
+            return $this->createTable('migrations', function($table) {
+                $table->id();
+                $table->string('migration');
+                $table->integer('batch');
+                $table->timestamps();
+            });
+        }
     }
 
     public function getMigrations() {
@@ -571,90 +371,168 @@ class MigrationRunner {
     protected $pdo;
     protected $migration;
     protected $migrationsPath;
-    
+
     public function __construct($pdo = null, $migrationsPath = null) {
+        // Make sure EnvLoader is loaded - use absolute path
+        $basePath = dirname(__DIR__); // Gets the parent directory of current directory
+
+        if (!class_exists('EnvLoader')) {
+            require_once $basePath . '/config/env.php';
+        }
+
+        // If no PDO connection provided, create one from environment
+        if ($pdo === null) {
+            $pdo = EnvLoader::getPDOConnection();
+        }
+
         $this->pdo = $pdo;
         $this->migration = new Migration($pdo);
-        $this->migrationsPath = $migrationsPath ?? __DIR__ . '/../migrations';
+        $this->migrationsPath = $migrationsPath ?? $basePath . '/migrations';
     }
-    
+
     public function run() {
         $this->migration->createMigrationTable();
-        
+        echo "- Created migrations tracking table\n";
+
         $executedMigrations = $this->migration->getMigrations();
         $executedMigrationNames = array_column($executedMigrations, 'migration');
-        
-        $migrationFiles = glob($this->migrationsPath . '/*.php');
-        sort($migrationFiles);
-        
+
+        // Use the connector to get migration mapping
+        $migrationMap = require_once $this->migrationsPath . '/connector.php';
+
+        if (!is_array($migrationMap)) {
+            echo "Error: Migration map is not valid. Check connector.php\n";
+            return;
+        }
+
         $toRun = [];
-        foreach ($migrationFiles as $file) {
-            $migrationName = pathinfo($file, PATHINFO_FILENAME);
+        foreach ($migrationMap as $migrationName => $info) {
             if (!in_array($migrationName, $executedMigrationNames)) {
-                $toRun[] = $file;
+                $toRun[$migrationName] = $info;
             }
         }
-        
+
         if (empty($toRun)) {
             echo "No migrations to run.\n";
             return;
         }
-        
+
+        // Print the order of migrations that will run
+        echo "\n=== Migration execution order ===\n";
+        foreach ($toRun as $migrationName => $info) {
+            echo "- $migrationName => {$info['class']}\n";
+        }
+        echo "===========================\n\n";
+
         $batch = $this->migration->getLastBatchNumber() + 1;
-        
-        foreach ($toRun as $file) {
-            require_once $file;
-            $migrationName = pathinfo($file, PATHINFO_FILENAME);
-            $className = $this->getMigrationClassName($migrationName);
-            
+        echo "Starting migration batch #{$batch}\n";
+        echo "----------------------------------------\n";
+        $count = 0;
+
+        // First, include all migration files to make sure all classes are loaded
+        foreach ($toRun as $migrationName => $info) {
+            $file = $info['path'];
+            include_once $file;
+        }
+
+        foreach ($toRun as $migrationName => $info) {
+            $className = $info['class'];
+
+            // Check if class exists now that we've loaded all files
             if (class_exists($className)) {
                 $migration = new $className();
-                echo "Running migration: $migrationName\n";
-                
-                if (method_exists($migration, 'up')) {
-                    $migration->up($this->migration);
-                    $this->migration->logMigration($migrationName, $batch);
+                echo "Migrating: $migrationName (using class $className)\n";
+
+                try {
+                    if (method_exists($migration, 'up')) {
+                        // Start tracking execution time for this migration
+                        $startTime = microtime(true);
+
+                        // Run the migration
+                        $migration->up($this->migration);
+
+                        // Calculate execution time
+                        $endTime = microtime(true);
+                        $executionTime = round(($endTime - $startTime), 2);
+
+                        // Log the migration in the database
+                        $this->migration->logMigration($migrationName, $batch);
+
+                        // Output success message with execution time
+                        echo "✓ Migrated:  $migrationName ({$executionTime}s)\n";
+                        $count++;
+                    }
+                } catch (Exception $e) {
+                    echo "⨯ Migration failed: {$e->getMessage()}\n";
+                    echo "Migration batch #{$batch} failed.\n";
+                    return;
                 }
+            } else {
+                echo "⨯ Class '$className' not found after loading file {$info['path']}\n";
             }
         }
-        
-        echo "Migration completed successfully.\n";
+
+        echo "----------------------------------------\n";
+        echo "Migration completed successfully: {$count} migrations executed.\n";
     }
-    
+
+    public function dropAllTables() {
+        try {
+            // Disable foreign key checks temporarily
+            $this->pdo->exec("SET FOREIGN_KEY_CHECKS = 0");
+
+            // Get list of all tables in the database
+            $stmt = $this->pdo->query("SHOW TABLES");
+            $tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+            foreach ($tables as $table) {
+                echo "Dropping table: $table\n";
+                $this->pdo->exec("DROP TABLE IF EXISTS `$table`");
+            }
+
+            // Re-enable foreign key checks
+            $this->pdo->exec("SET FOREIGN_KEY_CHECKS = 1");
+
+            echo "All tables have been dropped.\n";
+        } catch (PDOException $e) {
+            echo "Error dropping tables: " . $e->getMessage() . "\n";
+        }
+    }
+
     public function rollback($steps = 1) {
         $this->migration->createMigrationTable();
-        
+
         $executedMigrations = $this->migration->getMigrations();
-        
+
         if (empty($executedMigrations)) {
             echo "Nothing to rollback.\n";
             return;
         }
-        
+
         $batches = [];
         foreach ($executedMigrations as $migration) {
             $batches[$migration['batch']][] = $migration;
         }
-        
+
         $batchNumbers = array_keys($batches);
         rsort($batchNumbers);
         $batchesToRollback = array_slice($batchNumbers, 0, $steps);
-        
+
         foreach ($batchesToRollback as $batch) {
-            echo "Rolling back batch
-            
+            echo "Rolling back batch $batch\n";
+
             foreach ($batches[$batch] as $migration) {
                 $migrationName = $migration['migration'];
                 $file = $this->migrationsPath . '/' . $migrationName . '.php';
-                
+
                 if (file_exists($file)) {
                     require_once $file;
                     $className = $this->getMigrationClassName($migrationName);
-                    
+
                     if (class_exists($className)) {
                         $migrationObj = new $className();
                         echo "  Rolling back: $migrationName\n";
-                        
+
                         if (method_exists($migrationObj, 'down')) {
                             $migrationObj->down($this->migration);
                             $this->migration->removeMigration($migrationName);
@@ -663,10 +541,10 @@ class MigrationRunner {
                 }
             }
         }
-        
+
         echo "Rollback completed successfully.\n";
     }
-    
+
     private function getMigrationClassName($filename) {
         $parts = explode('_', $filename);
         array_shift($parts);
@@ -681,4 +559,3 @@ if (!function_exists('studly_case')) {
         return str_replace(' ', '', $string);
     }
 }
-?>
