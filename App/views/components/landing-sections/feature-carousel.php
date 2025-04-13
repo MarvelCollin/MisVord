@@ -20,7 +20,7 @@ if (!function_exists('asset')) {
             </p>
         </div>
         
-        <!-- Feature carousel component -->
+        <!-- Feature carousel component with fixed structure -->
         <div class="feature-carousel relative rounded-2xl overflow-hidden shadow-2xl" tabindex="0">
             <div class="carousel-container">
                 <div class="carousel-track flex transition-transform duration-500 ease-out">
@@ -322,16 +322,23 @@ if (!function_exists('asset')) {
                 </div>
             </div>
             
-            <!-- Carousel navigation -->
+            <!-- Carousel navigation with fixes -->
             <div class="carousel-nav mt-8 flex flex-col items-center">
                 <!-- Carousel dots with hover previews -->
                 <div class="carousel-dots flex space-x-3 mb-4" role="tablist">
-                    <!-- Dots will be added by JavaScript -->
+                    <button class="carousel-dot active" aria-label="View Text Chat feature" data-slide="0" title="Text Chat"></button>
+                    <button class="carousel-dot" aria-label="View Voice & Video feature" data-slide="1" title="Voice & Video"></button>
+                    <button class="carousel-dot" aria-label="View Community Tools feature" data-slide="2" title="Community Tools"></button>
+                </div>
+                
+                <!-- Progress indicator for auto-rotation -->
+                <div class="carousel-progress-container relative w-24 h-1 bg-gray-700 rounded overflow-hidden mb-4">
+                    <div class="carousel-progress h-full w-0 bg-discord-blue rounded transition-all duration-300"></div>
                 </div>
                 
                 <!-- Navigation buttons with improved styling -->
                 <div class="flex space-x-4">
-                    <button class="carousel-button carousel-prev bg-discord-dark hover:bg-discord-blue transition-all duration-300 flex items-center justify-center h-10 w-10 rounded-full" aria-label="Previous slide">
+                    <button class="carousel-button carousel-prev bg-discord-dark hover:bg-discord-blue transition-all duration-300 flex items-center justify-center h-10 w-10 rounded-full disabled:opacity-50 disabled:cursor-not-allowed" aria-label="Previous slide">
                         <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
@@ -347,6 +354,7 @@ if (!function_exists('asset')) {
     </div>
 </section>
 
+<!-- Add CSS for carousel component -->
 <style>
 /* Feature carousel styling */
 .feature-carousel {
@@ -378,7 +386,7 @@ if (!function_exists('asset')) {
     transition: transform 0.5s ease, box-shadow 0.5s ease;
 }
 
-.active .carousel-content {
+.carousel-slide.active .carousel-content {
     transform: scale(1);
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
 }
@@ -386,13 +394,12 @@ if (!function_exists('asset')) {
 /* Voice bars animation */
 .voice-bar {
     animation: voice-pulse 1s ease-in-out infinite alternate;
-    animation-delay: calc(var(--bar-index, 0) * 0.15s);
 }
 
-.voice-bar:nth-child(1) { --bar-index: 0; }
-.voice-bar:nth-child(2) { --bar-index: 1; }
-.voice-bar:nth-child(3) { --bar-index: 2; }
-.voice-bar:nth-child(4) { --bar-index: 3; }
+.voice-bar:nth-child(1) { animation-delay: 0s; }
+.voice-bar:nth-child(2) { animation-delay: 0.15s; }
+.voice-bar:nth-child(3) { animation-delay: 0.3s; }
+.voice-bar:nth-child(4) { animation-delay: 0.45s; }
 
 @keyframes voice-pulse {
     0% { height: 4px; }
@@ -461,7 +468,7 @@ if (!function_exists('asset')) {
     transform: scale(0.95);
 }
 
-.carousel-button.disabled {
+.carousel-button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }
@@ -483,18 +490,208 @@ if (!function_exists('asset')) {
     }
 }
 
+/* Progress bar animation */
+.carousel-progress {
+    transition: width 5s linear;
+}
+
 /* Responsive styles */
 @media (max-width: 768px) {
     .feature-carousel {
         height: auto;
-    }
-    
-    .carousel-container, .carousel-track, .carousel-slide {
-        height: auto;
+        min-height: 650px;
     }
     
     .carousel-slide {
         padding: 0;
     }
+    
+    .carousel-content {
+        height: auto;
+        min-height: 650px;
+    }
 }
 </style>
+
+<!-- Simple carousel functionality -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const carousel = document.querySelector('.feature-carousel');
+    if (!carousel) return;
+    
+    // Select elements
+    const track = carousel.querySelector('.carousel-track');
+    const slides = carousel.querySelectorAll('.carousel-slide');
+    const dots = carousel.querySelectorAll('.carousel-dot');
+    const prevBtn = carousel.querySelector('.carousel-prev');
+    const nextBtn = carousel.querySelector('.carousel-next');
+    const progress = carousel.querySelector('.carousel-progress');
+    
+    // Set first slide as active
+    if (slides.length > 0) {
+        slides[0].classList.add('active');
+        slides[0].setAttribute('aria-hidden', 'false');
+    }
+    
+    // Initialize state
+    let currentSlide = 0;
+    let autoRotateTimer;
+    let isAnimating = false;
+    
+    // Show a specific slide
+    function showSlide(index) {
+        if (isAnimating) return;
+        isAnimating = true;
+        
+        // Bound the index
+        if (index < 0) index = 0;
+        if (index >= slides.length) index = slides.length - 1;
+        
+        // Update position
+        const offset = -index * 100 + '%';
+        track.style.transform = 'translateX(' + offset + ')';
+        
+        // Update active state
+        slides.forEach((slide, i) => {
+            if (i === index) {
+                slide.classList.add('active');
+                slide.setAttribute('aria-hidden', 'false');
+            } else {
+                slide.classList.remove('active');
+                slide.setAttribute('aria-hidden', 'true');
+            }
+        });
+        
+        // Update dots
+        dots.forEach((dot, i) => {
+            if (i === index) {
+                dot.classList.add('active');
+            } else {
+                dot.classList.remove('active');
+            }
+        });
+        
+        // Update buttons
+        prevBtn.disabled = index === 0;
+        nextBtn.disabled = index === slides.length - 1;
+        
+        // Update current index
+        currentSlide = index;
+        
+        // Reset auto-rotation
+        resetAutoRotate();
+        
+        // Reset animation lock after transition completes
+        setTimeout(() => {
+            isAnimating = false;
+        }, 500);
+    }
+    
+    // Auto-rotate functionality
+    function startAutoRotate() {
+        // Clear any existing timer
+        stopAutoRotate();
+        
+        // Start progress indicator
+        if (progress) {
+            progress.style.width = '0%';
+            setTimeout(() => {
+                progress.style.width = '100%';
+            }, 50);
+        }
+        
+        // Set new timer
+        autoRotateTimer = setTimeout(() => {
+            const nextIndex = (currentSlide + 1) % slides.length;
+            showSlide(nextIndex);
+        }, 5000);
+    }
+    
+    function stopAutoRotate() {
+        clearTimeout(autoRotateTimer);
+        if (progress) progress.style.width = '0%';
+    }
+    
+    function resetAutoRotate() {
+        stopAutoRotate();
+        startAutoRotate();
+    }
+    
+    // Initialize buttons
+    if (prevBtn) {
+        prevBtn.addEventListener('click', () => {
+            if (!prevBtn.disabled) {
+                showSlide(currentSlide - 1);
+            }
+        });
+    }
+    
+    if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+            if (!nextBtn.disabled) {
+                showSlide(currentSlide + 1);
+            }
+        });
+    }
+    
+    // Initialize dot navigation
+    dots.forEach((dot, index) => {
+        dot.addEventListener('click', () => {
+            showSlide(index);
+        });
+    });
+    
+    // Handle keyboard navigation
+    carousel.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') {
+            showSlide(currentSlide - 1);
+        } else if (e.key === 'ArrowRight') {
+            showSlide(currentSlide + 1);
+        }
+    });
+    
+    // Pause auto-rotation on hover/focus
+    carousel.addEventListener('mouseenter', stopAutoRotate);
+    carousel.addEventListener('mouseleave', startAutoRotate);
+    carousel.addEventListener('focusin', stopAutoRotate);
+    carousel.addEventListener('focusout', startAutoRotate);
+    
+    // Touch support for mobile
+    let touchStartX = 0;
+    let touchEndX = 0;
+    
+    carousel.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+        stopAutoRotate();
+    }, { passive: true });
+    
+    carousel.addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        const distance = touchStartX - touchEndX;
+        
+        // Require a minimum swipe distance to trigger navigation
+        if (Math.abs(distance) > 50) {
+            if (distance > 0 && currentSlide < slides.length - 1) {
+                // Swipe left - go to next
+                showSlide(currentSlide + 1);
+            } else if (distance < 0 && currentSlide > 0) {
+                // Swipe right - go to previous
+                showSlide(currentSlide - 1);
+            } else {
+                // Just restart auto-rotation
+                startAutoRotate();
+            }
+        } else {
+            // Just restart auto-rotation
+            startAutoRotate();
+        }
+    }, { passive: true });
+    
+    // Start auto-rotation
+    startAutoRotate();
+    
+    // Set initial button state
+    prevBtn.disabled = currentSlide === 0;
+    nextBtn.disabled = currentSlide === slides.length - 1;
+});
+</script>
