@@ -24,402 +24,279 @@ $oldInput = $_SESSION['old_input'] ?? [];
 
 // Clear session data after using it
 unset($_SESSION['errors'], $_SESSION['old_input']);
+
+// Set variables for the main layout
+$page_title = ucfirst($mode) . ' - MiscVord';
+$body_class = 'bg-[#202225] authentication-page overflow-hidden';
+$additional_head = '<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">';
+
+// Link CSS and JS files
+$page_css = 'authentication-page.css';
+$page_js = 'authentication-page.js';
 ?>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo ucfirst($mode); ?> - MiscVord</title>
+<!-- Define the content for the main layout -->
+<?php ob_start(); ?>
+
+<div class="min-h-screen w-full flex items-center justify-center p-4 relative overflow-hidden">
+    <!-- Background animation elements - minimalist design will be injected by JS -->
     
-    <!-- Tailwind CSS via CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <style>
-        :root {
-            --discord-primary: #36393f;
-            --discord-secondary: #2f3136;
-            --discord-tertiary: #202225;
-            --discord-accent: #5865f2;
-        }
-        
-        body {
-            background-color: var(--discord-tertiary);
-            color: #fff;
-            font-family: 'Whitney', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-        }
-        
-        .auth-container {
-            background-color: var(--discord-secondary);
-            border-radius: 5px;
-            box-shadow: 0 2px 10px 0 rgba(0, 0, 0, 0.2);
-        }
-        
-        .input-field {
-            background-color: var(--discord-tertiary);
-            color: #fff;
-            border: 1px solid #202225;
-            border-radius: 3px;
-            transition: border-color 0.2s;
-            padding: 10px;
-        }
-        
-        .input-field:focus {
-            border-color: var(--discord-accent);
-            outline: none;
-        }
-        
-        .btn-primary {
-            background-color: var(--discord-accent);
-            transition: background-color 0.2s;
-        }
-        
-        .btn-primary:hover {
-            background-color: #4752c4;
-        }
-        
-        .error-text {
-            color: #ed4245;
-            font-size: 12px;
-            margin-top: 4px;
-        }
-        
-        .form-group {
-            margin-bottom: 16px;
-        }
-        
-        .form-label {
-            display: block;
-            margin-bottom: 8px;
-            font-size: 12px;
-            font-weight: 600;
-            color: #b9bbbe;
-            text-transform: uppercase;
-        }
-        
-        .auth-switch {
-            color: var(--discord-accent);
-            cursor: pointer;
-            text-decoration: none;
-        }
-        
-        .auth-switch:hover {
-            text-decoration: underline;
-        }
-        
-        .icon-google {
-            width: 18px;
-            height: 18px;
-            margin-right: 8px;
-        }
-        
-        .btn-google {
-            background-color: #fff;
-            color: #333;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background-color 0.2s;
-        }
-        
-        .btn-google:hover {
-            background-color: #f5f5f5;
-        }
-        
-        .divider {
-            display: flex;
-            align-items: center;
-            margin: 20px 0;
-        }
-        
-        .divider-line {
-            flex-grow: 1;
-            height: 1px;
-            background-color: #4f545c;
-        }
-        
-        .divider-text {
-            margin: 0 10px;
-            color: #b9bbbe;
-            font-size: 14px;
-        }
-        
-        .success-message {
-            background-color: #43b581;
-            color: white;
-            padding: 10px;
-            border-radius: 3px;
-            margin-bottom: 16px;
-        }
-    </style>
-</head>
-<body class="min-h-screen flex items-center justify-center p-4">
-    <div class="auth-container w-full max-w-md p-6">
-        <!-- Logo -->
-        <div class="flex justify-center mb-6">
-            <img src="<?php echo asset('/landing-page/main-logo.svg'); ?>" alt="MiscVord Logo" class="h-12">
+    <!-- Auth Container with Glass Effect -->
+    <div class="w-full max-w-md p-8 rounded-xl shadow-2xl relative z-10 glass-hero transform transition-all duration-700 ease-out bg-[#2f3136]/80 backdrop-filter backdrop-blur-md border border-white/10" id="authContainer">
+        <!-- Logo with modern animation -->
+        <div class="flex justify-center mb-8 relative">
+            <img src="<?php echo asset('/landing-page/main-logo.png'); ?>" alt="MiscVord Logo" class="h-12 transition-all" id="logo">
+            <div class="absolute bottom-0 left-1/2 transform -translate-x-1/2 h-0.5 bg-gradient-to-r from-discord-blue to-discord-pink w-0" id="logoUnderline"></div>
         </div>
         
-        <!-- Page Title -->
-        <h1 class="text-2xl font-bold text-center mb-6">
+        <!-- Page Title with modern transition -->
+        <h1 class="text-2xl font-bold text-center mb-8 text-white" id="authTitle">
             <?php if ($mode === 'login'): ?>
-                Welcome back!
+                <span>Welcome back!</span>
             <?php elseif ($mode === 'register'): ?>
-                Create an account
+                <span>Create an account</span>
             <?php else: ?>
-                Reset Password
+                <span>Reset Password</span>
             <?php endif; ?>
         </h1>
         
         <!-- Success Message (if any) -->
         <?php if (isset($_SESSION['success'])): ?>
-            <div class="success-message">
+            <div class="bg-green-500 text-white p-3 rounded-md mb-6 text-center">
                 <?php echo $_SESSION['success']; unset($_SESSION['success']); ?>
             </div>
         <?php endif; ?>
         
         <!-- General Auth Error -->
         <?php if (isset($errors['auth'])): ?>
-            <div class="error-text text-center mb-4">
+            <div class="bg-red-500 text-white p-3 rounded-md mb-6 text-center">
                 <?php echo $errors['auth']; ?>
             </div>
         <?php endif; ?>
         
-        <!-- LOGIN FORM -->
-        <?php if ($mode === 'login'): ?>
-            <form action="/login" method="POST" class="space-y-4">
+        <!-- Form Container with modern transitions -->
+        <div id="formsContainer" class="relative transition-all duration-300 ease-out" style="min-height: 250px;">
+            <!-- LOGIN FORM -->
+            <form action="/login" method="POST" class="space-y-5 <?php echo $mode === 'login' ? 'block' : 'hidden'; ?>" id="loginForm">
                 <!-- Email Field -->
                 <div class="form-group">
-                    <label for="email" class="form-label">Email</label>
+                    <label for="email" class="block text-sm font-medium text-gray-300 mb-1">Email</label>
                     <input 
                         type="email" 
                         id="email" 
                         name="email" 
-                        class="input-field w-full" 
+                        class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
                         value="<?php echo $oldInput['email'] ?? ''; ?>" 
                         required
                     >
                     <?php if (isset($errors['email'])): ?>
-                        <p class="error-text"><?php echo $errors['email']; ?></p>
+                        <p class="text-red-500 text-sm mt-1"><?php echo $errors['email']; ?></p>
                     <?php endif; ?>
                 </div>
                 
                 <!-- Password Field -->
                 <div class="form-group">
-                    <label for="password" class="form-label">Password</label>
-                    <input 
-                        type="password" 
-                        id="password" 
-                        name="password" 
-                        class="input-field w-full" 
-                        required
-                    >
+                    <label for="password" class="block text-sm font-medium text-gray-300 mb-1">Password</label>
+                    <div class="relative">
+                        <input 
+                            type="password" 
+                            id="password" 
+                            name="password" 
+                            class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
+                            required
+                        >
+                        <button type="button" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors password-toggle">
+                            👁️
+                        </button>
+                    </div>
                     <?php if (isset($errors['password'])): ?>
-                        <p class="error-text"><?php echo $errors['password']; ?></p>
+                        <p class="text-red-500 text-sm mt-1"><?php echo $errors['password']; ?></p>
                     <?php endif; ?>
                 </div>
                 
-                <!-- Forgot Password Link -->
+                <!-- Forgot Password Link - Update to use data-form attribute -->
                 <div class="text-right">
-                    <a href="/forgot-password" class="auth-switch text-sm">Forgot your password?</a>
+                    <a href="#" class="text-sm text-discord-blue hover:underline form-toggle" data-form="forgot">Forgot your password?</a>
                 </div>
                 
                 <!-- Submit Button -->
-                <button type="submit" class="btn-primary w-full py-2 rounded font-medium">
+                <button type="submit" class="w-full py-2.5 bg-discord-blue hover:bg-discord-blue/90 text-white font-medium rounded-md transition-all">
                     Log In
                 </button>
                 
                 <!-- OAuth Divider -->
-                <div class="divider">
-                    <div class="divider-line"></div>
-                    <div class="divider-text">OR</div>
-                    <div class="divider-line"></div>
+                <div class="flex items-center my-5">
+                    <div class="flex-1 h-px bg-gray-600/50"></div>
+                    <div class="mx-4 text-sm text-gray-400">OR</div>
+                    <div class="flex-1 h-px bg-gray-600/50"></div>
                 </div>
                 
                 <!-- Google Login Button -->
-                <a href="/auth/google" class="btn-google w-full py-2 rounded font-medium flex justify-center">
-                    <svg class="icon-google" viewBox="0 0 24 24">
+                <a href="/auth/google" class="w-full py-2.5 bg-white text-gray-800 font-medium rounded-md flex items-center justify-center hover:bg-gray-100 transition-all">
+                    <svg class="w-5 h-5 mr-2" viewBox="0 0 24 24">
                         <path fill="currentColor" d="M21.35,11.1H12.18V13.83H18.69C18.36,15.64 16.96,17.27 14.36,17.27C11.16,17.27 8.53,14.71 8.53,11.53C8.53,8.36 11.16,5.79 14.36,5.79C16.0, 5.79 17.34,6.47 18.27,7.29L20.37,5.23C18.88,3.86 16.83,3 14.36,3C9.92,3 6.27,6.61 6.27,11.53C6.27,16.45 9.92,20.06 14.36,20.06C18.69,20.06 22.25,17.06 22.25,11.78C22.25,11.45 22.24,11.29 22.21,11.1H21.35Z" />
                     </svg>
                     Continue with Google
                 </a>
                 
-                <!-- Register Link -->
-                <div class="text-center mt-4">
+                <!-- Register Link - Changed to use data-form attribute instead of href -->
+                <div class="text-center mt-6">
                     <p class="text-gray-400 text-sm">
                         Need an account? 
-                        <a href="/register" class="auth-switch">Register</a>
+                        <a href="#" class="text-discord-blue hover:underline form-toggle" data-form="register">Register</a>
                     </p>
                 </div>
             </form>
         
-        <!-- REGISTRATION FORM -->
-        <?php elseif ($mode === 'register'): ?>
-            <form action="/register" method="POST" class="space-y-4">
+            <!-- REGISTRATION FORM -->
+            <form action="/register" method="POST" class="space-y-5 <?php echo $mode === 'register' ? 'block' : 'hidden'; ?>" id="registerForm">
                 <!-- Username Field -->
                 <div class="form-group">
-                    <label for="username" class="form-label">Username</label>
+                    <label for="username" class="block text-sm font-medium text-gray-300 mb-1">Username</label>
                     <input 
                         type="text" 
                         id="username" 
                         name="username" 
-                        class="input-field w-full" 
+                        class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
                         value="<?php echo $oldInput['username'] ?? ''; ?>" 
                         required
                     >
                     <?php if (isset($errors['username'])): ?>
-                        <p class="error-text"><?php echo $errors['username']; ?></p>
+                        <p class="text-red-500 text-sm mt-1"><?php echo $errors['username']; ?></p>
                     <?php endif; ?>
                 </div>
                 
                 <!-- Email Field -->
                 <div class="form-group">
-                    <label for="email" class="form-label">Email</label>
+                    <label for="reg_email" class="block text-sm font-medium text-gray-300 mb-1">Email</label>
                     <input 
                         type="email" 
-                        id="email" 
+                        id="reg_email" 
                         name="email" 
-                        class="input-field w-full" 
+                        class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
                         value="<?php echo $oldInput['email'] ?? ''; ?>" 
                         required
                     >
                     <?php if (isset($errors['email'])): ?>
-                        <p class="error-text"><?php echo $errors['email']; ?></p>
+                        <p class="text-red-500 text-sm mt-1"><?php echo $errors['email']; ?></p>
                     <?php endif; ?>
                 </div>
                 
                 <!-- Password Field -->
                 <div class="form-group">
-                    <label for="password" class="form-label">Password</label>
-                    <input 
-                        type="password" 
-                        id="password" 
-                        name="password" 
-                        class="input-field w-full" 
-                        required
-                    >
+                    <label for="reg_password" class="block text-sm font-medium text-gray-300 mb-1">Password</label>
+                    <div class="relative">
+                        <input 
+                            type="password" 
+                            id="reg_password" 
+                            name="password" 
+                            class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
+                            required
+                        >
+                        <button type="button" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors password-toggle">
+                            👁️
+                        </button>
+                    </div>
                     <?php if (isset($errors['password'])): ?>
-                        <p class="error-text"><?php echo $errors['password']; ?></p>
+                        <p class="text-red-500 text-sm mt-1"><?php echo $errors['password']; ?></p>
                     <?php endif; ?>
+                    <div class="mt-1 h-1 bg-gray-700 rounded hidden" id="passwordStrength">
+                        <div class="h-full bg-discord-blue rounded" style="width: 0%"></div>
+                    </div>
                 </div>
                 
                 <!-- Confirm Password Field -->
                 <div class="form-group">
-                    <label for="password_confirm" class="form-label">Confirm Password</label>
-                    <input 
-                        type="password" 
-                        id="password_confirm" 
-                        name="password_confirm" 
-                        class="input-field w-full" 
-                        required
-                    >
+                    <label for="password_confirm" class="block text-sm font-medium text-gray-300 mb-1">Confirm Password</label>
+                    <div class="relative">
+                        <input 
+                            type="password" 
+                            id="password_confirm" 
+                            name="password_confirm" 
+                            class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
+                            required
+                        >
+                        <button type="button" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors password-toggle">
+                            👁️
+                        </button>
+                    </div>
                     <?php if (isset($errors['password_confirm'])): ?>
-                        <p class="error-text"><?php echo $errors['password_confirm']; ?></p>
+                        <p class="text-red-500 text-sm mt-1"><?php echo $errors['password_confirm']; ?></p>
                     <?php endif; ?>
+                    <div class="text-green-500 text-xs mt-1 hidden" id="passwordsMatch">Passwords match ✓</div>
                 </div>
                 
                 <!-- Submit Button -->
-                <button type="submit" class="btn-primary w-full py-2 rounded font-medium">
+                <button type="submit" class="w-full py-2.5 bg-discord-blue hover:bg-discord-blue/90 text-white font-medium rounded-md transition-all">
                     Register
                 </button>
                 
                 <!-- OAuth Divider -->
-                <div class="divider">
-                    <div class="divider-line"></div>
-                    <div class="divider-text">OR</div>
-                    <div class="divider-line"></div>
+                <div class="flex items-center my-5">
+                    <div class="flex-1 h-px bg-gray-600/50"></div>
+                    <div class="mx-4 text-sm text-gray-400">OR</div>
+                    <div class="flex-1 h-px bg-gray-600/50"></div>
                 </div>
                 
                 <!-- Google Registration Button -->
-                <a href="/auth/google" class="btn-google w-full py-2 rounded font-medium flex justify-center">
-                    <svg class="icon-google" viewBox="0 0 24 24">
+                <a href="/auth/google" class="w-full py-2.5 bg-white text-gray-800 font-medium rounded-md flex items-center justify-center hover:bg-gray-100 transition-all">
+                    <svg class="w-5 h-5 mr-2" viewBox="0 0 24 24">
                         <path fill="currentColor" d="M21.35,11.1H12.18V13.83H18.69C18.36,15.64 16.96,17.27 14.36,17.27C11.16,17.27 8.53,14.71 8.53,11.53C8.53,8.36 11.16,5.79 14.36,5.79C16.0, 5.79 17.34,6.47 18.27,7.29L20.37,5.23C18.88,3.86 16.83,3 14.36,3C9.92,3 6.27,6.61 6.27,11.53C6.27,16.45 9.92,20.06 14.36,20.06C18.69,20.06 22.25,17.06 22.25,11.78C22.25,11.45 22.24,11.29 22.21,11.1H21.35Z" />
                     </svg>
                     Sign up with Google
                 </a>
                 
-                <!-- Login Link -->
-                <div class="text-center mt-4">
+                <!-- Login Link - Changed to use data-form attribute instead of href -->
+                <div class="text-center mt-6">
                     <p class="text-gray-400 text-sm">
                         Already have an account? 
-                        <a href="/login" class="auth-switch">Log In</a>
+                        <a href="#" class="text-discord-blue hover:underline form-toggle" data-form="login">Log In</a>
                     </p>
                 </div>
             </form>
-            
-        <!-- FORGOT PASSWORD FORM -->
-        <?php else: ?>
-            <form action="/forgot-password" method="POST" class="space-y-4">
-                <p class="text-gray-300 text-sm mb-4">
+                
+            <!-- FORGOT PASSWORD FORM -->
+            <form action="/forgot-password" method="POST" class="space-y-5 <?php echo $mode === 'forgot-password' ? 'block' : 'hidden'; ?>" id="forgotForm">
+                <p class="text-gray-300 text-sm mb-6">
                     Enter your email address and we'll send you a link to reset your password.
                 </p>
                 
                 <!-- Email Field -->
                 <div class="form-group">
-                    <label for="email" class="form-label">Email</label>
+                    <label for="forgot_email" class="block text-sm font-medium text-gray-300 mb-1">Email</label>
                     <input 
                         type="email" 
-                        id="email" 
+                        id="forgot_email" 
                         name="email" 
-                        class="input-field w-full" 
+                        class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
                         value="<?php echo $oldInput['email'] ?? ''; ?>" 
                         required
                     >
                     <?php if (isset($errors['email'])): ?>
-                        <p class="error-text"><?php echo $errors['email']; ?></p>
+                        <p class="text-red-500 text-sm mt-1"><?php echo $errors['email']; ?></p>
                     <?php endif; ?>
                 </div>
                 
                 <!-- Submit Button -->
-                <button type="submit" class="btn-primary w-full py-2 rounded font-medium">
+                <button type="submit" class="w-full py-2.5 bg-discord-blue hover:bg-discord-blue/90 text-white font-medium rounded-md transition-all">
                     Send Reset Link
                 </button>
                 
-                <!-- Back to Login Link -->
-                <div class="text-center mt-4">
-                    <a href="/login" class="auth-switch text-sm">Back to Login</a>
+                <!-- Back to Login Link - Changed to use data-form attribute instead of href -->
+                <div class="text-center mt-6">
+                    <a href="#" class="text-discord-blue hover:underline text-sm form-toggle" data-form="login">Back to Login</a>
                 </div>
             </form>
-        <?php endif; ?>
-        
+        </div>
     </div>
-    
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Focus the first input field when page loads
-            const firstInput = document.querySelector('form input:first-of-type');
-            if (firstInput) {
-                firstInput.focus();
-            }
-            
-            // Add password visibility toggle functionality
-            const passwordFields = document.querySelectorAll('input[type="password"]');
-            passwordFields.forEach(field => {
-                const wrapper = document.createElement('div');
-                wrapper.className = 'relative';
-                
-                const toggle = document.createElement('button');
-                toggle.type = 'button';
-                toggle.innerHTML = '👁️';
-                toggle.className = 'absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400';
-                toggle.style.cursor = 'pointer';
-                
-                field.parentNode.insertBefore(wrapper, field);
-                wrapper.appendChild(field);
-                wrapper.appendChild(toggle);
-                
-                toggle.addEventListener('click', function() {
-                    if (field.type === 'password') {
-                        field.type = 'text';
-                        toggle.innerHTML = '🔒';
-                    } else {
-                        field.type = 'password';
-                        toggle.innerHTML = '👁️';
-                    }
-                });
-            });
-        });
-    </script>
-</body>
-</html>
+</div>
+
+<?php 
+// Get the content and clean the buffer
+$content = ob_get_clean(); 
+
+// Include the main layout with our content
+include dirname(dirname(__DIR__)) . '/views/layout/main-app.php';
+?>

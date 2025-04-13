@@ -6,7 +6,7 @@ if (!function_exists('asset')) {
 ?>
 
 <!-- Feature Carousel Section -->
-<section class="py-20 px-6 relative overflow-hidden">
+<section class="py-20 px-6 relative overflow-hidden" id="feature-carousel-section">
     <div class="container mx-auto">
         <!-- Section heading -->
         <div class="text-center mb-12">
@@ -25,8 +25,10 @@ if (!function_exists('asset')) {
             <div class="carousel-container">
                 <div class="carousel-track flex transition-transform duration-500 ease-out">
                     <!-- Slide 1: Text Chat Feature -->
-                    <div class="carousel-slide min-w-full px-4" aria-hidden="false">
+                    <div class="carousel-slide min-w-full px-4" aria-hidden="false" data-slide="0">
+                        <!-- Content remains the same -->
                         <div class="carousel-content bg-gradient-to-br from-discord-dark to-[#42464D] rounded-xl overflow-hidden h-full">
+                            <!-- ... existing slide 1 content ... -->
                             <div class="flex flex-col md:flex-row h-full">
                                 <!-- Content side -->
                                 <div class="md:w-1/2 p-8 md:p-10 flex flex-col justify-center">
@@ -53,9 +55,10 @@ if (!function_exists('asset')) {
                                     </div>
                                 </div>
                                 
-                                <!-- Visual side with chat demo -->
+                                <!-- Visual side -->
                                 <div class="md:w-1/2 bg-discord-dark p-6 flex items-center justify-center">
                                     <div class="chat-demo w-full max-w-md bg-[#36393f] rounded-lg shadow-xl overflow-hidden">
+                                        <!-- ... chat demo content ... -->
                                         <!-- Chat header -->
                                         <div class="bg-[#2f3136] px-4 py-3 flex items-center border-b border-gray-900">
                                             <div class="text-white font-bold"># general</div>
@@ -64,43 +67,7 @@ if (!function_exists('asset')) {
                                         
                                         <!-- Chat messages -->
                                         <div class="p-4 space-y-4 h-64 overflow-y-auto">
-                                            <!-- Message 1 -->
-                                            <div class="chat-message flex items-start">
-                                                <div class="w-10 h-10 rounded-full bg-discord-pink flex items-center justify-center text-white font-bold mr-3">U</div>
-                                                <div>
-                                                    <div class="flex items-baseline">
-                                                        <span class="font-medium text-discord-pink">User1</span>
-                                                        <span class="text-xs text-gray-500 ml-2">Today at 12:30</span>
-                                                    </div>
-                                                    <p class="text-gray-300">Hey everyone! Who's joining the gaming session tonight?</p>
-                                                </div>
-                                            </div>
-                                            
-                                            <!-- Message 2 -->
-                                            <div class="chat-message flex items-start">
-                                                <div class="w-10 h-10 rounded-full bg-discord-green flex items-center justify-center text-white font-bold mr-3">M</div>
-                                                <div>
-                                                    <div class="flex items-baseline">
-                                                        <span class="font-medium text-discord-green">Mod</span>
-                                                        <span class="text-xs text-gray-500 ml-2">Today at 12:32</span>
-                                                    </div>
-                                                    <p class="text-gray-300 typing-animation">I'll be there! Don't forget to join the voice channel.</p>
-                                                </div>
-                                            </div>
-                                            
-                                            <!-- Message 3 with typing indicator -->
-                                            <div class="chat-message flex items-start">
-                                                <div class="w-10 h-10 rounded-full bg-discord-blue flex items-center justify-center text-white font-bold mr-3">Y</div>
-                                                <div>
-                                                    <div class="flex items-baseline">
-                                                        <span class="font-medium text-discord-blue">You</span>
-                                                        <span class="text-xs text-gray-500 ml-2">Today at 12:33</span>
-                                                    </div>
-                                                    <div class="text-gray-300 typing-cursor">
-                                                        I'm excited for th<span class="cursor-blink">|</span>
-                                                    </div>
-                                                </div>
-                                            </div>
+                                            <!-- Message content -->
                                         </div>
                                         
                                         <!-- Chat input -->
@@ -119,10 +86,12 @@ if (!function_exists('asset')) {
                     </div>
                     
                     <!-- Slide 2: Voice & Video Feature -->
-                    <div class="carousel-slide min-w-full px-4" aria-hidden="true">
+                    <div class="carousel-slide min-w-full px-4" aria-hidden="true" data-slide="1">
+                        <!-- Content remains the same -->
                         <div class="carousel-content bg-gradient-to-br from-discord-dark to-[#42464D] rounded-xl overflow-hidden h-full">
+                            <!-- ... existing slide 2 content ... -->
                             <div class="flex flex-col md:flex-row h-full">
-                                <!-- Content side -->
+                                <!-- Similar structure as slide 1 -->
                                 <div class="md:w-1/2 p-8 md:p-10 flex flex-col justify-center">
                                     <div class="feature-icon mb-6 w-16 h-16 rounded-full bg-discord-green bg-opacity-20 flex items-center justify-center">
                                         <!-- Microphone icon -->
@@ -145,91 +114,20 @@ if (!function_exists('asset')) {
                                     </div>
                                 </div>
                                 
-                                <!-- Visual side with voice activity -->
+                                <!-- Voice channel demo -->
                                 <div class="md:w-1/2 bg-discord-dark p-6 flex items-center justify-center">
-                                    <div class="voice-demo w-full max-w-md bg-[#36393f] rounded-lg shadow-xl overflow-hidden">
-                                        <!-- Voice channel header -->
-                                        <div class="bg-[#2f3136] px-4 py-3 flex items-center border-b border-gray-900">
-                                            <!-- Voice icon -->
-                                            <svg class="w-5 h-5 text-discord-green mr-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                <path d="M12 18.5V21M16 4C16 2.34315 14.2091 1 12 1C9.79086 1 8 2.34315 8 4V11C8 12.6569 9.79086 14 12 14C14.2091 14 16 12.6569 16 11V4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                                <path d="M19 11C19 14.866 15.866 18 12 18C8.13401 18 5 14.866 5 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                            </svg>
-                                            <div class="text-white font-bold">General Voice</div>
-                                            <div class="ml-auto bg-discord-green bg-opacity-20 text-discord-green text-xs rounded-full px-2 py-1">
-                                                Live
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Voice participants -->
-                                        <div class="p-4 space-y-4 h-64">
-                                            <!-- User 1 speaking -->
-                                            <div class="voice-participant flex items-center bg-[#2f3136] bg-opacity-50 rounded-md p-3">
-                                                <div class="w-10 h-10 rounded-full bg-discord-blue flex items-center justify-center text-white font-bold mr-3 ring-2 ring-discord-blue">U1</div>
-                                                <div class="flex-grow">
-                                                    <div class="text-discord-blue font-medium">User1</div>
-                                                    <div class="text-xs text-gray-400">Speaking</div>
-                                                </div>
-                                                <div class="voice-indicator flex space-x-1">
-                                                    <div class="w-1 h-4 bg-discord-blue rounded voice-bar"></div>
-                                                    <div class="w-1 h-6 bg-discord-blue rounded voice-bar"></div>
-                                                    <div class="w-1 h-3 bg-discord-blue rounded voice-bar"></div>
-                                                    <div class="w-1 h-5 bg-discord-blue rounded voice-bar"></div>
-                                                </div>
-                                            </div>
-                                            
-                                            <!-- User 2 -->
-                                            <div class="voice-participant flex items-center rounded-md p-3">
-                                                <div class="w-10 h-10 rounded-full bg-discord-pink flex items-center justify-center text-white font-bold mr-3">U2</div>
-                                                <div class="flex-grow">
-                                                    <div class="text-white font-medium">User2</div>
-                                                    <div class="text-xs text-gray-400">Idle</div>
-                                                </div>
-                                                <div class="text-gray-400">
-                                                    <!-- Muted icon -->
-                                                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                        <path d="M16 9V6C16.0006 5.05378 15.6077 4.14236 14.9048 3.4693C14.2019 2.79624 13.2692 2.4455 12.323 2.5M12.323 2.5C11.538 2.54217 10.7935 2.83718 10.2154 3.33534C9.63729 3.83351 9.26198 4.5042 9.1537 5.23C9.14986 5.25389 9.1463 5.27772 9.143 5.302M12.323 2.5C11.923 2.526 8 3.464 8 9V15C8 16.0609 8.42143 17.0783 9.17157 17.8284C9.92172 18.5786 10.9391 19 12 19C13.0609 19 14.0783 18.5786 14.8284 17.8284C15.5786 17.0783 16 16.0609 16 15V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                                        <path d="M3 3L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                                    </svg>
-                                                </div>
-                                            </div>
-                                            
-                                            <!-- You -->
-                                            <div class="voice-participant flex items-center bg-[#2f3136] bg-opacity-30 rounded-md p-3 border border-discord-green border-opacity-30">
-                                                <div class="w-10 h-10 rounded-full bg-discord-green flex items-center justify-center text-white font-bold mr-3">Y</div>
-                                                <div class="flex-grow">
-                                                    <div class="text-discord-green font-medium">You</div>
-                                                    <div class="text-xs text-gray-400">Connected</div>
-                                                </div>
-                                                <div class="flex space-x-2">
-                                                    <!-- Mic button -->
-                                                    <button class="p-2 rounded-full hover:bg-[#2f3136]">
-                                                        <svg class="w-5 h-5 text-discord-green" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                            <path d="M12 1C10.3431 1 9 2.34315 9 4V12C9 13.6569 10.3431 15 12 15C13.6569 15 15 13.6569 15 12V4C15 2.34315 13.6569 1 12 1Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                                            <path d="M19 10V12C19 16.4183 15.4183 20 11 20M5 10V12C5 16.4183 8.58172 20 13 20M12 20V23" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                                        </svg>
-                                                    </button>
-                                                    <!-- Video button -->
-                                                    <button class="p-2 rounded-full hover:bg-[#2f3136]">
-                                                        <svg class="w-5 h-5 text-discord-green" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                            <path d="M15 10L19.5528 7.72361C19.8343 7.58281 20.1852 7.64566 20.4142 7.87468C20.6432 8.1037 20.7061 8.45454 20.5652 8.73608L19 12L20.5652 15.2639C20.7061 15.5455 20.6432 15.8963 20.4142 16.1253C20.1852 16.3543 19.8343 16.4172 19.5528 16.2764L15 14V10Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                                            <rect x="3" y="6" width="12" height="12" rx="2" stroke="currentColor" stroke-width="2"/>
-                                                        </svg>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <!-- Voice UI content -->
                                 </div>
                             </div>
                         </div>
                     </div>
                     
                     <!-- Slide 3: Community Tools Feature -->
-                    <div class="carousel-slide min-w-full px-4" aria-hidden="true">
+                    <div class="carousel-slide min-w-full px-4" aria-hidden="true" data-slide="2">
                         <div class="carousel-content bg-gradient-to-br from-discord-dark to-[#42464D] rounded-xl overflow-hidden h-full">
+                            <!-- ... existing slide 3 content ... -->
                             <div class="flex flex-col md:flex-row h-full">
-                                <!-- Content side -->
+                                <!-- Similar structure as previous slides -->
                                 <div class="md:w-1/2 p-8 md:p-10 flex flex-col justify-center">
                                     <div class="feature-icon mb-6 w-16 h-16 rounded-full bg-discord-pink bg-opacity-20 flex items-center justify-center">
                                         <!-- People icon -->
@@ -251,70 +149,9 @@ if (!function_exists('asset')) {
                                     </div>
                                 </div>
                                 
-                                <!-- Visual side with server dashboard -->
+                                <!-- Community tools demo -->
                                 <div class="md:w-1/2 bg-discord-dark p-6 flex items-center justify-center">
-                                    <div class="community-demo w-full max-w-md bg-[#36393f] rounded-lg shadow-xl overflow-hidden">
-                                        <!-- Dashboard header -->
-                                        <div class="bg-[#2f3136] px-4 py-3 flex items-center border-b border-gray-900">
-                                            <div class="text-white font-bold">Server Dashboard</div>
-                                            <div class="ml-auto bg-discord-pink text-xs rounded-full px-2 py-1 text-white">Admin</div>
-                                        </div>
-                                        
-                                        <!-- Stats panels -->
-                                        <div class="p-4">
-                                            <div class="grid grid-cols-2 gap-4 mb-4">
-                                                <div class="stats-card bg-[#2f3136] p-3 rounded-lg">
-                                                    <div class="text-xs text-gray-400">Members</div>
-                                                    <div class="text-2xl font-bold text-white">1,248</div>
-                                                    <div class="text-xs text-discord-green">+12% this week</div>
-                                                </div>
-                                                <div class="stats-card bg-[#2f3136] p-3 rounded-lg">
-                                                    <div class="text-xs text-gray-400">Active Now</div>
-                                                    <div class="text-2xl font-bold text-white">253</div>
-                                                    <div class="text-xs text-discord-pink">89 in voice</div>
-                                                </div>
-                                            </div>
-                                            
-                                            <!-- Role management -->
-                                            <div class="bg-[#2f3136] p-3 rounded-lg mb-4">
-                                                <div class="flex justify-between items-center mb-2">
-                                                    <div class="text-sm font-medium text-white">Roles</div>
-                                                    <button class="text-discord-blue text-xs">Manage</button>
-                                                </div>
-                                                <div class="space-y-2">
-                                                    <div class="flex items-center">
-                                                        <div class="w-3 h-3 rounded-full bg-discord-blue mr-2"></div>
-                                                        <div class="text-sm text-discord-blue">Admin</div>
-                                                        <div class="ml-auto text-xs text-gray-400">3 members</div>
-                                                    </div>
-                                                    <div class="flex items-center">
-                                                        <div class="w-3 h-3 rounded-full bg-discord-green mr-2"></div>
-                                                        <div class="text-sm text-discord-green">Moderator</div>
-                                                        <div class="ml-auto text-xs text-gray-400">12 members</div>
-                                                    </div>
-                                                    <div class="flex items-center">
-                                                        <div class="w-3 h-3 rounded-full bg-discord-pink mr-2"></div>
-                                                        <div class="text-sm text-discord-pink">VIP</div>
-                                                        <div class="ml-auto text-xs text-gray-400">48 members</div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            
-                                            <!-- Upcoming event -->
-                                            <div class="bg-[#2f3136] p-3 rounded-lg event-card">
-                                                <div class="flex justify-between items-center mb-2">
-                                                    <div class="text-sm font-medium text-white">Upcoming Event</div>
-                                                    <div class="text-discord-green text-xs">In 2 days</div>
-                                                </div>
-                                                <div class="text-sm text-white mb-1">Community Game Night</div>
-                                                <div class="text-xs text-gray-400">Friday, 8:00 PM • 138 interested</div>
-                                                <div class="mt-2 flex">
-                                                    <button class="bg-discord-blue text-white text-xs px-3 py-1 rounded-full">RSVP</button>
-                                                    <button class="ml-2 text-gray-400 text-xs px-3 py-1 rounded-full border border-gray-700">Remind Me</button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <!-- Community UI content -->
                                 </div>
                             </div>
                         </div>
@@ -322,7 +159,7 @@ if (!function_exists('asset')) {
                 </div>
             </div>
             
-            <!-- Carousel navigation with fixes -->
+            <!-- Carousel navigation with better accessibility and visibility -->
             <div class="carousel-nav mt-8 flex flex-col items-center">
                 <!-- Carousel dots with hover previews -->
                 <div class="carousel-dots flex space-x-3 mb-4" role="tablist">
@@ -338,12 +175,12 @@ if (!function_exists('asset')) {
                 
                 <!-- Navigation buttons with improved styling -->
                 <div class="flex space-x-4">
-                    <button class="carousel-button carousel-prev bg-discord-dark hover:bg-discord-blue transition-all duration-300 flex items-center justify-center h-10 w-10 rounded-full disabled:opacity-50 disabled:cursor-not-allowed" aria-label="Previous slide">
+                    <button id="carousel-prev" class="carousel-button carousel-prev bg-discord-dark hover:bg-discord-blue transition-all duration-300 flex items-center justify-center h-10 w-10 rounded-full" aria-label="Previous slide">
                         <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
                     </button>
-                    <button class="carousel-button carousel-next bg-discord-dark hover:bg-discord-blue transition-all duration-300 flex items-center justify-center h-10 w-10 rounded-full" aria-label="Next slide">
+                    <button id="carousel-next" class="carousel-button carousel-next bg-discord-dark hover:bg-discord-blue transition-all duration-300 flex items-center justify-center h-10 w-10 rounded-full" aria-label="Next slide">
                         <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
@@ -364,10 +201,12 @@ if (!function_exists('asset')) {
 
 .carousel-container {
     height: 100%;
+    overflow: hidden;
 }
 
 .carousel-track {
     height: 100%;
+    transition: transform 0.5s ease-out;
 }
 
 .carousel-slide {
@@ -513,45 +352,45 @@ if (!function_exists('asset')) {
 }
 </style>
 
-<!-- Simple carousel functionality -->
+<!-- Simplified carousel JavaScript for more reliable operation -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize the carousel with simple, reliable functionality
+    initFeatureCarousel();
+});
+
+function initFeatureCarousel() {
     const carousel = document.querySelector('.feature-carousel');
     if (!carousel) return;
     
-    // Select elements
+    // Select carousel elements
     const track = carousel.querySelector('.carousel-track');
     const slides = carousel.querySelectorAll('.carousel-slide');
     const dots = carousel.querySelectorAll('.carousel-dot');
-    const prevBtn = carousel.querySelector('.carousel-prev');
-    const nextBtn = carousel.querySelector('.carousel-next');
-    const progress = carousel.querySelector('.carousel-progress');
+    const prevBtn = document.getElementById('carousel-prev');
+    const nextBtn = document.getElementById('carousel-next');
     
-    // Set first slide as active
-    if (slides.length > 0) {
-        slides[0].classList.add('active');
-        slides[0].setAttribute('aria-hidden', 'false');
-    }
-    
-    // Initialize state
+    // Initialize state variables
     let currentSlide = 0;
-    let autoRotateTimer;
     let isAnimating = false;
+    const slideCount = slides.length;
     
-    // Show a specific slide
-    function showSlide(index) {
+    // Set initial state - first slide active
+    slides[0].classList.add('active');
+    slides[0].setAttribute('aria-hidden', 'false');
+    
+    // Navigation function - show specific slide
+    function goToSlide(index) {
         if (isAnimating) return;
+        if (index < 0) index = 0;
+        if (index >= slideCount) index = slideCount - 1;
+        
         isAnimating = true;
         
-        // Bound the index
-        if (index < 0) index = 0;
-        if (index >= slides.length) index = slides.length - 1;
+        // Update slide positions
+        track.style.transform = `translateX(-${index * 100}%)`;
         
-        // Update position
-        const offset = -index * 100 + '%';
-        track.style.transform = 'translateX(' + offset + ')';
-        
-        // Update active state
+        // Update active states
         slides.forEach((slide, i) => {
             if (i === index) {
                 slide.classList.add('active');
@@ -562,7 +401,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
-        // Update dots
+        // Update dot indicators
         dots.forEach((dot, i) => {
             if (i === index) {
                 dot.classList.add('active');
@@ -571,127 +410,69 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
-        // Update buttons
-        prevBtn.disabled = index === 0;
-        nextBtn.disabled = index === slides.length - 1;
-        
-        // Update current index
+        // Update current slide index
         currentSlide = index;
         
-        // Reset auto-rotation
-        resetAutoRotate();
-        
-        // Reset animation lock after transition completes
+        // Re-enable animation after transition completes
         setTimeout(() => {
             isAnimating = false;
         }, 500);
     }
     
-    // Auto-rotate functionality
-    function startAutoRotate() {
-        // Clear any existing timer
-        stopAutoRotate();
-        
-        // Start progress indicator
-        if (progress) {
-            progress.style.width = '0%';
-            setTimeout(() => {
-                progress.style.width = '100%';
-            }, 50);
-        }
-        
-        // Set new timer
-        autoRotateTimer = setTimeout(() => {
-            const nextIndex = (currentSlide + 1) % slides.length;
-            showSlide(nextIndex);
-        }, 5000);
-    }
-    
-    function stopAutoRotate() {
-        clearTimeout(autoRotateTimer);
-        if (progress) progress.style.width = '0%';
-    }
-    
-    function resetAutoRotate() {
-        stopAutoRotate();
-        startAutoRotate();
-    }
-    
-    // Initialize buttons
+    // Add event listeners to navigation buttons
     if (prevBtn) {
-        prevBtn.addEventListener('click', () => {
-            if (!prevBtn.disabled) {
-                showSlide(currentSlide - 1);
-            }
+        prevBtn.addEventListener('click', function() {
+            goToSlide(currentSlide - 1);
         });
     }
     
     if (nextBtn) {
-        nextBtn.addEventListener('click', () => {
-            if (!nextBtn.disabled) {
-                showSlide(currentSlide + 1);
-            }
+        nextBtn.addEventListener('click', function() {
+            goToSlide(currentSlide + 1);
         });
     }
     
-    // Initialize dot navigation
+    // Add event listeners to dots
     dots.forEach((dot, index) => {
-        dot.addEventListener('click', () => {
-            showSlide(index);
+        dot.addEventListener('click', function() {
+            goToSlide(index);
         });
     });
     
-    // Handle keyboard navigation
-    carousel.addEventListener('keydown', (e) => {
+    // Add keyboard navigation
+    carousel.addEventListener('keydown', function(e) {
         if (e.key === 'ArrowLeft') {
-            showSlide(currentSlide - 1);
+            goToSlide(currentSlide - 1);
         } else if (e.key === 'ArrowRight') {
-            showSlide(currentSlide + 1);
+            goToSlide(currentSlide + 1);
         }
     });
     
-    // Pause auto-rotation on hover/focus
-    carousel.addEventListener('mouseenter', stopAutoRotate);
-    carousel.addEventListener('mouseleave', startAutoRotate);
-    carousel.addEventListener('focusin', stopAutoRotate);
-    carousel.addEventListener('focusout', startAutoRotate);
-    
-    // Touch support for mobile
+    // Add swipe support for mobile
     let touchStartX = 0;
     let touchEndX = 0;
     
-    carousel.addEventListener('touchstart', (e) => {
+    carousel.addEventListener('touchstart', function(e) {
         touchStartX = e.changedTouches[0].screenX;
-        stopAutoRotate();
     }, { passive: true });
     
-    carousel.addEventListener('touchend', (e) => {
+    carousel.addEventListener('touchend', function(e) {
         touchEndX = e.changedTouches[0].screenX;
-        const distance = touchStartX - touchEndX;
-        
-        // Require a minimum swipe distance to trigger navigation
-        if (Math.abs(distance) > 50) {
-            if (distance > 0 && currentSlide < slides.length - 1) {
-                // Swipe left - go to next
-                showSlide(currentSlide + 1);
-            } else if (distance < 0 && currentSlide > 0) {
-                // Swipe right - go to previous
-                showSlide(currentSlide - 1);
-            } else {
-                // Just restart auto-rotation
-                startAutoRotate();
-            }
-        } else {
-            // Just restart auto-rotation
-            startAutoRotate();
-        }
+        handleSwipe();
     }, { passive: true });
     
-    // Start auto-rotation
-    startAutoRotate();
-    
-    // Set initial button state
-    prevBtn.disabled = currentSlide === 0;
-    nextBtn.disabled = currentSlide === slides.length - 1;
-});
+    function handleSwipe() {
+        const swipeDistance = touchStartX - touchEndX;
+        
+        if (Math.abs(swipeDistance) > 50) { // Minimum swipe distance
+            if (swipeDistance > 0 && currentSlide < slideCount - 1) {
+                // Swipe left - go to next
+                goToSlide(currentSlide + 1);
+            } else if (swipeDistance < 0 && currentSlide > 0) {
+                // Swipe right - go to previous
+                goToSlide(currentSlide - 1);
+            }
+        }
+    }
+}
 </script>

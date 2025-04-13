@@ -15,7 +15,157 @@ $additional_head = '
     :root {
         --background-image-url: url(\'' . asset('landing-page/background.png') . '\');
     }
+    
+    /* Add basic animation styles */
+    .animate-float {
+        animation: float 6s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+        0%, 100% {
+            transform: translateY(0); 
+        }
+        50% {
+            transform: translateY(-20px);
+        }
+    }
+    
+    .scramble-text {
+        display: inline-block;
+        position: relative;
+    }
+    
+    /* Custom animation for different floating elements */
+    .floating-element {
+        transition: transform 0.3s ease;
+    }
+    
+    .floating-element:hover {
+        transform: scale(1.1);
+    }
+    
+    /* Fix for carousel navigation buttons */
+    #carousel-prev, #carousel-next {
+        cursor: pointer !important;
+        z-index: 50 !important;
+    }
+    
+    #carousel-prev:hover, #carousel-next:hover {
+        background-color: #5865F2 !important;
+    }
+    
+    /* Make sure the carousel track animates properly */
+    .carousel-track {
+        transition: transform 0.5s ease-out !important;
+    }
 </style>
+<script>
+    // Add pure JS animation
+    document.addEventListener("DOMContentLoaded", function() {
+        // Simple animation for floating elements using CSS
+        const floatingElements = document.querySelectorAll(".floating-element");
+        floatingElements.forEach(element => {
+            // Add slight delay for each element to create staggered effect
+            const delay = Math.random() * 2;
+            element.style.animationDelay = `${delay}s`;
+        });
+        
+        // Simple text scramble effect
+        const heroTitle = document.getElementById("heroTitle");
+        if (heroTitle) {
+            const originalText = heroTitle.textContent;
+            const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+";
+            
+            function scrambleText(target, original) {
+                let iterations = 0;
+                const maxIterations = 15;
+                
+                const interval = setInterval(() => {
+                    target.innerText = original.split("")
+                        .map((letter, index) => {
+                            if (index < iterations) {
+                                return original[index];
+                            }
+                            return chars[Math.floor(Math.random() * chars.length)];
+                        })
+                        .join("");
+                    
+                    if (iterations >= original.length) {
+                        clearInterval(interval);
+                    }
+                    
+                    iterations += 1 / 3;
+                }, 50);
+            }
+            
+            // Run the scramble effect after a short delay
+            setTimeout(() => {
+                scrambleText(heroTitle, originalText);
+            }, 1000);
+        }
+        
+        // Ensure carousel buttons work properly with direct event handling
+        const prevBtn = document.getElementById("carousel-prev");
+        const nextBtn = document.getElementById("carousel-next");
+        const track = document.querySelector(".carousel-track");
+        const slides = document.querySelectorAll(".carousel-slide");
+        const dots = document.querySelectorAll(".carousel-dot");
+        
+        if (prevBtn && nextBtn && track && slides.length) {
+            let currentSlide = 0;
+            
+            // Function to go to a specific slide
+            function goToSlide(index) {
+                if (index < 0) index = 0;
+                if (index >= slides.length) index = slides.length - 1;
+                
+                // Move the track
+                track.style.transform = `translateX(-${index * 100}%)`;
+                
+                // Update active states
+                slides.forEach((slide, i) => {
+                    if (i === index) {
+                        slide.classList.add("active");
+                    } else {
+                        slide.classList.remove("active");
+                    }
+                });
+                
+                // Update dot indicators
+                dots.forEach((dot, i) => {
+                    if (i === index) {
+                        dot.classList.add("active");
+                    } else {
+                        dot.classList.remove("active");
+                    }
+                });
+                
+                // Update current slide
+                currentSlide = index;
+                
+                // Update button states
+                prevBtn.disabled = currentSlide === 0;
+                nextBtn.disabled = currentSlide === slides.length - 1;
+            }
+            
+            // Add click handlers
+            prevBtn.addEventListener("click", function() {
+                goToSlide(currentSlide - 1);
+            });
+            
+            nextBtn.addEventListener("click", function() {
+                goToSlide(currentSlide + 1);
+            });
+            
+            // Add click handlers for dots
+            dots.forEach((dot, index) => {
+                dot.addEventListener("click", function() {
+                    goToSlide(index);
+                });
+            });
+        }
+    });
+</script>
 ';
 
 // Start output buffering to capture content for the layout
@@ -30,7 +180,7 @@ ob_start();
     <!-- Navigation bar with glass effect -->
     <nav class="fixed w-full z-50 px-6 md:px-10 py-4">
         <div class="max-w-7xl mx-auto glass-nav rounded-full px-6 py-3 flex justify-between items-center">
-            <img src="<?php echo asset('/landing-page/main-logo.svg'); ?>" alt="MiscVord Logo" class="h-8 md:h-10 animate-glow">
+            <img src="<?php echo asset('/landing-page/main-logo.png'); ?>" alt="MiscVord Logo" class="h-8 md:h-10 animate-glow">
             
             <!-- Desktop navigation links -->
             <div class="hidden md:flex items-center space-x-8">
@@ -251,7 +401,7 @@ ob_start();
         <!-- Footer bottom section -->
         <div class="flex flex-col md:flex-row justify-between items-center">
             <div>
-                <img src="<?php echo asset('/landing-page/main-logo.svg'); ?>" alt="MiscVord Logo" class="h-10 animate-glow">
+                <img src="<?php echo asset('/landing-page/main-logo.png'); ?>" alt="MiscVord Logo" class="h-10 animate-glow">
             </div>
             <div class="mt-6 md:mt-0">
                 <button class="discord-btn bg-discord-blue bg-opacity-70 hover:bg-opacity-100 backdrop-filter backdrop-blur-sm text-white px-8 py-3 rounded-full font-medium">

@@ -1,0 +1,486 @@
+/* Base Auth Page Styles - Optimized for performance */
+.authentication-page {
+    background-color: #202225;
+    color: white;
+    height: 100vh;
+    width: 100vw;
+    overflow-x: hidden;
+    will-change: transform; /* Hardware acceleration hint */
+}
+
+/* More efficient animated background */
+@keyframes float {
+    0%, 100% { transform: translate3d(0, 0, 0); }
+    50% { transform: translate3d(0, -20px, 0); }
+}
+
+@keyframes float2 {
+    0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+    33% { transform: translate3d(-15px, 15px, 0) rotate(5deg); }
+    66% { transform: translate3d(15px, -15px, 0) rotate(-5deg); }
+}
+
+/* Form container with improved transitions */
+#authContainer {
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    will-change: transform, box-shadow;
+    transform: translateZ(0); /* Force GPU rendering */
+}
+
+#authContainer:hover {
+    transform: translateY(-5px) translateZ(0);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+/* Logo animation - optimized */
+#logo {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    opacity: 0;
+    transform: translateY(10px);
+}
+
+#logo.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+#logoUnderline {
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform: scaleX(0);
+    transform-origin: center;
+}
+
+#logoUnderline.visible {
+    transform: scaleX(1);
+}
+
+/* Form fields with modern animations */
+.form-group {
+    margin-bottom: 1.25rem;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
+    will-change: transform, opacity;
+}
+
+.form-group:focus-within {
+    transform: translateY(-2px) scale(1.01);
+}
+
+input {
+    background-color: #202225;
+    color: white;
+    border: 1px solid #40444b;
+    border-radius: 0.375rem;
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    will-change: border-color, box-shadow;
+}
+
+input:focus {
+    border-color: #5865F2 !important;
+    box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.3) !important;
+    outline: none;
+}
+
+/* Modern input focus effect */
+.input-focus-effect {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    width: 0;
+    background: #5865F2;
+    transition: width 0.3s ease;
+}
+
+input:focus ~ .input-focus-effect {
+    width: 100%;
+}
+
+/* Optimized form transitions */
+#formsContainer {
+    position: relative;
+    overflow: hidden;
+    transform: translateZ(0); /* Force GPU rendering */
+}
+
+.auth-form {
+    transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                opacity 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    backface-visibility: hidden;
+    will-change: transform, opacity;
+}
+
+/* Modern form transitions */
+.fade-enter {
+    opacity: 0;
+    transform: translateY(10px) translateZ(0);
+}
+
+.fade-enter-active {
+    opacity: 1;
+    transform: translateY(0) translateZ(0);
+}
+
+.fade-exit {
+    opacity: 1;
+    transform: translateY(0) translateZ(0);
+    position: absolute;
+    width: 100%;
+    top: 0;
+}
+
+.fade-exit-active {
+    opacity: 0;
+    transform: translateY(-10px) translateZ(0);
+}
+
+.slide-left-enter {
+    opacity: 0;
+    transform: translateX(30px) translateZ(0);
+}
+
+.slide-left-enter-active {
+    opacity: 1;
+    transform: translateX(0) translateZ(0);
+}
+
+.slide-left-exit {
+    opacity: 1;
+    transform: translateX(0) translateZ(0);
+    position: absolute;
+    width: 100%;
+    top: 0;
+}
+
+.slide-left-exit-active {
+    opacity: 0;
+    transform: translateX(-30px) translateZ(0);
+}
+
+.slide-right-enter {
+    opacity: 0;
+    transform: translateX(-30px) translateZ(0);
+}
+
+.slide-right-enter-active {
+    opacity: 1;
+    transform: translateX(0) translateZ(0);
+}
+
+.slide-right-exit {
+    opacity: 1;
+    transform: translateX(0) translateZ(0);
+    position: absolute;
+    width: 100%;
+    top: 0;
+}
+
+.slide-right-exit-active {
+    opacity: 0;
+    transform: translateX(30px) translateZ(0);
+}
+
+/* Modern button styles */
+button[type="submit"], .btn-google {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    will-change: transform, box-shadow;
+    transform: translateZ(0);
+}
+
+button[type="submit"]:hover, .btn-google:hover {
+    transform: translateY(-2px) scale(1.01) translateZ(0);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+button[type="submit"]:active, .btn-google:active {
+    transform: translateY(0) scale(0.99) translateZ(0);
+}
+
+/* Modern button ripple effect */
+.btn-ripple {
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-ripple:after {
+    content: "";
+    display: block;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    background-image: radial-gradient(circle, #fff 10%, transparent 10.01%);
+    background-repeat: no-repeat;
+    background-position: 50%;
+    transform: scale(10, 10);
+    opacity: 0;
+    transition: transform .5s, opacity 0.8s;
+}
+
+.btn-ripple:active:after {
+    transform: scale(0, 0);
+    opacity: .3;
+    transition: 0s;
+}
+
+/* Password strength indicator */
+.password-strength-bar {
+    height: 4px;
+    background: rgba(47, 49, 54, 0.5);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 0.25rem;
+}
+
+.password-strength-fill {
+    height: 100%;
+    transition: width 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.3s ease;
+    transform-origin: left;
+    will-change: width, background-color;
+}
+
+/* Card style with better performance */
+.glass-hero {
+    background: rgba(47, 49, 54, 0.8);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-radius: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+/* Clean single dot loader for buttons */
+.dot-loader {
+    display: inline-block;
+    position: relative;
+    width: 10px;
+    height: 10px;
+}
+
+.dot-loader div {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #fff;
+    animation: dot-loader 1.3s cubic-bezier(0.54, 0.1, 0.24, 0.76) infinite;
+}
+
+@keyframes dot-loader {
+    0%, 100% {
+        transform: scale(0);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Smooth scale effect when switching forms */
+.scale-effect {
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.scale-in {
+    transform: scale(1.02);
+}
+
+.scale-out {
+    transform: scale(0.98);
+}
+
+/* Page title transition - optimized */
+#authTitle {
+    transition: opacity 0.3s ease, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    will-change: transform, opacity;
+}
+
+/* Modern glitch effect for errors */
+@keyframes glitch {
+    0% {
+        transform: translate(0);
+        text-shadow: 0 0 0 #ff0055;
+    }
+    10% {
+        transform: translate(-2px, 2px);
+        text-shadow: -1px -1px 0 #ff0055, 1px 1px 0 #00ffff;
+    }
+    20% {
+        transform: translate(2px, -2px);
+        text-shadow: 1px 1px 0 #ff0055, -1px -1px 0 #00ffff;
+    }
+    30% {
+        transform: translate(-2px, 2px);
+        text-shadow: -1px 1px 0 #ff0055, 1px -1px 0 #00ffff;
+    }
+    40% {
+        transform: translate(2px, -2px);
+        text-shadow: 1px -1px 0 #ff0055, -1px 1px 0 #00ffff;
+    }
+    50% {
+        transform: translate(-2px, 2px);
+        text-shadow: -1px 1px 0 #ff0055, 1px -1px 0 #00ffff;
+    }
+    60% {
+        transform: translate(2px, -2px);
+        text-shadow: 1px -1px 0 #ff0055, -1px 1px 0 #00ffff;
+    }
+    70% {
+        transform: translate(0);
+        text-shadow: 0 0 0 #ff0055;
+    }
+    100% {
+        transform: translate(0);
+        text-shadow: 0 0 0 #ff0055;
+    }
+}
+
+.error-text-glitch {
+    animation: glitch 3s infinite;
+}
+
+/* Minimalist background animation */
+.minimalist-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.shape {
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0.08;
+    transform-origin: center;
+    will-change: transform, opacity;
+}
+
+.shape-1 {
+    background-color: #5865F2;
+    width: 300px;
+    height: 300px;
+    left: -100px;
+    top: -100px;
+    animation: shape-float 25s infinite alternate ease-in-out;
+}
+
+.shape-2 {
+    background-color: #EB459E;
+    width: 200px;
+    height: 200px;
+    right: -80px;
+    bottom: 100px;
+    animation: shape-float 18s infinite alternate-reverse ease-in-out;
+}
+
+.shape-3 {
+    background-color: #57F287;
+    width: 150px;
+    height: 150px;
+    left: 60%;
+    top: -50px;
+    animation: shape-float 20s infinite alternate ease-in-out;
+}
+
+.shape-4 {
+    background-color: #FEE75C;
+    width: 100px;
+    height: 100px;
+    left: 10%;
+    bottom: 10%;
+    animation: shape-float 15s infinite alternate-reverse ease-in-out;
+}
+
+.shape-line {
+    position: absolute;
+    height: 1px;
+    width: 100px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+    animation: shape-line-float 15s infinite linear;
+    transform-origin: center;
+}
+
+.shape-line-1 {
+    top: 20%;
+    left: 0;
+    width: 100%;
+    animation-duration: 20s;
+}
+
+.shape-line-2 {
+    top: 60%;
+    left: 0;
+    width: 100%;
+    animation-duration: 25s;
+    animation-delay: 5s;
+}
+
+.shape-line-3 {
+    top: 80%;
+    left: 0;
+    width: 100%;
+    animation-duration: 30s;
+    animation-delay: 10s;
+}
+
+@keyframes shape-float {
+    0% {
+        transform: translate(0, 0) rotate(0deg) scale(1);
+    }
+    25% {
+        transform: translate(50px, 20px) rotate(5deg) scale(1.05);
+    }
+    50% {
+        transform: translate(10px, 40px) rotate(0deg) scale(1);
+    }
+    75% {
+        transform: translate(-30px, 20px) rotate(-5deg) scale(0.95);
+    }
+    100% {
+        transform: translate(0, 0) rotate(0deg) scale(1);
+    }
+}
+
+@keyframes shape-line-float {
+    0% {
+        transform: translateY(0) scaleX(0.8);
+        opacity: 0;
+    }
+    10% {
+        opacity: 0.5;
+    }
+    90% {
+        opacity: 0.5;
+    }
+    100% {
+        transform: translateY(20px) scaleX(1.2);
+        opacity: 0;
+    }
+}
+
+/* Subtle blinking dot animations */
+.blink-dot {
+    position: absolute;
+    border-radius: 50%;
+    width: 2px;
+    height: 2px;
+    background-color: rgba(255, 255, 255, 0.6);
+    animation: blink-dot 3s infinite;
+}
+
+@keyframes blink-dot {
+    0%, 100% {
+        opacity: 0;
+    }
+    50% {
+        opacity: 1;
+    }
+}

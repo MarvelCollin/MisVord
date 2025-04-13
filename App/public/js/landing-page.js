@@ -11,8 +11,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add text scramble animation for hero title
     initScrambleText();
     
-    // Initialize the new carousel
-    initCarousel();
+    // Initialize the fixed carousel - this is important for navigation issues
+    initFixedCarousel();
 });
 
 /**
@@ -336,6 +336,156 @@ function scrambleCharacter(charElement) {
             }, 800);
         }
     }, 50);
+}
+
+/**
+ * Initialize the feature carousel with more reliable controls
+ */
+function initFixedCarousel() {
+    const carousel = document.querySelector('.feature-carousel');
+    if (!carousel) return;
+    
+    // Select carousel elements
+    const track = carousel.querySelector('.carousel-track');
+    const slides = Array.from(carousel.querySelectorAll('.carousel-slide'));
+    const dots = Array.from(carousel.querySelectorAll('.carousel-dot'));
+    const prevBtn = document.getElementById('carousel-prev');
+    const nextBtn = document.getElementById('carousel-next');
+    
+    if (!track || !slides.length || !prevBtn || !nextBtn) {
+        console.error("Missing required carousel elements");
+        return;
+    }
+    
+    // Initialize state variables
+    let currentSlide = 0;
+    let isAnimating = false;
+    const slideCount = slides.length;
+    
+    console.log("Carousel initialized with", slideCount, "slides");
+    
+    // Set initial state
+    updateCarouselState(0);
+    
+    // Go to specific slide
+    function goToSlide(index) {
+        if (isAnimating) return;
+        if (index < 0) index = 0;
+        if (index >= slideCount) index = slideCount - 1;
+        
+        console.log("Navigating to slide", index);
+        isAnimating = true;
+        updateCarouselState(index);
+        
+        // Re-enable animation after transition
+        setTimeout(() => {
+            isAnimating = false;
+        }, 500);
+    }
+    
+    // Update carousel state (slides, dots, buttons)
+    function updateCarouselState(index) {
+        // Move track
+        track.style.transform = `translateX(-${index * 100}%)`;
+        
+        // Update slides
+        slides.forEach((slide, i) => {
+            if (i === index) {
+                slide.classList.add('active');
+                slide.setAttribute('aria-hidden', 'false');
+            } else {
+                slide.classList.remove('active');
+                slide.setAttribute('aria-hidden', 'true');
+            }
+        });
+        
+        // Update dots
+        dots.forEach((dot, i) => {
+            if (i === index) {
+                dot.classList.add('active');
+            } else {
+                dot.classList.remove('active');
+            }
+        });
+        
+        // Update current index
+        currentSlide = index;
+        
+        // Update button states
+        prevBtn.disabled = index === 0;
+        prevBtn.classList.toggle('disabled', index === 0);
+        nextBtn.disabled = index === slideCount - 1;
+        nextBtn.classList.toggle('disabled', index === slideCount - 1);
+    }
+    
+    // Add event listeners to buttons
+    if (prevBtn) {
+        prevBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log("Prev button clicked");
+            goToSlide(currentSlide - 1);
+        });
+    }
+    
+    if (nextBtn) {
+        nextBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log("Next button clicked");
+            goToSlide(currentSlide + 1);
+        });
+    }
+    
+    // Add event listeners to dots
+    dots.forEach((dot, index) => {
+        dot.addEventListener('click', function() {
+            goToSlide(index);
+        });
+    });
+    
+    // Add fallback click handlers for navigation buttons in case event delegation fails
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('#carousel-prev')) {
+            console.log("Prev button clicked via delegation");
+            goToSlide(currentSlide - 1);
+        } else if (e.target.closest('#carousel-next')) {
+            console.log("Next button clicked via delegation");
+            goToSlide(currentSlide + 1);
+        }
+    });
+    
+    // Add keyboard navigation
+    carousel.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowLeft') {
+            goToSlide(currentSlide - 1);
+        } else if (e.key === 'ArrowRight') {
+            goToSlide(currentSlide + 1);
+        }
+    });
+    
+    // Add touch swipe support
+    let touchStartX = 0;
+    let touchEndX = 0;
+    
+    carousel.addEventListener('touchstart', function(e) {
+        touchStartX = e.changedTouches[0].screenX;
+    }, { passive: true });
+    
+    carousel.addEventListener('touchend', function(e) {
+        touchEndX = e.changedTouches[0].screenX;
+        const swipeDistance = touchStartX - touchEndX;
+        
+        if (Math.abs(swipeDistance) > 50) {
+            if (swipeDistance > 0 && currentSlide < slideCount - 1) {
+                // Swipe left - go to next
+                goToSlide(currentSlide + 1);
+            } else if (swipeDistance < 0 && currentSlide > 0) {
+                // Swipe right - go to previous
+                goToSlide(currentSlide - 1);
+            }
+        }
+    }, { passive: true });
+    
+    console.log("Carousel event listeners attached");
 }
 
 /**
