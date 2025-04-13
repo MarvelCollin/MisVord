@@ -3,6 +3,13 @@
 if (!function_exists('asset')) {
     require_once dirname(dirname(dirname(__DIR__))) . '/config/helpers.php';
 }
+
+// Fetch user's servers if the user is logged in
+$userServers = [];
+if (isset($_SESSION['user_id'])) {
+    require_once dirname(dirname(dirname(__DIR__))) . '/database/models/Server.php';
+    $userServers = Server::getForUser($_SESSION['user_id']);
+}
 ?>
 
 <div class="flex h-full">
@@ -20,22 +27,29 @@ if (!function_exists('asset')) {
 
         <div class="w-8 h-0.5 bg-gray-700 rounded-full mx-auto"></div>
 
-        <!-- Servers -->
-        <div class="server-icon p-1">
-            <div class="w-12 h-12 rounded-full bg-[#36393F] flex items-center justify-center hover:bg-[#5865F2] hover:rounded-2xl transition-all duration-200">
-                <span class="text-green-500 font-bold">BP</span>
+        <!-- Servers - Now dynamically loaded from database -->
+        <?php foreach ($userServers as $server): ?>
+            <div class="server-icon p-1" title="<?php echo htmlspecialchars($server->name); ?>">
+                <div class="w-12 h-12 rounded-full bg-[#36393F] flex items-center justify-center hover:bg-[#5865F2] hover:rounded-2xl transition-all duration-200 overflow-hidden">
+                    <?php if ($server->image_url): ?>
+                        <img src="<?php echo $server->image_url; ?>" alt="<?php echo htmlspecialchars($server->name); ?>" class="w-full h-full object-cover">
+                    <?php else: ?>
+                        <?php 
+                        // Generate initials from server name
+                        $initials = '';
+                        $words = explode(' ', $server->name);
+                        foreach ($words as $word) {
+                            if (!empty($word)) {
+                                $initials .= strtoupper(substr($word, 0, 1));
+                                if (strlen($initials) >= 2) break;
+                            }
+                        }
+                        ?>
+                        <span class="text-discord-blue font-bold"><?php echo $initials; ?></span>
+                    <?php endif; ?>
+                </div>
             </div>
-        </div>
-        <div class="server-icon p-1">
-            <div class="w-12 h-12 rounded-full bg-[#36393F] flex items-center justify-center hover:bg-[#5865F2] hover:rounded-2xl transition-all duration-200">
-                <span class="text-indigo-500 font-bold">JS</span>
-            </div>
-        </div>
-        <div class="server-icon p-1">
-            <div class="w-12 h-12 rounded-full bg-[#36393F] flex items-center justify-center hover:bg-[#5865F2] hover:rounded-2xl transition-all duration-200">
-                <span class="text-pink-500 font-bold">AI</span>
-            </div>
-        </div>
+        <?php endforeach; ?>
         
         <!-- Add Server Button - Now opens modal -->
         <div class="server-icon p-1 mt-2">
@@ -49,12 +63,18 @@ if (!function_exists('asset')) {
     
     <!-- Channel Sidebar -->
     <div class="channel-sidebar bg-[#2f3136] w-60 flex flex-col">
-        <!-- Server Header -->
+        <!-- Server Header - Now uses real data if available -->
         <div class="p-4 shadow-md">
-            <h2 class="text-white font-semibold">Binus Server</h2>
+            <h2 class="text-white font-semibold">
+                <?php 
+                echo isset($currentServer) && $currentServer ? 
+                    htmlspecialchars($currentServer->name) : 
+                    'MiscVord Server';
+                ?>
+            </h2>
         </div>
         
-        <!-- Channel List -->
+        <!-- Channel List - This would need to be updated to show channels for the current server -->
         <div class="flex-1 overflow-y-auto p-2">
             <div class="mb-4">
                 <div class="text-xs font-semibold text-gray-400 px-2 flex justify-between items-center mb-1">

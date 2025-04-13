@@ -28,14 +28,16 @@ class ServerController {
             exit;
         }
         
+        $user_id = $_SESSION['user_id'];
+        $server = null;
+        $channels = [];
+        $members = [];
+        
         // If no server ID is provided, show the first server for the user
         if ($id === null) {
-            $servers = Server::getForUser($_SESSION['user_id']);
+            $servers = Server::getForUser($user_id);
             if (count($servers) > 0) {
                 $server = $servers[0];
-            } else {
-                // No servers found, load default view
-                $server = null;
             }
         } else {
             // Load specific server
@@ -43,28 +45,39 @@ class ServerController {
             
             // Check if user is a member of this server
             if ($server) {
-                $isMember = false;
-                $members = $server->members();
-                foreach ($members as $member) {
-                    if ($member['id'] == $_SESSION['user_id']) {
-                        $isMember = true;
-                        break;
-                    }
-                }
+                $isMember = UserServerMembership::isMember($user_id, $server->id);
                 
                 if (!$isMember) {
                     // User is not a member of this server
+                    $_SESSION['errors'] = ['server' => 'You are not a member of this server.'];
                     header('Location: /app');
                     exit;
                 }
             }
         }
         
-        // Load all servers for the left sidebar
-        $userServers = Server::getForUser($_SESSION['user_id']);
+        // If we found a server, load its channels and members
+        if ($server) {
+            $channels = $server->channels();
+            $members = UserServerMembership::getServerMembers($server->id);
+            
+            // Store current server in global for sidebar to access
+            $GLOBALS['currentServer'] = $server;
+        }
         
-        // Load channels for the current server
-        $channels = $server ? $server->channels() : [];
+        // Load all servers for the left sidebar
+        $userServers = Server::getForUser($user_id);
+        
+        // Set up data for the view
+        $data = [
+            'server' => $server,
+            'channels' => $channels,
+            'members' => $members,
+            'userServers' => $userServers
+        ];
+        
+        // Make data available in the view
+        extract($data);
         
         // Load server page with data
         require_once __DIR__ . '/../views/pages/server-page.php';
@@ -234,24 +247,24 @@ class ServerController {
     
     /**
      * Join a server using an invite link
+     * 
+     * @param string $inviteCode The invite code from URL
      */
-    public function join() {
+    public function join($inviteCode) {
         // Check if user is logged in
         if (!isset($_SESSION['user_id'])) {
             header('Location: /login');
             exit;
         }
         
-        $inviteLink = $_GET['invite'] ?? '';
-        
-        if (empty($inviteLink)) {
+        if (empty($inviteCode)) {
             $_SESSION['error'] = 'Invalid invite link';
             header('Location: /app');
             exit;
         }
         
         // Find server by invite link
-        $server = Server::findByInviteLink($inviteLink);
+        $server = Server::findByInviteLink($inviteCode);
         
         if (!$server) {
             $_SESSION['error'] = 'Invalid or expired invite link';
@@ -259,8 +272,14 @@ class ServerController {
             exit;
         }
         
+        // Check if user is already a member
+        if (UserServerMembership::isMember($_SESSION['user_id'], $server->id)) {
+            header('Location: /server/' . $server->id);
+            exit;
+        }
+        
         // Add user to server
-        $server->addMember($_SESSION['user_id']);
+        UserServerMembership::create($_SESSION['user_id'], $server->id, 'member');
         
         // Redirect to the server
         header('Location: /server/' . $server->id);
@@ -269,6 +288,8 @@ class ServerController {
     
     /**
      * Leave a server
+     * 
+     * @param int $serverId
      */
     public function leave($serverId) {
         // Check if user is logged in
@@ -285,8 +306,14 @@ class ServerController {
             return;
         }
         
+        // Check if user is the owner - owners can't leave, must transfer ownership first
+        if (UserServerMembership::isOwner($_SESSION['user_id'], $server->id)) {
+            $this->jsonResponse(['success' => false, 'message' => 'Server owners cannot leave. Transfer ownership first.'], 400);
+            return;
+        }
+        
         // Remove user from server
-        if ($server->removeMember($_SESSION['user_id'])) {
+        if (UserServerMembership::delete($_SESSION['user_id'], $server->id)) {
             $this->jsonResponse(['success' => true, 'message' => 'Left server successfully']);
         } else {
             $this->jsonResponse(['success' => false, 'message' => 'Failed to leave server'], 500);
@@ -295,6 +322,9 @@ class ServerController {
     
     /**
      * Helper method to send JSON responses
+     * 
+     * @param mixed $data The data to send
+     * @param int $statusCode HTTP status code
      */
     private function jsonResponse($data, $statusCode = 200) {
         http_response_code($statusCode);

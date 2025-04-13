@@ -214,7 +214,8 @@ class Server {
                     'user_id' => $userId,
                     'server_id' => $this->id,
                     'role' => $role,
-                    'joined_at' => date('Y-m-d H:i:s')
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s')
                 ]);
         
         return $result > 0;
@@ -275,6 +276,8 @@ class Server {
                             server_id INT NOT NULL,
                             role VARCHAR(50) NOT NULL DEFAULT 'member',
                             joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                             UNIQUE KEY `unique_membership` (`user_id`, `server_id`),
                             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
                             FOREIGN KEY (server_id) REFERENCES servers(id) ON DELETE CASCADE
