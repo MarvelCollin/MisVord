@@ -539,6 +539,19 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // Add the missing setupResizeHandler function
+    function setupResizeHandler() {
+        // Handle window resize events for responsive form containers
+        let resizeTimeout;
+        window.addEventListener('resize', function() {
+            // Debounce resize events for better performance
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(function() {
+                updateFormHeight();
+            }, 250); // Wait until resizing stops
+        });
+    }
+    
     // Initialize all functionality
     function init() {
         initAnimations();
@@ -547,7 +560,7 @@ document.addEventListener('DOMContentLoaded', function() {
         setupPasswordStrength();
         setupPasswordMatching();
         setupFormSubmission();
-        setupResizeHandler();
+        setupResizeHandler(); // Now this function is defined
         restoreFormData();
         
         // Set initial focus

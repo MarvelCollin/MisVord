@@ -30,7 +30,7 @@ unset($_SESSION['errors'], $_SESSION['old_input'], $_SESSION['success']);
 
 // Set variables for the main layout
 $page_title = ucfirst($mode) . ' - MiscVord';
-$body_class = 'bg-[#202225] authentication-page overflow-hidden';
+$body_class = 'bg-[#202225] authentication-page overflow-hidden flex items-center justify-center min-h-screen';
 $additional_head = '<link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">';
@@ -132,11 +132,10 @@ try {
 <!-- Define the content for the main layout -->
 <?php ob_start(); ?>
 
-<div class="min-h-screen w-full flex items-center justify-center p-4 relative overflow-hidden">
-    <!-- Background animation elements - minimalist design will be injected by JS -->
-    
+<!-- Full-height container with proper centering -->
+<div class="w-full p-4">
     <!-- Auth Container with Glass Effect -->
-    <div class="w-full max-w-md p-8 rounded-xl shadow-2xl relative z-10 glass-hero transform transition-all duration-700 ease-out bg-[#2f3136]/80 backdrop-filter backdrop-blur-md border border-white/10" id="authContainer">
+    <div class="w-full max-w-md p-8 mx-auto rounded-xl shadow-2xl relative z-10 glass-hero transform transition-all duration-700 ease-out bg-[#2f3136]/80 backdrop-filter backdrop-blur-md border border-white/10" id="authContainer">
         <!-- Logo with modern animation -->
         <div class="flex justify-center mb-8 relative">
             <img src="<?php echo asset('/landing-page/main-logo.png'); ?>" alt="MiscVord Logo" class="h-12 transition-all" id="logo">
