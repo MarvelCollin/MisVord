@@ -390,6 +390,5 @@ try {
 // Get the content and clean the buffer
 $content = ob_get_clean(); 
 
-// Include the main layout with our content
 include dirname(dirname(__DIR__)) . '/views/layout/main-app.php';
 ?>

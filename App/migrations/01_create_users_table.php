@@ -7,9 +7,9 @@ class CreateUsersTableMigration {
             $table->string('username');
             $table->string('email');
             $table->string('password');
-            $table->string('google_id', 255, true); // nullable
-            $table->string('avatar_url', 255, true); // nullable
-            $table->string('status', 255, true); // nullable
+            $table->string('google_id', 255, true); 
+            $table->string('avatar_url', 255, true); 
+            $table->string('status', 255, true); 
             $table->timestamps();
         });
     }

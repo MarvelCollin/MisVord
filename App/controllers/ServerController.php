@@ -297,6 +297,51 @@ class ServerController {
     }
     
     /**
+     * Show a specific channel within a server
+     * 
+     * @param int $serverId Server ID
+     * @param int $channelId Channel ID
+     * @return void
+     */
+    public function showChannel($serverId, $channelId) {
+        // Check if user is logged in
+        if (!isset($_SESSION['user_id'])) {
+            header('Location: /login');
+            exit;
+        }
+        
+        // Find server
+        $server = Server::find($serverId);
+        if (!$server) {
+            header('Location: /app');
+            exit;
+        }
+        
+        // Check if user is member of this server
+        if (!$server->isMember($_SESSION['user_id'])) {
+            header('Location: /app');
+            exit;
+        }
+        
+        // Find channel
+        require_once __DIR__ . '/../database/models/Channel.php';
+        $channel = Channel::find($channelId);
+        
+        if (!$channel || $channel->server_id != $serverId) {
+            // Redirect to server view without a specific channel
+            header("Location: /server/{$serverId}");
+            exit;
+        }
+        
+        // Store server and channel in globals for use in view
+        $GLOBALS['currentServer'] = $server;
+        $GLOBALS['currentChannel'] = $channel;
+        
+        // Render the server page with channel
+        require_once __DIR__ . '/../views/pages/server-page.php';
+    }
+
+    /**
      * Helper method to send JSON responses
      * 
      * @param mixed $data The data to send

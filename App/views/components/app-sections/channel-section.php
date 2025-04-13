@@ -30,6 +30,8 @@ if ($currentServer) {
         <h2 class="text-white font-bold truncate">
             <?php echo $currentServer ? htmlspecialchars($currentServer->name) : 'MiscVord'; ?>
         </h2>
+        <!-- Add a hidden input to store the server ID for JavaScript -->
+        <input type="hidden" id="currentServerId" value="<?php echo $currentServer ? $currentServer->id : ''; ?>">
         <?php if ($currentServer): ?>
         <div class="ml-auto relative">
             <button id="serverSettingsBtn" class="text-gray-400 hover:text-white p-1 rounded flex items-center">
@@ -85,7 +87,7 @@ if ($currentServer) {
                     </div>
                     
                     <?php foreach ($channelsByCategory[0] as $channel): ?>
-                        <div class="channel-item text-gray-400 hover:text-white hover:bg-gray-700 rounded px-2 py-1 flex items-center cursor-pointer">
+                        <div class="channel-item text-gray-400 hover:text-white hover:bg-gray-700 rounded px-2 py-1 flex items-center cursor-pointer" data-channel-id="<?php echo $channel['id']; ?>" data-channel-type="<?php echo $channel['type']; ?>">
                             <?php if ($channel['type'] === 'text'): ?>
                                 <span class="text-gray-400 mr-2">#</span>
                             <?php else: ?>
@@ -95,7 +97,7 @@ if ($currentServer) {
                             <?php endif; ?>
                             
 
-                            <span class="truncate"><?php echo htmlspecialchars($channel['name']); ?></span>
+                            <span class="truncate channel-name"><?php echo htmlspecialchars($channel['name']); ?></span>
                             
                             <?php if (!empty($channel['is_private'])): ?>
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 ml-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -134,7 +136,7 @@ if ($currentServer) {
                         $categoryChannels = $channelsByCategory[$category['id']] ?? [];
                         foreach ($categoryChannels as $channel): 
                         ?>
-                            <div class="channel-item text-gray-400 hover:text-white hover:bg-gray-700 rounded px-2 py-1 flex items-center cursor-pointer">
+                            <div class="channel-item text-gray-400 hover:text-white hover:bg-gray-700 rounded px-2 py-1 flex items-center cursor-pointer" data-channel-id="<?php echo $channel['id']; ?>" data-channel-type="<?php echo $channel['type']; ?>">
                                 <?php if ($channel['type'] === 'text'): ?>
                                     <span class="text-gray-400 mr-2">#</span>
                                 <?php else: ?>
@@ -143,7 +145,7 @@ if ($currentServer) {
                                     </svg>
                                 <?php endif; ?>
                                 
-                                <span class="truncate"><?php echo htmlspecialchars($channel['name']); ?></span>
+                                <span class="truncate channel-name"><?php echo htmlspecialchars($channel['name']); ?></span>
                                 
                                 <?php if (!empty($channel['is_private'])): ?>
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 ml-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -162,9 +164,36 @@ if ($currentServer) {
         <?php endif; ?>
     </div>
     
-    <!-- User Section -->
-    <div class="user-section h-14 bg-[#292B2F] flex items-center px-2">
-        <!-- ...existing code... -->
+    <!-- User Profile Section - Bottom bar with user controls -->
+    <div class="user-profile-section h-14 bg-[#292B2F] flex items-center px-2 border-t border-gray-900">
+        <div class="flex items-center px-2">
+            <div class="relative mr-3">
+                <img src="<?php echo asset('/landing-page/green-egg.webp'); ?>" alt="<?php echo $_SESSION['username']; ?>'s Avatar" class="w-8 h-8 rounded-full">
+                <div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#292B2F]"></div>
+            </div>
+            <div class="flex-grow">
+                <div class="text-white font-medium text-sm"><?php echo $_SESSION['username']; ?></div>
+                <div class="text-gray-400 text-xs">#<?php echo substr(md5($_SESSION['user_id']), 0, 4); ?></div>
+            </div>
+            <div class="flex space-x-1">
+                <button class="text-gray-400 hover:text-white p-1 rounded">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                    </svg>
+                </button>
+                <button class="text-gray-400 hover:text-white p-1 rounded">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15.536a5 5 0 01.001-7.072m12.728 0a9 9 0 00-12.728 0" />
+                    </svg>
+                </button>
+                <button class="text-gray-400 hover:text-white p-1 rounded">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -566,6 +595,36 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // Add click event listeners to channel items
+    const channelItems = document.querySelectorAll('.channel-item');
+    channelItems.forEach(item => {
+        item.addEventListener('click', function() {
+            // Remove active class from all channels
+            document.querySelectorAll('.channel-item').forEach(channel => {
+                channel.classList.remove('bg-[#42464D]', 'text-white');
+            });
+            
+            // Add active class to clicked channel
+            this.classList.add('bg-[#42464D]', 'text-white');
+            
+            // Get channel details
+            const channelId = this.getAttribute('data-channel-id');
+            const channelName = this.querySelector('.channel-name').textContent;
+            const channelType = this.getAttribute('data-channel-type');
+            
+            // If voice channel, redirect to voice channel page
+            if (channelType === 'voice') {
+                window.location.href = `/voice/${channelId}`;
+                return;
+            }
+            
+            // Load channel messages
+            if (typeof window.loadChannel === 'function') {
+                window.loadChannel(channelId, channelName);
+            }
+        });
+    });
+
     // Show notification function
     function showNotification(message, type = 'success') {
         // Create notification element

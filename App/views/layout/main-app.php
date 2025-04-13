@@ -73,9 +73,187 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
             min-height: 100vh;
             width: 100%;
         }
+
+        /* Developer debug panel styles */
+        #devDebugPanel {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: rgba(0, 0, 0, 0.85);
+            color: #fff;
+            z-index: 9999;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 30vh;
+            overflow-y: auto;
+            padding: 10px;
+            border-top: 2px solid #5865F2;
+            transform: translateY(100%);
+            transition: transform 0.3s ease-in-out;
+        }
+        
+        #devDebugPanel.visible {
+            transform: translateY(0);
+        }
+        
+        #devDebugPanel .debug-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding-bottom: 8px;
+            margin-bottom: 8px;
+        }
+        
+        #devDebugPanel .debug-content {
+            display: flex;
+        }
+        
+        #devDebugPanel .debug-section {
+            flex: 1;
+            padding: 0 10px;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        #devDebugPanel .debug-section:last-child {
+            border-right: none;
+        }
+        
+        #devDebugPanel h3 {
+            font-size: 14px;
+            margin-top: 0;
+            margin-bottom: 5px;
+            color: #5865F2;
+        }
+        
+        #devDebugPanel pre {
+            margin: 0;
+            white-space: pre-wrap;
+        }
+        
+        #devDebugPanel .debug-entry {
+            margin-bottom: 6px;
+            padding-bottom: 6px;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+        }
+        
+        #devDebugPanel .error {
+            color: #ED4245;
+        }
+        
+        #devDebugPanel .warning {
+            color: #FAA61A;
+        }
+        
+        #devDebugPanel .info {
+            color: #57F287;
+        }
+        
+        #devDebugToggle {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            width: 30px;
+            height: 30px;
+            background-color: #5865F2;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 9998;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
     </style>
 </head>
 <body class="<?php echo isset($body_class) ? $body_class : 'overflow-x-hidden text-white landing-bg'; ?>">
+    <!-- Developer Debug Toggle Button -->
+    <button id="devDebugToggle" title="Toggle Debug Panel">D</button>
+    
+    <!-- Developer Debug Panel -->
+    <div id="devDebugPanel">
+        <div class="debug-header">
+            <h2>MiscVord Developer Debug Panel</h2>
+            <div>
+                <button id="refreshDebugBtn" class="px-2 py-1 bg-discord-blue text-white text-xs rounded mr-2">Refresh</button>
+                <button id="closeDevDebugBtn" class="px-2 py-1 bg-red-500 text-white text-xs rounded">Close</button>
+            </div>
+        </div>
+        <div class="debug-content">
+            <div class="debug-section">
+                <h3>Session Data</h3>
+                <div id="sessionDebug">
+                    <?php if (!empty($_SESSION)): ?>
+                        <pre><?php print_r($_SESSION); ?></pre>
+                    <?php else: ?>
+                        <span class="warning">No session data available</span>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <div class="debug-section">
+                <h3>Request Data</h3>
+                <div id="requestDebug">
+                    <div class="debug-entry">
+                        <strong>URI:</strong> <?php echo $_SERVER['REQUEST_URI']; ?>
+                    </div>
+                    <div class="debug-entry">
+                        <strong>Method:</strong> <?php echo $_SERVER['REQUEST_METHOD']; ?>
+                    </div>
+                    <div class="debug-entry">
+                        <strong>GET:</strong>
+                        <pre><?php print_r($_GET); ?></pre>
+                    </div>
+                    <div class="debug-entry">
+                        <strong>POST:</strong>
+                        <pre><?php print_r($_POST); ?></pre>
+                    </div>
+                </div>
+            </div>
+            <div class="debug-section">
+                <h3>PHP Errors</h3>
+                <div id="errorDebug">
+                    <?php
+                    // Display the most recent PHP errors
+                    $error_log_path = ini_get('error_log');
+                    if (file_exists($error_log_path) && is_readable($error_log_path)) {
+                        $errors = file($error_log_path);
+                        $errors = array_slice($errors, -10); // Get last 10 errors
+                        echo '<pre class="error">';
+                        foreach ($errors as $error) {
+                            echo htmlspecialchars($error) . "\n";
+                        }
+                        echo '</pre>';
+                    } else {
+                        echo '<span class="info">No recent PHP errors or error log not accessible</span>';
+                    }
+                    ?>
+                </div>
+            </div>
+            <div class="debug-section">
+                <h3>Database</h3>
+                <div id="dbDebug">
+                    <?php
+                    try {
+                        require_once dirname(dirname(__DIR__)) . '/database/query.php';
+                        $query = new Query();
+                        $tables = $query->raw("SHOW TABLES");
+                        echo "<div class='info'>Connected to database successfully</div>";
+                        echo "<div class='debug-entry'><strong>Tables:</strong><pre>";
+                        print_r($tables);
+                        echo "</pre></div>";
+                    } catch (Exception $e) {
+                        echo "<div class='error'>Database Error: " . $e->getMessage() . "</div>";
+                    }
+                    ?>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <!-- Main content container -->
     <div class="content-container">
         <!-- Content will be injected here -->
@@ -100,6 +278,7 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
     <!-- Simple keyboard detection for "kowlin" -->
     <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Original kowlin debug panel code
         const keySequence = [];
         const debugPanel = document.getElementById('debugPanel');
         const closeDebugBtn = document.getElementById('closeDebugBtn');
@@ -127,6 +306,80 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
                 setTimeout(() => {
                     debugPanel.classList.remove('translate-y-full');
                 }, 50);
+            }
+        });
+
+        // Developer Debug Panel functionality
+        const devDebugPanel = document.getElementById('devDebugPanel');
+        const devDebugToggle = document.getElementById('devDebugToggle');
+        const closeDevDebugBtn = document.getElementById('closeDevDebugBtn');
+        const refreshDebugBtn = document.getElementById('refreshDebugBtn');
+        
+        // Toggle developer debug panel
+        if(devDebugToggle) {
+            devDebugToggle.addEventListener('click', function() {
+                devDebugPanel.classList.toggle('visible');
+            });
+        }
+        
+        // Close developer debug panel
+        if(closeDevDebugBtn) {
+            closeDevDebugBtn.addEventListener('click', function() {
+                devDebugPanel.classList.remove('visible');
+            });
+        }
+        
+        // Refresh debug data
+        if(refreshDebugBtn) {
+            refreshDebugBtn.addEventListener('click', function() {
+                // Fetch fresh debug data via AJAX
+                fetch('/debug_api.php')
+                    .then(response => response.json())
+                    .then(data => {
+                        // Update session debug info
+                        const sessionDebug = document.getElementById('sessionDebug');
+                        if(sessionDebug && data.session) {
+                            sessionDebug.innerHTML = '<pre>' + JSON.stringify(data.session, null, 2) + '</pre>';
+                        }
+                        
+                        // You could update other debug sections as needed
+                        
+                        // Show a temporary notification
+                        const notification = document.createElement('div');
+                        notification.textContent = 'Debug data refreshed';
+                        notification.style.position = 'fixed';
+                        notification.style.bottom = '50px';
+                        notification.style.left = '10px';
+                        notification.style.backgroundColor = '#57F287';
+                        notification.style.color = 'white';
+                        notification.style.padding = '5px 10px';
+                        notification.style.borderRadius = '3px';
+                        notification.style.zIndex = '10000';
+                        document.body.appendChild(notification);
+                        
+                        setTimeout(() => {
+                            notification.remove();
+                        }, 2000);
+                    })
+                    .catch(error => {
+                        console.error('Error refreshing debug data:', error);
+                    });
+            });
+        }
+
+        // Press 'Escape' key to close debug panels
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                if (devDebugPanel.classList.contains('visible')) {
+                    devDebugPanel.classList.remove('visible');
+                }
+                
+                if (!debugPanel.classList.contains('translate-y-full')) {
+                    debugPanel.classList.add('translate-y-full');
+                    setTimeout(() => {
+                        debugPanel.classList.add('opacity-0', 'invisible');
+                    }, 300);
+                }
             }
         });
     });

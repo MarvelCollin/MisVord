@@ -10,9 +10,9 @@ if (!function_exists('asset')) {
     <div class="flex items-center h-12 px-4 border-b border-[#2D3136] shadow-sm">
         <div class="flex items-center text-gray-200">
             <span class="text-gray-400 mr-2">#</span>
-            <h2 class="font-semibold">binus-pathing</h2>
+            <h2 class="font-semibold channel-header-name">Select a channel</h2>
         </div>
-        <div class="ml-2 text-sm text-gray-400">Welcome to Binus Pathing - How did you get in here?</div>
+        <div class="ml-2 text-sm text-gray-400 channel-header-topic">Welcome to MiscVord</div>
         <div class="ml-auto flex items-center space-x-4">
             <button class="text-gray-400 hover:text-white">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -33,73 +33,73 @@ if (!function_exists('asset')) {
     </div>
 
     <!-- Messages Area -->
-    <div class="flex-1 overflow-y-auto p-4">
-        <!-- Message Group -->
-        <div class="flex mb-4">
-            <img src="<?php echo asset('/landing-page/blue-egg.webp'); ?>" alt="User avatar" class="w-10 h-10 rounded-full mr-4">
-            <div>
-                <div class="flex items-center">
-                    <span class="font-semibold text-white">JohnDev</span>
-                    <span class="text-xs text-gray-400 ml-2">Today at 12:30 PM</span>
-                </div>
-                <p class="text-gray-200">Hey everyone! Has anyone used MiscVord's new features?</p>
-            </div>
+    <div id="messagesContainer" class="flex-1 overflow-y-auto p-4 pb-4">
+        <!-- Messages will be loaded here -->
+        <div class="welcome-placeholder text-center text-gray-400 py-10">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto mb-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            <h2 class="text-xl font-semibold mb-2">Welcome to MiscVord!</h2>
+            <p>Select a channel to start chatting</p>
         </div>
         
-        <!-- Message Group -->
-        <div class="flex mb-4">
-            <img src="<?php echo asset('/landing-page/red-egg.webp'); ?>" alt="User avatar" class="w-10 h-10 rounded-full mr-4">
-            <div>
-                <div class="flex items-center">
-                    <span class="font-semibold text-white">SarahCodes</span>
-                    <span class="text-xs text-gray-400 ml-2">Today at 12:35 PM</span>
-                </div>
-                <p class="text-gray-200">Yes, the new voice chat quality is much better. And the screen sharing works really well too!</p>
-                <p class="text-gray-200 mt-1">Have you tried the new server discovery page?</p>
-            </div>
+        <!-- Loading indicator hidden by default -->
+        <div id="loadingMessages" class="hidden flex justify-center items-center py-10">
+            <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-discord-blue"></div>
         </div>
         
-        <!-- Message Group -->
-        <div class="flex mb-4">
-            <img src="<?php echo asset('/landing-page/green-egg.webp'); ?>" alt="User avatar" class="w-10 h-10 rounded-full mr-4">
-            <div>
-                <div class="flex items-center">
-                    <span class="font-semibold text-white"><?php echo $_SESSION['username']; ?></span>
-                    <span class="text-xs text-gray-400 ml-2">Today at 12:42 PM</span>
-                </div>
-                <p class="text-gray-200">Just joined! This interface looks amazing.</p>
+        <!-- Typing indicator -->
+        <div class="typing-indicator hidden mt-4 flex items-center text-xs text-gray-500">
+            <span id="typingUsername" class="font-semibold mr-1">Someone</span> is typing
+            <div class="ml-2 flex">
+                <span class="dot mx-0.5"></span>
+                <span class="dot mx-0.5"></span>
+                <span class="dot mx-0.5"></span>
             </div>
         </div>
     </div>
-</div>
-
-<!-- Message Input -->
-<div class="p-4">
-    <div class="bg-[#40444b] rounded-lg flex items-center p-1">
-        <button class="p-2 text-gray-400 hover:text-white">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-        </button>
-        <input type="text" placeholder="Message #binus-pathing" class="bg-transparent border-none flex-1 p-2 focus:outline-none text-gray-200">
-        <button class="p-2 text-gray-400 hover:text-white">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-        </button>
-        <button class="p-2 text-gray-400 hover:text-white">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-        </button>
-    </div>
+    
+    <!-- New Message Form - remove the bottom margin (mb-14) -->
+    <form id="messageForm" class="p-4 border-t border-[#2D3136]">
+        <div class="bg-[#40444b] rounded-lg flex items-center p-1">
+            <button type="button" class="p-2 text-gray-400 hover:text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+            </button>
+            <input 
+                id="messageInput" 
+                type="text" 
+                placeholder="Message #welcome" 
+                class="bg-transparent border-none flex-1 p-2 focus:outline-none text-gray-200"
+                disabled
+            >
+            <input type="hidden" id="currentChannelId" value="">
+            <button type="button" class="p-2 text-gray-400 hover:text-white" id="uploadAttachmentBtn">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+            </button>
+            <button type="button" class="p-2 text-gray-400 hover:text-white" id="emojiPickerBtn">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </button>
+            <button type="button" class="p-2 text-gray-400 hover:text-white" id="sendMessageBtn">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                </svg>
+            </button>
+        </div>
+    </form>
 </div>
 
 <style>
 .chat-section {
     background-color: #36393f;
     flex: 1;
+    position: relative;
 }
 
 .channel-header {
@@ -153,103 +153,550 @@ if (!function_exists('asset')) {
         opacity: 1;
     }
 }
+
+/* Remove the bottom padding adjustment since we've moved the user profile */
+#messagesContainer {
+    padding-bottom: 1rem;
+}
+
+#messageForm {
+    position: relative;
+    z-index: 5;
+}
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const messagesContainer = document.getElementById('messagesContainer');
     const messageInput = document.getElementById('messageInput');
+    const messageForm = document.getElementById('messageForm');
+    const sendMessageBtn = document.getElementById('sendMessageBtn');
+    const currentChannelIdInput = document.getElementById('currentChannelId');
+    const loadingMessages = document.getElementById('loadingMessages');
+    const typingIndicator = document.querySelector('.typing-indicator');
+    const typingUsername = document.getElementById('typingUsername');
+    const channelHeaderName = document.querySelector('.channel-header-name');
     
-    // Auto scroll to bottom on load
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    let isLoadingMessages = false;
+    let currentChannelId = null;
+    let messagesLastFetchTime = 0;
     
-    // Send message on Enter key
-    messageInput.addEventListener('keydown', function(event) {
-        if (event.key === 'Enter' && messageInput.value.trim() !== '') {
-            // Create new message (dummy function to show how it would work)
-            addNewMessage('You', messageInput.value.trim());
-            messageInput.value = '';
+    // WebSocket connection for real-time messaging
+    let socket; // Will be initialized when loading a channel
+    
+    // Function to load messages for a channel
+    window.loadChannel = function(channelId, channelName) {
+        // Set current channel
+        currentChannelId = channelId;
+        currentChannelIdInput.value = channelId;
+        
+        // Update UI
+        channelHeaderName.textContent = channelName;
+        messageInput.placeholder = `Message #${channelName}`;
+        messageInput.disabled = false;
+        
+        // Show loading indicator
+        messagesContainer.innerHTML = '';
+        loadingMessages.classList.remove('hidden');
+        
+        // Fetch messages
+        fetchMessages(channelId);
+        
+        // Connect to WebSocket for this channel
+        connectToWebSocket(channelId);
+    };
+    
+    // Function to fetch messages from the server
+    function fetchMessages(channelId) {
+        if (isLoadingMessages) return;
+        
+        isLoadingMessages = true;
+        
+        // Get the current server ID from the URL or a hidden input
+        const serverId = getCurrentServerId();
+        
+        // Use the new API endpoint structure if server ID is available, otherwise fall back to old endpoint
+        const apiUrl = serverId ? 
+            `/api/servers/${serverId}/channels/${channelId}/messages` : 
+            `/api/channels/${channelId}/messages`;
+            
+        fetch(apiUrl)
+            .then(response => {
+                // Check if response is JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error(`Expected JSON, got ${contentType}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                isLoadingMessages = false;
+                loadingMessages.classList.add('hidden');
+                
+                if (data.success) {
+                    // Clear existing messages if this is initial load
+                    if (messagesLastFetchTime === 0) {
+                        messagesContainer.innerHTML = '';
+                    }
+                    
+                    // Render messages
+                    if (data.messages.length === 0) {
+                        messagesContainer.innerHTML = `
+                            <div class="text-center text-gray-400 py-10">
+                                <p>No messages here yet. Start the conversation!</p>
+                            </div>
+                        `;
+                    } else {
+                        // Sort messages in ascending order (oldest first)
+                        const sortedMessages = data.messages.sort((a, b) => 
+                            new Date(a.sent_at) - new Date(b.sent_at)
+                        );
+                        
+                        renderMessages(sortedMessages);
+                    }
+                    
+                    // Update last fetch time
+                    messagesLastFetchTime = Date.now();
+                    
+                    // Scroll to bottom
+                    scrollToBottom();
+                } else {
+                    console.error('Error fetching messages:', data.message);
+                    messagesContainer.innerHTML = `
+                        <div class="text-center text-gray-400 py-10">
+                            <p>Error loading messages: ${data.message || 'Unknown error'}</p>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                isLoadingMessages = false;
+                loadingMessages.classList.add('hidden');
+                console.error('Error fetching messages:', error);
+                messagesContainer.innerHTML = `
+                    <div class="text-center text-gray-400 py-10">
+                        <p>Error loading messages. Please try again later.</p>
+                        <p class="text-sm mt-2">${error.message}</p>
+                    </div>
+                `;
+            });
+    }
+    
+    // Function to get current server ID
+    function getCurrentServerId() {
+        // Try to extract from URL path like /server/123
+        const path = window.location.pathname;
+        const serverMatch = path.match(/\/server\/(\d+)/);
+        
+        if (serverMatch && serverMatch[1]) {
+            return serverMatch[1];
+        }
+        
+        // Check if there's a hidden input with server ID
+        const serverIdInput = document.getElementById('currentServerId');
+        if (serverIdInput && serverIdInput.value) {
+            return serverIdInput.value;
+        }
+        
+        return null;
+    }
+    
+    // Function to render messages
+    function renderMessages(messages) {
+        let lastSender = null;
+        let messageGroupDiv = null;
+        
+        messages.forEach(message => {
+            // Check if this is a new sender
+            if (lastSender !== message.user.id) {
+                // Create new message group
+                messageGroupDiv = document.createElement('div');
+                messageGroupDiv.className = 'message-group flex mb-4';
+                messageGroupDiv.dataset.userId = message.user.id;
+                
+                // Avatar
+                const avatarUrl = message.user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(message.user.username)}&background=random`;
+                
+                messageGroupDiv.innerHTML = `
+                    <img src="${avatarUrl}" alt="${message.user.username}" class="w-10 h-10 rounded-full mr-4">
+                    <div class="message-content flex-1">
+                        <div class="message-header flex items-center">
+                            <span class="font-semibold text-white">${message.user.username}</span>
+                            <span class="text-xs text-gray-400 ml-2">${message.formatted_time}</span>
+                        </div>
+                        <div class="messages">
+                            <div class="message" data-message-id="${message.id}">
+                                <p class="text-gray-200">${formatMessageContent(message.content)}</p>
+                                ${message.attachment_url ? `<div class="mt-2"><img src="${message.attachment_url}" alt="Attachment" class="max-w-xs rounded"></div>` : ''}
+                                ${message.edited_at ? `<span class="text-xs text-gray-500 ml-1">(edited)</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                messagesContainer.appendChild(messageGroupDiv);
+            } else {
+                // Add to existing message group
+                const messagesDiv = messageGroupDiv.querySelector('.messages');
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message mt-1';
+                messageDiv.dataset.messageId = message.id;
+                
+                messageDiv.innerHTML = `
+                    <p class="text-gray-200">${formatMessageContent(message.content)}</p>
+                    ${message.attachment_url ? `<div class="mt-2"><img src="${message.attachment_url}" alt="Attachment" class="max-w-xs rounded"></div>` : ''}
+                    ${message.edited_at ? `<span class="text-xs text-gray-500 ml-1">(edited)</span>` : ''}
+                `;
+                
+                messagesDiv.appendChild(messageDiv);
+            }
+            
+            lastSender = message.user.id;
+        });
+    }
+    
+    // Function to format message content (handling markdown, links, etc.)
+    function formatMessageContent(content) {
+        // Basic URL linking
+        content = content.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" class="text-blue-400 hover:underline">$1</a>');
+        
+        // Basic markdown (bold, italics, etc.)
+        content = content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        content = content.replace(/\*(.*?)\*/g, '<em>$1</em>');
+        content = content.replace(/~~(.*?)~~/g, '<del>$1</del>');
+        content = content.replace(/`([^`]+)`/g, '<code class="bg-gray-800 px-1 rounded">$1</code>');
+        
+        return content;
+    }
+    
+    // Function to send a message
+    function sendMessage() {
+        const content = messageInput.value.trim();
+        
+        if (!content || !currentChannelId) {
+            return;
+        }
+        
+        // Clear input
+        messageInput.value = '';
+        
+        // Show loading state (optional)
+        sendMessageBtn.disabled = true;
+        
+        // Get the current server ID
+        const serverId = getCurrentServerId();
+        
+        // Use the new API endpoint structure if server ID is available, otherwise fall back to old endpoint
+        const apiUrl = serverId ? 
+            `/api/servers/${serverId}/channels/${currentChannelId}/messages` : 
+            `/api/channels/${currentChannelId}/messages`;
+        
+        // Send message to server as JSON
+        fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                content: content
+            })
+        })
+        .then(response => {
+            // Check if response is JSON
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                throw new Error(`Expected JSON, got ${contentType}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (!data.success) {
+                console.error('Error sending message:', data.message);
+                // Re-add the message to the input if it failed
+                messageInput.value = content;
+                showNotification('Failed to send message: ' + data.message, 'error');
+            } else {
+                // Immediately display the new message in the UI
+                if (data.data) {
+                    handleNewMessage(data.data);
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error sending message:', error);
+            // Re-add the message to the input if it failed
+            messageInput.value = content;
+            showNotification('Failed to send message. Please try again.', 'error');
+        })
+        .finally(() => {
+            // Re-enable the send button
+            sendMessageBtn.disabled = false;
+        });
+    }
+    
+    // Helper function to show notifications
+    function showNotification(message, type = 'info') {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.classList.add('fixed', 'bottom-4', 'right-4', 'px-4', 'py-2', 'rounded', 'shadow-lg', 'text-white', 'z-50');
+        
+        // Set style based on type
+        if (type === 'error') {
+            notification.classList.add('bg-red-500');
+        } else if (type === 'success') {
+            notification.classList.add('bg-green-500');
+        } else {
+            notification.classList.add('bg-blue-500');
+        }
+        
+        notification.textContent = message;
+        document.body.appendChild(notification);
+        
+        // Remove after 3 seconds
+        setTimeout(() => {
+            notification.classList.add('opacity-0', 'transition-opacity', 'duration-300');
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
+    }
+    
+    // Function to connect to WebSocket for real-time messaging
+    function connectToWebSocket(channelId) {
+        // Close existing socket if any
+        if (socket) {
+            socket.close();
+        }
+        
+        // For this example, we'll simulate WebSocket with a simple event handling system
+        // In a real app, you'd connect to your WebSocket server
+        socket = {
+            // Simulate WebSocket events
+            listeners: {},
+            on: function(event, callback) {
+                if (!this.listeners[event]) {
+                    this.listeners[event] = [];
+                }
+                this.listeners[event].push(callback);
+            },
+            emit: function(event, data) {
+                if (this.listeners[event]) {
+                    this.listeners[event].forEach(callback => callback(data));
+                }
+            },
+            close: function() {
+                this.listeners = {};
+            }
+        };
+        
+        // Setup event listeners
+        socket.on('message', function(data) {
+            handleNewMessage(data);
+        });
+        
+        socket.on('message_updated', function(data) {
+            handleMessageUpdate(data);
+        });
+        
+        socket.on('message_deleted', function(data) {
+            handleMessageDelete(data);
+        });
+        
+        socket.on('user_typing', function(data) {
+            handleUserTyping(data);
+        });
+        
+        // For demo purposes, we'll simulate messages coming in
+        // In a real app, these would come from the WebSocket server
+        setTimeout(() => {
+            simulateIncomingMessage();
+        }, 10000);
+    }
+    
+    // Function to handle new messages received via WebSocket
+    function handleNewMessage(message) {
+        // Check if we're looking at the right channel
+        if (message.channel_id && message.channel_id != currentChannelId) {
+            return;
+        }
+        
+        // Find if there's an existing message group for this user
+        const lastMessageGroup = messagesContainer.querySelector(`.message-group[data-user-id="${message.user.id}"]:last-child`);
+        
+        if (lastMessageGroup && isRecentMessage(lastMessageGroup)) {
+            // Add to existing group
+            const messagesDiv = lastMessageGroup.querySelector('.messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message mt-1';
+            messageDiv.dataset.messageId = message.id;
+            
+            messageDiv.innerHTML = `
+                <p class="text-gray-200">${formatMessageContent(message.content)}</p>
+                ${message.attachment_url ? `<div class="mt-2"><img src="${message.attachment_url}" alt="Attachment" class="max-w-xs rounded"></div>` : ''}
+            `;
+            
+            messagesDiv.appendChild(messageDiv);
+        } else {
+            // Create new message group
+            const messageGroupDiv = document.createElement('div');
+            messageGroupDiv.className = 'message-group flex mb-4';
+            messageGroupDiv.dataset.userId = message.user.id;
+            messageGroupDiv.dataset.timestamp = new Date().getTime();
+            
+            // Avatar
+            const avatarUrl = message.user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(message.user.username)}&background=random`;
+            
+            messageGroupDiv.innerHTML = `
+                <img src="${avatarUrl}" alt="${message.user.username}" class="w-10 h-10 rounded-full mr-4">
+                <div class="message-content flex-1">
+                    <div class="message-header flex items-center">
+                        <span class="font-semibold text-white">${message.user.username}</span>
+                        <span class="text-xs text-gray-400 ml-2">${message.formatted_time || 'Just now'}</span>
+                    </div>
+                    <div class="messages">
+                        <div class="message" data-message-id="${message.id}">
+                            <p class="text-gray-200">${formatMessageContent(message.content)}</p>
+                            ${message.attachment_url ? `<div class="mt-2"><img src="${message.attachment_url}" alt="Attachment" class="max-w-xs rounded"></div>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            messagesContainer.appendChild(messageGroupDiv);
+        }
+        
+        // Scroll to bottom to show new message
+        scrollToBottom();
+    }
+    
+    // Function to check if a message group is recent (for grouping messages)
+    function isRecentMessage(messageGroup) {
+        if (!messageGroup.dataset.timestamp) return false;
+        const timestamp = parseInt(messageGroup.dataset.timestamp);
+        const now = new Date().getTime();
+        
+        // Group messages that are within 5 minutes of each other
+        return now - timestamp < 5 * 60 * 1000;
+    }
+    
+    // Function to handle message updates
+    function handleMessageUpdate(data) {
+        const messageElement = document.querySelector(`.message[data-message-id="${data.id}"]`);
+        if (!messageElement) return;
+        
+        const contentElement = messageElement.querySelector('p');
+        contentElement.innerHTML = formatMessageContent(data.content);
+        
+        // Add edited indicator if not already there
+        if (!messageElement.querySelector('.text-gray-500')) {
+            const editedSpan = document.createElement('span');
+            editedSpan.className = 'text-xs text-gray-500 ml-1';
+            editedSpan.textContent = '(edited)';
+            contentElement.insertAdjacentElement('afterend', editedSpan);
+        }
+    }
+    
+    // Function to handle message deletions
+    function handleMessageDelete(data) {
+        const messageElement = document.querySelector(`.message[data-message-id="${data.id}"]`);
+        if (!messageElement) return;
+        
+        // Remove the message element
+        messageElement.remove();
+        
+        // If this was the only message in the group, remove the whole group
+        const messageGroups = document.querySelectorAll('.message-group');
+        messageGroups.forEach(group => {
+            if (group.querySelector('.message') === null) {
+                group.remove();
+            }
+        });
+    }
+    
+    // Function to handle typing indicator
+    function handleUserTyping(data) {
+        // Don't show typing indicator for own messages
+        if (data.user.id === '<?php echo $_SESSION['user_id']; ?>') {
+            return;
+        }
+        
+        // Show typing indicator
+        typingUsername.textContent = data.user.username;
+        typingIndicator.classList.remove('hidden');
+        
+        // Hide after a few seconds
+        setTimeout(() => {
+            typingIndicator.classList.add('hidden');
+        }, 3000);
+    }
+    
+    // Adjust scroll position to account for the user profile section
+    function scrollToBottom() {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+    
+    // Send message on form submit
+    messageForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        sendMessage();
+    });
+    
+    // Send message on button click
+    sendMessageBtn.addEventListener('click', function() {
+        sendMessage();
+    });
+    
+    // Send message on Enter key, but allow Shift+Enter for new line
+    messageInput.addEventListener('keydown', function(e) { 
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
         }
     });
     
-    // Function to add a new message
-    function addNewMessage(username, text) {
-        const currentDate = new Date();
-        const hours = currentDate.getHours();
-        const minutes = currentDate.getMinutes().toString().padStart(2, '0');
-        const timeString = `Today at ${hours % 12 || 12}:${minutes} ${hours >= 12 ? 'PM' : 'AM'}`;
+    // Send typing indicator when user starts typing
+    let typingTimeout;
+    messageInput.addEventListener('input', function() {
+        if (!currentChannelId) return;
         
-        const messageGroup = document.createElement('div');
-        messageGroup.className = 'message-group flex mb-4';
+        clearTimeout(typingTimeout);
         
-        messageGroup.innerHTML = `
-            <img src="<?php echo asset('/landing-page/green-egg.webp'); ?>" alt="User Avatar" class="w-10 h-10 rounded-full mr-4">
-            <div class="message-content">
-                <div class="message-header flex items-center">
-                    <span class="text-indigo-400 font-medium">${username}</span>
-                    <span class="text-gray-500 text-xs ml-2">${timeString}</span>
-                </div>
-                <div class="message-text text-gray-200">
-                    <p>${text}</p>
-                </div>
-            </div>
-        `;
+        // Emit typing event (would go to WebSocket in real implementation)
+        /*
+        socket.emit('typing', {
+            channel_id: currentChannelId,
+            user: {
+                id: '<?php echo $_SESSION['user_id']; ?>',
+                username: '<?php echo $_SESSION['username']; ?>'
+            }
+        });
+        */
         
-        // Hide typing indicator
-        document.querySelector('.typing-indicator').style.display = 'none';
-        
-        // Add message to container and scroll to bottom
-        messagesContainer.appendChild(messageGroup);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        
-        // Show typing indicator again after a delay (simulating other user response)
-        setTimeout(() => {
-            document.querySelector('.typing-indicator').style.display = 'flex';
-            
-            // Simulate response
-            setTimeout(() => {
-                const responses = [
-                    "That's awesome!",
-                    "Interesting point...",
-                    "I totally agree with you.",
-                    "Let's talk about this more later.",
-                    "Has anyone played the new game that just released?"
-                ];
-                const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-                addBotMessage('NinjaPlayer', randomResponse);
-            }, 3000);
-        }, 1000);
-    }
+        // Stop "typing" after 3 seconds of inactivity
+        typingTimeout = setTimeout(() => {
+            // Emit stopped typing event
+        }, 3000);
+    });
     
-    // Function to add a bot message
-    function addBotMessage(username, text) {
-        const currentDate = new Date();
-        const hours = currentDate.getHours();
-        const minutes = currentDate.getMinutes().toString().padStart(2, '0');
-        const timeString = `Today at ${hours % 12 || 12}:${minutes} ${hours >= 12 ? 'PM' : 'AM'}`;
+    // Function to simulate an incoming message (for demo purposes)
+    function simulateIncomingMessage() {
+        if (!currentChannelId) return;
         
-        const messageGroup = document.createElement('div');
-        messageGroup.className = 'message-group flex mb-4';
+        // Simulate a new message coming in
+        const simulatedMessage = {
+            id: 'sim_' + Date.now(),
+            content: 'This is a simulated message. In a real app, messages would come in via WebSockets! 🚀',
+            channel_id: currentChannelId,
+            sent_at: new Date().toISOString(),
+            formatted_time: 'Just now',
+            user: {
+                id: 'system',
+                username: 'MiscVord Bot',
+                avatar_url: '<?php echo asset('/landing-page/discord-logo.webp'); ?>'
+            }
+        };
         
-        messageGroup.innerHTML = `
-            <img src="<?php echo asset('/landing-page/wumpus_happy.webp'); ?>" alt="User Avatar" class="w-10 h-10 rounded-full mr-4">
-            <div class="message-content">
-                <div class="message-header flex items-center">
-                    <span class="text-blue-400 font-medium">${username}</span>
-                    <span class="text-gray-500 text-xs ml-2">${timeString}</span>
-                </div>
-                <div class="message-text text-gray-200">
-                    <p>${text}</p>
-                </div>
-            </div>
-        `;
-        
-        // Hide typing indicator
-        document.querySelector('.typing-indicator').style.display = 'none';
-        
-        // Add message to container and scroll to bottom
-        messagesContainer.appendChild(messageGroup);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        // Process the message as if it came from WebSocket
+        handleNewMessage(simulatedMessage);
     }
 });
 </script>
