@@ -73,7 +73,7 @@ class AuthenticationController {
         $user->status = 'online';
         $user->save();
         
-        // Redirect to main app
+        // Redirect to app/server page
         header('Location: /app');
         exit;
     }
@@ -171,7 +171,7 @@ class AuthenticationController {
             $_SESSION['user_id'] = $user->id;
             $_SESSION['username'] = $user->username;
             
-            // Redirect to main app
+            // Redirect to app/server page
             header('Location: /app');
             exit;
         } catch (Exception $e) {

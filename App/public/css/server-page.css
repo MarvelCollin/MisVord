@@ -1,0 +1,116 @@
+/* Custom scrollbar styling */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #2e3338;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #202225;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Server sidebar styles */
+.server-sidebar {
+    min-width: 4.5rem;
+}
+
+.left-18 {
+    left: 4.5rem;
+}
+
+.server-icon {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+.server-icon.active-server > div {
+    border-radius: 1rem !important;
+}
+
+.channel-sidebar {
+    border-right: 1px solid #2D3136;
+}
+
+.user-profile-section {
+    border-top: 1px solid #2D3136;
+    z-index: 10;
+}
+
+/* Message area styles */
+.message-group {
+    transition: background-color 0.2s;
+}
+
+.message-group:hover {
+    background-color: #32353a;
+}
+
+/* Input area styles */
+.message-input {
+    background-color: #40444b;
+    border-radius: 0.5rem;
+    transition: background-color 0.2s;
+}
+
+.message-input:focus-within {
+    background-color: #484c52;
+}
+
+/* User status indicators */
+.status-online {
+    background-color: #3ba55d;
+}
+
+.status-idle {
+    background-color: #faa81a;
+}
+
+.status-dnd {
+    background-color: #ed4245;
+}
+
+.status-offline {
+    background-color: #747f8d;
+}
+
+/* Server hover animations */
+.server-icon:not(.active-server):hover::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: calc(50% - 10px);
+    width: 4px;
+    height: 20px;
+    background-color: white;
+    border-radius: 0 4px 4px 0;
+    transition: all 0.2s;
+}
+
+/* Channel hover animations */
+.channel-item {
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.channel-item:hover {
+    background-color: #36393f;
+    color: #dcddde;
+}
+
+/* User profile section animations */
+.user-profile-section button {
+    transition: color 0.2s, background-color 0.2s;
+}
+
+.user-profile-section button:hover {
+    color: white;
+    background-color: #4f545c;
+}

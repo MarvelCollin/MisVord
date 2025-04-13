@@ -66,10 +66,10 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
         
         /* Main content container */
         .content-container {
-            display: flex;
+            /* display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            justify-content: center; */
             min-height: 100vh;
             width: 100%;
         }

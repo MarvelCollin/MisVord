@@ -36,8 +36,8 @@ $additional_head = '<link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">';
 
 // Link CSS and JS files
-$page_css = 'authentication-page.css';
-$page_js = 'authentication-page.js';
+$page_css = 'authentication-page';
+$page_js = 'authentication-page';
 
 // Database connection and table initialization - capture output in debug info for "kowlin"
 ob_start();
@@ -133,7 +133,7 @@ try {
 <?php ob_start(); ?>
 
 <!-- Full-height container with proper centering -->
-<div class="w-full p-4">
+<div class="w-full p-4 min-h-screen flex items-center justify-center bg-[#202225]">
     <!-- Auth Container with Glass Effect -->
     <div class="w-full max-w-md p-8 mx-auto rounded-xl shadow-2xl relative z-10 glass-hero transform transition-all duration-700 ease-out bg-[#2f3136]/80 backdrop-filter backdrop-blur-md border border-white/10" id="authContainer">
         <!-- Logo with modern animation -->

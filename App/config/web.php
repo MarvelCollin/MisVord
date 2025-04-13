@@ -7,8 +7,9 @@
  * Each route is mapped to a specific file in the views directory.
  */
 
-// Include the AuthenticationController
+// Include the Controllers
 require_once __DIR__ . '/../controllers/AuthenticationController.php';
+require_once __DIR__ . '/../controllers/ServerController.php';
 
 // Define application routes
 $routes = [
@@ -20,6 +21,29 @@ $routes = [
     '/login' => 'pages/authentication-page.php',
     '/register' => 'pages/authentication-page.php',
     '/forgot-password' => 'pages/authentication-page.php',
+    
+    // Application routes
+    '/app' => 'pages/server-page.php', // Direct /app to server-page
+    '/server' => 'pages/server-page.php',
+    '/server/{id}' => function($params) {
+        $controller = new ServerController();
+        $controller->show($params['id']);
+    },
+    '/voice' => 'server/voice-channel.php',
+    
+    // Server API routes
+    'POST:/api/servers' => function() {
+        $controller = new ServerController();
+        $controller->create();
+    },
+    'GET:/join/{invite}' => function($params) {
+        $controller = new ServerController();
+        $controller->join($params['invite']);
+    },
+    'POST:/api/servers/{id}/leave' => function($params) {
+        $controller = new ServerController();
+        $controller->leave($params['id']);
+    },
     
     // Authentication action routes (POST)
     'POST:/register' => function() {
@@ -38,10 +62,6 @@ $routes = [
         $controller = new AuthenticationController();
         $controller->logout();
     },
-    
-    // Server routes
-    '/server' => 'pages/server-page.php',
-    '/voice' => 'server/voice-channel.php',
     
     // 404 page - shown when no route matches
     '404' => 'pages/404.php'
