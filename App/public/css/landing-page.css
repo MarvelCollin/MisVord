@@ -536,7 +536,7 @@ body {
     width: fit-content;
 }
 
-/* Carousel progress indicator */
+/* Carousel progress indicator - Removing */
 .carousel-progress {
     background: linear-gradient(to right, #5865F2, #EB459E);
     height: 2px;
@@ -544,9 +544,10 @@ body {
     bottom: -10px;
     left: 0;
     width: 0;
-    transition: width 5000ms linear;
+    transition: none; /* Disable transition */
     border-radius: 2px;
     box-shadow: 0 0 10px rgba(88, 101, 242, 0.5);
+    display: none; /* Hide completely */
 }
 
 /* Fixed carousel styling */

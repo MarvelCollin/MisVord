@@ -23,7 +23,8 @@ switch ($command) {
             case 'rollback':
                 echo "Rolling back migrations...\n";
                 $runner->rollback($steps);
-                break;            case 'fresh':
+                break;            
+            case 'fresh':
                 echo "Rolling back all migrations and running them again...\n";
                 $runner->dropAllTables(); // Drop all tables first
                 $runner->run();
@@ -34,7 +35,56 @@ switch ($command) {
                 break;
         }
         break;
+        
+    case 'serve':
+        // Get host and port from arguments or use defaults
+        $host = 'localhost';
+        $port = '8080';
+        
+        // Parse additional options
+        if ($option) {
+            if (strpos($option, ':') !== false) {
+                list($host, $port) = explode(':', $option);
+            } elseif (is_numeric($option)) {
+                $port = $option;
+            } else {
+                $host = $option;
+            }
+        }
+        
+        // Create router.php file for built-in server if it doesn't exist
+        $routerFile = $basePath . '/router.php';
+        if (!file_exists($routerFile)) {
+            file_put_contents($routerFile, '<?php
+/**
+ * PHP Built-in Server Router
+ * 
+ * This file routes all requests to the web.php router when using PHP\'s built-in server.
+ */
+
+// Route static files directly
+if (preg_match(\'/\\.(?:css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|webp)$/\', $_SERVER["REQUEST_URI"])) {
+    return false; // Let the built-in server handle static files
+}
+
+// All other requests go through our router
+require_once __DIR__ . \'/config/web.php\';
+');
+            echo "Created server router file at {$routerFile}\n";
+        }
+        
+        echo "Starting development server at http://{$host}:{$port}\n";
+        echo "Press Ctrl+C to stop the server\n\n";
+        
+        // Execute the PHP server command
+        passthru("php -S {$host}:{$port} -t . {$routerFile}");
+        break;
+        
     default:
-        echo "Usage: php artisan migrate [up|down|rollback|fresh] [steps]\n";
+        echo "MiscVord Artisan Tool\n";
+        echo "------------------------\n";
+        echo "Usage:\n";
+        echo "  php artisan migrate [up|down|rollback|fresh] [steps] - Run or rollback migrations\n";
+        echo "  php artisan serve [host:port] - Run the development server (default: localhost:8080)\n";
         break;
 }

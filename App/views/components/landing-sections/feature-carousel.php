@@ -168,10 +168,7 @@ if (!function_exists('asset')) {
                     <button class="carousel-dot" aria-label="View Community Tools feature" data-slide="2" title="Community Tools"></button>
                 </div>
                 
-                <!-- Progress indicator for auto-rotation -->
-                <div class="carousel-progress-container relative w-24 h-1 bg-gray-700 rounded overflow-hidden mb-4">
-                    <div class="carousel-progress h-full w-0 bg-discord-blue rounded transition-all duration-300"></div>
-                </div>
+                <!-- Remove the progress indicator that was used for auto-rotation -->
                 
                 <!-- Navigation buttons with improved styling -->
                 <div class="flex space-x-4">

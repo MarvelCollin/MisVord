@@ -339,7 +339,7 @@ function scrambleCharacter(charElement) {
 }
 
 /**
- * Initialize the feature carousel with more reliable controls
+ * Initialize the fixed carousel with more reliable controls
  */
 function initFixedCarousel() {
     const carousel = document.querySelector('.feature-carousel');
@@ -486,6 +486,13 @@ function initFixedCarousel() {
     }, { passive: true });
     
     console.log("Carousel event listeners attached");
+    
+    // Remove the progress indicator if it exists
+    const progressBar = carousel.querySelector('.carousel-progress');
+    if (progressBar) {
+        progressBar.style.width = '0%';
+        progressBar.style.display = 'none';
+    }
 }
 
 /**
@@ -688,16 +695,12 @@ function initCarousel() {
     if (nextButton) {
         nextButton.addEventListener('click', () => {
             goToSlide(currentSlide + 1, 'next');
-            stopAutoRotate(); // Stop auto-rotation on user interaction
-            setTimeout(startAutoRotate, 5000); // Resume after 5 seconds
         });
     }
     
     if (prevButton) {
         prevButton.addEventListener('click', () => {
             goToSlide(currentSlide - 1, 'prev');
-            stopAutoRotate(); // Stop auto-rotation on user interaction
-            setTimeout(startAutoRotate, 5000); // Resume after 5 seconds
         });
     }
     
@@ -707,8 +710,6 @@ function initCarousel() {
             const slideIndex = parseInt(dot.dataset.slide);
             const direction = slideIndex > currentSlide ? 'next' : 'prev';
             goToSlide(slideIndex, direction);
-            stopAutoRotate(); // Stop auto-rotation on user interaction
-            setTimeout(startAutoRotate, 5000); // Resume after 5 seconds
         });
         
         // Add hover effect
@@ -725,12 +726,8 @@ function initCarousel() {
     carousel.addEventListener('keydown', (e) => {
         if (e.key === 'ArrowLeft') {
             goToSlide(currentSlide - 1, 'prev');
-            stopAutoRotate();
-            setTimeout(startAutoRotate, 5000);
         } else if (e.key === 'ArrowRight') {
             goToSlide(currentSlide + 1, 'next');
-            stopAutoRotate();
-            setTimeout(startAutoRotate, 5000);
         }
     });
     
@@ -742,7 +739,6 @@ function initCarousel() {
     carousel.addEventListener('touchstart', (e) => {
         touchStartX = e.changedTouches[0].screenX;
         touchStartTime = new Date().getTime();
-        stopAutoRotate();
     }, {passive: true});
     
     carousel.addEventListener('touchmove', (e) => {
@@ -784,90 +780,17 @@ function initCarousel() {
             track.style.transition = 'transform 0.3s ease';
             track.style.transform = `translateX(-${currentSlide * 100}%)`;
         }
-        
-        // Resume auto-rotation after delay
-        setTimeout(startAutoRotate, 5000);
     }, {passive: true});
     
-    // Automatic rotation with progress indicator
-    let autoRotateInterval;
-    let progressBar;
-    
-    function addProgressIndicator() {
-        if (dotsContainer) {
-            progressBar = document.createElement('div');
-            progressBar.className = 'carousel-progress';
-            progressBar.style.cssText = `
-                width: 0%;
-                height: 2px;
-                background: rgba(88, 101, 242, 0.5);
-                position: absolute;
-                bottom: -10px;
-                left: 0;
-                transition: width 5000ms linear;
-            `;
-            dotsContainer.style.position = 'relative';
-            dotsContainer.appendChild(progressBar);
-        }
+    // Remove progress indicator if it exists
+    const progressBar = carousel.querySelector('.carousel-progress');
+    if (progressBar) {
+        progressBar.style.display = 'none';
     }
-    
-    function updateProgressBar(reset = false) {
-        if (progressBar) {
-            if (reset) {
-                progressBar.style.transition = 'none';
-                progressBar.style.width = '0%';
-                setTimeout(() => {
-                    progressBar.style.transition = 'width 5000ms linear';
-                    progressBar.style.width = '100%';
-                }, 50);
-            } else {
-                progressBar.style.width = '100%';
-            }
-        }
-    }
-    
-    function startAutoRotate() {
-        // Clear any existing intervals
-        stopAutoRotate();
-        
-        // Reset and start progress bar
-        updateProgressBar(true);
-        
-        // Start new interval
-        autoRotateInterval = setInterval(() => {
-            // Loop back to the beginning if we're at the end
-            const nextSlide = currentSlide === slides.length - 1 ? 0 : currentSlide + 1;
-            goToSlide(nextSlide, 'next');
-            
-            // Reset progress bar
-            updateProgressBar(true);
-        }, 5000); // Change slide every 5 seconds
-    }
-    
-    function stopAutoRotate() {
-        clearInterval(autoRotateInterval);
-        if (progressBar) {
-            progressBar.style.width = '0%';
-        }
-    }
-    
-    // Add progress indicator
-    addProgressIndicator();
-    
-    // Set up interaction listeners for pausing/resuming auto-rotation
-    carousel.addEventListener('mouseenter', stopAutoRotate);
-    carousel.addEventListener('mouseleave', startAutoRotate);
-    carousel.addEventListener('focusin', stopAutoRotate);
-    carousel.addEventListener('focusout', () => {
-        if (!carousel.contains(document.activeElement)) {
-            startAutoRotate();
-        }
-    });
     
     // Initial animations and setup
     animateActiveSlideContent(slides[0]);
     updateCarousel(0);
-    startAutoRotate();
     
     // Set up typing animation for demo
     setupTypingAnimation();
