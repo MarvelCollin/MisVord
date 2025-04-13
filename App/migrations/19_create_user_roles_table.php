@@ -1,6 +1,6 @@
 <?php
 
-class CreateUserRolesTableMigration {
+class CreateUserRolesMigration {
     public function up($migration) {
         $migration->createTable('user_roles', function($table) {
             $table->id();

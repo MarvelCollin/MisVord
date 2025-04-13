@@ -6,10 +6,45 @@
  * This script provides command-line functionality for the MiscVord application.
  */
 
+// Include migration classes
+require_once __DIR__ . '/database/migration.php';
+
 // Check for the serve command
 if (isset($argv[1]) && $argv[1] === 'serve') {
     echo "Starting MiscVord development server...\n";
     include __DIR__ . '/serve.php';
+    exit;
+}
+
+// Check for migration commands
+if (isset($argv[1]) && $argv[1] === 'migrate') {
+    $migrationRunner = new MigrationRunner();
+    
+    // Default action is 'up' if no subcommand is provided
+    $action = isset($argv[2]) ? $argv[2] : 'up';
+    
+    switch ($action) {
+        case 'up':
+            echo "Running migrations...\n";
+            $migrationRunner->run();
+            break;
+            
+        case 'fresh':
+            echo "Dropping all tables and re-running migrations...\n";
+            $migrationRunner->dropAllTables();
+            $migrationRunner->run();
+            break;
+            
+        case 'down':
+            echo "Rolling back migrations...\n";
+            $steps = isset($argv[3]) ? (int)$argv[3] : 1;
+            $migrationRunner->rollback($steps);
+            break;
+            
+        default:
+            echo "Unknown migration command: $action\n";
+            echo "Available migration commands: up, fresh, down\n";
+    }
     exit;
 }
 
@@ -18,5 +53,9 @@ echo "\nMiscVord CLI Tool\n";
 echo "==================\n\n";
 echo "Available commands:\n";
 echo "  serve               Start the development server\n";
+echo "  migrate             Run database migrations\n";
+echo "  migrate up          Run pending migrations (default)\n";
+echo "  migrate fresh       Drop all tables and re-run all migrations\n";
+echo "  migrate down [n]    Rollback the last batch of migrations or n steps\n";
 echo "\n";
 echo "Usage: php artisan [command] [options]\n";

@@ -11,8 +11,6 @@ class Server {
     
     /**
      * Constructor - initialize model with attributes
-     * 
-     * @param array $attributes Initial attribute values
      */
     public function __construct($attributes = []) {
         $this->fill($attributes);
@@ -20,9 +18,6 @@ class Server {
     
     /**
      * Fill model with an array of attributes
-     * 
-     * @param array $attributes
-     * @return $this
      */
     public function fill($attributes) {
         foreach ($attributes as $key => $value) {
@@ -34,9 +29,6 @@ class Server {
     
     /**
      * Magic method for getting attributes
-     * 
-     * @param string $key
-     * @return mixed
      */
     public function __get($key) {
         return $this->attributes[$key] ?? null;
@@ -44,9 +36,6 @@ class Server {
     
     /**
      * Magic method for setting attributes
-     * 
-     * @param string $key
-     * @param mixed $value
      */
     public function __set($key, $value) {
         $this->attributes[$key] = $value;
@@ -54,9 +43,6 @@ class Server {
     
     /**
      * Find server by ID
-     * 
-     * @param int $id
-     * @return Server|null
      */
     public static function find($id) {
         $query = new Query();
@@ -72,55 +58,29 @@ class Server {
     }
     
     /**
-     * Find server by name
-     * 
-     * @param string $name
-     * @return Server|null
+     * Get all servers for a user
      */
-    public static function findByName($name) {
+    public static function getForUser($userId) {
         $query = new Query();
-        $result = $query->table(static::$table)
-            ->where('name', $name)
-            ->first();
-            
-        if (!$result) {
-            return null;
+        $results = $query->table('servers s')
+            ->select('s.*')
+            ->join('user_server_memberships usm', 's.id', '=', 'usm.server_id')
+            ->where('usm.user_id', $userId)
+            ->get();
+        
+        $servers = [];
+        foreach ($results as $result) {
+            $servers[] = new static($result);
         }
         
-        return new static($result);
+        return $servers;
     }
     
     /**
-     * Find server by invite link
-     * 
-     * @param string $inviteLink
-     * @return Server|null
-     */
-    public static function findByInviteLink($inviteLink) {
-        $query = new Query();
-        $result = $query->table(static::$table)
-            ->where('invite_link', $inviteLink)
-            ->first();
-            
-        if (!$result) {
-            return null;
-        }
-        
-        return new static($result);
-    }
-    
-    /**
-     * Get all members of this server
-     * 
-     * @return array
+     * Get user's roles
      */
     public function members() {
-        $query = new Query();
-        return $query->table('users u')
-                ->select('u.*, usm.role')
-                ->join('user_server_memberships usm', 'u.id', '=', 'usm.user_id')
-                ->where('usm.server_id', $this->id)
-                ->get();
+        // Implementation
     }
     
     /**
@@ -331,28 +291,6 @@ class Server {
     public static function all() {
         $query = new Query();
         $results = $query->table(static::$table)->get();
-        
-        $servers = [];
-        foreach ($results as $result) {
-            $servers[] = new static($result);
-        }
-        
-        return $servers;
-    }
-    
-    /**
-     * Get servers for a specific user
-     * 
-     * @param int $userId
-     * @return array
-     */
-    public static function getForUser($userId) {
-        $query = new Query();
-        $results = $query->table(static::$table . ' s')
-                ->select('s.*')
-                ->join('user_server_memberships usm', 's.id', '=', 'usm.server_id')
-                ->where('usm.user_id', $userId)
-                ->get();
         
         $servers = [];
         foreach ($results as $result) {

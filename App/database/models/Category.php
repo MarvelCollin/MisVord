@@ -2,9 +2,9 @@
 
 require_once __DIR__ . '/../query.php';
 
-class Channel {
+class Category {
     // Define the table name
-    protected static $table = 'channels';
+    protected static $table = 'categories';
     
     // Store attributes
     protected $attributes = [];
@@ -53,10 +53,10 @@ class Channel {
     }
     
     /**
-     * Find channel by ID
+     * Find category by ID
      * 
      * @param int $id
-     * @return Channel|null
+     * @return Category|null
      */
     public static function find($id) {
         $query = new Query();
@@ -72,11 +72,11 @@ class Channel {
     }
     
     /**
-     * Find a channel by name and server ID
+     * Find a category by name and server ID
      * 
      * @param string $name
      * @param int $serverId
-     * @return Channel|null
+     * @return Category|null
      */
     public static function findByNameAndServer($name, $serverId) {
         $query = new Query();
@@ -93,130 +93,38 @@ class Channel {
     }
     
     /**
-     * Get all channels for a server
-     * 
-     * @param int $serverId
-     * @param bool $includePrivate Whether to include private channels
-     * @return array
-     */
-    public static function getByServer($serverId, $includePrivate = true) {
-        $query = new Query();
-        $query->table(static::$table)
-            ->where('server_id', $serverId);
-            
-        if (!$includePrivate) {
-            $query->where('is_private', false);
-        }
-        
-        $results = $query->orderBy('type')
-            ->orderBy('name')
-            ->get();
-        
-        $channels = [];
-        foreach ($results as $result) {
-            $channels[] = new static($result);
-        }
-        
-        return $channels;
-    }
-    
-    /**
-     * Get uncategorized channels (where category_id is null)
+     * Get all categories for a server
      * 
      * @param int $serverId
      * @return array
      */
-    public static function getUncategorizedByServer($serverId) {
+    public static function getByServer($serverId) {
         $query = new Query();
         $results = $query->table(static::$table)
             ->where('server_id', $serverId)
-            ->whereNull('category_id')
-            ->orderBy('type')
             ->orderBy('name')
             ->get();
         
-        $channels = [];
+        $categories = [];
         foreach ($results as $result) {
-            $channels[] = new static($result);
+            $categories[] = new static($result);
         }
         
-        return $channels;
+        return $categories;
     }
     
     /**
-     * Get channels by category ID
+     * Get channels in this category
      * 
-     * @param int $categoryId
      * @return array
      */
-    public static function getByCategoryId($categoryId) {
-        $query = new Query();
-        $results = $query->table(static::$table)
-            ->where('category_id', $categoryId)
-            ->orderBy('type')
-            ->orderBy('name')
-            ->get();
-        
-        $channels = [];
-        foreach ($results as $result) {
-            $channels[] = new static($result);
-        }
-        
-        return $channels;
+    public function channels() {
+        require_once __DIR__ . '/Channel.php';
+        return Channel::getByCategoryId($this->id);
     }
     
     /**
-     * Get the server this channel belongs to
-     * 
-     * @return Server|null
-     */
-    public function server() {
-        require_once __DIR__ . '/Server.php';
-        return Server::find($this->server_id);
-    }
-    
-    /**
-     * Get the category this channel belongs to (if any)
-     * 
-     * @return Category|null
-     */
-    public function category() {
-        if (!$this->category_id) {
-            return null;
-        }
-        
-        require_once __DIR__ . '/Category.php';
-        return Category::find($this->category_id);
-    }
-    
-    /**
-     * Get all messages for this channel
-     * 
-     * @param int $limit
-     * @param int $offset
-     * @return array
-     */
-    public function messages($limit = 50, $offset = 0) {
-        require_once __DIR__ . '/Message.php';
-        
-        $query = new Query();
-        $results = $query->table('messages')
-            ->where('channel_id', $this->id)
-            ->orderBy('created_at', 'DESC')
-            ->limit($limit)
-            ->offset($offset)
-            ->get();
-            
-        $messages = [];
-        foreach ($results as $result) {
-            $messages[] = new Message($result);
-        }
-        
-        return $messages;
-    }
-    
-    /**
-     * Save the channel to the database
+     * Save the category to the database
      * 
      * @return bool
      */
@@ -253,7 +161,7 @@ class Channel {
     }
     
     /**
-     * Delete the channel
+     * Delete the category
      * 
      * @return bool
      */
@@ -265,7 +173,7 @@ class Channel {
     }
     
     /**
-     * Create the channels table if it doesn't exist
+     * Create the categories table if it doesn't exist
      * 
      * @return bool Whether the table exists after creation attempt
      */
@@ -279,17 +187,13 @@ class Channel {
             if (!$tableExists) {
                 // Execute table creation query using the raw method
                 $query->raw("
-                    CREATE TABLE IF NOT EXISTS channels (
+                    CREATE TABLE IF NOT EXISTS categories (
                         id INT AUTO_INCREMENT PRIMARY KEY,
                         server_id INT NOT NULL,
-                        category_id INT NULL,
                         name VARCHAR(255) NOT NULL,
-                        is_private BOOLEAN NOT NULL DEFAULT FALSE,
-                        type VARCHAR(255) NOT NULL,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                        FOREIGN KEY (server_id) REFERENCES servers(id) ON DELETE CASCADE,
-                        FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
+                        FOREIGN KEY (server_id) REFERENCES servers(id) ON DELETE CASCADE
                     )
                 ");
                 
@@ -299,7 +203,7 @@ class Channel {
             
             return $tableExists;
         } catch (PDOException $e) {
-            error_log("Error creating channels table: " . $e->getMessage());
+            error_log("Error creating categories table: " . $e->getMessage());
             return false;
         }
     }
@@ -312,43 +216,19 @@ class Channel {
     }
     
     /**
-     * Create default channels for a server
+     * Get all categories
      * 
-     * @param int $serverId
-     * @return array Created channels
+     * @return array
      */
-    public static function createDefaultChannels($serverId) {
-        $defaultChannels = [
-            [
-                'name' => 'general',
-                'is_private' => false,
-                'type' => 'text'
-            ],
-            [
-                'name' => 'announcements',
-                'is_private' => false,
-                'type' => 'text'
-            ],
-            [
-                'name' => 'voice-chat',
-                'is_private' => false,
-                'type' => 'voice'
-            ]
-        ];
+    public static function all() {
+        $query = new Query();
+        $results = $query->table(static::$table)->get();
         
-        $channels = [];
-        
-        foreach ($defaultChannels as $channelData) {
-            $channel = new static();
-            $channel->server_id = $serverId;
-            $channel->name = $channelData['name'];
-            $channel->is_private = $channelData['is_private'];
-            $channel->type = $channelData['type'];
-            $channel->save();
-            
-            $channels[] = $channel;
+        $categories = [];
+        foreach ($results as $result) {
+            $categories[] = new static($result);
         }
         
-        return $channels;
+        return $categories;
     }
 }

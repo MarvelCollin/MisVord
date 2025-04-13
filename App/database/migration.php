@@ -392,13 +392,13 @@ class MigrationRunner {
 
     public function run() {
         $this->migration->createMigrationTable();
-        echo "- Created migrations tracking table\n";
+        echo "- Migration tracking table ready\n";
 
         $executedMigrations = $this->migration->getMigrations();
         $executedMigrationNames = array_column($executedMigrations, 'migration');
 
         // Use the connector to get migration mapping
-        $migrationMap = require_once $this->migrationsPath . '/connector.php';
+        $migrationMap = $this->loadMigrationMap();
 
         if (!is_array($migrationMap)) {
             echo "Error: Migration map is not valid. Check connector.php\n";
@@ -413,7 +413,7 @@ class MigrationRunner {
         }
 
         if (empty($toRun)) {
-            echo "No migrations to run.\n";
+            echo "Nothing to migrate. All migrations have been run.\n";
             return;
         }
 
@@ -478,6 +478,7 @@ class MigrationRunner {
 
     public function dropAllTables() {
         try {
+            echo "Starting database cleanup...\n";
             // Disable foreign key checks temporarily
             $this->pdo->exec("SET FOREIGN_KEY_CHECKS = 0");
 
@@ -485,71 +486,151 @@ class MigrationRunner {
             $stmt = $this->pdo->query("SHOW TABLES");
             $tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
-            foreach ($tables as $table) {
-                echo "Dropping table: $table\n";
-                $this->pdo->exec("DROP TABLE IF EXISTS `$table`");
+            if (count($tables) === 0) {
+                echo "No tables found in the database.\n";
+            } else {
+                echo "Found " . count($tables) . " tables to drop.\n";
+                
+                foreach ($tables as $table) {
+                    echo "Dropping table: $table\n";
+                    $this->pdo->exec("DROP TABLE IF EXISTS `$table`");
+                }
             }
 
             // Re-enable foreign key checks
             $this->pdo->exec("SET FOREIGN_KEY_CHECKS = 1");
 
-            echo "All tables have been dropped.\n";
+            echo "Database cleanup completed. All tables have been dropped.\n";
         } catch (PDOException $e) {
             echo "Error dropping tables: " . $e->getMessage() . "\n";
         }
     }
 
     public function rollback($steps = 1) {
-        $this->migration->createMigrationTable();
+        try {
+            $this->migration->createMigrationTable();
 
-        $executedMigrations = $this->migration->getMigrations();
+            $executedMigrations = $this->migration->getMigrations();
 
-        if (empty($executedMigrations)) {
-            echo "Nothing to rollback.\n";
-            return;
-        }
+            if (empty($executedMigrations)) {
+                echo "Nothing to rollback. No migrations have been run.\n";
+                return;
+            }
 
-        $batches = [];
-        foreach ($executedMigrations as $migration) {
-            $batches[$migration['batch']][] = $migration;
-        }
+            // Group migrations by batch
+            $batches = [];
+            foreach ($executedMigrations as $migration) {
+                $batches[$migration['batch']][] = $migration;
+            }
 
-        $batchNumbers = array_keys($batches);
-        rsort($batchNumbers);
-        $batchesToRollback = array_slice($batchNumbers, 0, $steps);
+            $batchNumbers = array_keys($batches);
+            rsort($batchNumbers); // Sort batches in descending order
+            
+            if ($steps > count($batchNumbers)) {
+                echo "Warning: You requested to rollback {$steps} batches, but only " . count($batchNumbers) . " exist.\n";
+                $steps = count($batchNumbers);
+            }
+            
+            $batchesToRollback = array_slice($batchNumbers, 0, $steps);
+            
+            if (empty($batchesToRollback)) {
+                echo "No migrations to roll back.\n";
+                return;
+            }
 
-        foreach ($batchesToRollback as $batch) {
-            echo "Rolling back batch $batch\n";
+            // Load the migration map to get class names
+            $migrationMap = $this->loadMigrationMap();
+            
+            foreach ($batchesToRollback as $batch) {
+                echo "Rolling back batch {$batch}...\n";
+                echo "----------------------------------------\n";
+                
+                // Process migrations in reverse order within each batch
+                $migrations = $batches[$batch];
+                // Sort migrations in reverse order to roll them back correctly
+                usort($migrations, function($a, $b) {
+                    return strcmp($b['migration'], $a['migration']); // Descending order
+                });
 
-            foreach ($batches[$batch] as $migration) {
-                $migrationName = $migration['migration'];
-                $file = $this->migrationsPath . '/' . $migrationName . '.php';
-
-                if (file_exists($file)) {
-                    require_once $file;
-                    $className = $this->getMigrationClassName($migrationName);
-
-                    if (class_exists($className)) {
-                        $migrationObj = new $className();
-                        echo "  Rolling back: $migrationName\n";
-
-                        if (method_exists($migrationObj, 'down')) {
-                            $migrationObj->down($this->migration);
-                            $this->migration->removeMigration($migrationName);
+                foreach ($migrations as $migration) {
+                    $migrationName = $migration['migration'];
+                    
+                    // Get migration info from the map
+                    if (!isset($migrationMap[$migrationName])) {
+                        echo "⨯ Migration file for '{$migrationName}' not found. Skipping.\n";
+                        continue;
+                    }
+                    
+                    $info = $migrationMap[$migrationName];
+                    $className = $info['class'];
+                    $file = $info['path'];
+                    
+                    // Include the file if it exists
+                    if (file_exists($file)) {
+                        require_once $file;
+                        
+                        if (class_exists($className)) {
+                            $migrationObj = new $className();
+                            echo "Rolling back: {$migrationName} (using class {$className})\n";
+                            
+                            try {
+                                if (method_exists($migrationObj, 'down')) {
+                                    // Start tracking execution time
+                                    $startTime = microtime(true);
+                                    
+                                    // Run the down migration
+                                    $migrationObj->down($this->migration);
+                                    
+                                    // Calculate execution time
+                                    $endTime = microtime(true);
+                                    $executionTime = round(($endTime - $startTime), 2);
+                                    
+                                    // Remove from migrations table
+                                    $this->migration->removeMigration($migrationName);
+                                    
+                                    echo "✓ Rolled back: {$migrationName} ({$executionTime}s)\n";
+                                } else {
+                                    echo "⨯ Method 'down' not found in class {$className}\n";
+                                }
+                            } catch (Exception $e) {
+                                echo "⨯ Rollback failed: {$e->getMessage()}\n";
+                            }
+                        } else {
+                            echo "⨯ Class '{$className}' not found in file {$file}\n";
                         }
+                    } else {
+                        echo "⨯ Migration file {$file} does not exist\n";
                     }
                 }
+                echo "----------------------------------------\n";
             }
-        }
 
-        echo "Rollback completed successfully.\n";
+            echo "Rollback completed successfully.\n";
+        } catch (Exception $e) {
+            echo "Error during rollback: {$e->getMessage()}\n";
+        }
     }
 
-    private function getMigrationClassName($filename) {
-        $parts = explode('_', $filename);
-        array_shift($parts);
-        $name = implode('_', $parts);
-        return studly_case($name) . 'Migration';
+    /**
+     * Load the migration map from the connector file
+     * 
+     * @return array The migration map
+     */
+    private function loadMigrationMap() {
+        $connectorFile = $this->migrationsPath . '/connector.php';
+        
+        if (!file_exists($connectorFile)) {
+            echo "Error: Migration connector file not found at {$connectorFile}\n";
+            return [];
+        }
+        
+        try {
+            $map = require $connectorFile;
+            return is_array($map) ? $map : [];
+        } catch (Exception $e) {
+            echo "Error loading migration map: {$e->getMessage()}\n";
+            return [];
+        }
     }
 }
 

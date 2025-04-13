@@ -7,65 +7,8 @@
  * Each route is mapped to a specific file in the views directory.
  */
 
-// Include the Controllers
-require_once __DIR__ . '/../controllers/AuthenticationController.php';
-require_once __DIR__ . '/../controllers/ServerController.php';
-
-// Define application routes
-$routes = [
-    // Landing page route
-    '/' => 'pages/landing-page.php',
-    
-    // Authentication view routes
-    '/auth' => 'pages/authentication-page.php',
-    '/login' => 'pages/authentication-page.php',
-    '/register' => 'pages/authentication-page.php',
-    '/forgot-password' => 'pages/authentication-page.php',
-    
-    // Application routes
-    '/app' => 'pages/server-page.php', // Direct /app to server-page
-    '/server' => 'pages/server-page.php',
-    '/server/{id}' => function($params) {
-        $controller = new ServerController();
-        $controller->show($params['id']);
-    },
-    '/voice' => 'server/voice-channel.php',
-    
-    // Server API routes
-    'POST:/api/servers' => function() {
-        $controller = new ServerController();
-        $controller->create();
-    },
-    'GET:/join/{invite}' => function($params) {
-        $controller = new ServerController();
-        $controller->join($params['invite']);
-    },
-    'POST:/api/servers/{id}/leave' => function($params) {
-        $controller = new ServerController();
-        $controller->leave($params['id']);
-    },
-    
-    // Authentication action routes (POST)
-    'POST:/register' => function() {
-        $controller = new AuthenticationController();
-        $controller->register();
-    },
-    'POST:/login' => function() {
-        $controller = new AuthenticationController();
-        $controller->login();
-    },
-    'POST:/forgot-password' => function() {
-        $controller = new AuthenticationController();
-        $controller->forgotPassword();
-    },
-    'GET:/logout' => function() {
-        $controller = new AuthenticationController();
-        $controller->logout();
-    },
-    
-    // 404 page - shown when no route matches
-    '404' => 'pages/404.php'
-];
+// Load routes from routes.php 
+$routes = require_once __DIR__ . '/routes.php';
 
 // Create a global variable to store the active route
 $GLOBALS['active_route'] = null;
@@ -115,6 +58,9 @@ function handleRoute($routes) {
     // Get the request URI and remove query string if present
     $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
     
+    // Debug log for troubleshooting
+    error_log("Handling route: " . $uri);
+    
     // Get the HTTP method
     $method = $_SERVER['REQUEST_METHOD'];
     
@@ -143,11 +89,14 @@ function handleRoute($routes) {
         $uri = '/';
     }
     
+    error_log("Normalized URI: " . $uri);
+    
     // Set the active route in the global variable
     $GLOBALS['active_route'] = $uri;
     
-    // Check if method-specific route exists
+    // Try to match exact routes first
     if (isset($routes[$methodRoute])) {
+        error_log("Found exact method route match: " . $methodRoute);
         if (is_callable($routes[$methodRoute])) {
             // Execute the route function
             $routes[$methodRoute]();
@@ -155,9 +104,10 @@ function handleRoute($routes) {
         }
         $viewFile = $routes[$methodRoute];
         $matchedRoute = $methodRoute;
-    }
-    // Check if route exists
+    } 
+    // Check if route exists without method prefix
     elseif (isset($routes[$uri])) {
+        error_log("Found exact route match: " . $uri);
         if (is_callable($routes[$uri])) {
             // Execute the route function
             $routes[$uri]();
@@ -165,11 +115,76 @@ function handleRoute($routes) {
         }
         $viewFile = $routes[$uri];
         $matchedRoute = $uri;
-    } else {
-        // Route not found - show 404 page
-        $viewFile = $routes['404'];
-        $matchedRoute = '404 (Not Found)';
-        http_response_code(404);
+    } 
+    // Check for parameterized routes with improved logic
+    else {
+        $matched = false;
+        
+        foreach ($routes as $pattern => $handler) {
+            // Skip non-parameterized routes - they were already checked
+            if (strpos($pattern, '{') === false) {
+                continue;
+            }
+            
+            // Check if this is a method-specific route
+            $methodPattern = null;
+            if (strpos($pattern, ':') !== false) {
+                list($methodName, $urlPattern) = explode(':', $pattern, 2);
+                if ($methodName !== $method) {
+                    continue; // Skip if method doesn't match
+                }
+                $methodPattern = $methodName;
+                $pattern = $urlPattern;
+            }
+            
+            // Convert route pattern to regex
+            $patternRegex = preg_quote($pattern, '#');
+            $patternRegex = preg_replace('/\\\{([a-zA-Z0-9_]+)\\\}/', '(?P<$1>[^/]+)', $patternRegex);
+            $patternRegex = '#^' . $patternRegex . '$#';
+            
+            error_log("Testing pattern: " . $pattern . " against URI: " . $uri . " with regex: " . $patternRegex);
+            
+            // Try to match the route
+            if (preg_match($patternRegex, $uri, $matches)) {
+                error_log("Pattern matched! Extracting parameters: " . json_encode($matches));
+                
+                $params = [];
+                
+                // Extract named parameters
+                foreach ($matches as $key => $value) {
+                    if (is_string($key)) {
+                        $params[$key] = $value;
+                    }
+                }
+                
+                // If it's a method-specific route, reconstruct the full pattern
+                if ($methodPattern !== null) {
+                    $pattern = $methodPattern . ':' . $pattern;
+                }
+                
+                // Execute the handler
+                if (is_callable($handler)) {
+                    error_log("Executing handler for: " . $pattern . " with params: " . json_encode($params));
+                    $handler($params);
+                    $matched = true;
+                    return;
+                } else {
+                    error_log("Handler is not callable for: " . $pattern);
+                    $viewFile = $handler;
+                    $matchedRoute = $pattern;
+                    $matched = true;
+                    break;
+                }
+            }
+        }
+        
+        // If no route matched
+        if (!$matched) {
+            error_log("No route matched for: " . $uri);
+            $viewFile = $routes['404'];
+            $matchedRoute = '404 (Not Found)';
+            http_response_code(404);
+        }
     }
     
     // Base path for view files
@@ -177,6 +192,7 @@ function handleRoute($routes) {
     
     // Full path to the view file
     $fullPath = $viewsPath . $viewFile;
+    error_log("Loading view file: " . $fullPath);
     
     // Store the route info for display
     $routeInfo = [

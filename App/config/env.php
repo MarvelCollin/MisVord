@@ -2,6 +2,7 @@
 
 class EnvLoader {
     private static $envCache = null;
+    private static $pdoInstance = null;
     
     /**
      * Parse .env file and return as associative array
@@ -70,26 +71,58 @@ class EnvLoader {
     /**
      * Creates a PDO connection using environment variables
      * 
+     * @param bool $force Force creation of a new connection
      * @return PDO The database connection
      */
-    public static function getPDOConnection() {
+    public static function getPDOConnection($force = false) {
+        // Return existing connection if available and not forcing a new one
+        if (!$force && self::$pdoInstance !== null) {
+            return self::$pdoInstance;
+        }
+        
         $host = self::get('DB_HOST', 'localhost');
         $dbname = self::get('DB_NAME', 'misvord');
         $username = self::get('DB_USER', 'root');
         $password = self::get('DB_PASS', '');
         $charset = self::get('DB_CHARSET', 'utf8mb4');
         
-        $dsn = "mysql:host=$host;dbname=$dbname;charset=$charset";
-        
-        // Set options array with buffered queries enabled
-        $options = [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => true, // Enable buffered queries
-            PDO::ATTR_EMULATE_PREPARES => false, // Use native prepared statements
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC // Default fetch mode
-        ];
-        
-        $pdo = new PDO($dsn, $username, $password, $options);
-        return $pdo;
+        try {
+            // Try connecting with database name first
+            $dsn = "mysql:host=$host;dbname=$dbname;charset=$charset";
+            
+            // Set options array with buffered queries enabled
+            $options = [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => true, // Enable buffered queries
+                PDO::ATTR_EMULATE_PREPARES => false, // Use native prepared statements
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC // Default fetch mode
+            ];
+            
+            self::$pdoInstance = new PDO($dsn, $username, $password, $options);
+            return self::$pdoInstance;
+        } catch (PDOException $e) {
+            // If connecting with database name fails, try connecting without database
+            if ($e->getCode() == 1049) { // Unknown database
+                try {
+                    // Connect without specifying a database
+                    $dsn = "mysql:host=$host;charset=$charset";
+                    self::$pdoInstance = new PDO($dsn, $username, $password, $options);
+                    
+                    // Try to create the database
+                    self::$pdoInstance->exec("CREATE DATABASE IF NOT EXISTS `$dbname` CHARACTER SET $charset");
+                    
+                    // Now connect with the database name
+                    $dsn = "mysql:host=$host;dbname=$dbname;charset=$charset";
+                    self::$pdoInstance = new PDO($dsn, $username, $password, $options);
+                    
+                    echo "Notice: Database '$dbname' was created automatically.\n";
+                    return self::$pdoInstance;
+                } catch (PDOException $e2) {
+                    throw new PDOException("Failed to connect or create database: " . $e2->getMessage(), $e2->getCode());
+                }
+            } else {
+                throw $e; // Re-throw original exception for other errors
+            }
+        }
     }
 }

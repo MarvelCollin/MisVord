@@ -10,6 +10,9 @@ if (isset($_SESSION['user_id'])) {
     require_once dirname(dirname(dirname(__DIR__))) . '/database/models/Server.php';
     $userServers = Server::getForUser($_SESSION['user_id']);
 }
+
+// Get current server from GLOBALS
+$currentServer = $GLOBALS['currentServer'] ?? null;
 ?>
 
 <div class="flex h-full">
@@ -27,31 +30,36 @@ if (isset($_SESSION['user_id'])) {
 
         <div class="w-8 h-0.5 bg-gray-700 rounded-full mx-auto"></div>
 
-        <!-- Servers - Now dynamically loaded from database -->
+        <!-- Servers - Dynamically loaded from database -->
         <?php foreach ($userServers as $server): ?>
             <div class="server-icon p-1" title="<?php echo htmlspecialchars($server->name); ?>">
-                <div class="w-12 h-12 rounded-full bg-[#36393F] flex items-center justify-center hover:bg-[#5865F2] hover:rounded-2xl transition-all duration-200 overflow-hidden">
-                    <?php if ($server->image_url): ?>
-                        <img src="<?php echo $server->image_url; ?>" alt="<?php echo htmlspecialchars($server->name); ?>" class="w-full h-full object-cover">
-                    <?php else: ?>
-                        <?php 
-                        // Generate initials from server name
-                        $initials = '';
-                        $words = explode(' ', $server->name);
-                        foreach ($words as $word) {
-                            if (!empty($word)) {
-                                $initials .= strtoupper(substr($word, 0, 1));
-                                if (strlen($initials) >= 2) break;
+                <a href="/server/<?php echo $server->id; ?>" class="block">
+                    <div class="w-12 h-12 rounded-full bg-[#36393F] flex items-center justify-center hover:bg-[#5865F2] hover:rounded-2xl transition-all duration-200 overflow-hidden <?php echo ($currentServer && $currentServer->id == $server->id) ? 'bg-[#5865F2] rounded-2xl' : ''; ?>">
+                        <?php if ($server->image_url): ?>
+                            <img src="<?php echo $server->image_url; ?>" alt="<?php echo htmlspecialchars($server->name); ?>" class="w-full h-full object-cover">
+                        <?php else: ?>
+                            <?php 
+                            // Generate initials from server name
+                            $initials = '';
+                            $words = explode(' ', $server->name);
+                            foreach ($words as $word) {
+                                if (!empty($word)) {
+                                    $initials .= strtoupper(substr($word, 0, 1));
+                                    if (strlen($initials) >= 2) break;
+                                }
                             }
-                        }
-                        ?>
-                        <span class="text-discord-blue font-bold"><?php echo $initials; ?></span>
-                    <?php endif; ?>
-                </div>
+                            ?>
+                            <span class="text-discord-blue font-bold"><?php echo $initials; ?></span>
+                        <?php endif; ?>
+                    </div>
+                </a>
+                <?php if ($currentServer && $currentServer->id == $server->id): ?>
+                    <div class="absolute left-0 w-1 h-10 bg-white rounded-r-full"></div>
+                <?php endif; ?>
             </div>
         <?php endforeach; ?>
         
-        <!-- Add Server Button - Now opens modal -->
+        <!-- Add Server Button - Opens modal -->
         <div class="server-icon p-1 mt-2">
             <div id="addServerBtn" class="w-12 h-12 rounded-full bg-[#36393F] flex items-center justify-center hover:bg-green-500 hover:rounded-2xl transition-all duration-200 cursor-pointer">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-500 group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -61,70 +69,8 @@ if (isset($_SESSION['user_id'])) {
         </div>
     </div>
     
-    <!-- Channel Sidebar -->
-    <div class="channel-sidebar bg-[#2f3136] w-60 flex flex-col">
-        <!-- Server Header - Now uses real data if available -->
-        <div class="p-4 shadow-md">
-            <h2 class="text-white font-semibold">
-                <?php 
-                echo isset($currentServer) && $currentServer ? 
-                    htmlspecialchars($currentServer->name) : 
-                    'MiscVord Server';
-                ?>
-            </h2>
-        </div>
-        
-        <!-- Channel List - This would need to be updated to show channels for the current server -->
-        <div class="flex-1 overflow-y-auto p-2">
-            <div class="mb-4">
-                <div class="text-xs font-semibold text-gray-400 px-2 flex justify-between items-center mb-1">
-                    <span>TEXT CHANNELS</span>
-                    <button class="text-gray-400 hover:text-white">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
-                    </button>
-                </div>
-                
-                <div class="text-gray-400 hover:text-white hover:bg-gray-700 rounded px-2 py-1 flex items-center cursor-pointer">
-                    <span class="text-gray-400 mr-2">#</span>
-                    general
-                </div>
-                <div class="text-gray-400 hover:text-white hover:bg-gray-700 rounded px-2 py-1 flex items-center cursor-pointer bg-gray-700">
-                    <span class="text-gray-400 mr-2">#</span>
-                    binus-pathing
-                </div>
-                <div class="text-gray-400 hover:text-white hover:bg-gray-700 rounded px-2 py-1 flex items-center cursor-pointer">
-                    <span class="text-gray-400 mr-2">#</span>
-                    off-topic
-                </div>
-            </div>
-            
-            <div class="mb-4">
-                <div class="text-xs font-semibold text-gray-400 px-2 flex justify-between items-center mb-1">
-                    <span>VOICE CHANNELS</span>
-                    <button class="text-gray-400 hover:text-white">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
-                    </button>
-                </div>
-                
-                <div class="text-gray-400 hover:text-white hover:bg-gray-700 rounded px-2 py-1 flex items-center cursor-pointer">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                    </svg>
-                    Lounge
-                </div>
-                <div class="text-gray-400 hover:text-white hover:bg-gray-700 rounded px-2 py-1 flex items-center cursor-pointer">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                    </svg>
-                    Gaming
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- Channel Section - Moved to channel-section.php component -->
+    <?php include dirname(__DIR__) . '/app-sections/channel-section.php'; ?>
 </div>
 
 <!-- Add Server Modal -->
@@ -153,7 +99,7 @@ if (isset($_SESSION['user_id'])) {
                 <div class="text-xs text-gray-400 mt-1">Give your server a unique name to help members recognize it.</div>
             </div>
             
-            <!-- Server Image Upload - Changed from URL to file upload -->
+            <!-- Server Image Upload -->
             <div>
                 <label for="serverImage" class="block text-sm font-medium text-gray-300 mb-1">SERVER IMAGE (OPTIONAL)</label>
                 <div class="flex items-center space-x-4">

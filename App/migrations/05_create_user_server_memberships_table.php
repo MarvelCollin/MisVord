@@ -1,6 +1,6 @@
 <?php
 
-class CreateUserServerMembershipsTableMigration {
+class CreateUserServerMembershipsMigration {
     public function up($migration) {
         $migration->createTable('user_server_memberships', function($table) {
             $table->id();

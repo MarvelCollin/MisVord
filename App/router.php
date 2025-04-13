@@ -13,5 +13,10 @@ if (preg_match('/\.(?:css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|webp)$/', $
 // Log routing information for debugging
 error_log("Router: Processing " . $_SERVER['REQUEST_METHOD'] . " request to " . $_SERVER['REQUEST_URI']);
 
+// For parameterized routes debugging
+if (preg_match('/\/server\/(\d+)/', $_SERVER['REQUEST_URI'], $matches)) {
+    error_log("Server ID detected: " . $matches[1]);
+}
+
 // All other requests go through our router
 require_once __DIR__ . '/config/web.php';

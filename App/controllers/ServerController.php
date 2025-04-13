@@ -1,86 +1,62 @@
 <?php
 
 require_once __DIR__ . '/../database/models/Server.php';
-require_once __DIR__ . '/../database/models/User.php';
 require_once __DIR__ . '/../database/models/UserServerMembership.php';
+require_once __DIR__ . '/../database/models/Channel.php';
 
 class ServerController {
     /**
-     * Constructor - ensure session is started and database is initialized
+     * Constructor - ensure session is started
      */
     public function __construct() {
         if (session_status() == PHP_SESSION_NONE) {
             session_start();
         }
-        
-        // Initialize database tables
-        Server::initialize();
-        UserServerMembership::initialize();
     }
     
     /**
-     * Display server page
+     * Get server by ID
+     * 
+     * @param int $id Server ID
+     * @return Server|null The server object or null if not found
      */
-    public function show($id = null) {
-        // Check if user is logged in
+    public function getServer($id) {
+        // Check if user is authenticated
         if (!isset($_SESSION['user_id'])) {
-            header('Location: /login');
-            exit;
+            return null;
         }
         
-        $user_id = $_SESSION['user_id'];
-        $server = null;
-        $channels = [];
-        $members = [];
+        // Find server by ID
+        $server = Server::find($id);
         
-        // If no server ID is provided, show the first server for the user
-        if ($id === null) {
-            $servers = Server::getForUser($user_id);
-            if (count($servers) > 0) {
-                $server = $servers[0];
-            }
-        } else {
-            // Load specific server
-            $server = Server::find($id);
-            
-            // Check if user is a member of this server
-            if ($server) {
-                $isMember = UserServerMembership::isMember($user_id, $server->id);
-                
-                if (!$isMember) {
-                    // User is not a member of this server
-                    $_SESSION['errors'] = ['server' => 'You are not a member of this server.'];
-                    header('Location: /app');
-                    exit;
-                }
-            }
+        // For debugging
+        if (!$server) {
+            error_log("Server not found with ID: $id");
+            return null;
         }
         
-        // If we found a server, load its channels and members
+        // Successfully found server
+        error_log("Successfully found server: " . $server->name);
+        return $server;
+    }
+    
+    /**
+     * Display the server page with the specified server
+     * 
+     * @param int $id Server ID
+     */
+    public function show($id) {
+        $server = $this->getServer($id);
+        
+        // If server exists, set it in the global variable
         if ($server) {
-            $channels = $server->channels();
-            $members = UserServerMembership::getServerMembers($server->id);
-            
-            // Store current server in global for sidebar to access
             $GLOBALS['currentServer'] = $server;
+            require_once dirname(__DIR__) . '/views/pages/server-page.php';
+        } else {
+            // Server not found - show 404 page
+            http_response_code(404);
+            require_once dirname(__DIR__) . '/views/pages/404.php';
         }
-        
-        // Load all servers for the left sidebar
-        $userServers = Server::getForUser($user_id);
-        
-        // Set up data for the view
-        $data = [
-            'server' => $server,
-            'channels' => $channels,
-            'members' => $members,
-            'userServers' => $userServers
-        ];
-        
-        // Make data available in the view
-        extract($data);
-        
-        // Load server page with data
-        require_once __DIR__ . '/../views/pages/server-page.php';
     }
     
     /**

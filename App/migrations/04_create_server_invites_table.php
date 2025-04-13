@@ -1,6 +1,6 @@
 <?php
 
-class CreateServerInvitesTableMigration {
+class CreateServerInvitesMigration {
     public function up($migration) {
         $migration->createTable('server_invites', function($table) {
             $table->id();
