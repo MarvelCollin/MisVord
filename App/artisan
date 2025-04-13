@@ -1,61 +1,96 @@
 #!/usr/bin/env php
 <?php
+
 /**
- * MiscVord CLI Tool
+ * MiscVord Command Line Interface
  * 
- * This script provides command-line functionality for the MiscVord application.
+ * This file handles command line operations for the MiscVord application.
  */
 
-// Include migration classes
-require_once __DIR__ . '/database/migration.php';
+// Define application root directory
+define('APP_ROOT', __DIR__);
 
-// Check for the serve command
-if (isset($argv[1]) && $argv[1] === 'serve') {
-    echo "Starting MiscVord development server...\n";
-    include __DIR__ . '/serve.php';
-    exit;
+// Include helper functions
+require_once APP_ROOT . '/config/helpers.php';
+
+// Check for command arguments
+$command = $argv[1] ?? null;
+
+switch ($command) {
+    case 'serve':
+        // Default host and port
+        $host = 'localhost';
+        $port = 8080;
+        
+        // Check for custom host:port option
+        if (isset($argv[2])) {
+            if (strpos($argv[2], ':') !== false) {
+                list($host, $port) = explode(':', $argv[2]);
+            } else {
+                $port = $argv[2];
+            }
+        }
+        
+        echo "\033[32mStarting MiscVord development server on http://$host:$port\033[0m\n";
+        echo "Press Ctrl+C to stop the server\n";
+        
+        $command = sprintf(
+            'php -S %s:%d -t %s %s',
+            $host,
+            $port,
+            escapeshellarg(APP_ROOT),
+            escapeshellarg(APP_ROOT . '/router.php')
+        );
+        
+        passthru($command);
+        break;
+        
+    case 'migrate':
+        echo "\033[32mRunning database migrations...\033[0m\n";
+        require_once APP_ROOT . '/database/migration.php';
+        $migration = new Migration();
+        $migration->up();
+        break;
+        
+    case 'migrate:fresh':
+        echo "\033[33mDropping all tables and re-running migrations...\033[0m\n";
+        require_once APP_ROOT . '/database/migration.php';
+        $migration = new Migration();
+        $migration->fresh();
+        break;
+        
+    case 'migrate:rollback':
+        echo "\033[33mRolling back last migration batch...\033[0m\n";
+        require_once APP_ROOT . '/database/migration.php';
+        $migration = new Migration();
+        $migration->down();
+        break;
+        
+    case 'make:migration':
+        if (!isset($argv[2])) {
+            echo "\033[31mError: Migration name required\033[0m\n";
+            echo "Usage: php artisan make:migration migration_name\n";
+            exit(1);
+        }
+        
+        $file = create_migration($argv[2]);
+        if ($file) {
+            echo "\033[32mMigration created: \033[0m" . basename($file) . "\n";
+        } else {
+            echo "\033[31mError: Could not create migration file\033[0m\n";
+            exit(1);
+        }
+        break;
+        
+    default:
+        echo "\033[33mMiscVord CLI Tool\033[0m\n\n";
+        echo "Available commands:\n";
+        echo "  \033[32mserve\033[0m [host:port]      Start the development server\n";
+        echo "  \033[32mmigrate\033[0m                Run database migrations\n";
+        echo "  \033[32mmigrate:fresh\033[0m          Drop all tables and re-run migrations\n";
+        echo "  \033[32mmigrate:rollback\033[0m       Roll back the last migration batch\n";
+        echo "  \033[32mmake:migration\033[0m name    Create a new migration file\n";
+        break;
 }
 
-// Check for migration commands
-if (isset($argv[1]) && $argv[1] === 'migrate') {
-    $migrationRunner = new MigrationRunner();
-    
-    // Default action is 'up' if no subcommand is provided
-    $action = isset($argv[2]) ? $argv[2] : 'up';
-    
-    switch ($action) {
-        case 'up':
-            echo "Running migrations...\n";
-            $migrationRunner->run();
-            break;
-            
-        case 'fresh':
-            echo "Dropping all tables and re-running migrations...\n";
-            $migrationRunner->dropAllTables();
-            $migrationRunner->run();
-            break;
-            
-        case 'down':
-            echo "Rolling back migrations...\n";
-            $steps = isset($argv[3]) ? (int)$argv[3] : 1;
-            $migrationRunner->rollback($steps);
-            break;
-            
-        default:
-            echo "Unknown migration command: $action\n";
-            echo "Available migration commands: up, fresh, down\n";
-    }
-    exit;
-}
-
-// Display help message if no valid command is provided
-echo "\nMiscVord CLI Tool\n";
-echo "==================\n\n";
-echo "Available commands:\n";
-echo "  serve               Start the development server\n";
-echo "  migrate             Run database migrations\n";
-echo "  migrate up          Run pending migrations (default)\n";
-echo "  migrate fresh       Drop all tables and re-run all migrations\n";
-echo "  migrate down [n]    Rollback the last batch of migrations or n steps\n";
-echo "\n";
-echo "Usage: php artisan [command] [options]\n";
+exit(0);
