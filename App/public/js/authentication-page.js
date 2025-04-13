@@ -406,10 +406,18 @@ document.addEventListener('DOMContentLoaded', function() {
         return Math.min(score, 100);
     }
     
-    // Modern loading indicators for form submission
+    // Modern loading indicators for form submission with enhanced error handling
     function setupFormSubmission() {
         document.querySelectorAll('form').forEach(form => {
-            form.addEventListener('submit', function() {
+            form.addEventListener('submit', function(e) {
+                // Basic form validation before submission
+                const isValid = validateForm(this);
+                
+                if (!isValid) {
+                    e.preventDefault();
+                    return;
+                }
+                
                 const button = this.querySelector('button[type="submit"]');
                 if (!button) return;
                 
@@ -431,21 +439,103 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Add subtle pulsing effect
                 button.classList.add('animate-pulse');
+                
+                // Store form data in localStorage as backup
+                if (this.id === 'registerForm' || this.id === 'loginForm') {
+                    const formData = {};
+                    new FormData(this).forEach((value, key) => {
+                        if (!key.includes('password')) { // Don't store passwords
+                            formData[key] = value;
+                        }
+                    });
+                    localStorage.setItem(`${this.id}_data`, JSON.stringify(formData));
+                }
+                
+                // Let form submit normally
             });
         });
     }
     
-    // Handle window resize efficiently using requestAnimationFrame
-    function setupResizeHandler() {
-        let resizeTimer;
-        window.addEventListener('resize', function() {
-            // Cancel previous frame if it hasn't executed yet
-            if (resizeTimer) cancelAnimationFrame(resizeTimer);
+    // Form validation before submission
+    function validateForm(form) {
+        let isValid = true;
+        const formId = form.id;
+        
+        // Clear previous error messages
+        form.querySelectorAll('.validation-error').forEach(el => el.remove());
+        
+        // Validate based on form type
+        if (formId === 'registerForm') {
+            // Username validation
+            const username = form.querySelector('#username');
+            if (username.value.length < 3) {
+                showFieldError(username, 'Username must be at least 3 characters');
+                isValid = false;
+            }
             
-            // Schedule new frame
-            resizeTimer = requestAnimationFrame(() => {
-                updateFormHeight();
-            });
+            // Password validation
+            const password = form.querySelector('#reg_password');
+            const passwordConfirm = form.querySelector('#password_confirm');
+            
+            if (password.value.length < 6) {
+                showFieldError(password, 'Password must be at least 6 characters');
+                isValid = false;
+            }
+            
+            if (password.value !== passwordConfirm.value) {
+                showFieldError(passwordConfirm, 'Passwords do not match');
+                isValid = false;
+            }
+        }
+        
+        return isValid;
+    }
+    
+    // Show error message under a field
+    function showFieldError(field, message) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'text-red-500 text-sm mt-1 validation-error';
+        errorDiv.textContent = message;
+        
+        // Add error class to the field
+        field.classList.add('border-red-500');
+        
+        // Add error message after the field's parent div
+        field.parentElement.appendChild(errorDiv);
+        
+        // Add shake animation to field
+        field.classList.add('animate-shake');
+        setTimeout(() => {
+            field.classList.remove('animate-shake');
+        }, 500);
+    }
+    
+    // Restore form data from localStorage if available
+    function restoreFormData() {
+        const formIds = ['registerForm', 'loginForm'];
+        
+        formIds.forEach(formId => {
+            const storedData = localStorage.getItem(`${formId}_data`);
+            if (storedData) {
+                try {
+                    const formData = JSON.parse(storedData);
+                    const form = document.getElementById(formId);
+                    
+                    if (form) {
+                        // Fill form fields from stored data
+                        Object.keys(formData).forEach(key => {
+                            const field = form.querySelector(`[name="${key}"]`);
+                            if (field && !field.value) {
+                                field.value = formData[key];
+                            }
+                        });
+                    }
+                } catch (e) {
+                    // Silently fail if data is invalid
+                    console.error('Error restoring form data', e);
+                    localStorage.removeItem(`${formId}_data`);
+                }
+            }
         });
     }
     
@@ -458,6 +548,7 @@ document.addEventListener('DOMContentLoaded', function() {
         setupPasswordMatching();
         setupFormSubmission();
         setupResizeHandler();
+        restoreFormData();
         
         // Set initial focus
         const firstInput = document.querySelector('form:not(.hidden) input:first-of-type');
@@ -465,13 +556,6 @@ document.addEventListener('DOMContentLoaded', function() {
             setTimeout(() => {
                 firstInput.focus();
             }, timing.formTransition);
-        }
-        
-        // Setup forgot password link
-        const forgotLink = document.querySelector('a[data-form="forgot"]');
-        if (forgotLink) {
-            // The link is already set up with the form-toggle class and data attribute
-            // This is redundant but left for backward compatibility
         }
     }
     

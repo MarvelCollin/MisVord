@@ -22,8 +22,11 @@ if ($path === '/register') {
 $errors = $_SESSION['errors'] ?? [];
 $oldInput = $_SESSION['old_input'] ?? [];
 
+// Get success messages
+$success = $_SESSION['success'] ?? null;
+
 // Clear session data after using it
-unset($_SESSION['errors'], $_SESSION['old_input']);
+unset($_SESSION['errors'], $_SESSION['old_input'], $_SESSION['success']);
 
 // Set variables for the main layout
 $page_title = ucfirst($mode) . ' - MiscVord';
@@ -35,6 +38,95 @@ $additional_head = '<link rel="preconnect" href="https://fonts.googleapis.com">
 // Link CSS and JS files
 $page_css = 'authentication-page.css';
 $page_js = 'authentication-page.js';
+
+// Database connection and table initialization - capture output in debug info for "kowlin"
+ob_start();
+try {
+    // Load database query class
+    require_once dirname(dirname(__DIR__)) . '/database/query.php';
+    
+    // Load environment configuration
+    require_once dirname(dirname(__DIR__)) . '/config/env.php';
+    
+    // Test database connection
+    $env = EnvLoader::getEnv();
+    $dsn = "mysql:host=" . EnvLoader::get('DB_HOST', 'localhost') . 
+           ";dbname=" . EnvLoader::get('DB_NAME', 'misvord');
+    
+    // Display database connection parameters (for debugging only)
+    echo '<div class="bg-blue-500 text-white p-3 rounded-md mb-6 text-left overflow-auto max-h-36">';
+    echo '<strong>Database Connection Settings:</strong><br>';
+    echo 'Host: ' . EnvLoader::get('DB_HOST', 'localhost') . '<br>';
+    echo 'Database: ' . EnvLoader::get('DB_NAME', 'misvord') . '<br>'; 
+    echo 'User: ' . EnvLoader::get('DB_USER', 'root') . '<br>';
+    echo '</div>';
+    
+    // Try to connect using functions that properly handle cursors
+    $pdo = EnvLoader::getPDOConnection();
+    
+    // Use a simple direct query to test connection
+    $stmt = $pdo->query("SELECT 1 AS test_connection");
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    $stmt->closeCursor(); // Important: close the cursor
+    
+    echo '<div class="bg-green-500 text-white p-3 rounded-md mb-6 text-center">
+        Database connection successful! Server: ' . $pdo->getAttribute(PDO::ATTR_SERVER_VERSION) . '
+    </div>';
+    
+    // Include User model and test table setup
+    require_once dirname(dirname(__DIR__)) . '/database/models/User.php';
+    $tableExists = User::createTable();
+    
+    echo '<div class="bg-green-500 text-white p-3 rounded-md mb-6 text-center">
+        User table ' . ($tableExists ? 'exists' : 'creation attempted') . '!
+    </div>';
+    
+} catch (PDOException $e) {
+    echo '<div class="bg-red-500 text-white p-3 rounded-md mb-6 text-left overflow-auto max-h-64">';
+    echo '<strong>Database Error:</strong><br>';
+    echo 'Error Code: ' . $e->getCode() . '<br>';
+    echo 'Message: ' . $e->getMessage() . '<br>';
+    
+    // Additional helpful hints based on common error codes
+    switch ($e->getCode()) {
+        case 1049:
+            echo '<br><strong>Hint:</strong> Database "' . EnvLoader::get('DB_NAME', 'misvord') . '" does not exist. Create it using:<br>';
+            echo '<code>CREATE DATABASE ' . EnvLoader::get('DB_NAME', 'misvord') . ';</code>';
+            break;
+        case 1045:
+            echo '<br><strong>Hint:</strong> Access denied. Check username and password.';
+            break;
+        case 2002:
+            echo '<br><strong>Hint:</strong> Cannot connect to MySQL server. Is it running?';
+            break;
+    }
+    
+    echo '</div>';
+} catch (Exception $e) {
+    echo '<div class="bg-red-500 text-white p-3 rounded-md mb-6 text-left overflow-auto max-h-64">';
+    echo '<strong>General Error:</strong><br>';
+    echo 'Type: ' . get_class($e) . '<br>';
+    echo 'Message: ' . $e->getMessage() . '<br>';
+    echo 'File: ' . $e->getFile() . ' (Line ' . $e->getLine() . ')<br>';
+    echo '</div>';
+}
+// Store debug info instead of displaying it
+$debugInfo = ob_get_clean();
+
+// Store debug info in GLOBALS for access in the main-app.php template
+// This will be shown only when "kowlin" keyword is typed
+$GLOBALS['debugInfo'] = $debugInfo;
+
+// Now actually initialize the database silently without output
+try {
+    // Just ensure database is initialized properly
+    require_once dirname(dirname(__DIR__)) . '/database/query.php';
+    require_once dirname(dirname(__DIR__)) . '/database/models/User.php';
+    User::initialize();
+} catch (Exception $e) {
+    // Silent failure - we'll catch issues in the controller anyway
+    error_log("Error initializing database: " . $e->getMessage());
+}
 ?>
 
 <!-- Define the content for the main layout -->
@@ -63,15 +155,15 @@ $page_js = 'authentication-page.js';
         </h1>
         
         <!-- Success Message (if any) -->
-        <?php if (isset($_SESSION['success'])): ?>
-            <div class="bg-green-500 text-white p-3 rounded-md mb-6 text-center">
-                <?php echo $_SESSION['success']; unset($_SESSION['success']); ?>
+        <?php if (isset($success)): ?>
+            <div class="bg-green-500 text-white p-3 rounded-md mb-6 text-center animate-pulse">
+                <?php echo $success; ?>
             </div>
         <?php endif; ?>
         
         <!-- General Auth Error -->
         <?php if (isset($errors['auth'])): ?>
-            <div class="bg-red-500 text-white p-3 rounded-md mb-6 text-center">
+            <div class="bg-red-500 text-white p-3 rounded-md mb-6 text-center animate-pulse">
                 <?php echo $errors['auth']; ?>
             </div>
         <?php endif; ?>

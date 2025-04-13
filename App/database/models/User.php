@@ -236,25 +236,48 @@ class User {
     /**
      * Create the users table if it doesn't exist
      * 
-     * @return null
+     * @return bool Whether the table exists after creation attempt
      */
     public static function createTable() {
         $query = new Query();
-        $query->raw("
-            CREATE TABLE IF NOT EXISTS users (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                username VARCHAR(255) NOT NULL,
-                email VARCHAR(255) NOT NULL UNIQUE,
-                password VARCHAR(255),
-                google_id VARCHAR(255) NULL,
-                avatar_url VARCHAR(255) NULL,
-                status ENUM('online', 'away', 'offline', 'dnd') DEFAULT 'offline',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-            )
-        ");
         
-        return null;
+        try {
+            // Use the Query class methods instead of direct PDO access
+            // Check if table exists first
+            $tableExists = $query->tableExists('users');
+            
+            if (!$tableExists) {
+                // Execute table creation query using the raw method
+                $query->raw("
+                    CREATE TABLE IF NOT EXISTS users (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        username VARCHAR(255) NOT NULL,
+                        email VARCHAR(255) NOT NULL UNIQUE,
+                        password VARCHAR(255),
+                        google_id VARCHAR(255) NULL,
+                        avatar_url VARCHAR(255) NULL,
+                        status ENUM('online', 'away', 'offline', 'dnd') DEFAULT 'offline',
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                    )
+                ");
+                
+                // Check again if table exists after creation attempt
+                $tableExists = $query->tableExists('users');
+            }
+            
+            return $tableExists;
+        } catch (PDOException $e) {
+            error_log("Error creating users table: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Ensure the table exists before any operations
+     */
+    public static function initialize() {
+        return self::createTable();
     }
     
     /**

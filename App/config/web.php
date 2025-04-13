@@ -7,16 +7,37 @@
  * Each route is mapped to a specific file in the views directory.
  */
 
+// Include the AuthenticationController
+require_once __DIR__ . '/../controllers/AuthenticationController.php';
+
 // Define application routes
 $routes = [
     // Landing page route
     '/' => 'pages/landing-page.php',
     
-    // Authentication routes
+    // Authentication view routes
     '/auth' => 'pages/authentication-page.php',
     '/login' => 'pages/authentication-page.php',
     '/register' => 'pages/authentication-page.php',
     '/forgot-password' => 'pages/authentication-page.php',
+    
+    // Authentication action routes (POST)
+    'POST:/register' => function() {
+        $controller = new AuthenticationController();
+        $controller->register();
+    },
+    'POST:/login' => function() {
+        $controller = new AuthenticationController();
+        $controller->login();
+    },
+    'POST:/forgot-password' => function() {
+        $controller = new AuthenticationController();
+        $controller->forgotPassword();
+    },
+    'GET:/logout' => function() {
+        $controller = new AuthenticationController();
+        $controller->logout();
+    },
     
     // Server routes
     '/server' => 'pages/server-page.php',
@@ -74,6 +95,12 @@ function handleRoute($routes) {
     // Get the request URI and remove query string if present
     $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
     
+    // Get the HTTP method
+    $method = $_SERVER['REQUEST_METHOD'];
+    
+    // Create method-specific route key
+    $methodRoute = $method . ':' . $uri;
+    
     // Get the script name (the entry point file)
     $scriptName = $_SERVER['SCRIPT_NAME'];
     
@@ -99,8 +126,23 @@ function handleRoute($routes) {
     // Set the active route in the global variable
     $GLOBALS['active_route'] = $uri;
     
+    // Check if method-specific route exists
+    if (isset($routes[$methodRoute])) {
+        if (is_callable($routes[$methodRoute])) {
+            // Execute the route function
+            $routes[$methodRoute]();
+            return;
+        }
+        $viewFile = $routes[$methodRoute];
+        $matchedRoute = $methodRoute;
+    }
     // Check if route exists
-    if (isset($routes[$uri])) {
+    elseif (isset($routes[$uri])) {
+        if (is_callable($routes[$uri])) {
+            // Execute the route function
+            $routes[$uri]();
+            return;
+        }
         $viewFile = $routes[$uri];
         $matchedRoute = $uri;
     } else {

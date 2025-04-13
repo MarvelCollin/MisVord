@@ -241,6 +241,95 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
         <?php echo $content; ?>
     <?php endif; ?>
     
+    <!-- Debug panel that is hidden by default and activated by "kowlin" keyword -->
+    <div id="debugPanel" class="fixed bottom-0 right-0 p-4 bg-gray-900/90 text-white rounded-tl-lg border border-gray-700 transform translate-y-full transition-transform duration-300 ease-in-out z-50 max-w-md max-h-96 overflow-auto opacity-0 invisible" style="box-shadow: 0 -5px 15px rgba(0,0,0,0.3);">
+        <h3 class="text-lg font-bold mb-2 flex justify-between items-center">
+            <span>Developer Debug Panel</span>
+            <button id="closeDebugBtn" class="text-gray-400 hover:text-white">×</button>
+        </h3>
+        <div class="divider mb-2"></div>
+        
+        <!-- Database Connection Info (from authentication page) -->
+        <?php if (isset($GLOBALS['debugInfo']) && !empty($GLOBALS['debugInfo'])): ?>
+            <?php echo $GLOBALS['debugInfo']; ?>
+        <?php endif; ?>
+        
+        <!-- Route information -->
+        <div class="mb-2">
+            <h4 class="font-medium text-discord-blue mb-1">Route Information:</h4>
+            <div class="text-sm">
+                <?php if (isset($GLOBALS['route_info'])): ?>
+                    <p><span class="text-gray-400">URI:</span> <?php echo htmlspecialchars($GLOBALS['route_info']['uri']); ?></p>
+                    <p><span class="text-gray-400">Matched Route:</span> <?php echo htmlspecialchars($GLOBALS['route_info']['matchedRoute']); ?></p>
+                    <p><span class="text-gray-400">View File:</span> <?php echo htmlspecialchars($GLOBALS['route_info']['viewFile']); ?></p>
+                <?php else: ?>
+                    <p class="text-yellow-400">No route information available</p>
+                <?php endif; ?>
+            </div>
+        </div>
+        
+        <!-- PHP Info -->
+        <div>
+            <h4 class="font-medium text-discord-blue mb-1">PHP Information:</h4>
+            <div class="text-sm">
+                <p><span class="text-gray-400">Version:</span> <?php echo phpversion(); ?></p>
+                <p><span class="text-gray-400">Memory Limit:</span> <?php echo ini_get('memory_limit'); ?></p>
+                <p><span class="text-gray-400">Max Execution Time:</span> <?php echo ini_get('max_execution_time'); ?> seconds</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add keyboard detection for "kowlin" -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set up the keyboard detector for "kowlin"
+        let keySequence = '';
+        const debugPanel = document.getElementById('debugPanel');
+        const closeDebugBtn = document.getElementById('closeDebugBtn');
+        const targetWord = 'kowlin';
+        
+        // Close button functionality
+        closeDebugBtn.addEventListener('click', function() {
+            debugPanel.classList.add('translate-y-full');
+            // After animation completes, hide the panel
+            setTimeout(() => {
+                debugPanel.classList.add('opacity-0', 'invisible');
+            }, 300);
+        });
+        
+        // Keyboard detection
+        document.addEventListener('keydown', function(e) {
+            // Add the key to the sequence
+            keySequence += e.key.toLowerCase();
+            
+            // Keep only the last N characters where N is the length of the target word
+            if (keySequence.length > targetWord.length) {
+                keySequence = keySequence.substring(keySequence.length - targetWord.length);
+            }
+            
+            // Check if the sequence matches our target word
+            if (keySequence === targetWord) {
+                // Show the debug panel with animation
+                debugPanel.classList.remove('opacity-0', 'invisible');
+                
+                // Small delay before sliding up to ensure visibility transition is complete
+                setTimeout(() => {
+                    debugPanel.classList.remove('translate-y-full');
+                    
+                    // Add a subtle animation effect
+                    debugPanel.classList.add('animate-pulse');
+                    setTimeout(() => {
+                        debugPanel.classList.remove('animate-pulse');
+                    }, 1000);
+                }, 50);
+                
+                // Reset the sequence
+                keySequence = '';
+            }
+        });
+    });
+    </script>
+    
     <?php if (isset($page_js)): ?>
         <script src="<?php echo js($page_js); ?>"></script>
     <?php endif; ?>

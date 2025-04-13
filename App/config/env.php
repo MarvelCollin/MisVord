@@ -74,15 +74,22 @@ class EnvLoader {
      */
     public static function getPDOConnection() {
         $host = self::get('DB_HOST', 'localhost');
-        $dbname = self::get('DB_NAME', 'your_database');
+        $dbname = self::get('DB_NAME', 'misvord');
         $username = self::get('DB_USER', 'root');
         $password = self::get('DB_PASS', '');
         $charset = self::get('DB_CHARSET', 'utf8mb4');
         
         $dsn = "mysql:host=$host;dbname=$dbname;charset=$charset";
-        $pdo = new PDO($dsn, $username, $password);
-        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         
+        // Set options array with buffered queries enabled
+        $options = [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => true, // Enable buffered queries
+            PDO::ATTR_EMULATE_PREPARES => false, // Use native prepared statements
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC // Default fetch mode
+        ];
+        
+        $pdo = new PDO($dsn, $username, $password, $options);
         return $pdo;
     }
 }

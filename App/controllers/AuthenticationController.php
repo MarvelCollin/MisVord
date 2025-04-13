@@ -4,12 +4,15 @@ require_once __DIR__ . '/../database/models/User.php';
 
 class AuthenticationController {
     /**
-     * Constructor - ensure session is started
+     * Constructor - ensure session is started and database is initialized
      */
     public function __construct() {
         if (session_status() == PHP_SESSION_NONE) {
             session_start();
         }
+        
+        // Initialize database tables
+        User::initialize();
     }
     
     /**
@@ -137,21 +140,57 @@ class AuthenticationController {
             exit;
         }
         
-        // Create new user
-        $user = new User();
-        $user->username = $username;
-        $user->email = $email;
-        $user->setPassword($password);
-        $user->status = 'online';
-        $user->save();
-        
-        // Log in the user
-        $_SESSION['user_id'] = $user->id;
-        $_SESSION['username'] = $user->username;
-        
-        // Redirect to main app
-        header('Location: /app');
-        exit;
+        try {
+            // Create new user
+            $user = new User();
+            $user->username = $username;
+            $user->email = $email;
+            $user->setPassword($password);
+            $user->status = 'online';
+            
+            // Debug information - log the data being saved
+            error_log("Attempting to save user: " . json_encode([
+                'username' => $username,
+                'email' => $email,
+                'status' => 'online'
+            ]));
+            
+            // Save with error handling
+            if (!$user->save()) {
+                error_log("Failed to save user - Save method returned false");
+                throw new Exception("Failed to save user to database");
+            }
+            
+            // Log successful registration
+            error_log("User successfully registered: ID={$user->id}, Username={$user->username}");
+            
+            // Set success message
+            $_SESSION['success'] = "Registration successful! Welcome to MiscVord, {$user->username}!";
+            
+            // Log in the user
+            $_SESSION['user_id'] = $user->id;
+            $_SESSION['username'] = $user->username;
+            
+            // Redirect to main app
+            header('Location: /app');
+            exit;
+        } catch (Exception $e) {
+            // Log the error with details
+            error_log('Registration error: ' . $e->getMessage());
+            error_log('Error details: ' . $e->getTraceAsString());
+            
+            // Set error message and return to registration
+            $_SESSION['errors'] = [
+                'auth' => 'Registration failed: ' . $e->getMessage(),
+                'debug_info' => 'See server logs for more details'
+            ];
+            $_SESSION['old_input'] = [
+                'username' => $username,
+                'email' => $email
+            ];
+            header('Location: /register');
+            exit;
+        }
     }
     
     /**

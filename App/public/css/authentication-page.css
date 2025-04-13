@@ -484,3 +484,44 @@ button[type="submit"]:active, .btn-google:active {
         opacity: 1;
     }
 }
+
+/* Form validation animations */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+.animate-shake {
+    animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+.validation-error {
+    opacity: 0;
+    animation: fadeIn 0.3s ease-out forwards;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Success animation */
+@keyframes successPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+    50% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+}
+
+.success-pulse {
+    animation: successPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Modern error animation */
+@keyframes errorPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+    50% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+}
+
+.error-pulse {
+    animation: errorPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}

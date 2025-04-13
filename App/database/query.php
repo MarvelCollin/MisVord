@@ -242,11 +242,61 @@ class Query {
         return $this;
     }
     
+    /**
+     * Execute a raw SQL query
+     * 
+     * @param string $sql Raw SQL query
+     * @return $this
+     */
+    public function raw($sql) {
+        try {
+            $stmt = $this->pdo->query($sql);
+            if ($stmt) {
+                $stmt->closeCursor(); // Ensure cursor is closed to prevent unbuffered query issues
+            }
+            return $this;
+        } catch (PDOException $e) {
+            // Log the error but don't stop execution
+            error_log("Database error: " . $e->getMessage());
+            return $this;
+        }
+    }
+    
+    /**
+     * Execute a raw SQL query and return results
+     * 
+     * @param string $sql Raw SQL query to execute
+     * @return array Results of the query
+     */
+    public function rawQuery($sql) {
+        try {
+            $stmt = $this->pdo->query($sql);
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $stmt->closeCursor(); // Important: close cursor after fetching results
+            return $results;
+        } catch (PDOException $e) {
+            error_log("Database error in rawQuery: " . $e->getMessage());
+            return [];
+        }
+    }
+    
+    /**
+     * Get query results
+     * 
+     * @return array
+     */
     public function get() {
-        $query = $this->buildSelectQuery();
-        $stmt = $this->pdo->prepare($query);
-        $stmt->execute($this->bindings);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        try {
+            $query = $this->buildSelectQuery();
+            $stmt = $this->pdo->prepare($query);
+            $stmt->execute($this->bindings);
+            $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $stmt->closeCursor(); // Close the cursor to avoid "unbuffered queries" error
+            return $result;
+        } catch (PDOException $e) {
+            error_log("Database error in get(): " . $e->getMessage());
+            return [];
+        }
     }
     
     public function first() {
@@ -389,9 +439,29 @@ class Query {
         return $this->pdo->exec($query);
     }
     
-    public function raw($expression) {
-        $this->raw[] = $expression;
-        return $this;
+    /**
+     * Check if a table exists in the database
+     * 
+     * @param string $table Table name
+     * @return bool Whether the table exists
+     */
+    public function tableExists($table) {
+        try {
+            // Create a properly escaped table name query
+            $sql = "SHOW TABLES LIKE " . $this->pdo->quote($table);
+            $stmt = $this->pdo->query($sql);
+            
+            // Handle the result safely
+            if ($stmt) {
+                $exists = $stmt->rowCount() > 0;
+                $stmt->closeCursor(); // Close the cursor to avoid unbuffered query issues
+                return $exists;
+            }
+            return false;
+        } catch (PDOException $e) {
+            error_log("Error checking table existence: " . $e->getMessage());
+            return false;
+        }
     }
     
     public function newInstance() {
@@ -573,4 +643,3 @@ class Query {
         return $env;
     }
 }
-?>
