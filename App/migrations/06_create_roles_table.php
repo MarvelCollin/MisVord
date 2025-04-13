@@ -4,7 +4,7 @@ class CreateRolesTableMigration {
     public function up($migration) {
         $migration->createTable('roles', function($table) {
             $table->id();
-            $table->bigInteger('server_id', false, true);
+            $table->integer('server_id'); // Changed from bigInteger to integer to match servers.id
             $table->string('role_name', 255);
             $table->string('role_color', 255, true); // nullable
             $table->timestamps();

@@ -1,13 +1,12 @@
 <?php
 
-class CreateFriendListTableMigration {
-    public function up($migration) {
+class CreateFriendListTableMigration {    public function up($migration) {
         // We'll create the table without checking for users table existence first
         // The migration system should ensure tables are created in the correct order
         $migration->createTable('friend_list', function($table) {
                 $table->id();
-                $table->bigInteger('user_id', false, true);  // Changed to match users table's id type
-                $table->bigInteger('user_id2', false, true); // Changed to match users table's id type
+                $table->integer('user_id');  // Changed to integer to match users table's id type
+                $table->integer('user_id2'); // Changed to integer to match users table's id type
                 $table->string('status');
                 $table->timestamps();
                   // Add foreign keys - assuming users table is created first

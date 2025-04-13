@@ -4,8 +4,8 @@ class CreateUserServerMembershipsMigration {
     public function up($migration) {
         $migration->createTable('user_server_memberships', function($table) {
             $table->id();
-            $table->bigInteger('user_id', false, true);
-            $table->bigInteger('server_id', false, true);
+            $table->integer('user_id'); // Changed from bigInteger to integer to match users.id
+            $table->integer('server_id'); // Changed from bigInteger to integer to match servers.id
             $table->string('role', 255, true); // nullable
             $table->timestamps();
             

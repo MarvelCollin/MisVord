@@ -72,45 +72,35 @@ class Category {
     }
     
     /**
-     * Find a category by name and server ID
-     * 
-     * @param string $name
-     * @param int $serverId
-     * @return Category|null
-     */
-    public static function findByNameAndServer($name, $serverId) {
-        $query = new Query();
-        $result = $query->table(static::$table)
-            ->where('name', $name)
-            ->where('server_id', $serverId)
-            ->first();
-            
-        if (!$result) {
-            return null;
-        }
-        
-        return new static($result);
-    }
-    
-    /**
-     * Get all categories for a server
+     * Get categories for a server
      * 
      * @param int $serverId
      * @return array
      */
-    public static function getByServer($serverId) {
+    public static function getForServer($serverId) {
         $query = new Query();
-        $results = $query->table(static::$table)
+        $result = $query->table(static::$table)
             ->where('server_id', $serverId)
-            ->orderBy('name')
+            ->orderBy('position')
             ->get();
-        
-        $categories = [];
-        foreach ($results as $result) {
-            $categories[] = new static($result);
-        }
-        
-        return $categories;
+            
+        return $result;
+    }
+    
+    /**
+     * Get max position for a server
+     * 
+     * @param int $serverId
+     * @return int
+     */
+    public static function getMaxPositionForServer($serverId) {
+        $query = new Query();
+        $result = $query->table(static::$table)
+            ->select('MAX(position) as max_position')
+            ->where('server_id', $serverId)
+            ->first();
+            
+        return $result ? (int)$result['max_position'] : 0;
     }
     
     /**
@@ -120,7 +110,7 @@ class Category {
      */
     public function channels() {
         require_once __DIR__ . '/Channel.php';
-        return Channel::getByCategoryId($this->id);
+        return Channel::getForCategory($this->id);
     }
     
     /**
@@ -130,12 +120,6 @@ class Category {
      */
     public function save() {
         $query = new Query();
-        
-        // Set timestamps
-        if (!isset($this->attributes['created_at'])) {
-            $this->attributes['created_at'] = date('Y-m-d H:i:s');
-        }
-        $this->attributes['updated_at'] = date('Y-m-d H:i:s');
         
         // If has ID, update; otherwise insert
         if (isset($this->attributes['id'])) {
@@ -168,8 +152,8 @@ class Category {
     public function delete() {
         $query = new Query();
         return $query->table(static::$table)
-            ->where('id', $this->id)
-            ->delete() > 0;
+                ->where('id', $this->id)
+                ->delete() > 0;
     }
     
     /**
@@ -182,23 +166,25 @@ class Category {
         
         try {
             // Check if table exists first
-            $tableExists = $query->tableExists(static::$table);
+            $tableExists = $query->tableExists('categories');
             
             if (!$tableExists) {
-                // Execute table creation query using the raw method
+                // Execute table creation query
                 $query->raw("
                     CREATE TABLE IF NOT EXISTS categories (
                         id INT AUTO_INCREMENT PRIMARY KEY,
-                        server_id INT NOT NULL,
                         name VARCHAR(255) NOT NULL,
+                        server_id INT NOT NULL,
+                        position INT NOT NULL DEFAULT 0,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                        INDEX server_idx (server_id),
                         FOREIGN KEY (server_id) REFERENCES servers(id) ON DELETE CASCADE
                     )
                 ");
                 
                 // Check again if table exists after creation attempt
-                $tableExists = $query->tableExists(static::$table);
+                $tableExists = $query->tableExists('categories');
             }
             
             return $tableExists;
@@ -213,22 +199,5 @@ class Category {
      */
     public static function initialize() {
         return self::createTable();
-    }
-    
-    /**
-     * Get all categories
-     * 
-     * @return array
-     */
-    public static function all() {
-        $query = new Query();
-        $results = $query->table(static::$table)->get();
-        
-        $categories = [];
-        foreach ($results as $result) {
-            $categories[] = new static($result);
-        }
-        
-        return $categories;
     }
 }

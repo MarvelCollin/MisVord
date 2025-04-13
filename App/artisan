@@ -1,39 +1,44 @@
 #!/usr/bin/env php
 <?php
-
 /**
- * MiscVord Command Line Interface
+ * MiscVord CLI Tool
  * 
- * This file handles command line operations for the MiscVord application.
+ * This file provides command-line interface tools for MiscVord.
  */
 
-// Define application root directory
+// Define constants
 define('APP_ROOT', __DIR__);
+define('MIGRATIONS_PATH', __DIR__ . '/migrations');
 
-// Include helper functions
-require_once APP_ROOT . '/config/helpers.php';
+// Include necessary files
+require_once __DIR__ . '/config/helpers.php';
 
-// Check for command arguments
-$command = $argv[1] ?? null;
+// Get CLI arguments
+$argv = $_SERVER['argv'];
+$argc = $_SERVER['argc'];
+
+// Check if any command is provided
+if ($argc < 2) {
+    echo "\033[33mMiscVord CLI Tool\033[0m\n\n";
+    echo "Available commands:\n";
+    echo "  \033[32mserve\033[0m [host:port]      Start the development server\n";
+    echo "  \033[32mmigrate\033[0m                Run database migrations\n";
+    echo "  \033[32mmigrate:fresh\033[0m          Drop all tables and re-run migrations\n";
+    echo "  \033[32mmigrate:rollback\033[0m       Roll back the last migration batch\n";
+    echo "  \033[32mmake:migration\033[0m name    Create a new migration file\n";
+    exit(0);
+}
+
+// Command handling
+$command = $argv[1];
 
 switch ($command) {
     case 'serve':
-        // Default host and port
-        $host = 'localhost';
-        $port = 8080;
+        $hostPort = $argv[2] ?? 'localhost:8000';
+        list($host, $port) = explode(':', $hostPort);
+        $port = (int) $port;
         
-        // Check for custom host:port option
-        if (isset($argv[2])) {
-            if (strpos($argv[2], ':') !== false) {
-                list($host, $port) = explode(':', $argv[2]);
-            } else {
-                $port = $argv[2];
-            }
-        }
-        
-        echo "\033[32mStarting MiscVord development server on http://$host:$port\033[0m\n";
-        echo "Press Ctrl+C to stop the server\n";
-        
+        echo "\033[32mStarting development server on http://$host:$port\033[0m\n";
         $command = sprintf(
             'php -S %s:%d -t %s %s',
             $host,
@@ -48,22 +53,28 @@ switch ($command) {
     case 'migrate':
         echo "\033[32mRunning database migrations...\033[0m\n";
         require_once APP_ROOT . '/database/migration.php';
-        $migration = new Migration();
-        $migration->up();
+        
+        // Fixed: Use MigrationRunner instead of Migration directly
+        $migrationRunner = new MigrationRunner();
+        $migrationRunner->run();
         break;
         
     case 'migrate:fresh':
         echo "\033[33mDropping all tables and re-running migrations...\033[0m\n";
         require_once APP_ROOT . '/database/migration.php';
-        $migration = new Migration();
-        $migration->fresh();
+        
+        // Fixed: Use MigrationRunner instead of Migration directly
+        $migrationRunner = new MigrationRunner();
+        $migrationRunner->fresh();
         break;
         
     case 'migrate:rollback':
         echo "\033[33mRolling back last migration batch...\033[0m\n";
         require_once APP_ROOT . '/database/migration.php';
-        $migration = new Migration();
-        $migration->down();
+        
+        // Fixed: Use MigrationRunner instead of Migration directly
+        $migrationRunner = new MigrationRunner();
+        $migrationRunner->rollback();
         break;
         
     case 'make:migration':
@@ -87,7 +98,7 @@ switch ($command) {
         echo "Available commands:\n";
         echo "  \033[32mserve\033[0m [host:port]      Start the development server\n";
         echo "  \033[32mmigrate\033[0m                Run database migrations\n";
-        echo "  \033[32mmigrate:fresh\033[0m          Drop all tables and re-run migrations\n";
+        echo "  \033[32mmigrate:fresh\033[0m          Drop all tables and re-running migrations\n";
         echo "  \033[32mmigrate:rollback\033[0m       Roll back the last migration batch\n";
         echo "  \033[32mmake:migration\033[0m name    Create a new migration file\n";
         break;

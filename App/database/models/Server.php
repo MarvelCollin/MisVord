@@ -10,14 +10,12 @@ class Server {
     protected $attributes = [];
     
     /**
-     * Constructor - initialize model with attributes
      */
     public function __construct($attributes = []) {
         $this->fill($attributes);
     }
     
     /**
-     * Fill model with an array of attributes
      */
     public function fill($attributes) {
         foreach ($attributes as $key => $value) {
@@ -28,21 +26,18 @@ class Server {
     }
     
     /**
-     * Magic method for getting attributes
      */
     public function __get($key) {
         return $this->attributes[$key] ?? null;
     }
     
     /**
-     * Magic method for setting attributes
      */
     public function __set($key, $value) {
         $this->attributes[$key] = $value;
     }
     
     /**
-     * Find server by ID
      */
     public static function find($id) {
         $query = new Query();
@@ -58,7 +53,65 @@ class Server {
     }
     
     /**
-     * Get all servers for a user
+     * Find a server by its invite link
+     * 
+     * @param string $inviteLink The invite link to search for
+     * @return Server|null The server or null if not found
+     */
+    public static function findByInviteLink($inviteLink) {
+        $query = new Query();
+        $result = $query->table(static::$table)
+            ->where('invite_link', $inviteLink)
+            ->first();
+            
+        if (!$result) {
+            return null;
+        }
+        
+        return new static($result);
+    }
+    
+    /**
+     * Find a server by its name
+     * 
+     * @param string $name The server name to search for
+     * @return Server|null The server or null if not found
+     */
+    public static function findByName($name) {
+        $query = new Query();
+        $result = $query->table(static::$table)
+            ->where('name', $name)
+            ->first();
+            
+        if (!$result) {
+            return null;
+        }
+        
+        return new static($result);
+    }
+    
+    /**
+     * Find server by name and server ID
+     * 
+     * @param string $name The server name to search for
+     * @param int $serverId The server ID to filter by
+     * @return Server|null The server or null if not found
+     */
+    public static function findByNameAndServer($name, $serverId) {
+        $query = new Query();
+        $result = $query->table(static::$table)
+            ->where('name', $name)
+            ->where('id', $serverId)
+            ->first();
+            
+        if (!$result) {
+            return null;
+        }
+        
+        return new static($result);
+    }
+    
+    /**
      */
     public static function getForUser($userId) {
         $query = new Query();
@@ -77,16 +130,28 @@ class Server {
     }
     
     /**
-     * Get user's roles
      */
     public function members() {
         // Implementation
     }
     
     /**
-     * Get all channels in this server
+     * Check if a user is a member of this server
      * 
-     * @return array
+     * @param int $userId The user ID to check
+     * @return bool True if the user is a member, false otherwise
+     */
+    public function isMember($userId) {
+        $query = new Query();
+        $result = $query->table('user_server_memberships')
+            ->where('user_id', $userId)
+            ->where('server_id', $this->id)
+            ->first();
+            
+        return $result !== null;
+    }
+    
+    /**
      */
     public function channels() {
         $query = new Query();
@@ -98,9 +163,19 @@ class Server {
     }
     
     /**
-     * Generate a unique invite link
+     * Get all categories for this server
      * 
-     * @return string
+     * @return array Array of category data
+     */
+    public function categories() {
+        $query = new Query();
+        return $query->table('categories')
+            ->where('server_id', $this->id)
+            ->orderBy('position')
+            ->get();
+    }
+    
+    /**
      */
     public function generateInviteLink() {
         // Generate a unique string for the invite link
@@ -112,9 +187,6 @@ class Server {
     }
     
     /**
-     * Save the server to the database
-     * 
-     * @return bool
      */
     public function save() {
         $query = new Query();
@@ -149,11 +221,6 @@ class Server {
     }
     
     /**
-     * Add a user to this server
-     * 
-     * @param int $userId
-     * @param string $role (default: 'member')
-     * @return bool
      */
     public function addMember($userId, $role = 'member') {
         $query = new Query();
@@ -182,10 +249,6 @@ class Server {
     }
     
     /**
-     * Remove a user from this server
-     * 
-     * @param int $userId
-     * @return bool
      */
     public function removeMember($userId) {
         $query = new Query();
@@ -199,9 +262,6 @@ class Server {
     }
     
     /**
-     * Create the servers table if it doesn't exist
-     * 
-     * @return bool Whether the table exists after creation attempt
      */
     public static function createTable() {
         $query = new Query();
@@ -277,16 +337,12 @@ class Server {
     }
     
     /**
-     * Ensure the table exists before any operations
      */
     public static function initialize() {
         return self::createTable();
     }
     
     /**
-     * Get all servers
-     * 
-     * @return array
      */
     public static function all() {
         $query = new Query();

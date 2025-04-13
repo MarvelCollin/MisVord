@@ -151,79 +151,69 @@ class ChannelController {
     
     /**
      * Create a new category
-     * 
-     * @return void
      */
     public function createCategory() {
-        // Check if user is authenticated
+        // Check if user is logged in
         if (!isset($_SESSION['user_id'])) {
-            $this->jsonResponse(['success' => false, 'message' => 'Unauthorized'], 401);
-            return;
+            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            exit;
         }
+        
+        // Get parameters
+        $name = $_POST['name'] ?? '';
+        $serverId = $_POST['server_id'] ?? 0;
         
         // Validate input
-        $serverId = $_POST['server_id'] ?? null;
-        $name = $_POST['name'] ?? '';
-        
-        // Validate required fields
-        if (!$serverId) {
-            $this->jsonResponse(['success' => false, 'message' => 'Server ID is required'], 400);
-            return;
+        if (empty($name) || empty($serverId)) {
+            echo json_encode(['success' => false, 'message' => 'Missing required fields']);
+            exit;
         }
         
-        if (empty($name)) {
-            $this->jsonResponse(['success' => false, 'message' => 'Category name is required'], 400);
-            return;
-        }
-        
-        // Check if server exists
+        // Check if user has permission (is server member)
         $server = Server::find($serverId);
-        if (!$server) {
-            $this->jsonResponse(['success' => false, 'message' => 'Server not found'], 404);
-            return;
-        }
-        
-        // Check if user is admin or owner of the server
-        $membership = UserServerMembership::findByUserAndServer($_SESSION['user_id'], $serverId);
-        if (!$membership || ($membership->role !== 'admin' && $membership->role !== 'owner')) {
-            $this->jsonResponse([
-                'success' => false, 
-                'message' => 'You do not have permission to create categories in this server'
-            ], 403);
-            return;
-        }
-        
-        // Check if category name already exists in this server
-        $existingCategory = Category::findByNameAndServer($name, $serverId);
-        if ($existingCategory) {
-            $this->jsonResponse(['success' => false, 'message' => 'Category name already exists in this server'], 400);
-            return;
+        if (!$server || !$server->isMember($_SESSION['user_id'])) {
+            echo json_encode(['success' => false, 'message' => 'Permission denied']);
+            exit;
         }
         
         try {
-            // Create new category
+            // Create and save category
+            require_once __DIR__ . '/../database/models/Category.php';
             $category = new Category();
+            $category->name = strtoupper($name); // Categories are usually uppercase
             $category->server_id = $serverId;
-            $category->name = $name;
+            $category->position = $this->getNextCategoryPosition($serverId);
             
             if ($category->save()) {
-                $this->jsonResponse([
+                echo json_encode([
                     'success' => true, 
-                    'message' => 'Category created successfully',
+                    'message' => 'Category created successfully', 
                     'category' => [
                         'id' => $category->id,
-                        'name' => $category->name,
-                        'server_id' => $category->server_id,
-                        'created_at' => $category->created_at
+                        'name' => $category->name
                     ]
                 ]);
             } else {
-                $this->jsonResponse(['success' => false, 'message' => 'Failed to create category'], 500);
+                echo json_encode(['success' => false, 'message' => 'Failed to create category']);
             }
         } catch (Exception $e) {
             error_log("Error creating category: " . $e->getMessage());
-            $this->jsonResponse(['success' => false, 'message' => 'Server error: ' . $e->getMessage()], 500);
+            echo json_encode(['success' => false, 'message' => 'An error occurred']);
         }
+        
+        exit;
+    }
+
+    /**
+     * Get the next position for a new category
+     * 
+     * @param int $serverId Server ID
+     * @return int Next position value
+     */
+    private function getNextCategoryPosition($serverId) {
+        require_once __DIR__ . '/../database/models/Category.php';
+        $maxPosition = Category::getMaxPositionForServer($serverId);
+        return $maxPosition + 1;
     }
     
     /**
@@ -270,7 +260,6 @@ class ChannelController {
                 return;
             }
             
-            // Check if name already exists in this server (excluding current channel)
             $existingChannel = Channel::findByNameAndServer($data['name'], $channel->server_id);
             if ($existingChannel && $existingChannel->id != $channel->id) {
                 $this->jsonResponse([

@@ -1,10 +1,10 @@
 <?php
 
-// Define paths
-define('ROOT_PATH', dirname(__DIR__));
-define('VIEWS_PATH', ROOT_PATH . '/views');
-define('PUBLIC_PATH', ROOT_PATH . '/public');
-define('MIGRATIONS_PATH', ROOT_PATH . '/migrations');
+// Define paths - only if not already defined
+if (!defined('ROOT_PATH')) define('ROOT_PATH', dirname(__DIR__));
+if (!defined('VIEWS_PATH')) define('VIEWS_PATH', ROOT_PATH . '/views');
+if (!defined('PUBLIC_PATH')) define('PUBLIC_PATH', ROOT_PATH . '/public');
+if (!defined('MIGRATIONS_PATH')) define('MIGRATIONS_PATH', ROOT_PATH . '/migrations');
 
 /**
  * Get the URL for an asset file

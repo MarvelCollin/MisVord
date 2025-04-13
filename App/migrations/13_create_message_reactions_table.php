@@ -1,11 +1,10 @@
 <?php
 
 class CreateMessageReactionsTableMigration {
-    public function up($migration) {
-        $migration->createTable('message_reactions', function($table) {
+    public function up($migration) {        $migration->createTable('message_reactions', function($table) {
             $table->id();
-            $table->bigInteger('message_id', false, true);
-            $table->bigInteger('user_id', false, true);
+            $table->integer('message_id'); // Changed to integer to match messages table
+            $table->integer('user_id'); // Changed to integer to match users table
             $table->string('emoji');
             $table->timestamps();
             

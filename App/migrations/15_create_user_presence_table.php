@@ -1,14 +1,12 @@
 <?php
 
 class CreateUserPresenceTableMigration {
-    public function up($migration) {
-        $migration->createTable('user_presence', function($table) {
+    public function up($migration) {        $migration->createTable('user_presence', function($table) {
             $table->id();
-            $table->bigInteger('user_id', false, true);
-            $table->string('status', 255, true); // nullable
-            $table->string('activity_type', 255, true); // nullable
-            $table->string('activity_details', 255, true); // nullable
-            $table->timestamp('last_seen', true); // nullable
+            $table->integer('user_id'); // Changed to integer to match users table
+            $table->string('status')->nullable(); // Fixed nullable syntax            $table->string('activity_type')->nullable(); // Fixed nullable syntax
+            $table->string('activity_details')->nullable(); // Fixed nullable syntax
+            $table->timestamp('last_seen')->nullable(); // Fixed nullable syntax
             $table->timestamps();
             
             $table->foreignKey('user_id', 'users', 'id', 'CASCADE');

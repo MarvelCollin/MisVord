@@ -4,66 +4,81 @@ if (!function_exists('asset')) {
     require_once dirname(dirname(dirname(__DIR__))) . '/config/helpers.php';
 }
 
-// Fetch user's servers if the user is logged in
-$userServers = [];
-if (isset($_SESSION['user_id'])) {
-    require_once dirname(dirname(dirname(__DIR__))) . '/database/models/Server.php';
-    $userServers = Server::getForUser($_SESSION['user_id']);
+// Get user servers
+$currentUser = User::find($_SESSION['user_id'] ?? 0);
+$servers = $currentUser ? $currentUser->servers() : [];
+
+// Get current server ID from URL
+$currentServerID = null;
+
+// Check if the URL has a server ID parameter
+if (isset($_GET['server'])) {
+    $currentServerID = $_GET['server'];
+} else {
+    // Try to extract from URL path like /server/123
+    $uri = $_SERVER['REQUEST_URI'];
+    if (preg_match('/\/server\/(\d+)/', $uri, $matches)) {
+        $currentServerID = $matches[1];
+    }
 }
 
 // Get current server from GLOBALS
 $currentServer = $GLOBALS['currentServer'] ?? null;
+
+// Debugging
+error_log("Current server ID: " . ($currentServerID ?? 'null'));
+error_log("Current server object: " . ($currentServer ? json_encode(['id' => $currentServer->id, 'name' => $currentServer->name]) : 'null'));
 ?>
 
 <div class="flex h-full">
     <!-- Server Sidebar - Contains server icons -->
     <div class="server-sidebar bg-[#202225] py-3 flex flex-col items-center space-y-2">
         <!-- Home/DM Button -->
-        <div class="server-icon active-server p-1 mb-2">
-            <div class="w-12 h-12 rounded-2xl flex items-center justify-center bg-[#5865F2] hover:bg-[#5865F2]/90 transition">
+        <div class="server-icon p-1 mb-2">
+            <a href="/app" class="block w-12 h-12 rounded-2xl flex items-center justify-center bg-[#5865F2] hover:bg-[#5865F2]/90 transition">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                 </svg>
-            </div>
-            <div class="absolute left-0 w-1 h-10 bg-white rounded-r-full"></div>
+            </a>
+            <!-- Active indicator for home (only shown when no server is selected) -->
+            <?php if (empty($currentServerID)): ?>
+                <div class="absolute left-0 w-1 h-10 bg-white rounded-r-full"></div>
+            <?php endif; ?>
         </div>
 
         <div class="w-8 h-0.5 bg-gray-700 rounded-full mx-auto"></div>
 
         <!-- Servers - Dynamically loaded from database -->
-        <?php foreach ($userServers as $server): ?>
-            <div class="server-icon p-1" title="<?php echo htmlspecialchars($server->name); ?>">
-                <a href="/server/<?php echo $server->id; ?>" class="block">
-                    <div class="w-12 h-12 rounded-full bg-[#36393F] flex items-center justify-center hover:bg-[#5865F2] hover:rounded-2xl transition-all duration-200 overflow-hidden <?php echo ($currentServer && $currentServer->id == $server->id) ? 'bg-[#5865F2] rounded-2xl' : ''; ?>">
-                        <?php if ($server->image_url): ?>
-                            <img src="<?php echo $server->image_url; ?>" alt="<?php echo htmlspecialchars($server->name); ?>" class="w-full h-full object-cover">
-                        <?php else: ?>
-                            <?php 
-                            // Generate initials from server name
-                            $initials = '';
-                            $words = explode(' ', $server->name);
-                            foreach ($words as $word) {
-                                if (!empty($word)) {
-                                    $initials .= strtoupper(substr($word, 0, 1));
-                                    if (strlen($initials) >= 2) break;
-                                }
-                            }
-                            ?>
-                            <span class="text-discord-blue font-bold"><?php echo $initials; ?></span>
-                        <?php endif; ?>
-                    </div>
+        <?php foreach ($servers as $server): ?>
+            <div class="server-icon p-1 relative" title="<?php echo htmlspecialchars($server['name'] ?? 'Server'); ?>">
+                <a href="/server/<?php echo $server['id']; ?>" class="block w-12 h-12 rounded-full hover:rounded-2xl flex items-center justify-center transition-all duration-200 group
+                    <?php echo ($currentServerID == $server['id']) ? 'bg-discord-blue text-white' : 'bg-[#36393F] hover:bg-discord-blue text-gray-300 hover:text-white'; ?>">
+                    <?php if (!empty($server['icon_url'])): ?>
+                        <img src="<?php echo $server['icon_url']; ?>" alt="<?php echo htmlspecialchars($server['name'] ?? 'Server'); ?>" 
+                             class="w-full h-full object-cover rounded-full group-hover:rounded-2xl transition-all duration-200">
+                    <?php else: ?>
+                        <span class="font-medium text-lg"><?php echo substr($server['name'] ?? 'S', 0, 1); ?></span>
+                    <?php endif; ?>
                 </a>
-                <?php if ($currentServer && $currentServer->id == $server->id): ?>
-                    <div class="absolute left-0 w-1 h-10 bg-white rounded-r-full"></div>
+                
+                <!-- Active server indicator - Only shown for current server -->
+                <?php if ($currentServerID == $server['id']): ?>
+                    <div class="absolute left-0 top-1/2 transform -translate-y-1/2 w-1 h-10 bg-white rounded-r-full"></div>
                 <?php endif; ?>
+                
+                <!-- Server tooltip -->
+                <div class="absolute left-16 bg-black text-white text-xs px-2 py-1 rounded scale-0 group-hover:scale-100 transition-all duration-200 opacity-0 group-hover:opacity-100 whitespace-nowrap z-50">
+                    <?php echo htmlspecialchars($server['name'] ?? 'Server'); ?>
+                    <span class="absolute left-0 top-1/2 transform -translate-x-1/2 -translate-y-1/2 border-4 border-transparent border-r-black"></span>
+                </div>
             </div>
         <?php endforeach; ?>
         
         <!-- Add Server Button - Opens modal -->
         <div class="server-icon p-1 mt-2">
             <div id="addServerBtn" class="w-12 h-12 rounded-full bg-[#36393F] flex items-center justify-center hover:bg-green-500 hover:rounded-2xl transition-all duration-200 cursor-pointer">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-500 group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-500 hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
             </div>
         </div>
@@ -180,174 +195,41 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 300);
     }
     
-    // Open modal when add button is clicked
-    addServerBtn.addEventListener('click', openModal);
+    // Only set up event listeners if elements exist
+    if (addServerBtn) {
+        // Open modal when add button is clicked
+        addServerBtn.addEventListener('click', openModal);
+    }
     
-    // Close modal when close button is clicked
-    closeModalBtn.addEventListener('click', closeModal);
+    if (closeModalBtn) {
+        // Close modal when close button is clicked
+        closeModalBtn.addEventListener('click', closeModal);
+    }
     
-    // Close modal when clicking outside
-    modal.addEventListener('click', function(e) {
-        if (e.target === modal) closeModal();
-    });
-    
-    // Update image preview when file is selected
-    imageInput.addEventListener('change', function() {
-        if (this.files && this.files[0]) {
-            const reader = new FileReader();
-            
-            reader.onload = function(e) {
-                imagePreview.innerHTML = `<img src="${e.target.result}" alt="Server Icon Preview" class="w-full h-full object-cover">`;
-            }
-            
-            reader.readAsDataURL(this.files[0]);
-        } else {
-            // Reset to default icon if no file selected
-            imagePreview.innerHTML = `
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-            `;
-        }
-    });
-    
-    // Handle form submission
-    createServerForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const formData = new FormData(this);
-        const submitBtn = document.getElementById('createServerBtn');
-        
-        // Disable button and show loading state
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = `
-            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            Creating...
-        `;
-
-        // Send the server data via AJAX
-        fetch('/api/servers', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Add new server to the sidebar
-                addNewServerToSidebar(data.server);
-                
-                // Reset form
-                createServerForm.reset();
-                imagePreview.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                `;
-                
-                // Show success notification
-                showNotification('Server created successfully!');
-                
-                // Close modal
-                closeModal();
-            } else {
-                // Show error notification
-                showNotification('Error: ' + (data.message || 'Failed to create server'), 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error creating server:', error);
-            showNotification('Error creating server. Please try again.', 'error');
-        })
-        .finally(() => {
-            // Reset button
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Create Server';
+    if (modal) {
+        // Close modal when clicking outside
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) closeModal();
         });
-    });
-    
-    // Add new server to the sidebar
-    function addNewServerToSidebar(server) {
-        // Create server icon element
-        const serverIcon = document.createElement('div');
-        serverIcon.className = 'server-icon p-1';
-        
-        // Generate content based on whether there's an image
-        if (server.image_url) {
-            serverIcon.innerHTML = `
-                <div class="w-12 h-12 rounded-full bg-[#36393F] flex items-center justify-center hover:bg-[#5865F2] hover:rounded-2xl transition-all duration-200 overflow-hidden">
-                    <img src="${server.image_url}" alt="${server.name}" class="w-full h-full object-cover">
-                </div>
-            `;
-        } else {
-            // Use initials if no image
-            const initials = server.name.split(' ').map(word => word[0]).join('').substring(0, 2).toUpperCase();
-            serverIcon.innerHTML = `
-                <div class="w-12 h-12 rounded-full bg-[#36393F] flex items-center justify-center hover:bg-[#5865F2] hover:rounded-2xl transition-all duration-200">
-                    <span class="text-discord-blue font-bold">${initials}</span>
-                </div>
-            `;
-        }
-        
-        // Add tooltip with server name and description
-        serverIcon.title = server.description ? `${server.name}\n${server.description}` : server.name;
-        
-        // Insert before the "Add Server" button
-        const addServerBtn = document.getElementById('addServerBtn');
-        addServerBtn.parentNode.parentNode.insertBefore(serverIcon, addServerBtn.parentNode);
-        
-        // Add hover effect to the new server icon
-        addServerHoverEffect(serverIcon);
-        
-        // Apply animation to the new server icon
-        serverIcon.style.opacity = '0';
-        serverIcon.style.transform = 'scale(0.8)';
-        
-        setTimeout(() => {
-            serverIcon.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-            serverIcon.style.opacity = '1';
-            serverIcon.style.transform = 'scale(1)';
-        }, 10);
     }
     
     // Add hover effect to server icons
-    function addServerHoverEffect(serverIcon) {
-        serverIcon.addEventListener('mouseenter', function() {
-            const pill = document.createElement('div');
-            pill.className = 'absolute left-0 w-1 h-5 bg-white rounded-r-full transition-all duration-200';
-            pill.style.top = '15px';
-            this.appendChild(pill);
+    document.querySelectorAll('.server-icon').forEach(icon => {
+        // Skip if this is the currently selected server (it already has the indicator)
+        if (icon.querySelector('.absolute')) return;
+        
+        icon.addEventListener('mouseenter', function() {
+            // Create temporary hover indicator
+            const indicator = document.createElement('div');
+            indicator.className = 'absolute left-0 top-1/2 transform -translate-y-1/2 w-1 h-5 bg-white rounded-r-full transition-all duration-300 hover-indicator';
+            this.appendChild(indicator);
         });
         
-        serverIcon.addEventListener('mouseleave', function() {
-            const pill = this.querySelector(':scope > div.absolute');
-            if (pill) pill.remove();
+        icon.addEventListener('mouseleave', function() {
+            // Remove any temporary hover indicators
+            const indicator = this.querySelector('.hover-indicator');
+            if (indicator) indicator.remove();
         });
-    }
-    
-    // Show notification function
-    function showNotification(message, type = 'success') {
-        // Create notification element
-        const notification = document.createElement('div');
-        const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
-        notification.className = `fixed bottom-4 right-4 ${bgColor} text-white px-4 py-2 rounded shadow-lg z-50 transform translate-y-10 opacity-0 transition-all duration-300`;
-        notification.textContent = message;
-        document.body.appendChild(notification);
-        
-        // Animate in
-        setTimeout(() => {
-            notification.classList.remove('translate-y-10', 'opacity-0');
-        }, 10);
-        
-        // Remove after delay
-        setTimeout(() => {
-            notification.classList.add('translate-y-10', 'opacity-0');
-            setTimeout(() => {
-                notification.remove();
-            }, 300);
-        }, 3000);
-    }
+    });
 });
 </script>

@@ -72,11 +72,11 @@ class Channel {
     }
     
     /**
-     * Find a channel by name and server ID
+     * Find channel by name and server ID
      * 
-     * @param string $name
-     * @param int $serverId
-     * @return Channel|null
+     * @param string $name The channel name to search for
+     * @param int $serverId The server ID to filter by
+     * @return Channel|null The channel or null if not found
      */
     public static function findByNameAndServer($name, $serverId) {
         $query = new Query();
@@ -93,126 +93,31 @@ class Channel {
     }
     
     /**
-     * Get all channels for a server
+     * Get channels for a specific server
      * 
-     * @param int $serverId
-     * @param bool $includePrivate Whether to include private channels
+     * @param int $serverId Server ID
      * @return array
      */
-    public static function getByServer($serverId, $includePrivate = true) {
+    public static function getForServer($serverId) {
         $query = new Query();
-        $query->table(static::$table)
-            ->where('server_id', $serverId);
-            
-        if (!$includePrivate) {
-            $query->where('is_private', false);
-        }
-        
-        $results = $query->orderBy('type')
-            ->orderBy('name')
-            ->get();
-        
-        $channels = [];
-        foreach ($results as $result) {
-            $channels[] = new static($result);
-        }
-        
-        return $channels;
+        return $query->table(static::$table)
+                ->where('server_id', $serverId)
+                ->orderBy('position')
+                ->get();
     }
     
     /**
-     * Get uncategorized channels (where category_id is null)
+     * Get channels for a specific category
      * 
-     * @param int $serverId
+     * @param int $categoryId Category ID
      * @return array
      */
-    public static function getUncategorizedByServer($serverId) {
+    public static function getForCategory($categoryId) {
         $query = new Query();
-        $results = $query->table(static::$table)
-            ->where('server_id', $serverId)
-            ->whereNull('category_id')
-            ->orderBy('type')
-            ->orderBy('name')
-            ->get();
-        
-        $channels = [];
-        foreach ($results as $result) {
-            $channels[] = new static($result);
-        }
-        
-        return $channels;
-    }
-    
-    /**
-     * Get channels by category ID
-     * 
-     * @param int $categoryId
-     * @return array
-     */
-    public static function getByCategoryId($categoryId) {
-        $query = new Query();
-        $results = $query->table(static::$table)
-            ->where('category_id', $categoryId)
-            ->orderBy('type')
-            ->orderBy('name')
-            ->get();
-        
-        $channels = [];
-        foreach ($results as $result) {
-            $channels[] = new static($result);
-        }
-        
-        return $channels;
-    }
-    
-    /**
-     * Get the server this channel belongs to
-     * 
-     * @return Server|null
-     */
-    public function server() {
-        require_once __DIR__ . '/Server.php';
-        return Server::find($this->server_id);
-    }
-    
-    /**
-     * Get the category this channel belongs to (if any)
-     * 
-     * @return Category|null
-     */
-    public function category() {
-        if (!$this->category_id) {
-            return null;
-        }
-        
-        require_once __DIR__ . '/Category.php';
-        return Category::find($this->category_id);
-    }
-    
-    /**
-     * Get all messages for this channel
-     * 
-     * @param int $limit
-     * @param int $offset
-     * @return array
-     */
-    public function messages($limit = 50, $offset = 0) {
-        require_once __DIR__ . '/Message.php';
-        
-        $query = new Query();
-        $results = $query->table('messages')
-            ->where('channel_id', $this->id)
-            ->orderBy('created_at', 'DESC')
-            ->limit($limit)
-            ->offset($offset)
-            ->get();
-            
-        $messages = [];
-        foreach ($results as $result) {
-            $messages[] = new Message($result);
-        }
-        
-        return $messages;
+        return $query->table(static::$table)
+                ->where('category_id', $categoryId)
+                ->orderBy('position')
+                ->get();
     }
     
     /**
@@ -222,12 +127,6 @@ class Channel {
      */
     public function save() {
         $query = new Query();
-        
-        // Set timestamps
-        if (!isset($this->attributes['created_at'])) {
-            $this->attributes['created_at'] = date('Y-m-d H:i:s');
-        }
-        $this->attributes['updated_at'] = date('Y-m-d H:i:s');
         
         // If has ID, update; otherwise insert
         if (isset($this->attributes['id'])) {
@@ -260,8 +159,28 @@ class Channel {
     public function delete() {
         $query = new Query();
         return $query->table(static::$table)
-            ->where('id', $this->id)
-            ->delete() > 0;
+                ->where('id', $this->id)
+                ->delete() > 0;
+    }
+    
+    /**
+     * Get messages for this channel
+     * 
+     * @param int $limit Maximum number of messages to return
+     * @param int $offset Offset for pagination
+     * @return array
+     */
+    public function messages($limit = 50, $offset = 0) {
+        $query = new Query();
+        return $query->table('messages m')
+                ->select('m.*, u.username, u.avatar_url')
+                ->join('channel_messages cm', 'm.id', '=', 'cm.message_id')
+                ->join('users u', 'm.user_id', '=', 'u.id')
+                ->where('cm.channel_id', $this->id)
+                ->orderBy('m.sent_at', 'DESC')
+                ->limit($limit)
+                ->offset($offset)
+                ->get();
     }
     
     /**
@@ -277,15 +196,18 @@ class Channel {
             $tableExists = $query->tableExists(static::$table);
             
             if (!$tableExists) {
-                // Execute table creation query using the raw method
+                // Execute table creation query
                 $query->raw("
-                    CREATE TABLE IF NOT EXISTS channels (
+                    CREATE TABLE IF NOT EXISTS " . static::$table . " (
                         id INT AUTO_INCREMENT PRIMARY KEY,
+                        name VARCHAR(255) NOT NULL,
+                        type VARCHAR(20) NOT NULL DEFAULT 'text',
+                        description TEXT NULL,
                         server_id INT NOT NULL,
                         category_id INT NULL,
-                        name VARCHAR(255) NOT NULL,
-                        is_private BOOLEAN NOT NULL DEFAULT FALSE,
-                        type VARCHAR(255) NOT NULL,
+                        position INT NOT NULL DEFAULT 0,
+                        is_private TINYINT(1) NOT NULL DEFAULT 0,
+                        slug VARCHAR(255) NULL,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                         FOREIGN KEY (server_id) REFERENCES servers(id) ON DELETE CASCADE,
@@ -312,43 +234,12 @@ class Channel {
     }
     
     /**
-     * Create default channels for a server
+     * Get all channels
      * 
-     * @param int $serverId
-     * @return array Created channels
+     * @return array
      */
-    public static function createDefaultChannels($serverId) {
-        $defaultChannels = [
-            [
-                'name' => 'general',
-                'is_private' => false,
-                'type' => 'text'
-            ],
-            [
-                'name' => 'announcements',
-                'is_private' => false,
-                'type' => 'text'
-            ],
-            [
-                'name' => 'voice-chat',
-                'is_private' => false,
-                'type' => 'voice'
-            ]
-        ];
-        
-        $channels = [];
-        
-        foreach ($defaultChannels as $channelData) {
-            $channel = new static();
-            $channel->server_id = $serverId;
-            $channel->name = $channelData['name'];
-            $channel->is_private = $channelData['is_private'];
-            $channel->type = $channelData['type'];
-            $channel->save();
-            
-            $channels[] = $channel;
-        }
-        
-        return $channels;
+    public static function all() {
+        $query = new Query();
+        return $query->table(static::$table)->get();
     }
 }

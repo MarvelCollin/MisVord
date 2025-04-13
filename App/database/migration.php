@@ -15,6 +15,8 @@ class Migration {
     protected $uniqueIndexes = [];
     protected $fulltextIndexes = [];
     protected $spatialIndexes = [];
+    // Track nullable status for columns
+    protected $lastColumn = null;
 
     public function __construct($pdo = null) {
         if ($pdo) {
@@ -89,9 +91,7 @@ class Migration {
         $ifExistsClause = $ifExists ? 'IF EXISTS' : '';
         $sql = "DROP DATABASE $ifExistsClause `$name`";
         return $this->pdo->exec($sql);
-    }
-
-    public function createTable($tableName, callable $callback) {
+    }    public function createTable($tableName, callable $callback) {
         $this->tableName = $tableName;
         $this->columns = [];
         $this->foreignKeys = [];
@@ -104,6 +104,41 @@ class Migration {
 
         $sql = $this->buildCreateTableSQL();
         return $this->pdo->exec($sql);
+    }
+    
+    /**
+     * Creates a table with deferred foreign key constraints
+     * This is useful when tables reference each other circularly
+     *
+     * @param string $tableName The name of the table
+     * @param callable $callback The callback that defines the table
+     * @return bool Whether the table was created successfully
+     */
+    public function createTableWithoutForeignKeys($tableName, callable $callback) {
+        $this->tableName = $tableName;
+        $this->columns = [];
+        $this->foreignKeys = [];
+        $this->indexes = [];
+        $this->uniqueIndexes = [];
+        $this->fulltextIndexes = [];
+        $this->spatialIndexes = [];
+
+        $callback($this);
+
+        // Store foreign keys for later processing
+        $storedForeignKeys = $this->foreignKeys;
+        $this->foreignKeys = [];
+
+        $sql = $this->buildCreateTableSQL();
+        $result = $this->pdo->exec($sql);
+
+        // Store the foreign keys for this table for later addition
+        if (!empty($storedForeignKeys)) {
+            static $deferredForeignKeys = [];
+            $deferredForeignKeys[$tableName] = $storedForeignKeys;
+        }
+
+        return $result;
     }
 
     public function dropTable($tableName, $ifExists = false) {
@@ -187,43 +222,85 @@ class Migration {
         return $this->pdo->exec($sql);
     }
 
-    // Basic data types
-    public function id() {
-        $this->columns[] = "`id` BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY";
+    /**
+     * Set the last column definition as nullable
+     * 
+     * @return $this
+     */
+    public function nullable() {
+        if ($this->lastColumn !== null) {
+            // Find the last column and add NULL to it
+            $columnIndex = count($this->columns) - 1;
+            if ($columnIndex >= 0) {
+                // Replace NOT NULL with NULL in the column definition
+                $column = $this->columns[$columnIndex];
+                $column = str_replace('NOT NULL', 'NULL', $column);
+                $this->columns[$columnIndex] = $column;
+            }
+        }
         return $this;
     }
 
+    /**
+     * Add integer column
+     * 
+     * @param string $name Column name
+     * @param bool $autoIncrement Whether to auto-increment
+     * @param bool $unsigned Whether the integer is unsigned
+     * @return $this
+     */
+    public function integer($name, $autoIncrement = false, $unsigned = false) {
+        $type = $unsigned ? 'INT UNSIGNED' : 'INT';
+        $ai = $autoIncrement ? ' AUTO_INCREMENT' : '';
+        $this->columns[] = "`$name` $type NOT NULL$ai";
+        $this->lastColumn = $name;
+        return $this;
+    }
+
+    /**
+     * Add big integer column
+     * 
+     * @param string $name Column name
+     * @param bool $autoIncrement Whether to auto-increment
+     * @param bool $unsigned Whether the integer is unsigned
+     * @param bool $nullable Whether the column can be NULL
+     * @return $this
+     */
     public function bigInteger($name, $autoIncrement = false, $unsigned = false, $nullable = false) {
-        $type = "BIGINT(20)";
-        if ($unsigned) {
-            $type .= " UNSIGNED";
-        }
-        $nullable = $nullable ? "NULL" : "NOT NULL";
-        $autoInc = $autoIncrement ? "AUTO_INCREMENT" : "";
-        $this->columns[] = "`$name` $type $nullable $autoInc";
+        $type = $unsigned ? 'BIGINT UNSIGNED' : 'BIGINT';
+        $ai = $autoIncrement ? ' AUTO_INCREMENT' : '';
+        $null = $nullable ? ' NULL' : ' NOT NULL';
+        $this->columns[] = "`$name` $type$null$ai";
+        $this->lastColumn = $name;
         return $this;
     }
 
-    public function integer($name, $autoIncrement = false, $unsigned = false, $nullable = false) {
-        $type = "INT(11)";
-        if ($unsigned) {
-            $type .= " UNSIGNED";
-        }
-        $nullable = $nullable ? "NULL" : "NOT NULL";
-        $autoInc = $autoIncrement ? "AUTO_INCREMENT" : "";
-        $this->columns[] = "`$name` $type $nullable $autoInc";
-        return $this;
-    }
-
+    /**
+     * Add string column
+     * 
+     * @param string $name Column name
+     * @param int $length Column length
+     * @param bool $nullable Whether the column can be NULL
+     * @return $this
+     */
     public function string($name, $length = 255, $nullable = false) {
-        $nullable = $nullable ? "NULL" : "NOT NULL";
-        $this->columns[] = "`$name` VARCHAR($length) $nullable";
+        $null = $nullable ? ' NULL' : ' NOT NULL';
+        $this->columns[] = "`$name` VARCHAR($length)$null";
+        $this->lastColumn = $name;
         return $this;
     }
 
+    /**
+     * Add text column
+     * 
+     * @param string $name Column name
+     * @param bool $nullable Whether the column can be NULL
+     * @return $this
+     */
     public function text($name, $nullable = false) {
-        $nullable = $nullable ? "NULL" : "NOT NULL";
-        $this->columns[] = "`$name` TEXT $nullable";
+        $null = $nullable ? ' NULL' : ' NOT NULL';
+        $this->columns[] = "`$name` TEXT$null";
+        $this->lastColumn = $name;
         return $this;
     }
 
@@ -286,12 +363,52 @@ class Migration {
         return $this;
     }
 
+    /**
+     * Add an index to a column
+     * 
+     * @param string|array $columns Column name(s)
+     * @param string|null $name Index name (optional)
+     * @return $this
+     */
+    public function index($columns, $name = null) {
+        // Convert to array if a single column
+        if (!is_array($columns)) {
+            $columns = [$columns];
+        }
+        
+        // Generate index name if not provided
+        if ($name === null) {
+            $name = $this->tableName . '_' . implode('_', $columns) . '_idx';
+        }
+        
+        // Convert columns to string with proper backticks
+        $columnStr = implode('`, `', $columns);
+        
+        // Add to indexes array
+        $this->indexes[] = "INDEX `$name` (`$columnStr`)";
+        
+        return $this;
+    }
+
     protected function buildCreateTableSQL() {
         $temporary = $this->temporary ? 'TEMPORARY' : '';
         $ifNotExists = $this->ifNotExists ? 'IF NOT EXISTS' : '';
 
         $sql = "CREATE $temporary TABLE $ifNotExists `{$this->tableName}` (";
-        $sql .= implode(", ", $this->columns);
+
+        $columns = [];
+        foreach ($this->columns as $column) {
+            // Check if the column is nullable and adjust the SQL accordingly
+            if (stripos($column, 'NOT NULL') !== false) {
+                $column = str_ireplace('NOT NULL', '', $column);
+                $column = trim($column);
+                $columns[] = "$column";
+            } else {
+                $columns[] = "$column";
+            }
+        }
+
+        $sql .= implode(", ", $columns);
 
         if (!empty($this->foreignKeys)) {
             $sql .= ", " . implode(", ", $this->foreignKeys);
@@ -318,6 +435,11 @@ class Migration {
         return $sql;
     }
 
+    /**
+     * Create migrations table if it doesn't exist
+     * 
+     * @return bool Whether the table exists or was created successfully
+     */
     public function createMigrationTable() {
         try {
             // Check if migrations table exists
@@ -326,12 +448,25 @@ class Migration {
             return true; // Table exists
         } catch (PDOException $e) {
             // Table doesn't exist, create it
-            return $this->createTable('migrations', function($table) {
-                $table->id();
-                $table->string('migration');
-                $table->integer('batch');
-                $table->timestamps();
-            });
+            $sql = "CREATE TABLE IF NOT EXISTS `migrations` (
+                `id` INT AUTO_INCREMENT PRIMARY KEY, 
+                `migration` VARCHAR(255) NOT NULL, 
+                `batch` INT NOT NULL,
+                `created_at` TIMESTAMP NULL DEFAULT NULL,
+                `updated_at` TIMESTAMP NULL DEFAULT NULL
+            )";
+            
+            $result = $this->pdo->exec($sql);
+            
+            // Verify the table was created
+            try {
+                $stmt = $this->pdo->prepare("SELECT 1 FROM migrations LIMIT 1");
+                $stmt->execute();
+                return true;
+            } catch (PDOException $e) {
+                error_log("Failed to create migrations table: " . $e->getMessage());
+                return false;
+            }
         }
     }
 
@@ -365,6 +500,32 @@ class Migration {
             return 0;
         }
     }
+
+    /**
+     * Add a primary key auto-increment ID column
+     * 
+     * @return $this
+     */
+    public function id() {
+        $this->columns[] = "`id` INT AUTO_INCREMENT PRIMARY KEY";
+        $this->lastColumn = 'id';
+        return $this;
+    }
+
+    /**
+     * Execute a raw SQL query
+     * 
+     * @param string $sql Raw SQL query
+     * @return bool Whether the query was successful
+     */
+    public function raw($sql) {
+        try {
+            return $this->pdo->exec($sql);
+        } catch (PDOException $e) {
+            error_log("Database error in raw SQL: " . $e->getMessage());
+            throw $e;
+        }
+    }
 }
 
 class MigrationRunner {
@@ -388,9 +549,7 @@ class MigrationRunner {
         $this->pdo = $pdo;
         $this->migration = new Migration($pdo);
         $this->migrationsPath = $migrationsPath ?? $basePath . '/migrations';
-    }
-
-    public function run() {
+    }    public function run() {
         $this->migration->createMigrationTable();
         echo "- Migration tracking table ready\n";
 
@@ -434,6 +593,10 @@ class MigrationRunner {
             $file = $info['path'];
             include_once $file;
         }
+        
+        // Disable foreign key checks before running migrations
+        $this->pdo->exec("SET FOREIGN_KEY_CHECKS = 0");
+        echo "Foreign key checks disabled for migration process\n";
 
         foreach ($toRun as $migrationName => $info) {
             $className = $info['class'];
@@ -465,15 +628,41 @@ class MigrationRunner {
                 } catch (Exception $e) {
                     echo "⨯ Migration failed: {$e->getMessage()}\n";
                     echo "Migration batch #{$batch} failed.\n";
+                    echo "Re-enabling foreign key checks...\n";
+                    $this->pdo->exec("SET FOREIGN_KEY_CHECKS = 1");
                     return;
                 }
             } else {
                 echo "⨯ Class '$className' not found after loading file {$info['path']}\n";
             }
         }
+        
+        // Re-enable foreign key checks after all migrations are run
+        $this->pdo->exec("SET FOREIGN_KEY_CHECKS = 1");
+        echo "Foreign key checks re-enabled\n";
 
         echo "----------------------------------------\n";
         echo "Migration completed successfully: {$count} migrations executed.\n";
+    }
+
+    /**
+     * Drop all tables and re-run all migrations
+     * 
+     * @return void
+     */
+    public function fresh() {
+        try {
+            // First drop all tables
+            $this->dropAllTables();
+            
+            // Then run all migrations
+            $this->run();
+            
+            echo "----------------------------------------\n";
+            echo "Database refreshed successfully.\n";
+        } catch (Exception $e) {
+            echo "Error refreshing database: {$e->getMessage()}\n";
+        }
     }
 
     public function dropAllTables() {

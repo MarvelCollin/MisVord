@@ -1,15 +1,14 @@
 <?php
 
 class CreateMessagesTable2Migration {
-    public function up($migration) {
-        // First create the messages table without any foreign keys
+    public function up($migration) {        // First create the messages table without any foreign keys
         $migration->createTable('messages', function($table) {
             $table->id();
-            $table->bigInteger('user_id', false, true, true); // Changed to nullable to match ON DELETE SET NULL
-            $table->bigInteger('reply_message_id', false, true, true); // nullable
+            $table->integer('user_id')->nullable(); // Changed to integer to match users table id type
+            $table->integer('reply_message_id')->nullable(); // Changed to integer and made nullable
             $table->text('content');
             $table->dateTime('sent_at');
-            $table->dateTime('edited_at', true); // nullable
+            $table->dateTime('edited_at')->nullable(); // Fixed nullable syntax
             $table->string('message_type');
             $table->string('attachment_url', 255, true); // nullable
             $table->timestamps();

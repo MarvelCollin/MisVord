@@ -1,11 +1,10 @@
 <?php
 
 class CreatePinnedMessagesTableMigration {
-    public function up($migration) {
-        $migration->createTable('pinned_messages', function($table) {
+    public function up($migration) {        $migration->createTable('pinned_messages', function($table) {
             $table->id();
-            $table->bigInteger('message_id', false, true);
-            $table->bigInteger('pinned_by_user_id', false, true);
+            $table->integer('message_id'); // Changed to integer to match messages table
+            $table->integer('pinned_by_user_id'); // Changed to integer to match users table
             $table->dateTime('pinned_at');
             $table->timestamps();
             

@@ -1,11 +1,10 @@
 <?php
 
 class CreateUserRolesMigration {
-    public function up($migration) {
-        $migration->createTable('user_roles', function($table) {
+    public function up($migration) {        $migration->createTable('user_roles', function($table) {
             $table->id();
-            $table->bigInteger('user_id', false, true);
-            $table->bigInteger('role_id', false, true);
+            $table->integer('user_id'); // Changed to integer to match users table
+            $table->integer('role_id'); // Changed to integer to match roles table
             $table->timestamps();
             
             $table->foreignKey('user_id', 'users', 'id', 'CASCADE');

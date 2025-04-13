@@ -1,78 +1,77 @@
 <?php
-// Include helper functions if not already included
-if (!function_exists('asset')) {
-    require_once dirname(dirname(dirname(__DIR__))) . '/config/helpers.php';
-}
-
-// Get current server and its channels
+// Get current server from GLOBALS - set by ServerController
 $currentServer = $GLOBALS['currentServer'] ?? null;
+
+// Get channels and categories for this server
+$channels = [];
 $categories = [];
-$uncategorizedChannels = [];
 
 if ($currentServer) {
-    require_once dirname(dirname(dirname(__DIR__))) . '/database/models/Category.php';
-    require_once dirname(dirname(dirname(__DIR__))) . '/database/models/Channel.php';
+    // Get channels and categories from the server object if available
+    $channels = $currentServer->channels();
+    $categories = $currentServer->categories();
     
-    // Get categories for this server
-    $categories = Category::getByServer($currentServer->id);
-    
-    // Get uncategorized channels (where category_id is null)
-    $uncategorizedChannels = Channel::getUncategorizedByServer($currentServer->id);
-    
-    // Check if user is admin or owner to show admin controls
-    $isAdmin = false;
-    if (isset($_SESSION['user_id'])) {
-        require_once dirname(dirname(dirname(__DIR__))) . '/database/models/UserServerMembership.php';
-        $membership = UserServerMembership::findByUserAndServer($_SESSION['user_id'], $currentServer->id);
-        $isAdmin = $membership && ($membership->role === 'admin' || $membership->role === 'owner');
+    // Organize channels by category
+    $channelsByCategory = [];
+    foreach ($channels as $channel) {
+        $categoryId = $channel['category_id'] ?? 0; // Use 0 for uncategorized
+        if (!isset($channelsByCategory[$categoryId])) {
+            $channelsByCategory[$categoryId] = [];
+        }
+        $channelsByCategory[$categoryId][] = $channel;
     }
 }
 ?>
 
-<!-- Channel Sidebar -->
-<div class="channel-sidebar bg-[#2f3136] w-60 flex flex-col">
-    <!-- Server Header - Uses real data if available -->
-    <div class="p-4 shadow-md flex justify-between items-center">
-        <h2 class="text-white font-semibold truncate">
-            <?php 
-            echo isset($currentServer) && $currentServer ? 
-                htmlspecialchars($currentServer->name) : 
-                'MiscVord Server';
-            ?>
+<!-- Channel Section - Server name and channels list -->
+<div class="channel-section w-60 bg-[#2F3136] flex flex-col">
+    <!-- Server Name Header -->
+    <div class="server-header h-12 shadow-md flex items-center px-4 border-b border-gray-900">
+        <h2 class="text-white font-bold truncate">
+            <?php echo $currentServer ? htmlspecialchars($currentServer->name) : 'MiscVord'; ?>
         </h2>
-        <?php if (isset($isAdmin) && $isAdmin): ?>
-            <div class="relative">
-                <button id="serverSettingsBtn" class="text-gray-400 hover:text-white p-1 rounded">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                </button>
-                <div id="serverSettingsDropdown" class="hidden absolute right-0 mt-2 w-48 bg-[#18191c] rounded-md shadow-lg z-10">
-                    <div class="py-1">
-                        <button id="createCategoryBtn" class="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-[#5865F2] hover:text-white">
-                            Create Category
-                        </button>
-                        <button id="createChannelBtn" class="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-[#5865F2] hover:text-white">
-                            Create Channel
-                        </button>
-                        <div class="border-t border-gray-700 my-1"></div>
-                        <button id="serverInviteBtn" class="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-[#5865F2] hover:text-white">
-                            Invite People
-                        </button>
-                        <button id="serverSettingsMenuBtn" class="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-[#5865F2] hover:text-white">
-                            Server Settings
-                        </button>
-                    </div>
+        <?php if ($currentServer): ?>
+        <div class="ml-auto relative">
+            <button id="serverSettingsBtn" class="text-gray-400 hover:text-white p-1 rounded flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+            </button>
+            
+            <!-- Server Settings Dropdown Menu -->
+            <div id="serverSettingsDropdown" class="absolute right-0 top-full mt-1 w-48 bg-[#202225] rounded-md shadow-lg z-10 hidden overflow-hidden border border-gray-800">
+                <div class="py-1">
+                    <button id="createChannelOption" class="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                        </svg>
+                        Create Channel
+                    </button>
+                    <button id="createCategoryOption" class="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                        Create Category
+                    </button>
+                    <div class="border-t border-gray-700 my-1"></div>
+                    <button id="serverSettingsOption" class="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        Server Settings
+                    </button>
                 </div>
             </div>
+        </div>
         <?php endif; ?>
     </div>
     
-    <!-- Channel List -->
-    <div class="flex-1 overflow-y-auto p-2">
+    <!-- Channels Area with Scrolling -->
+    <div class="flex-1 overflow-y-auto py-4 px-2 space-y-2">
         <?php if ($currentServer): ?>
             <!-- Uncategorized Channels -->
-            <?php if (!empty($uncategorizedChannels)): ?>
+            <?php if (isset($channelsByCategory[0]) && !empty($channelsByCategory[0])): ?>
                 <div class="mb-4">
                     <div class="text-xs font-semibold text-gray-400 px-2 flex justify-between items-center mb-1">
                         <span>CHANNELS</span>
@@ -85,9 +84,9 @@ if ($currentServer) {
                         <?php endif; ?>
                     </div>
                     
-                    <?php foreach ($uncategorizedChannels as $channel): ?>
+                    <?php foreach ($channelsByCategory[0] as $channel): ?>
                         <div class="channel-item text-gray-400 hover:text-white hover:bg-gray-700 rounded px-2 py-1 flex items-center cursor-pointer">
-                            <?php if ($channel->type === 'text'): ?>
+                            <?php if ($channel['type'] === 'text'): ?>
                                 <span class="text-gray-400 mr-2">#</span>
                             <?php else: ?>
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -95,9 +94,10 @@ if ($currentServer) {
                                 </svg>
                             <?php endif; ?>
                             
-                            <span class="truncate"><?php echo htmlspecialchars($channel->name); ?></span>
+
+                            <span class="truncate"><?php echo htmlspecialchars($channel['name']); ?></span>
                             
-                            <?php if ($channel->is_private): ?>
+                            <?php if (!empty($channel['is_private'])): ?>
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 ml-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                                 </svg>
@@ -111,10 +111,10 @@ if ($currentServer) {
             <?php foreach ($categories as $category): ?>
                 <div class="category-container mb-4">
                     <div class="text-xs font-semibold text-gray-400 px-2 flex justify-between items-center mb-1 cursor-pointer category-header">
-                        <span class="category-name truncate"><?php echo htmlspecialchars($category->name); ?></span>
+                        <span class="category-name truncate"><?php echo htmlspecialchars($category['name']); ?></span>
                         <div class="flex items-center">
                             <?php if (isset($isAdmin) && $isAdmin): ?>
-                                <button class="add-channel-btn text-gray-400 hover:text-white mr-1" data-category="<?php echo $category->id; ?>">
+                                <button class="add-channel-btn text-gray-400 hover:text-white mr-1" data-category="<?php echo $category['id']; ?>">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                     </svg>
@@ -131,11 +131,11 @@ if ($currentServer) {
                     <div class="category-channels">
                         <?php 
                         // Get channels for this category
-                        $categoryChannels = Channel::getByCategoryId($category->id);
+                        $categoryChannels = $channelsByCategory[$category['id']] ?? [];
                         foreach ($categoryChannels as $channel): 
                         ?>
                             <div class="channel-item text-gray-400 hover:text-white hover:bg-gray-700 rounded px-2 py-1 flex items-center cursor-pointer">
-                                <?php if ($channel->type === 'text'): ?>
+                                <?php if ($channel['type'] === 'text'): ?>
                                     <span class="text-gray-400 mr-2">#</span>
                                 <?php else: ?>
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -143,9 +143,9 @@ if ($currentServer) {
                                     </svg>
                                 <?php endif; ?>
                                 
-                                <span class="truncate"><?php echo htmlspecialchars($channel->name); ?></span>
+                                <span class="truncate"><?php echo htmlspecialchars($channel['name']); ?></span>
                                 
-                                <?php if ($channel->is_private): ?>
+                                <?php if (!empty($channel['is_private'])): ?>
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 ml-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                                     </svg>
@@ -161,13 +161,104 @@ if ($currentServer) {
             </div>
         <?php endif; ?>
     </div>
+    
+    <!-- User Section -->
+    <div class="user-section h-14 bg-[#292B2F] flex items-center px-2">
+        <!-- ...existing code... -->
+    </div>
+</div>
+
+<!-- Create Channel Modal -->
+<div id="addChannelModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 hidden transition-all duration-300 ease-in-out">
+    <div class="bg-[#36393F] rounded-lg p-6 w-full max-w-md transform transition-all duration-300 ease-in-out scale-95 opacity-0" id="channelModalContent">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold text-white">Create Channel</h3>
+            <button id="closeChannelModalBtn" class="text-gray-400 hover:text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        
+        <form id="createChannelForm" action="/api/channels" method="POST" class="space-y-4">
+            <!-- Channel Type -->
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-1">CHANNEL TYPE</label>
+                <div class="flex space-x-4">
+                    <label class="flex items-center cursor-pointer">
+                        <input type="radio" name="type" value="text" class="hidden" checked>
+                        <div class="w-5 h-5 rounded-full border border-gray-600 flex items-center justify-center mr-2 radio-selector">
+                            <div class="w-3 h-3 rounded-full bg-discord-blue opacity-0 transition-opacity"></div>
+                        </div>
+                        <span class="text-sm text-gray-200">Text</span>
+                    </label>
+                    <label class="flex items-center cursor-pointer">
+                        <input type="radio" name="type" value="voice" class="hidden">
+                        <div class="w-5 h-5 rounded-full border border-gray-600 flex items-center justify-center mr-2 radio-selector">
+                            <div class="w-3 h-3 rounded-full bg-discord-blue opacity-0 transition-opacity"></div>
+                        </div>
+                        <span class="text-sm text-gray-200">Voice</span>
+                    </label>
+                </div>
+            </div>
+            
+            <!-- Channel Name -->
+            <div>
+                <label for="channelName" class="block text-sm font-medium text-gray-300 mb-1">CHANNEL NAME</label>
+                <input 
+                    type="text" 
+                    id="channelName" 
+                    name="name" 
+                    placeholder="new-channel" 
+                    class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
+                    required
+                >
+            </div>
+            
+            <!-- Channel Category -->
+            <div>
+                <label for="channelCategory" class="block text-sm font-medium text-gray-300 mb-1">CATEGORY</label>
+                <select 
+                    id="channelCategory" 
+                    name="category_id" 
+                    class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all"
+                >
+                    <option value="">No Category</option>
+                    <?php if (!empty($categories)): ?>
+                        <?php foreach ($categories as $category): ?>
+                            <option value="<?php echo $category['id']; ?>"><?php echo htmlspecialchars($category['name']); ?></option>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </select>
+            </div>
+            
+            <input type="hidden" name="server_id" value="<?php echo $currentServer ? $currentServer->id : ''; ?>">
+            
+            <div class="pt-4 flex space-x-3">
+                <button 
+                    type="button" 
+                    id="cancelChannelBtn"
+                    class="py-2.5 px-4 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-md transition-all"
+                >
+                    Cancel
+                </button>
+                <button 
+                    type="submit" 
+                    class="flex-1 py-2.5 bg-discord-blue hover:bg-discord-blue/90 text-white font-medium rounded-md transition-all"
+                    id="createChannelBtn"
+                >
+                    Create Channel
+                </button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <!-- Create Category Modal -->
-<div id="createCategoryModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 hidden transition-all duration-300 ease-in-out">
+<div id="addCategoryModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 hidden transition-all duration-300 ease-in-out">
     <div class="bg-[#36393F] rounded-lg p-6 w-full max-w-md transform transition-all duration-300 ease-in-out scale-95 opacity-0" id="categoryModalContent">
         <div class="flex justify-between items-center mb-6">
-            <h3 class="text-xl font-bold text-white">Create a New Category</h3>
+            <h3 class="text-xl font-bold text-white">Create Category</h3>
             <button id="closeCategoryModalBtn" class="text-gray-400 hover:text-white">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -176,25 +267,33 @@ if ($currentServer) {
         </div>
         
         <form id="createCategoryForm" action="/api/categories" method="POST" class="space-y-4">
-            <input type="hidden" name="server_id" value="<?php echo $currentServer ? $currentServer->id : ''; ?>">
-            
             <!-- Category Name -->
             <div>
-                <label for="categoryName" class="block text-sm font-medium text-gray-300 mb-1">CATEGORY NAME <span class="text-red-500">*</span></label>
+                <label for="categoryName" class="block text-sm font-medium text-gray-300 mb-1">CATEGORY NAME</label>
                 <input 
                     type="text" 
                     id="categoryName" 
                     name="name" 
+                    placeholder="NEW CATEGORY" 
                     class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
                     required
                 >
-                <div class="text-xs text-gray-400 mt-1">Category names may contain letters, numbers, and spaces.</div>
+                <p class="text-xs text-gray-400 mt-1">Categories help organize channels in your server</p>
             </div>
             
-            <div class="pt-4">
+            <input type="hidden" name="server_id" value="<?php echo $currentServer ? $currentServer->id : ''; ?>">
+            
+            <div class="pt-4 flex space-x-3">
+                <button 
+                    type="button" 
+                    id="cancelCategoryBtn"
+                    class="py-2.5 px-4 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-md transition-all"
+                >
+                    Cancel
+                </button>
                 <button 
                     type="submit" 
-                    class="w-full py-2.5 bg-discord-blue hover:bg-discord-blue/90 text-white font-medium rounded-md transition-all"
+                    class="flex-1 py-2.5 bg-discord-blue hover:bg-discord-blue/90 text-white font-medium rounded-md transition-all"
                     id="createCategoryBtn"
                 >
                     Create Category
@@ -204,143 +303,300 @@ if ($currentServer) {
     </div>
 </div>
 
-<!-- Create Channel Modal -->
-<div id="createChannelModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 hidden transition-all duration-300 ease-in-out">
-    <div class="bg-[#36393F] rounded-lg p-6 w-full max-w-md transform transition-all duration-300 ease-in-out scale-95 opacity-0" id="channelModalContent">
-        <div class="flex justify-between items-center mb-6">
-            <h3 class="text-xl font-bold text-white">Create a New Channel</h3>
-            <button id="closeChannelModalBtn" class="text-gray-400 hover:text-white">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
-        </div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Modal elements
+    const channelModal = document.getElementById('addChannelModal');
+    const categoryModal = document.getElementById('addCategoryModal');
+    const channelModalContent = document.getElementById('channelModalContent');
+    const categoryModalContent = document.getElementById('categoryModalContent');
+    
+    // Dropdown elements
+    const serverSettingsBtn = document.getElementById('serverSettingsBtn');
+    const serverSettingsDropdown = document.getElementById('serverSettingsDropdown');
+    const createChannelOption = document.getElementById('createChannelOption');
+    const createCategoryOption = document.getElementById('createCategoryOption');
+    const serverSettingsOption = document.getElementById('serverSettingsOption');
+    
+    // Channel modal buttons
+    const closeChannelModalBtn = document.getElementById('closeChannelModalBtn');
+    const cancelChannelBtn = document.getElementById('cancelChannelBtn');
+    
+    // Category modal buttons
+    const closeCategoryModalBtn = document.getElementById('closeCategoryModalBtn');
+    const cancelCategoryBtn = document.getElementById('cancelCategoryBtn');
+    
+    // Forms
+    const createChannelForm = document.getElementById('createChannelForm');
+    const createCategoryForm = document.getElementById('createCategoryForm');
+    
+    // Toggle dropdown when clicking the settings button
+    if (serverSettingsBtn && serverSettingsDropdown) {
+        serverSettingsBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            serverSettingsDropdown.classList.toggle('hidden');
+        });
         
-        <form id="createChannelForm" action="/api/channels" method="POST" class="space-y-4">
-            <input type="hidden" name="server_id" value="<?php echo $currentServer ? $currentServer->id : ''; ?>">
-            <input type="hidden" name="category_id" id="channelCategoryId" value="">
+        // Close dropdown when clicking elsewhere
+        document.addEventListener('click', function(e) {
+            if (!serverSettingsBtn.contains(e.target) && !serverSettingsDropdown.contains(e.target)) {
+                serverSettingsDropdown.classList.add('hidden');
+            }
+        });
+    }
+    
+    // Handle dropdown options
+    if (createChannelOption) {
+        createChannelOption.addEventListener('click', function() {
+            serverSettingsDropdown.classList.add('hidden');
+            openChannelModal();
+        });
+    }
+    
+    if (createCategoryOption) {
+        createCategoryOption.addEventListener('click', function() {
+            serverSettingsDropdown.classList.add('hidden');
+            openCategoryModal();
+        });
+    }
+    
+    if (serverSettingsOption) {
+        serverSettingsOption.addEventListener('click', function() {
+            serverSettingsDropdown.classList.add('hidden');
+            // Here you can add server settings functionality
+            alert('Server settings coming soon!');
+        });
+    }
+    
+    // Radio button selectors for channel types
+    document.querySelectorAll('input[type="radio"]').forEach(radio => {
+        const selector = radio.parentElement.querySelector('.radio-selector > div');
+        if (radio.checked) {
+            selector.classList.remove('opacity-0');
+        }
+        
+        radio.addEventListener('change', function() {
+            // Hide all indicators
+            document.querySelectorAll('.radio-selector > div').forEach(div => {
+                div.classList.add('opacity-0');
+            });
             
-            <!-- Channel Type -->
-            <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2">CHANNEL TYPE</label>
-                <div class="flex space-x-4">
-                    <label class="inline-flex items-center">
-                        <input type="radio" name="type" value="text" class="hidden" checked>
-                        <div class="w-5 h-5 rounded-full border border-gray-500 flex items-center justify-center mr-2 channel-type-radio">
-                            <div class="w-3 h-3 rounded-full bg-discord-blue hidden"></div>
-                        </div>
-                        <span class="text-white flex items-center">
-                            <span class="mr-1.5">#</span> Text
-                        </span>
-                    </label>
-                    <label class="inline-flex items-center">
-                        <input type="radio" name="type" value="voice" class="hidden">
-                        <div class="w-5 h-5 rounded-full border border-gray-500 flex items-center justify-center mr-2 channel-type-radio">
-                            <div class="w-3 h-3 rounded-full bg-discord-blue hidden"></div>
-                        </div>
-                        <span class="text-white flex items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                            </svg>
-                            Voice
-                        </span>
-                    </label>
-                </div>
-            </div>
+            // Show selected indicator
+            if (this.checked) {
+                selector.classList.remove('opacity-0');
+            }
+        });
+    });
+    
+    // Channel Modal Functions
+    function openChannelModal() {
+        channelModal.classList.remove('hidden');
+        // Use setTimeout to ensure transition works
+        setTimeout(() => {
+            channelModal.classList.add('opacity-100');
+            channelModalContent.classList.remove('scale-95', 'opacity-0');
+            channelModalContent.classList.add('scale-100', 'opacity-100');
+        }, 10);
+    }
+    
+    function closeChannelModal() {
+        channelModalContent.classList.remove('scale-100', 'opacity-100');
+        channelModalContent.classList.add('scale-95', 'opacity-0');
+        
+        // Hide after animation completes
+        setTimeout(() => {
+            channelModal.classList.add('hidden');
+        }, 300);
+    }
+    
+    // Category Modal Functions
+    function openCategoryModal() {
+        categoryModal.classList.remove('hidden');
+        // Use setTimeout to ensure transition works
+        setTimeout(() => {
+            categoryModal.classList.add('opacity-100');
+            categoryModalContent.classList.remove('scale-95', 'opacity-0');
+            categoryModalContent.classList.add('scale-100', 'opacity-100');
+        }, 10);
+    }
+    
+    function closeCategoryModal() {
+        categoryModalContent.classList.remove('scale-100', 'opacity-100');
+        categoryModalContent.classList.add('scale-95', 'opacity-0');
+        
+        // Hide after animation completes
+        setTimeout(() => {
+            categoryModal.classList.add('hidden');
+        }, 300);
+    }
+    
+    // Set up channel modal event listeners
+    if (closeChannelModalBtn) {
+        closeChannelModalBtn.addEventListener('click', closeChannelModal);
+    }
+    
+    if (cancelChannelBtn) {
+        cancelChannelBtn.addEventListener('click', closeChannelModal);
+    }
+    
+    if (channelModal) {
+        channelModal.addEventListener('click', function(e) {
+            if (e.target === channelModal) closeChannelModal();
+        });
+    }
+    
+    // Set up category modal event listeners
+    if (closeCategoryModalBtn) {
+        closeCategoryModalBtn.addEventListener('click', closeCategoryModal);
+    }
+    
+    if (cancelCategoryBtn) {
+        cancelCategoryBtn.addEventListener('click', closeCategoryModal);
+    }
+    
+    if (categoryModal) {
+        categoryModal.addEventListener('click', function(e) {
+            if (e.target === categoryModal) closeCategoryModal();
+        });
+    }
+    
+    // Handle channel form submission
+    if (createChannelForm) {
+        createChannelForm.addEventListener('submit', function(e) {
+            e.preventDefault();
             
-            <!-- Channel Name -->
-            <div>
-                <label for="channelName" class="block text-sm font-medium text-gray-300 mb-1">CHANNEL NAME <span class="text-red-500">*</span></label>
-                <input 
-                    type="text" 
-                    id="channelName" 
-                    name="name" 
-                    class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
-                    required
-                >
-                <div class="text-xs text-gray-400 mt-1">Channel names can't contain spaces, and must be lowercase.</div>
-            </div>
+            const formData = new FormData(this);
+            const submitBtn = document.getElementById('createChannelBtn');
             
-            <!-- Private Channel Switch -->
-            <div>
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h3 class="text-sm font-medium text-gray-300">PRIVATE CHANNEL</h3>
-                        <p class="text-xs text-gray-400">Only selected members and roles can view this channel</p>
-                    </div>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" name="is_private" value="true" class="sr-only peer">
-                        <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-discord-blue"></div>
-                    </label>
-                </div>
-            </div>
-            
-            <!-- Category Selection -->
-            <div>
-                <label for="channelCategory" class="block text-sm font-medium text-gray-300 mb-1">CATEGORY (OPTIONAL)</label>
-                <select 
-                    id="channelCategory" 
-                    class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
-                >
-                    <option value="">No Category</option>
-                    <?php foreach ($categories as $category): ?>
-                        <option value="<?php echo $category->id; ?>"><?php echo htmlspecialchars($category->name); ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            
-            <div class="pt-4">
-                <button 
-                    type="submit" 
-                    class="w-full py-2.5 bg-discord-blue hover:bg-discord-blue/90 text-white font-medium rounded-md transition-all"
-                    id="createChannelSubmitBtn"
-                >
-                    Create Channel
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
+            // Disable button and show loading state
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `
+                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Creating...
+            `;
 
-<!-- Server Invite Modal -->
-<div id="serverInviteModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 hidden transition-all duration-300 ease-in-out">
-    <div class="bg-[#36393F] rounded-lg p-6 w-full max-w-md transform transition-all duration-300 ease-in-out scale-95 opacity-0" id="inviteModalContent">
-        <div class="flex justify-between items-center mb-6">
-            <h3 class="text-xl font-bold text-white">Invite People</h3>
-            <button id="closeInviteModalBtn" class="text-gray-400 hover:text-white">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            // Send the channel data via AJAX
+            fetch('/api/channels', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success notification
+                    showNotification('Channel created successfully!');
+                    
+                    // Close modal
+                    closeChannelModal();
+                    
+                    // Reload the page to show the new channel
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    // Show error notification
+                    showNotification('Error: ' + (data.message || 'Failed to create channel'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error creating channel:', error);
+                showNotification('Error creating channel. Please try again.', 'error');
+            })
+            .finally(() => {
+                // Reset button
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Create Channel';
+            });
+        });
+    }
+    
+    // Handle category form submission
+    if (createCategoryForm) {
+        createCategoryForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const submitBtn = document.getElementById('createCategoryBtn');
+            
+            // Disable button and show loading state
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `
+                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-            </button>
-        </div>
+                Creating...
+            `;
+
+            // Send the category data via AJAX
+            fetch('/api/categories', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success notification
+                    showNotification('Category created successfully!');
+                    
+                    // Close modal
+                    closeCategoryModal();
+                    
+                    // Reload the page to show the new category
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    // Show error notification
+                    showNotification('Error: ' + (data.message || 'Failed to create category'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error creating category:', error);
+                showNotification('Error creating category. Please try again.', 'error');
+            })
+            .finally(() => {
+                // Reset button
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Create Category';
+            });
+        });
+    }
+    
+    // Show notification function
+    function showNotification(message, type = 'success') {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.classList.add('fixed', 'bottom-4', 'right-4', 'px-4', 'py-2', 'rounded', 'shadow-lg', 'text-white', 'transform', 'transition-all', 'duration-300', 'ease-in-out', 'translate-y-full', 'opacity-0', 'z-50');
         
-        <div class="space-y-4">
-            <p class="text-gray-300 text-sm">Share this link with others to grant access to this server</p>
-            
-            <div class="flex">
-                <input 
-                    type="text" 
-                    id="inviteLink" 
-                    class="flex-1 bg-[#202225] text-white border border-[#40444b] rounded-l-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
-                    value="<?php echo $currentServer && $currentServer->invite_link ? getBaseUrl() . '/join/' . $currentServer->invite_link : 'No invite link available'; ?>" 
-                    readonly
-                >
-                <button 
-                    id="copyInviteBtn" 
-                    class="bg-discord-blue hover:bg-discord-blue/90 text-white font-medium rounded-r-md px-4 transition-all"
-                >
-                    Copy
-                </button>
-            </div>
-            
-            <?php if ($currentServer && isset($isAdmin) && $isAdmin): ?>
-                <button 
-                    id="generateNewInviteBtn" 
-                    class="w-full py-2 mt-2 bg-[#4f545c] hover:bg-[#4f545c]/90 text-white font-medium rounded-md transition-all text-sm"
-                >
-                    Generate a New Link
-                </button>
-            <?php endif; ?>
-        </div>
-    </div>
-</div>
+        // Set style based on type
+        if (type === 'success') {
+            notification.classList.add('bg-green-500');
+        } else {
+            notification.classList.add('bg-red-500');
+        }
+        
+        // Set content
+        notification.textContent = message;
+        
+        // Add to DOM
+        document.body.appendChild(notification);
+        
+        // Trigger animation
+        setTimeout(() => {
+            notification.classList.remove('translate-y-full', 'opacity-0');
+        }, 10);
+        
+        // Remove after timeout
+        setTimeout(() => {
+            notification.classList.add('translate-y-full', 'opacity-0');
+            setTimeout(() => {
+                notification.remove();
+            }, 300);
+        }, 3000);
+    }
+});
+</script>
