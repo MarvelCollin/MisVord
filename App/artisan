@@ -1,90 +1,22 @@
 #!/usr/bin/env php
 <?php
-
-// Load environment configuration first - using absolute paths to avoid issues
-$basePath = __DIR__;
-require_once $basePath . '/config/env.php';
-require_once $basePath . '/database/migration.php';
-
-$command = isset($argv[1]) ? $argv[1] : null;
-$option = isset($argv[2]) ? $argv[2] : null;
-$steps = isset($argv[3]) ? (int)$argv[3] : 1;
-
-$runner = new MigrationRunner();
-
-switch ($command) {
-    case 'migrate':
-        switch ($option) {
-            case 'up':
-                echo "Running migrations...\n";
-                $runner->run();
-                break;
-            case 'down':
-            case 'rollback':
-                echo "Rolling back migrations...\n";
-                $runner->rollback($steps);
-                break;            
-            case 'fresh':
-                echo "Rolling back all migrations and running them again...\n";
-                $runner->dropAllTables(); // Drop all tables first
-                $runner->run();
-                break;
-            default:
-                echo "Running migrations...\n";
-                $runner->run();
-                break;
-        }
-        break;
-        
-    case 'serve':
-        // Get host and port from arguments or use defaults
-        $host = 'localhost';
-        $port = '8080';
-        
-        // Parse additional options
-        if ($option) {
-            if (strpos($option, ':') !== false) {
-                list($host, $port) = explode(':', $option);
-            } elseif (is_numeric($option)) {
-                $port = $option;
-            } else {
-                $host = $option;
-            }
-        }
-        
-        // Create router.php file for built-in server if it doesn't exist
-        $routerFile = $basePath . '/router.php';
-        if (!file_exists($routerFile)) {
-            file_put_contents($routerFile, '<?php
 /**
- * PHP Built-in Server Router
+ * MiscVord CLI Tool
  * 
- * This file routes all requests to the web.php router when using PHP\'s built-in server.
+ * This script provides command-line functionality for the MiscVord application.
  */
 
-// Route static files directly
-if (preg_match(\'/\\.(?:css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|webp)$/\', $_SERVER["REQUEST_URI"])) {
-    return false; // Let the built-in server handle static files
+// Check for the serve command
+if (isset($argv[1]) && $argv[1] === 'serve') {
+    echo "Starting MiscVord development server...\n";
+    include __DIR__ . '/serve.php';
+    exit;
 }
 
-// All other requests go through our router
-require_once __DIR__ . \'/config/web.php\';
-');
-            echo "Created server router file at {$routerFile}\n";
-        }
-        
-        echo "Starting development server at http://{$host}:{$port}\n";
-        echo "Press Ctrl+C to stop the server\n\n";
-        
-        // Execute the PHP server command
-        passthru("php -S {$host}:{$port} -t . {$routerFile}");
-        break;
-        
-    default:
-        echo "MiscVord Artisan Tool\n";
-        echo "------------------------\n";
-        echo "Usage:\n";
-        echo "  php artisan migrate [up|down|rollback|fresh] [steps] - Run or rollback migrations\n";
-        echo "  php artisan serve [host:port] - Run the development server (default: localhost:8080)\n";
-        break;
-}
+// Display help message if no valid command is provided
+echo "\nMiscVord CLI Tool\n";
+echo "==================\n\n";
+echo "Available commands:\n";
+echo "  serve               Start the development server\n";
+echo "\n";
+echo "Usage: php artisan [command] [options]\n";

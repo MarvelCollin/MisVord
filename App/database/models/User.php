@@ -216,9 +216,14 @@ class User {
             unset($this->attributes['id']);
             
             // Update
-            return $query->table(static::$table)
+            $result = $query->table(static::$table)
                     ->where('id', $id)
-                    ->update($this->attributes) > 0;
+                    ->update($this->attributes);
+            
+            // Restore the ID after update
+            $this->attributes['id'] = $id;
+            
+            return $result > 0;
         } else {
             // Insert
             $this->attributes['id'] = $query->table(static::$table)
@@ -226,6 +231,30 @@ class User {
             
             return $this->attributes['id'] > 0;
         }
+    }
+    
+    /**
+     * Create the users table if it doesn't exist
+     * 
+     * @return null
+     */
+    public static function createTable() {
+        $query = new Query();
+        $query->raw("
+            CREATE TABLE IF NOT EXISTS users (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                username VARCHAR(255) NOT NULL,
+                email VARCHAR(255) NOT NULL UNIQUE,
+                password VARCHAR(255),
+                google_id VARCHAR(255) NULL,
+                avatar_url VARCHAR(255) NULL,
+                status ENUM('online', 'away', 'offline', 'dnd') DEFAULT 'offline',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            )
+        ");
+        
+        return null;
     }
     
     /**
