@@ -5,7 +5,10 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "socket": "node socket-server.js",
+    "dev:socket": "nodemon socket-server.js",
+    "dev:all": "concurrently \"npm run dev\" \"npm run dev:socket\""
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -14,6 +17,7 @@
     "socket.io": "^4.7.2"
   },
   "devDependencies": {
+    "concurrently": "^8.2.1",
     "nodemon": "^3.0.1"
   },
   "engines": {

@@ -57,6 +57,22 @@ if (file_exists($errorLogPath) && is_readable($errorLogPath)) {
     $phpErrors = array_slice($errors, -10); // Get last 10 errors
 }
 
+// Check WebSocket server status
+$socketStatus = [
+    'server_url' => $_ENV['SOCKET_SERVER'] ?? 'http://localhost:3000',
+    'status' => 'unknown'
+];
+
+// Try to ping the socket server
+$socketCheck = @file_get_contents($socketStatus['server_url'] . '/status');
+if ($socketCheck !== false) {
+    $socketStatus['status'] = 'online';
+    $socketStatus['response'] = json_decode($socketCheck, true);
+} else {
+    $socketStatus['status'] = 'offline';
+    $socketStatus['error'] = 'Could not connect to WebSocket server';
+}
+
 // Return debug information
 echo json_encode([
     'timestamp' => date('Y-m-d H:i:s'),
@@ -69,6 +85,7 @@ echo json_encode([
     ],
     'database' => $dbStatus,
     'php_errors' => $phpErrors,
+    'websocket' => $socketStatus,
     'server_info' => [
         'php_version' => phpversion(),
         'server_software' => $_SERVER['SERVER_SOFTWARE'] ?? 'Unknown',

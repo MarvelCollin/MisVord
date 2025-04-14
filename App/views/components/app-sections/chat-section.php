@@ -3,6 +3,9 @@
 if (!function_exists('asset')) {
     require_once dirname(dirname(dirname(__DIR__))) . '/config/helpers.php';
 }
+
+// Get socket server URL from ENV or use default
+$socketServer = $_ENV['SOCKET_SERVER'] ?? 'http://localhost:3000';
 ?>
 <!-- Chat Section - Main chat area with messages -->
 <div class="chat-section flex flex-col h-full">
@@ -59,7 +62,7 @@ if (!function_exists('asset')) {
         </div>
     </div>
     
-    <!-- New Message Form - remove the bottom margin (mb-14) -->
+    <!-- New Message Form -->
     <form id="messageForm" class="p-4 border-t border-[#2D3136]">
         <div class="bg-[#40444b] rounded-lg flex items-center p-1">
             <button type="button" class="p-2 text-gray-400 hover:text-white">
@@ -93,6 +96,14 @@ if (!function_exists('asset')) {
             </button>
         </div>
     </form>
+
+    <!-- Connection status indicator -->
+    <div id="connectionStatus" class="fixed bottom-2 left-2 px-2 py-1 rounded text-xs hidden">
+        <span class="flex items-center">
+            <span id="connectionStatusDot" class="w-2 h-2 rounded-full mr-1"></span>
+            <span id="connectionStatusText"></span>
+        </span>
+    </div>
 </div>
 
 <style>
@@ -154,6 +165,25 @@ if (!function_exists('asset')) {
     }
 }
 
+/* Connection status styles */
+#connectionStatus.connected #connectionStatusDot {
+    background-color: #57F287;
+}
+
+#connectionStatus.connecting #connectionStatusDot {
+    background-color: #FAA61A;
+    animation: blink 1.5s infinite;
+}
+
+#connectionStatus.disconnected #connectionStatusDot {
+    background-color: #ED4245;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+}
+
 /* Remove the bottom padding adjustment since we've moved the user profile */
 #messagesContainer {
     padding-bottom: 1rem;
@@ -165,8 +195,15 @@ if (!function_exists('asset')) {
 }
 </style>
 
+<!-- Socket.IO client script -->
+<script src="https://cdn.socket.io/4.6.0/socket.io.min.js" integrity="sha384-c79GN5VsunZvi+Q/WObgk2in0CbZsHnjEqvFxC5DxHn9lTfNce2WW6h2pH6u/kF+" crossorigin="anonymous"></script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Socket connection
+    const socket = io('<?php echo $socketServer; ?>');
+    
+    // DOM elements
     const messagesContainer = document.getElementById('messagesContainer');
     const messageInput = document.getElementById('messageInput');
     const messageForm = document.getElementById('messageForm');
@@ -176,14 +213,75 @@ document.addEventListener('DOMContentLoaded', function() {
     const typingIndicator = document.querySelector('.typing-indicator');
     const typingUsername = document.getElementById('typingUsername');
     const channelHeaderName = document.querySelector('.channel-header-name');
+    const connectionStatus = document.getElementById('connectionStatus');
+    const connectionStatusText = document.getElementById('connectionStatusText');
     
+    // State variables
     let isLoadingMessages = false;
     let currentChannelId = null;
     let messagesLastFetchTime = 0;
+    let typingTimeout;
     
-    // WebSocket connection for real-time messaging
-    let socket; // Will be initialized when loading a channel
+    // Socket.IO connection events
+    socket.on('connect', function() {
+        console.log('Connected to WebSocket server');
+        updateConnectionStatus('connected', 'Connected');
+        
+        // Join with user information
+        socket.emit('join', {
+            userId: '<?php echo $_SESSION['user_id']; ?>',
+            username: '<?php echo $_SESSION['username']; ?>'
+        });
+        
+        // If we were previously in a channel, rejoin it
+        if (currentChannelId) {
+            socket.emit('subscribe', { channelId: currentChannelId });
+        }
+    });
     
+    socket.on('disconnect', function() {
+        console.log('Disconnected from WebSocket server');
+        updateConnectionStatus('disconnected', 'Disconnected');
+    });
+    
+    socket.on('connect_error', function(error) {
+        console.error('Connection error:', error);
+        updateConnectionStatus('disconnected', 'Connection Error');
+    });
+    
+    socket.on('joined', function(data) {
+        console.log('Joined WebSocket server:', data);
+    });
+    
+    socket.on('subscribed', function(data) {
+        console.log('Subscribed to channel:', data);
+    });
+    
+    // Message events
+    socket.on('message', function(message) {
+        console.log('Received message:', message);
+        handleNewMessage(message);
+    });
+    
+    socket.on('user_typing', function(data) {
+        handleUserTyping(data);
+    });
+    
+    socket.on('user_joined_channel', function(data) {
+        showNotification(`${data.user.username} joined the channel`, 'info');
+    });
+    
+    socket.on('user_left_channel', function(data) {
+        showNotification(`${data.user.username} left the channel`, 'info');
+    });
+    
+    // Function to update connection status UI
+    function updateConnectionStatus(status, text) {
+        connectionStatus.className = `fixed bottom-2 left-2 px-2 py-1 rounded text-xs bg-[#202225] ${status}`;
+        connectionStatus.classList.remove('hidden');
+        connectionStatusText.textContent = text;
+    }
+
     // Function to load messages for a channel
     window.loadChannel = function(channelId, channelName) {
         // Set current channel
@@ -199,11 +297,11 @@ document.addEventListener('DOMContentLoaded', function() {
         messagesContainer.innerHTML = '';
         loadingMessages.classList.remove('hidden');
         
+        // Subscribe to this channel via WebSocket
+        socket.emit('subscribe', { channelId: channelId });
+        
         // Fetch messages
         fetchMessages(channelId);
-        
-        // Connect to WebSocket for this channel
-        connectToWebSocket(channelId);
     };
     
     // Function to fetch messages from the server
@@ -211,6 +309,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (isLoadingMessages) return;
         
         isLoadingMessages = true;
+        updateConnectionStatus('connecting', 'Loading messages...');
         
         // Get the current server ID from the URL or a hidden input
         const serverId = getCurrentServerId();
@@ -232,6 +331,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 isLoadingMessages = false;
                 loadingMessages.classList.add('hidden');
+                updateConnectionStatus('connected', 'Connected');
                 
                 if (data.success) {
                     // Clear existing messages if this is initial load
@@ -267,6 +367,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <p>Error loading messages: ${data.message || 'Unknown error'}</p>
                         </div>
                     `;
+                    updateConnectionStatus('disconnected', 'Error loading messages');
                 }
             })
             .catch(error => {
@@ -279,6 +380,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <p class="text-sm mt-2">${error.message}</p>
                     </div>
                 `;
+                updateConnectionStatus('disconnected', 'Connection error');
             });
     }
     
@@ -380,7 +482,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Clear input
         messageInput.value = '';
         
-        // Show loading state (optional)
+        // Show loading state
         sendMessageBtn.disabled = true;
         
         // Get the current server ID
@@ -391,7 +493,7 @@ document.addEventListener('DOMContentLoaded', function() {
             `/api/servers/${serverId}/channels/${currentChannelId}/messages` : 
             `/api/channels/${currentChannelId}/messages`;
         
-        // Send message to server as JSON
+        // Send message to server
         fetch(apiUrl, {
             method: 'POST',
             headers: {
@@ -417,10 +519,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 messageInput.value = content;
                 showNotification('Failed to send message: ' + data.message, 'error');
             } else {
-                // Immediately display the new message in the UI
-                if (data.data) {
-                    handleNewMessage(data.data);
-                }
+                // Send the message through WebSocket as well
+                socket.emit('message', {
+                    id: data.data.id,
+                    channelId: currentChannelId,
+                    content: content,
+                    sent_at: new Date().toISOString(),
+                    user: {
+                        userId: '<?php echo $_SESSION['user_id']; ?>',
+                        username: '<?php echo $_SESSION['username']; ?>'
+                    }
+                });
             }
         })
         .catch(error => {
@@ -460,67 +569,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 3000);
     }
     
-    // Function to connect to WebSocket for real-time messaging
-    function connectToWebSocket(channelId) {
-        // Close existing socket if any
-        if (socket) {
-            socket.close();
-        }
-        
-        // For this example, we'll simulate WebSocket with a simple event handling system
-        // In a real app, you'd connect to your WebSocket server
-        socket = {
-            // Simulate WebSocket events
-            listeners: {},
-            on: function(event, callback) {
-                if (!this.listeners[event]) {
-                    this.listeners[event] = [];
-                }
-                this.listeners[event].push(callback);
-            },
-            emit: function(event, data) {
-                if (this.listeners[event]) {
-                    this.listeners[event].forEach(callback => callback(data));
-                }
-            },
-            close: function() {
-                this.listeners = {};
-            }
-        };
-        
-        // Setup event listeners
-        socket.on('message', function(data) {
-            handleNewMessage(data);
-        });
-        
-        socket.on('message_updated', function(data) {
-            handleMessageUpdate(data);
-        });
-        
-        socket.on('message_deleted', function(data) {
-            handleMessageDelete(data);
-        });
-        
-        socket.on('user_typing', function(data) {
-            handleUserTyping(data);
-        });
-        
-        // For demo purposes, we'll simulate messages coming in
-        // In a real app, these would come from the WebSocket server
-        setTimeout(() => {
-            simulateIncomingMessage();
-        }, 10000);
-    }
-    
     // Function to handle new messages received via WebSocket
     function handleNewMessage(message) {
         // Check if we're looking at the right channel
-        if (message.channel_id && message.channel_id != currentChannelId) {
+        if (message.channelId && message.channelId != currentChannelId) {
             return;
         }
         
         // Find if there's an existing message group for this user
-        const lastMessageGroup = messagesContainer.querySelector(`.message-group[data-user-id="${message.user.id}"]:last-child`);
+        const lastMessageGroup = messagesContainer.querySelector(`.message-group[data-user-id="${message.user.userId}"]`);
         
         if (lastMessageGroup && isRecentMessage(lastMessageGroup)) {
             // Add to existing group
@@ -539,7 +596,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Create new message group
             const messageGroupDiv = document.createElement('div');
             messageGroupDiv.className = 'message-group flex mb-4';
-            messageGroupDiv.dataset.userId = message.user.id;
+            messageGroupDiv.dataset.userId = message.user.userId;
             messageGroupDiv.dataset.timestamp = new Date().getTime();
             
             // Avatar
@@ -615,7 +672,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Function to handle typing indicator
     function handleUserTyping(data) {
         // Don't show typing indicator for own messages
-        if (data.user.id === '<?php echo $_SESSION['user_id']; ?>') {
+        if (data.user.userId === '<?php echo $_SESSION['user_id']; ?>') {
             return;
         }
         
@@ -629,7 +686,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 3000);
     }
     
-    // Adjust scroll position to account for the user profile section
+    // Adjust scroll position
     function scrollToBottom() {
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
@@ -654,49 +711,21 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Send typing indicator when user starts typing
-    let typingTimeout;
     messageInput.addEventListener('input', function() {
         if (!currentChannelId) return;
         
         clearTimeout(typingTimeout);
         
-        // Emit typing event (would go to WebSocket in real implementation)
-        /*
+        // Emit typing event to WebSocket
         socket.emit('typing', {
-            channel_id: currentChannelId,
-            user: {
-                id: '<?php echo $_SESSION['user_id']; ?>',
-                username: '<?php echo $_SESSION['username']; ?>'
-            }
+            channelId: currentChannelId,
+            userId: '<?php echo $_SESSION['user_id']; ?>'
         });
-        */
         
         // Stop "typing" after 3 seconds of inactivity
         typingTimeout = setTimeout(() => {
-            // Emit stopped typing event
+            // Could emit a "stopped typing" event if needed
         }, 3000);
     });
-    
-    // Function to simulate an incoming message (for demo purposes)
-    function simulateIncomingMessage() {
-        if (!currentChannelId) return;
-        
-        // Simulate a new message coming in
-        const simulatedMessage = {
-            id: 'sim_' + Date.now(),
-            content: 'This is a simulated message. In a real app, messages would come in via WebSockets! 🚀',
-            channel_id: currentChannelId,
-            sent_at: new Date().toISOString(),
-            formatted_time: 'Just now',
-            user: {
-                id: 'system',
-                username: 'MiscVord Bot',
-                avatar_url: '<?php echo asset('/landing-page/discord-logo.webp'); ?>'
-            }
-        };
-        
-        // Process the message as if it came from WebSocket
-        handleNewMessage(simulatedMessage);
-    }
 });
 </script>

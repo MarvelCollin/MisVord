@@ -4,6 +4,7 @@ require_once __DIR__ . '/../database/models/Message.php';
 require_once __DIR__ . '/../database/models/Channel.php';
 require_once __DIR__ . '/../database/models/UserServerMembership.php';
 require_once __DIR__ . '/../database/models/User.php';
+require_once __DIR__ . '/../utils/WebSocketClient.php';
 
 class MessageController {
     /**
@@ -178,15 +179,180 @@ class MessageController {
                 $message->avatar_url = $user->avatar_url;
             }
             
+            // Format message for response
+            $formattedMessage = $this->formatMessage($message);
+
+            // Broadcast message to WebSocket server if available
+            try {
+                $this->broadcastToWebSocket('message', [
+                    'id' => $message->id,
+                    'channelId' => $channelId,
+                    'content' => $message->content,
+                    'sent_at' => $message->sent_at,
+                    'formatted_time' => $formattedMessage['formatted_time'],
+                    'user' => [
+                        'userId' => $message->user_id,
+                        'username' => $formattedMessage['user']['username'],
+                        'avatar_url' => $formattedMessage['user']['avatar_url']
+                    ]
+                ]);
+            } catch (Exception $e) {
+                error_log("Failed to broadcast to WebSocket server: " . $e->getMessage());
+                // Don't fail the request if WebSocket broadcast fails
+            }
+            
             // Return success response with created message
             $this->jsonResponse([
                 'success' => true, 
                 'message' => 'Message sent successfully',
-                'data' => $this->formatMessage($message)
+                'data' => $formattedMessage
             ]);
         } catch (Exception $e) {
             error_log("Error creating message: " . $e->getMessage() . "\n" . $e->getTraceAsString());
             $this->jsonResponse(['success' => false, 'message' => 'Server error: ' . $e->getMessage()], 500);
+        }
+    }
+    
+    /**
+     * Update an existing message
+     * 
+     * @param int $id Message ID
+     * @return void
+     */
+    public function updateMessage($id) {
+        // Check if user is authenticated
+        if (!isset($_SESSION['user_id'])) {
+            $this->jsonResponse(['success' => false, 'message' => 'Unauthorized'], 401);
+            return;
+        }
+        
+        // Find message
+        $message = Message::find($id);
+        if (!$message) {
+            $this->jsonResponse(['success' => false, 'message' => 'Message not found'], 404);
+            return;
+        }
+        
+        // Check if user is the author of this message
+        if ($message->user_id != $_SESSION['user_id']) {
+            $this->jsonResponse(['success' => false, 'message' => 'You can only edit your own messages'], 403);
+            return;
+        }
+        
+        // Get request data
+        $data = json_decode(file_get_contents('php://input'), true);
+        if (!$data) {
+            $this->jsonResponse(['success' => false, 'message' => 'Invalid request data'], 400);
+            return;
+        }
+        
+        // Update message
+        try {
+            // Only content can be edited
+            if (isset($data['content'])) {
+                $message->content = $data['content'];
+                $message->edited_at = date('Y-m-d H:i:s');
+                
+                if ($message->save()) {
+                    $formattedMessage = $this->formatMessage($message);
+                    
+                    // Broadcast update to WebSocket server if available
+                    try {
+                        $this->broadcastToWebSocket('message_updated', [
+                            'id' => $message->id,
+                            'content' => $message->content,
+                            'edited_at' => $message->edited_at,
+                            'user' => [
+                                'userId' => $message->user_id,
+                                'username' => $formattedMessage['user']['username']
+                            ]
+                        ]);
+                    } catch (Exception $e) {
+                        error_log("Failed to broadcast message update to WebSocket: " . $e->getMessage());
+                    }
+                    
+                    $this->jsonResponse([
+                        'success' => true, 
+                        'message' => 'Message updated successfully',
+                        'data' => $formattedMessage
+                    ]);
+                } else {
+                    $this->jsonResponse(['success' => false, 'message' => 'Failed to update message'], 500);
+                }
+            } else {
+                $this->jsonResponse(['success' => false, 'message' => 'No content provided for update'], 400);
+            }
+        } catch (Exception $e) {
+            $this->jsonResponse(['success' => false, 'message' => 'Server error: ' . $e->getMessage()], 500);
+        }
+    }
+    
+    /**
+     * Delete a message
+     * 
+     * @param int $id Message ID
+     * @return void
+     */
+    public function deleteMessage($id) {
+        // Check if user is authenticated
+        if (!isset($_SESSION['user_id'])) {
+            $this->jsonResponse(['success' => false, 'message' => 'Unauthorized'], 401);
+            return;
+        }
+        
+        // Find message
+        $message = Message::find($id);
+        if (!$message) {
+            $this->jsonResponse(['success' => false, 'message' => 'Message not found'], 404);
+            return;
+        }
+        
+        // Check if user is the author or has admin rights
+        if ($message->user_id != $_SESSION['user_id'] && !isset($_SESSION['is_admin'])) {
+            $this->jsonResponse(['success' => false, 'message' => 'You can only delete your own messages'], 403);
+            return;
+        }
+        
+        // Delete message
+        try {
+            if ($message->delete()) {
+                // Broadcast deletion to WebSocket server if available
+                try {
+                    $this->broadcastToWebSocket('message_deleted', [
+                        'id' => $id,
+                        'deleted_by' => $_SESSION['user_id']
+                    ]);
+                } catch (Exception $e) {
+                    error_log("Failed to broadcast message deletion to WebSocket: " . $e->getMessage());
+                }
+                
+                $this->jsonResponse([
+                    'success' => true, 
+                    'message' => 'Message deleted successfully'
+                ]);
+            } else {
+                $this->jsonResponse(['success' => false, 'message' => 'Failed to delete message'], 500);
+            }
+        } catch (Exception $e) {
+            $this->jsonResponse(['success' => false, 'message' => 'Server error: ' . $e->getMessage()], 500);
+        }
+    }
+    
+    /**
+     * Broadcast message to WebSocket server
+     * 
+     * @param string $event Event name
+     * @param array $data Event data
+     * @return bool Success status
+     */
+    private function broadcastToWebSocket($event, $data) {
+        try {
+            // Use the WebSocketClient utility class
+            $client = new WebSocketClient();
+            return $client->broadcast($event, $data);
+        } catch (Exception $e) {
+            error_log("WebSocket broadcast error: " . $e->getMessage());
+            return false;
         }
     }
     
