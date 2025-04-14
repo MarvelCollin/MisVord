@@ -222,6 +222,9 @@ document.addEventListener('DOMContentLoaded', function() {
     let messagesLastFetchTime = 0;
     let typingTimeout;
     
+    // Track message IDs we've already displayed to prevent duplicates
+    const displayedMessageIds = new Set();
+    
     // Socket.IO connection events
     socket.on('connect', function() {
         console.log('Connected to WebSocket server');
@@ -260,6 +263,18 @@ document.addEventListener('DOMContentLoaded', function() {
     // Message events
     socket.on('message', function(message) {
         console.log('Received message:', message);
+        
+        // Check if we've already displayed this message
+        if (message.id && displayedMessageIds.has(message.id)) {
+            console.log('Skipping duplicate message:', message.id);
+            return;
+        }
+        
+        // Add to displayed messages set
+        if (message.id) {
+            displayedMessageIds.add(message.id);
+        }
+        
         handleNewMessage(message);
     });
     
@@ -403,12 +418,17 @@ document.addEventListener('DOMContentLoaded', function() {
         return null;
     }
     
-    // Function to render messages
+    // Function to render messages from API response
     function renderMessages(messages) {
         let lastSender = null;
         let messageGroupDiv = null;
         
         messages.forEach(message => {
+            // Track this message ID to prevent duplicates
+            if (message.id) {
+                displayedMessageIds.add(message.id);
+            }
+            
             // Check if this is a new sender
             if (lastSender !== message.user.id) {
                 // Create new message group
@@ -518,19 +538,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Re-add the message to the input if it failed
                 messageInput.value = content;
                 showNotification('Failed to send message: ' + data.message, 'error');
-            } else {
-                // Send the message through WebSocket as well
-                socket.emit('message', {
-                    id: data.data.id,
-                    channelId: currentChannelId,
-                    content: content,
-                    sent_at: new Date().toISOString(),
-                    user: {
-                        userId: '<?php echo $_SESSION['user_id']; ?>',
-                        username: '<?php echo $_SESSION['username']; ?>'
-                    }
-                });
             }
+            // Remove the socket.emit call since the MessageController will broadcast the message
+            // The server will send the message back via socket.io
         })
         .catch(error => {
             console.error('Error sending message:', error);
