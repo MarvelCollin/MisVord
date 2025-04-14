@@ -134,7 +134,6 @@ try {
 <!-- Define the content for the main layout -->
 <?php ob_start(); ?>
 
-<!-- Full-height container with proper centering -->
 <div class="w-full p-4 min-h-screen flex items-center justify-center bg-[#202225]">
     <!-- Auth Container with Glass Effect -->
     <div class="w-full max-w-md p-8 mx-auto rounded-xl shadow-2xl relative z-10 glass-hero transform transition-all duration-700 ease-out bg-[#2f3136]/80 backdrop-filter backdrop-blur-md border border-white/10" id="authContainer">
@@ -209,7 +208,7 @@ try {
                     <?php endif; ?>
                 </div>
                 
-                <!-- Forgot Password Link - Update to use data-form attribute -->
+                <!-- Forgot Password Link -->
                 <div class="text-right">
                     <a href="#" class="text-sm text-discord-blue hover:underline form-toggle" data-form="forgot">Forgot your password?</a>
                 </div>
@@ -226,15 +225,18 @@ try {
                     <div class="flex-1 h-px bg-gray-600/50"></div>
                 </div>
                 
-                <!-- Google Login Button -->
-                <a href="/auth/google" class="w-full py-2.5 bg-white text-gray-800 font-medium rounded-md flex items-center justify-center hover:bg-gray-100 transition-all">
-                    <svg class="w-5 h-5 mr-2" viewBox="0 0 24 24">
-                        <path fill="currentColor" d="M21.35,11.1H12.18V13.83H18.69C18.36,15.64 16.96,17.27 14.36,17.27C11.16,17.27 8.53,14.71 8.53,11.53C8.53,8.36 11.16,5.79 14.36,5.79C16.0, 5.79 17.34,6.47 18.27,7.29L20.37,5.23C18.88,3.86 16.83,3 14.36,3C9.92,3 6.27,6.61 6.27,11.53C6.27,16.45 9.92,20.06 14.36,20.06C18.69,20.06 22.25,17.06 22.25,11.78C22.25,11.45 22.24,11.29 22.21,11.1H21.35Z" />
+                <!-- Google Login Button - Updated with proper Google logo -->
+                <a href="/auth/google" class="w-full py-2.5 bg-white hover:bg-gray-100 text-gray-800 font-medium rounded-md flex items-center justify-center transition-all">
+                    <svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+                        <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/>
+                        <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/>
+                        <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/>
+                        <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"/>
                     </svg>
-                    Continue with Google
+                    Sign in with Google
                 </a>
                 
-                <!-- Register Link - Changed to use data-form attribute instead of href -->
+                <!-- Register Link -->
                 <div class="text-center mt-6">
                     <p class="text-gray-400 text-sm">
                         Need an account? 
@@ -333,10 +335,13 @@ try {
                     <div class="flex-1 h-px bg-gray-600/50"></div>
                 </div>
                 
-                <!-- Google Registration Button -->
-                <a href="/auth/google" class="w-full py-2.5 bg-white text-gray-800 font-medium rounded-md flex items-center justify-center hover:bg-gray-100 transition-all">
-                    <svg class="w-5 h-5 mr-2" viewBox="0 0 24 24">
-                        <path fill="currentColor" d="M21.35,11.1H12.18V13.83H18.69C18.36,15.64 16.96,17.27 14.36,17.27C11.16,17.27 8.53,14.71 8.53,11.53C8.53,8.36 11.16,5.79 14.36,5.79C16.0, 5.79 17.34,6.47 18.27,7.29L20.37,5.23C18.88,3.86 16.83,3 14.36,3C9.92,3 6.27,6.61 6.27,11.53C6.27,16.45 9.92,20.06 14.36,20.06C18.69,20.06 22.25,17.06 22.25,11.78C22.25,11.45 22.24,11.29 22.21,11.1H21.35Z" />
+                <!-- Google Registration Button - Updated with proper Google logo -->
+                <a href="/auth/google" class="w-full py-2.5 bg-white hover:bg-gray-100 text-gray-800 font-medium rounded-md flex items-center justify-center transition-all">
+                    <svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+                        <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/>
+                        <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/>
+                        <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/>
+                        <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"/>
                     </svg>
                     Sign up with Google
                 </a>

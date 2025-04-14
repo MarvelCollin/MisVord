@@ -264,6 +264,18 @@ class User {
                 
                 // Check again if table exists after creation attempt
                 $tableExists = $query->tableExists('users');
+            } else {
+                // Make sure google_id column exists (for backward compatibility)
+                $columnsExist = $query->raw("SHOW COLUMNS FROM `users` LIKE 'google_id'");
+                if (empty($columnsExist)) {
+                    $query->raw("ALTER TABLE `users` ADD COLUMN `google_id` VARCHAR(255) NULL AFTER `password`");
+                }
+                
+                // Make sure avatar_url column exists
+                $columnsExist = $query->raw("SHOW COLUMNS FROM `users` LIKE 'avatar_url'");
+                if (empty($columnsExist)) {
+                    $query->raw("ALTER TABLE `users` ADD COLUMN `avatar_url` VARCHAR(255) NULL AFTER `google_id`");
+                }
             }
             
             return $tableExists;

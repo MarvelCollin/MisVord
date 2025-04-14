@@ -294,6 +294,12 @@ class AuthenticationController {
                 $user->status = 'online';
                 $user->save();
             }
+        } else {
+            // Update existing user's avatar if needed
+            if ($user->avatar_url != $avatar) {
+                $user->avatar_url = $avatar;
+                $user->save();
+            }
         }
         
         // Login user

@@ -10,7 +10,8 @@
 require_once __DIR__ . '/../controllers/AuthenticationController.php';
 require_once __DIR__ . '/../controllers/ServerController.php';
 require_once __DIR__ . '/../controllers/ChannelController.php';
-require_once __DIR__ . '/../controllers/MessageController.php'; // Add this line to include MessageController
+require_once __DIR__ . '/../controllers/MessageController.php';
+require_once __DIR__ . '/../controllers/GoogleAuthController.php';
 
 // Define application routes
 return [
@@ -67,6 +68,21 @@ return [
     'GET:/logout' => function() {
         $controller = new AuthenticationController();
         $controller->logout();
+    },
+    
+    // Google OAuth Routes - Updated for new callback URL
+    'GET:/auth/google' => function() {
+        $controller = new GoogleAuthController();
+        $controller->redirect();
+    },
+    'GET:/google/' => function() {
+        $controller = new GoogleAuthController();
+        $controller->callback();
+    },
+    
+    // Add OAuth debug page
+    'GET:/debug-oauth' => function() {
+        include __DIR__ . '/../debug_google_oauth.php';
     },
     
     // Channel API routes
