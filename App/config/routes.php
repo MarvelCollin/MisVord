@@ -38,6 +38,9 @@ return [
     },
     '/voice' => 'server/voice-channel.php',
     
+    // WebRTC route
+    '/webrtc' => 'pages/webrtc.php',
+    
     // Server API routes
     'POST:/api/servers' => function() {
         $controller = new ServerController();

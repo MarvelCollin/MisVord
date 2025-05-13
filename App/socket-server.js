@@ -14,13 +14,17 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: "*", // In production, restrict to your domain
-    methods: ["GET", "POST"]
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    credentials: true,
+    allowedHeaders: ["*"]
   }
 });
 
 // Store active users and channels
 const activeUsers = {};
 const channels = {};
+// Store WebRTC rooms
+const webrtcRooms = {};
 
 // API endpoint to check server status
 app.get('/status', (req, res) => {
@@ -158,6 +162,113 @@ io.on('connection', (socket) => {
     });
   });
   
+  // WebRTC signaling - Create room
+  socket.on('create_room', (data) => {
+    // Generate a random room ID or use provided one
+    const roomId = (data && data.roomId) ? data.roomId : Math.random().toString(36).substring(2, 8);
+    console.log(`Creating WebRTC room: ${roomId}`);
+    
+    // Store room info
+    webrtcRooms[roomId] = {
+      creator: socket.id,
+      participants: [socket.id]
+    };
+    
+    // Join the Socket.IO room
+    socket.join(`webrtc_${roomId}`);
+    
+    // Send room ID back to client
+    socket.emit('room_created', { roomId });
+  });
+  
+  // WebRTC signaling - Join room
+  socket.on('join_room', (data) => {
+    const roomId = data.roomId;
+    console.log(`User ${socket.id} joining WebRTC room: ${roomId}`);
+    
+    // Check if room exists
+    if (!webrtcRooms[roomId]) {
+      socket.emit('error', { message: 'Room not found' });
+      return;
+    }
+    
+    // Join the Socket.IO room
+    socket.join(`webrtc_${roomId}`);
+    
+    // Add to participants
+    webrtcRooms[roomId].participants.push(socket.id);
+    
+    // Notify client
+    socket.emit('room_joined', { roomId });
+    
+    // Notify other participants
+    socket.to(`webrtc_${roomId}`).emit('user_joined', { userId: socket.id });
+  });
+  
+  // WebRTC signaling - Handle offers, answers and ICE candidates
+  socket.on('offer', (data) => {
+    console.log(`Received offer from ${socket.id} to ${data.to} for room: ${data.roomId}`);
+    
+    // Forward the offer to the specific peer
+    if (data.to) {
+      io.to(data.to).emit('offer', data);
+    } else {
+      // Backward compatibility - broadcast to the room except sender
+      socket.to(`webrtc_${data.roomId}`).emit('offer', data);
+    }
+  });
+  
+  socket.on('answer', (data) => {
+    console.log(`Received answer from ${socket.id} to ${data.to} for room: ${data.roomId}`);
+    
+    // Forward the answer to the specific peer
+    if (data.to) {
+      io.to(data.to).emit('answer', data);
+    } else {
+      // Backward compatibility - broadcast to the room except sender
+      socket.to(`webrtc_${data.roomId}`).emit('answer', data);
+    }
+  });
+  
+  socket.on('ice_candidate', (data) => {
+    console.log(`Received ICE candidate from ${socket.id} to ${data.to} for room: ${data.roomId}`);
+    
+    // Forward the ICE candidate to the specific peer
+    if (data.to) {
+      io.to(data.to).emit('ice_candidate', data);
+    } else {
+      // Backward compatibility - broadcast to the room except sender
+      socket.to(`webrtc_${data.roomId}`).emit('ice_candidate', data);
+    }
+  });
+  
+  // Handle disconnect room
+  socket.on('disconnect_room', (data) => {
+    const roomId = data.roomId;
+    if (roomId && webrtcRooms[roomId]) {
+      leaveWebRTCRoom(socket.id, roomId);
+    }
+  });
+  
+  // Helper function to handle leaving a WebRTC room
+  function leaveWebRTCRoom(socketId, roomId) {
+    console.log(`User ${socketId} leaving WebRTC room: ${roomId}`);
+    
+    // Notify others in the room
+    io.to(`webrtc_${roomId}`).emit('user_disconnected', { userId: socketId });
+    
+    // Remove from participants array
+    if (webrtcRooms[roomId]) {
+      webrtcRooms[roomId].participants = webrtcRooms[roomId].participants.filter(id => id !== socketId);
+      
+      // Delete room if empty
+      if (webrtcRooms[roomId].participants.length === 0) {
+        delete webrtcRooms[roomId];
+        console.log(`Deleted empty WebRTC room: ${roomId}`);
+      }
+    }
+  }
+
   // Handle disconnection
   socket.on('disconnect', () => {
     console.log(`User disconnected: ${socket.id}`);
@@ -185,11 +296,21 @@ io.on('connection', (socket) => {
       // Delete user from active users
       delete activeUsers[socket.id];
     }
+    
+    // Handle WebRTC room cleanup
+    for (const roomId in webrtcRooms) {
+      const room = webrtcRooms[roomId];
+      
+      // Check if user was in this room
+      if (room.participants.includes(socket.id)) {
+        leaveWebRTCRoom(socket.id, roomId);
+      }
+    }
   });
 });
 
 // Start the server
-const PORT = process.env.SOCKET_PORT || 3000;
+const PORT = process.env.SOCKET_PORT || 3001;
 server.listen(PORT, () => {
   console.log(`Socket.IO server running on port ${PORT}`);
 });
