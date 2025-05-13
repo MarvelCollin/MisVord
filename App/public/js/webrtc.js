@@ -16,6 +16,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusIndicator = document.getElementById('statusIndicator');
     const statusText = document.getElementById('statusText');
     
+    // Global variables - MOVED TO TOP
+    let localStream = null;
+    let screenStream = null;
+    let isScreenSharing = false;
+    let isVideoEnabled = true;
+    let isAudioEnabled = true;
+    let userName = 'User_' + Math.floor(Math.random() * 10000); // Generate random username
+    let socket = null;
+    let socketId = null;
+    const peers = {};
+    
+    // Global room constants
+    const GLOBAL_ROOM = 'global-video-chat';
+    
+    // Control buttons
+    const toggleVideoBtn = document.getElementById('toggleVideoBtn');
+    const toggleAudioBtn = document.getElementById('toggleAudioBtn');
+    const toggleScreenBtn = document.getElementById('toggleScreenBtn');
+    const pingBtn = document.getElementById('pingBtn');
+    const hangupBtn = document.getElementById('hangupBtn');
+    
     // Test connectivity to marvelcollin.my.id
     testServerConnectivity();
     
@@ -97,26 +118,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // Control buttons
-    const toggleVideoBtn = document.getElementById('toggleVideoBtn');
-    const toggleAudioBtn = document.getElementById('toggleAudioBtn');
-    const toggleScreenBtn = document.getElementById('toggleScreenBtn');
-    const pingBtn = document.getElementById('pingBtn');
-    const hangupBtn = document.getElementById('hangupBtn');
-    
-    // Global variables
-    let localStream = null;
-    let screenStream = null;
-    let isScreenSharing = false;
-    let isVideoEnabled = true;
-    let isAudioEnabled = true;
-    let userName = 'User_' + Math.floor(Math.random() * 10000); // Generate random username
-    let socket = null;
-    let socketId = null;
-    const peers = {};
-    
-    // Global room constants
-    const GLOBAL_ROOM = 'global-video-chat';
+    // Add ping button event listener
+    pingBtn.addEventListener('click', () => {
+        if (socket && socket.connected) {
+            console.log('Pinging all users in the room');
+            socket.emit('ping-all-users', {
+                roomId: GLOBAL_ROOM,
+                message: `Ping from ${userName}`,
+                fromUserName: userName
+            });
+            
+            // Show a toast notification for the sender
+            showToast(`You pinged all users in the room`, 'info');
+        } else {
+            showToast('Cannot ping - not connected to server', 'error');
+        }
+    });
     
     // Set connection status
     function updateConnectionStatus(status) {
@@ -177,17 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
         addLogEntry(`Connecting to local server: ${localUrl}`, 'info');
         console.log(`Attempting connection to: ${localUrl}`);
         
-        // Clear any existing socket to prevent multiple connections
-        if (socket !== null) {
-            try {
-                socket.disconnect();
-            } catch(e) {
-                console.error("Error disconnecting existing socket:", e);
-            }
-            socket = null;
-        }
-        
-        // Create new socket connection to local server
+        // Initialize socket first with a new connection
         socket = io(localUrl, {
             reconnectionAttempts: 3,
             reconnectionDelay: 1000,
@@ -202,7 +209,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 timestamp: Date.now()
             }
         });
-
+        
+        // Then check and disconnect if needed - now socket is defined
+        // We don't need this check anymore since we're creating a new socket
+        
         // Handle connection errors from local server - try remote server
         socket.on('connect_error', (error) => {
             logConnectionDebug(`Local connection error: ${error.message}`);
