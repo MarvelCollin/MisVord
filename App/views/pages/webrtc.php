@@ -27,6 +27,8 @@ $additional_head = '
         border-radius: 0.5rem;
         overflow: hidden;
         background-color: #2D3748;
+        aspect-ratio: 4/3;
+        min-height: 225px;
     }
     
     .video-container video {
@@ -578,9 +580,6 @@ document.addEventListener('DOMContentLoaded', () => {
             updateConnectionStatus('disconnected');
             addLogEntry(`Connection error: ${error.message}`, 'error');
             
-            // Log additional error details
-            console.error('Socket connection error details:', error);
-            
             // Try alternative connection if first attempt fails
             if (!socket.hasTriedAlternative) {
                 socket.hasTriedAlternative = true;
@@ -679,31 +678,24 @@ document.addEventListener('DOMContentLoaded', () => {
     async function initLocalStream() {
         try {
             localStream = await navigator.mediaDevices.getUserMedia({
-                video: true,
-                audio: true
+                video: {
+                    width: { ideal: 640 }, // Reduced from 1280 for better performance
+                    height: { ideal: 480 }, // Reduced from 720 for better performance
+                    frameRate: { ideal: 24 } // Reduced from 30 for better performance
+                },
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true
+                }
             });
             
             console.log('Local stream obtained with tracks:', localStream.getTracks().map(t => t.kind));
             addLogEntry(`Local media stream obtained with ${localStream.getTracks().length} tracks`, 'info');
             
-            // Check each track to confirm it's working
-            localStream.getTracks().forEach(track => {
-                addLogEntry(`Local ${track.kind} track ready: ${track.readyState}`, 'info');
-                console.log(`Track details:`, track);
-                
-                // Listen for track ended event
-                track.onended = () => {
-                    console.log(`Local ${track.kind} track ended`);
-                    addLogEntry(`Local ${track.kind} track ended`, 'error');
-                };
-            });
-            
             localVideo.srcObject = localStream;
-            
-            // Ensure local video plays
             localVideo.play().catch(e => {
                 console.error('Error playing local video:', e);
-                addLogEntry(`Error playing local video: ${e.message}`, 'error');
             });
             
             return true;
@@ -718,7 +710,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Create a new WebRTC peer connection with enhanced configuration
     function createPeerConnection(userId, remoteUserName) {
         logConnectionDebug(`Creating peer connection for ${userId} (${remoteUserName})`);
-        addLogEntry(`Creating new peer connection for ${userId} (${remoteUserName})`, 'info');
         
         // Show debug information in video container
         const existingContainer = document.getElementById(`container-${userId}`);
@@ -734,69 +725,36 @@ document.addEventListener('DOMContentLoaded', () => {
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' },
-                { urls: 'stun:stun3.l.google.com:19302' },
-                { urls: 'stun:stun4.l.google.com:19302' },
-                // Free TURN server for testing - replace with your own for production
+                // Using fewer ICE servers for better performance
                 {
                     urls: 'turn:openrelay.metered.ca:80',
                     username: 'openrelayproject',
                     credential: 'openrelayproject'
-                },
-                {
-                    urls: 'turn:openrelay.metered.ca:443',
-                    username: 'openrelayproject',
-                    credential: 'openrelayproject'
                 }
             ],
-            iceCandidatePoolSize: 10,
+            iceCandidatePoolSize: 5, // Reduced from 10 for better performance
+            // Add these options for better performance
+            sdpSemantics: 'unified-plan',
+            bundlePolicy: 'max-bundle',
+            rtcpMuxPolicy: 'require'
         });
         
         // Debug ICE connection state changes
         peerConnection.oniceconnectionstatechange = () => {
             const state = peerConnection.iceConnectionState;
-            logConnectionDebug(`ICE connection state for ${userId}: ${state}`);
-            addLogEntry(`ICE connection state for ${userId}: ${state}`, 'info');
-            
-            // Update debug info
             updateDebugInfo(userId, `ICE: ${state}`);
             
             // Handle ICE restart if needed
             if (state === 'failed') {
-                logConnectionDebug(`ICE connection failed for ${userId}, attempting restart...`);
-                // Try to restart ICE connection
                 if (peerConnection.restartIce) {
                     peerConnection.restartIce();
                 }
             }
         };
         
-        // Debug ICE gathering state
-        peerConnection.onicegatheringstatechange = () => {
-            const state = peerConnection.iceGatheringState;
-            logConnectionDebug(`ICE gathering state for ${userId}: ${state}`);
-            updateDebugInfo(userId, `ICE Gathering: ${state}`);
-        };
-        
-        // Debug signaling state changes
-        peerConnection.onsignalingstatechange = () => {
-            const state = peerConnection.signalingState;
-            logConnectionDebug(`Signaling state change for ${userId}: ${state}`);
-            addLogEntry(`Signaling state for ${userId}: ${state}`, 'info');
-            updateDebugInfo(userId, `Signaling: ${state}`);
-            
-            // If connection is closed, clean up
-            if (state === 'closed') {
-                addLogEntry(`Connection with ${userId} was closed`, 'info');
-                delete peers[userId];
-            }
-        };
-        
         // Debug connection state changes and implement reconnection
         peerConnection.onconnectionstatechange = () => {
             const state = peerConnection.connectionState;
-            logConnectionDebug(`Connection state for ${userId}: ${state}`);
-            addLogEntry(`Connection state for ${userId}: ${state}`, 'info');
             updateDebugInfo(userId, `Connection: ${state}`);
             
             if (state === 'connected') {
@@ -805,29 +763,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (usernameElement) {
                     usernameElement.textContent = remoteUserName || userId;
                 }
-                addLogEntry(`Connection established with ${userId}`, 'received');
                 
-                // Check if we have video tracks
-                const videoTracks = peerConnection.getReceivers()
-                    .filter(receiver => receiver.track && receiver.track.kind === 'video')
-                    .map(receiver => receiver.track);
-                
-                addLogEntry(`Connected with ${videoTracks.length} video tracks`, 'info');
-                
-                if (videoTracks.length === 0) {
-                    // No video tracks, try requesting them
-                    addLogEntry(`No video tracks from ${userId}, requesting renegotiation`, 'info');
-                    setTimeout(() => {
-                        if (peerConnection.signalingState === 'stable') {
-                            peerConnection.onnegotiationneeded();
-                        }
-                    }, 1000);
-                }
+                // Hide debug info once connected to reduce visual clutter
+                setTimeout(() => {
+                    const debugElement = document.getElementById(`debug-${userId}`);
+                    if (debugElement) {
+                        debugElement.style.opacity = '0';
+                        setTimeout(() => {
+                            if (debugElement && debugElement.parentNode) {
+                                debugElement.parentNode.removeChild(debugElement);
+                            }
+                        }, 1000);
+                    }
+                }, 3000);
             }
             
             if (state === 'failed' || state === 'disconnected') {
                 logConnectionDebug(`Connection to ${userId} has failed or disconnected. Attempting to reconnect...`);
-                addLogEntry(`Connection to ${userId} has failed. Attempting to reconnect...`, 'error');
                 
                 // Cleanup failed connection
                 if (peers[userId]) {
@@ -849,123 +801,107 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Handle negotiation needed - important for reliable connections
         peerConnection.onnegotiationneeded = async () => {
-            logConnectionDebug(`Negotiation needed for connection with ${userId}`);
-            addLogEntry(`Negotiation needed for connection with ${userId}`, 'info');
-            updateDebugInfo(userId, 'Negotiating...');
+            // Debounce negotiation to prevent too frequent renegotiation
+            if (peerConnection._isNegotiating) return;
+            peerConnection._isNegotiating = true;
             
             try {
                 // Check signaling state before creating offer
                 if (peerConnection.signalingState === 'stable') {
+                    updateDebugInfo(userId, 'Negotiating...');
+                    
                     const offer = await peerConnection.createOffer();
                     await peerConnection.setLocalDescription(offer);
                     
-                    logConnectionDebug(`Sending new offer to ${userId} after negotiation needed`);
                     socket.emit('offer', {
                         offer: peerConnection.localDescription,
                         to: userId,
-                        from: socketId, // Make sure we include our ID
+                        from: socketId,
                         userName: userName
                     });
-                } else {
-                    addLogEntry(`Skipping negotiation - unstable state: ${peerConnection.signalingState}`, 'info');
                 }
             } catch (err) {
-                logConnectionDebug(`Error during negotiation with ${userId}: ${err.message}`);
-                addLogEntry(`Error during negotiation with ${userId}: ${err.message}`, 'error');
+                console.error(`Error during negotiation with ${userId}:`, err);
+            } finally {
+                // Reset negotiation flag after a short delay
+                setTimeout(() => {
+                    peerConnection._isNegotiating = false;
+                }, 3000);
             }
         };
         
         // Add all tracks from local stream to peer connection
         if (localStream) {
-            console.log(`Adding ${localStream.getTracks().length} local tracks to connection for ${userId}`);
-            addLogEntry(`Adding ${localStream.getTracks().length} local tracks (${localStream.getTracks().map(t => t.kind).join(', ')})`, 'sent');
-            
-            localStream.getTracks().forEach(track => {
-                console.log(`Adding ${track.kind} track to connection for ${userId}`, track);
-                try {
-                    const sender = peerConnection.addTrack(track, localStream);
-                    console.log(`Added ${track.kind} track to connection via sender:`, sender);
-                } catch(e) {
-                    console.error(`Error adding ${track.kind} track:`, e);
-                    addLogEntry(`Error adding track: ${e.message}`, 'error');
-                }
-            });
-            
-            // Verify tracks were added
-            const senders = peerConnection.getSenders();
-            console.log(`Connection now has ${senders.length} senders:`, senders);
-            addLogEntry(`Connection has ${senders.length} senders`, 'info');
-        } else {
-            console.warn(`No local stream available when creating peer connection for ${userId}`);
-            addLogEntry(`Warning: No local stream available for ${userId}`, 'error');
+            try {
+                localStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, localStream);
+                });
+            } catch(e) {
+                console.error(`Error adding tracks:`, e);
+            }
         }
         
-        // Handle incoming streams
+        // Handle incoming streams more efficiently
         peerConnection.ontrack = (event) => {
-            console.log('Received remote track from', userId, event.streams);
-            addLogEntry(`📹 Received ${event.track.kind} track from ${userId}`, 'received');
             updateDebugInfo(userId, `Received ${event.track.kind} track`);
             
-            // Log detailed track information
-            console.log('Track details:', {
-                kind: event.track.kind,
-                enabled: event.track.enabled,
-                muted: event.track.muted,
-                readyState: event.track.readyState,
-                streamId: event.streams[0]?.id
-            });
+            // Always ensure we have a valid stream to work with
+            let remoteStream = event.streams && event.streams.length > 0 ? event.streams[0] : null;
             
-            if (event.streams && event.streams[0]) {
-                const remoteStream = event.streams[0];
-                addLogEntry(`Stream ID: ${remoteStream.id} with ${remoteStream.getTracks().length} tracks`, 'info');
+            if (!remoteStream) {
+                // Create a synthetic stream if one wasn't provided
+                remoteStream = new MediaStream();
+                remoteStream.addTrack(event.track);
+            }
+            
+            // Get existing video element if it exists
+            const existingVideo = document.getElementById(`video-${userId}`);
+            
+            if (existingVideo) {
+                // Check if we need to replace the stream or add track to existing stream
+                const currentStream = existingVideo.srcObject;
                 
-                // Update video element with stream
-                updateRemoteVideo(userId, remoteStream, remoteUserName);
-                
-                // Add track ended handler
-                event.track.onended = () => {
-                    addLogEntry(`Track ${event.track.kind} ended from ${userId}`, 'info');
-                };
-                
-                // Add track mute handler
-                event.track.onmute = () => {
-                    addLogEntry(`Track ${event.track.kind} muted from ${userId}`, 'info');
-                };
-                
-                // Add track unmute handler
-                event.track.onunmute = () => {
-                    addLogEntry(`Track ${event.track.kind} unmuted from ${userId}`, 'info');
-                };
-            } else {
-                addLogEntry(`Received track without stream from ${userId}`, 'error');
-                
-                // Create a new MediaStream if one doesn't exist
-                let stream = document.getElementById(`video-${userId}`)?.srcObject;
-                
-                if (!stream || !(stream instanceof MediaStream)) {
-                    addLogEntry(`Creating new MediaStream for ${userId}`, 'info');
-                    stream = new MediaStream();
+                if (currentStream instanceof MediaStream) {
+                    // If we already have a stream, add this track to it
+                    const trackExists = currentStream.getTracks().some(t => 
+                        t.id === event.track.id || t.kind === event.track.kind
+                    );
+                    
+                    if (!trackExists) {
+                        // Remove any existing tracks of the same kind
+                        const existingTracksOfSameKind = currentStream.getTracks()
+                            .filter(t => t.kind === event.track.kind);
+                        
+                        existingTracksOfSameKind.forEach(t => currentStream.removeTrack(t));
+                        
+                        // Add the new track
+                        currentStream.addTrack(event.track);
+                    }
+                    
+                    // Ensure video is playing if it has video tracks
+                    if (currentStream.getVideoTracks().length > 0 && existingVideo.paused) {
+                        existingVideo.play().catch(() => {});
+                    }
+                } else {
+                    // If current stream is invalid, replace it with the new one
+                    existingVideo.srcObject = remoteStream;
+                    
+                    // Try to play the video
+                    existingVideo.play().catch(() => {});
                 }
-                
-                // Add the track to the stream
-                stream.addTrack(event.track);
-                console.log(`Added track to synthetic stream:`, stream);
-                
-                // Update video with the synthetic stream
-                updateRemoteVideo(userId, stream, remoteUserName);
+            } else {
+                // Create a new video element if one doesn't exist
+                updateRemoteVideo(userId, remoteStream, remoteUserName);
             }
         };
         
         // Handle ICE candidates
         peerConnection.onicecandidate = (event) => {
             if (event.candidate) {
-                console.log('Generated ICE candidate for', userId);
                 socket.emit('ice-candidate', {
                     candidate: event.candidate,
                     to: userId
                 });
-            } else {
-                console.log('All ICE candidates sent to', userId);
             }
         };
         
@@ -986,29 +922,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const remoteVideo = document.getElementById(`video-${userId}`);
         
         if (!remoteVideo) {
-            addLogEntry(`Creating new video element for ${userId}`, 'info');
             addVideoElement(userId, stream, displayName || userId);
         } else {
-            addLogEntry(`Updating existing video element for ${userId}`, 'info');
-            
             // Check if the stream is different
             if (remoteVideo.srcObject !== stream) {
-                console.log(`Updating video element with new stream for ${userId}`);
-                
                 // Set the stream without immediate play attempt to avoid conflicts
                 remoteVideo.srcObject = stream;
                 
-                // Let the loadedmetadata event handler handle playback
-                addLogEntry(`Stream updated for ${userId} - waiting for metadata`, 'info');
-                
-                // Force a play after a short delay (needed for some browsers)
+                // Delayed play after a short delay (needed for some browsers)
                 setTimeout(() => {
                     if (remoteVideo.paused && stream.getVideoTracks().length > 0) {
-                        console.log(`Trying delayed play for ${userId}`);
-                        remoteVideo.play().catch(e => {
-                            console.log(`Could not autoplay: ${e.message}`);
+                        remoteVideo.play().catch(() => {
                             // Only add play button for genuine autoplay prevention
-                            if (e.name === 'NotAllowedError') {
+                            if (event && event.name === 'NotAllowedError') {
                                 const container = document.getElementById(`container-${userId}`);
                                 if (container) {
                                     addPlayButton(container, remoteVideo);
@@ -1016,16 +942,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             }
                         });
                     }
-                }, 1000);
-            } else {
-                console.log(`Stream is the same for ${userId}, no update needed`);
+                }, 500); // Reduced from 1000ms for better performance
             }
-            
-            // Monitor track additions for this stream - but don't call play directly
-            stream.onaddtrack = (event) => {
-                addLogEntry(`New ${event.track.kind} track added to stream for ${userId}`, 'info');
-                updateDebugInfo(userId, `Added ${event.track.kind} track`);
-            };
             
             // Update the UI to show this user is connected
             const usernameElement = document.querySelector(`#container-${userId} .username`);
@@ -1037,16 +955,11 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Add a video element for a remote peer
     function addVideoElement(userId, stream, displayName) {
-        console.log(`Adding video element for ${userId} (${displayName})`, stream);
-        addLogEntry(`Adding video element for ${userId} (${displayName})`, 'info');
-        
         const existingContainer = document.getElementById(`container-${userId}`);
         if (existingContainer) {
-            console.log(`Video container for ${userId} already exists, updating stream`);
             const existingVideo = document.getElementById(`video-${userId}`);
             if (existingVideo) {
                 existingVideo.srcObject = stream;
-                // Don't try to force play here, let event handlers handle it
                 return;
             }
         }
@@ -1059,20 +972,18 @@ document.addEventListener('DOMContentLoaded', () => {
         videoElement.id = `video-${userId}`;
         videoElement.autoplay = true;
         videoElement.playsInline = true;
-        
-        // Remove controls - this is causing issues
         videoElement.controls = false;
-        videoElement.muted = false; // Make sure remote videos aren't muted
+        videoElement.muted = false;
         
         videoElement.srcObject = stream;
         
-        // Add debug info display
+        // Add minimal debug info display
         const debugInfo = document.createElement('div');
         debugInfo.className = 'absolute top-0 left-0 bg-black bg-opacity-50 text-xs text-white p-1 z-10';
         debugInfo.id = `debug-${userId}`;
         debugInfo.textContent = 'New video element';
         
-        // Status indicator for video tracks
+        // Simple status indicator
         const statusIndicator = document.createElement('div');
         statusIndicator.className = 'absolute top-0 right-0 p-1 z-10';
         statusIndicator.id = `status-${userId}`;
@@ -1088,47 +999,34 @@ document.addEventListener('DOMContentLoaded', () => {
         statusIndicator.appendChild(videoStatus);
         statusIndicator.appendChild(audioStatus);
         
-        // Update status indicators when tracks are available
-        const updateTrackStatus = () => {
-            const videoTracks = stream.getVideoTracks();
-            const audioTracks = stream.getAudioTracks();
-            
-            if (videoTracks.length > 0) {
-                videoStatus.className = `inline-block w-3 h-3 rounded-full ${videoTracks[0].enabled ? 'bg-green-500' : 'bg-red-500'} mr-1`;
-            }
-            
-            if (audioTracks.length > 0) {
-                audioStatus.className = `inline-block w-3 h-3 rounded-full ${audioTracks[0].enabled ? 'bg-green-500' : 'bg-red-500'}`;
-            }
-        };
-        
-        // Initial status update
-        updateTrackStatus();
-        
-        // Set up track change monitoring
+        // Simplified track monitoring
         stream.onaddtrack = () => {
-            updateTrackStatus();
-            debugInfo.textContent = `Tracks: ${stream.getTracks().length}`;
+            if (videoStatus && audioStatus) {
+                const videoTracks = stream.getVideoTracks();
+                const audioTracks = stream.getAudioTracks();
+                
+                if (videoTracks.length > 0) {
+                    videoStatus.className = 'inline-block w-3 h-3 rounded-full bg-green-500 mr-1';
+                }
+                
+                if (audioTracks.length > 0) {
+                    audioStatus.className = 'inline-block w-3 h-3 rounded-full bg-green-500';
+                }
+            }
+            
+            // Try to play if we have video tracks
+            if (stream.getVideoTracks().length > 0 && videoElement.paused) {
+                videoElement.play().catch(() => {});
+            }
         };
         
-        stream.onremovetrack = () => {
-            updateTrackStatus();
-            debugInfo.textContent = `Tracks: ${stream.getTracks().length}`;
-        };
-        
-        // Add video loading event listener - only try to play once
+        // Add video loading event listener
         videoElement.addEventListener('loadedmetadata', () => {
-            addLogEntry(`Video metadata loaded for ${userId}`, 'info');
             debugInfo.textContent = 'Metadata loaded';
             
-            // Try to play just once on metadata loaded
+            // Try to play
             if (videoElement.paused) {
                 videoElement.play().catch(e => {
-                    console.error('Error playing video after metadata loaded:', e);
-                    addLogEntry(`Error playing video: ${e.message}`, 'error');
-                    debugInfo.textContent = `Play error: ${e.name}`;
-                    
-                    // Only if autoplay is genuinely rejected, add a play button
                     if (e.name === 'NotAllowedError') {
                         addPlayButton(videoContainer, videoElement);
                     }
@@ -1138,13 +1036,16 @@ document.addEventListener('DOMContentLoaded', () => {
         
         videoElement.addEventListener('playing', () => {
             debugInfo.textContent = 'Video playing';
-            addLogEntry(`Video is now playing for ${userId}`, 'info');
-        });
-        
-        videoElement.addEventListener('error', (e) => {
-            console.error('Video element error:', e);
-            debugInfo.textContent = `Error: ${videoElement.error?.message || 'Unknown'}`;
-            addLogEntry(`Video element error for ${userId}: ${videoElement.error?.message || 'Unknown error'}`, 'error');
+            
+            // Hide debug info after video starts playing
+            setTimeout(() => {
+                debugInfo.style.opacity = '0';
+                setTimeout(() => {
+                    if (debugInfo.parentNode) {
+                        debugInfo.parentNode.removeChild(debugInfo);
+                    }
+                }, 1000);
+            }, 3000);
         });
         
         const usernameElement = document.createElement('div');
@@ -1156,9 +1057,6 @@ document.addEventListener('DOMContentLoaded', () => {
         videoContainer.appendChild(debugInfo);
         videoContainer.appendChild(statusIndicator);
         videoGrid.appendChild(videoContainer);
-        
-        // Log that we've added a new video element
-        console.log(`Added video element for ${userId}`, videoElement);
         
         // Add to participants list
         addParticipantItem(userId, displayName);
@@ -1650,7 +1548,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function autoConnectAndMonitor() {
         // Try to ensure camera/mic access before connecting
         if (!localStream) {
-            logConnectionDebug('Local stream not initialized, attempting to initialize again');
             initLocalStream().then(success => {
                 if (success) {
                     connectToSignalingServer();
@@ -1667,36 +1564,21 @@ document.addEventListener('DOMContentLoaded', () => {
         // Periodically check connection status and reconnect if needed
         const connectionMonitor = setInterval(() => {
             if (socket) {
-                // Log current connection state
-                const connectionState = socket.connected ? 'connected' : 'disconnected';
-                console.log(`Connection monitor check: ${connectionState}`);
-                
                 if (!socket.connected) {
-                    logConnectionDebug('Socket disconnected, attempting to reconnect...');
-                    addLogEntry('Connection monitor detected disconnect. Reconnecting...', 'info');
-                    
-                    // Update UI to show reconnection attempt
                     updateConnectionStatus('connecting');
-                    
-                    // Force new connection
                     socket.connect();
                 }
             } else {
-                // Socket object doesn't exist, create a new connection
-                addLogEntry('Socket object not found. Creating new connection...', 'info');
                 connectToSignalingServer();
             }
             
             // Check peer connections, but don't try to force play videos
-            // as this can cause the abort errors
             for (const peerId in peers) {
                 const peerConnection = peers[peerId];
                 
                 // Only check connection state, not video playback
                 if (peerConnection.connectionState === 'failed' || 
                     peerConnection.connectionState === 'disconnected') {
-                    
-                    addLogEntry(`Connection failed for ${peerId}, attempting reconnection`, 'info');
                     
                     // Clean up and reconnect
                     peerConnection.close();
@@ -1711,19 +1593,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     }, 1000);
                 }
             }
-        }, 10000);
+        }, 15000); // Less frequent check (15s instead of 10s)
         
         // Periodically refresh the global users list to ensure we have everyone
         setInterval(() => {
             if (socket && socket.connected) {
-                console.log("Periodic refresh of global users list...");
                 socket.emit('get-global-users', { 
                     roomId: GLOBAL_ROOM 
                 });
             }
-        }, 15000);
+        }, 30000); // Less frequent refresh (30s instead of 15s)
         
-        // Return the interval ID in case we need to clear it
         return connectionMonitor;
     }
       // Initialize with verification of browser WebRTC support
@@ -1793,11 +1673,69 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
+    // Helper function to check if a video element is actually playing
+    function isVideoPlaying(video) {
+        return !!(video.currentTime > 0 && !video.paused && !video.ended && video.readyState > 2);
+    }
+
+    // Initialize a periodic check for video playback (less frequent)
+    function initVideoPlaybackMonitor() {
+        setInterval(() => {
+            // Check all remote videos to ensure they're playing if they have video tracks
+            for (const peerId in peers) {
+                const videoElement = document.getElementById(`video-${peerId}`);
+                if (videoElement && videoElement.srcObject) {
+                    const hasVideoTracks = videoElement.srcObject.getVideoTracks().length > 0;
+                    
+                    if (hasVideoTracks && videoElement.paused) {
+                        videoElement.play().catch(() => {});
+                    }
+                    
+                    // Update status indicators
+                    updateVideoStatusIndicators(peerId);
+                }
+            }
+        }, 10000); // Reduced frequency (10s instead of 5s)
+    }
+
+    // Update video status indicators for a peer
+    function updateVideoStatusIndicators(peerId) {
+        const videoElement = document.getElementById(`video-${peerId}`);
+        if (!videoElement || !videoElement.srcObject) return;
+        
+        const videoStatus = document.getElementById(`video-status-${peerId}`);
+        const audioStatus = document.getElementById(`audio-status-${peerId}`);
+        
+        if (videoStatus && audioStatus) {
+            const videoTracks = videoElement.srcObject.getVideoTracks();
+            const audioTracks = videoElement.srcObject.getAudioTracks();
+            
+            // Update video status
+            if (videoTracks.length > 0) {
+                const isEnabled = videoTracks[0].enabled;
+                const isPlaying = !videoElement.paused;
+                videoStatus.className = `inline-block w-3 h-3 rounded-full ${isEnabled && isPlaying ? 'bg-green-500' : 'bg-red-500'} mr-1`;
+            } else {
+                videoStatus.className = 'inline-block w-3 h-3 rounded-full bg-gray-500 mr-1';
+            }
+            
+            // Update audio status
+            if (audioTracks.length > 0) {
+                audioStatus.className = `inline-block w-3 h-3 rounded-full ${audioTracks[0].enabled ? 'bg-green-500' : 'bg-red-500'}`;
+            } else {
+                audioStatus.className = 'inline-block w-3 h-3 rounded-full bg-gray-500';
+            }
+        }
+    }
+
     // Start the application
     init();
     
     // Set up periodic monitoring
     autoConnectAndMonitor();
+
+    // Initialize video playback monitor
+    initVideoPlaybackMonitor();
 });
 </script>
 

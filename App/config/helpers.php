@@ -19,7 +19,11 @@ function asset($path) {
     // Get the base URL from server variables
     $baseUrl = getBaseUrl();
     
-    // Construct and return the full URL with assets directory
+    // Extract the host part without protocol to make it protocol-relative
+    // This prevents mixed content warnings when using HTTPS
+    $baseUrl = preg_replace('#^https?:#', '', $baseUrl);
+    
+    // Construct and return the protocol-relative URL
     return "{$baseUrl}/public/assets/{$path}";
 }
 
@@ -39,7 +43,11 @@ function css($path) {
     // Get the base URL from server variables
     $baseUrl = getBaseUrl();
     
-    // Construct and return the full URL
+    // Extract the host part without protocol to make it protocol-relative
+    // This prevents mixed content warnings when using HTTPS
+    $baseUrl = preg_replace('#^https?:#', '', $baseUrl);
+    
+    // Construct and return the protocol-relative URL
     return "{$baseUrl}/public/css/{$path}";
 }
 
@@ -59,7 +67,11 @@ function js($path) {
     // Get the base URL from server variables
     $baseUrl = getBaseUrl();
     
-    // Construct and return the full URL
+    // Extract the host part without protocol to make it protocol-relative
+    // This prevents mixed content warnings when using HTTPS
+    $baseUrl = preg_replace('#^https?:#', '', $baseUrl);
+    
+    // Construct and return the protocol-relative URL
     return "{$baseUrl}/public/js/{$path}";
 }
 
