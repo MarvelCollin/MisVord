@@ -49,32 +49,23 @@ $channels = [
 <body class="bg-gray-900 text-white min-h-screen">
     <div class="container mx-auto px-4 py-8">
         <h1 class="text-2xl font-bold mb-6">MiscVord Voice Channels</h1>
-        
+          <!-- Permission and Connection Status -->
         <div id="connection-area" class="mb-8 bg-gray-800 p-6 rounded-lg shadow-lg">
-            <h2 class="text-xl font-semibold mb-4">Connect to Voice</h2>
-            <div class="flex flex-wrap gap-4">
-                <div class="w-full md:w-auto">
-                    <label class="block text-gray-400 mb-1" for="username">Your Display Name</label>
-                    <input 
-                        type="text" 
-                        id="username" 
-                        value="<?php echo htmlspecialchars($currentUser['username']); ?>" 
-                        placeholder="Enter Username"
-                        class="bg-gray-700 text-white px-4 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
+            <h2 class="text-xl font-semibold mb-4">Voice Connection Status</h2>
+            
+            <!-- Connection Status Display -->
+            <div id="connection-status-display" class="p-3 bg-gray-700 rounded mb-4">
+                <div class="flex items-center mb-2">
+                    <div id="status-indicator" class="w-3 h-3 rounded-full mr-2 bg-yellow-400"></div>
+                    <span id="status-text" class="font-medium">Connecting to voice servers...</span>
                 </div>
-                <div class="w-full md:w-auto flex items-end">
-                    <button 
-                        id="connect-btn"
-                        class="bg-indigo-600 hover:bg-indigo-700 px-6 py-2 rounded font-medium transition duration-200"
-                    >
-                        Connect to Voice
-                    </button>
+                <div id="permission-status" class="text-sm text-gray-300 hidden">
+                    Please grant microphone access when prompted by your browser.
                 </div>
             </div>
             
-            <!-- New Microphone Test Section -->
-            <div class="mt-6 pt-6 border-t border-gray-700">
+            <!-- Microphone Test Section -->
+            <div class="mt-6 pt-3">
                 <h3 class="text-lg font-medium mb-4">Test Your Microphone</h3>
                 <div class="flex flex-wrap items-center gap-4">
                     <button id="mic-test-btn" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded transition duration-200">
@@ -92,6 +83,13 @@ $channels = [
             </div>
             
             <div id="connection-error" class="mt-3 text-red-400 hidden"></div>
+            
+            <!-- Reconnection button (hidden by default, shown when connection fails) -->
+            <div class="mt-4 hidden" id="reconnect-container">
+                <button id="reconnect-btn" class="bg-indigo-600 hover:bg-indigo-700 px-6 py-2 rounded font-medium transition duration-200">
+                    <i class="fas fa-refresh mr-2"></i> Reconnect
+                </button>
+            </div>
         </div>
 
         <div id="voice-channel" class="hidden">
@@ -225,10 +223,9 @@ class VoiceChannel {
         this.volumeValue = document.getElementById('volume-value');
         this.micFeedback = document.getElementById('mic-feedback');
         this.echoAudio = document.getElementById('echo-audio');
-    }
-
-    setupEventListeners() {
-        this.connectBtn.addEventListener('click', () => this.connect());
+    }    setupEventListeners() {
+        // Auto connect to voice on page load
+        this.connect();
         
         // Microphone test button
         this.micTestBtn.addEventListener('click', () => this.toggleMicrophoneTest());
@@ -247,6 +244,12 @@ class VoiceChannel {
         this.leaveChannelBtn.addEventListener('click', () => this.leaveChannel());
         this.muteBtn.addEventListener('click', () => this.toggleMute());
         this.deafenBtn.addEventListener('click', () => this.toggleDeafen());
+        
+        // Add event listener to reconnect button if it exists
+        const reconnectBtn = document.getElementById('reconnect-btn');
+        if (reconnectBtn) {
+            reconnectBtn.addEventListener('click', () => this.connect());
+        }
     }
 
     async toggleMicrophoneTest() {
@@ -424,19 +427,18 @@ class VoiceChannel {
             this.audioContext.close();
             this.audioContext = null;
         }
-    }
-
-    async connect() {
+    }    async connect() {
         // Stop any ongoing microphone test when connecting
         this.stopMicrophoneTest();
         
-        const username = this.usernameInput.value.trim();
-        if (!username) {
-            this.showError("Please enter a username");
-            return;
-        }
+        // Update status
+        const statusIndicator = document.getElementById('status-indicator');
+        const statusText = document.getElementById('status-text');
+        const permissionStatus = document.getElementById('permission-status');
         
-        currentUser.username = username;
+        statusIndicator.className = 'w-3 h-3 rounded-full mr-2 bg-yellow-400';
+        statusText.textContent = 'Requesting microphone access...';
+        permissionStatus.classList.remove('hidden');
         
         try {
             // Request audio permissions
@@ -449,6 +451,11 @@ class VoiceChannel {
                 video: false
             });
             
+            // Update status
+            statusIndicator.className = 'w-3 h-3 rounded-full mr-2 bg-green-400';
+            statusText.textContent = 'Microphone connected';
+            permissionStatus.classList.add('hidden');
+            
             // Show local audio stream
             this.localAudio.srcObject = this.localStream;
             
@@ -456,12 +463,23 @@ class VoiceChannel {
             this.connectToSignalingServer();
             
             // Hide connection area, show voice channel
-            this.connectionArea.classList.add('hidden');
+            this.connectionArea.classList.remove('hidden');
             this.voiceChannelEl.classList.remove('hidden');
             
         } catch (error) {
             console.error('Error accessing microphone:', error);
-            this.showError('Unable to access microphone. Please check permissions.');
+            statusIndicator.className = 'w-3 h-3 rounded-full mr-2 bg-red-400';
+            statusText.textContent = 'Microphone access denied';
+            permissionStatus.textContent = 'Please allow microphone access in your browser settings and refresh the page.';
+            permissionStatus.classList.remove('hidden');
+            
+            // Show reconnect button
+            document.getElementById('reconnect-container').classList.remove('hidden');
+            
+            // Add event listener to reconnect button
+            document.getElementById('reconnect-btn').addEventListener('click', () => {
+                window.location.reload();
+            });
         }
     }
 

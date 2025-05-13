@@ -25,6 +25,8 @@ const activeUsers = {};
 const channels = {};
 // Store WebRTC rooms
 const webrtcRooms = {};
+// Store global video chat users
+const globalVideoUsers = {};
 
 // API endpoint to check server status
 app.get('/status', (req, res) => {
@@ -205,9 +207,13 @@ io.on('connection', (socket) => {
     socket.to(`webrtc_${roomId}`).emit('user_joined', { userId: socket.id });
   });
   
-  // WebRTC signaling - Handle offers, answers and ICE candidates
-  socket.on('offer', (data) => {
-    console.log(`Received offer from ${socket.id} to ${data.to} for room: ${data.roomId}`);
+  // WebRTC signaling - Handle offers, answers and ICE candidates  socket.on('offer', (data) => {
+    console.log(`Received offer from ${socket.id} to ${data.to} for room: ${data.roomId || 'global'}`);
+    
+    // Add the 'from' field if it's not present
+    if (!data.from) {
+      data.from = socket.id;
+    }
     
     // Forward the offer to the specific peer
     if (data.to) {
@@ -219,7 +225,12 @@ io.on('connection', (socket) => {
   });
   
   socket.on('answer', (data) => {
-    console.log(`Received answer from ${socket.id} to ${data.to} for room: ${data.roomId}`);
+    console.log(`Received answer from ${socket.id} to ${data.to} for room: ${data.roomId || 'global'}`);
+    
+    // Add the 'from' field if it's not present
+    if (!data.from) {
+      data.from = socket.id;
+    }
     
     // Forward the answer to the specific peer
     if (data.to) {
@@ -229,8 +240,7 @@ io.on('connection', (socket) => {
       socket.to(`webrtc_${data.roomId}`).emit('answer', data);
     }
   });
-  
-  socket.on('ice_candidate', (data) => {
+    socket.on('ice_candidate', (data) => {
     console.log(`Received ICE candidate from ${socket.id} to ${data.to} for room: ${data.roomId}`);
     
     // Forward the ICE candidate to the specific peer
@@ -239,6 +249,21 @@ io.on('connection', (socket) => {
     } else {
       // Backward compatibility - broadcast to the room except sender
       socket.to(`webrtc_${data.roomId}`).emit('ice_candidate', data);
+    }
+  });
+  
+  // Also support the ice-candidate event name format from client
+  socket.on('ice-candidate', (data) => {
+    console.log(`Received ICE candidate from ${socket.id} to ${data.to}`);
+    
+    // Add from field if not present
+    if (!data.from) {
+      data.from = socket.id;
+    }
+    
+    // Forward the ICE candidate to the specific peer
+    if (data.to) {
+      io.to(data.to).emit('ice-candidate', data);
     }
   });
   
@@ -268,10 +293,62 @@ io.on('connection', (socket) => {
       }
     }
   }
-
+  // Global video chat handlers
+  socket.on('join-global-room', (data) => {
+    console.log(`User joining global video chat: ${socket.id} (${data.userName})`);
+    
+    // Add to global room
+    socket.join('global-video-chat');
+    
+    // Store user info
+    globalVideoUsers[socket.id] = {
+      userId: socket.id,
+      userName: data.userName || `User_${socket.id.substring(0, 5)}`
+    };
+    
+    // Notify other users in the room
+    socket.to('global-video-chat').emit('user-joined', {
+      userId: socket.id,
+      userName: globalVideoUsers[socket.id].userName
+    });
+    
+    console.log(`Current global video users: ${Object.keys(globalVideoUsers).length}`);
+  });
+  
+  socket.on('leave-global-room', () => {
+    console.log(`User leaving global video chat: ${socket.id}`);
+    socket.leave('global-video-chat');
+    delete globalVideoUsers[socket.id];
+    
+    // Notify others
+    io.to('global-video-chat').emit('user-left', {
+      userId: socket.id
+    });
+  });
+  
+  socket.on('get-global-users', () => {
+    console.log(`Sending global users list to ${socket.id}`);
+    const users = Object.keys(globalVideoUsers).map(id => ({
+      userId: id,
+      userName: globalVideoUsers[id].userName
+    }));
+    socket.emit('global-users', { users });
+  });
+  
   // Handle disconnection
   socket.on('disconnect', () => {
     console.log(`User disconnected: ${socket.id}`);
+    
+    // Handle global video chat
+    if (globalVideoUsers[socket.id]) {
+      // Notify other users in global video chat
+      socket.to('global-video-chat').emit('user-left', {
+        userId: socket.id
+      });
+      
+      // Remove from global users
+      delete globalVideoUsers[socket.id];
+    }
     
     // Remove user from active users
     const user = activeUsers[socket.id];
