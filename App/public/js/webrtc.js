@@ -1,5 +1,17 @@
 // WebRTC video chat functionality
 document.addEventListener('DOMContentLoaded', () => {
+    // Check autoplay permissions right away
+    if (window.WebRTCPlayer && typeof window.WebRTCPlayer.checkAutoplaySupport === 'function') {
+        window.WebRTCPlayer.checkAutoplaySupport().then(isSupported => {
+            if (!isSupported) {
+                console.log("Autoplay not initially supported, requesting permission...");
+                window.WebRTCPlayer.requestAutoplayPermission();
+            } else {
+                console.log("Autoplay is supported");
+            }
+        });
+    }
+
     // DOM Elements
     const permissionRequest = document.getElementById('permissionRequest');
     const permissionStatus = document.getElementById('permissionStatus');
@@ -36,6 +48,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const toggleScreenBtn = document.getElementById('toggleScreenBtn');
     const pingBtn = document.getElementById('pingBtn');
     const hangupBtn = document.getElementById('hangupBtn');
+    
+    // Enable debugging
+    let debugMode = true; // Enable detailed debugging
+    
+    // Run compatibility check immediately
+    console.log('Running browser compatibility check...');
+    // Use the WebRTCCompat module
+    const browserCompat = window.WebRTCCompat.check();
+    console.log('Browser compatibility check:', browserCompat);
     
     // Test connectivity to marvelcollin.my.id
     testServerConnectivity();
@@ -618,40 +639,8 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Add a play button to the remote video if autoplay fails
     function addPlayButtonToRemoteVideo(userId, videoElement) {
-        const container = document.getElementById(`container-${userId}`);
-        if (!container) return;
-        
-        // Check if button already exists
-        if (container.querySelector('.remote-play-button')) return;
-        
-        console.log(`Adding manual play button for remote video ${userId}`);
-        
-        const playButton = document.createElement('button');
-        playButton.className = 'remote-play-button absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center text-white z-10';
-        playButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
-        
-        // Add text explanation
-        const textDiv = document.createElement('div');
-        textDiv.className = 'text-center text-sm mt-2';
-        textDiv.textContent = 'Click to play video';
-        playButton.appendChild(textDiv);
-        
-        container.appendChild(playButton);
-        
-        // Add click event
-        playButton.addEventListener('click', () => {
-            videoElement.play()
-                .then(() => {
-                    playButton.remove();
-                    console.log(`Manual play successful for ${userId}`);
-                })
-                .catch(e => {
-                    console.error(`Manual play attempt failed for ${userId}:`, e);
-                    // Update text to show error
-                    textDiv.textContent = 'Autoplay blocked. Try refreshing page.';
-                    textDiv.className = 'text-center text-sm mt-2 text-red-300';
-                });
-        });
+        // Use our improved version instead
+        addImprovedPlayButton(videoElement, userId);
     }
     
     // Add a participant to the list
@@ -918,12 +907,21 @@ document.addEventListener('DOMContentLoaded', () => {
             container.id = `container-${userId}`;
             container.className = 'remote-video-container relative rounded overflow-hidden bg-gray-800';
             
-            // Create video element
+            // Create video element with improved attributes for autoplay
             video = document.createElement('video');
             video.id = `video-${userId}`;
             video.className = 'w-full h-full object-cover';
             video.autoplay = true;
             video.playsInline = true;
+            video.muted = false; // Ensure not muted by default
+            video.setAttribute('playsinline', ''); // For iOS Safari
+            video.setAttribute('webkit-playsinline', ''); // For older iOS
+            
+            // Add debug indicator for black screen
+            const debugIndicator = document.createElement('div');
+            debugIndicator.className = 'absolute top-2 right-2 px-2 py-1 bg-red-500 text-white text-xs rounded opacity-0 transition-opacity duration-300';
+            debugIndicator.id = `video-debug-${userId}`;
+            debugIndicator.textContent = 'No video';
             
             // Create username overlay
             const usernameOverlay = document.createElement('div');
@@ -932,29 +930,131 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Add to container
             container.appendChild(video);
+            container.appendChild(debugIndicator);
             container.appendChild(usernameOverlay);
+            
+            // Add connection status indicator
+            const connectionStatusIndicator = document.createElement('div');
+            connectionStatusIndicator.className = 'absolute top-0 left-0 p-1 z-10';
+            connectionStatusIndicator.innerHTML = `
+                <div class="px-2 py-1 bg-yellow-500 text-white text-xs rounded-br-md">
+                    <span id="connection-status-${userId}">Connecting...</span>
+                </div>
+            `;
+            container.appendChild(connectionStatusIndicator);
+            
+            // Add action buttons for troubleshooting
+            const actionButtons = document.createElement('div');
+            actionButtons.className = 'absolute top-0 right-0 p-1 flex gap-1 z-10';
+            actionButtons.innerHTML = `
+                <button class="refresh-video-btn p-1 bg-blue-600 text-white rounded opacity-70 hover:opacity-100 transition-opacity" title="Refresh Video">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                </button>
+                <button class="resubscribe-btn p-1 bg-green-600 text-white rounded opacity-70 hover:opacity-100 transition-opacity" title="Resubscribe">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                </button>
+            `;
+            container.appendChild(actionButtons);
+            
+            // Add event listeners for action buttons
+            setTimeout(() => {
+                const refreshBtn = container.querySelector('.refresh-video-btn');
+                if (refreshBtn) {
+                    refreshBtn.addEventListener('click', () => {
+                        const videoEl = document.getElementById(`video-${userId}`);
+                        if (videoEl) {
+                            showVideoDebugOverlay(userId, "Manual refresh triggered", "info");
+                            triggerVideoRefresh(videoEl, userId);
+                        }
+                    });
+                }
+                
+                const resubscribeBtn = container.querySelector('.resubscribe-btn');
+                if (resubscribeBtn) {
+                    resubscribeBtn.addEventListener('click', () => {
+                        showVideoDebugOverlay(userId, "Manual resubscribe triggered", "info");
+                        // Recreate peer connection
+                        if (peers[userId]) {
+                            showVideoDebugOverlay(userId, "Closing existing peer connection", "info");
+                            peers[userId].close();
+                            delete peers[userId];
+                            
+                            // Create new connection
+                            showVideoDebugOverlay(userId, "Creating new peer connection", "info");
+                            createPeerConnection(userId, userName);
+                        }
+                    });
+                }
+            }, 100);
             
             // Add to video grid
             videoGrid.appendChild(container);
+            
+            // Add video event listeners for debugging
+            video.addEventListener('canplay', () => {
+                console.log(`Video can play for ${userId}`);
+                debugIndicator.style.opacity = '0';
+                
+                // Update connection status
+                const statusEl = document.getElementById(`connection-status-${userId}`);
+                if (statusEl) {
+                    statusEl.textContent = 'Connected';
+                    statusEl.parentElement.classList.remove('bg-yellow-500');
+                    statusEl.parentElement.classList.add('bg-green-500');
+                    
+                    // Hide status after 5 seconds
+                    setTimeout(() => {
+                        statusEl.parentElement.style.opacity = '0';
+                    }, 5000);
+                }
+            });
+            
+            video.addEventListener('playing', () => {
+                console.log(`Video is playing for ${userId}`);
+                debugIndicator.style.opacity = '0';
+                
+                // Start video analyzer for black screen detection
+                setupVideoAnalyzer(video, userId);
+            });
+            
+            video.addEventListener('stalled', () => {
+                console.log(`Video stalled for ${userId}`);
+                debugIndicator.style.opacity = '1';
+                debugIndicator.textContent = 'Stalled';
+                showVideoDebugOverlay(userId, "Video playback stalled", "error");
+            });
+            
+            video.addEventListener('error', (e) => {
+                console.error(`Video error for ${userId}:`, e);
+                debugIndicator.style.opacity = '1';
+                debugIndicator.textContent = 'Error';
+                showVideoDebugOverlay(userId, `Video error: ${e.target.error ? e.target.error.message : 'Unknown'}`, "error");
+            });
         } else {
             video = document.getElementById(`video-${userId}`);
         }
         
         // Set stream if provided
         if (stream && video) {
+            showVideoDebugOverlay(userId, `Setting new stream with ${stream.getTracks().length} tracks`, "info");
+            
+            // Log track details
+            stream.getTracks().forEach(track => {
+                showVideoDebugOverlay(userId, `Track: ${track.kind}, state: ${track.readyState}, enabled: ${track.enabled}`, "info");
+            });
+            
             video.srcObject = stream;
             
-            // Try to play the video
-            video.play().catch(e => {
-                console.error(`Error playing video for ${userId}:`, e);
-                
-                // Try again with a delay
-                setTimeout(() => {
-                    video.play().catch(() => {
-                        console.error(`Still cannot play video for ${userId}`);
-                    });
-                }, 1000);
-            });
+            // Use the temporary mute technique for better autoplay success
+            playWithUnmuteSequence(video, userId);
+        } else if (video && !video.srcObject) {
+            showVideoDebugOverlay(userId, "No stream available yet", "warning");
+            // Add improved play button as a placeholder
+            addImprovedPlayButton(video, userId);
         }
         
         return container;
@@ -1278,6 +1378,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Create a new WebRTC peer connection with enhanced configuration
     function createPeerConnection(userId, remoteUserName) {
         logConnectionDebug(`Creating peer connection for ${userId} (${remoteUserName})`);
+        showVideoDebugOverlay(userId, "Creating new peer connection", "info");
         
         // Show debug information in video container
         const existingContainer = document.getElementById(`container-${userId}`);
@@ -1289,12 +1390,17 @@ document.addEventListener('DOMContentLoaded', () => {
             existingContainer.appendChild(debugInfo);
         }
         
-        // Improved ICE servers configuration based on best practices
+        // Enhanced ICE servers configuration with more fallbacks
         const peerConnection = new RTCPeerConnection({
             iceServers: [
+                // STUN servers
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
-                // TURN servers with proper credentials for fallback
+                { urls: 'stun:stun2.l.google.com:19302' },
+                { urls: 'stun:stun3.l.google.com:19302' },
+                { urls: 'stun:stun4.l.google.com:19302' },
+                
+                // TURN servers with UDP (preferred)
                 {
                     urls: 'turn:openrelay.metered.ca:80',
                     username: 'openrelayproject',
@@ -1305,19 +1411,90 @@ document.addEventListener('DOMContentLoaded', () => {
                     username: 'openrelayproject',
                     credential: 'openrelayproject'
                 },
+                
+                // TCP fallbacks for strict firewalls
                 {
                     urls: 'turn:openrelay.metered.ca:443?transport=tcp',
                     username: 'openrelayproject',
                     credential: 'openrelayproject'
+                },
+                {
+                    urls: 'turn:openrelay.metered.ca:80?transport=tcp',
+                    username: 'openrelayproject',
+                    credential: 'openrelayproject'
                 }
             ],
-            iceCandidatePoolSize: 5,
+            iceCandidatePoolSize: 10, // Increased from 5
             sdpSemantics: 'unified-plan',
             bundlePolicy: 'max-bundle',
             rtcpMuxPolicy: 'require',
-            // ICE restart parameters
+            // IceTransport policy set to 'all' to allow both relay and direct connections
             iceTransportPolicy: 'all'
         });
+        
+        // Add SDP modification for better video compatibility
+        const originalCreateOffer = peerConnection.createOffer;
+        peerConnection.createOffer = async function(options) {
+            const offer = await originalCreateOffer.apply(this, arguments);
+            
+            // Modify SDP to prioritize VP8 codec and ensure video compatibility
+            if (offer.sdp) {
+                let sdp = offer.sdp;
+                
+                // Increase bandwidth for video
+                sdp = sdp.replace(/(m=video.*\r\n)/g, '$1b=AS:2000\r\n');
+                
+                // Ensure VP8 is first in the list of video codecs
+                const videoSection = sdp.match(/(m=video.*)((?:\r\n(?=.))(?:.(?!\r\n\r\n))*)/s);
+                if (videoSection) {
+                    const section = videoSection[0];
+                    const lines = section.split('\r\n');
+                    
+                    // Find VP8-related payload types
+                    const vp8PayloadTypes = [];
+                    const allPayloadTypes = [];
+                    const rtpmapLines = [];
+                    
+                    // Collect all payload types and rtpmap lines
+                    lines.forEach(line => {
+                        if (line.startsWith('a=rtpmap:')) {
+                            rtpmapLines.push(line);
+                            const [, pt, codec] = line.match(/a=rtpmap:(\d+) (.*)/);
+                            allPayloadTypes.push(pt);
+                            if (codec.toLowerCase().includes('vp8')) {
+                                vp8PayloadTypes.push(pt);
+                            }
+                        }
+                    });
+                    
+                    // If we found VP8, reorder the payload types in the m= line
+                    if (vp8PayloadTypes.length > 0) {
+                        // Find the m=video line
+                        const mLineIndex = lines.findIndex(line => line.startsWith('m=video'));
+                        if (mLineIndex >= 0) {
+                            const mLine = lines[mLineIndex];
+                            const parts = mLine.split(' ');
+                            
+                            // Remove payload types from the parts array
+                            const nonPayloadParts = parts.slice(0, 3); // m=video, port, protocol
+                            const otherPayloadTypes = allPayloadTypes.filter(pt => !vp8PayloadTypes.includes(pt));
+                            
+                            // Create new m= line with VP8 first
+                            const newMLine = [...nonPayloadParts, ...vp8PayloadTypes, ...otherPayloadTypes].join(' ');
+                            lines[mLineIndex] = newMLine;
+                            
+                            // Rebuild the modified section
+                            const newSection = lines.join('\r\n');
+                            sdp = sdp.replace(section, newSection);
+                        }
+                    }
+                }
+                
+                offer.sdp = sdp;
+            }
+            
+            return offer;
+        };
         
         // Track ICE gathering state for better debugging
         let iceCandidatesComplete = false;
@@ -1548,6 +1725,38 @@ document.addEventListener('DOMContentLoaded', () => {
             event.track.onunmute = () => {
                 console.log(`Track ${event.track.kind} from ${userId} is now unmuted and should be visible`);
                 updateDebugInfo(userId, `${event.track.kind} active`);
+                
+                // Actively trigger UI update when video is unmuted
+                if (event.track.kind === 'video') {
+                    // Get existing video element
+                    const existingVideo = document.getElementById(`video-${userId}`);
+                    if (existingVideo) {
+                        // If video is paused, try to play it
+                        if (existingVideo.paused) {
+                            playWithUnmuteSequence(existingVideo, userId);
+                        }
+                        
+                        // Hide any debug indicators
+                        const debugIndicator = document.getElementById(`video-debug-${userId}`);
+                        if (debugIndicator) {
+                            debugIndicator.style.opacity = '0';
+                        }
+                    }
+                }
+            };
+            
+            // Track when the track ends
+            event.track.onended = () => {
+                console.log(`Track ${event.track.kind} from ${userId} has ended`);
+                
+                // Show indicator if video track ended
+                if (event.track.kind === 'video') {
+                    const debugIndicator = document.getElementById(`video-debug-${userId}`);
+                    if (debugIndicator) {
+                        debugIndicator.style.opacity = '1';
+                        debugIndicator.textContent = 'Video ended';
+                    }
+                }
             };
             
             // Always ensure we have a valid stream to work with
@@ -1586,6 +1795,22 @@ document.addEventListener('DOMContentLoaded', () => {
                         // Add the new track
                         currentStream.addTrack(event.track);
                         console.log(`Added ${event.track.kind} track to existing stream for ${userId}`);
+                        
+                        // For video tracks, verify the video element actually updates
+                        if (event.track.kind === 'video') {
+                            // Set a timeout to verify video dimensions
+                            setTimeout(() => {
+                                if (existingVideo.videoWidth === 0 || existingVideo.videoHeight === 0) {
+                                    console.warn(`Video track added but dimensions still zero for ${userId}`);
+                                    
+                                    // Try replacing the entire stream as a fallback
+                                    console.log(`Trying to replace entire stream for ${userId}`);
+                                    existingVideo.srcObject = remoteStream;
+                                    
+                                    playWithUnmuteSequence(existingVideo, userId);
+                                }
+                            }, 2000);
+                        }
                     }
                     
                     // Debug video element state
@@ -1619,6 +1844,24 @@ document.addEventListener('DOMContentLoaded', () => {
                                         // Check for potential black screen indicators
                                         if (stat.framesReceived > 0 && stat.framesDecoded === 0) {
                                             console.warn(`Potential black screen issue detected: frames received but not decoded`);
+                                            
+                                            // Show the debug indicator
+                                            const debugIndicator = document.getElementById(`video-debug-${userId}`);
+                                            if (debugIndicator) {
+                                                debugIndicator.style.opacity = '1';
+                                                debugIndicator.textContent = 'Not decoding frames';
+                                            }
+                                            
+                                            // Try to fix by replacing the stream
+                                            console.log(`Attempting to fix black screen by replacing stream for ${userId}`);
+                                            existingVideo.srcObject = new MediaStream([trackRef]);
+                                            playWithUnmuteSequence(existingVideo, userId);
+                                        } else if (stat.framesReceived > 0 && stat.framesDecoded > 0) {
+                                            // Frames are being decoded, hide any error indicators
+                                            const debugIndicator = document.getElementById(`video-debug-${userId}`);
+                                            if (debugIndicator) {
+                                                debugIndicator.style.opacity = '0';
+                                            }
                                         }
                                     }
                                 });
@@ -1649,13 +1892,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (currentStream.getVideoTracks().length > 0) {
                         if (existingVideo.paused) {
                             console.log(`Video is paused for ${userId}, attempting to play...`);
-                            existingVideo.play()
-                                .then(() => console.log(`Successfully started playback for ${userId}`))
-                                .catch(err => {
-                                    console.error(`Error playing video for ${userId}:`, err);
-                                    // Try adding a play button as fallback
-                                    addPlayButtonToRemoteVideo(userId, existingVideo);
-                                });
+                            playWithUnmuteSequence(existingVideo, userId);
                         }
                     }
                 } else {
@@ -1663,14 +1900,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.log(`Replacing invalid stream for ${userId} with new stream`);
                     existingVideo.srcObject = remoteStream;
                     
-                    // Try to play the video
-                    existingVideo.play()
-                        .then(() => console.log(`Successfully started playback for ${userId} after stream replacement`))
-                        .catch(err => {
-                            console.error(`Error playing video for ${userId} after stream replacement:`, err);
-                            // Try adding a play button as fallback
-                            addPlayButtonToRemoteVideo(userId, existingVideo);
-                        });
+                    // Try to play the video with our auto-unmute technique
+                    playWithUnmuteSequence(existingVideo, userId);
                 }
             } else {
                 // Create a new video element if one doesn't exist
@@ -1720,5 +1951,149 @@ document.addEventListener('DOMContentLoaded', () => {
         
         peers[userId] = peerConnection;
         return peerConnection;
+    }
+    
+    // Helper function to play video with temporary mute to bypass autoplay restrictions
+    function playWithUnmuteSequence(videoElement, userId) {
+        // Use the function from WebRTCPlayer module
+        if (window.WebRTCPlayer && typeof window.WebRTCPlayer.playWithUnmuteSequence === 'function') {
+            window.WebRTCPlayer.playWithUnmuteSequence(videoElement, userId);
+        } else {
+            console.error('WebRTCPlayer module function not available');
+        }
+    }
+    
+    // Simulate a user gesture to help with autoplay
+    function simulateUserGesture(callback) {
+        // Use the function from WebRTCPlayer module
+        if (window.WebRTCPlayer && typeof window.WebRTCPlayer.simulateUserGesture === 'function') {
+            window.WebRTCPlayer.simulateUserGesture(callback);
+        } else {
+            console.error('WebRTCPlayer simulateUserGesture function not available');
+        }
+    }
+    
+    // Monitor video playback to detect issues
+    function monitorVideoPlayback(videoElement, userId) {
+        if (!videoElement) return;
+        
+        let blackFrameCount = 0;
+        let lastWidth = videoElement.videoWidth;
+        let lastHeight = videoElement.videoHeight;
+        
+        const monitor = setInterval(() => {
+            // Check if video element still exists
+            if (!document.contains(videoElement)) {
+                clearInterval(monitor);
+                return;
+            }
+            
+            // Check if paused
+            if (videoElement.paused) {
+                showVideoDebugOverlay(userId, "Video playback paused unexpectedly", "error");
+                
+                // Try to resume
+                videoElement.play().catch(e => {
+                    showVideoDebugOverlay(userId, `Cannot resume: ${e.message}`, "error");
+                });
+            }
+            
+            // Check for dimension changes (might indicate stream started/stopped)
+            if (lastWidth !== videoElement.videoWidth || lastHeight !== videoElement.videoHeight) {
+                if (videoElement.videoWidth === 0 || videoElement.videoHeight === 0) {
+                    showVideoDebugOverlay(userId, "Video dimensions changed to 0x0", "error");
+                } else {
+                    showVideoDebugOverlay(userId, `Video dimensions changed to ${videoElement.videoWidth}x${videoElement.videoHeight}`, "info");
+                }
+                
+                lastWidth = videoElement.videoWidth;
+                lastHeight = videoElement.videoHeight;
+            }
+            
+            // Check if stream still has tracks
+            const stream = videoElement.srcObject;
+            if (stream) {
+                const videoTracks = stream.getVideoTracks();
+                if (videoTracks.length === 0) {
+                    showVideoDebugOverlay(userId, "Video tracks have been removed", "error");
+                } else {
+                    // Check track status
+                    videoTracks.forEach(track => {
+                        if (track.readyState !== 'live') {
+                            showVideoDebugOverlay(userId, `Track state changed to ${track.readyState}`, "error");
+                        }
+                    });
+                }
+            } else {
+                showVideoDebugOverlay(userId, "Video srcObject has been removed", "error");
+            }
+            
+            // Stop monitoring after 30 seconds to save resources
+            if (++blackFrameCount > 10) {
+                clearInterval(monitor);
+            }
+        }, 3000);
+    }
+    
+    // Comment indicating we're using the debugMode from earlier in the file
+    
+    // Add this function after addLogEntry
+    function showVideoDebugOverlay(userId, message, type = 'warning') {
+        if (!debugMode) return;
+        
+        const container = document.getElementById(`container-${userId}`);
+        if (!container) return;
+        
+        let overlay = document.getElementById(`video-debug-overlay-${userId}`);
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = `video-debug-overlay-${userId}`;
+            overlay.className = 'absolute top-0 left-0 right-0 p-2 text-white text-xs z-20 text-center';
+            container.appendChild(overlay);
+        }
+        
+        // Set color based on type
+        let bgColor = 'bg-yellow-600';
+        if (type === 'error') bgColor = 'bg-red-600';
+        if (type === 'info') bgColor = 'bg-blue-600';
+        if (type === 'success') bgColor = 'bg-green-600';
+        
+        // Create new message element
+        const msgElement = document.createElement('div');
+        msgElement.className = `${bgColor} bg-opacity-90 mb-1 p-1 rounded`;
+        msgElement.textContent = message;
+        
+        // Add to overlay
+        overlay.appendChild(msgElement);
+        
+        // Auto-remove after 10 seconds
+        setTimeout(() => {
+            if (msgElement.parentNode) {
+                msgElement.parentNode.removeChild(msgElement);
+            }
+        }, 10000);
+        
+        // Also log to console
+        console.log(`[VIDEO DEBUG] ${userId}: ${message}`);
+    }
+    
+    // Setup video analyzer to detect black screens
+    function setupVideoAnalyzer(videoElement, userId) {
+        // Use the function from WebRTCDebug module
+        if (window.WebRTCDebug && typeof window.WebRTCDebug.setupAnalyzer === 'function') {
+            window.WebRTCDebug.setupAnalyzer(videoElement, userId);
+        } else {
+            console.error('WebRTCDebug setupAnalyzer function not available');
+        }
+    }
+    
+    // Add enhanced play button with more information
+    function addImprovedPlayButton(videoElement, userId) {
+        // Use the function from WebRTCPlayer module
+        if (window.WebRTCPlayer && typeof window.WebRTCPlayer.addImprovedPlayButton === 'function') {
+            window.WebRTCPlayer.addImprovedPlayButton(videoElement, userId);
+        } else {
+            console.error('WebRTCPlayer addImprovedPlayButton function not available');
+        }
     }
 });

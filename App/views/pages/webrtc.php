@@ -331,6 +331,10 @@ $additional_head = '
 
 <!-- Load Socket.IO library first -->
 <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+<!-- Load WebRTC modules -->
+<script src="<?php echo js('webrtc-modules/browser-compatibility'); ?>"></script>
+<script src="<?php echo js('webrtc-modules/video-debug'); ?>"></script>
+<script src="<?php echo js('webrtc-modules/video-player'); ?>"></script>
 <!-- Replace the embedded JavaScript with the external file -->
 <script src="<?php echo js('webrtc'); ?>"></script>
 
