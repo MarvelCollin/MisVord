@@ -43,9 +43,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Function to test connectivity to marvelcollin.my.id
     function testServerConnectivity() {
         // Skip direct fetch test which would be blocked by CORS
-        addLogEntry('Testing connectivity to signaling server...', 'info');
+        addLogEntry('Testing connectivity to marvelcollin.my.id...', 'info');
         
-        // Try connecting to the local server first
+        // Connect directly to marvelcollin.my.id
         connectToSignalingServer();
     }
     
@@ -187,21 +187,22 @@ document.addEventListener('DOMContentLoaded', () => {
     function connectToSignalingServer() {
         updateConnectionStatus('connecting');
         
-        // Try connecting to local server first
-        const localUrl = window.location.origin;
-        logConnectionDebug(`Attempting to connect to local signaling server at ${localUrl}...`);
+        // Connect directly to marvelcollin.my.id instead of trying local server first
+        const remoteUrl = 'https://marvelcollin.my.id';
+        logConnectionDebug(`Attempting to connect to signaling server at ${remoteUrl}...`);
         
-        addLogEntry(`Connecting to local server: ${localUrl}`, 'info');
-        console.log(`Attempting connection to: ${localUrl}`);
+        addLogEntry(`Connecting to server: ${remoteUrl}`, 'info');
+        console.log(`Attempting connection to: ${remoteUrl}`);
         
-        // Initialize socket first with a new connection
-        socket = io(localUrl, {
-            reconnectionAttempts: 3,
+        // Initialize socket with a direct connection to marvelcollin.my.id
+        socket = io(remoteUrl, {
+            reconnectionAttempts: 5,
             reconnectionDelay: 1000,
             reconnectionDelayMax: 5000,
-            timeout: 5000, // Shorter timeout for local server
+            timeout: 10000,
             transports: ['polling', 'websocket'],
             forceNew: true,
+            withCredentials: false,
             path: '/socket.io/',
             query: {
                 username: userName,
@@ -210,66 +211,28 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         
-        // Then check and disconnect if needed - now socket is defined
-        // We don't need this check anymore since we're creating a new socket
-        
-        // Handle connection errors from local server - try remote server
+        // Handle connection errors
         socket.on('connect_error', (error) => {
-            logConnectionDebug(`Local connection error: ${error.message}`);
-            addLogEntry(`Local connection failed, trying remote server...`, 'info');
+            logConnectionDebug(`Connection error: ${error.message}`);
+            updateConnectionStatus('disconnected');
+            addLogEntry(`Connection error: ${error.message}`, 'error');
             
-            // Disconnect from local server
-            socket.disconnect();
+            // Show a detailed error message to the user
+            const errorMsg = document.createElement('div');
+            errorMsg.className = 'fixed top-0 left-0 right-0 bg-red-600 text-white text-center p-4';
+            errorMsg.innerHTML = `
+                Connection to signaling server failed.<br>
+                <span class="text-sm">Could not connect to server: ${error.message}</span><br>
+                <span class="text-sm mt-2">WebRTC functionality will not work.</span>
+            `;
+            document.body.appendChild(errorMsg);
             
-            // Try remote server
-            const remoteUrl = 'https://marvelcollin.my.id';
-            logConnectionDebug(`Attempting to connect to remote signaling server at ${remoteUrl}...`);
-            
-            addLogEntry(`Connecting to remote server: ${remoteUrl}`, 'info');
-            
-            // Connect to remote server
-            socket = io(remoteUrl, {
-                reconnectionAttempts: 3,
-                reconnectionDelay: 1000,
-                reconnectionDelayMax: 5000,
-                timeout: 10000,
-                transports: ['polling', 'websocket'],
-                forceNew: true,
-                withCredentials: false,
-                path: '/socket.io/',
-                query: {
-                    username: userName,
-                    room: GLOBAL_ROOM,
-                    timestamp: Date.now()
-                }
-            });
-            
-            // Set up event handlers for the new socket
-            setupSocketEventHandlers();
-            
-            // Handle remote connection errors
-            socket.on('connect_error', (remoteError) => {
-                logConnectionDebug(`Remote connection error: ${remoteError.message}`);
-                updateConnectionStatus('disconnected');
-                addLogEntry(`Remote connection error: ${remoteError.message}`, 'error');
-                
-                // Show a detailed error message to the user
-                const errorMsg = document.createElement('div');
-                errorMsg.className = 'fixed top-0 left-0 right-0 bg-red-600 text-white text-center p-4';
-                errorMsg.innerHTML = `
-                    Connection to signaling server failed.<br>
-                    <span class="text-sm">Could not connect to local or remote server.</span><br>
-                    <span class="text-sm mt-2">WebRTC functionality will not work.</span>
-                `;
-                document.body.appendChild(errorMsg);
-                
-                // Add a reload button
-                const reloadBtn = document.createElement('button');
-                reloadBtn.className = 'ml-4 px-4 py-1 bg-white text-red-600 rounded';
-                reloadBtn.textContent = 'Reload Page';
-                reloadBtn.onclick = () => window.location.reload();
-                errorMsg.appendChild(reloadBtn);
-            });
+            // Add a reload button
+            const reloadBtn = document.createElement('button');
+            reloadBtn.className = 'ml-4 px-4 py-1 bg-white text-red-600 rounded';
+            reloadBtn.textContent = 'Reload Page';
+            reloadBtn.onclick = () => window.location.reload();
+            errorMsg.appendChild(reloadBtn);
         });
         
         // Set up all socket event handlers
@@ -328,6 +291,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 roomId: GLOBAL_ROOM,
                 userId: socket.id,
                 userName: userName
+            });
+            
+            // Clear existing participants before reconnecting to avoid duplicates
+            Array.from(document.querySelectorAll('.participant-item')).forEach(item => {
+                participantsList.removeChild(item);
             });
             
             // Add myself to the participants list
@@ -478,22 +446,29 @@ document.addEventListener('DOMContentLoaded', () => {
         socket.on('user-joined', (data) => {
             logConnectionDebug(`User joined: ${data.userId} (${data.userName || 'Unknown'})`);
             
-            // Always refresh the global users list when someone joins
-            console.log("User joined event received, requesting updated users list");
+            // Just refresh the global users list when someone joins
+            // Don't add the user directly here - let handleGlobalUsers manage the user list
             socket.emit('get-global-users', { 
                 roomId: GLOBAL_ROOM 
             });
             
-            handleUserJoined(data);
+            // We don't need to call handleUserJoined directly - the global-users event will handle it
         });
         
         socket.on('user-left', (data) => {
             logConnectionDebug(`User left: ${data.userId}`);
+            
+            // Process user leaving immediately, before we get updated global list
             handleUserLeft(data);
+            
+            // Refresh global users list to ensure UI is synchronized
+            socket.emit('get-global-users', { 
+                roomId: GLOBAL_ROOM 
+            });
         });
         
         socket.on('global-users', (data) => {
-            logConnectionDebug(`Received global users list: ${JSON.stringify(data.users)}`);
+            logConnectionDebug(`Received global users list with ${data.users ? data.users.length : 0} users`);
             handleGlobalUsers(data);
         });
         
@@ -507,6 +482,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize media stream
     async function initLocalStream() {
         try {
+            console.log('Requesting media permissions...');
+            
+            // Request with constraints that prefer performance over quality
             localStream = await navigator.mediaDevices.getUserMedia({
                 video: {
                     width: { ideal: 640 }, // Reduced from 1280 for better performance
@@ -520,16 +498,68 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
             
-            console.log('Local stream obtained with tracks:', localStream.getTracks().map(t => t.kind));
+            // Log information about the tracks
+            const videoTrack = localStream.getVideoTracks()[0];
+            const audioTrack = localStream.getAudioTracks()[0];
+            
+            if (videoTrack) {
+                console.log('Video track obtained:', videoTrack.label);
+                console.log('Video track settings:', videoTrack.getSettings());
+                
+                // Monitor video track for ending
+                videoTrack.onended = () => {
+                    console.warn('Video track ended unexpectedly');
+                    addLogEntry('Camera track ended. Try reloading the page.', 'error');
+                };
+            } else {
+                console.warn('No video track obtained');
+            }
+            
+            if (audioTrack) {
+                console.log('Audio track obtained:', audioTrack.label);
+            } else {
+                console.warn('No audio track obtained');
+            }
+            
+            console.log('Local stream obtained with tracks:', localStream.getTracks().map(t => `${t.kind}:${t.enabled}`));
             addLogEntry(`Local media stream obtained with ${localStream.getTracks().length} tracks`, 'info');
             
             // Set the stream on the video element
             localVideo.srcObject = localStream;
             
+            // Monitor for any changes in the local stream
+            localStream.onaddtrack = (event) => {
+                console.log('Track added to local stream:', event.track);
+            };
+            
+            localStream.onremovetrack = (event) => {
+                console.log('Track removed from local stream:', event.track);
+            };
+            
             // Use a timeout to let the video element stabilize before playing
             setTimeout(() => {
                 localVideo.play()
-                    .then(() => console.log('Local video playback started successfully'))
+                    .then(() => {
+                        console.log('Local video playback started successfully');
+                        // Update existing connections with our local stream
+                        Object.keys(peers).forEach(userId => {
+                            const peerConnection = peers[userId];
+                            
+                            // Add all tracks from local stream to peer connection
+                            localStream.getTracks().forEach(track => {
+                                // Check if track is already added to this connection
+                                const senders = peerConnection.getSenders();
+                                const trackAlreadyAdded = senders.some(sender => 
+                                    sender.track && sender.track.id === track.id
+                                );
+                                
+                                if (!trackAlreadyAdded) {
+                                    console.log(`Adding ${track.kind} track to existing peer ${userId}`);
+                                    peerConnection.addTrack(track, localStream);
+                                }
+                            });
+                        });
+                    })
                     .catch(e => {
                         console.error('Error playing local video:', e);
                         // Add a manual play button if autoplay fails
@@ -541,7 +571,21 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error('Error accessing media devices:', error);
             addLogEntry(`Error accessing media: ${error.message}`, 'error');
-            alert('Could not access camera or microphone. Please check permissions: ' + error.message);
+            
+            // More user-friendly error display
+            let errorMessage = 'Could not access camera or microphone. ';
+            
+            if (error.name === 'NotAllowedError') {
+                errorMessage += 'You denied permission to use your camera/microphone. Please allow access in your browser settings.';
+            } else if (error.name === 'NotFoundError') {
+                errorMessage += 'No camera or microphone found on your device.';
+            } else if (error.name === 'NotReadableError') {
+                errorMessage += 'Your camera or microphone is already in use by another application.';
+            } else {
+                errorMessage += error.message;
+            }
+            
+            alert(errorMessage);
             return false;
         }
     }
@@ -572,14 +616,75 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
+    // Add a play button to the remote video if autoplay fails
+    function addPlayButtonToRemoteVideo(userId, videoElement) {
+        const container = document.getElementById(`container-${userId}`);
+        if (!container) return;
+        
+        // Check if button already exists
+        if (container.querySelector('.remote-play-button')) return;
+        
+        console.log(`Adding manual play button for remote video ${userId}`);
+        
+        const playButton = document.createElement('button');
+        playButton.className = 'remote-play-button absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center text-white z-10';
+        playButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
+        
+        // Add text explanation
+        const textDiv = document.createElement('div');
+        textDiv.className = 'text-center text-sm mt-2';
+        textDiv.textContent = 'Click to play video';
+        playButton.appendChild(textDiv);
+        
+        container.appendChild(playButton);
+        
+        // Add click event
+        playButton.addEventListener('click', () => {
+            videoElement.play()
+                .then(() => {
+                    playButton.remove();
+                    console.log(`Manual play successful for ${userId}`);
+                })
+                .catch(e => {
+                    console.error(`Manual play attempt failed for ${userId}:`, e);
+                    // Update text to show error
+                    textDiv.textContent = 'Autoplay blocked. Try refreshing page.';
+                    textDiv.className = 'text-center text-sm mt-2 text-red-300';
+                });
+        });
+    }
+    
     // Add a participant to the list
     function addParticipantItem(userId, userName) {
-        // Check if participant already exists
+        // Check if participant already exists by ID
         const existingItem = document.getElementById(`participant-${userId}`);
         if (existingItem) {
             // Update if already exists
             existingItem.querySelector('.participant-name').textContent = userName;
             return;
+        }
+        
+        // Also check for duplicate usernames (excluding the (You) part)
+        const cleanUserName = userName.replace(' (You)', '');
+        const duplicateByName = Array.from(document.querySelectorAll('.participant-item'))
+            .find(item => {
+                const nameEl = item.querySelector('.participant-name');
+                return nameEl && nameEl.textContent.replace(' (You)', '') === cleanUserName;
+            });
+        
+        // If we found a duplicate by username but with a different ID
+        if (duplicateByName && duplicateByName.id !== `participant-${userId}`) {
+            // If the current user has (You) suffix, this is the one we want to keep
+            if (userName.includes('(You)')) {
+                // Remove the duplicate
+                const duplicateId = duplicateByName.id.replace('participant-', '');
+                console.log(`Removing duplicate participant ${duplicateId} with same username as current user`);
+                removeParticipantItem(duplicateId);
+            } else {
+                // Otherwise, this is probably a stale entry from reconnection
+                console.log(`Skipping adding duplicate participant ${userId} with name ${userName}`);
+                return;
+            }
         }
         
         // Create new participant item
@@ -639,14 +744,29 @@ document.addEventListener('DOMContentLoaded', () => {
         // Skip if it's our own connection
         if (userId === socketId) return;
         
-        // Add user to participants list
-        addParticipantItem(userId, userName || `User_${userId.substring(0, 4)}`);
+        // Check if this user is already in our list
+        const existingItem = document.getElementById(`participant-${userId}`);
+        const existingPeer = peers[userId];
+        const existingVideo = document.getElementById(`container-${userId}`);
         
-        // Create peer connection
-        if (!peers[userId]) {
+        if (existingItem && existingPeer && existingVideo) {
+            console.log(`User ${userId} is already in the participant list, skipping duplicate join event`);
+            return;
+        }
+        
+        // Add user to participants list if not already present
+        if (!existingItem) {
+            addParticipantItem(userId, userName || `User_${userId.substring(0, 4)}`);
+        }
+        
+        // Create peer connection if doesn't exist
+        if (!existingPeer) {
+            console.log(`Creating new peer connection for joined user ${userId}`);
             const peerConnection = createPeerConnection(userId, userName);
-            
-            // Create video container
+        }
+        
+        // Create video container if doesn't exist
+        if (!existingVideo) {
             updateRemoteVideo(userId, null, userName || `User_${userId.substring(0, 4)}`);
         }
     }
@@ -677,16 +797,101 @@ document.addEventListener('DOMContentLoaded', () => {
         const { users } = data;
         console.log(`Received global users: ${users.length}`);
         
-        // Process each user
+        // Track username mapping to avoid duplicates
+        const usernameMap = new Map();
+        
+        // Add myself to username map first
+        usernameMap.set(userName.replace(' (You)', ''), socketId);
+        
+        // Get all current participant items and IDs
+        const currentParticipants = Array.from(document.querySelectorAll('.participant-item'))
+            .map(el => el.id.replace('participant-', ''));
+        
+        // Get list of valid user IDs from the server and map usernames
+        const validUserIds = [];
+        
+        // Process server users to detect duplicates by username
         users.forEach(user => {
-            // Skip our own connection
-            if (user.userId === socketId) return;
+            // Add to valid users
+            validUserIds.push(user.userId);
             
-            // Add to participants list
+            // Clean username for comparison
+            const cleanUsername = (user.userName || '').replace(' (You)', '');
+            
+            // If this is a duplicate of our own username, skip it
+            if (cleanUsername === userName.replace(' (You)', '') && user.userId !== socketId) {
+                console.log(`Found duplicate user with our username: ${cleanUsername}, ID: ${user.userId}`);
+                // Don't add to username map, so it gets removed
+                return;
+            }
+            
+            // Otherwise track this username
+            usernameMap.set(cleanUsername, user.userId);
+        });
+        
+        // Make sure myself is in valid list
+        if (!validUserIds.includes(socketId)) {
+            validUserIds.push(socketId);
+        }
+        
+        console.log(`Current participants: ${currentParticipants.length}, Valid users: ${validUserIds.length}`);
+        
+        // Remove any participants that are not in the valid list (no longer connected)
+        currentParticipants.forEach(id => {
+            if (!validUserIds.includes(id)) {
+                console.log(`Removing stale participant: ${id}`);
+                removeParticipantItem(id);
+                
+                // Also clean up peer connection and video if they exist
+                if (peers[id]) {
+                    peers[id].close();
+                    delete peers[id];
+                }
+                
+                const container = document.getElementById(`container-${id}`);
+                if (container) {
+                    videoGrid.removeChild(container);
+                }
+            }
+        });
+        
+        // Remove duplicate entries with the same username
+        const userEls = document.querySelectorAll('.participant-item');
+        userEls.forEach(el => {
+            const id = el.id.replace('participant-', '');
+            const nameEl = el.querySelector('.participant-name');
+            if (nameEl) {
+                // Clean username for comparison
+                const displayedName = nameEl.textContent.replace(' (You)', '');
+                const expectedId = usernameMap.get(displayedName);
+                
+                // If this item has a username that belongs to a different ID, remove it
+                if (expectedId && expectedId !== id) {
+                    console.log(`Removing duplicate participant with username ${displayedName}`);
+                    removeParticipantItem(id);
+                }
+            }
+        });
+        
+        // Make sure I'm in the participants list
+        if (!document.getElementById(`participant-${socketId}`)) {
+            addParticipantItem(socketId, userName + ' (You)');
+        }
+        
+        // Process each user from the server
+        users.forEach(user => {
+            // Skip our own connection or duplicates with our username
+            if (user.userId === socketId || 
+                (user.userName && user.userName.replace(' (You)', '') === userName.replace(' (You)', ''))) {
+                return;
+            }
+            
+            // Add to participants list (addParticipantItem will update if already exists)
             addParticipantItem(user.userId, user.userName || `User_${user.userId.substring(0, 4)}`);
             
             // Create peer connection if doesn't exist
             if (!peers[user.userId]) {
+                console.log(`Creating new peer connection for ${user.userId}`);
                 const peerConnection = createPeerConnection(user.userId, user.userName);
                 
                 // Create video container
@@ -971,13 +1176,61 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             
-            // Set remote description (the answer)
-            await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-            console.log(`Set remote description (answer) from ${from}`);
+            // Check if we're in the right state to receive an answer
+            // We should be in "have-local-offer" state to set a remote answer
+            if (peerConnection.signalingState !== 'have-local-offer') {
+                console.warn(`Cannot set remote answer in '${peerConnection.signalingState}' state for ${from}. Expected 'have-local-offer' state.`);
+                
+                // If we're in stable state, it likely means we've already processed this answer
+                // or there's a race condition with multiple answer messages
+                if (peerConnection.signalingState === 'stable') {
+                    console.log(`Connection with ${from} is already in 'stable' state, ignoring duplicate answer`);
+                    return;
+                }
+                
+                // For other states, log the issue but attempt to continue
+                console.warn(`Attempting to set remote answer anyway despite being in ${peerConnection.signalingState} state`);
+            }
+            
+            // Create the session description for the answer
+            const sessionDescription = new RTCSessionDescription(answer);
+            
+            // Set remote description with better error handling
+            await peerConnection.setRemoteDescription(sessionDescription)
+                .catch(error => {
+                    // Special handling for the "Called in wrong state: stable" error
+                    if (error.name === 'InvalidStateError' && error.message.includes('stable')) {
+                        console.warn(`Ignoring answer for ${from} - connection already established (stable state)`);
+                        return; // Silently ignore this specific error
+                    }
+                    
+                    // Re-throw other errors to be caught by the main catch block
+                    throw error;
+                });
+                
+            console.log(`Successfully set remote description (answer) from ${from}`);
+            
+            // Log current connection state after setting remote description
+            console.log(`Current signaling state after setting answer: ${peerConnection.signalingState}`);
+            console.log(`Current connection state: ${peerConnection.connectionState}`);
+            console.log(`Current ICE connection state: ${peerConnection.iceConnectionState}`);
             
         } catch (error) {
             console.error(`Error handling answer from ${from}:`, error);
             addLogEntry(`Error handling answer: ${error.message}`, 'error');
+            
+            // Attempt to recover from error if possible
+            if (error.name === 'InvalidStateError') {
+                console.warn(`Invalid state error occurred, checking if connection with ${from} can be salvaged`);
+                
+                // If we're already connected, the error is likely not critical
+                if (peerConnection.iceConnectionState === 'connected' || 
+                    peerConnection.iceConnectionState === 'completed') {
+                    console.log(`Despite error, connection with ${from} appears to be working`);
+                } else {
+                    console.warn(`Connection with ${from} may be in a bad state, consider reconnecting`);
+                }
+            }
         }
     }
     
@@ -1283,29 +1536,32 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
         
-        // Add all tracks from local stream to peer connection
-        if (localStream) {
-            try {
-                localStream.getTracks().forEach(track => {
-                    peerConnection.addTrack(track, localStream);
-                });
-            } catch(e) {
-                console.error(`Error adding tracks:`, e);
-            }
-        }
-        
         // Handle incoming streams more efficiently
         peerConnection.ontrack = (event) => {
             updateDebugInfo(userId, `Received ${event.track.kind} track`);
+            console.log(`Track received from ${userId}: `, event.track);
+            
+            // Log important track details to help debug black screen issues
+            console.log(`Track details - kind: ${event.track.kind}, enabled: ${event.track.enabled}, muted: ${event.track.muted}, readyState: ${event.track.readyState}`);
+            
+            // Ensure we log when the track actually starts flowing
+            event.track.onunmute = () => {
+                console.log(`Track ${event.track.kind} from ${userId} is now unmuted and should be visible`);
+                updateDebugInfo(userId, `${event.track.kind} active`);
+            };
             
             // Always ensure we have a valid stream to work with
             let remoteStream = event.streams && event.streams.length > 0 ? event.streams[0] : null;
             
             if (!remoteStream) {
                 // Create a synthetic stream if one wasn't provided
+                console.log(`Creating synthetic stream for ${userId} as no stream was provided with the track`);
                 remoteStream = new MediaStream();
                 remoteStream.addTrack(event.track);
             }
+            
+            // Log received streams and tracks for debugging black screen issues
+            console.log(`Remote stream for ${userId} has ${remoteStream.getTracks().length} tracks`);
             
             // Get existing video element if it exists
             const existingVideo = document.getElementById(`video-${userId}`);
@@ -1329,60 +1585,138 @@ document.addEventListener('DOMContentLoaded', () => {
                         
                         // Add the new track
                         currentStream.addTrack(event.track);
+                        console.log(`Added ${event.track.kind} track to existing stream for ${userId}`);
+                    }
+                    
+                    // Debug video element state
+                    console.log(`Video element state for ${userId}: readyState=${existingVideo.readyState}, paused=${existingVideo.paused}, videoWidth=${existingVideo.videoWidth}, videoHeight=${existingVideo.videoHeight}`);
+                    
+                    // Add stats monitoring for video tracks to debug black screens
+                    if (event.track.kind === 'video') {
+                        // Save track reference to prevent "no sender or receiver for the track" errors
+                        const trackRef = event.track;
+                        
+                        // Monitor video stats periodically
+                        const statsInterval = setInterval(async () => {
+                            // First check if connection still exists
+                            if (!peers[userId] || peers[userId].connectionState === 'closed') {
+                                console.log(`Clearing stats interval for ${userId} - peer connection gone or closed`);
+                                clearInterval(statsInterval);
+                                return;
+                            }
+                            
+                            try {
+                                // Get stats without specifying track (more reliable)
+                                const stats = await peers[userId].getStats(null);
+                                let hasVideoData = false;
+                                
+                                // Process all stats
+                                stats.forEach(stat => {
+                                    if (stat.type === 'inbound-rtp' && stat.kind === 'video') {
+                                        hasVideoData = true;
+                                        console.log(`${userId} video stats: framesReceived=${stat.framesReceived}, framesDecoded=${stat.framesDecoded}, packetsLost=${stat.packetsLost}`);
+                                        
+                                        // Check for potential black screen indicators
+                                        if (stat.framesReceived > 0 && stat.framesDecoded === 0) {
+                                            console.warn(`Potential black screen issue detected: frames received but not decoded`);
+                                        }
+                                    }
+                                });
+                                
+                                if (!hasVideoData) {
+                                    // Try to check if we have any video tracks
+                                    const videoTracks = currentStream.getVideoTracks();
+                                    if (videoTracks.length > 0) {
+                                        console.warn(`No video statistics available for ${userId} despite having ${videoTracks.length} video tracks`);
+                                    } else {
+                                        console.log(`No video tracks currently available for ${userId}`);
+                                    }
+                                }
+                            } catch (e) {
+                                // Log but don't break if stats gathering fails
+                                console.warn(`Error getting stats for ${userId}: ${e.message}`);
+                                
+                                // If this error occurs repeatedly, stop trying
+                                if (e.message.includes('no sender or receiver')) {
+                                    console.log(`Track no longer available, stopping stats monitoring for ${userId}`);
+                                    clearInterval(statsInterval);
+                                }
+                            }
+                        }, 5000); // Check every 5 seconds
                     }
                     
                     // Ensure video is playing if it has video tracks
-                    if (currentStream.getVideoTracks().length > 0 && existingVideo.paused) {
-                        existingVideo.play().catch(() => {});
+                    if (currentStream.getVideoTracks().length > 0) {
+                        if (existingVideo.paused) {
+                            console.log(`Video is paused for ${userId}, attempting to play...`);
+                            existingVideo.play()
+                                .then(() => console.log(`Successfully started playback for ${userId}`))
+                                .catch(err => {
+                                    console.error(`Error playing video for ${userId}:`, err);
+                                    // Try adding a play button as fallback
+                                    addPlayButtonToRemoteVideo(userId, existingVideo);
+                                });
+                        }
                     }
                 } else {
                     // If current stream is invalid, replace it with the new one
+                    console.log(`Replacing invalid stream for ${userId} with new stream`);
                     existingVideo.srcObject = remoteStream;
                     
                     // Try to play the video
-                    existingVideo.play().catch(() => {});
+                    existingVideo.play()
+                        .then(() => console.log(`Successfully started playback for ${userId} after stream replacement`))
+                        .catch(err => {
+                            console.error(`Error playing video for ${userId} after stream replacement:`, err);
+                            // Try adding a play button as fallback
+                            addPlayButtonToRemoteVideo(userId, existingVideo);
+                        });
                 }
             } else {
                 // Create a new video element if one doesn't exist
+                console.log(`Creating new video element for ${userId}`);
                 updateRemoteVideo(userId, remoteStream, remoteUserName);
             }
         };
         
-        // Handle ICE candidates with improved error handling
-        peerConnection.onicecandidate = (event) => {
-            if (event.candidate) {
-                // Increment our counter of gathered candidates
-                iceCandidatesGathered++;
+        // Add all tracks from local stream to peer connection
+        if (localStream) {
+            try {
+                // Log current track status before adding
+                console.log(`Adding ${localStream.getTracks().length} local tracks to peer connection for ${userId}`);
                 
-                // Only send candidates that are truly useful
-                // Avoid sending candidates that are unlikely to work
-                const candidateString = event.candidate.candidate;
-                
-                // Don't send candidates that are reflexive but have invalid ports
-                if (candidateString.indexOf('srflx') !== -1 && 
-                    candidateString.indexOf('port 0') !== -1) {
-                    console.log(`Skipping invalid srflx candidate`);
-                    return;
-                }
-                
-                console.log(`Sending ICE candidate #${iceCandidatesGathered} to ${userId}`);
-                
-                socket.emit('ice-candidate', {
-                    candidate: event.candidate,
-                    to: userId,
-                    from: socketId
+                localStream.getTracks().forEach(track => {
+                    // Track details
+                    console.log(`Adding track to peer: kind=${track.kind}, enabled=${track.enabled}, readyState=${track.readyState}`);
+                    
+                    // Add track to peer connection
+                    const sender = peerConnection.addTrack(track, localStream);
+                    
+                    // Log success
+                    console.log(`Track ${track.kind} added to peer ${userId}, RTCRtpSender created:`, sender ? 'yes' : 'no');
+                    
+                    // Monitor track status changes
+                    track.onended = () => {
+                        console.log(`Local ${track.kind} track ended, may cause black screen for remote peer`);
+                    };
+                    
+                    track.onmute = () => {
+                        console.log(`Local ${track.kind} track muted`);
+                    };
+                    
+                    track.onunmute = () => {
+                        console.log(`Local ${track.kind} track unmuted`);
+                    };
                 });
-            } else {
-                console.log(`ICE candidate gathering complete for ${userId}, sending end-of-candidates`);
-                
-                // Explicitly signal end-of-candidates to help connection establishment
-                socket.emit('ice-candidate', {
-                    endOfCandidates: true,
-                    to: userId,
-                    from: socketId
-                });
+            } catch(e) {
+                console.error(`Error adding tracks to peer ${userId}:`, e);
+                addLogEntry(`Failed to add media tracks to peer connection: ${e.message}`, 'error');
+                // Try to continue without tracks, could still receive remote video
             }
-        };
+        } else {
+            console.warn(`Cannot add tracks to peer ${userId} - local stream not initialized`);
+            addLogEntry(`Warning: Local media not available, can receive but not send video`, 'warning');
+        }
         
         peers[userId] = peerConnection;
         return peerConnection;
