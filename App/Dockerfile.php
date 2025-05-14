@@ -1,14 +1,14 @@
-FROM php:8.1.27-apache-bullseye-slim
+FROM php:8.1-apache-bullseye
 
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl=7.74.0-1.3+deb11u10 \
-    libpng-dev=1.6.37-3 \
-    libonig-dev=6.9.6-1.1 \
-    libxml2-dev=2.9.10+dfsg-6.7+deb11u4 \
-    zip=3.0-12 \
-    unzip=6.0-26+deb11u1 \
+    curl \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    zip \
+    unzip \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     /tmp/* \
@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 RUN docker-php-ext-install -j$(nproc) pdo_mysql mbstring exif bcmath gd
 
-COPY --from=composer:2.6.5 /usr/bin/composer /usr/bin/composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 RUN groupadd -g 1000 appuser && \
     useradd -u 1000 -g appuser -m -s /bin/bash appuser
@@ -72,4 +72,4 @@ EXPOSE 80
 
 USER appuser
 
-CMD ["apache2-foreground"] 
+CMD ["apache2-foreground"]
