@@ -1,19 +1,20 @@
-FROM node:18.18-alpine3.18
+FROM node:20.11.0-alpine3.19 AS builder
 
-# Create app directory
-WORKDIR /app
+WORKDIR /build
+ENV NODE_ENV=production
 
-# Copy package.json and package-lock.json
 COPY package*.json ./
 
-# Install app dependencies
-RUN npm install
+RUN npm ci --only=production --no-optional && \
+    npm cache clean --force
 
-# Copy app source
-COPY . .
+FROM gcr.io/distroless/nodejs20-debian12
 
-# Expose port for the socket server
+WORKDIR /app
+COPY --from=builder /build/node_modules /app/node_modules
+
+COPY socket-server.js server.js package.json ./
+
 EXPOSE 3000
 
-# Start the unified socket server
-CMD ["npm", "run", "dev"] 
+CMD ["socket-server.js"] 

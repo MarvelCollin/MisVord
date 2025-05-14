@@ -9,8 +9,13 @@ services:
     container_name: miscvord_php
     restart: unless-stopped
     volumes:
-      - .:/var/www/html
-      - ./public:/var/www/html/public
+      - ./public:/var/www/html/public:ro
+      - ./views:/var/www/html/views:ro
+      - ./controllers:/var/www/html/controllers:ro
+      - ./config:/var/www/html/config:ro 
+      - ./bootstrap:/var/www/html/bootstrap:ro
+      - ./migrations:/var/www/html/migrations:ro
+      - ./storage:/var/www/html/storage:rw
     depends_on:
       - socket-server
       - db
@@ -19,7 +24,7 @@ services:
     ports:
       - "8000:80"
     environment:
-      - APP_ENV=development
+      - APP_ENV=production
       - DB_HOST=db
       - DB_NAME=misvord
       - DB_USER=root
@@ -27,6 +32,14 @@ services:
       - DB_CHARSET=utf8mb4
       - SOCKET_SERVER=http://socket-server:3000
       - SOCKET_API_KEY=kolin123
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   # Unified Socket.io Server
   socket-server:
@@ -35,22 +48,32 @@ services:
       dockerfile: Dockerfile.node
     container_name: miscvord_socket
     restart: unless-stopped
-    volumes:
-      - .:/app
     depends_on:
       - db
     networks:
       - miscvord_network
     ports:
-      - "3000:3000"
+      - "3001:3000"
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=production
       - PORT=3000
       - SOCKET_API_KEY=kolin123
       - DB_HOST=db
       - DB_NAME=misvord
       - DB_USER=root
       - DB_PASS=
+    security_opt:
+      - no-new-privileges:true
+    ulimits:
+      nofile:
+        soft: 1024
+        hard: 2048
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "--no-verbose", "http://localhost:3000/health" , "||", "exit", "1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   # MySQL Database
   db:
@@ -68,6 +91,14 @@ services:
     ports:
       - "3306:3306"
     command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    security_opt:
+      - seccomp:unconfined
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   # Enhanced PHPMyAdmin 
   phpmyadmin:
@@ -86,8 +117,9 @@ services:
       - UPLOAD_LIMIT=500M
       - PMA_USER=root
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
 
-  # Adminer - Alternative DB management tool (more lightweight)
   adminer:
     image: adminer
     container_name: miscvord_adminer
@@ -101,6 +133,8 @@ services:
     environment:
       ADMINER_DEFAULT_SERVER: db
       ADMINER_DESIGN: pepa-linha
+    security_opt:
+      - no-new-privileges:true
 
 networks:
   miscvord_network:
