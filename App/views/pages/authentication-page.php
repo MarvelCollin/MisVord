@@ -1,61 +1,61 @@
 <?php
-// Start the session only if it hasn't been started already
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Include helper functions if not already included
+
 if (!function_exists('asset')) {
     require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
 }
 
-// Initialize variables
-$mode = 'login'; // Default mode
+
+$mode = 'login'; 
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
-// Determine current mode based on URL
+
 if ($path === '/register') {
     $mode = 'register';
 } elseif ($path === '/forgot-password') {
     $mode = 'forgot-password';
 }
 
-// Get errors and old input from session
+
 $errors = $_SESSION['errors'] ?? [];
 $oldInput = $_SESSION['old_input'] ?? [];
 
-// Get success messages
+
 $success = $_SESSION['success'] ?? null;
 
-// Clear session data after using it
+
 unset($_SESSION['errors'], $_SESSION['old_input'], $_SESSION['success']);
 
-// Set variables for the main layout
+
 $page_title = ucfirst($mode) . ' - MiscVord';
 $body_class = 'bg-[#202225] authentication-page overflow-hidden flex items-center justify-center min-h-screen';
-$additional_head = '<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">';
+$additional_head = '<link rel="preconnect" href="https:
+<link rel="preconnect" href="https:
+<link href="https:
 
-// Link CSS and JS files
+
 $page_css = 'authentication-page';
 $page_js = 'authentication-page';
 
-// Database connection and table initialization - capture output in debug info for "kowlin"
+
 ob_start();
 try {
-    // Load database query class
+    
     require_once dirname(dirname(__DIR__)) . '/database/query.php';
     
-    // Load environment configuration
+    
     require_once dirname(dirname(__DIR__)) . '/config/env.php';
     
-    // Test database connection
+    
     $env = EnvLoader::getEnv();
     $dsn = "mysql:host=" . EnvLoader::get('DB_HOST', 'localhost') . 
            ";dbname=" . EnvLoader::get('DB_NAME', 'misvord');
     
-    // Display database connection parameters (for debugging only)
+    
     echo '<div class="bg-blue-500 text-white p-3 rounded-md mb-6 text-left overflow-auto max-h-36">';
     echo '<strong>Database Connection Settings:</strong><br>';
     echo 'Host: ' . EnvLoader::get('DB_HOST', 'localhost') . '<br>';
@@ -63,19 +63,19 @@ try {
     echo 'User: ' . EnvLoader::get('DB_USER', 'root') . '<br>';
     echo '</div>';
     
-    // Try to connect using functions that properly handle cursors
+    
     $pdo = EnvLoader::getPDOConnection();
     
-    // Use a simple direct query to test connection
+    
     $stmt = $pdo->query("SELECT 1 AS test_connection");
     $result = $stmt->fetch(PDO::FETCH_ASSOC);
-    $stmt->closeCursor(); // Important: close the cursor
+    $stmt->closeCursor(); 
     
     echo '<div class="bg-green-500 text-white p-3 rounded-md mb-6 text-center">
         Database connection successful! Server: ' . $pdo->getAttribute(PDO::ATTR_SERVER_VERSION) . '
     </div>';
     
-    // Include User model and test table setup
+    
     require_once dirname(dirname(__DIR__)) . '/database/models/User.php';
     $tableExists = User::createTable();
     
@@ -89,7 +89,7 @@ try {
     echo 'Error Code: ' . $e->getCode() . '<br>';
     echo 'Message: ' . $e->getMessage() . '<br>';
     
-    // Additional helpful hints based on common error codes
+    
     switch ($e->getCode()) {
         case 1049:
             echo '<br><strong>Hint:</strong> Database "' . EnvLoader::get('DB_NAME', 'misvord') . '" does not exist. Create it using:<br>';
@@ -112,38 +112,38 @@ try {
     echo 'File: ' . $e->getFile() . ' (Line ' . $e->getLine() . ')<br>';
     echo '</div>';
 }
-// Store debug info instead of displaying it
+
 $debugInfo = ob_get_clean();
 
-// Store debug info in GLOBALS for access in the main-app.php template
-// This will be shown only when "kowlin" keyword is typed
+
+
 $GLOBALS['debugInfo'] = $debugInfo;
 
-// Now actually initialize the database silently without output
+
 try {
-    // Just ensure database is initialized properly
+    
     require_once dirname(dirname(__DIR__)) . '/database/query.php';
     require_once dirname(dirname(__DIR__)) . '/database/models/User.php';
     User::initialize();
 } catch (Exception $e) {
-    // Silent failure - we'll catch issues in the controller anyway
+    
     error_log("Error initializing database: " . $e->getMessage());
 }
 ?>
 
-<!-- Define the content for the main layout -->
+
 <?php ob_start(); ?>
 
 <div class="w-full p-4 min-h-screen flex items-center justify-center bg-[#202225]">
-    <!-- Auth Container with Glass Effect -->
+    
     <div class="w-full max-w-md p-8 mx-auto rounded-xl shadow-2xl relative z-10 glass-hero transform transition-all duration-700 ease-out bg-[#2f3136]/80 backdrop-filter backdrop-blur-md border border-white/10" id="authContainer">
-        <!-- Logo with modern animation -->
+        
         <div class="flex justify-center mb-8 relative">
             <img src="<?php echo asset('/landing-page/main-logo.png'); ?>" alt="MiscVord Logo" class="h-12 transition-all" id="logo">
             <div class="absolute bottom-0 left-1/2 transform -translate-x-1/2 h-0.5 bg-gradient-to-r from-discord-blue to-discord-pink w-0" id="logoUnderline"></div>
         </div>
         
-        <!-- Page Title with modern transition -->
+        
         <h1 class="text-2xl font-bold text-center mb-8 text-white" id="authTitle">
             <?php if ($mode === 'login'): ?>
                 <span>Welcome back!</span>
@@ -154,25 +154,25 @@ try {
             <?php endif; ?>
         </h1>
         
-        <!-- Success Message (if any) -->
+        
         <?php if (isset($success)): ?>
             <div class="bg-green-500 text-white p-3 rounded-md mb-6 text-center animate-pulse">
                 <?php echo $success; ?>
             </div>
         <?php endif; ?>
         
-        <!-- General Auth Error -->
+        
         <?php if (isset($errors['auth'])): ?>
             <div class="bg-red-500 text-white p-3 rounded-md mb-6 text-center animate-pulse">
                 <?php echo $errors['auth']; ?>
             </div>
         <?php endif; ?>
         
-        <!-- Form Container with modern transitions -->
+        
         <div id="formsContainer" class="relative transition-all duration-300 ease-out" style="min-height: 250px;">
-            <!-- LOGIN FORM -->
+            
             <form action="/login" method="POST" class="space-y-5 <?php echo $mode === 'login' ? 'block' : 'hidden'; ?>" id="loginForm">
-                <!-- Email Field -->
+                
                 <div class="form-group">
                     <label for="email" class="block text-sm font-medium text-gray-300 mb-1">Email</label>
                     <input 
@@ -188,7 +188,7 @@ try {
                     <?php endif; ?>
                 </div>
                 
-                <!-- Password Field -->
+                
                 <div class="form-group">
                     <label for="password" class="block text-sm font-medium text-gray-300 mb-1">Password</label>
                     <div class="relative">
@@ -208,26 +208,26 @@ try {
                     <?php endif; ?>
                 </div>
                 
-                <!-- Forgot Password Link -->
+                
                 <div class="text-right">
                     <a href="#" class="text-sm text-discord-blue hover:underline form-toggle" data-form="forgot">Forgot your password?</a>
                 </div>
                 
-                <!-- Submit Button -->
+                
                 <button type="submit" class="w-full py-2.5 bg-discord-blue hover:bg-discord-blue/90 text-white font-medium rounded-md transition-all">
                     Log In
                 </button>
                 
-                <!-- OAuth Divider -->
+                
                 <div class="flex items-center my-5">
                     <div class="flex-1 h-px bg-gray-600/50"></div>
                     <div class="mx-4 text-sm text-gray-400">OR</div>
                     <div class="flex-1 h-px bg-gray-600/50"></div>
                 </div>
                 
-                <!-- Google Login Button - Updated with proper Google logo -->
+                
                 <a href="/auth/google" class="w-full py-2.5 bg-white hover:bg-gray-100 text-gray-800 font-medium rounded-md flex items-center justify-center transition-all">
-                    <svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+                    <svg class="w-5 h-5 mr-2" xmlns="http:
                         <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/>
                         <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/>
                         <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/>
@@ -236,7 +236,7 @@ try {
                     Sign in with Google
                 </a>
                 
-                <!-- Register Link -->
+                
                 <div class="text-center mt-6">
                     <p class="text-gray-400 text-sm">
                         Need an account? 
@@ -245,9 +245,9 @@ try {
                 </div>
             </form>
         
-            <!-- REGISTRATION FORM -->
+            
             <form action="/register" method="POST" class="space-y-5 <?php echo $mode === 'register' ? 'block' : 'hidden'; ?>" id="registerForm">
-                <!-- Username Field -->
+                
                 <div class="form-group">
                     <label for="username" class="block text-sm font-medium text-gray-300 mb-1">Username</label>
                     <input 
@@ -263,7 +263,7 @@ try {
                     <?php endif; ?>
                 </div>
                 
-                <!-- Email Field -->
+                
                 <div class="form-group">
                     <label for="reg_email" class="block text-sm font-medium text-gray-300 mb-1">Email</label>
                     <input 
@@ -279,7 +279,7 @@ try {
                     <?php endif; ?>
                 </div>
                 
-                <!-- Password Field -->
+                
                 <div class="form-group">
                     <label for="reg_password" class="block text-sm font-medium text-gray-300 mb-1">Password</label>
                     <div class="relative">
@@ -302,7 +302,7 @@ try {
                     </div>
                 </div>
                 
-                <!-- Confirm Password Field -->
+                
                 <div class="form-group">
                     <label for="password_confirm" class="block text-sm font-medium text-gray-300 mb-1">Confirm Password</label>
                     <div class="relative">
@@ -323,21 +323,21 @@ try {
                     <div class="text-green-500 text-xs mt-1 hidden" id="passwordsMatch">Passwords match ✓</div>
                 </div>
                 
-                <!-- Submit Button -->
+                
                 <button type="submit" class="w-full py-2.5 bg-discord-blue hover:bg-discord-blue/90 text-white font-medium rounded-md transition-all">
                     Register
                 </button>
                 
-                <!-- OAuth Divider -->
+                
                 <div class="flex items-center my-5">
                     <div class="flex-1 h-px bg-gray-600/50"></div>
                     <div class="mx-4 text-sm text-gray-400">OR</div>
                     <div class="flex-1 h-px bg-gray-600/50"></div>
                 </div>
                 
-                <!-- Google Registration Button - Updated with proper Google logo -->
+                
                 <a href="/auth/google" class="w-full py-2.5 bg-white hover:bg-gray-100 text-gray-800 font-medium rounded-md flex items-center justify-center transition-all">
-                    <svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+                    <svg class="w-5 h-5 mr-2" xmlns="http:
                         <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/>
                         <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/>
                         <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/>
@@ -346,7 +346,7 @@ try {
                     Sign up with Google
                 </a>
                 
-                <!-- Login Link - Changed to use data-form attribute instead of href -->
+                
                 <div class="text-center mt-6">
                     <p class="text-gray-400 text-sm">
                         Already have an account? 
@@ -355,13 +355,13 @@ try {
                 </div>
             </form>
                 
-            <!-- FORGOT PASSWORD FORM -->
+            
             <form action="/forgot-password" method="POST" class="space-y-5 <?php echo $mode === 'forgot-password' ? 'block' : 'hidden'; ?>" id="forgotForm">
                 <p class="text-gray-300 text-sm mb-6">
                     Enter your email address and we'll send you a link to reset your password.
                 </p>
                 
-                <!-- Email Field -->
+                
                 <div class="form-group">
                     <label for="forgot_email" class="block text-sm font-medium text-gray-300 mb-1">Email</label>
                     <input 
@@ -377,12 +377,12 @@ try {
                     <?php endif; ?>
                 </div>
                 
-                <!-- Submit Button -->
+                
                 <button type="submit" class="w-full py-2.5 bg-discord-blue hover:bg-discord-blue/90 text-white font-medium rounded-md transition-all">
                     Send Reset Link
                 </button>
                 
-                <!-- Back to Login Link - Changed to use data-form attribute instead of href -->
+                
                 <div class="text-center mt-6">
                     <a href="#" class="text-discord-blue hover:underline text-sm form-toggle" data-form="login">Back to Login</a>
                 </div>
@@ -392,8 +392,9 @@ try {
 </div>
 
 <?php 
-// Get the content and clean the buffer
+
 $content = ob_get_clean(); 
 
 include dirname(dirname(__DIR__)) . '/views/layout/main-app.php';
 ?>
+

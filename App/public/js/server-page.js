@@ -1,100 +1,101 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Server hover effects
-    const serverIcons = document.querySelectorAll('.server-icon:not(.active-server)');
-    serverIcons.forEach(server => {
-        server.addEventListener('mouseenter', function() {
-            const pill = document.createElement('div');
-            pill.className = 'absolute left-0 w-1 h-5 bg-white rounded-r-full transition-all duration-200';
-            pill.style.top = '15px';
-            this.appendChild(pill);
+    const serverElements = document.querySelectorAll('.server-icon');
+    
+    serverElements.forEach(server => {
+        server.addEventListener('mouseenter', () => {
+            const serverName = server.getAttribute('data-server-name');
+            const tooltip = document.getElementById('server-tooltip');
+            
+            tooltip.textContent = serverName;
+            tooltip.style.display = 'block';
+            tooltip.style.top = `${server.getBoundingClientRect().top + window.scrollY}px`;
+            tooltip.style.left = `${server.getBoundingClientRect().right + window.scrollX + 10}px`;
         });
         
-        server.addEventListener('mouseleave', function() {
-            const pill = this.querySelector(':scope > div.absolute');
-            if (pill) pill.remove();
+        server.addEventListener('mouseleave', () => {
+            document.getElementById('server-tooltip').style.display = 'none';
         });
     });
-
-    // Channel click handler
-    const channelItems = document.querySelectorAll('.channel-item');
-    channelItems.forEach(channel => {
-        channel.addEventListener('click', function(e) {
-            e.preventDefault();
+    
+    const channelElements = document.querySelectorAll('.channel-item');
+    
+    channelElements.forEach(channel => {
+        channel.addEventListener('click', () => {
             
-            // Remove active class from all channels
-            channelItems.forEach(ch => ch.classList.remove('bg-gray-700', 'text-white'));
+            document.querySelectorAll('.channel-item').forEach(ch => {
+                ch.classList.remove('bg-gray-700');
+            });
             
-            // Add active class to clicked channel
-            this.classList.add('bg-gray-700', 'text-white');
+            channel.classList.add('bg-gray-700');
             
-            // Update channel name in header
-            const channelName = this.querySelector('.channel-name').textContent.trim();
-            document.querySelector('.channel-header-name').textContent = channelName;
+            const channelName = channel.getAttribute('data-channel-name');
+            document.getElementById('current-channel-name').textContent = channelName;
         });
     });
-
-    // Message input functionality
-    const messageInput = document.querySelector('.message-input');
-    const messageForm = document.querySelector('.message-form');
+    
+    const messageForm = document.getElementById('message-form');
+    const messageInput = document.getElementById('message-input');
+    const messageContainer = document.getElementById('message-container');
     
     if (messageForm) {
         messageForm.addEventListener('submit', function(e) {
             e.preventDefault();
             
-            const input = this.querySelector('input');
-            const message = input.value.trim();
-            
-            if (message) {
-                // In a real app, you would send this to the server
-                // For now, just add it to the UI
-                addMessage(message);
-                input.value = '';
+            const messageText = messageInput.value.trim();
+            if (messageText) {
+                
+                
+                addMessage({
+                    userId: currentUserId,
+                    username: currentUsername, 
+                    content: messageText,
+                    timestamp: new Date()
+                });
+                
+                messageInput.value = '';
             }
         });
     }
     
-    // Function to add a new message to the chat
-    function addMessage(content) {
-        const messagesContainer = document.querySelector('.messages-container');
-        if (!messagesContainer) return;
+    function addMessage(message) {
         
-        // Get current user info
-        const username = document.querySelector('.user-profile-section .font-medium').textContent;
-        const avatarSrc = document.querySelector('.user-profile-section img').src;
+        const isCurrentUser = message.userId == currentUserId;
         
-        // Create message element
-        const messageDiv = document.createElement('div');
-        messageDiv.className = 'flex mb-4 message-group p-2 rounded hover:bg-gray-700/30';
+        const messageElement = document.createElement('div');
+        messageElement.classList.add('message', 'mb-4', 'flex');
         
-        // Format current time
-        const now = new Date();
-        const timeString = `Today at ${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
+        const currentTime = new Date(message.timestamp);
+        const formattedTime = `${currentTime.getHours().toString().padStart(2, '0')}:${currentTime.getMinutes().toString().padStart(2, '0')}`;
         
-        // Set message HTML
-        messageDiv.innerHTML = `
-            <img src="${avatarSrc}" alt="${username}'s avatar" class="w-10 h-10 rounded-full mr-4">
-            <div>
-                <div class="flex items-center">
-                    <span class="font-semibold text-white">${username}</span>
-                    <span class="text-xs text-gray-400 ml-2">${timeString}</span>
+        messageElement.innerHTML = `
+            <div class="flex-shrink-0 mr-3">
+                <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-white font-bold text-lg">
+                    ${message.username.charAt(0).toUpperCase()}
                 </div>
-                <p class="text-gray-200">${escapeHtml(content)}</p>
+            </div>
+            <div class="flex-grow">
+                <div class="flex items-baseline">
+                    <span class="font-bold text-white mr-2">${escapeHtml(message.username)}</span>
+                    <span class="text-xs text-gray-400">${formattedTime}</span>
+                </div>
+                <div class="text-gray-200 leading-relaxed">${escapeHtml(message.content)}</div>
             </div>
         `;
         
-        // Add to DOM and scroll into view
-        messagesContainer.appendChild(messageDiv);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        messageContainer.appendChild(messageElement);
+        messageContainer.scrollTop = messageContainer.scrollHeight;
         
-        // Add animation class
-        messageDiv.classList.add('animate-fadeIn');
-        setTimeout(() => messageDiv.classList.remove('animate-fadeIn'), 500);
+        setTimeout(() => {
+            messageElement.classList.add('message-appear');
+        }, 10);
     }
     
-    // Helper function to escape HTML to prevent XSS
-    function escapeHtml(html) {
-        const div = document.createElement('div');
-        div.textContent = html;
-        return div.innerHTML;
+    function escapeHtml(unsafe) {
+        return unsafe
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
     }
 });

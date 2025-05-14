@@ -1,19 +1,19 @@
 <?php
-// Start the session if it hasn't been started already
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Include helper functions if not already included
+
 if (!function_exists('asset')) {
     require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
 }
 
-// Set variables for the main layout
+
 $page_title = 'MiscVord - Global Video Chat';
 $body_class = 'bg-gray-900 text-white overflow-hidden';
 
-// Custom CSS and JS for this page
+
 $additional_head = '
 <style>
     .video-grid {
@@ -104,7 +104,7 @@ $additional_head = '
         width: 100%;
         height: 100%;
         object-fit: cover;
-        transform: scaleX(-1); /* Mirror local video */
+        transform: scaleX(-1); 
     }
     
     .participants-panel {
@@ -194,7 +194,7 @@ $additional_head = '
         }
     }
     
-    /* Socket Log Styles */
+    
     .socket-logs {
         position: fixed;
         left: 50%;
@@ -245,10 +245,10 @@ $additional_head = '
 </style>';
 ?>
 
-<!-- Define the content for the main layout -->
+
 <?php ob_start(); ?>
 
-<!-- Permission Request Notification -->
+
 <div id="permissionRequest" class="username-modal">
     <div class="bg-gray-800 p-6 rounded-lg w-full max-w-md">
         <h3 class="text-xl font-bold mb-4">Camera & Microphone Access</h3>
@@ -281,27 +281,27 @@ $additional_head = '
         
         <div class="controls">
             <div class="control-btn active" id="toggleVideoBtn" title="Toggle Video">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http:
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
             </div>
             <div class="control-btn active" id="toggleAudioBtn" title="Toggle Audio">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http:
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                 </svg>
             </div>
             <div class="control-btn inactive" id="toggleScreenBtn" title="Share Screen">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http:
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
             </div>
             <div class="control-btn bg-blue-600" id="pingBtn" title="Ping All Users">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http:
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
             </div>
             <div class="control-btn danger" id="hangupBtn" title="Leave Chat">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http:
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M5 3a2 2 0 00-2 2v1c0 8.284 6.716 15 15 15h1a2 2 0 002-2v-3.28a1 1 0 00-.684-.948l-4.493-1.498a1 1 0 00-1.21.502l-1.13 2.257a11.042 11.042 0 01-5.516-5.517l2.257-1.128a1 1 0 00.502-1.21L9.228 3.683A1 1 0 008.279 3H5z" />
                 </svg>
             </div>
@@ -314,12 +314,12 @@ $additional_head = '
     </div>
 </div>
 
-<!-- Socket Logs Panel -->
+
 <div id="socketLogs" class="socket-logs">
     <div id="logEntries"></div>
 </div>
 
-<!-- Log Controls -->
+
 <div class="log-controls">
     <button id="toggleLogs" class="px-2 py-1 bg-gray-700 text-white text-xs rounded hover:bg-gray-600">
         Show Socket Logs
@@ -329,19 +329,20 @@ $additional_head = '
     </button>
 </div>
 
-<!-- Load Socket.IO library first -->
-<script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
-<!-- Load WebRTC modules -->
+
+<script src="https:
+
 <script src="<?php echo js('webrtc-modules/browser-compatibility'); ?>"></script>
 <script src="<?php echo js('webrtc-modules/video-debug'); ?>"></script>
 <script src="<?php echo js('webrtc-modules/video-player'); ?>"></script>
-<!-- Replace the embedded JavaScript with the external file -->
+
 <script src="<?php echo js('webrtc'); ?>"></script>
 
 <?php 
-// Get the content and clean the buffer
+
 $content = ob_get_clean(); 
 
-// Include the main layout with our content
+
 include dirname(dirname(__DIR__)) . '/views/layout/main-app.php';
 ?>
+

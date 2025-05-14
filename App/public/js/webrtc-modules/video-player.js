@@ -1,7 +1,4 @@
-/**
- * WebRTC Video Player Module
- * Handles video playback and autoplay issues
- */
+
 
 
 function playWithUnmuteSequence(videoElement, userId) {

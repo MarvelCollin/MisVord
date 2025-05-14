@@ -1,7 +1,4 @@
-/**
- * WebRTC Video Debug Module
- * Provides tools for debugging video playback issues
- */
+
 
 
 const debugMode = true;

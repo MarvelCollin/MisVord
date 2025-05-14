@@ -1,16 +1,16 @@
 <?php
-// Include helper functions if not already included
+
 if (!function_exists('asset')) {
     require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
 }
 
-// Set variables for the main layout
+
 $page_title = '404 - Page Not Found';
 $body_class = 'bg-[#202225] error-page';
 $page_css = 'error-page.css';
 ?>
 
-<!-- Define the content for the main layout -->
+
 <?php ob_start(); ?>
 
 <div class="min-h-screen w-full flex items-center justify-center p-4 relative overflow-hidden">
@@ -31,9 +31,10 @@ $page_css = 'error-page.css';
 </div>
 
 <?php 
-// Get the content and clean the buffer
+
 $content = ob_get_clean(); 
 
-// Include the main layout with our content
+
 include dirname(dirname(__DIR__)) . '/views/layout/main-app.php';
 ?>
+

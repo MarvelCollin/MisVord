@@ -3,20 +3,14 @@
 require_once __DIR__ . '/../query.php';
 
 class Server {
-    // Define the table name
     protected static $table = 'servers';
     
-    // Store attributes
     protected $attributes = [];
     
-    /**
-     */
     public function __construct($attributes = []) {
         $this->fill($attributes);
     }
     
-    /**
-     */
     public function fill($attributes) {
         foreach ($attributes as $key => $value) {
             $this->attributes[$key] = $value;
@@ -25,20 +19,14 @@ class Server {
         return $this;
     }
     
-    /**
-     */
     public function __get($key) {
         return $this->attributes[$key] ?? null;
     }
     
-    /**
-     */
     public function __set($key, $value) {
         $this->attributes[$key] = $value;
     }
     
-    /**
-     */
     public static function find($id) {
         $query = new Query();
         $result = $query->table(static::$table)
@@ -52,12 +40,6 @@ class Server {
         return new static($result);
     }
     
-    /**
-     * Find a server by its invite link
-     * 
-     * @param string $inviteLink The invite link to search for
-     * @return Server|null The server or null if not found
-     */
     public static function findByInviteLink($inviteLink) {
         $query = new Query();
         $result = $query->table(static::$table)
@@ -71,12 +53,6 @@ class Server {
         return new static($result);
     }
     
-    /**
-     * Find a server by its name
-     * 
-     * @param string $name The server name to search for
-     * @return Server|null The server or null if not found
-     */
     public static function findByName($name) {
         $query = new Query();
         $result = $query->table(static::$table)
@@ -90,13 +66,6 @@ class Server {
         return new static($result);
     }
     
-    /**
-     * Find server by name and server ID
-     * 
-     * @param string $name The server name to search for
-     * @param int $serverId The server ID to filter by
-     * @return Server|null The server or null if not found
-     */
     public static function findByNameAndServer($name, $serverId) {
         $query = new Query();
         $result = $query->table(static::$table)
@@ -111,8 +80,6 @@ class Server {
         return new static($result);
     }
     
-    /**
-     */
     public static function getForUser($userId) {
         $query = new Query();
         $results = $query->table('servers s')
@@ -129,18 +96,10 @@ class Server {
         return $servers;
     }
     
-    /**
-     */
     public function members() {
-        // Implementation
+        
     }
     
-    /**
-     * Check if a user is a member of this server
-     * 
-     * @param int $userId The user ID to check
-     * @return bool True if the user is a member, false otherwise
-     */
     public function isMember($userId) {
         $query = new Query();
         $result = $query->table('user_server_memberships')
@@ -151,8 +110,6 @@ class Server {
         return $result !== null;
     }
     
-    /**
-     */
     public function channels() {
         $query = new Query();
         return $query->table('channels')
@@ -162,11 +119,6 @@ class Server {
                 ->get();
     }
     
-    /**
-     * Get all categories for this server
-     * 
-     * @return array Array of category data
-     */
     public function categories() {
         $query = new Query();
         return $query->table('categories')
@@ -175,44 +127,34 @@ class Server {
             ->get();
     }
     
-    /**
-     */
     public function generateInviteLink() {
-        // Generate a unique string for the invite link
-        $uniqueString = bin2hex(random_bytes(5)); // 10 characters
+        $uniqueString = bin2hex(random_bytes(5)); 
         $this->invite_link = $uniqueString;
         $this->save();
         
         return $this->invite_link;
     }
     
-    /**
-     */
     public function save() {
         $query = new Query();
         
-        // Set timestamps
         if (!isset($this->attributes['created_at'])) {
             $this->attributes['created_at'] = date('Y-m-d H:i:s');
         }
         $this->attributes['updated_at'] = date('Y-m-d H:i:s');
         
-        // If has ID, update; otherwise insert
         if (isset($this->attributes['id'])) {
             $id = $this->attributes['id'];
             unset($this->attributes['id']);
             
-            // Update
             $result = $query->table(static::$table)
                     ->where('id', $id)
                     ->update($this->attributes);
             
-            // Restore the ID after update
             $this->attributes['id'] = $id;
             
             return $result > 0;
         } else {
-            // Insert
             $this->attributes['id'] = $query->table(static::$table)
                     ->insert($this->attributes);
             
@@ -220,22 +162,18 @@ class Server {
         }
     }
     
-    /**
-     */
     public function addMember($userId, $role = 'member') {
         $query = new Query();
         
-        // Check if user is already a member
         $exists = $query->table('user_server_memberships')
                 ->where('user_id', $userId)
                 ->where('server_id', $this->id)
                 ->exists();
         
         if ($exists) {
-            return true; // User is already a member
+            return true; 
         }
         
-        // Add the user as a member
         $result = $query->table('user_server_memberships')
                 ->insert([
                     'user_id' => $userId,
@@ -248,8 +186,6 @@ class Server {
         return $result > 0;
     }
     
-    /**
-     */
     public function removeMember($userId) {
         $query = new Query();
         
@@ -261,17 +197,13 @@ class Server {
         return $result > 0;
     }
     
-    /**
-     */
     public static function createTable() {
         $query = new Query();
         
         try {
-            // Check if table exists first
             $tableExists = $query->tableExists('servers');
             
             if (!$tableExists) {
-                // Execute table creation query using the raw method
                 $query->raw("
                     CREATE TABLE IF NOT EXISTS servers (
                         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -284,11 +216,9 @@ class Server {
                     )
                 ");
                 
-                // Check if user_server_memberships table exists
                 $membershipTableExists = $query->tableExists('user_server_memberships');
                 
                 if (!$membershipTableExists) {
-                    // Create user_server_memberships table
                     $query->raw("
                         CREATE TABLE IF NOT EXISTS user_server_memberships (
                             id INT AUTO_INCREMENT PRIMARY KEY,
@@ -305,11 +235,9 @@ class Server {
                     ");
                 }
                 
-                // Check if channels table exists
                 $channelsTableExists = $query->tableExists('channels');
                 
                 if (!$channelsTableExists) {
-                    // Create channels table
                     $query->raw("
                         CREATE TABLE IF NOT EXISTS channels (
                             id INT AUTO_INCREMENT PRIMARY KEY,
@@ -325,7 +253,6 @@ class Server {
                     ");
                 }
                 
-                // Check again if table exists after creation attempt
                 $tableExists = $query->tableExists('servers');
             }
             
@@ -336,14 +263,10 @@ class Server {
         }
     }
     
-    /**
-     */
     public static function initialize() {
         return self::createTable();
     }
     
-    /**
-     */
     public static function all() {
         $query = new Query();
         $results = $query->table(static::$table)->get();
@@ -356,3 +279,4 @@ class Server {
         return $servers;
     }
 }
+

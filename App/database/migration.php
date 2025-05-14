@@ -41,12 +41,6 @@ class Migration {
         }
     }
 
-    /**
-     * Parse .env file and return as associative array
-     *
-     * @param string $filePath Path to .env file
-     * @return array Parsed environment variables
-     */
     private static function parseEnvFile($filePath) {
         if (!file_exists($filePath)) {
             return [];
@@ -56,18 +50,15 @@ class Migration {
         $lines = file($filePath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
 
         foreach ($lines as $line) {
-            // Skip comments
             if (strpos(trim($line), '//') === 0) {
                 continue;
             }
 
-            // Split by first equals sign
             if (strpos($line, '=') !== false) {
                 list($key, $value) = explode('=', $line, 2);
                 $key = trim($key);
                 $value = trim($value);
 
-                // Remove quotes if they exist
                 if (preg_match('/^"(.*)"$/', $value, $matches)) {
                     $value = $matches[1];
                 } elseif (preg_match("/^'(.*)'$/", $value, $matches)) {
@@ -106,14 +97,6 @@ class Migration {
         return $this->pdo->exec($sql);
     }
     
-    /**
-     * Creates a table with deferred foreign key constraints
-     * This is useful when tables reference each other circularly
-     *
-     * @param string $tableName The name of the table
-     * @param callable $callback The callback that defines the table
-     * @return bool Whether the table was created successfully
-     */
     public function createTableWithoutForeignKeys($tableName, callable $callback) {
         $this->tableName = $tableName;
         $this->columns = [];
@@ -125,14 +108,12 @@ class Migration {
 
         $callback($this);
 
-        // Store foreign keys for later processing
         $storedForeignKeys = $this->foreignKeys;
         $this->foreignKeys = [];
 
         $sql = $this->buildCreateTableSQL();
         $result = $this->pdo->exec($sql);
 
-        // Store the foreign keys for this table for later addition
         if (!empty($storedForeignKeys)) {
             static $deferredForeignKeys = [];
             $deferredForeignKeys[$tableName] = $storedForeignKeys;
@@ -257,15 +238,6 @@ class Migration {
         return $this;
     }
 
-    /**
-     * Add big integer column
-     * 
-     * @param string $name Column name
-     * @param bool $autoIncrement Whether to auto-increment
-     * @param bool $unsigned Whether the integer is unsigned
-     * @param bool $nullable Whether the column can be NULL
-     * @return $this
-     */
     public function bigInteger($name, $autoIncrement = false, $unsigned = false, $nullable = false) {
         $type = $unsigned ? 'BIGINT UNSIGNED' : 'BIGINT';
         $ai = $autoIncrement ? ' AUTO_INCREMENT' : '';
@@ -275,14 +247,6 @@ class Migration {
         return $this;
     }
 
-    /**
-     * Add string column
-     * 
-     * @param string $name Column name
-     * @param int $length Column length
-     * @param bool $nullable Whether the column can be NULL
-     * @return $this
-     */
     public function string($name, $length = 255, $nullable = false) {
         $null = $nullable ? ' NULL' : ' NOT NULL';
         $this->columns[] = "`$name` VARCHAR($length)$null";
@@ -290,13 +254,6 @@ class Migration {
         return $this;
     }
 
-    /**
-     * Add text column
-     * 
-     * @param string $name Column name
-     * @param bool $nullable Whether the column can be NULL
-     * @return $this
-     */
     public function text($name, $nullable = false) {
         $null = $nullable ? ' NULL' : ' NOT NULL';
         $this->columns[] = "`$name` TEXT$null";
@@ -311,12 +268,10 @@ class Migration {
     }
     
     public function default($value) {
-        // Find the last column added and add DEFAULT to it
         if (!empty($this->columns)) {
             $lastIndex = count($this->columns) - 1;
             $lastColumn = $this->columns[$lastIndex];
             
-            // Format the default value based on type
             if (is_bool($value)) {
                 $formattedValue = $value ? '1' : '0';
             } elseif (is_null($value)) {
@@ -363,28 +318,18 @@ class Migration {
         return $this;
     }
 
-    /**
-     * Add an index to a column
-     * 
-     * @param string|array $columns Column name(s)
-     * @param string|null $name Index name (optional)
-     * @return $this
-     */
+ 
     public function index($columns, $name = null) {
-        // Convert to array if a single column
         if (!is_array($columns)) {
             $columns = [$columns];
         }
         
-        // Generate index name if not provided
         if ($name === null) {
             $name = $this->tableName . '_' . implode('_', $columns) . '_idx';
         }
         
-        // Convert columns to string with proper backticks
         $columnStr = implode('`, `', $columns);
         
-        // Add to indexes array
         $this->indexes[] = "INDEX `$name` (`$columnStr`)";
         
         return $this;
@@ -398,7 +343,6 @@ class Migration {
 
         $columns = [];
         foreach ($this->columns as $column) {
-            // Check if the column is nullable and adjust the SQL accordingly
             if (stripos($column, 'NOT NULL') !== false) {
                 $column = str_ireplace('NOT NULL', '', $column);
                 $column = trim($column);
@@ -435,19 +379,12 @@ class Migration {
         return $sql;
     }
 
-    /**
-     * Create migrations table if it doesn't exist
-     * 
-     * @return bool Whether the table exists or was created successfully
-     */
     public function createMigrationTable() {
         try {
-            // Check if migrations table exists
             $stmt = $this->pdo->prepare("SELECT 1 FROM migrations LIMIT 1");
             $stmt->execute();
-            return true; // Table exists
+            return true; 
         } catch (PDOException $e) {
-            // Table doesn't exist, create it
             $sql = "CREATE TABLE IF NOT EXISTS `migrations` (
                 `id` INT AUTO_INCREMENT PRIMARY KEY, 
                 `migration` VARCHAR(255) NOT NULL, 
@@ -458,7 +395,6 @@ class Migration {
             
             $result = $this->pdo->exec($sql);
             
-            // Verify the table was created
             try {
                 $stmt = $this->pdo->prepare("SELECT 1 FROM migrations LIMIT 1");
                 $stmt->execute();
@@ -501,23 +437,13 @@ class Migration {
         }
     }
 
-    /**
-     * Add a primary key auto-increment ID column
-     * 
-     * @return $this
-     */
+    
     public function id() {
         $this->columns[] = "`id` INT AUTO_INCREMENT PRIMARY KEY";
         $this->lastColumn = 'id';
         return $this;
     }
 
-    /**
-     * Execute a raw SQL query
-     * 
-     * @param string $sql Raw SQL query
-     * @return bool Whether the query was successful
-     */
     public function raw($sql) {
         try {
             return $this->pdo->exec($sql);
@@ -534,14 +460,12 @@ class MigrationRunner {
     protected $migrationsPath;
 
     public function __construct($pdo = null, $migrationsPath = null) {
-        // Make sure EnvLoader is loaded - use absolute path
-        $basePath = dirname(__DIR__); // Gets the parent directory of current directory
+        $basePath = dirname(__DIR__);
 
         if (!class_exists('EnvLoader')) {
             require_once $basePath . '/config/env.php';
         }
 
-        // If no PDO connection provided, create one from environment
         if ($pdo === null) {
             $pdo = EnvLoader::getPDOConnection();
         }
@@ -556,7 +480,6 @@ class MigrationRunner {
         $executedMigrations = $this->migration->getMigrations();
         $executedMigrationNames = array_column($executedMigrations, 'migration');
 
-        // Use the connector to get migration mapping
         $migrationMap = $this->loadMigrationMap();
 
         if (!is_array($migrationMap)) {
@@ -576,7 +499,6 @@ class MigrationRunner {
             return;
         }
 
-        // Print the order of migrations that will run
         echo "\n=== Migration execution order ===\n";
         foreach ($toRun as $migrationName => $info) {
             echo "- $migrationName => {$info['class']}\n";
@@ -588,40 +510,31 @@ class MigrationRunner {
         echo "----------------------------------------\n";
         $count = 0;
 
-        // First, include all migration files to make sure all classes are loaded
         foreach ($toRun as $migrationName => $info) {
             $file = $info['path'];
             include_once $file;
         }
         
-        // Disable foreign key checks before running migrations
         $this->pdo->exec("SET FOREIGN_KEY_CHECKS = 0");
         echo "Foreign key checks disabled for migration process\n";
 
         foreach ($toRun as $migrationName => $info) {
             $className = $info['class'];
 
-            // Check if class exists now that we've loaded all files
             if (class_exists($className)) {
                 $migration = new $className();
                 echo "Migrating: $migrationName (using class $className)\n";
 
                 try {
                     if (method_exists($migration, 'up')) {
-                        // Start tracking execution time for this migration
                         $startTime = microtime(true);
 
-                        // Run the migration
                         $migration->up($this->migration);
 
-                        // Calculate execution time
                         $endTime = microtime(true);
                         $executionTime = round(($endTime - $startTime), 2);
 
-                        // Log the migration in the database
                         $this->migration->logMigration($migrationName, $batch);
-
-                        // Output success message with execution time
                         echo "✓ Migrated:  $migrationName ({$executionTime}s)\n";
                         $count++;
                     }
@@ -637,7 +550,6 @@ class MigrationRunner {
             }
         }
         
-        // Re-enable foreign key checks after all migrations are run
         $this->pdo->exec("SET FOREIGN_KEY_CHECKS = 1");
         echo "Foreign key checks re-enabled\n";
 
@@ -645,17 +557,10 @@ class MigrationRunner {
         echo "Migration completed successfully: {$count} migrations executed.\n";
     }
 
-    /**
-     * Drop all tables and re-run all migrations
-     * 
-     * @return void
-     */
     public function fresh() {
         try {
-            // First drop all tables
             $this->dropAllTables();
             
-            // Then run all migrations
             $this->run();
             
             echo "----------------------------------------\n";
@@ -668,10 +573,8 @@ class MigrationRunner {
     public function dropAllTables() {
         try {
             echo "Starting database cleanup...\n";
-            // Disable foreign key checks temporarily
             $this->pdo->exec("SET FOREIGN_KEY_CHECKS = 0");
 
-            // Get list of all tables in the database
             $stmt = $this->pdo->query("SHOW TABLES");
             $tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
@@ -686,7 +589,6 @@ class MigrationRunner {
                 }
             }
 
-            // Re-enable foreign key checks
             $this->pdo->exec("SET FOREIGN_KEY_CHECKS = 1");
 
             echo "Database cleanup completed. All tables have been dropped.\n";
@@ -706,14 +608,13 @@ class MigrationRunner {
                 return;
             }
 
-            // Group migrations by batch
             $batches = [];
             foreach ($executedMigrations as $migration) {
                 $batches[$migration['batch']][] = $migration;
             }
 
             $batchNumbers = array_keys($batches);
-            rsort($batchNumbers); // Sort batches in descending order
+            rsort($batchNumbers);
             
             if ($steps > count($batchNumbers)) {
                 echo "Warning: You requested to rollback {$steps} batches, but only " . count($batchNumbers) . " exist.\n";
@@ -727,24 +628,20 @@ class MigrationRunner {
                 return;
             }
 
-            // Load the migration map to get class names
             $migrationMap = $this->loadMigrationMap();
             
             foreach ($batchesToRollback as $batch) {
                 echo "Rolling back batch {$batch}...\n";
                 echo "----------------------------------------\n";
                 
-                // Process migrations in reverse order within each batch
                 $migrations = $batches[$batch];
-                // Sort migrations in reverse order to roll them back correctly
                 usort($migrations, function($a, $b) {
-                    return strcmp($b['migration'], $a['migration']); // Descending order
+                    return strcmp($b['migration'], $a['migration']);
                 });
 
                 foreach ($migrations as $migration) {
                     $migrationName = $migration['migration'];
                     
-                    // Get migration info from the map
                     if (!isset($migrationMap[$migrationName])) {
                         echo "⨯ Migration file for '{$migrationName}' not found. Skipping.\n";
                         continue;
@@ -754,7 +651,6 @@ class MigrationRunner {
                     $className = $info['class'];
                     $file = $info['path'];
                     
-                    // Include the file if it exists
                     if (file_exists($file)) {
                         require_once $file;
                         
@@ -764,17 +660,13 @@ class MigrationRunner {
                             
                             try {
                                 if (method_exists($migrationObj, 'down')) {
-                                    // Start tracking execution time
                                     $startTime = microtime(true);
                                     
-                                    // Run the down migration
                                     $migrationObj->down($this->migration);
                                     
-                                    // Calculate execution time
                                     $endTime = microtime(true);
                                     $executionTime = round(($endTime - $startTime), 2);
                                     
-                                    // Remove from migrations table
                                     $this->migration->removeMigration($migrationName);
                                     
                                     echo "✓ Rolled back: {$migrationName} ({$executionTime}s)\n";
@@ -800,11 +692,7 @@ class MigrationRunner {
         }
     }
 
-    /**
-     * Load the migration map from the connector file
-     * 
-     * @return array The migration map
-     */
+    
     private function loadMigrationMap() {
         $connectorFile = $this->migrationsPath . '/connector.php';
         

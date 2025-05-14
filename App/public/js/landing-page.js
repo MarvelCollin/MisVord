@@ -1,34 +1,32 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize scroll based animations with Intersection Observer
+    
     initScrollAnimations();
     
-    // Add floating element effects with vertical movement only
+    
     initFloatingElements();
     
-    // Initialize particle effects 
+    
     createEnhancedParticles();
     
-    // Add text scramble animation for hero title
+    
     initScrambleText();
     
-    // Initialize the fixed carousel - this is important for navigation issues
+    
     initFixedCarousel();
 });
 
-/**
- * Initialize scroll-based animations with Intersection Observer
- */
+
 function initScrollAnimations() {
-    // Elements that fade in
+    
     const fadeElements = document.querySelectorAll('.hero-title, .hero-text, .hero-buttons, .journey-content');
     fadeElements.forEach(element => {
         element.classList.add('animated-fade-in');
     });
     
-    // Feature section animations
+    
     const featureSections = document.querySelectorAll('.feature-section');
     featureSections.forEach((section, i) => {
-        // Alternate slide-in directions
+        
         const contentElement = section.querySelector('.feature-content');
         const imageElement = section.querySelector('.feature-image');
         
@@ -41,32 +39,32 @@ function initScrollAnimations() {
         }
     });
     
-    // Create intersection observer
+    
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
                 entry.target.classList.add('animated-visible');
-                // Unobserve after animation is triggered
+                
                 observer.unobserve(entry.target);
             }
         });
     }, {
-        root: null, // viewport
-        threshold: 0.1, // trigger when 10% is visible
-        rootMargin: '0px 0px -50px 0px' // trigger earlier
+        root: null, 
+        threshold: 0.1, 
+        rootMargin: '0px 0px -50px 0px' 
     });
     
-    // Elements to observe
+    
     const elementsToAnimate = document.querySelectorAll(
         '.animated-fade-in, .animated-slide-in-left, .animated-slide-in-right'
     );
     
-    // Add elements to observer
+    
     elementsToAnimate.forEach(element => {
         observer.observe(element);
     });
     
-    // Trigger hero animations immediately
+    
     setTimeout(() => {
         document.querySelectorAll('.hero-title, .hero-text, .hero-buttons').forEach(el => {
             el.classList.add('animated-visible');
@@ -74,26 +72,24 @@ function initScrollAnimations() {
     }, 100);
 }
 
-/**
- * Initialize floating elements with vertical-only parallax
- */
+
 function initFloatingElements() {
     const floatingElements = document.querySelectorAll('.floating-element');
     
-    // Create floating trails
+    
     floatingElements.forEach(element => {
-        // Create trail effect
+        
         const trail = document.createElement('div');
         trail.className = 'floating-trail';
         element.parentNode.insertBefore(trail, element);
         element.trail = trail;
         
-        // Add random starting position offset for more natural movement
+        
         const randomOffset = (Math.random() - 0.5) * 10;
         element.style.transform = `translateY(${randomOffset}px)`;
     });
     
-    // Handle scroll parallax effect
+    
     let lastScrollTop = 0;
     let scrollSpeed = 0;
     let ticking = false;
@@ -101,11 +97,11 @@ function initFloatingElements() {
     window.addEventListener('scroll', function() {
         const scrollTop = window.pageYOffset;
         
-        // Calculate scroll speed
+        
         scrollSpeed = Math.abs(scrollTop - lastScrollTop) * 0.1;
         lastScrollTop = scrollTop;
         
-        // Use requestAnimationFrame for smoother animations
+        
         if (!ticking) {
             window.requestAnimationFrame(function() {
                 updateFloatingElements(scrollTop, scrollSpeed);
@@ -115,7 +111,7 @@ function initFloatingElements() {
         }
     });
     
-    // Handle mouse movement - vertical effect only
+    
     document.addEventListener('mousemove', function(e) {
         const mouseY = e.clientY;
         
@@ -123,29 +119,27 @@ function initFloatingElements() {
             const rect = element.getBoundingClientRect();
             const centerY = rect.top + rect.height / 2;
             
-            // Calculate vertical distance from mouse to element center
+            
             const distanceY = mouseY - centerY;
             const distance = Math.abs(distanceY);
             
-            // Only affect elements within a certain range of the mouse
+            
             if (distance < 300) {
-                // Calculate movement based on vertical distance (move away from mouse)
+                
                 const moveY = distanceY * 0.02 * (1 - distance / 300);
                 
-                // Apply smooth vertical movement using CSS transitions
+                
                 element.style.transition = 'transform 0.8s ease-out';
                 element.style.transform = `translateY(${moveY}px)`;
             }
         });
     });
     
-    // Initial position update
+    
     updateFloatingElements(window.pageYOffset, 0);
 }
 
-/**
- * Update floating elements position based on scroll - vertical movement only
- */
+
 function updateFloatingElements(scrollTop, scrollSpeed) {
     const floatingElements = document.querySelectorAll('.floating-element');
     
@@ -153,40 +147,38 @@ function updateFloatingElements(scrollTop, scrollSpeed) {
         const speed = parseFloat(element.getAttribute('data-speed')) || 0.3;
         const rotation = parseFloat(element.getAttribute('data-rotation')) || 0;
         
-        // Calculate vertical movement based on scroll position
+        
         const yPos = -(scrollTop * speed);
         
-        // Add rotation based on scroll for subtle effect
+        
         const rotationAmount = Math.sin(scrollTop * 0.001) * rotation;
         
-        // Add subtle scale effect based on scroll speed
+        
         const scaleAmount = 1 + (Math.min(scrollSpeed, 10) * 0.003 * speed);
         
-        // Apply vertical-only transformation
+        
         element.style.transform = `translateY(${yPos}px) rotate(${rotationAmount}deg) scale(${scaleAmount})`;
         
-        // Update the trail position and opacity based on movement
+        
         if (element.trail) {
             element.trail.style.width = element.offsetWidth * 1.5 + 'px';
             element.trail.style.height = element.offsetHeight * 1.5 + 'px';
             element.trail.style.left = element.offsetLeft - element.offsetWidth * 0.25 + 'px';
             element.trail.style.top = element.offsetTop - element.offsetHeight * 0.25 + 'px';
             
-            // Increase trail opacity based on scroll speed for more visible effect
+            
             const trailOpacity = Math.min((scrollSpeed * speed) / 10, 0.5);
             element.trail.style.opacity = trailOpacity;
         }
     });
 }
 
-/**
- * Create enhanced particle effects without external libraries
- */
+
 function createEnhancedParticles() {
     const container = document.getElementById('particles-container');
     if (!container) return;
     
-    const particleCount = 120; // More particles for a richer effect
+    const particleCount = 120; 
     
     const particleTypes = [
         { 
@@ -252,17 +244,17 @@ function createEnhancedParticles() {
             particle.style.background = 'rgba(255, 255, 255, 0.6)';
         }
         
-        // Custom animation styles
+        
         const duration = Math.random() * (type.speed[1] - type.speed[0]) + type.speed[0];
         const delay = Math.random() * 15;
         
-        // Custom animation properties
+        
         const startX = posX;
         const startY = posY;
         const endX = startX + (Math.random() * 20 - 10);
         const endY = startY + (Math.random() * 20 - 10);
         
-        // Apply CSS animation
+        
         particle.style.animation = `float ${duration}s ease-in-out infinite`;
         particle.style.animationDelay = `${delay}s`;
         
@@ -270,19 +262,17 @@ function createEnhancedParticles() {
     }
 }
 
-/**
- * Initialize scramble text effect for hero title
- */
+
 function initScrambleText() {
     const heroTitle = document.getElementById('heroTitle');
     if (!heroTitle) return;
     
     const originalText = heroTitle.textContent;
     
-    // Clear the element
+    
     heroTitle.innerHTML = '';
     
-    // Create individual character spans
+    
     originalText.split('').forEach(char => {
         const span = document.createElement('span');
         span.className = 'char';
@@ -290,22 +280,22 @@ function initScrambleText() {
         heroTitle.appendChild(span);
     });
     
-    // Initial effect with each character being revealed one by one
+    
     const chars = heroTitle.querySelectorAll('.char');
     chars.forEach((char, index) => {
-        // Initially hide all characters
+        
         char.style.opacity = '0';
         
-        // Reveal characters one by one with delay
+        
         setTimeout(() => {
             char.style.opacity = '1';
             char.classList.add('scrambled');
         }, 80 * index);
     });
     
-    // Periodic scramble effect
+    
     setInterval(() => {
-        // Get a random character
+        
         const randomIndex = Math.floor(Math.random() * chars.length);
         if (chars[randomIndex].textContent !== ' ') {
             scrambleCharacter(chars[randomIndex]);
@@ -313,15 +303,13 @@ function initScrambleText() {
     }, 2000);
 }
 
-/**
- * Scramble a single character with glitch effect
- */
+
 function scrambleCharacter(charElement) {
     const originalChar = charElement.textContent;
     const glitchChars = '!<>-_\\/[]{}—=+*^?#';
     let iterations = 0;
     
-    // Create glitch effect
+    
     const interval = setInterval(() => {
         charElement.textContent = glitchChars[Math.floor(Math.random() * glitchChars.length)];
         
@@ -338,14 +326,12 @@ function scrambleCharacter(charElement) {
     }, 50);
 }
 
-/**
- * Initialize the fixed carousel with more reliable controls
- */
+
 function initFixedCarousel() {
     const carousel = document.querySelector('.feature-carousel');
     if (!carousel) return;
     
-    // Select carousel elements
+    
     const track = carousel.querySelector('.carousel-track');
     const slides = Array.from(carousel.querySelectorAll('.carousel-slide'));
     const dots = Array.from(carousel.querySelectorAll('.carousel-dot'));
@@ -357,17 +343,17 @@ function initFixedCarousel() {
         return;
     }
     
-    // Initialize state variables
+    
     let currentSlide = 0;
     let isAnimating = false;
     const slideCount = slides.length;
     
     console.log("Carousel initialized with", slideCount, "slides");
     
-    // Set initial state
+    
     updateCarouselState(0);
     
-    // Go to specific slide
+    
     function goToSlide(index) {
         if (isAnimating) return;
         if (index < 0) index = 0;
@@ -377,18 +363,18 @@ function initFixedCarousel() {
         isAnimating = true;
         updateCarouselState(index);
         
-        // Re-enable animation after transition
+        
         setTimeout(() => {
             isAnimating = false;
         }, 500);
     }
     
-    // Update carousel state (slides, dots, buttons)
+    
     function updateCarouselState(index) {
-        // Move track
+        
         track.style.transform = `translateX(-${index * 100}%)`;
         
-        // Update slides
+        
         slides.forEach((slide, i) => {
             if (i === index) {
                 slide.classList.add('active');
@@ -399,7 +385,7 @@ function initFixedCarousel() {
             }
         });
         
-        // Update dots
+        
         dots.forEach((dot, i) => {
             if (i === index) {
                 dot.classList.add('active');
@@ -408,17 +394,17 @@ function initFixedCarousel() {
             }
         });
         
-        // Update current index
+        
         currentSlide = index;
         
-        // Update button states
+        
         prevBtn.disabled = index === 0;
         prevBtn.classList.toggle('disabled', index === 0);
         nextBtn.disabled = index === slideCount - 1;
         nextBtn.classList.toggle('disabled', index === slideCount - 1);
     }
     
-    // Add event listeners to buttons
+    
     if (prevBtn) {
         prevBtn.addEventListener('click', function(e) {
             e.preventDefault();
@@ -435,14 +421,14 @@ function initFixedCarousel() {
         });
     }
     
-    // Add event listeners to dots
+    
     dots.forEach((dot, index) => {
         dot.addEventListener('click', function() {
             goToSlide(index);
         });
     });
     
-    // Add fallback click handlers for navigation buttons in case event delegation fails
+    
     document.addEventListener('click', function(e) {
         if (e.target.closest('#carousel-prev')) {
             console.log("Prev button clicked via delegation");
@@ -453,7 +439,7 @@ function initFixedCarousel() {
         }
     });
     
-    // Add keyboard navigation
+    
     carousel.addEventListener('keydown', function(e) {
         if (e.key === 'ArrowLeft') {
             goToSlide(currentSlide - 1);
@@ -462,7 +448,7 @@ function initFixedCarousel() {
         }
     });
     
-    // Add touch swipe support
+    
     let touchStartX = 0;
     let touchEndX = 0;
     
@@ -476,10 +462,10 @@ function initFixedCarousel() {
         
         if (Math.abs(swipeDistance) > 50) {
             if (swipeDistance > 0 && currentSlide < slideCount - 1) {
-                // Swipe left - go to next
+                
                 goToSlide(currentSlide + 1);
             } else if (swipeDistance < 0 && currentSlide > 0) {
-                // Swipe right - go to previous
+                
                 goToSlide(currentSlide - 1);
             }
         }
@@ -487,7 +473,7 @@ function initFixedCarousel() {
     
     console.log("Carousel event listeners attached");
     
-    // Remove the progress indicator if it exists
+    
     const progressBar = carousel.querySelector('.carousel-progress');
     if (progressBar) {
         progressBar.style.width = '0%';
@@ -495,9 +481,7 @@ function initFixedCarousel() {
     }
 }
 
-/**
- * Initialize the feature carousel with enhanced animations and interactions
- */
+
 function initCarousel() {
     const carousel = document.querySelector('.feature-carousel');
     if (!carousel) return;
@@ -510,46 +494,46 @@ function initCarousel() {
     
     if (!track || slides.length === 0) return;
     
-    // Create dots with enhanced styling and previews
+    
     if (dotsContainer) {
         slides.forEach((slide, index) => {
-            // Create the dot
+            
             const dot = document.createElement('button');
             dot.className = index === 0 ? 'carousel-dot active' : 'carousel-dot';
             dot.setAttribute('aria-label', `View feature ${index + 1}`);
             dot.dataset.slide = index;
             
-            // Extract the feature title for the tooltip
+            
             const featureTitle = slide.querySelector('h3').textContent;
             dot.setAttribute('title', featureTitle);
             
-            // Add to container
+            
             dotsContainer.appendChild(dot);
         });
     }
     
-    // Variables
+    
     const dots = carousel.querySelectorAll('.carousel-dot');
     let currentSlide = 0;
     let isMoving = false;
-    const slideWidth = 100; // percentage
+    const slideWidth = 100; 
     
-    // Enhanced carousel navigation logic
+    
     function updateCarousel(newIndex, direction = null) {
         if (isMoving) return;
         if (newIndex < 0 || newIndex >= slides.length) return;
         
         isMoving = true;
         
-        // Determine animation direction
+        
         const outgoingSlide = currentSlide;
         currentSlide = newIndex;
         
-        // Apply transition based on direction
+        
         track.style.transition = 'transform 0.5s cubic-bezier(0.645, 0.045, 0.355, 1.000)';
         track.style.transform = `translateX(-${currentSlide * slideWidth}%)`;
         
-        // Update slide states with delay for better visual transitions
+        
         slides.forEach((slide, index) => {
             setTimeout(() => {
                 if (index === currentSlide) {
@@ -562,9 +546,9 @@ function initCarousel() {
             }, index === currentSlide ? 100 : 0);
         });
         
-        // Update dot states with smooth transition
+        
         dots.forEach((dot, index) => {
-            // Add special animation class for the transitions
+            
             if (index === currentSlide) {
                 dot.classList.add('active');
                 dot.setAttribute('aria-current', 'true');
@@ -574,12 +558,12 @@ function initCarousel() {
             }
         });
         
-        // Update button states with transitions
+        
         if (prevButton) {
             prevButton.disabled = currentSlide === 0;
             prevButton.classList.toggle('disabled', currentSlide === 0);
             
-            // Add ripple effect on click
+            
             if (direction === 'prev' && !prevButton.disabled) {
                 addButtonRipple(prevButton);
             }
@@ -589,22 +573,22 @@ function initCarousel() {
             nextButton.disabled = currentSlide === slides.length - 1;
             nextButton.classList.toggle('disabled', currentSlide === slides.length - 1);
             
-            // Add ripple effect on click
+            
             if (direction === 'next' && !nextButton.disabled) {
                 addButtonRipple(nextButton);
             }
         }
         
-        // Animate the content of the active slide
+        
         animateActiveSlideContent(slides[currentSlide]);
         
-        // Reset isMoving after transition
+        
         setTimeout(() => {
             isMoving = false;
         }, 500);
     }
     
-    // Add ripple effect to carousel buttons
+    
     function addButtonRipple(button) {
         const ripple = document.createElement('span');
         ripple.className = 'ripple';
@@ -622,16 +606,16 @@ function initCarousel() {
         }, 600);
     }
     
-    // Animate the active slide content with staggered animations
+    
     function animateActiveSlideContent(slide) {
-        // Find elements to animate
+        
         const icon = slide.querySelector('.feature-icon');
         const heading = slide.querySelector('h3');
         const listItems = slide.querySelectorAll('li');
         const button = slide.querySelector('button');
         const visual = slide.querySelector('.md\\:w-1\\/2:last-child > div');
         
-        // Reset animations
+        
         [icon, heading, button, visual].forEach(el => {
             if (el) {
                 el.style.opacity = '0';
@@ -644,7 +628,7 @@ function initCarousel() {
             item.style.transform = 'translateY(15px)';
         });
         
-        // Apply staggered animations
+        
         setTimeout(() => {
             if (icon) {
                 icon.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
@@ -686,12 +670,12 @@ function initCarousel() {
         }, 200);
     }
     
-    // Navigate to previous/next slide
+    
     function goToSlide(index, direction = null) {
         updateCarousel(index, direction);
     }
     
-    // Event listeners
+    
     if (nextButton) {
         nextButton.addEventListener('click', () => {
             goToSlide(currentSlide + 1, 'next');
@@ -704,7 +688,7 @@ function initCarousel() {
         });
     }
     
-    // Dot navigation with enhanced interaction
+    
     dots.forEach(dot => {
         dot.addEventListener('click', () => {
             const slideIndex = parseInt(dot.dataset.slide);
@@ -712,7 +696,7 @@ function initCarousel() {
             goToSlide(slideIndex, direction);
         });
         
-        // Add hover effect
+        
         dot.addEventListener('mouseenter', () => {
             dot.style.transform = 'scaleY(1.2)';
         });
@@ -722,7 +706,7 @@ function initCarousel() {
         });
     });
     
-    // Keyboard navigation
+    
     carousel.addEventListener('keydown', (e) => {
         if (e.key === 'ArrowLeft') {
             goToSlide(currentSlide - 1, 'prev');
@@ -731,7 +715,7 @@ function initCarousel() {
         }
     });
     
-    // Enhanced touch events for swiping with animations
+    
     let touchStartX = 0;
     let touchEndX = 0;
     let touchStartTime = 0;
@@ -746,7 +730,7 @@ function initCarousel() {
         const diff = touchStartX - currentX;
         const offset = (diff / carousel.offsetWidth) * 100;
         
-        // Only apply drag if it's not at the edges or the drag isn't too large
+        
         if ((currentSlide > 0 || diff < 0) && (currentSlide < slides.length - 1 || diff > 0) && Math.abs(diff) < 100) {
             track.style.transition = 'none';
             track.style.transform = `translateX(-${(currentSlide * 100) + offset}%)`;
@@ -757,48 +741,46 @@ function initCarousel() {
         touchEndX = e.changedTouches[0].screenX;
         const touchEndTime = new Date().getTime();
         
-        // Calculate swipe speed and distance
+        
         const swipeDistance = touchStartX - touchEndX;
         const swipeTime = touchEndTime - touchStartTime;
         const swipeSpeed = Math.abs(swipeDistance / swipeTime);
         
-        // Determine if swipe was intentional based on speed and distance
+        
         if (swipeSpeed > 0.5 || Math.abs(swipeDistance) > 50) {
             if (swipeDistance > 0 && currentSlide < slides.length - 1) {
-                // Swipe left - go to next
+                
                 goToSlide(currentSlide + 1, 'next');
             } else if (swipeDistance < 0 && currentSlide > 0) {
-                // Swipe right - go to previous
+                
                 goToSlide(currentSlide - 1, 'prev');
             } else {
-                // Snap back to current slide
+                
                 track.style.transition = 'transform 0.3s ease';
                 track.style.transform = `translateX(-${currentSlide * 100}%)`;
             }
         } else {
-            // If the swipe wasn't fast enough, revert to current slide
+            
             track.style.transition = 'transform 0.3s ease';
             track.style.transform = `translateX(-${currentSlide * 100}%)`;
         }
     }, {passive: true});
     
-    // Remove progress indicator if it exists
+    
     const progressBar = carousel.querySelector('.carousel-progress');
     if (progressBar) {
         progressBar.style.display = 'none';
     }
     
-    // Initial animations and setup
+    
     animateActiveSlideContent(slides[0]);
     updateCarousel(0);
     
-    // Set up typing animation for demo
+    
     setupTypingAnimation();
 }
 
-/**
- * Set up typing animations for the carousel demos
- */
+
 function setupTypingAnimation() {
     const typingElements = document.querySelectorAll('.typing-animation');
     
@@ -815,7 +797,7 @@ function setupTypingAnimation() {
             }
         }
         
-        // Start typing animation when element is in view
+        
         const observer = new IntersectionObserver(entries => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {

@@ -439,22 +439,14 @@ class Query {
         return $this->pdo->exec($query);
     }
     
-    /**
-     * Check if a table exists in the database
-     * 
-     * @param string $table Table name
-     * @return bool Whether the table exists
-     */
     public function tableExists($table) {
         try {
-            // Create a properly escaped table name query
             $sql = "SHOW TABLES LIKE " . $this->pdo->quote($table);
             $stmt = $this->pdo->query($sql);
             
-            // Handle the result safely
             if ($stmt) {
                 $exists = $stmt->rowCount() > 0;
-                $stmt->closeCursor(); // Close the cursor to avoid unbuffered query issues
+                $stmt->closeCursor(); 
                 return $exists;
             }
             return false;
@@ -603,12 +595,6 @@ class Query {
         return $this->buildSelectQuery();
     }
     
-    /**
-     * Parse .env file and return as associative array
-     *
-     * @param string $filePath Path to .env file
-     * @return array Parsed environment variables
-     */
     private static function parseEnvFile($filePath) {
         if (!file_exists($filePath)) {
             return [];
@@ -618,18 +604,15 @@ class Query {
         $lines = file($filePath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
         
         foreach ($lines as $line) {
-            // Skip comments
             if (strpos(trim($line), '//') === 0) {
                 continue;
             }
             
-            // Split by first equals sign
             if (strpos($line, '=') !== false) {
                 list($key, $value) = explode('=', $line, 2);
                 $key = trim($key);
                 $value = trim($value);
                 
-                // Remove quotes if they exist
                 if (preg_match('/^"(.*)"$/', $value, $matches)) {
                     $value = $matches[1];
                 } elseif (preg_match("/^'(.*)'$/", $value, $matches)) {
