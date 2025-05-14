@@ -8,7 +8,6 @@ $page_css = 'landing-page';
 $page_js = 'landing-page';
 $body_class = 'overflow-x-hidden text-white';
 
-// Additional head content specific to this page
 $additional_head = '
 <style>
     /* Set the background image dynamically via CSS variables */
@@ -413,9 +412,7 @@ ob_start();
 </footer>
 
 <?php
-// Get the content and clean the output buffer
 $content = ob_get_clean();
 
-// Include the main layout with the content
 require_once dirname(__DIR__) . '/layout/main-app.php';
 ?>

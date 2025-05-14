@@ -3,8 +3,12 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
+const cors = require('cors');
+require('dotenv').config();
 
 const app = express();
+app.use(cors());
+
 const server = http.createServer(app);
 
 // Set up Socket.IO with more permissive CORS support
@@ -21,6 +25,16 @@ const io = new Server(server, {
 
 // Serve static files from public folder
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Add status endpoint
+app.get('/status', (req, res) => {
+  res.json({
+    status: 'online',
+    service: 'web-server',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString()
+  });
+});
 
 // Store connected users
 const globalVideoUsers = {};
@@ -142,7 +156,7 @@ io.on('connection', (socket) => {
 
 // Start the server
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Visit http://localhost:${PORT} to test`);
 }); 

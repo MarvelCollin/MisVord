@@ -1,0 +1,110 @@
+version: '3.8'
+
+services:
+  # PHP Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.php
+    container_name: miscvord_php
+    restart: unless-stopped
+    volumes:
+      - .:/var/www/html
+      - ./public:/var/www/html/public
+    depends_on:
+      - socket-server
+      - db
+    networks:
+      - miscvord_network
+    ports:
+      - "8000:80"
+    environment:
+      - APP_ENV=development
+      - DB_HOST=db
+      - DB_NAME=misvord
+      - DB_USER=root
+      - DB_PASS=
+      - DB_CHARSET=utf8mb4
+      - SOCKET_SERVER=http://socket-server:3000
+      - SOCKET_API_KEY=kolin123
+
+  # Unified Socket.io Server
+  socket-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.node
+    container_name: miscvord_socket
+    restart: unless-stopped
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+    networks:
+      - miscvord_network
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - SOCKET_API_KEY=kolin123
+      - DB_HOST=db
+      - DB_NAME=misvord
+      - DB_USER=root
+      - DB_PASS=
+
+  # MySQL Database
+  db:
+    image: mysql:8.0
+    container_name: miscvord_db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: misvord
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+      MYSQL_ROOT_HOST: "%"
+    volumes:
+      - miscvord_db_data:/var/lib/mysql
+    networks:
+      - miscvord_network
+    ports:
+      - "3306:3306"
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+
+  # Enhanced PHPMyAdmin 
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: miscvord_phpmyadmin
+    depends_on:
+      - db
+    networks:
+      - miscvord_network
+    ports:
+      - "8080:80"
+    environment:
+      - PMA_HOST=db
+      - PMA_PORT=3306
+      - PMA_ARBITRARY=1
+      - UPLOAD_LIMIT=500M
+      - PMA_USER=root
+    restart: unless-stopped
+
+  # Adminer - Alternative DB management tool (more lightweight)
+  adminer:
+    image: adminer
+    container_name: miscvord_adminer
+    restart: unless-stopped
+    depends_on:
+      - db
+    networks:
+      - miscvord_network
+    ports:
+      - "8081:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: db
+      ADMINER_DESIGN: pepa-linha
+
+networks:
+  miscvord_network:
+    driver: bridge
+
+volumes:
+  miscvord_db_data:

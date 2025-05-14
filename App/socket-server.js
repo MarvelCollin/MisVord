@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
@@ -17,8 +18,13 @@ const io = new Server(server, {
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
     allowedHeaders: ["*"]
-  }
+  },
+  // Explicitly configure transport options
+  transports: ['websocket', 'polling']
 });
+
+// Serve static files from public folder
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Store active users and channels
 const activeUsers = {};
@@ -32,8 +38,12 @@ const globalVideoUsers = {};
 app.get('/status', (req, res) => {
   res.json({
     status: 'online',
+    service: 'unified-socket-server',
     uptime: process.uptime(),
     connections: Object.keys(activeUsers).length,
+    channels: Object.keys(channels).length,
+    globalVideoUsers: Object.keys(globalVideoUsers).length,
+    webrtcRooms: Object.keys(webrtcRooms).length,
     timestamp: new Date().toISOString()
   });
 });
@@ -42,7 +52,7 @@ app.get('/status', (req, res) => {
 app.post('/broadcast', express.json(), (req, res) => {
   // Simple API key check
   const apiKey = req.headers['x-api-key'];
-  if (apiKey !== (process.env.SOCKET_API_KEY || 'miscvord-secret')) {
+  if (apiKey !== (process.env.SOCKET_API_KEY || 'kolin123')) {
     return res.status(403).json({ error: 'Unauthorized' });
   }
 
@@ -69,6 +79,10 @@ app.post('/broadcast', express.json(), (req, res) => {
 io.on('connection', (socket) => {
   console.log(`User connected: ${socket.id}`);
 
+  // =====================================================
+  // Text Chat & Channel Functionality 
+  // =====================================================
+  
   // Handle user joining with authentication
   socket.on('join', (userData) => {
     console.log(`User ${userData.username} (ID: ${userData.userId}) joined`);
@@ -164,6 +178,126 @@ io.on('connection', (socket) => {
     });
   });
   
+  // =====================================================
+  // Voice/Video & WebRTC Functionality 
+  // =====================================================
+
+  // Handle joining global room for video chat
+  socket.on('join-global-room', (data) => {
+    const roomId = data.roomId || 'global-video-chat';
+    const userName = data.userName || (activeUsers[socket.id] ? activeUsers[socket.id].username : `User_${socket.id.substring(0, 4)}`);
+    
+    console.log(`User ${userName} (${socket.id}) joined global room: ${roomId}`);
+    
+    // Join the room
+    socket.join(roomId);
+    
+    // Store user info in global video users
+    globalVideoUsers[socket.id] = {
+      userId: socket.id,
+      userName: userName,
+      roomId: roomId
+    };
+    
+    // Notify others in the room
+    socket.to(roomId).emit('user-joined', {
+      userId: socket.id,
+      userName: userName
+    });
+    
+    console.log(`Current global video users: ${Object.keys(globalVideoUsers).length}`);
+  });
+  
+  // Handle getting global users list
+  socket.on('get-global-users', (data) => {
+    const roomId = data ? data.roomId : null;
+    console.log(`Sending global users list to ${socket.id}`);
+    
+    const users = Object.keys(globalVideoUsers)
+      .filter(id => !roomId || globalVideoUsers[id].roomId === roomId)
+      .map(id => ({
+        userId: id,
+        userName: globalVideoUsers[id].userName
+      }));
+    
+    socket.emit('global-users', { users });
+  });
+  
+  // Handle user leaving global room
+  socket.on('leave-global-room', () => {
+    if (globalVideoUsers[socket.id]) {
+      const roomId = globalVideoUsers[socket.id].roomId;
+      console.log(`User ${socket.id} leaving global video chat room: ${roomId}`);
+      
+      socket.leave(roomId);
+      
+      // Notify others in the room
+      socket.to(roomId).emit('user-left', {
+        userId: socket.id,
+        userName: globalVideoUsers[socket.id].userName
+      });
+      
+      // Remove from global users
+      delete globalVideoUsers[socket.id];
+    }
+  });
+  
+  // Handle ping requests
+  socket.on('ping-all-users', (data) => {
+    console.log(`User ${socket.id} pinged all users in global room`);
+    
+    const roomId = data && data.roomId ? data.roomId : 'global-video-chat';
+    
+    // Get user name from different possible sources
+    const userName = 
+      (data && data.fromUserName) || 
+      (globalVideoUsers[socket.id] ? globalVideoUsers[socket.id].userName : null) ||
+      (activeUsers[socket.id] ? activeUsers[socket.id].username : null) ||
+      `User_${socket.id.substring(0, 4)}`;
+    
+    // Add the user info if not provided
+    const pingData = {
+      from: socket.id,
+      userName: userName,
+      fromUserName: userName,
+      timestamp: Date.now()
+    };
+    
+    // Add any additional data from the request
+    if (data) {
+      if (data.roomId) pingData.roomId = data.roomId;
+      if (data.message) pingData.message = data.message;
+    }
+    
+    // Relay the ping to all users in the specified room except the sender
+    socket.to(roomId).emit('user-ping', pingData);
+    
+    // Also send a receipt confirmation back to the sender
+    socket.emit('ping-sent', {
+      success: true,
+      timestamp: Date.now(),
+      recipients: Object.keys(globalVideoUsers).length - 1 // Number of users who received the ping (excluding sender)
+    });
+  });
+  
+  // Handle ping acknowledgment
+  socket.on('ping-ack', (data) => {
+    const { to, from, userName } = data;
+    console.log(`User ${from} acknowledged ping from ${to}`);
+    
+    // Determine the userName to send back
+    const userNameToSend = userName || 
+      (globalVideoUsers[from] ? globalVideoUsers[from].userName : null) ||
+      (activeUsers[from] ? activeUsers[from].username : null) ||
+      'Unknown User';
+    
+    // Relay acknowledgment to the original pinger
+    io.to(to).emit('ping-ack', {
+      from: from,
+      userName: userNameToSend
+    });
+  });
+  
   // WebRTC signaling - Create room
   socket.on('create_room', (data) => {
     // Generate a random room ID or use provided one
@@ -207,7 +341,8 @@ io.on('connection', (socket) => {
     socket.to(`webrtc_${roomId}`).emit('user_joined', { userId: socket.id });
   });
   
-  // WebRTC signaling - Handle offers, answers and ICE candidates  socket.on('offer', (data) => {
+  // WebRTC signaling - Handle offers, answers and ICE candidates
+  socket.on('offer', (data) => {
     console.log(`Received offer from ${socket.id} to ${data.to} for room: ${data.roomId || 'global'}`);
     
     // Add the 'from' field if it's not present
@@ -219,7 +354,7 @@ io.on('connection', (socket) => {
     if (data.to) {
       io.to(data.to).emit('offer', data);
     } else {
-      // Backward compatibility - broadcast to the room except sender
+      // Broadcast to the room except sender
       socket.to(`webrtc_${data.roomId}`).emit('offer', data);
     }
   });
@@ -236,18 +371,19 @@ io.on('connection', (socket) => {
     if (data.to) {
       io.to(data.to).emit('answer', data);
     } else {
-      // Backward compatibility - broadcast to the room except sender
+      // Broadcast to the room except sender
       socket.to(`webrtc_${data.roomId}`).emit('answer', data);
     }
   });
-    socket.on('ice_candidate', (data) => {
+  
+  socket.on('ice_candidate', (data) => {
     console.log(`Received ICE candidate from ${socket.id} to ${data.to} for room: ${data.roomId}`);
     
     // Forward the ICE candidate to the specific peer
     if (data.to) {
       io.to(data.to).emit('ice_candidate', data);
     } else {
-      // Backward compatibility - broadcast to the room except sender
+      // Broadcast to the room except sender
       socket.to(`webrtc_${data.roomId}`).emit('ice_candidate', data);
     }
   });
@@ -293,57 +429,21 @@ io.on('connection', (socket) => {
       }
     }
   }
-  // Global video chat handlers
-  socket.on('join-global-room', (data) => {
-    console.log(`User joining global video chat: ${socket.id} (${data.userName})`);
-    
-    // Add to global room
-    socket.join('global-video-chat');
-    
-    // Store user info
-    globalVideoUsers[socket.id] = {
-      userId: socket.id,
-      userName: data.userName || `User_${socket.id.substring(0, 5)}`
-    };
-    
-    // Notify other users in the room
-    socket.to('global-video-chat').emit('user-joined', {
-      userId: socket.id,
-      userName: globalVideoUsers[socket.id].userName
-    });
-    
-    console.log(`Current global video users: ${Object.keys(globalVideoUsers).length}`);
-  });
   
-  socket.on('leave-global-room', () => {
-    console.log(`User leaving global video chat: ${socket.id}`);
-    socket.leave('global-video-chat');
-    delete globalVideoUsers[socket.id];
-    
-    // Notify others
-    io.to('global-video-chat').emit('user-left', {
-      userId: socket.id
-    });
-  });
-  
-  socket.on('get-global-users', () => {
-    console.log(`Sending global users list to ${socket.id}`);
-    const users = Object.keys(globalVideoUsers).map(id => ({
-      userId: id,
-      userName: globalVideoUsers[id].userName
-    }));
-    socket.emit('global-users', { users });
-  });
-  
+  // =====================================================
   // Handle disconnection
+  // =====================================================
+  
   socket.on('disconnect', () => {
     console.log(`User disconnected: ${socket.id}`);
     
     // Handle global video chat
     if (globalVideoUsers[socket.id]) {
       // Notify other users in global video chat
-      socket.to('global-video-chat').emit('user-left', {
-        userId: socket.id
+      const roomId = globalVideoUsers[socket.id].roomId;
+      socket.to(roomId).emit('user-left', {
+        userId: socket.id,
+        userName: globalVideoUsers[socket.id].userName
       });
       
       // Remove from global users
@@ -387,7 +487,8 @@ io.on('connection', (socket) => {
 });
 
 // Start the server
-const PORT = process.env.SOCKET_PORT || 3001;
-server.listen(PORT, () => {
-  console.log(`Socket.IO server running on port ${PORT}`);
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`Unified Socket.IO server running on port ${PORT}`);
+  console.log(`Socket.IO server available at http://localhost:${PORT}`);
 });

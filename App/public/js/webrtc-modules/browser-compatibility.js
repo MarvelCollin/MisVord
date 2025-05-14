@@ -1,9 +1,4 @@
-/**
- * WebRTC Browser Compatibility Module
- * Handles browser feature detection and compatibility warnings
- */
 
-// Check browser compatibility and permission status
 function checkBrowserCompatibility() {
     const browserInfo = {
         name: getBrowserName(),
@@ -11,7 +6,7 @@ function checkBrowserCompatibility() {
         issues: []
     };
     
-    // WebRTC API checks
+    
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         browserInfo.isCompatible = false;
         browserInfo.issues.push('WebRTC API not supported');
@@ -22,7 +17,7 @@ function checkBrowserCompatibility() {
         browserInfo.issues.push('RTCPeerConnection not supported');
     }
     
-    // Detect problematic browsers or versions
+    
     if (browserInfo.name === 'Safari' && parseInt(getBrowserVersion()) < 13) {
         browserInfo.issues.push('Safari < 13 has limited WebRTC support');
     }
@@ -39,7 +34,7 @@ function checkBrowserCompatibility() {
     return browserInfo;
 }
 
-// Helper to detect browser name
+
 function getBrowserName() {
     const userAgent = navigator.userAgent;
     let browserName;
@@ -50,7 +45,7 @@ function getBrowserName() {
         browserName = "Firefox";
     } else if (userAgent.match(/safari/i)) {
         browserName = "Safari";
-    } else if (userAgent.match(/opr\//i)) {
+    } else if (userAgent.match(/opr\
         browserName = "Opera";
     } else if (userAgent.match(/edg/i)) {
         browserName = "Edge";
@@ -63,19 +58,19 @@ function getBrowserName() {
     return browserName;
 }
 
-// Helper to get browser version
+
 function getBrowserVersion() {
     const userAgent = navigator.userAgent;
     let version = "Unknown";
     
-    // Extract version for common browsers
+    
     if (userAgent.match(/chrome|chromium|crios/i)) {
         version = userAgent.match(/(?:chrome|chromium|crios)\/([\d.]+)/i)[1];
     } else if (userAgent.match(/firefox|fxios/i)) {
         version = userAgent.match(/(?:firefox|fxios)\/([\d.]+)/i)[1];
     } else if (userAgent.match(/safari/i)) {
         version = userAgent.match(/version\/([\d.]+)/i)[1];
-    } else if (userAgent.match(/opr\//i)) {
+    } else if (userAgent.match(/opr\
         version = userAgent.match(/opr\/([\d.]+)/i)[1];
     } else if (userAgent.match(/edg/i)) {
         version = userAgent.match(/edg\/([\d.]+)/i)[1];
@@ -84,9 +79,9 @@ function getBrowserVersion() {
     return version;
 }
 
-// Function to show browser compatibility warnings
+
 function showBrowserCompatibilityWarning(browserInfo) {
-    // Create warning UI
+    
     const warningEl = document.createElement('div');
     warningEl.className = 'fixed top-4 left-4 right-4 bg-yellow-600 text-white p-4 rounded shadow-lg z-50';
     
@@ -108,13 +103,13 @@ function showBrowserCompatibilityWarning(browserInfo) {
     
     message += `<p class="mt-2">For best results, please use the latest version of Chrome, Firefox, or Safari.</p>`;
     
-    // Add dismiss button
+    
     message += `<button id="dismiss-compat-warning" class="mt-2 px-3 py-1 bg-white text-yellow-700 rounded hover:bg-gray-100">Dismiss</button>`;
     
     warningEl.innerHTML = message;
     document.body.appendChild(warningEl);
     
-    // Add dismiss functionality
+    
     setTimeout(() => {
         const dismissBtn = document.getElementById('dismiss-compat-warning');
         if (dismissBtn) {
@@ -125,7 +120,7 @@ function showBrowserCompatibilityWarning(browserInfo) {
     }, 100);
 }
 
-// Export functions for use in the main module
+
 window.WebRTCCompat = {
     check: checkBrowserCompatibility,
     showWarning: showBrowserCompatibilityWarning
