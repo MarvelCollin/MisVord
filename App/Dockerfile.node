@@ -1,20 +1,13 @@
-FROM node:20.11.0-alpine3.19 AS builder
+FROM node:20.11.0-alpine3.19
 
-WORKDIR /build
-ENV NODE_ENV=production
+WORKDIR /app
 
 COPY package*.json ./
 
-RUN npm ci --only=production --no-optional && \
-    npm cache clean --force
-
-FROM gcr.io/distroless/nodejs20-debian12
-
-WORKDIR /app
-COPY --from=builder /build/node_modules /app/node_modules
+RUN npm install && npm install -g nodemon
 
 COPY socket-server.js server.js package.json ./
 
 EXPOSE 3000
 
-CMD ["socket-server.js"] 
+CMD ["nodemon", "socket-server.js"]
