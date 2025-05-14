@@ -1,17 +1,25 @@
+// --- WebRTC/ICE/Socket.IO Best Practice Implementation ---
+// 1. Add adapter.js for cross-browser support (add to your HTML):
+// <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+//
+// 2. Use secure Socket.IO connection to your production signaling server:
+const socket = io('https://marvelcollin.my.id', {
+  path: '/socket.io/',
+  transports: ['websocket'],
+  secure: true,
+  reconnection: true,
+  reconnectionAttempts: 5,
+  reconnectionDelay: 1000,
+  reconnectionDelayMax: 5000,
+  timeout: 10000
+});
+//
+// 3. ICE server config: Use Google STUN and a placeholder for your own TURN server for production.
+//    For testing, you can uncomment openrelay.metered.ca, but do NOT use it in production.
+// --- End of Best Practice Implementation ---
+
 // WebRTC video chat functionality
 document.addEventListener('DOMContentLoaded', () => {
-    // Check autoplay permissions right away
-    if (window.WebRTCPlayer && typeof window.WebRTCPlayer.checkAutoplaySupport === 'function') {
-        window.WebRTCPlayer.checkAutoplaySupport().then(isSupported => {
-            if (!isSupported) {
-                console.log("Autoplay not initially supported, requesting permission...");
-                window.WebRTCPlayer.requestAutoplayPermission();
-            } else {
-                console.log("Autoplay is supported");
-            }
-        });
-    }
-
     // DOM Elements
     const permissionRequest = document.getElementById('permissionRequest');
     const permissionStatus = document.getElementById('permissionStatus');
@@ -645,6 +653,11 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Add a participant to the list
     function addParticipantItem(userId, userName) {
+        // Prevent duplicate participants by userId
+        if (document.getElementById(`participant-${userId}`)) {
+            // Already exists, do not add again
+            return;
+        }
         // Check if participant already exists by ID
         const existingItem = document.getElementById(`participant-${userId}`);
         if (existingItem) {
@@ -733,6 +746,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // Skip if it's our own connection
         if (userId === socketId) return;
         
+        // Prevent duplicate participants and connections
+        if (document.getElementById(`participant-${userId}`)) {
+            console.log(`User ${userId} is already in the participant list, skipping duplicate join event`);
+            return;
+        }
+        
         // Check if this user is already in our list
         const existingItem = document.getElementById(`participant-${userId}`);
         const existingPeer = peers[userId];
@@ -764,20 +783,18 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleUserLeft(data) {
         const { userId, userName } = data;
         console.log(`User left: ${userName || userId}`);
-        
         // Remove from participants list
         removeParticipantItem(userId);
-        
         // Remove video element
         const container = document.getElementById(`container-${userId}`);
         if (container) {
             videoGrid.removeChild(container);
         }
-        
-        // Close peer connection
+        // Close and clean up peer connection
         if (peers[userId]) {
             peers[userId].close();
             delete peers[userId];
+            logConnectionDebug(`Cleaned up peer connection for ${userId} on leave`);
         }
     }
     
@@ -830,13 +847,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!validUserIds.includes(id)) {
                 console.log(`Removing stale participant: ${id}`);
                 removeParticipantItem(id);
-                
                 // Also clean up peer connection and video if they exist
                 if (peers[id]) {
                     peers[id].close();
                     delete peers[id];
+                    logConnectionDebug(`Cleaned up peer connection for ${id} (stale)`);
                 }
-                
                 const container = document.getElementById(`container-${id}`);
                 if (container) {
                     videoGrid.removeChild(container);
@@ -1270,67 +1286,26 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         try {
-            // Check connection state before processing
-            if (peerConnection.signalingState === 'closed') {
-                console.error(`Peer connection with ${from} is closed, cannot process answer`);
+            // Only set remote answer if in the correct state
+            const sessionDescription = new RTCSessionDescription(answer);
+            if (peerConnection.signalingState === 'have-local-offer') {
+                await peerConnection.setRemoteDescription(sessionDescription);
+                console.log(`Successfully set remote description (answer) from ${from}`);
+                // Log current connection state after setting remote description
+                console.log(`Current signaling state after setting answer: ${peerConnection.signalingState}`);
+                console.log(`Current connection state: ${peerConnection.connectionState}`);
+                console.log(`Current ICE connection state: ${peerConnection.iceConnectionState}`);
+                return;
+            } else if (peerConnection.signalingState === 'stable') {
+                console.warn(`Connection with ${from} is already in 'stable' state, ignoring duplicate answer`);
+                return;
+            } else {
+                console.warn(`Cannot set remote answer in '${peerConnection.signalingState}' state for ${from}. Expected 'have-local-offer' state.`);
                 return;
             }
-            
-            // Check if we're in the right state to receive an answer
-            // We should be in "have-local-offer" state to set a remote answer
-            if (peerConnection.signalingState !== 'have-local-offer') {
-                console.warn(`Cannot set remote answer in '${peerConnection.signalingState}' state for ${from}. Expected 'have-local-offer' state.`);
-                
-                // If we're in stable state, it likely means we've already processed this answer
-                // or there's a race condition with multiple answer messages
-                if (peerConnection.signalingState === 'stable') {
-                    console.log(`Connection with ${from} is already in 'stable' state, ignoring duplicate answer`);
-                    return;
-                }
-                
-                // For other states, log the issue but attempt to continue
-                console.warn(`Attempting to set remote answer anyway despite being in ${peerConnection.signalingState} state`);
-            }
-            
-            // Create the session description for the answer
-            const sessionDescription = new RTCSessionDescription(answer);
-            
-            // Set remote description with better error handling
-            await peerConnection.setRemoteDescription(sessionDescription)
-                .catch(error => {
-                    // Special handling for the "Called in wrong state: stable" error
-                    if (error.name === 'InvalidStateError' && error.message.includes('stable')) {
-                        console.warn(`Ignoring answer for ${from} - connection already established (stable state)`);
-                        return; // Silently ignore this specific error
-                    }
-                    
-                    // Re-throw other errors to be caught by the main catch block
-                    throw error;
-                });
-                
-            console.log(`Successfully set remote description (answer) from ${from}`);
-            
-            // Log current connection state after setting remote description
-            console.log(`Current signaling state after setting answer: ${peerConnection.signalingState}`);
-            console.log(`Current connection state: ${peerConnection.connectionState}`);
-            console.log(`Current ICE connection state: ${peerConnection.iceConnectionState}`);
-            
         } catch (error) {
             console.error(`Error handling answer from ${from}:`, error);
             addLogEntry(`Error handling answer: ${error.message}`, 'error');
-            
-            // Attempt to recover from error if possible
-            if (error.name === 'InvalidStateError') {
-                console.warn(`Invalid state error occurred, checking if connection with ${from} can be salvaged`);
-                
-                // If we're already connected, the error is likely not critical
-                if (peerConnection.iceConnectionState === 'connected' || 
-                    peerConnection.iceConnectionState === 'completed') {
-                    console.log(`Despite error, connection with ${from} appears to be working`);
-                } else {
-                    console.warn(`Connection with ${from} may be in a bad state, consider reconnecting`);
-                }
-            }
         }
     }
     
@@ -1377,6 +1352,13 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Create a new WebRTC peer connection with enhanced configuration
     function createPeerConnection(userId, remoteUserName) {
+        // Step 1: Clean up any existing peer connection for this user
+        if (peers[userId]) {
+            peers[userId].close();
+            delete peers[userId];
+            logConnectionDebug(`Cleaned up old peer connection for ${userId}`);
+        }
+        
         logConnectionDebug(`Creating peer connection for ${userId} (${remoteUserName})`);
         showVideoDebugOverlay(userId, "Creating new peer connection", "info");
         
@@ -1390,45 +1372,24 @@ document.addEventListener('DOMContentLoaded', () => {
             existingContainer.appendChild(debugInfo);
         }
         
-        // Enhanced ICE servers configuration with more fallbacks
+        // --- PRODUCTION ICE SERVERS ---
         const peerConnection = new RTCPeerConnection({
             iceServers: [
-                // STUN servers
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' },
-                { urls: 'stun:stun3.l.google.com:19302' },
-                { urls: 'stun:stun4.l.google.com:19302' },
-                
-                // TURN servers with UDP (preferred)
                 {
-                    urls: 'turn:openrelay.metered.ca:80',
-                    username: 'openrelayproject',
-                    credential: 'openrelayproject'
-                },
-                {
-                    urls: 'turn:openrelay.metered.ca:443',
-                    username: 'openrelayproject',
-                    credential: 'openrelayproject'
-                },
-                
-                // TCP fallbacks for strict firewalls
-                {
-                    urls: 'turn:openrelay.metered.ca:443?transport=tcp',
-                    username: 'openrelayproject',
-                    credential: 'openrelayproject'
-                },
-                {
-                    urls: 'turn:openrelay.metered.ca:80?transport=tcp',
-                    username: 'openrelayproject',
-                    credential: 'openrelayproject'
+                    urls: [
+                        'turn:marvelcollin.my.id:3478?transport=udp',
+                        'turn:marvelcollin.my.id:3478?transport=tcp'
+                    ],
+                    username: 'kolin',
+                    credential: 'kolin123'
                 }
             ],
-            iceCandidatePoolSize: 10, // Increased from 5
+            iceCandidatePoolSize: 10,
             sdpSemantics: 'unified-plan',
             bundlePolicy: 'max-bundle',
             rtcpMuxPolicy: 'require',
-            // IceTransport policy set to 'all' to allow both relay and direct connections
             iceTransportPolicy: 'all'
         });
         

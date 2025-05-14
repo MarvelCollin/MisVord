@@ -10,6 +10,7 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
     <title><?php echo isset($page_title) ? $page_title : 'MiscVord - Your Place to Talk and Hang Out'; ?></title>
     <!-- Tailwind CSS via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
     <script>
         tailwind.config = {
             theme: {
