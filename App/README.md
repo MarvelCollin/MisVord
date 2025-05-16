@@ -1,6 +1,38 @@
 # MiscVord - Voice and Text Chat Application
 
-MiscVord is a Discord-like communication platform with text and voice/video chat capabilities. This README provides a quick overview of the project and deployment instructions.
+MiscVord is a Discord-like communication platform with text and voice/video chat capabilities.
+
+## Deployment Instructions
+
+### Prerequisites
+- A VPS with Docker and Docker Compose installed
+- Domain pointing to your VPS
+- Open ports: 1001-1005
+
+### Quick Start
+1. Clone the repository to your VPS
+2. Navigate to the App directory: `cd MisVord/App`
+3. Run the deployment script: `./deploy.sh`
+4. Access the application at: `http://your-domain:1001`
+
+### Service Ports
+- PHP App: 1001
+- Socket Server: 1002 
+- MySQL Database: 1003
+- PHPMyAdmin: 1004
+- Adminer: 1005
+
+### Troubleshooting
+If you encounter issues:
+1. Check container logs: `docker logs miscvord_php`
+2. Verify port accessibility: `sudo netstat -tulpn | grep 1001`
+3. Ensure firewall allows connections: `sudo ufw allow 1001/tcp`
+
+### Note About HTTPS
+To enable HTTPS:
+1. Install Nginx and Certbot
+2. Set up a reverse proxy using the provided nginx-config.conf
+3. Run Certbot to get SSL certificates
 
 ## Features
 
@@ -18,62 +50,6 @@ MiscVord is a Discord-like communication platform with text and voice/video chat
 - **Real-time Communication**: Socket.io
 - **Voice/Video**: WebRTC
 - **Containerization**: Docker
-
-## Deployment on VPS
-
-### Prerequisites
-
-- VPS with Ubuntu/Debian
-- Domain name pointing to your VPS IP
-- SSH access to your VPS
-
-### Deployment Steps
-
-1. Upload project files to your VPS using SFTP/SCP
-   ```bash
-   # Example using scp (run on your local machine)
-   scp -r /path/to/project/* username@your-vps-ip:~/miscvord/
-   ```
-
-2. SSH into your server
-   ```bash
-   ssh username@your-vps-ip
-   ```
-
-3. Navigate to your project directory
-   ```bash
-   cd ~/miscvord
-   ```
-
-4. Make the deployment script executable
-   ```bash
-   chmod +x deploy.sh
-   ```
-
-5. Run the deployment script
-   ```bash
-   ./deploy.sh
-   ```
-
-6. Check that services are running
-   ```bash
-   ./check-ports.sh
-   ```
-
-7. Access your application
-   - Main App: https://your-domain.com:1001
-   - PHPMyAdmin: https://your-domain.com:1004
-   - Adminer: https://your-domain.com:1005
-
-## Service Ports
-
-| Service       | Port | Description                      |
-|---------------|------|----------------------------------|
-| PHP App       | 1001 | Main web application             |
-| Socket Server | 1002 | Real-time communication server   |
-| MySQL         | 1003 | Database (not publicly exposed)  |
-| PHPMyAdmin    | 1004 | Database management tool         |
-| Adminer       | 1005 | Alternative database manager     |
 
 ## Docker Infrastructure
 

@@ -19,6 +19,13 @@ ini_set('display_errors', 1);
 // Load the router directly
 require_once APP_BASE_PATH . '/config/web.php';
 
+// Health check endpoint for Docker
+if ($_SERVER['REQUEST_URI'] === '/health') {
+    header('Content-Type: application/json');
+    echo json_encode(['status' => 'ok', 'time' => time()]);
+    exit;
+}
+
 // This code will only run if the router didn't handle the request
 echo "Error: Request could not be processed";
 exit;

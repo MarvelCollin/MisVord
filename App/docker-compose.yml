@@ -15,6 +15,7 @@ services:
       - ./config:/var/www/html/config:ro 
       - ./bootstrap:/var/www/html/bootstrap:ro
       - ./migrations:/var/www/html/migrations:ro
+      - ./database:/var/www/html/database:ro
       - ./storage:/var/www/html/storage:rw
     depends_on:
       - socket-server
