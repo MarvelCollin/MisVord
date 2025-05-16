@@ -22,7 +22,7 @@ services:
     networks:
       - miscvord_network
     ports:
-      - "8000:80"
+      - "1001:80"
     environment:
       - APP_ENV=production
       - DB_HOST=db
@@ -53,7 +53,7 @@ services:
     networks:
       - miscvord_network
     ports:
-      - "3001:3000"
+      - "1002:3000"
     environment:
       - NODE_ENV=production
       - PORT=3000
@@ -89,7 +89,7 @@ services:
     networks:
       - miscvord_network
     ports:
-      - "3306:3306"
+      - "1003:3306"
     command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     security_opt:
       - seccomp:unconfined
@@ -109,7 +109,7 @@ services:
     networks:
       - miscvord_network
     ports:
-      - "8080:80"
+      - "1004:80"
     environment:
       - PMA_HOST=db
       - PMA_PORT=3306
@@ -129,7 +129,7 @@ services:
     networks:
       - miscvord_network
     ports:
-      - "8081:8080"
+      - "1005:8080"
     environment:
       ADMINER_DEFAULT_SERVER: db
       ADMINER_DESIGN: pepa-linha
