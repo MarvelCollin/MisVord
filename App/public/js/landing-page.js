@@ -18,6 +18,12 @@ document.addEventListener('DOMContentLoaded', function() {
     initFixedCarousel();
 });
 
+// Add a separate window load event for tornado effect to ensure images are loaded
+window.addEventListener('load', function() {
+    // Initialize tornado parallax effect after all resources are loaded
+    setTimeout(initTornadoParallax, 500);
+});
+
 // Function to initialize the background image
 function initBackgroundImage() {
     // Check if window.backgroundImageUrl was set in PHP
@@ -712,4 +718,232 @@ function setupTypingAnimation() {
         
         observer.observe(element);
     });
+}
+
+// Function to initialize the tornado parallax effect
+function initTornadoParallax() {
+    console.log("Initializing tornado parallax effect");
+    
+    const parallaxHero = document.getElementById('parallax-hero');
+    if (!parallaxHero) {
+        console.error("Parallax hero section not found");
+        return;
+    }
+
+    const parallaxLayers = document.querySelectorAll('.parallax-layer');
+    console.log(`Found ${parallaxLayers.length} parallax layers`);
+    
+    // Calculate funnel center (needs to be updated on resize)
+    let funnelCenter = {
+        x: window.innerWidth / 2,
+        y: window.innerHeight / 2
+    };
+    console.log(`Initial funnel center: x=${funnelCenter.x}, y=${funnelCenter.y}`);
+    
+    // Initial setup after a slight delay to ensure DOM is fully loaded
+    setTimeout(() => {
+        updateTornadoParallax(0);
+        initTornadoObjects();
+    }, 100);
+    
+    // Track mouse movement for interactive parallax
+    let mouseX = 0;
+    let mouseY = 0;
+    
+    window.addEventListener('mousemove', (e) => {
+        // Calculate mouse position relative to the center of the window
+        mouseX = (e.clientX - window.innerWidth / 2) / window.innerWidth;
+        mouseY = (e.clientY - window.innerHeight / 2) / window.innerHeight;
+        
+        // Update parallax effect based on mouse position
+        updateTornadoParallax(window.scrollY);
+    });
+    
+    // Handle scroll events for parallax
+    window.addEventListener('scroll', () => {
+        const scrollY = window.scrollY;
+        updateTornadoParallax(scrollY);
+        
+        // Add intensity to tornado effects during scroll
+        addTornadoScrollIntensity(Math.min(scrollY / 20, 50));
+    });
+    
+    // Handle resize events
+    window.addEventListener('resize', () => {
+        // Recalculate funnel center
+        funnelCenter = {
+            x: window.innerWidth / 2,
+            y: window.innerHeight / 2
+        };
+        console.log(`Recalculated funnel center: x=${funnelCenter.x}, y=${funnelCenter.y}`);
+        
+        updateTornadoParallax(window.scrollY);
+        
+        // Reinitialize tornado objects on significant resize
+        initTornadoObjects();
+    });
+    
+    function updateTornadoParallax(scrollY) {
+        parallaxLayers.forEach(layer => {
+            const depth = parseFloat(layer.getAttribute('data-depth')) || 0.1;
+            const translateY = scrollY * depth * -1;
+            
+            // Add mouse influence for subtle interactivity
+            const mouseMoveX = mouseX * 50 * depth;
+            const mouseMoveY = mouseY * 50 * depth;
+            
+            // Apply the transform with both scroll and mouse effects
+            layer.style.transform = `translate3d(${mouseMoveX}px, ${translateY + mouseMoveY}px, 0)`;
+        });
+    }
+    
+    function addTornadoScrollIntensity(intensity) {
+        const tornadoFunnel = document.querySelector('.tornado-funnel');
+        if (tornadoFunnel) {
+            // Intensify the tornado blur and scale based on scroll
+            const blurAmount = 8 + (intensity * 0.3);
+            const scaleAmount = 1 + (intensity * 0.01);
+            tornadoFunnel.style.filter = `blur(${blurAmount}px)`;
+            tornadoFunnel.style.transform = `scale(${scaleAmount})`;
+        }
+        
+        // Intensify lightning flashes during scroll
+        const lightnings = document.querySelectorAll('.lightning');
+        if (intensity > 20 && Math.random() > 0.92) {
+            lightnings.forEach(lightning => {
+                lightning.style.opacity = '1';
+                setTimeout(() => {
+                    lightning.style.opacity = '0';
+                }, 100);
+            });
+        }
+        
+        // Affect debris items during scroll
+        const debrisItems = document.querySelectorAll('.debris-item');
+        debrisItems.forEach(item => {
+            const randomFactor = Math.random() * 0.5 + 0.5;
+            const extraTranslate = intensity * randomFactor;
+            item.style.transform = `translateY(${-extraTranslate}px) rotate(${item.style.getPropertyValue('--rotate') || '0deg'})`;
+        });
+    }
+    
+    // Create a lightning flash effect that triggers occasionally
+    setInterval(() => {
+        if (Math.random() > 0.7) {
+            const lightningId = Math.random() > 0.5 ? 'lightning1' : 'lightning2';
+            const lightning = document.getElementById(lightningId);
+            if (lightning) {
+                lightning.style.height = `${100 + Math.random() * 200}px`;
+                lightning.style.transform = `rotate(${(Math.random() * 10) - 5}deg)`;
+                
+                // Create branching effect occasionally
+                if (Math.random() > 0.6) {
+                    const branch = document.createElement('div');
+                    branch.className = 'lightning-branch';
+                    branch.style.position = 'absolute';
+                    branch.style.width = '2px';
+                    branch.style.height = `${30 + Math.random() * 70}px`;
+                    branch.style.background = 'rgba(255, 255, 255, 0.8)';
+                    branch.style.top = `${30 + Math.random() * 40}%`;
+                    branch.style.left = '0';
+                    branch.style.transform = `rotate(${(Math.random() * 40) - 20}deg)`;
+                    branch.style.transformOrigin = '0 0';
+                    branch.style.filter = 'blur(1px)';
+                    
+                    lightning.appendChild(branch);
+                    
+                    // Remove branch after animation
+                    setTimeout(() => {
+                        if (branch.parentNode === lightning) {
+                            lightning.removeChild(branch);
+                        }
+                    }, 100);
+                }
+            }
+        }
+    }, 3000);
+    
+    // Initialize tornado objects relative to the hero section
+    function initTornadoObjects() {
+        const tornadoObjects = document.querySelectorAll('.tornado-object');
+        console.log(`Found ${tornadoObjects.length} tornado objects`);
+        
+        if (!tornadoObjects.length) {
+            console.warn("No tornado objects found");
+            return;
+        }
+        
+        // Get hero section dimensions for proper positioning
+        const heroRect = parallaxHero.getBoundingClientRect();
+        console.log(`Hero rect: left=${heroRect.left}, top=${heroRect.top}, width=${heroRect.width}, height=${heroRect.height}`);
+                
+        tornadoObjects.forEach((obj, index) => {
+            const dataTop = obj.getAttribute('data-top');
+            const dataLeft = obj.getAttribute('data-left');
+            console.log(`Tornado object ${index}: data-top=${dataTop}, data-left=${dataLeft}, src=${obj.src}`);
+            animateTornadoObject(obj, funnelCenter);
+        });
+    }
+}
+
+function animateTornadoObject(obj, funnelCenter) {
+    // Set initial position from data attributes
+    const initialLeft = parseInt(obj.getAttribute('data-left')) || 50;
+    const initialTop = parseInt(obj.getAttribute('data-top')) || 50;
+    const delay = parseFloat(obj.getAttribute('data-delay')) || 0;
+    const duration = parseFloat(obj.getAttribute('data-duration')) || 7;
+    
+    // Create orbit parameters
+    const orbitRadius = 100 + Math.random() * 150;
+    const orbitSpeed = 0.0005 + Math.random() * 0.001;
+    let angle = Math.random() * Math.PI * 2;
+    let scale = 0.8 + Math.random() * 0.4;
+    let lastTimestamp = 0;
+    
+    // Initial positioning - set to fixed pixel positions
+    obj.style.left = `${initialLeft}%`;
+    obj.style.top = `${initialTop}%`;
+    obj.style.opacity = '0';
+    
+    // Start animation after delay
+    setTimeout(() => {
+        obj.style.opacity = '1';
+        obj.style.transition = 'opacity 0.5s ease';
+        
+        function animateObject(timestamp) {
+            if (lastTimestamp === 0) lastTimestamp = timestamp;
+            const deltaTime = timestamp - lastTimestamp;
+            lastTimestamp = timestamp;
+            
+            // Update angle based on time and duration
+            const speedFactor = 7 / duration; // normalize based on default 7s
+            angle += orbitSpeed * deltaTime * speedFactor;
+            
+            // Calculate new position in orbit around tornado center
+            const x = funnelCenter.x + Math.cos(angle) * orbitRadius;
+            const y = funnelCenter.y + Math.sin(angle) * orbitRadius;
+            
+            // Calculate distance from center for scaling and opacity
+            const dx = x - funnelCenter.x;
+            const dy = y - funnelCenter.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            // Make objects appear to be caught in the tornado
+            const normalizedDistance = Math.min(distance / orbitRadius, 1);
+            scale = 0.4 + normalizedDistance * 0.8;
+            const opacity = 0.4 + normalizedDistance * 0.6;
+            const rotation = angle * (180 / Math.PI);
+            
+            // Apply the new styles
+            obj.style.position = 'absolute';
+            obj.style.left = `${x}px`;
+            obj.style.top = `${y}px`;
+            obj.style.transform = `rotate(${rotation}deg) scale(${scale})`;
+            obj.style.opacity = opacity.toString();
+            
+            requestAnimationFrame(animateObject);
+        }
+        
+        requestAnimationFrame(animateObject);
+    }, delay * 1000);
 }

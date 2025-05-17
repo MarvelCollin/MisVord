@@ -680,3 +680,347 @@ body {
 .carousel-track {
     transition: transform 0.5s ease-out !important;
 }
+
+/* Tornado Parallax Effect Styles */
+#parallax-hero {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #1a1a2e, #162447, #0f3460);
+    width: 100%;
+    height: 100vh;
+}
+
+.tornado-container {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+}
+
+.parallax-layer {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    will-change: transform;
+}
+
+/* Tornado Base */
+.tornado-base {
+    opacity: 0.8;
+    z-index: 2;
+}
+
+.tornado-funnel {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(ellipse at center, transparent 0%, rgba(34, 34, 59, 0.8) 100%);
+    filter: blur(8px);
+    transform-origin: center;
+    animation: tornado-spin 20s linear infinite;
+}
+
+.tornado-funnel::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60%;
+    height: 80%;
+    background: conic-gradient(
+        from 0deg,
+        rgba(113, 128, 185, 0.2),
+        rgba(107, 114, 142, 0.3),
+        rgba(75, 83, 118, 0.4),
+        rgba(43, 52, 94, 0.6),
+        rgba(34, 40, 78, 0.8),
+        rgba(25, 28, 62, 0.9),
+        rgba(113, 128, 185, 0.2)
+    );
+    border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+    filter: blur(40px);
+    animation: tornado-funnel-rotate 8s linear infinite;
+}
+
+.tornado-funnel::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 30%;
+    height: 60%;
+    background: conic-gradient(
+        from 180deg,
+        rgba(113, 128, 185, 0.3),
+        rgba(75, 83, 118, 0.5),
+        rgba(43, 52, 94, 0.7),
+        rgba(25, 28, 62, 0.9),
+        rgba(113, 128, 185, 0.3)
+    );
+    border-radius: 50% 50% 40% 60% / 40% 60% 70% 40%;
+    filter: blur(20px);
+    animation: tornado-funnel-rotate 6s reverse linear infinite;
+}
+
+/* Debris styles */
+.tornado-debris {
+    pointer-events: none;
+    z-index: 3;
+}
+
+.debris-item {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.7);
+    filter: blur(2px);
+    animation: debris-float 8s ease-in-out infinite;
+    transform: rotate(var(--rotate, 0deg));
+}
+
+.debris-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at center, rgba(255, 255, 255, 0.8), transparent 70%);
+    border-radius: inherit;
+    animation: debris-pulse 3s ease-in-out infinite;
+}
+
+/* Cloud styles */
+.tornado-clouds {
+    pointer-events: none;
+    z-index: 1;
+}
+
+.tornado-cloud {
+    position: absolute;
+    width: 100px;
+    height: 60px;
+    background: rgba(255, 255, 255, var(--opacity, 0.4));
+    border-radius: 50px;
+    filter: blur(10px);
+    transform: scale(var(--scale, 1));
+    animation: cloud-drift 15s linear infinite;
+}
+
+.tornado-cloud::before {
+    content: '';
+    position: absolute;
+    top: -20px;
+    left: 25px;
+    width: 50px;
+    height: 50px;
+    background: inherit;
+    border-radius: 50%;
+}
+
+.tornado-cloud::after {
+    content: '';
+    position: absolute;
+    top: -15px;
+    left: 60px;
+    width: 40px;
+    height: 40px;
+    background: inherit;
+    border-radius: 50%;
+}
+
+/* Lightning effect */
+.lightning-layer {
+    z-index: 4;
+}
+
+.lightning {
+    position: absolute;
+    width: 3px;
+    height: 200px;
+    top: 10%;
+    background: rgba(255, 255, 255, 0.8);
+    filter: blur(1px);
+    transform-origin: top;
+    opacity: 0;
+}
+
+#lightning1 {
+    left: 30%;
+    animation: lightning-flash 10s ease-out infinite;
+}
+
+#lightning2 {
+    right: 25%;
+    animation: lightning-flash 13s 2s ease-out infinite;
+}
+
+/* Flying objects */
+.flying-objects {
+    pointer-events: none;
+    z-index: 5;
+}
+
+.tornado-object {
+    position: absolute;
+    width: 60px;
+    height: auto;
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.4));
+    will-change: transform;
+}
+
+/* Animations for tornado effect */
+@keyframes tornado-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes tornado-funnel-rotate {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+@keyframes debris-float {
+    0%, 100% { 
+        transform: translateY(0) rotate(var(--rotate, 0deg)); 
+        opacity: 0.4;
+    }
+    50% { 
+        transform: translateY(-20px) rotate(calc(var(--rotate, 0deg) + 180deg)); 
+        opacity: 0.8;
+    }
+}
+
+@keyframes debris-pulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.8; }
+}
+
+@keyframes cloud-drift {
+    0% { transform: translateX(-40px) scale(var(--scale, 1)); }
+    50% { transform: translateX(40px) scale(calc(var(--scale, 1) * 1.1)); }
+    100% { transform: translateX(-40px) scale(var(--scale, 1)); }
+}
+
+@keyframes lightning-flash {
+    0%, 95%, 100% { 
+        opacity: 0; 
+        transform: scaleY(0.8) rotate(0deg);
+    }
+    96%, 98% { 
+        opacity: 1; 
+        transform: scaleY(1.1) rotate(2deg);
+    }
+    97%, 99% { 
+        opacity: 1; 
+        transform: scaleY(1) rotate(-2deg);
+    }
+}
+
+@keyframes tornado-object-spin {
+    0% {
+        transform: translate(0, 0) rotate(0deg) scale(1);
+    }
+    25% {
+        transform: translate(30px, -20px) rotate(180deg) scale(1.1);
+    }
+    50% {
+        transform: translate(0, -40px) rotate(360deg) scale(1);
+    }
+    75% {
+        transform: translate(-30px, -20px) rotate(540deg) scale(0.9);
+    }
+    100% {
+        transform: translate(0, 0) rotate(720deg) scale(1);
+    }
+}
+
+/* Parallax scrolling effect styles */
+.parallax-section {
+    position: relative;
+    overflow: hidden;
+}
+
+/* Glass panel enhancements for tornado effect */
+.glass-hero {
+    position: relative;
+    z-index: 10;
+    background: rgba(35, 39, 42, 0.6);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 
+        0 8px 32px 0 rgba(0, 0, 0, 0.2),
+        0 0 20px 5px rgba(88, 101, 242, 0.1);
+    transition: all 0.5s ease-in-out;
+}
+
+.glass-hero:hover {
+    box-shadow: 
+        0 8px 32px 0 rgba(0, 0, 0, 0.3),
+        0 0 30px 10px rgba(88, 101, 242, 0.2);
+}
+
+/* Ensure glass-hero is above the tornado effects */
+.container.mx-auto.px-4.relative.z-10 {
+    z-index: 10;
+}
+
+/* Fix for the mouse scroll indicator */
+.absolute.bottom-10.left-1\/2.transform.-translate-x-1\/2 {
+    z-index: 15;
+}
+
+/* Mobile optimizations for tornado effect */
+@media (max-width: 768px) {
+    #parallax-hero {
+        overflow: hidden;
+    }
+    
+    .tornado-funnel::before {
+        width: 80%;
+        height: 60%;
+    }
+    
+    .tornado-funnel::after {
+        width: 50%;
+        height: 40%;
+    }
+    
+    .tornado-object {
+        width: 40px;
+    }
+    
+    .tornado-cloud {
+        width: 80px;
+        height: 50px;
+    }
+}
+
+/* Better performance for slower devices */
+@media (prefers-reduced-motion: reduce) {
+    .tornado-funnel {
+        animation: tornado-spin 40s linear infinite !important;
+    }
+    
+    .tornado-funnel::before,
+    .tornado-funnel::after {
+        animation-duration: 25s !important;
+    }
+    
+    .debris-item {
+        animation-duration: 15s !important;
+    }
+    
+    .tornado-cloud {
+        animation-duration: 30s !important;
+    }
+}

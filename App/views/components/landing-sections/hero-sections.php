@@ -1,20 +1,45 @@
-<section class="hero-section relative overflow-hidden bg-[#404EED] py-20 md:py-32">
-    <!-- Background elements -->
-    <div class="absolute inset-0 overflow-hidden">
-        <div class="gradient-orb absolute -top-20 -left-20 w-64 h-64 rounded-full bg-purple-500 opacity-30 blur-3xl"></div>
-        <div class="gradient-orb absolute top-40 right-20 w-80 h-80 rounded-full bg-blue-500 opacity-20 blur-3xl"></div>
-        <div class="gradient-orb absolute bottom-10 left-1/3 w-96 h-96 rounded-full bg-indigo-500 opacity-25 blur-3xl"></div>
+<section class="hero-section relative overflow-hidden min-h-screen py-20 md:py-0" id="parallax-hero">
+    <!-- Tornado parallax layers -->
+    <div class="tornado-container">
+        <!-- Base tornado layer -->
+        <div class="parallax-layer tornado-base" data-depth="0.2">
+            <div class="tornado-funnel"></div>
+        </div>
         
-        <!-- Floating elements -->
-        <div class="hidden md:block">
-            <img src="<?php echo asset('images/stars.svg'); ?>" class="floating-element absolute top-10 left-10 w-20 h-20" data-speed="0.2" data-amplitude="30" alt="Stars">
-            <img src="<?php echo asset('images/cloud.svg'); ?>" class="floating-element absolute bottom-32 right-20 w-32 h-24" data-speed="0.15" data-amplitude="15" data-rotation="5" alt="Cloud">
-            <img src="<?php echo asset('images/sparkles.svg'); ?>" class="floating-element absolute top-40 left-1/4 w-16 h-16" data-speed="0.3" data-amplitude="25" alt="Sparkles">
+        <!-- Debris layers -->
+        <div class="parallax-layer tornado-debris" data-depth="0.4">
+            <div class="debris-item" style="left:20%; top:25%; --rotate:22deg"></div>
+            <div class="debris-item" style="left:65%; top:40%; --rotate:-15deg"></div>
+            <div class="debris-item" style="left:35%; top:60%; --rotate:8deg"></div>
+            <div class="debris-item" style="left:50%; top:30%; --rotate:-20deg"></div>
+            <div class="debris-item" style="left:80%; top:70%; --rotate:12deg"></div>
+        </div>
+        
+        <!-- Cloud layers -->
+        <div class="parallax-layer tornado-clouds" data-depth="0.1">
+            <div class="tornado-cloud" style="left:10%; top:15%; --scale:1.2; --opacity:0.6"></div>
+            <div class="tornado-cloud" style="left:60%; top:10%; --scale:0.8; --opacity:0.4"></div>
+            <div class="tornado-cloud" style="left:30%; top:5%; --scale:1.5; --opacity:0.5"></div>
+            <div class="tornado-cloud" style="left:80%; top:20%; --scale:1.1; --opacity:0.3"></div>
+        </div>
+        
+        <!-- Lightning effect layer -->
+        <div class="parallax-layer lightning-layer" data-depth="0.05">
+            <div class="lightning" id="lightning1"></div>
+            <div class="lightning" id="lightning2"></div>
+        </div>
+        
+        <!-- Flying objects layer - data attributes are used by JS -->
+        <div class="parallax-layer flying-objects" data-depth="0.3">
+            <img src="<?php echo asset('/landing-page/flying-cat.webp'); ?>" alt="Flying Cat" class="tornado-object" data-top="30" data-left="25" data-delay="0.5" data-duration="8">
+            <img src="<?php echo asset('/landing-page/box.webp'); ?>" alt="Box" class="tornado-object" data-top="45" data-left="70" data-delay="1.2" data-duration="6">
+            <img src="<?php echo asset('/landing-page/green-egg.webp'); ?>" alt="Green Egg" class="tornado-object" data-top="55" data-left="40" data-delay="0.8" data-duration="7">
+            <img src="<?php echo asset('/landing-page/thropy.webp'); ?>" alt="Trophy" class="tornado-object" data-top="35" data-left="60" data-delay="1.5" data-duration="9">
         </div>
     </div>
 
-    <div class="container mx-auto px-4 relative z-10">
-        <div class="text-center max-w-4xl mx-auto">
+    <div class="container mx-auto px-4 relative z-10 h-screen flex flex-col justify-center">
+        <div class="text-center max-w-4xl mx-auto glass-hero p-10 md:p-16 rounded-3xl">
             <h1 id="heroTitle" class="text-4xl md:text-7xl font-bold text-white mb-6 leading-tight">
                 IMAGINE A PLACE...
             </h1>
@@ -32,27 +57,17 @@
                     </svg>
                     Download for Windows
                 </a>
-                <a href="#browser" class="open-browser-btn border border-white text-white hover:bg-white hover:bg-opacity-10 transition-all py-4 px-8 rounded-full text-lg font-medium">
+                <a href="/login" class="open-browser-btn border border-white text-white hover:bg-white hover:bg-opacity-10 transition-all py-4 px-8 rounded-full text-lg font-medium">
                     Open MiscVord in your browser
                 </a>
             </div>
         </div>
-    </div>
-
-    <!-- Hero image -->
-    <div class="container mx-auto px-4 mt-16 relative">
-        <div class="max-w-6xl mx-auto relative">
-            <img 
-                src="<?php echo asset('images/hero-illustration.svg'); ?>" 
-                class="w-full h-auto object-contain rounded-lg shadow-2xl hero-image transform transition-transform"
-                alt="MiscVord Interface"
-            >
-            <!-- Floating chat bubbles -->
-            <div class="message-bubble absolute left-1/4 -top-10 bg-white p-4 rounded-lg shadow-lg hidden md:block">
-                <p class="text-sm">Welcome to MiscVord!</p>
-            </div>
-            <div class="message-bubble absolute right-1/4 top-20 bg-white p-4 rounded-lg shadow-lg hidden md:block">
-                <p class="text-sm">Let's hang out! 🎮</p>
+        
+        <!-- Mouse scroll indicator -->
+        <div class="absolute bottom-10 left-1/2 transform -translate-x-1/2 flex flex-col items-center animate-bounce">
+            <span class="text-white text-sm mb-2">Scroll to explore</span>
+            <div class="w-6 h-10 border-2 border-white rounded-full flex justify-center">
+                <div class="w-1 h-2 bg-white rounded-full mt-2 animate-pulse"></div>
             </div>
         </div>
     </div>
