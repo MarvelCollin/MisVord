@@ -8,7 +8,8 @@ if (session_status() === PHP_SESSION_NONE) {
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-if (preg_match('/\.(?:css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|webp|map)$/', $_SERVER["REQUEST_URI"])) {
+// Check if this is a static file request
+if (preg_match('/\\.(?:css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|webp|map)$/', $_SERVER["REQUEST_URI"])) {
     $requestFile = parse_url($_SERVER["REQUEST_URI"], PHP_URL_PATH);
     $requestFile = ltrim($requestFile, '/');
     $extension = pathinfo($requestFile, PATHINFO_EXTENSION);

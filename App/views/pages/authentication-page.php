@@ -52,19 +52,31 @@ try {
     
     
     $env = EnvLoader::getEnv();
-    $dsn = "mysql:host=" . EnvLoader::get('DB_HOST', 'localhost') . 
+    $dbHost = EnvLoader::get('DB_HOST', 'db');
+    $dsn = "mysql:host=" . $dbHost . 
            ";dbname=" . EnvLoader::get('DB_NAME', 'misvord');
     
     
     echo '<div class="bg-blue-500 text-white p-3 rounded-md mb-6 text-left overflow-auto max-h-36">';
     echo '<strong>Database Connection Settings:</strong><br>';
-    echo 'Host: ' . EnvLoader::get('DB_HOST', 'localhost') . '<br>';
+    echo 'Host: ' . $dbHost . '<br>';
     echo 'Database: ' . EnvLoader::get('DB_NAME', 'misvord') . '<br>'; 
     echo 'User: ' . EnvLoader::get('DB_USER', 'root') . '<br>';
     echo '</div>';
     
     
-    $pdo = EnvLoader::getPDOConnection();
+    $options = [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES => false,
+    ];
+    
+    $pdo = new PDO(
+        $dsn, 
+        EnvLoader::get('DB_USER', 'root'), 
+        EnvLoader::get('DB_PASS', 'MiscVord_secure_2023'),
+        $options
+    );
     
     
     $stmt = $pdo->query("SELECT 1 AS test_connection");

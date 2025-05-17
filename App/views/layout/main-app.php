@@ -175,11 +175,13 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
 </head>
 <body class="<?php echo isset($body_class) ? $body_class : 'overflow-x-hidden text-white landing-bg'; ?>">
     <?php 
-    // Check if this is the landing page by checking the page_css value
+    // Check if this is the landing page or WebRTC page
     $isLandingPage = (isset($page_css) && $page_css === 'landing-page');
+    $isWebRTCPage = (isset($page_title) && strpos($page_title, 'WebRTC') !== false) || 
+                   (isset($page_title) && strpos($page_title, 'Video Chat') !== false);
     
-    // Only show debug toggle if not on landing page
-    if (!$isLandingPage): 
+    // Only show debug toggle if not on landing page or WebRTC page
+    if (!$isLandingPage && !$isWebRTCPage): 
     ?>
     <!-- Developer Debug Toggle Button -->
     <button id="devDebugToggle" title="Toggle Debug Panel">D</button>
@@ -273,7 +275,7 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
         <?php endif; ?>
     </div>
     
-    <?php if (!$isLandingPage): ?>
+    <?php if (!$isLandingPage && !$isWebRTCPage): ?>
     <!-- Hidden debug panel - only shown with "kowlin" keyword -->
     <div id="debugPanel" class="fixed bottom-0 right-0 p-4 bg-gray-900/90 text-white rounded-tl-lg border border-gray-700 transform translate-y-full transition-transform duration-300 ease-in-out z-50 max-w-md max-h-96 overflow-auto opacity-0 invisible" style="box-shadow: 0 -5px 15px rgba(0,0,0,0.3);">
         <h3 class="text-lg font-bold mb-2 flex justify-between items-center">
@@ -291,7 +293,7 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
     <!-- Simple keyboard detection for "kowlin" -->
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        <?php if (!$isLandingPage): ?>
+        <?php if (!$isLandingPage && !$isWebRTCPage): ?>
         // Original kowlin debug panel code
         const keySequence = [];
         const debugPanel = document.getElementById('debugPanel');

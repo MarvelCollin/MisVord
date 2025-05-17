@@ -1,19 +1,5 @@
-
-
-
-
-
-const socket = io('https:
-  path: '/socket.io/',
-  transports: ['websocket'],
-  secure: true,
-  reconnection: true,
-  reconnectionAttempts: 5,
-  reconnectionDelay: 1000,
-  reconnectionDelayMax: 5000,
-  timeout: 10000
-});
-
+let socket = null;
+let socketId = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     
@@ -39,8 +25,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let isVideoEnabled = true;
     let isAudioEnabled = true;
     let userName = 'User_' + Math.floor(Math.random() * 10000); 
-    let socket = null;
-    let socketId = null;
     const peers = {};
     
     
@@ -59,8 +43,13 @@ document.addEventListener('DOMContentLoaded', () => {
     
     console.log('Running browser compatibility check...');
     
-    const browserCompat = window.WebRTCCompat.check();
-    console.log('Browser compatibility check:', browserCompat);
+    // Make sure WebRTCCompat exists before using it
+    if (window.WebRTCCompat && typeof window.WebRTCCompat.check === 'function') {
+        const browserCompat = window.WebRTCCompat.check();
+        console.log('Browser compatibility check:', browserCompat);
+    } else {
+        console.warn('Browser compatibility module not loaded or not available');
+    }
     
     
     testServerConnectivity();
@@ -68,7 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function testServerConnectivity() {
         
-        addLogEntry('Testing connectivity to marvelcollin.my.id...', 'info');
+        addLogEntry('Testing connectivity to localhost:1002...', 'info');
         
         
         connectToSignalingServer();
@@ -98,17 +87,25 @@ document.addEventListener('DOMContentLoaded', () => {
     
     let logsVisible = false;
     
-    toggleLogs.addEventListener('click', () => {
-        logsVisible = !logsVisible;
-        socketLogs.classList.toggle('visible', logsVisible);
-        toggleLogs.textContent = logsVisible ? 'Hide Socket Logs' : 'Show Socket Logs';
-    });
+    if (toggleLogs) {
+        toggleLogs.addEventListener('click', () => {
+            logsVisible = !logsVisible;
+            if (socketLogs) {
+                socketLogs.classList.toggle('visible', logsVisible);
+            }
+            toggleLogs.textContent = logsVisible ? 'Hide Socket Logs' : 'Show Socket Logs';
+        });
+    }
     
-    clearLogs.addEventListener('click', () => {
-        logEntries.innerHTML = '';
-        console.clear();
-        addLogEntry('Logs cleared', 'system');
-    });
+    if (clearLogs) {
+        clearLogs.addEventListener('click', () => {
+            if (logEntries) {
+                logEntries.innerHTML = '';
+            }
+            console.clear();
+            addLogEntry('Logs cleared', 'system');
+        });
+    }
     
     
     retryConnection.addEventListener('click', () => {
@@ -127,15 +124,21 @@ document.addEventListener('DOMContentLoaded', () => {
     
     
     function addLogEntry(message, type = 'info') {
+        // Log to console regardless
+        console.log(`[LOG] ${type.toUpperCase()}: ${message}`);
+        
+        // Only try to append to DOM if the elements exist
+        if (!logEntries) return;
+        
         const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
         const entry = document.createElement('div');
         entry.className = `log-entry ${type}`;
         entry.innerHTML = `<span class="timestamp">[${timestamp}]</span> ${message}`;
         logEntries.appendChild(entry);
         
-        
-        socketLogs.scrollTop = socketLogs.scrollHeight;
-        
+        if (socketLogs) {
+            socketLogs.scrollTop = socketLogs.scrollHeight;
+        }
         
         const entries = logEntries.querySelectorAll('.log-entry');
         if (entries.length > 100) {
@@ -190,16 +193,14 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log(`[${timestamp}] ${message}`);
         addLogEntry(message, 'info');
         
-        
-        const debugContainer = document.createElement('div');
-        debugContainer.className = 'text-xs text-gray-500 hidden';
-        debugContainer.textContent = `[${timestamp.split('T')[1].split('.')[0]}] ${message}`;
-        
-        
+        // Only add debug info to DOM if we have the connection status element
         const debugArea = document.querySelector('#connectionStatus');
         if (debugArea) {
-            debugArea.appendChild(debugContainer);
+            const debugContainer = document.createElement('div');
+            debugContainer.className = 'text-xs text-gray-500 hidden';
+            debugContainer.textContent = `[${timestamp.split('T')[1].split('.')[0]}] ${message}`;
             
+            debugArea.appendChild(debugContainer);
             
             const debugMessages = debugArea.querySelectorAll('.text-gray-500');
             if (debugMessages.length > 10) {
@@ -213,8 +214,8 @@ document.addEventListener('DOMContentLoaded', () => {
         updateConnectionStatus('connecting');
         
         
-        const remoteUrl = 'https:
-        logConnectionDebug(`Attempting to connect to signaling server at ${remoteUrl}...`);
+        const remoteUrl = 'http://localhost:1002';
+        logConnectionDebug(`Attempting to connect to local signaling server at ${remoteUrl}...`);
         
         addLogEntry(`Connecting to server: ${remoteUrl}`, 'info');
         console.log(`Attempting connection to: ${remoteUrl}`);
@@ -228,7 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
             transports: ['polling', 'websocket'],
             forceNew: true,
             withCredentials: false,
-            path: '/socket.io/',
+            // Use default socket.io path
             query: {
                 username: userName,
                 room: GLOBAL_ROOM,
@@ -261,11 +262,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         
-        setupSocketEventHandlers();
+        // Set up the socket event handlers if socket was created
+        if (socket) {
+            setupSocketEventHandlers();
+        } else {
+            console.error("Failed to create socket connection.");
+        }
     }
     
     
     function setupSocketEventHandlers() {
+        if (!socket) {
+            console.error("Cannot set up socket event handlers: socket is null");
+            return;
+        }
         
         const originalEmit = socket.emit;
         socket.emit = function() {
@@ -304,10 +314,21 @@ document.addEventListener('DOMContentLoaded', () => {
             addLogEntry(`🟢 CONNECTED with ID: ${socket.id}`, 'received');
             
             
+            // Check if it appears to be a mock socket
+            const isMockSocket = socket.id.indexOf('mock-socket') > -1 || 
+                                 (socket.io && socket.io.engine && socket.io.engine.transport.name === 'mock-transport');
+            
+            if (isMockSocket) {
+                addLogEntry(`Using mock socket.io implementation`, 'warning');
+                
+                showToast('Using mock socket implementation - WebRTC calls will be simulated', 'warning');
+            }
+            
             addLogEntry(`Socket Details - Transport: ${socket.io.engine.transport.name}`, 'info');
             console.log('Socket Connection Details:', {
                 id: socket.id,
                 connected: socket.connected,
+                isMock: isMockSocket,
                 transport: socket.io.engine.transport.name
             });
             
@@ -625,7 +646,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const playButton = document.createElement('button');
         playButton.className = 'local-play-button absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center text-white z-10';
-        playButton.innerHTML = '<svg xmlns="http:
+        playButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>';
         
         container.appendChild(playButton);
         
@@ -797,48 +818,49 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function handleGlobalUsers(data) {
         const { users } = data;
-        console.log(`Received global users: ${users.length}`);
+        // Convert object to array if it's not already an array
+        const userList = Array.isArray(users) ? users : Object.values(users);
         
+        console.log(`Received global users: ${userList.length}`);
         
         const usernameMap = new Map();
         
-        
+        // Add our own username to the map
         usernameMap.set(userName.replace(' (You)', ''), socketId);
         
-        
+        // Get current participants
         const currentParticipants = Array.from(document.querySelectorAll('.participant-item'))
             .map(el => el.id.replace('participant-', ''));
         
-        
+        // Keep track of valid user IDs
         const validUserIds = [];
         
-        
-        users.forEach(user => {
-            
+        // Process users
+        userList.forEach(user => {
+            // Add to valid IDs
             validUserIds.push(user.userId);
             
-            
+            // Extract username without "(You)" suffix
             const cleanUsername = (user.userName || '').replace(' (You)', '');
             
-            
+            // Skip if this is a duplicate of our username
             if (cleanUsername === userName.replace(' (You)', '') && user.userId !== socketId) {
                 console.log(`Found duplicate user with our username: ${cleanUsername}, ID: ${user.userId}`);
-                
                 return;
             }
             
-            
+            // Add to username map
             usernameMap.set(cleanUsername, user.userId);
         });
         
-        
+        // Make sure our ID is included
         if (!validUserIds.includes(socketId)) {
             validUserIds.push(socketId);
         }
         
         console.log(`Current participants: ${currentParticipants.length}, Valid users: ${validUserIds.length}`);
         
-        
+        // Remove stale participants
         currentParticipants.forEach(id => {
             if (!validUserIds.includes(id)) {
                 console.log(`Removing stale participant: ${id}`);
@@ -856,17 +878,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         
-        
+        // Check for duplicate usernames
         const userEls = document.querySelectorAll('.participant-item');
         userEls.forEach(el => {
             const id = el.id.replace('participant-', '');
             const nameEl = el.querySelector('.participant-name');
             if (nameEl) {
-                
+                // Check if this username matches another ID
                 const displayedName = nameEl.textContent.replace(' (You)', '');
                 const expectedId = usernameMap.get(displayedName);
                 
-                
+                // If so, remove the duplicate (keep the one that matches the map)
                 if (expectedId && expectedId !== id) {
                     console.log(`Removing duplicate participant with username ${displayedName}`);
                     removeParticipantItem(id);
@@ -874,28 +896,28 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         
-        
+        // Make sure we're in the list
         if (!document.getElementById(`participant-${socketId}`)) {
             addParticipantItem(socketId, userName + ' (You)');
         }
         
-        
-        users.forEach(user => {
-            
+        // Add remote users
+        userList.forEach(user => {
+            // Skip if this is us or a duplicate username
             if (user.userId === socketId || 
                 (user.userName && user.userName.replace(' (You)', '') === userName.replace(' (You)', ''))) {
                 return;
             }
             
-            
+            // Add participant to the list
             addParticipantItem(user.userId, user.userName || `User_${user.userId.substring(0, 4)}`);
             
-            
+            // Create peer connection if needed
             if (!peers[user.userId]) {
                 console.log(`Creating new peer connection for ${user.userId}`);
                 const peerConnection = createPeerConnection(user.userId, user.userName);
                 
-                
+                // Add placeholder video
                 updateRemoteVideo(user.userId, null, user.userName || `User_${user.userId.substring(0, 4)}`);
             }
         });
@@ -909,17 +931,17 @@ document.addEventListener('DOMContentLoaded', () => {
     
     
     function updateRemoteVideo(userId, stream, userName) {
-        
+        // Find existing container or create a new one
         let container = document.getElementById(`container-${userId}`);
         let video;
         
         if (!container) {
-            
+            // Create container for the video
             container = document.createElement('div');
             container.id = `container-${userId}`;
             container.className = 'remote-video-container relative rounded overflow-hidden bg-gray-800';
             
-            
+            // Create the video element
             video = document.createElement('video');
             video.id = `video-${userId}`;
             video.className = 'w-full h-full object-cover';
@@ -929,23 +951,27 @@ document.addEventListener('DOMContentLoaded', () => {
             video.setAttribute('playsinline', ''); 
             video.setAttribute('webkit-playsinline', ''); 
             
+            // Set explicit size for iOS Safari
+            video.width = 640;
+            video.height = 480;
             
+            // Debug indicator
             const debugIndicator = document.createElement('div');
             debugIndicator.className = 'absolute top-2 right-2 px-2 py-1 bg-red-500 text-white text-xs rounded opacity-0 transition-opacity duration-300';
             debugIndicator.id = `video-debug-${userId}`;
             debugIndicator.textContent = 'No video';
             
-            
+            // Username overlay
             const usernameOverlay = document.createElement('div');
             usernameOverlay.className = 'absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 p-2 text-white text-sm';
             usernameOverlay.innerHTML = `<span class="username">${userName || 'Connecting...'}</span>`;
             
-            
+            // Add elements to container
             container.appendChild(video);
             container.appendChild(debugIndicator);
             container.appendChild(usernameOverlay);
             
-            
+            // Connection status indicator
             const connectionStatusIndicator = document.createElement('div');
             connectionStatusIndicator.className = 'absolute top-0 left-0 p-1 z-10';
             connectionStatusIndicator.innerHTML = `
@@ -955,24 +981,20 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             container.appendChild(connectionStatusIndicator);
             
-            
+            // Action buttons
             const actionButtons = document.createElement('div');
             actionButtons.className = 'absolute top-0 right-0 p-1 flex gap-1 z-10';
             actionButtons.innerHTML = `
                 <button class="refresh-video-btn p-1 bg-blue-600 text-white rounded opacity-70 hover:opacity-100 transition-opacity" title="Refresh Video">
-                    <svg xmlns="http:
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />                    </svg>
                 </button>
                 <button class="resubscribe-btn p-1 bg-green-600 text-white rounded opacity-70 hover:opacity-100 transition-opacity" title="Resubscribe">
-                    <svg xmlns="http:
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />                    </svg>
                 </button>
             `;
             container.appendChild(actionButtons);
             
-            
+            // Set up action button handlers
             setTimeout(() => {
                 const refreshBtn = container.querySelector('.refresh-video-btn');
                 if (refreshBtn) {
@@ -980,7 +1002,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         const videoEl = document.getElementById(`video-${userId}`);
                         if (videoEl) {
                             showVideoDebugOverlay(userId, "Manual refresh triggered", "info");
-                            triggerVideoRefresh(videoEl, userId);
+                            // Trigger a refresh by temporarily nulling the source
+                            const currentStream = videoEl.srcObject;
+                            videoEl.srcObject = null;
+                            setTimeout(() => {
+                                videoEl.srcObject = currentStream;
+                                playWithUnmuteSequence(videoEl, userId);
+                            }, 100);
                         }
                     });
                 }
@@ -995,7 +1023,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             peers[userId].close();
                             delete peers[userId];
                             
-                            
+                            // Create a new peer connection
                             showVideoDebugOverlay(userId, "Creating new peer connection", "info");
                             createPeerConnection(userId, userName);
                         }
@@ -1003,25 +1031,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }, 100);
             
-            
+            // Add to page
             videoGrid.appendChild(container);
             
-            
+            // Add event handlers for video element
             video.addEventListener('canplay', () => {
                 console.log(`Video can play for ${userId}`);
                 debugIndicator.style.opacity = '0';
                 
-                
+                // Update status indicator
                 const statusEl = document.getElementById(`connection-status-${userId}`);
                 if (statusEl) {
                     statusEl.textContent = 'Connected';
                     statusEl.parentElement.classList.remove('bg-yellow-500');
                     statusEl.parentElement.classList.add('bg-green-500');
                     
-                    
+                    // Hide after a delay
                     setTimeout(() => {
                         statusEl.parentElement.style.opacity = '0';
                     }, 5000);
+                }
+                
+                // For Safari support, make an additional play attempt
+                if (video.paused) {
+                    console.log(`Video can play but is paused for ${userId}, triggering play()`);
+                    video.play().catch(err => console.log(`Auto-play failed: ${err.message}`));
                 }
             });
             
@@ -1029,7 +1063,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log(`Video is playing for ${userId}`);
                 debugIndicator.style.opacity = '0';
                 
+                // Update UI to show video is playing
+                showVideoDebugOverlay(userId, "Video playing successfully", "success");
                 
+                // Set up video monitoring
                 setupVideoAnalyzer(video, userId);
             });
             
@@ -1046,26 +1083,73 @@ document.addEventListener('DOMContentLoaded', () => {
                 debugIndicator.textContent = 'Error';
                 showVideoDebugOverlay(userId, `Video error: ${e.target.error ? e.target.error.message : 'Unknown'}`, "error");
             });
+            
+            // Add stats collector to monitor video quality
+            let statsInterval;
+            if (peers[userId]) {
+                statsInterval = setInterval(async () => {
+                    if (!peers[userId] || !document.contains(video)) {
+                        clearInterval(statsInterval);
+                        return;
+                    }
+                    
+                    try {
+                        const stats = await peers[userId].getStats(null);
+                        let videoStats = null;
+                        
+                        stats.forEach(stat => {
+                            if (stat.type === 'inbound-rtp' && stat.kind === 'video') {
+                                videoStats = stat;
+                                // If frames are being received but not showing, try to refresh
+                                if (stat.framesReceived > 10 && 
+                                    (video.videoWidth === 0 || video.videoHeight === 0)) {
+                                    console.log(`Video data arriving but not showing (${stat.framesReceived} frames) - triggering refresh`);
+                                    
+                                    // Reset srcObject to force refresh
+                                    const stream = video.srcObject;
+                                    video.srcObject = null;
+                                    setTimeout(() => {
+                                        video.srcObject = stream;
+                                        video.play().catch(e => console.log(`Play error: ${e}`));
+                                    }, 100);
+                                }
+                            }
+                        });
+                        
+                        if (videoStats) {
+                            if (video.videoWidth > 0 && video.videoHeight > 0) {
+                                console.log(`Video stats for ${userId}: ${video.videoWidth}x${video.videoHeight}px, ${videoStats.framesReceived} received, ${videoStats.framesDecoded} decoded`);
+                            }
+                        }
+                    } catch (e) {
+                        // Ignore errors, they're expected when connections change
+                    }
+                }, 3000);
+            }
         } else {
             video = document.getElementById(`video-${userId}`);
         }
         
-        
+        // If we have a stream, attach it to the video element
         if (stream && video) {
             showVideoDebugOverlay(userId, `Setting new stream with ${stream.getTracks().length} tracks`, "info");
             
-            
+            // Log track details for debugging
             stream.getTracks().forEach(track => {
                 showVideoDebugOverlay(userId, `Track: ${track.kind}, state: ${track.readyState}, enabled: ${track.enabled}`, "info");
             });
             
+            // Set the stream and play
             video.srcObject = stream;
             
-            
-            playWithUnmuteSequence(video, userId);
+            // Try to play the video
+            setTimeout(() => {
+                playWithUnmuteSequence(video, userId);
+            }, 100);
         } else if (video && !video.srcObject) {
             showVideoDebugOverlay(userId, "No stream available yet", "warning");
             
+            // Add a play button as fallback
             addImprovedPlayButton(video, userId);
         }
         
@@ -1131,17 +1215,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const icon = document.createElement('div');
         if (type === 'ping') {
             
-            icon.innerHTML = `<svg xmlns="http:
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>`;
+            icon.innerHTML = `                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />            </svg>`;
         } else if (type === 'error') {
-            icon.innerHTML = `<svg xmlns="http:
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>`;
+                        icon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />            </svg>`;
         } else {
-            icon.innerHTML = `<svg xmlns="http:
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>`;
+                        icon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />            </svg>`;
         }
         
         
@@ -1348,7 +1426,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     
     function createPeerConnection(userId, remoteUserName) {
-        
+        // Clean up old connection if it exists
         if (peers[userId]) {
             peers[userId].close();
             delete peers[userId];
@@ -1358,7 +1436,7 @@ document.addEventListener('DOMContentLoaded', () => {
         logConnectionDebug(`Creating peer connection for ${userId} (${remoteUserName})`);
         showVideoDebugOverlay(userId, "Creating new peer connection", "info");
         
-        
+        // Debug container
         const existingContainer = document.getElementById(`container-${userId}`);
         if (existingContainer) {
             const debugInfo = document.createElement('div');
@@ -1368,7 +1446,7 @@ document.addEventListener('DOMContentLoaded', () => {
             existingContainer.appendChild(debugInfo);
         }
         
-        
+        // Create the peer connection with STUN/TURN servers
         const peerConnection = new RTCPeerConnection({
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
@@ -1389,30 +1467,38 @@ document.addEventListener('DOMContentLoaded', () => {
             iceTransportPolicy: 'all'
         });
         
+        // Log peer connection state for debugging
+        console.log(`Initial peer connection state for ${userId}:`, {
+            signalingState: peerConnection.signalingState,
+            connectionState: peerConnection.connectionState,
+            iceConnectionState: peerConnection.iceConnectionState,
+            iceGatheringState: peerConnection.iceGatheringState
+        });
         
+        // Modified createOffer to prioritize VP8
         const originalCreateOffer = peerConnection.createOffer;
         peerConnection.createOffer = async function(options) {
             const offer = await originalCreateOffer.apply(this, arguments);
             
-            
+            // Modify SDP if needed
             if (offer.sdp) {
                 let sdp = offer.sdp;
                 
-                
+                // Set bandwidth limitation for video
                 sdp = sdp.replace(/(m=video.*\r\n)/g, '$1b=AS:2000\r\n');
                 
-                
+                // Prioritize VP8 codec
                 const videoSection = sdp.match(/(m=video.*)((?:\r\n(?=.))(?:.(?!\r\n\r\n))*)/s);
                 if (videoSection) {
                     const section = videoSection[0];
                     const lines = section.split('\r\n');
                     
-                    
+                    // Find VP8 payload types
                     const vp8PayloadTypes = [];
                     const allPayloadTypes = [];
                     const rtpmapLines = [];
                     
-                    
+                    // Parse codec information
                     lines.forEach(line => {
                         if (line.startsWith('a=rtpmap:')) {
                             rtpmapLines.push(line);
@@ -1424,23 +1510,23 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     });
                     
-                    
+                    // Reorder to prioritize VP8
                     if (vp8PayloadTypes.length > 0) {
-                        
+                        // Modify the m= line to put VP8 first
                         const mLineIndex = lines.findIndex(line => line.startsWith('m=video'));
                         if (mLineIndex >= 0) {
                             const mLine = lines[mLineIndex];
                             const parts = mLine.split(' ');
                             
-                            
+                            // Keep non-payload parts
                             const nonPayloadParts = parts.slice(0, 3); 
                             const otherPayloadTypes = allPayloadTypes.filter(pt => !vp8PayloadTypes.includes(pt));
                             
-                            
+                            // New order: prefix + VP8 codecs + other codecs
                             const newMLine = [...nonPayloadParts, ...vp8PayloadTypes, ...otherPayloadTypes].join(' ');
                             lines[mLineIndex] = newMLine;
                             
-                            
+                            // Update SDP
                             const newSection = lines.join('\r\n');
                             sdp = sdp.replace(section, newSection);
                         }
@@ -1448,11 +1534,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 
                 offer.sdp = sdp;
+                console.log(`Modified SDP offer for ${userId} (set bandwidth and codec priority)`);
             }
             
             return offer;
         };
-        
         
         let iceCandidatesComplete = false;
         let iceCandidatesGathered = 0;
@@ -1675,38 +1761,48 @@ document.addEventListener('DOMContentLoaded', () => {
             updateDebugInfo(userId, `Received ${event.track.kind} track`);
             console.log(`Track received from ${userId}: `, event.track);
             
-            
+            // Log detailed track info for debugging
             console.log(`Track details - kind: ${event.track.kind}, enabled: ${event.track.enabled}, muted: ${event.track.muted}, readyState: ${event.track.readyState}`);
             
-            
+            // Handle track state changes
             event.track.onunmute = () => {
                 console.log(`Track ${event.track.kind} from ${userId} is now unmuted and should be visible`);
                 updateDebugInfo(userId, `${event.track.kind} active`);
                 
-                
+                // For video tracks, handle video element updates
                 if (event.track.kind === 'video') {
-                    
+                    // Get the video element
                     const existingVideo = document.getElementById(`video-${userId}`);
                     if (existingVideo) {
-                        
+                        // Try to play if paused
                         if (existingVideo.paused) {
                             playWithUnmuteSequence(existingVideo, userId);
                         }
                         
-                        
+                        // Hide debug indicator
                         const debugIndicator = document.getElementById(`video-debug-${userId}`);
                         if (debugIndicator) {
                             debugIndicator.style.opacity = '0';
                         }
                     }
                 }
+                
+                // Force refresh the video element to stimulate rendering
+                const existingVideo = document.getElementById(`video-${userId}`);
+                if (existingVideo && event.track.kind === 'video') {
+                    // Apply a small style change to trigger a repaint
+                    existingVideo.style.opacity = '0.99';
+                    setTimeout(() => {
+                        existingVideo.style.opacity = '1';
+                    }, 100);
+                }
             };
             
-            
+            // Handle track ending
             event.track.onended = () => {
                 console.log(`Track ${event.track.kind} from ${userId} has ended`);
                 
-                
+                // Update debug info for video tracks
                 if (event.track.kind === 'video') {
                     const debugIndicator = document.getElementById(`video-debug-${userId}`);
                     if (debugIndicator) {
@@ -1716,155 +1812,93 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             };
             
-            
+            // Get the stream from the event
             let remoteStream = event.streams && event.streams.length > 0 ? event.streams[0] : null;
             
+            // Create a synthetic stream if no stream was provided
             if (!remoteStream) {
-                
                 console.log(`Creating synthetic stream for ${userId} as no stream was provided with the track`);
                 remoteStream = new MediaStream();
                 remoteStream.addTrack(event.track);
             }
             
-            
             console.log(`Remote stream for ${userId} has ${remoteStream.getTracks().length} tracks`);
             
-            
+            // Get or create the video element
             const existingVideo = document.getElementById(`video-${userId}`);
             
             if (existingVideo) {
-                
+                // Update existing video element with the new track
                 const currentStream = existingVideo.srcObject;
                 
                 if (currentStream instanceof MediaStream) {
-                    
+                    // Check if the track already exists
                     const trackExists = currentStream.getTracks().some(t => 
                         t.id === event.track.id || t.kind === event.track.kind
                     );
                     
                     if (!trackExists) {
-                        
+                        // Remove existing tracks of the same kind to avoid conflicts
                         const existingTracksOfSameKind = currentStream.getTracks()
                             .filter(t => t.kind === event.track.kind);
                         
-                        existingTracksOfSameKind.forEach(t => currentStream.removeTrack(t));
+                        existingTracksOfSameKind.forEach(t => {
+                            console.log(`Removing existing ${t.kind} track before adding new one`);
+                            currentStream.removeTrack(t);
+                        });
                         
-                        
+                        // Add the new track
                         currentStream.addTrack(event.track);
                         console.log(`Added ${event.track.kind} track to existing stream for ${userId}`);
                         
-                        
+                        // Special handling for video tracks to check dimensions
                         if (event.track.kind === 'video') {
-                            
+                            // Set a timeout to check if video dimensions are valid
                             setTimeout(() => {
                                 if (existingVideo.videoWidth === 0 || existingVideo.videoHeight === 0) {
                                     console.warn(`Video track added but dimensions still zero for ${userId}`);
+                                    showVideoDebugOverlay(userId, "Video has zero dimensions", "warning");
                                     
-                                    
+                                    // Try replacing the entire stream as a fallback
                                     console.log(`Trying to replace entire stream for ${userId}`);
                                     existingVideo.srcObject = remoteStream;
                                     
+                                    // Attempt to play the video
                                     playWithUnmuteSequence(existingVideo, userId);
+                                } else {
+                                    console.log(`Video dimensions: ${existingVideo.videoWidth}x${existingVideo.videoHeight}`);
+                                    showVideoDebugOverlay(userId, `Video dimensions: ${existingVideo.videoWidth}x${existingVideo.videoHeight}`, "info");
                                 }
                             }, 2000);
                         }
+                    } else {
+                        console.log(`Track ${event.track.kind} already exists, not adding duplicate`);
                     }
                     
-                    
+                    // Log current video element state
                     console.log(`Video element state for ${userId}: readyState=${existingVideo.readyState}, paused=${existingVideo.paused}, videoWidth=${existingVideo.videoWidth}, videoHeight=${existingVideo.videoHeight}`);
                     
-                    
-                    if (event.track.kind === 'video') {
-                        
-                        const trackRef = event.track;
-                        
-                        
-                        const statsInterval = setInterval(async () => {
-                            
-                            if (!peers[userId] || peers[userId].connectionState === 'closed') {
-                                console.log(`Clearing stats interval for ${userId} - peer connection gone or closed`);
-                                clearInterval(statsInterval);
-                                return;
-                            }
-                            
-                            try {
-                                
-                                const stats = await peers[userId].getStats(null);
-                                let hasVideoData = false;
-                                
-                                
-                                stats.forEach(stat => {
-                                    if (stat.type === 'inbound-rtp' && stat.kind === 'video') {
-                                        hasVideoData = true;
-                                        console.log(`${userId} video stats: framesReceived=${stat.framesReceived}, framesDecoded=${stat.framesDecoded}, packetsLost=${stat.packetsLost}`);
-                                        
-                                        
-                                        if (stat.framesReceived > 0 && stat.framesDecoded === 0) {
-                                            console.warn(`Potential black screen issue detected: frames received but not decoded`);
-                                            
-                                            
-                                            const debugIndicator = document.getElementById(`video-debug-${userId}`);
-                                            if (debugIndicator) {
-                                                debugIndicator.style.opacity = '1';
-                                                debugIndicator.textContent = 'Not decoding frames';
-                                            }
-                                            
-                                            
-                                            console.log(`Attempting to fix black screen by replacing stream for ${userId}`);
-                                            existingVideo.srcObject = new MediaStream([trackRef]);
-                                            playWithUnmuteSequence(existingVideo, userId);
-                                        } else if (stat.framesReceived > 0 && stat.framesDecoded > 0) {
-                                            
-                                            const debugIndicator = document.getElementById(`video-debug-${userId}`);
-                                            if (debugIndicator) {
-                                                debugIndicator.style.opacity = '0';
-                                            }
-                                        }
-                                    }
-                                });
-                                
-                                if (!hasVideoData) {
-                                    
-                                    const videoTracks = currentStream.getVideoTracks();
-                                    if (videoTracks.length > 0) {
-                                        console.warn(`No video statistics available for ${userId} despite having ${videoTracks.length} video tracks`);
-                                    } else {
-                                        console.log(`No video tracks currently available for ${userId}`);
-                                    }
-                                }
-                            } catch (e) {
-                                
-                                console.warn(`Error getting stats for ${userId}: ${e.message}`);
-                                
-                                
-                                if (e.message.includes('no sender or receiver')) {
-                                    console.log(`Track no longer available, stopping stats monitoring for ${userId}`);
-                                    clearInterval(statsInterval);
-                                }
-                            }
-                        }, 5000); 
-                    }
-                    
-                    
-                    if (currentStream.getVideoTracks().length > 0) {
-                        if (existingVideo.paused) {
-                            console.log(`Video is paused for ${userId}, attempting to play...`);
-                            playWithUnmuteSequence(existingVideo, userId);
-                        }
+                    // Make extra effort to ensure video starts playing
+                    if (existingVideo.paused) {
+                        console.log(`Video is paused for ${userId}, attempting to play...`);
+                        playWithUnmuteSequence(existingVideo, userId);
                     }
                 } else {
-                    
+                    // If srcObject is not a MediaStream, replace it
                     console.log(`Replacing invalid stream for ${userId} with new stream`);
                     existingVideo.srcObject = remoteStream;
                     
-                    
+                    // Try to play the video
                     playWithUnmuteSequence(existingVideo, userId);
                 }
             } else {
-                
+                // Create new video element if it doesn't exist
                 console.log(`Creating new video element for ${userId}`);
                 updateRemoteVideo(userId, remoteStream, remoteUserName);
             }
+            
+            // Debug message in UI to show track was received
+            showVideoDebugOverlay(userId, `Received ${event.track.kind} track: ${event.track.readyState}`, "info");
         };
         
         
@@ -1874,6 +1908,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log(`Adding ${localStream.getTracks().length} local tracks to peer connection for ${userId}`);
                 
                 localStream.getTracks().forEach(track => {
+                    
                     
                     console.log(`Adding track to peer: kind=${track.kind}, enabled=${track.enabled}, readyState=${track.readyState}`);
                     
@@ -1912,22 +1947,87 @@ document.addEventListener('DOMContentLoaded', () => {
     
     
     function playWithUnmuteSequence(videoElement, userId) {
-        
-        if (window.WebRTCPlayer && typeof window.WebRTCPlayer.playWithUnmuteSequence === 'function') {
-            window.WebRTCPlayer.playWithUnmuteSequence(videoElement, userId);
-        } else {
-            console.error('WebRTCPlayer module function not available');
+        if (!videoElement) {
+            console.error(`Cannot play video for ${userId}: video element not found`);
+            return;
         }
+        
+        console.log(`Attempting to play video for ${userId}`);
+        
+        // Some browsers need a user gesture simulation
+        simulateUserGesture(() => {
+            // First try regular play
+            videoElement.play()
+                .then(() => {
+                    console.log(`Video playing successfully for ${userId}`);
+                    showVideoDebugOverlay(userId, "Video playing", "success");
+                })
+                .catch(error => {
+                    console.warn(`Initial play failed for ${userId}: ${error}`);
+                    showVideoDebugOverlay(userId, `Play failed: ${error.message}`, "warning");
+                    
+                    // Try with a timeout
+                    setTimeout(() => {
+                        videoElement.play()
+                            .then(() => console.log(`Delayed play succeeded for ${userId}`))
+                            .catch(e => {
+                                console.error(`Delayed play also failed for ${userId}: ${e}`);
+                                
+                                // Last resort: try muting first then unmuting after playing
+                                videoElement.muted = true;
+                                videoElement.play()
+                                    .then(() => {
+                                        console.log(`Muted play succeeded for ${userId}, will unmute shortly`);
+                                        // Unmute after playing starts
+                                        setTimeout(() => {
+                                            videoElement.muted = false;
+                                            console.log(`Unmuted video for ${userId} after autoplay`);
+                                        }, 1000);
+                                    })
+                                    .catch(finalError => {
+                                        console.error(`All play attempts failed for ${userId}`);
+                                        // Add a manual play button as fallback
+                                        addImprovedPlayButton(videoElement, userId);
+                                    });
+                            });
+                    }, 500);
+                });
+        });
+        
+        // Set up monitoring for the video element
+        monitorVideoPlayback(videoElement, userId);
     }
     
     
     function simulateUserGesture(callback) {
+        // This function simulates a user gesture to allow autoplay
+        console.log("Simulating user gesture for autoplay");
         
-        if (window.WebRTCPlayer && typeof window.WebRTCPlayer.simulateUserGesture === 'function') {
-            window.WebRTCPlayer.simulateUserGesture(callback);
-        } else {
-            console.error('WebRTCPlayer simulateUserGesture function not available');
-        }
+        // Create a temporary button that we'll click programmatically
+        const tempButton = document.createElement('button');
+        tempButton.style.display = 'none';
+        document.body.appendChild(tempButton);
+        
+        // Create and dispatch click events
+        const clickEvent = new MouseEvent('click', {
+            view: window,
+            bubbles: true,
+            cancelable: true
+        });
+        
+        // Listen for the click and execute callback
+        tempButton.addEventListener('click', function handleClick() {
+            tempButton.removeEventListener('click', handleClick);
+            document.body.removeChild(tempButton);
+            
+            // Execute the callback after the "user gesture"
+            if (typeof callback === 'function') {
+                callback();
+            }
+        });
+        
+        // Dispatch the click event
+        tempButton.dispatchEvent(clickEvent);
     }
     
     
@@ -2046,12 +2146,88 @@ document.addEventListener('DOMContentLoaded', () => {
     
     
     function addImprovedPlayButton(videoElement, userId) {
+        if (!videoElement) return;
         
-        if (window.WebRTCPlayer && typeof window.WebRTCPlayer.addImprovedPlayButton === 'function') {
-            window.WebRTCPlayer.addImprovedPlayButton(videoElement, userId);
-        } else {
-            console.error('WebRTCPlayer addImprovedPlayButton function not available');
+        // Check if container exists
+        const videoContainer = videoElement.closest('.remote-video-container') || videoElement.parentElement;
+        if (!videoContainer) return;
+        
+        // Remove any existing play buttons
+        const existingButton = videoContainer.querySelector('.play-button-overlay');
+        if (existingButton) {
+            existingButton.remove();
         }
+        
+        // Create button container
+        const playButtonOverlay = document.createElement('div');
+        playButtonOverlay.className = 'play-button-overlay absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center z-30';
+        
+        // Create the button with better visibility
+        const playButton = document.createElement('button');
+        playButton.className = 'w-16 h-16 bg-blue-600 hover:bg-blue-700 rounded-full flex items-center justify-center';
+        playButton.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="white">
+                <path d="M8 5v14l11-7z"/>
+            </svg>
+        `;
+        
+        // Add explanatory text
+        const textElement = document.createElement('div');
+        textElement.className = 'absolute bottom-8 text-white text-center w-full px-4';
+        textElement.textContent = 'Click to play video (browser blocked autoplay)';
+        
+        // Add elements to overlay
+        playButtonOverlay.appendChild(playButton);
+        playButtonOverlay.appendChild(textElement);
+        videoContainer.appendChild(playButtonOverlay);
+        
+        // Add click event
+        playButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            console.log(`Manual play button clicked for ${userId}`);
+            
+            // Try to play the video
+            videoElement.play()
+                .then(() => {
+                    console.log(`Manual play succeeded for ${userId}`);
+                    // Remove the play button overlay on success
+                    playButtonOverlay.remove();
+                })
+                .catch(error => {
+                    console.error(`Manual play failed for ${userId}: ${error}`);
+                    
+                    // Try with muted option as fallback
+                    const wasMuted = videoElement.muted;
+                    videoElement.muted = true;
+                    
+                    videoElement.play()
+                        .then(() => {
+                            console.log(`Muted play succeeded for ${userId}`);
+                            
+                            // Update UI to show video is muted
+                            textElement.textContent = 'Video is muted due to browser restrictions. Click to unmute.';
+                            playButton.innerHTML = `
+                                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="white">
+                                    <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+                                </svg>
+                            `;
+                            
+                            // Change click handler to unmute
+                            playButton.onclick = function(e) {
+                                e.stopPropagation();
+                                videoElement.muted = false;
+                                playButtonOverlay.remove();
+                                showVideoDebugOverlay(userId, "Video unmuted by user", "success");
+                            };
+                        })
+                        .catch(finalError => {
+                            console.error(`All play attempts failed for ${userId}`);
+                            textElement.textContent = 'Unable to play video. Please try again later.';
+                        });
+                });
+        });
+        
+        return playButtonOverlay;
     }
 });
 

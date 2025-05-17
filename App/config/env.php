@@ -64,10 +64,10 @@ class EnvLoader {
             return self::$pdoInstance;
         }
         
-        $host = self::get('DB_HOST', 'localhost');
+        $host = self::get('DB_HOST', 'db');
         $dbname = self::get('DB_NAME', 'misvord');
         $username = self::get('DB_USER', 'root');
-        $password = self::get('DB_PASS', '');
+        $password = self::get('DB_PASS', 'MiscVord_secure_2023');
         $charset = self::get('DB_CHARSET', 'utf8mb4');
         
         try {

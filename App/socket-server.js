@@ -161,10 +161,104 @@ io.on('connection', (socket) => {
       userName: userName,
       roomId: roomId
     };
+    
+    // Broadcast to others that a user has joined
+    socket.to(roomId).emit('user-joined', {
+      userId: socket.id,
+      userName: userName,
+      roomId: roomId
+    });
+  });
+  
+  socket.on('get-global-users', (data) => {
+    const roomId = data.roomId || 'global-video-chat';
+    
+    console.log(`Getting users for global room: ${roomId}`);
+    
+    const roomUsers = {};
+    
+    // Get all users in this room
+    Object.keys(globalVideoUsers).forEach(userId => {
+      if (globalVideoUsers[userId].roomId === roomId) {
+        roomUsers[userId] = globalVideoUsers[userId];
+      }
+    });
+    
+    socket.emit('global-users', {
+      users: roomUsers,
+      roomId: roomId
+    });
+  });
+  
+  socket.on('offer', (data) => {
+    console.log(`Offer from ${socket.id} to ${data.target}`);
+    io.to(data.target).emit('offer', {
+      offer: data.offer,
+      from: socket.id,
+      fromUserName: globalVideoUsers[socket.id] ? globalVideoUsers[socket.id].userName : 'Unknown User'
+    });
+  });
+  
+  socket.on('answer', (data) => {
+    console.log(`Answer from ${socket.id} to ${data.target}`);
+    io.to(data.target).emit('answer', {
+      answer: data.answer,
+      from: socket.id
+    });
+  });
+  
+  socket.on('ice-candidate', (data) => {
+    console.log(`ICE candidate from ${socket.id} to ${data.target}`);
+    io.to(data.target).emit('ice-candidate', {
+      candidate: data.candidate,
+      from: socket.id
+    });
+  });
+  
+  socket.on('ping-all-users', (data) => {
+    const roomId = data.roomId || 'global-video-chat';
+    console.log(`User ${socket.id} pinging all users in room ${roomId}`);
+    
+    socket.to(roomId).emit('user-ping', {
+      fromUserId: socket.id,
+      fromUserName: data.fromUserName || 'Unknown User',
+      message: data.message || 'Ping!',
+      timestamp: Date.now()
+    });
+  });
+  
+  socket.on('disconnect', () => {
+    console.log(`User disconnected: ${socket.id}`);
+    
+    // Check if this user was in video chat
+    if (globalVideoUsers[socket.id]) {
+      const roomId = globalVideoUsers[socket.id].roomId;
+      const userName = globalVideoUsers[socket.id].userName;
+      
+      // Notify others in the room that this user has left
+      socket.to(roomId).emit('user-left', {
+        userId: socket.id,
+        userName: userName,
+        roomId: roomId
+      });
+      
+      // Remove from global users
+      delete globalVideoUsers[socket.id];
+    }
+    
+    // Remove from active users
+    delete activeUsers[socket.id];
+    
+    // Remove from all channels
+    Object.keys(channels).forEach(channelId => {
+      if (channels[channelId].has(socket.id)) {
+        channels[channelId].delete(socket.id);
+      }
+    });
   });
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 1002;
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`Unified Socket.IO server running on port ${PORT}`);
   console.log(`Socket.IO server available at http://localhost:${PORT}`);

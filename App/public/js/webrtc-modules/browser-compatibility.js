@@ -1,4 +1,3 @@
-
 function checkBrowserCompatibility() {
     const browserInfo = {
         name: getBrowserName(),
@@ -45,7 +44,7 @@ function getBrowserName() {
         browserName = "Firefox";
     } else if (userAgent.match(/safari/i)) {
         browserName = "Safari";
-    } else if (userAgent.match(/opr\
+    } else if (userAgent.match(/opr\//i)) {
         browserName = "Opera";
     } else if (userAgent.match(/edg/i)) {
         browserName = "Edge";
@@ -70,7 +69,7 @@ function getBrowserVersion() {
         version = userAgent.match(/(?:firefox|fxios)\/([\d.]+)/i)[1];
     } else if (userAgent.match(/safari/i)) {
         version = userAgent.match(/version\/([\d.]+)/i)[1];
-    } else if (userAgent.match(/opr\
+    } else if (userAgent.match(/opr\//i)) {
         version = userAgent.match(/opr\/([\d.]+)/i)[1];
     } else if (userAgent.match(/edg/i)) {
         version = userAgent.match(/edg\/([\d.]+)/i)[1];

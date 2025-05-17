@@ -184,6 +184,11 @@ $additional_head = '
         background-color: #F56565;
     }
     
+    #socketLogs.visible {
+        opacity: 1;
+        pointer-events: auto;
+    }
+    
     @media (max-width: 768px) {
         .participants-panel {
             display: none;
@@ -192,55 +197,6 @@ $additional_head = '
         .main-content {
             margin-right: 0;
         }
-    }
-    
-    
-    .socket-logs {
-        position: fixed;
-        left: 50%;
-        transform: translateX(-50%);
-        bottom: 5rem;
-        width: 90%;
-        max-width: 800px;
-        height: 200px;
-        background-color: rgba(0, 0, 0, 0.8);
-        color: #48BB78;
-        font-family: monospace;
-        font-size: 0.75rem;
-        padding: 0.5rem;
-        border-radius: 0.25rem;
-        overflow-y: auto;
-        z-index: 35;
-        display: none;
-    }
-    
-    .socket-logs.visible {
-        display: block;
-    }
-    
-    .log-entry {
-        margin-bottom: 0.25rem;
-        border-bottom: 1px solid #4A5568;
-        padding-bottom: 0.25rem;
-    }
-    
-    .log-entry.sent {
-        color: #4299E1;
-    }
-    
-    .log-entry.received {
-        color: #48BB78;
-    }
-    
-    .log-entry.error {
-        color: #F56565;
-    }
-    
-    .log-controls {
-        position: fixed;
-        bottom: 0.5rem;
-        left: 1rem;
-        z-index: 36;
     }
 </style>';
 ?>
@@ -273,6 +229,18 @@ $additional_head = '
             </div>
         </div>
         
+        <!-- Socket logs panel (hidden by default) -->
+        <div id="socketLogs" class="fixed bottom-24 right-4 w-96 h-64 bg-gray-800 rounded shadow-lg overflow-y-auto z-50 opacity-0 pointer-events-none">
+            <div class="flex justify-between items-center p-2 bg-gray-700 sticky top-0">
+                <h3 class="text-sm font-bold">Socket Logs</h3>
+                <div class="flex gap-2">
+                    <button id="clearLogs" class="px-2 py-1 bg-red-600 text-white text-xs rounded">Clear</button>
+                    <button id="toggleLogs" class="px-2 py-1 bg-blue-600 text-white text-xs rounded">Hide Logs</button>
+                </div>
+            </div>
+            <div id="logEntries" class="p-2 text-xs"></div>
+        </div>
+        
         <div class="video-grid flex-1" id="videoGrid"></div>
         
         <div class="local-video-container">
@@ -281,29 +249,19 @@ $additional_head = '
         
         <div class="controls">
             <div class="control-btn active" id="toggleVideoBtn" title="Toggle Video">
-                <svg xmlns="http:
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />                </svg>
             </div>
             <div class="control-btn active" id="toggleAudioBtn" title="Toggle Audio">
-                <svg xmlns="http:
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                </svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />                </svg>
             </div>
             <div class="control-btn inactive" id="toggleScreenBtn" title="Share Screen">
-                <svg xmlns="http:
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />                </svg>
             </div>
             <div class="control-btn bg-blue-600" id="pingBtn" title="Ping All Users">
-                <svg xmlns="http:
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />                </svg>
             </div>
             <div class="control-btn danger" id="hangupBtn" title="Leave Chat">
-                <svg xmlns="http:
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M5 3a2 2 0 00-2 2v1c0 8.284 6.716 15 15 15h1a2 2 0 002-2v-3.28a1 1 0 00-.684-.948l-4.493-1.498a1 1 0 00-1.21.502l-1.13 2.257a11.042 11.042 0 01-5.516-5.517l2.257-1.128a1 1 0 00.502-1.21L9.228 3.683A1 1 0 008.279 3H5z" />
-                </svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M5 3a2 2 0 00-2 2v1c0 8.284 6.716 15 15 15h1a2 2 0 002-2v-3.28a1 1 0 00-.684-.948l-4.493-1.498a1 1 0 00-1.21.502l-1.13 2.257a11.042 11.042 0 01-5.516-5.517l2.257-1.128a1 1 0 00.502-1.21L9.228 3.683A1 1 0 008.279 3H5z" />                </svg>
             </div>
         </div>
     </div>
@@ -314,29 +272,7 @@ $additional_head = '
     </div>
 </div>
 
-
-<div id="socketLogs" class="socket-logs">
-    <div id="logEntries"></div>
-</div>
-
-
-<div class="log-controls">
-    <button id="toggleLogs" class="px-2 py-1 bg-gray-700 text-white text-xs rounded hover:bg-gray-600">
-        Show Socket Logs
-    </button>
-    <button id="clearLogs" class="px-2 py-1 bg-gray-700 text-white text-xs rounded hover:bg-gray-600 ml-2">
-        Clear Logs
-    </button>
-</div>
-
-
-<script src="https:
-
-<script src="<?php echo js('webrtc-modules/browser-compatibility'); ?>"></script>
-<script src="<?php echo js('webrtc-modules/video-debug'); ?>"></script>
-<script src="<?php echo js('webrtc-modules/video-player'); ?>"></script>
-
-<script src="<?php echo js('webrtc'); ?>"></script>
+<script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
 
 <?php 
 
