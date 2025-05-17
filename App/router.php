@@ -10,9 +10,7 @@ ini_set('display_errors', 1);
 
 if (preg_match('/\.(?:css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|webp|map)$/', $_SERVER["REQUEST_URI"])) {
     $requestFile = parse_url($_SERVER["REQUEST_URI"], PHP_URL_PATH);
-    
     $requestFile = ltrim($requestFile, '/');
-    
     $extension = pathinfo($requestFile, PATHINFO_EXTENSION);
     
     $contentTypes = [
@@ -35,19 +33,29 @@ if (preg_match('/\.(?:css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|webp|map)$/
         header('Content-Type: ' . $contentTypes[$extension]);
     }
 
-    $filePath = __DIR__ . '/public/' . $requestFile;
-    if (file_exists($filePath)) {
-        readfile($filePath);
-        exit;
+    // Check common static file locations
+    $searchPaths = [
+        __DIR__ . '/public/',          // For /css/, /js/, /assets/ under public
+        __DIR__ . '/',                 // For direct root access
+        __DIR__ . '/public/' . dirname($requestFile) . '/', // For nested directories
+    ];
+    
+    error_log("Looking for file: " . $requestFile);
+    
+    foreach ($searchPaths as $basePath) {
+        $filePath = $basePath . $requestFile;
+        error_log("Checking path: " . $filePath);
+        
+        if (file_exists($filePath)) {
+            error_log("Found file at: " . $filePath);
+            readfile($filePath);
+            exit;
+        }
     }
     
-    if (file_exists(__DIR__ . '/' . $requestFile)) {
-        readfile(__DIR__ . '/' . $requestFile);
-        exit;
-    }
-    
+    // If we get here, file was not found
     header("HTTP/1.0 404 Not Found");
-    exit("File not found: {$requestFile}");
+    exit("Static file not found: {$requestFile}");
 }
 
 error_log("[" . date("Y-m-d H:i:s") . "] " . $_SERVER['REQUEST_METHOD'] . " request to " . $_SERVER['REQUEST_URI']);
@@ -58,11 +66,15 @@ if (preg_match('/\/server\/(\d+)/', $_SERVER['REQUEST_URI'], $matches)) {
 
 if (file_exists(__DIR__ . '/config/web.php')) {
     require_once __DIR__ . '/config/web.php';
+    exit; // This line ensures the router exits after handling the route
 } else {
     error_log("Fatal error: Cannot find web.php configuration file.");
     http_response_code(500);
     echo "Server configuration error: web.php not found";
+    exit;
 }
 
+// This line should never be reached as we always exit above,
+// but just in case, return a 404
 http_response_code(404);
 echo "Page not found";

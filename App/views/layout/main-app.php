@@ -11,6 +11,8 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
     <!-- Tailwind CSS via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+    <!-- Socket.io client library -->
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -172,6 +174,13 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
     </style>
 </head>
 <body class="<?php echo isset($body_class) ? $body_class : 'overflow-x-hidden text-white landing-bg'; ?>">
+    <?php 
+    // Check if this is the landing page by checking the page_css value
+    $isLandingPage = (isset($page_css) && $page_css === 'landing-page');
+    
+    // Only show debug toggle if not on landing page
+    if (!$isLandingPage): 
+    ?>
     <!-- Developer Debug Toggle Button -->
     <button id="devDebugToggle" title="Toggle Debug Panel">D</button>
     
@@ -254,6 +263,7 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
             </div>
         </div>
     </div>
+    <?php endif; ?>
     
     <!-- Main content container -->
     <div class="content-container">
@@ -263,6 +273,7 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
         <?php endif; ?>
     </div>
     
+    <?php if (!$isLandingPage): ?>
     <!-- Hidden debug panel - only shown with "kowlin" keyword -->
     <div id="debugPanel" class="fixed bottom-0 right-0 p-4 bg-gray-900/90 text-white rounded-tl-lg border border-gray-700 transform translate-y-full transition-transform duration-300 ease-in-out z-50 max-w-md max-h-96 overflow-auto opacity-0 invisible" style="box-shadow: 0 -5px 15px rgba(0,0,0,0.3);">
         <h3 class="text-lg font-bold mb-2 flex justify-between items-center">
@@ -275,10 +286,12 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
             <?php echo $GLOBALS['debugInfo']; ?>
         <?php endif; ?>
     </div>
+    <?php endif; ?>
     
     <!-- Simple keyboard detection for "kowlin" -->
     <script>
     document.addEventListener('DOMContentLoaded', function() {
+        <?php if (!$isLandingPage): ?>
         // Original kowlin debug panel code
         const keySequence = [];
         const debugPanel = document.getElementById('debugPanel');
@@ -383,6 +396,7 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
                 }
             }
         });
+        <?php endif; ?>
     });
     </script>
     

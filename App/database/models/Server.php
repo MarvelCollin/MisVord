@@ -97,7 +97,12 @@ class Server {
     }
     
     public function members() {
-        
+        $query = new Query();
+        return $query->table('users u')
+                ->select('u.*, usm.role')
+                ->join('user_server_memberships usm', 'u.id', '=', 'usm.user_id')
+                ->where('usm.server_id', $this->id)
+                ->get();
     }
     
     public function isMember($userId) {

@@ -1,20 +1,34 @@
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize background image
+    initBackgroundImage();
     
+    // Initialize scroll animations
     initScrollAnimations();
     
-    
+    // Initialize floating elements
     initFloatingElements();
     
-    
+    // Create enhanced particles
     createEnhancedParticles();
     
-    
+    // Initialize scramble text effect
     initScrambleText();
     
-    
+    // Initialize fixed carousel
     initFixedCarousel();
 });
 
+// Function to initialize the background image
+function initBackgroundImage() {
+    // Check if window.backgroundImageUrl was set in PHP
+    if (window.backgroundImageUrl) {
+        // Apply background image to the body::before pseudo-element via CSS variable
+        document.documentElement.style.setProperty(
+            '--landing-bg-image', 
+            `url('${window.backgroundImageUrl}')`
+        );
+    }
+}
 
 function initScrollAnimations() {
     
@@ -76,6 +90,11 @@ function initScrollAnimations() {
 function initFloatingElements() {
     const floatingElements = document.querySelectorAll('.floating-element');
     
+    // Apply random animation delay to floating elements
+    floatingElements.forEach(element => {
+        const delay = Math.random() * 2;
+        element.style.animationDelay = `${delay}s`;
+    });
     
     floatingElements.forEach(element => {
         
@@ -97,11 +116,11 @@ function initFloatingElements() {
     window.addEventListener('scroll', function() {
         const scrollTop = window.pageYOffset;
         
-        
+        // Calculate scroll speed
         scrollSpeed = Math.abs(scrollTop - lastScrollTop) * 0.1;
         lastScrollTop = scrollTop;
         
-        
+        // Use requestAnimationFrame to update elements
         if (!ticking) {
             window.requestAnimationFrame(function() {
                 updateFloatingElements(scrollTop, scrollSpeed);
@@ -119,16 +138,16 @@ function initFloatingElements() {
             const rect = element.getBoundingClientRect();
             const centerY = rect.top + rect.height / 2;
             
-            
+            // Calculate distance from mouse to element center
             const distanceY = mouseY - centerY;
             const distance = Math.abs(distanceY);
             
-            
+            // Apply movement based on distance (closer = more movement)
             if (distance < 300) {
-                
+                // Calculate movement with easing
                 const moveY = distanceY * 0.02 * (1 - distance / 300);
                 
-                
+                // Apply movement with transition
                 element.style.transition = 'transform 0.8s ease-out';
                 element.style.transform = `translateY(${moveY}px)`;
             }
@@ -264,220 +283,104 @@ function createEnhancedParticles() {
 
 
 function initScrambleText() {
-    const heroTitle = document.getElementById('heroTitle');
-    if (!heroTitle) return;
-    
-    const originalText = heroTitle.textContent;
-    
-    
-    heroTitle.innerHTML = '';
-    
-    
-    originalText.split('').forEach(char => {
-        const span = document.createElement('span');
-        span.className = 'char';
-        span.textContent = char;
-        heroTitle.appendChild(span);
-    });
-    
-    
-    const chars = heroTitle.querySelectorAll('.char');
-    chars.forEach((char, index) => {
+    const heroTitle = document.getElementById("heroTitle");
+    if (heroTitle) {
+        // Get the original text
+        const originalText = heroTitle.textContent;
+        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+";
         
-        char.style.opacity = '0';
-        
-        
-        setTimeout(() => {
-            char.style.opacity = '1';
-            char.classList.add('scrambled');
-        }, 80 * index);
-    });
-    
-    
-    setInterval(() => {
-        
-        const randomIndex = Math.floor(Math.random() * chars.length);
-        if (chars[randomIndex].textContent !== ' ') {
-            scrambleCharacter(chars[randomIndex]);
-        }
-    }, 2000);
-}
-
-
-function scrambleCharacter(charElement) {
-    const originalChar = charElement.textContent;
-    const glitchChars = '!<>-_\\/[]{}—=+*^?#';
-    let iterations = 0;
-    
-    
-    const interval = setInterval(() => {
-        charElement.textContent = glitchChars[Math.floor(Math.random() * glitchChars.length)];
-        
-        iterations++;
-        if (iterations > 3) {
-            clearInterval(interval);
-            charElement.textContent = originalChar;
-            charElement.classList.add('scrambled');
+        function scrambleText(target, original) {
+            let iterations = 0;
+            const maxIterations = 15;
             
-            setTimeout(() => {
-                charElement.classList.remove('scrambled');
-            }, 800);
+            const interval = setInterval(() => {
+                target.innerText = original.split("")
+                    .map((letter, index) => {
+                        if (index < iterations) {
+                            return original[index];
+                        }
+                        return chars[Math.floor(Math.random() * chars.length)];
+                    })
+                    .join("");
+                
+                if (iterations >= original.length) {
+                    clearInterval(interval);
+                }
+                
+                iterations += 1 / 3;
+            }, 50);
         }
-    }, 50);
+        
+        // Start the scramble animation after a delay
+        setTimeout(() => {
+            scrambleText(heroTitle, originalText);
+        }, 1000);
+    }
 }
 
 
 function initFixedCarousel() {
-    const carousel = document.querySelector('.feature-carousel');
-    if (!carousel) return;
+    const prevBtn = document.getElementById("carousel-prev");
+    const nextBtn = document.getElementById("carousel-next");
+    const track = document.querySelector(".carousel-track");
+    const slides = document.querySelectorAll(".carousel-slide");
+    const dots = document.querySelectorAll(".carousel-dot");
     
-    
-    const track = carousel.querySelector('.carousel-track');
-    const slides = Array.from(carousel.querySelectorAll('.carousel-slide'));
-    const dots = Array.from(carousel.querySelectorAll('.carousel-dot'));
-    const prevBtn = document.getElementById('carousel-prev');
-    const nextBtn = document.getElementById('carousel-next');
-    
-    if (!track || !slides.length || !prevBtn || !nextBtn) {
-        console.error("Missing required carousel elements");
-        return;
-    }
-    
-    
-    let currentSlide = 0;
-    let isAnimating = false;
-    const slideCount = slides.length;
-    
-    console.log("Carousel initialized with", slideCount, "slides");
-    
-    
-    updateCarouselState(0);
-    
-    
-    function goToSlide(index) {
-        if (isAnimating) return;
-        if (index < 0) index = 0;
-        if (index >= slideCount) index = slideCount - 1;
+    if (prevBtn && nextBtn && track && slides.length) {
+        let currentSlide = 0;
         
-        console.log("Navigating to slide", index);
-        isAnimating = true;
-        updateCarouselState(index);
+        // Function to navigate to a specific slide
+        function goToSlide(index) {
+            if (index < 0) index = 0;
+            if (index >= slides.length) index = slides.length - 1;
+            
+            // Move the track
+            track.style.transform = `translateX(-${index * 100}%)`;
+            
+            // Update active state on slides
+            slides.forEach((slide, i) => {
+                if (i === index) {
+                    slide.classList.add("active");
+                } else {
+                    slide.classList.remove("active");
+                }
+            });
+            
+            // Update active state on dots
+            dots.forEach((dot, i) => {
+                if (i === index) {
+                    dot.classList.add("active");
+                } else {
+                    dot.classList.remove("active");
+                }
+            });
+            
+            // Store the current slide index
+            currentSlide = index;
+            
+            // Update button disabled states
+            prevBtn.disabled = currentSlide === 0;
+            nextBtn.disabled = currentSlide === slides.length - 1;
+        }
         
-        
-        setTimeout(() => {
-            isAnimating = false;
-        }, 500);
-    }
-    
-    
-    function updateCarouselState(index) {
-        
-        track.style.transform = `translateX(-${index * 100}%)`;
-        
-        
-        slides.forEach((slide, i) => {
-            if (i === index) {
-                slide.classList.add('active');
-                slide.setAttribute('aria-hidden', 'false');
-            } else {
-                slide.classList.remove('active');
-                slide.setAttribute('aria-hidden', 'true');
-            }
-        });
-        
-        
-        dots.forEach((dot, i) => {
-            if (i === index) {
-                dot.classList.add('active');
-            } else {
-                dot.classList.remove('active');
-            }
-        });
-        
-        
-        currentSlide = index;
-        
-        
-        prevBtn.disabled = index === 0;
-        prevBtn.classList.toggle('disabled', index === 0);
-        nextBtn.disabled = index === slideCount - 1;
-        nextBtn.classList.toggle('disabled', index === slideCount - 1);
-    }
-    
-    
-    if (prevBtn) {
-        prevBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            console.log("Prev button clicked");
+        // Add event listeners to the navigation buttons
+        prevBtn.addEventListener("click", function() {
             goToSlide(currentSlide - 1);
         });
-    }
-    
-    if (nextBtn) {
-        nextBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            console.log("Next button clicked");
-            goToSlide(currentSlide + 1);
-        });
-    }
-    
-    
-    dots.forEach((dot, index) => {
-        dot.addEventListener('click', function() {
-            goToSlide(index);
-        });
-    });
-    
-    
-    document.addEventListener('click', function(e) {
-        if (e.target.closest('#carousel-prev')) {
-            console.log("Prev button clicked via delegation");
-            goToSlide(currentSlide - 1);
-        } else if (e.target.closest('#carousel-next')) {
-            console.log("Next button clicked via delegation");
-            goToSlide(currentSlide + 1);
-        }
-    });
-    
-    
-    carousel.addEventListener('keydown', function(e) {
-        if (e.key === 'ArrowLeft') {
-            goToSlide(currentSlide - 1);
-        } else if (e.key === 'ArrowRight') {
-            goToSlide(currentSlide + 1);
-        }
-    });
-    
-    
-    let touchStartX = 0;
-    let touchEndX = 0;
-    
-    carousel.addEventListener('touchstart', function(e) {
-        touchStartX = e.changedTouches[0].screenX;
-    }, { passive: true });
-    
-    carousel.addEventListener('touchend', function(e) {
-        touchEndX = e.changedTouches[0].screenX;
-        const swipeDistance = touchStartX - touchEndX;
         
-        if (Math.abs(swipeDistance) > 50) {
-            if (swipeDistance > 0 && currentSlide < slideCount - 1) {
-                
-                goToSlide(currentSlide + 1);
-            } else if (swipeDistance < 0 && currentSlide > 0) {
-                
-                goToSlide(currentSlide - 1);
-            }
-        }
-    }, { passive: true });
-    
-    console.log("Carousel event listeners attached");
-    
-    
-    const progressBar = carousel.querySelector('.carousel-progress');
-    if (progressBar) {
-        progressBar.style.width = '0%';
-        progressBar.style.display = 'none';
+        nextBtn.addEventListener("click", function() {
+            goToSlide(currentSlide + 1);
+        });
+        
+        // Add event listeners to the dots
+        dots.forEach((dot, index) => {
+            dot.addEventListener("click", function() {
+                goToSlide(index);
+            });
+        });
+
+        // Initialize the first slide
+        goToSlide(0);
     }
 }
 

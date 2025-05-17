@@ -9,34 +9,44 @@ class EnvLoader {
             return self::$envCache;
         }
         
+        // Initialize with Docker/system environment variables first
+        $env = [];
+        
+        // Database connection variables
+        $env['DB_HOST'] = getenv('DB_HOST') ?: 'db';
+        $env['DB_NAME'] = getenv('DB_NAME') ?: 'misvord';
+        $env['DB_USER'] = getenv('DB_USER') ?: 'root';
+        $env['DB_PASS'] = getenv('DB_PASS') ?: 'MiscVord_secure_2023';
+        $env['DB_CHARSET'] = getenv('DB_CHARSET') ?: 'utf8mb4';
+        $env['SOCKET_SERVER'] = getenv('SOCKET_SERVER') ?: 'http://socket-server:3000';
+        $env['SOCKET_API_KEY'] = getenv('SOCKET_API_KEY') ?: 'kolin123';
+        
+        // Try to load from .env file if it exists
         if ($filePath === null) {
             $filePath = __DIR__ . '/../.env';
         }
         
-        if (!file_exists($filePath)) {
-            return self::$envCache = [];
-        }
-        
-        $env = [];
-        $lines = file($filePath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-        
-        foreach ($lines as $line) {
-            if (strpos(trim($line), '//') === 0 || strpos(trim($line), '#') === 0) {
-                continue;
-            }
+        if (file_exists($filePath)) {
+            $lines = file($filePath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
             
-            if (strpos($line, '=') !== false) {
-                list($key, $value) = explode('=', $line, 2);
-                $key = trim($key);
-                $value = trim($value);
-                
-                if (preg_match('/^"(.*)"$/', $value, $matches)) {
-                    $value = $matches[1];
-                } elseif (preg_match("/^'(.*)'$/", $value, $matches)) {
-                    $value = $matches[1];
+            foreach ($lines as $line) {
+                if (strpos(trim($line), '//') === 0 || strpos(trim($line), '#') === 0) {
+                    continue;
                 }
                 
-                $env[$key] = $value;
+                if (strpos($line, '=') !== false) {
+                    list($key, $value) = explode('=', $line, 2);
+                    $key = trim($key);
+                    $value = trim($value);
+                    
+                    if (preg_match('/^"(.*)"$/', $value, $matches)) {
+                        $value = $matches[1];
+                    } elseif (preg_match("/^'(.*)'$/", $value, $matches)) {
+                        $value = $matches[1];
+                    }
+                    
+                    $env[$key] = $value;
+                }
             }
         }
         

@@ -6,171 +6,17 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
 $page_title = 'MiscVord - Your Place to Talk and Hang Out';
 $page_css = 'landing-page';
 $page_js = 'landing-page';
-$body_class = 'overflow-x-hidden text-white';
+$body_class = 'overflow-x-hidden text-white landing-bg';
 
+// Pass the background image URL to JavaScript for use in animations
 $additional_head = '
-<style>
-    
-    :root {
-        --background-image-url: url(\'' . asset('landing-page/background.png') . '\');
-    }
-    
-    
-    .animate-float {
-        animation: float 6s ease-in-out infinite;
-    }
-    
-    @keyframes float {
-        0%, 100% {
-            transform: translateY(0); 
-        }
-        50% {
-            transform: translateY(-20px);
-        }
-    }
-    
-    .scramble-text {
-        display: inline-block;
-        position: relative;
-    }
-    
-    
-    .floating-element {
-        transition: transform 0.3s ease;
-    }
-    
-    .floating-element:hover {
-        transform: scale(1.1);
-    }
-    
-    
-    #carousel-prev, #carousel-next {
-        cursor: pointer !important;
-        z-index: 50 !important;
-    }
-    
-    #carousel-prev:hover, #carousel-next:hover {
-        background-color: #5865F2 !important;
-    }
-    
-    
-    .carousel-track {
-        transition: transform 0.5s ease-out !important;
-    }
-</style>
 <script>
-    
-    document.addEventListener("DOMContentLoaded", function() {
-        
-        const floatingElements = document.querySelectorAll(".floating-element");
-        floatingElements.forEach(element => {
-            
-            const delay = Math.random() * 2;
-            element.style.animationDelay = `${delay}s`;
-        });
-        
-        
-        const heroTitle = document.getElementById("heroTitle");
-        if (heroTitle) {
-            const originalText = heroTitle.textContent;
-            const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+";
-            
-            function scrambleText(target, original) {
-                let iterations = 0;
-                const maxIterations = 15;
-                
-                const interval = setInterval(() => {
-                    target.innerText = original.split("")
-                        .map((letter, index) => {
-                            if (index < iterations) {
-                                return original[index];
-                            }
-                            return chars[Math.floor(Math.random() * chars.length)];
-                        })
-                        .join("");
-                    
-                    if (iterations >= original.length) {
-                        clearInterval(interval);
-                    }
-                    
-                    iterations += 1 / 3;
-                }, 50);
-            }
-            
-            
-            setTimeout(() => {
-                scrambleText(heroTitle, originalText);
-            }, 1000);
-        }
-        
-        
-        const prevBtn = document.getElementById("carousel-prev");
-        const nextBtn = document.getElementById("carousel-next");
-        const track = document.querySelector(".carousel-track");
-        const slides = document.querySelectorAll(".carousel-slide");
-        const dots = document.querySelectorAll(".carousel-dot");
-        
-        if (prevBtn && nextBtn && track && slides.length) {
-            let currentSlide = 0;
-            
-            
-            function goToSlide(index) {
-                if (index < 0) index = 0;
-                if (index >= slides.length) index = slides.length - 1;
-                
-                
-                track.style.transform = `translateX(-${index * 100}%)`;
-                
-                
-                slides.forEach((slide, i) => {
-                    if (i === index) {
-                        slide.classList.add("active");
-                    } else {
-                        slide.classList.remove("active");
-                    }
-                });
-                
-                
-                dots.forEach((dot, i) => {
-                    if (i === index) {
-                        dot.classList.add("active");
-                    } else {
-                        dot.classList.remove("active");
-                    }
-                });
-                
-                
-                currentSlide = index;
-                
-                
-                prevBtn.disabled = currentSlide === 0;
-                nextBtn.disabled = currentSlide === slides.length - 1;
-            }
-            
-            
-            prevBtn.addEventListener("click", function() {
-                goToSlide(currentSlide - 1);
-            });
-            
-            nextBtn.addEventListener("click", function() {
-                goToSlide(currentSlide + 1);
-            });
-            
-            
-            dots.forEach((dot, index) => {
-                dot.addEventListener("click", function() {
-                    goToSlide(index);
-                });
-            });
-        }
-    });
-</script>
-';
-
+    // Store background image URL for JavaScript use
+    window.backgroundImageUrl = "' . asset('landing-page/background.png') . '";
+</script>';
 
 ob_start();
 ?>
-
 
 <div id="particles-container" class="fixed inset-0 pointer-events-none z-0"></div>
 
@@ -192,13 +38,13 @@ ob_start();
             
             
             <button class="md:hidden text-white">
-                <svg xmlns="http:
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
                 </svg>
             </button>
             
             
-            <a href="#" class="hidden md:block bg-white bg-opacity-10 backdrop-blur-sm text-white font-medium px-6 py-2 rounded-full hover:bg-opacity-20 transition-all duration-300 transform hover:-translate-y-1">Login</a>
+            <a href="/login" class="hidden md:block bg-white bg-opacity-10 backdrop-blur-sm text-white font-medium px-6 py-2 rounded-full hover:bg-opacity-20 transition-all duration-300 transform hover:-translate-y-1">Login</a>
         </div>
     </nav>
     
@@ -222,14 +68,14 @@ ob_start();
                 
                 <div class="flex flex-col md:flex-row justify-center gap-4 md:gap-6 hero-buttons">
                     <button class="discord-btn bg-white bg-opacity-10 backdrop-filter backdrop-blur-sm text-white px-8 py-4 rounded-full text-lg font-medium transition-all">
-                        <svg xmlns="http:
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                         </svg>
                         Download for Windows
                     </button>
-                    <button class="discord-btn bg-discord-dark bg-opacity-50 backdrop-filter backdrop-blur-sm text-white px-8 py-4 rounded-full text-lg font-medium transition-all">
+                    <a href="/login" class="discord-btn bg-discord-dark bg-opacity-50 backdrop-filter backdrop-blur-sm text-white px-8 py-4 rounded-full text-lg font-medium transition-all text-center">
                         Open MiscVord in your browser
-                    </button>
+                    </a>
                 </div>
             </div>
         </div>
@@ -314,12 +160,12 @@ ob_start();
                 
                 
                 <div class="mt-6">
-                    <button class="discord-btn bg-discord-blue bg-opacity-70 hover:bg-opacity-90 backdrop-filter backdrop-blur-sm text-white px-10 py-5 rounded-full text-lg font-medium">
-                        <svg xmlns="http:
+                    <a href="/login" class="discord-btn bg-discord-blue bg-opacity-70 hover:bg-opacity-90 backdrop-filter backdrop-blur-sm text-white px-10 py-5 rounded-full text-lg font-medium inline-block">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                         </svg>
-                        Download for Windows
-                    </button>
+                        Get Started
+                    </a>
                 </div>
             </div>
         </div>
@@ -339,7 +185,7 @@ ob_start();
                 <div class="flex items-center mb-6 hover:text-discord-blue transition-colors duration-300 cursor-pointer">
                     <img src="<?php echo asset('/landing-page/discord-logo.webp'); ?>" alt="US Flag" class="w-6 h-6 mr-2">
                     <span>English, USA</span>
-                    <svg xmlns="http:
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                     </svg>
                 </div>
@@ -347,17 +193,17 @@ ob_start();
                 
                 <div class="flex space-x-6">
                     <a href="#" class="text-white hover:text-discord-blue transition-colors duration-300 transform hover:scale-110">
-                        <svg xmlns="http:
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M22,3.999c-0.78,0.463-2.345,1.094-3.265,1.276c-0.027,0.007-0.049,0.016-0.075,0.023c-0.813-0.802-1.927-1.299-3.16-1.299 c-2.485,0-4.5,2.015-4.5,4.5c0,0.131-0.011,0.372,0=0.5c-3.353,0-5.905-1.756-7.735-4c-0.199,0.5-0.286,1.29-0.286,2.032 c0,1.401,1.095,2.777,2.8,3.63c-0.314,0.081-0.66,0.139-1.02,0.139c-0.581,0-1.196-0.153-1.759-0.617c0,0.017,0,0.033,0,0.051 c0,1.958,2.078,3.291,3.926,3.662c-0.375,0.221-1.131,0.243-1.5,0.243c-0.26,0-1.18-0.119-1.426-0.165 c0.514,1.605,2.368,2.507,4.135,2.539c-1.382,1.084-2.341,1.486-5.171,1.486H2C3.788,19.145,6.065,20,8.347,20 C15.777,20,20,14.337,20,8.999c0-0.086-0.002-0.266-0.005-0.447C19.995,8.534,20,8.517,20,8.499c0-0.027-0.008-0.053-0.008-0.08 c-0.003-0.136-0.006-0.263-0.009-0.329c0.79-0.57,1.475-1.281,2.017-2.091c-0.725,0.322-1.503,0.538-2.32,0.636 C20.514,6.135,21.699,4.943,22,3.999z"/>
                         </svg>
                     </a>
                     <a href="#" class="text-white hover:text-discord-blue transition-colors duration-300 transform hover:scale-110">
-                        <svg xmlns="http:
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M21.593,7.203c-0.23-0.858-0.905-1.535-1.762-1.766C18.265,5.007,12,5,12,5S5.736,4.993,4.169,5.404 c-0.84,0.229-1.534,0.921-1.766,1.778c-0.413,1.566-0.417,4.814-0.417,4.814s-0.004,3.264,0.406,4.814 c0.23,0.857,0.905,1.534,1.763,1.765c1.582,0.43,7.83,0.437,7.83,0.437s6.265,0.007,7.831-0.403 c0.856-0.23,1.534-0.906,1.767-1.763c0.414-1.565,0.417-4.812,0.417-4.812S22.02,8.769,21.593,7.203z M9.996,15.005l0.005-6 l5.207,3.005L9.996,15.005z"/>
                         </svg>
                     </a>
                     <a href="#" class="text-white hover:text-discord-blue transition-colors duration-300 transform hover:scale-110">
-                        <svg xmlns="http:
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M12,2.163c3.204,0,3.584,0.012,4.85,0.07c3.252,0.148,4.771,1.691,4.919,4.919c0.058,1.265,0.069,1.645,0.069,4.849 c0,3.205-0.012,3.584-0.069,4.849c-0.149,3.225-1.664,4.771-4.919,4.919c-1.266,0.058-1.644,0.07-4.85,0.07 c-3.204,0-3.584-0.012-4.849-0.07c-3.26-0.149-4.771-1.699-4.919-4.92c-0.058-1.265-0.07-1.644-0.07-4.849 c0-3.204,0.013-3.583,0.07-4.849C2.381,3.924,3.896,2.38,7.151,2.232C8.417,2.175,8.796,2.163,12,2.163z M12,4.332 c-3.159,0-3.508,0.014-4.749,0.068c-2.222,0.102-3.249,1.142-3.35,3.35c-0.055,1.24-0.069,1.589-0.069,4.748 c0,3.159,0.014,3.508,0.069,4.748c0.101,2.207,1.127,3.249,3.35,3.35c1.24,0.055,1.589,0.069,4.749,0.069 c3.161,0,3.509-0.014,4.749-0.069c2.207-0.102,3.249-1.143,3.35-3.35c0.055-1.24,0.069-1.589,0.069-4.748 c0-3.159-0.014-3.508-0.069-4.748c-0.102-2.207-1.144-3.247-3.35-3.35C15.509,4.346,15.16,4.332,12,4.332z M12,7.163 c-3.204,0-5.803,2.598-5.803,5.803c0,3.204,2.598,5.803,5.803,5.803c3.204,0,5.803-2.598,5.803-5.803 C17.803,9.762,15.205,7.163,12,7.163z M12,16.102c-1.733,0-3.138-1.405-3.138-3.138c0-1.733,1.405-3.138,3.138-3.138 c1.733,0,3.138,1.405,3.138,3.138C15.138,14.698,13.733,16.102,12,16.102z"/>
                         </svg>
                     </a>
@@ -403,9 +249,9 @@ ob_start();
                 <img src="<?php echo asset('/landing-page/main-logo.png'); ?>" alt="MiscVord Logo" class="h-10 animate-glow">
             </div>
             <div class="mt-6 md:mt-0">
-                <button class="discord-btn bg-discord-blue bg-opacity-70 hover:bg-opacity-100 backdrop-filter backdrop-blur-sm text-white px-8 py-3 rounded-full font-medium">
+                <a href="/register" class="discord-btn bg-discord-blue bg-opacity-70 hover:bg-opacity-100 backdrop-filter backdrop-blur-sm text-white px-8 py-3 rounded-full font-medium inline-block">
                     Sign up
-                </button>
+                </a>
             </div>
         </div>
     </div>

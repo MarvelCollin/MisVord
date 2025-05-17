@@ -19,12 +19,8 @@ function asset($path) {
     // Get the base URL from server variables
     $baseUrl = getBaseUrl();
     
-    // Extract the host part without protocol to make it protocol-relative
-    // This prevents mixed content warnings when using HTTPS
-    $baseUrl = preg_replace('#^https?:#', '', $baseUrl);
-    
-    // Construct and return the protocol-relative URL
-    return "{$baseUrl}/public/assets/{$path}";
+    // Return the URL with the assets directory
+    return "{$baseUrl}/assets/{$path}";
 }
 
 /**
@@ -34,21 +30,13 @@ function asset($path) {
  * @return string The complete URL to the CSS file
  */
 function css($path) {
-    // Remove any leading slashes and ensure .css extension
     $path = ltrim($path, '/');
     if (!str_ends_with($path, '.css')) {
         $path .= '.css';
     }
     
-    // Get the base URL from server variables
     $baseUrl = getBaseUrl();
-    
-    // Extract the host part without protocol to make it protocol-relative
-    // This prevents mixed content warnings when using HTTPS
-    $baseUrl = preg_replace('#^https?:#', '', $baseUrl);
-    
-    // Construct and return the protocol-relative URL
-    return "{$baseUrl}/public/css/{$path}";
+    return "{$baseUrl}/css/{$path}";
 }
 
 /**
@@ -58,21 +46,13 @@ function css($path) {
  * @return string The complete URL to the JS file
  */
 function js($path) {
-    // Remove any leading slashes and ensure .js extension
     $path = ltrim($path, '/');
     if (!str_ends_with($path, '.js')) {
         $path .= '.js';
     }
     
-    // Get the base URL from server variables
     $baseUrl = getBaseUrl();
-    
-    // Extract the host part without protocol to make it protocol-relative
-    // This prevents mixed content warnings when using HTTPS
-    $baseUrl = preg_replace('#^https?:#', '', $baseUrl);
-    
-    // Construct and return the protocol-relative URL
-    return "{$baseUrl}/public/js/{$path}";
+    return "{$baseUrl}/js/{$path}";
 }
 
 /**
@@ -82,13 +62,15 @@ function js($path) {
  */
 function getBaseUrl() {
     if (php_sapi_name() === 'cli') {
-        return 'http://localhost:8000'; // Default for CLI
+        return 'http://localhost:1001';
     }
     
     $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http';
-    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    $host = $_SERVER['HTTP_HOST'] ?? 'localhost:1001';
     
-    return "{$protocol}://{$host}";
+    $scriptDir = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? ''), '/');
+    
+    return "{$protocol}://{$host}{$scriptDir}";
 }
 
 /**

@@ -63,22 +63,27 @@ html {
     scroll-behavior: smooth;
 }
 
+/* Custom CSS variables */
+:root {
+    --landing-bg-image: none; /* Default value, will be set via JavaScript */
+}
+
 /* Enhanced background with 75% opacity and additional layer */
-body::before {
+body.landing-bg::before {
     content: '';
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-image: var(--background-image-url);
+    background-image: var(--landing-bg-image);
     background-size: cover;
     background-position: center;
     opacity: 0.75;
     z-index: -2;
 }
 
-body::after {
+body.landing-bg::after {
     content: '';
     position: fixed;
     top: 0;
@@ -661,4 +666,17 @@ body {
         width: 24px;
         height: 24px;
     }
+}
+
+#carousel-prev, #carousel-next {
+    cursor: pointer !important;
+    z-index: 50 !important;
+}
+
+#carousel-prev:hover, #carousel-next:hover {
+    background-color: #5865F2 !important;
+}
+
+.carousel-track {
+    transition: transform 0.5s ease-out !important;
 }

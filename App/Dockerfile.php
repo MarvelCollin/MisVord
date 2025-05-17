@@ -1,75 +1,47 @@
-FROM php:8.1-apache-bullseye
+FROM php:8.0-apache
 
-ENV DEBIAN_FRONTEND=noninteractive
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    libpng-dev \
-    libonig-dev \
-    libxml2-dev \
+RUN apt-get update && apt-get install -y \
+    libzip-dev \
     zip \
     unzip \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* \
-    /tmp/* \
-    /var/tmp/* \
-    /usr/share/doc/* \
-    /usr/share/man/*
+    curl \
+    && docker-php-ext-install zip pdo_mysql
 
-RUN docker-php-ext-install -j$(nproc) pdo_mysql mbstring exif bcmath gd
+# Enable Apache rewrite module
+RUN a2enmod rewrite
 
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+# Set up PHP configuration
+RUN echo "memory_limit=256M" > /usr/local/etc/php/conf.d/memory-limit.ini
+RUN echo "upload_max_filesize=100M" > /usr/local/etc/php/conf.d/upload-limit.ini
+RUN echo "post_max_size=100M" > /usr/local/etc/php/conf.d/post-limit.ini
 
-RUN groupadd -g 1000 appuser && \
-    useradd -u 1000 -g appuser -m -s /bin/bash appuser
+# Enable environment variables to be read by PHP
+ENV APACHE_ENVVARS=/etc/apache2/envvars
+RUN echo "export DB_HOST=\${DB_HOST}" >> $APACHE_ENVVARS
+RUN echo "export DB_NAME=\${DB_NAME}" >> $APACHE_ENVVARS
+RUN echo "export DB_USER=\${DB_USER}" >> $APACHE_ENVVARS
+RUN echo "export DB_PASS=\${DB_PASS}" >> $APACHE_ENVVARS
+RUN echo "export DB_CHARSET=\${DB_CHARSET}" >> $APACHE_ENVVARS
+RUN echo "export SOCKET_SERVER=\${SOCKET_SERVER}" >> $APACHE_ENVVARS
+RUN echo "export SOCKET_API_KEY=\${SOCKET_API_KEY}" >> $APACHE_ENVVARS
 
-WORKDIR /var/www/html
-
-RUN a2enmod rewrite headers && \
-    sed -i 's/ServerTokens OS/ServerTokens Prod/' /etc/apache2/conf-available/security.conf && \
-    sed -i 's/ServerSignature On/ServerSignature Off/' /etc/apache2/conf-available/security.conf && \
-    a2enconf security
-
+# Configure Apache
 COPY docker/apache/000-default.conf /etc/apache2/sites-available/000-default.conf
 
-COPY --chown=appuser:appuser composer.json composer.lock ./
-COPY --chown=appuser:appuser public public/
-COPY --chown=appuser:appuser views views/
-COPY --chown=appuser:appuser controllers controllers/
-COPY --chown=appuser:appuser config config/
-COPY --chown=appuser:appuser bootstrap bootstrap/
-COPY --chown=appuser:appuser migrations migrations/
-COPY --chown=appuser:appuser router.php index.php artisan serve.php ./
+# Set working directory
+WORKDIR /var/www/html
 
-RUN if [ -f .env.example ]; then \
-        cp .env.example .env; \
-    else \
-        echo "APP_ENV=production" > .env; \
-    fi
+# Create storage directory with proper permissions
+RUN mkdir -p /var/www/html/storage && \
+    chown -R www-data:www-data /var/www/html/storage && \
+    chmod -R 777 /var/www/html/storage
 
-RUN mkdir -p /var/www/html/storage/logs \
-    && mkdir -p /var/www/html/storage/framework/cache \
-    && mkdir -p /var/www/html/storage/framework/sessions \
-    && mkdir -p /var/www/html/storage/framework/views \
-    && chown -R appuser:appuser /var/www/html/storage
+# Copy PHP configuration
+COPY docker/php/php.ini /usr/local/etc/php/conf.d/app.ini
 
-RUN composer install --no-dev --no-interaction --optimize-autoloader
-
-RUN { \
-    echo 'expose_php = Off'; \
-    echo 'display_errors = Off'; \
-    echo 'display_startup_errors = Off'; \
-    echo 'log_errors = On'; \
-    echo 'error_log = /var/log/php_errors.log'; \
-    echo 'memory_limit = 128M'; \
-    echo 'max_execution_time = 30'; \
-    echo 'upload_max_filesize = 10M'; \
-    echo 'post_max_size = 10M'; \
-    echo 'date.timezone = UTC'; \
-    } > /usr/local/etc/php/conf.d/production.ini
+# Fix permissions
+RUN chown -R www-data:www-data /var/www/html
 
 EXPOSE 80
-
-USER appuser
 
 CMD ["apache2-foreground"]

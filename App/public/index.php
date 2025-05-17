@@ -13,8 +13,8 @@ define('APP_BASE_PATH', dirname(__DIR__));
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-// Load configuration files - uncomment if you have helpers.php
-// require_once APP_BASE_PATH . '/config/helpers.php';
+// Load configuration files
+require_once APP_BASE_PATH . '/config/helpers.php';
 
 // Load the router directly
 require_once APP_BASE_PATH . '/config/web.php';

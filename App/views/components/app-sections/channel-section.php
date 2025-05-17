@@ -87,7 +87,10 @@ if ($currentServer) {
                     </div>
                     
                     <?php foreach ($channelsByCategory[0] as $channel): ?>
-                        <div class="channel-item text-gray-400 hover:text-white hover:bg-gray-700 rounded px-2 py-1 flex items-center cursor-pointer" data-channel-id="<?php echo $channel['id']; ?>" data-channel-type="<?php echo $channel['type']; ?>">
+                        <div class="channel-item text-gray-400 hover:text-white hover:bg-gray-700 rounded px-2 py-1 flex items-center cursor-pointer" 
+                             data-channel-id="<?php echo $channel['id']; ?>" 
+                             data-channel-name="<?php echo htmlspecialchars($channel['name']); ?>"
+                             data-channel-type="<?php echo $channel['type']; ?>">
                             <?php if ($channel['type'] === 'text'): ?>
                                 <span class="text-gray-400 mr-2">#</span>
                             <?php else: ?>
@@ -136,7 +139,10 @@ if ($currentServer) {
                         $categoryChannels = $channelsByCategory[$category['id']] ?? [];
                         foreach ($categoryChannels as $channel): 
                         ?>
-                            <div class="channel-item text-gray-400 hover:text-white hover:bg-gray-700 rounded px-2 py-1 flex items-center cursor-pointer" data-channel-id="<?php echo $channel['id']; ?>" data-channel-type="<?php echo $channel['type']; ?>">
+                            <div class="channel-item text-gray-400 hover:text-white hover:bg-gray-700 rounded px-2 py-1 flex items-center cursor-pointer" 
+                                 data-channel-id="<?php echo $channel['id']; ?>" 
+                                 data-channel-name="<?php echo htmlspecialchars($channel['name']); ?>"
+                                 data-channel-type="<?php echo $channel['type']; ?>">
                                 <?php if ($channel['type'] === 'text'): ?>
                                     <span class="text-gray-400 mr-2">#</span>
                                 <?php else: ?>
@@ -609,7 +615,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Get channel details
             const channelId = this.getAttribute('data-channel-id');
-            const channelName = this.querySelector('.channel-name').textContent;
+            const channelName = this.getAttribute('data-channel-name');
             const channelType = this.getAttribute('data-channel-type');
             
             // If voice channel, redirect to voice channel page

@@ -1,19 +1,10 @@
-<?php
-// Include helper functions if not already included
-if (!function_exists('asset')) {
-    require_once dirname(dirname(dirname(__DIR__))) . '/config/helpers.php';
-}
-
-// Get socket server URL from ENV or use default
-$socketServer = $_ENV['SOCKET_SERVER'] ?? 'http://localhost:3000';
-?>
 <!-- Chat Section - Main chat area with messages -->
 <div class="chat-section flex flex-col h-full">
     <!-- Channel Header -->
     <div class="flex items-center h-12 px-4 border-b border-[#2D3136] shadow-sm">
         <div class="flex items-center text-gray-200">
             <span class="text-gray-400 mr-2">#</span>
-            <h2 class="font-semibold channel-header-name">Select a channel</h2>
+            <h2 id="current-channel-name" class="font-semibold channel-header-name">Select a channel</h2>
         </div>
         <div class="ml-2 text-sm text-gray-400 channel-header-topic">Welcome to MiscVord</div>
         <div class="ml-auto flex items-center space-x-4">
@@ -36,7 +27,7 @@ $socketServer = $_ENV['SOCKET_SERVER'] ?? 'http://localhost:3000';
     </div>
 
     <!-- Messages Area -->
-    <div id="messagesContainer" class="flex-1 overflow-y-auto p-4 pb-4">
+    <div id="message-container" class="flex-1 overflow-y-auto p-4 pb-4">
         <!-- Messages will be loaded here -->
         <div class="welcome-placeholder text-center text-gray-400 py-10">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto mb-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -52,7 +43,7 @@ $socketServer = $_ENV['SOCKET_SERVER'] ?? 'http://localhost:3000';
         </div>
         
         <!-- Typing indicator -->
-        <div class="typing-indicator hidden mt-4 flex items-center text-xs text-gray-500">
+        <div id="typing-indicator" class="hidden mt-4 flex items-center text-xs text-gray-500">
             <span id="typingUsername" class="font-semibold mr-1">Someone</span> is typing
             <div class="ml-2 flex">
                 <span class="dot mx-0.5"></span>
@@ -63,7 +54,7 @@ $socketServer = $_ENV['SOCKET_SERVER'] ?? 'http://localhost:3000';
     </div>
     
     <!-- New Message Form -->
-    <form id="messageForm" class="p-4 border-t border-[#2D3136]">
+    <form id="message-form" class="p-4 border-t border-[#2D3136]">
         <div class="bg-[#40444b] rounded-lg flex items-center p-1">
             <button type="button" class="p-2 text-gray-400 hover:text-white">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -71,11 +62,10 @@ $socketServer = $_ENV['SOCKET_SERVER'] ?? 'http://localhost:3000';
                 </svg>
             </button>
             <input 
-                id="messageInput" 
+                id="message-input" 
                 type="text" 
                 placeholder="Message #welcome" 
                 class="bg-transparent border-none flex-1 p-2 focus:outline-none text-gray-200"
-                disabled
             >
             <input type="hidden" id="currentChannelId" value="">
             <button type="button" class="p-2 text-gray-400 hover:text-white" id="uploadAttachmentBtn">
@@ -185,32 +175,26 @@ $socketServer = $_ENV['SOCKET_SERVER'] ?? 'http://localhost:3000';
 }
 
 /* Remove the bottom padding adjustment since we've moved the user profile */
-#messagesContainer {
+#message-container {
     padding-bottom: 1rem;
 }
 
-#messageForm {
+#message-form {
     position: relative;
     z-index: 5;
 }
 </style>
 
-<!-- Socket.IO client script -->
-<script src="https://cdn.socket.io/4.6.0/socket.io.min.js" integrity="sha384-c79GN5VsunZvi+Q/WObgk2in0CbZsHnjEqvFxC5DxHn9lTfNce2WW6h2pH6u/kF+" crossorigin="anonymous"></script>
-
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Socket connection
-    const socket = io('<?php echo $socketServer; ?>');
-    
     // DOM elements
-    const messagesContainer = document.getElementById('messagesContainer');
-    const messageInput = document.getElementById('messageInput');
-    const messageForm = document.getElementById('messageForm');
+    const messagesContainer = document.getElementById('message-container');
+    const messageInput = document.getElementById('message-input');
+    const messageForm = document.getElementById('message-form');
     const sendMessageBtn = document.getElementById('sendMessageBtn');
     const currentChannelIdInput = document.getElementById('currentChannelId');
     const loadingMessages = document.getElementById('loadingMessages');
-    const typingIndicator = document.querySelector('.typing-indicator');
+    const typingIndicator = document.getElementById('typing-indicator');
     const typingUsername = document.getElementById('typingUsername');
     const channelHeaderName = document.querySelector('.channel-header-name');
     const connectionStatus = document.getElementById('connectionStatus');
@@ -221,7 +205,22 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentChannelId = null;
     let messagesLastFetchTime = 0;
     let typingTimeout;
+    let socket = null;
     
+    // Get socket either from global variable or wait for it to be initialized
+    if (window.socket) {
+        socket = window.socket;
+        setupSocketEvents(socket);
+    } else {
+        // Listen for socket ready event
+        document.addEventListener('socketReady', function(e) {
+            socket = e.detail.socket;
+            setupSocketEvents(socket);
+        });
+    }
+    
+    // Setup socket events
+    function setupSocketEvents(socket) {
     // Track message IDs we've already displayed to prevent duplicates
     const displayedMessageIds = new Set();
     
@@ -230,15 +229,18 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Connected to WebSocket server');
         updateConnectionStatus('connected', 'Connected');
         
-        // Join with user information
+            // Join with user information from data attributes
+            const appContainer = document.getElementById('app-container');
+            if (appContainer) {
         socket.emit('join', {
-            userId: '<?php echo $_SESSION['user_id']; ?>',
-            username: '<?php echo $_SESSION['username']; ?>'
+                    userId: appContainer.dataset.userId,
+                    username: appContainer.dataset.username
         });
         
         // If we were previously in a channel, rejoin it
         if (currentChannelId) {
             socket.emit('subscribe', { channelId: currentChannelId });
+                }
         }
     });
     
@@ -289,6 +291,7 @@ document.addEventListener('DOMContentLoaded', function() {
     socket.on('user_left_channel', function(data) {
         showNotification(`${data.user.username} left the channel`, 'info');
     });
+    }
     
     // Function to update connection status UI
     function updateConnectionStatus(status, text) {
@@ -681,8 +684,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Function to handle typing indicator
     function handleUserTyping(data) {
+        // Get current user ID from app container
+        const appContainer = document.getElementById('app-container');
+        const currentUserId = appContainer?.dataset.userId;
+        
         // Don't show typing indicator for own messages
-        if (data.user.userId === '<?php echo $_SESSION['user_id']; ?>') {
+        if (currentUserId && data.user.userId === currentUserId) {
             return;
         }
         
@@ -722,14 +729,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Send typing indicator when user starts typing
     messageInput.addEventListener('input', function() {
-        if (!currentChannelId) return;
-        
-        clearTimeout(typingTimeout);
-        
-        // Emit typing event to WebSocket
-        socket.emit('typing', {
-            channelId: currentChannelId,
-            userId: '<?php echo $_SESSION['user_id']; ?>'
+    // Send typing indicator when user starts typing
         });
         
         // Stop "typing" after 3 seconds of inactivity
