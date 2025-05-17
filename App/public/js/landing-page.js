@@ -1,27 +1,109 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize background image
+    // Initialize background image first (doesn't depend on GSAP)
     initBackgroundImage();
     
-    // Initialize scroll animations
-    initScrollAnimations();
-    
-    // Initialize floating elements
-    initFloatingElements();
-    
-    // Create enhanced particles
-    createEnhancedParticles();
-    
-    // Initialize scramble text effect
-    initScrambleText();
-    
-    // Initialize fixed carousel
+    // Initialize fixed carousel (works without GSAP)
     initFixedCarousel();
-});
-
-// Add a separate window load event for tornado effect to ensure images are loaded
-window.addEventListener('load', function() {
-    // Initialize tornado parallax effect after all resources are loaded
-    setTimeout(initTornadoParallax, 500);
+    
+    // Create vanilla JS scramble text effect (doesn't rely on GSAP)
+    initVanillaScrambleText();
+    
+    // Handle GSAP loading
+    let retries = 0;
+    const maxRetries = 5;
+    const retryDelay = 500;
+    
+    function loadGSAPWithRetry() {
+        // Check if GSAP is already loaded
+        if (window.gsap) {
+            console.log("GSAP already loaded");
+            initGSAPFeatures();
+            return;
+        }
+        
+        console.log(`Attempting to load GSAP (${retries+1}/${maxRetries})`);
+        
+        // Create script tags for GSAP and plugins
+        const gsapScript = document.createElement('script');
+        gsapScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js';
+        gsapScript.async = true;
+        
+        // Handle successful load
+        gsapScript.onload = function() {
+            console.log("GSAP core loaded successfully");
+            loadScrollTrigger();
+        };
+        
+        // Handle loading error
+        gsapScript.onerror = function() {
+            retries++;
+            if (retries < maxRetries) {
+                console.warn(`Failed to load GSAP, retrying (${retries}/${maxRetries})...`);
+                setTimeout(loadGSAPWithRetry, retryDelay * Math.pow(1.5, retries));
+            } else {
+                console.error("Failed to load GSAP after multiple attempts");
+                // Continue with non-GSAP features
+            }
+        };
+        
+        // Add to document
+        document.head.appendChild(gsapScript);
+    }
+    
+    function loadScrollTrigger() {
+        if (!window.gsap) {
+            console.warn("Cannot load ScrollTrigger because GSAP core is not available");
+            return;
+        }
+        
+        const scrollTriggerScript = document.createElement('script');
+        scrollTriggerScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js';
+        scrollTriggerScript.async = true;
+        
+        scrollTriggerScript.onload = function() {
+            console.log("ScrollTrigger loaded successfully");
+            try {
+                gsap.registerPlugin(ScrollTrigger);
+                console.log("ScrollTrigger registered");
+            } catch (e) {
+                console.warn("Error registering ScrollTrigger:", e);
+            }
+            initGSAPFeatures();
+        };
+        
+        scrollTriggerScript.onerror = function() {
+            console.warn("Failed to load ScrollTrigger, continuing without it");
+            initGSAPFeatures();
+        };
+        
+        document.head.appendChild(scrollTriggerScript);
+    }
+    
+    function initGSAPFeatures() {
+        // Check if GSAP is loaded
+        if (typeof window.gsap === 'undefined') {
+            console.warn("GSAP not available for animations");
+            return;
+        }
+        
+        console.log("Initializing GSAP features");
+        
+        // Initialize animations in sequence with error handling
+        try {
+            initGSAPAnimations();
+        } catch (e) {
+            console.warn("Error in GSAP animations:", e);
+        }
+        
+        try {
+            initParallaxZoomEffects();
+        } catch (e) {
+            console.warn("Error in parallax effects:", e);
+        }
+    }
+    
+    // Start loading GSAP
+    loadGSAPWithRetry();
 });
 
 // Function to initialize the background image
@@ -35,6 +117,333 @@ function initBackgroundImage() {
         );
     }
 }
+
+// New vanilla JS implementation of scramble text effect (no GSAP dependency)
+function initVanillaScrambleText() {
+    const heroTitle = document.getElementById('heroTitle');
+    const heroSubtitle = document.getElementById('heroSubtitle');
+    const heroDecorativeLine = document.getElementById('heroDecorativeLine');
+    const scrollIndicator = document.getElementById('scrollIndicator');
+    
+    if (!heroTitle) return;
+    
+    // Original text to reveal
+    const finalText = "IMAGINE A PLACE";
+    // Characters for scrambling effect
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+{}|:<>?";
+    
+    // Prepare the title
+    heroTitle.textContent = '';
+    heroTitle.style.opacity = '0';
+    
+    // Create spans for each character
+    const spans = [];
+    for (let i = 0; i < finalText.length; i++) {
+        const span = document.createElement('span');
+        span.textContent = chars[Math.floor(Math.random() * chars.length)];
+        span.dataset.finalChar = finalText[i];
+        span._fixed = false;
+        spans.push(span);
+        heroTitle.appendChild(span);
+    }
+    
+    // Fade in the title container
+    setTimeout(() => {
+        heroTitle.style.opacity = '1';
+        heroTitle.style.transition = 'opacity 0.8s ease';
+    }, 300);
+    
+    // Scramble effect variables
+    let interval;
+    let counter = 0;
+    const scrambleDuration = 2000; // 2 seconds
+    const scrambleInterval = 50; // Update every 50ms
+    const totalIterations = scrambleDuration / scrambleInterval;
+    
+    // Start the scramble effect
+    setTimeout(() => {
+        interval = setInterval(() => {
+            counter++;
+            const progress = counter / totalIterations;
+            
+            // The number of characters to fix this iteration
+            const charsToFix = Math.ceil(progress * finalText.length);
+            
+            // Update each character
+            spans.forEach((span, index) => {
+                if (index < charsToFix && !span._fixed) {
+                    // Fix this character to its final state
+                    span.textContent = span.dataset.finalChar;
+                    span._fixed = true;
+                    
+                    // Add a small highlight effect to newly fixed chars
+                    span.style.color = '#5865F2';
+                    span.style.textShadow = '0 0 10px rgba(88, 101, 242, 0.8)';
+                    setTimeout(() => {
+                        span.style.transition = 'color 0.5s ease, text-shadow 0.5s ease';
+                        span.style.color = '';
+                        span.style.textShadow = '';
+                    }, 200);
+                    
+                } else if (!span._fixed) {
+                    // Still scrambling this character
+                    span.textContent = chars[Math.floor(Math.random() * chars.length)];
+                }
+            });
+            
+            // Stop when all characters are fixed
+            if (progress >= 1) {
+                clearInterval(interval);
+                
+                // Start secondary animations after scramble effect
+                animateHeroSecondary();
+            }
+        }, scrambleInterval);
+    }, 800);
+    
+    // Add hover effects after animation is complete
+    setTimeout(() => {
+        // Add hover interactions to individual chars
+        spans.forEach(span => {
+            // Skip spaces
+            if (span.dataset.finalChar === ' ') return;
+            
+            span.addEventListener('mouseenter', () => {
+                // Only if we're not currently animating this char
+                if (!span._isAnimating) {
+                    span._isAnimating = true;
+                    
+                    // Start with original character
+                    const originalChar = span.textContent;
+                    
+                    // Quick scramble effect on hover
+                    let hoverCounter = 0;
+                    const hoverInterval = setInterval(() => {
+                        hoverCounter++;
+                        
+                        if (hoverCounter < 5) {
+                            // Show random character during scramble
+                            span.textContent = chars[Math.floor(Math.random() * chars.length)];
+                        } else {
+                            // Stop scrambling and restore final character
+                            clearInterval(hoverInterval);
+                            span.textContent = originalChar;
+                            span._isAnimating = false;
+                        }
+                    }, 50);
+                    
+                    // Add visual effects
+                    span.style.color = '#5865F2';
+                    span.style.textShadow = '0 0 10px rgba(88, 101, 242, 0.8)';
+                    span.style.transform = 'scale(1.5)';
+                    span.style.display = 'inline-block';
+                    span.style.transition = 'color 0.3s ease, text-shadow 0.3s ease, transform 0.3s ease';
+                    
+                    // Reset after a delay
+                    setTimeout(() => {
+                        span.style.color = '';
+                        span.style.textShadow = '';
+                        span.style.transform = '';
+                    }, 300);
+                }
+            });
+        });
+    }, scrambleDuration + 1200);
+    
+    // Function to animate secondary elements
+    function animateHeroSecondary() {
+        // Animate the decorative line
+        if (heroDecorativeLine) {
+            heroDecorativeLine.style.transition = 'width 1.2s ease-out';
+            heroDecorativeLine.style.width = '96px';
+        }
+        
+        // Fade in subtitle
+        if (heroSubtitle) {
+            setTimeout(() => {
+                heroSubtitle.style.transition = 'opacity 0.5s ease, transform 0.8s ease';
+                heroSubtitle.style.opacity = '1';
+                heroSubtitle.style.transform = 'translateY(0)';
+            }, 300);
+        }
+        
+        // Animate scroll indicator
+        if (scrollIndicator) {
+            setTimeout(() => {
+                scrollIndicator.style.transition = 'opacity 0.8s ease, transform 0.8s ease';
+                scrollIndicator.style.opacity = '1';
+                scrollIndicator.style.transform = 'translateY(0)';
+                
+                // Add continuous bounce animation
+                setInterval(() => {
+                    scrollIndicator.animate([
+                        { transform: 'translateY(0)' },
+                        { transform: 'translateY(10px)' },
+                        { transform: 'translateY(0)' }
+                    ], {
+                        duration: 1500,
+                        iterations: Infinity
+                    });
+                }, 1500);
+            }, 800);
+        }
+    }
+}
+
+// New function for parallax zoom effects with GSAP
+function initParallaxZoomEffects() {
+    if (!window.gsap || !window.gsap.ScrollTrigger) {
+        console.warn('GSAP ScrollTrigger not available for parallax effects');
+        return;
+    }
+    
+    // Get all elements with zoom data attributes
+    const zoomElements = document.querySelectorAll('[data-zoom-factor]');
+    
+    zoomElements.forEach(element => {
+        const zoomFactor = parseFloat(element.dataset.zoomFactor) || 1.0;
+        const zoomDirection = element.dataset.zoomDirection || 'in';
+        
+        // Calculate start and end scale based on direction
+        const startScale = zoomDirection === 'in' ? 1.0 : zoomFactor;
+        const endScale = zoomDirection === 'in' ? zoomFactor : 1.0;
+        
+        // Create scroll-triggered animation for zoom effect with improved smoothness
+        gsap.fromTo(element, 
+            { 
+                scale: startScale,
+                opacity: zoomDirection === 'in' ? 0.7 : 1
+            },
+            {
+                scale: endScale,
+                opacity: zoomDirection === 'in' ? 1 : 0.7,
+                scrollTrigger: {
+                    trigger: '#heroContainer',
+                    start: "top bottom",
+                    end: "bottom top",
+                    scrub: 1,
+                    markers: false,
+                    toggleActions: "play none none reverse"
+                },
+                ease: "power1.inOut"
+            }
+        );
+    });
+    
+    // Enhanced zoom effect for the hero container
+    gsap.fromTo("#heroContainer",
+        { scale: 1, opacity: 1 },
+        {
+            scale: 0.9,
+            opacity: 0.8,
+            scrollTrigger: {
+                trigger: "header",
+                start: "top top",
+                end: "bottom top",
+                scrub: 1,
+                markers: false
+            },
+            ease: "power1.inOut"
+        }
+    );
+    
+    // Set up floating animations for elements with improved physics
+    const floatElements = document.querySelectorAll('.gsap-float');
+    
+    floatElements.forEach((element, index) => {
+        // Create random parameters for varied animations
+        const duration = 3 + Math.random() * 2;
+        const yDistance = 15 + Math.random() * 15;
+        const rotationAmount = (Math.random() * 10) - 5;
+        const delay = Math.random() * 0.8;
+        
+        // Create floating animation with subtle ease
+        gsap.to(element, {
+            y: yDistance,
+            rotation: rotationAmount,
+            duration: duration,
+            repeat: -1,
+            yoyo: true,
+            ease: "sine.inOut",
+            delay: delay
+        });
+    });
+    
+    // Animate the floating layer elements with enhanced zoom
+    const floatingElements = document.querySelectorAll('#gsapFloatingLayer .gsap-element');
+    
+    floatingElements.forEach((element, index) => {
+        // Create random parameters for each element
+        const floatDuration = 4 + Math.random() * 3;
+        const floatDistance = 20 + Math.random() * 20;
+        const rotationAmount = (Math.random() * 15) - 7.5;
+        const delay = Math.random();
+        
+        // Create floating animation with easing
+        gsap.to(element, {
+            y: floatDistance,
+            rotation: rotationAmount,
+            duration: floatDuration,
+            repeat: -1,
+            yoyo: true,
+            ease: "sine.inOut",
+            delay: delay
+        });
+        
+        // Create zoom effect for floating elements with improved visibility
+        const zoomFactor = parseFloat(element.dataset.zoomFactor) || 1.0;
+        const zoomDirection = element.dataset.zoomDirection || 'in';
+        
+        const startScale = zoomDirection === 'in' ? 1.0 : zoomFactor;
+        const endScale = zoomDirection === 'in' ? zoomFactor : 1.0;
+        
+        gsap.fromTo(element, 
+            { 
+                scale: startScale,
+                opacity: 0.8
+            },
+            {
+                scale: endScale,
+                opacity: 1,
+                scrollTrigger: {
+                    trigger: 'header',
+                    start: "top top",
+                    end: "bottom top",
+                    scrub: 1,
+                    markers: false
+                },
+                ease: "power1.inOut"
+            }
+        );
+    });
+    
+    // Add parallax scroll effect to all sections
+    gsap.utils.toArray('.feature-section').forEach(section => {
+        // Create a zoom effect on scroll for each feature section
+        gsap.fromTo(section.querySelector('.content-card'),
+            { y: 50, opacity: 0.5, scale: 0.95 },
+            {
+                y: 0,
+                opacity: 1,
+                scale: 1,
+                scrollTrigger: {
+                    trigger: section,
+                    start: "top bottom-=100px",
+                    end: "center center",
+                    scrub: 1,
+                    markers: false
+                },
+                ease: "power2.out"
+            }
+        );
+    });
+}
+
+// Remove tornado parallax initialization to prevent errors
+window.addEventListener('load', function() {
+    // We don't need the tornado effect anymore as we've replaced it with GSAP animations
+    // setTimeout(initTornadoParallax, 500); // Commented out to prevent errors
+});
 
 function initScrollAnimations() {
     
@@ -199,129 +608,278 @@ function updateFloatingElements(scrollTop, scrollSpeed) {
 }
 
 
-function createEnhancedParticles() {
-    const container = document.getElementById('particles-container');
-    if (!container) return;
-    
-    const particleCount = 120; 
-    
-    const particleTypes = [
-        { 
-            color: '#5865F2', 
-            size: [1, 3], 
-            speed: [15, 30], 
-            opacity: [0.1, 0.3],
-            glow: true
-        },
-        { 
-            color: '#57F287', 
-            size: [2, 4], 
-            speed: [20, 35], 
-            opacity: [0.1, 0.25],
-            glow: true
-        },
-        { 
-            color: '#EB459E', 
-            size: [1, 2.5], 
-            speed: [25, 40], 
-            opacity: [0.05, 0.2],
-            glow: true
-        },
-        { 
-            color: '#FEE75C', 
-            size: [0.5, 2], 
-            speed: [10, 25], 
-            opacity: [0.1, 0.3],
-            glow: true
-        },
-        { 
-            color: '#FFFFFF', 
-            size: [0.5, 3], 
-            speed: [15, 30], 
-            opacity: [0.05, 0.15],
-            glow: false
-        }
-    ];
-    
-    for (let i = 0; i < particleCount; i++) {
-        const typeIndex = Math.floor(Math.random() * particleTypes.length);
-        const type = particleTypes[typeIndex];
-        
-        const particle = document.createElement('div');
-        particle.className = 'particle';
-        
-        const posX = Math.random() * 100;
-        const posY = Math.random() * 100;
-        
-        const size = Math.random() * (type.size[1] - type.size[0]) + type.size[0];
-        const opacity = Math.random() * (type.opacity[1] - type.opacity[0]) + type.opacity[0];
-        
-        particle.style.left = posX + '%';
-        particle.style.top = posY + '%';
-        particle.style.width = size + 'px';
-        particle.style.height = size + 'px';
-        particle.style.opacity = opacity;
-        
-        if (type.glow) {
-            particle.style.background = type.color;
-            particle.style.boxShadow = `0 0 10px ${type.color}`;
-        } else {
-            particle.style.background = 'rgba(255, 255, 255, 0.6)';
-        }
-        
-        
-        const duration = Math.random() * (type.speed[1] - type.speed[0]) + type.speed[0];
-        const delay = Math.random() * 15;
-        
-        
-        const startX = posX;
-        const startY = posY;
-        const endX = startX + (Math.random() * 20 - 10);
-        const endY = startY + (Math.random() * 20 - 10);
-        
-        
-        particle.style.animation = `float ${duration}s ease-in-out infinite`;
-        particle.style.animationDelay = `${delay}s`;
-        
-        container.appendChild(particle);
+function initGSAPAnimations() {
+    // If GSAP isn't loaded yet, exit gracefully
+    if (!window.gsap) {
+        console.warn('GSAP not available for animations');
+        return;
     }
+    
+    // Register ScrollTrigger plugin if available
+    if (window.gsap.ScrollTrigger && !ScrollTrigger) {
+        try {
+            gsap.registerPlugin(ScrollTrigger);
+        } catch (e) {
+            console.warn('Unable to register ScrollTrigger:', e);
+        }
+    }
+    
+    // Fade in the hero content
+    gsap.to(".gsap-fade-in", {
+        opacity: 1,
+        duration: 1.5,
+        ease: "power3.out"
+    });
+    
+    // Staggered fade for subtitle sections
+    gsap.to(".gsap-stagger-fade > *", {
+        opacity: 1,
+        y: 0,
+        duration: 0.8,
+        stagger: 0.2,
+        ease: "power3.out"
+    });
+    
+    // Width reveal for decorative line
+    gsap.to(".gsap-width-reveal", {
+        width: "24px",
+        duration: 1.2,
+        ease: "power2.out",
+        delay: 0.5
+    });
+    
+    // Prepare text for char-by-char animation
+    const textElement = document.querySelector(".gsap-chars-reveal");
+    if (textElement) {
+        // Split text into characters
+        const text = textElement.textContent;
+        textElement.innerHTML = '';
+        
+        text.split('').forEach(char => {
+            const span = document.createElement('span');
+            span.textContent = char === ' ' ? '\u00A0' : char;
+            textElement.appendChild(span);
+        });
+        
+        // Animate each character
+        gsap.to(textElement.querySelectorAll('span'), {
+            opacity: 1,
+            duration: 0.03,
+            stagger: 0.015,
+            ease: "none",
+            delay: 0.8
+        });
+    }
+    
+    // Bounce animation for scroll indicator
+    gsap.to(".gsap-bounce", {
+        opacity: 1,
+        duration: 1,
+        ease: "power2.out",
+        delay: 1.5
+    });
+    
+    // Create continuous bounce animation
+    gsap.to(".scroll-indicator svg", {
+        y: -10,
+        duration: 1,
+        repeat: -1,
+        yoyo: true,
+        ease: "power1.inOut"
+    });
+    
+    // Zoom effect on shapes based on scroll position
+    const shapes = document.querySelectorAll('.parallax-shape');
+    shapes.forEach(shape => {
+        const direction = shape.getAttribute('data-direction') || 'in';
+        const zoomFactor = parseFloat(shape.getAttribute('data-zoom') || 1.2);
+        
+        // Create zoom effect that triggers on scroll
+        gsap.to(shape, {
+            scale: direction === 'in' ? zoomFactor : 1 / zoomFactor,
+            ease: "none",
+            scrollTrigger: {
+                trigger: ".scroll-parallax-container",
+                start: "top bottom",
+                end: "bottom top",
+                scrub: true
+            }
+        });
+    });
+    
+    // Animate parallax icons with scroll
+    const icons = document.querySelectorAll('.parallax-icon');
+    icons.forEach(icon => {
+        const speed = parseFloat(icon.getAttribute('data-scroll-speed') || 1);
+        const rotation = parseFloat(icon.getAttribute('data-rotation') || 0);
+        
+        // Complex movement and rotation on scroll
+        gsap.to(icon, {
+            y: speed * 100,
+            rotation: rotation,
+            ease: "none",
+            scrollTrigger: {
+                trigger: ".scroll-parallax-container",
+                start: "top bottom",
+                end: "bottom top",
+                scrub: true
+            }
+        });
+    });
+    
+    // Add scroll-triggered zoom effect to hero container
+    gsap.to(".scroll-parallax-container", {
+        scale: 0.85,
+        opacity: 0.8,
+        ease: "none",
+        scrollTrigger: {
+            trigger: ".scroll-parallax-container",
+            start: "top top",
+            end: "bottom top-=300",
+            scrub: true
+        }
+    });
 }
 
-
-function initScrambleText() {
+// New function for improved scramble text using GSAP
+function initImprovedScrambleText() {
+    // If GSAP isn't loaded yet, wait for it
+    if (!window.gsap) {
+        setTimeout(initImprovedScrambleText, 100);
+        return;
+    }
+    
     const heroTitle = document.getElementById("heroTitle");
-    if (heroTitle) {
-        // Get the original text
-        const originalText = heroTitle.textContent;
-        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+";
+    if (!heroTitle) return;
+    
+    // Get the original text
+    const originalText = heroTitle.textContent;
+    
+    // Clear the container
+    heroTitle.innerHTML = '';
+    
+    // Create individual spans for each character
+    originalText.split('').forEach(char => {
+        const span = document.createElement('span');
         
-        function scrambleText(target, original) {
-            let iterations = 0;
-            const maxIterations = 15;
-            
-            const interval = setInterval(() => {
-                target.innerText = original.split("")
-                    .map((letter, index) => {
-                        if (index < iterations) {
-                            return original[index];
-                        }
-                        return chars[Math.floor(Math.random() * chars.length)];
-                    })
-                    .join("");
-                
-                if (iterations >= original.length) {
-                    clearInterval(interval);
-                }
-                
-                iterations += 1 / 3;
-            }, 50);
+        if (char === ' ') {
+            // Handle spaces
+            span.innerHTML = '&nbsp;';
+            span.className = 'space';
+            span.style.margin = '0 0.2em';
+        } else {
+            span.textContent = char;
+            span.className = 'char';
+            span.dataset.char = char;
         }
         
-        // Start the scramble animation after a delay
-        setTimeout(() => {
-            scrambleText(heroTitle, originalText);
-        }, 1000);
-    }
+        heroTitle.appendChild(span);
+    });
+    
+    // Characters for scrambling
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+";
+    
+    // Get all character spans (excluding spaces)
+    const charSpans = heroTitle.querySelectorAll('.char');
+    
+    // Set up initial state - all are scrambled characters
+    charSpans.forEach(span => {
+        span.textContent = chars[Math.floor(Math.random() * chars.length)];
+        span._gsapTargetChar = span.dataset.char; // Store target character
+    });
+    
+    // GSAP animation for scramble text
+    gsap.to(charSpans, {
+        duration: 0.05,
+        stagger: 0.03,
+        repeatRefresh: true,
+        repeat: 10,
+        onRepeat: function(self) {
+            const target = self.targets()[0];
+            if (target.textContent !== target._gsapTargetChar) {
+                target.textContent = chars[Math.floor(Math.random() * chars.length)];
+            }
+        },
+        onComplete: function() {
+            // Set all chars to their final values
+            charSpans.forEach(span => {
+                span.textContent = span._gsapTargetChar;
+                
+                // Add hover interaction
+                span.addEventListener('mouseenter', () => {
+                    // Only if we're not currently animating this char
+                    if (!span._isAnimating) {
+                        span._isAnimating = true;
+                        
+                        // Store original char
+                        const targetChar = span._gsapTargetChar;
+                        
+                        // Quick scramble effect on hover
+                        const scrambleTl = gsap.timeline({
+                            onComplete: function() {
+                                span._isAnimating = false;
+                            }
+                        });
+                        
+                        scrambleTl.to(span, {
+                            duration: 0.05,
+                            repeat: 5,
+                            onRepeat: function() {
+                                span.textContent = chars[Math.floor(Math.random() * chars.length)];
+                            },
+                            onComplete: function() {
+                                span.textContent = targetChar;
+                            }
+                        });
+                        
+                        // Scale effect
+                        gsap.to(span, {
+                            scale: 1.5,
+                            color: "#5865F2",
+                            textShadow: "0 0 10px rgba(88, 101, 242, 0.8)",
+                            duration: 0.3,
+                            ease: "back.out(1.7)",
+                            yoyo: true,
+                            repeat: 1
+                        });
+                    }
+                });
+            });
+            
+            // Add whole title hover interaction
+            heroTitle.addEventListener('mouseenter', () => {
+                gsap.to(charSpans, {
+                    stagger: 0.02,
+                    color: function(i) {
+                        // Cycle through Discord brand colors
+                        const colors = ["#5865F2", "#57F287", "#FEE75C", "#EB459E"];
+                        return colors[i % colors.length];
+                    },
+                    textShadow: function(i) {
+                        const colors = ["#5865F2", "#57F287", "#FEE75C", "#EB459E"];
+                        return `0 0 10px ${colors[i % colors.length]}`;
+                    },
+                    duration: 0.5
+                });
+            });
+            
+            heroTitle.addEventListener('mouseleave', () => {
+                gsap.to(charSpans, {
+                    color: "white",
+                    textShadow: "none",
+                    duration: 0.5
+                });
+            });
+        }
+    });
+    
+    // Start revealing from invisible
+    gsap.from(heroTitle, {
+        opacity: 0,
+        y: 30,
+        duration: 1,
+        ease: "power3.out"
+    });
 }
 
 

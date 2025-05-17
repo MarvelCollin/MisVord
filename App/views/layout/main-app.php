@@ -7,7 +7,7 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo isset($page_title) ? $page_title : 'MiscVord - Your Place to Talk and Hang Out'; ?></title>
+        <title><?php echo isset($page_title) ? $page_title : 'MiscVord - Your Place to Talk and Hang Out'; ?></title>    <!-- Favicon -->    <link rel="icon" href="<?php echo asset('landing-page/main-logo.png'); ?>" type="image/png">    <link rel="shortcut icon" href="<?php echo asset('landing-page/main-logo.png'); ?>" type="image/png">
     <!-- Tailwind CSS via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>

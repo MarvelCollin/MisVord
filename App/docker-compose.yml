@@ -30,7 +30,7 @@ services:
       - DB_HOST=db
       - DB_NAME=misvord
       - DB_USER=root
-      - DB_PASS=MiscVord_secure_2023
+      - DB_PASS=password
       - DB_CHARSET=utf8mb4
       - SOCKET_SERVER=http://socket-server:3000
       - SOCKET_API_KEY=kolin123
@@ -63,7 +63,8 @@ services:
       - DB_HOST=db
       - DB_NAME=misvord
       - DB_USER=root
-      - DB_PASS=MiscVord_secure_2023
+      - DB_PASS=password
+      - DB_CHARSET=utf8mb4
     security_opt:
       - no-new-privileges:true
     ulimits:
@@ -84,7 +85,7 @@ services:
     restart: unless-stopped
     environment:
       MYSQL_DATABASE: misvord
-      MYSQL_ROOT_PASSWORD: MiscVord_secure_2023
+      MYSQL_ROOT_PASSWORD: password
       MYSQL_ROOT_HOST: "%"
     volumes:
       - miscvord_db_data:/var/lib/mysql
@@ -118,7 +119,7 @@ services:
       - PMA_ARBITRARY=1
       - UPLOAD_LIMIT=500M
       - PMA_USER=root
-      - PMA_PASSWORD=MiscVord_secure_2023
+      - PMA_PASSWORD=password
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true

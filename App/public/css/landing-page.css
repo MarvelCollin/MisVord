@@ -113,7 +113,6 @@ body {
     background: rgba(35, 39, 42, 0.5);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
 }
 
@@ -327,35 +326,139 @@ body {
     z-index: 15;
 }
 
-/* Text scramble animation effect */
+/* Enhanced scramble text */
 .scramble-text {
+    display: inline-block;
+    letter-spacing: 0.05em;
+    perspective: 1000px;
+    user-select: none;
+    overflow: visible;
     position: relative;
 }
 
-.char.scrambled {
-    animation: textScramble 0.8s ease forwards;
+.scramble-text.interactive {
+    cursor: default;
+}
+
+.scramble-text .char {
+    display: inline-block;
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transform-origin: center center;
+}
+
+.scramble-text .char.space {
+    width: 0.5em;
+    display: inline-block;
+    pointer-events: none;
+}
+
+.scramble-text .char.scrambled {
+    color: rgba(255, 255, 255, 0.9);
+    text-shadow: 
+        0 0 8px rgba(88, 101, 242, 0.7),
+        0 0 15px rgba(88, 101, 242, 0.5);
+    animation: textScramble 0.5s infinite;
+    transform-style: preserve-3d;
+}
+
+.scramble-text .char:hover {
+    transform: translateY(-5px) scale(1.3);
+    color: #5865F2; /* Discord blurple */
+    text-shadow: 
+        0 0 10px rgba(88, 101, 242, 0.8), 
+        0 0 20px rgba(88, 101, 242, 0.5),
+        0 0 30px rgba(88, 101, 242, 0.3);
+    z-index: 5;
+}
+
+.scramble-text.interactive .char:not(.scrambled):not(.space):hover {
+    animation: hover-pulse 1.5s infinite;
+}
+
+/* Add a subtle highlight under each letter on hover */
+.scramble-text.interactive .char:not(.space)::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 50%;
+    width: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #5865F2, #EB459E);
+    transform: translateX(-50%);
+    transition: width 0.3s ease;
+    border-radius: 3px;
+    opacity: 0;
+}
+
+.scramble-text.interactive .char:not(.space):hover::after {
+    width: 100%;
+    opacity: 1;
+}
+
+@keyframes hover-pulse {
+    0%, 100% { 
+        transform: scale(1.3) translateY(-5px);
+        text-shadow: 0 0 10px rgba(88, 101, 242, 0.8);
+    }
+    50% { 
+        transform: scale(1.5) translateY(-8px);
+        text-shadow: 0 0 20px rgba(88, 101, 242, 1), 0 0 30px rgba(88, 101, 242, 0.5);
+    }
 }
 
 @keyframes textScramble {
-    0% {
-        color: white;
-        text-shadow: 0 0 5px #5865F2;
+    0% { 
+        transform: translateX(-1px) translateY(1px) rotateX(5deg); 
+        opacity: 0.9;
     }
-    20% {
-        color: #5865F2;
-        text-shadow: 0 0 10px #5865F2;
-        transform: translateY(-5px);
+    25% { 
+        transform: translateX(0px) translateY(-1px) rotateY(-5deg); 
+        opacity: 1;
     }
-    40% {
-        color: white;
-        text-shadow: 0 0 15px #5865F2;
+    50% { 
+        transform: translateX(1px) translateY(0px) rotateZ(3deg); 
+        opacity: 0.9;
     }
-    100% {
-        color: white;
-        text-shadow: 0 0 10px rgba(88, 101, 242, 0.8), 
-                     0 0 20px rgba(88, 101, 242, 0.5), 
-                     0 0 30px rgba(88, 101, 242, 0.3);
+    75% { 
+        transform: translateX(0px) translateY(1px) rotateY(5deg); 
+        opacity: 0.8;
     }
+    100% { 
+        transform: translateX(-1px) translateY(0) rotateX(-5deg); 
+        opacity: 0.9;
+    }
+}
+
+/* Scramble text animation */
+.hero-section:hover .scramble-text.interactive .char:not(:hover):not(.space) {
+    opacity: 0.85;
+    transition: all 0.3s ease;
+}
+
+.hero-section:hover .scramble-text.interactive .char:nth-child(3n+1):not(:hover):not(.space) {
+    color: rgba(87, 242, 135, 0.9);
+    text-shadow: 0 0 8px rgba(87, 242, 135, 0.5);
+}
+
+.hero-section:hover .scramble-text.interactive .char:nth-child(3n+2):not(:hover):not(.space) {
+    color: rgba(88, 101, 242, 0.9);
+    text-shadow: 0 0 8px rgba(88, 101, 242, 0.5);
+}
+
+.hero-section:hover .scramble-text.interactive .char:nth-child(3n+3):not(:hover):not(.space) {
+    color: rgba(235, 69, 158, 0.9);
+    text-shadow: 0 0 8px rgba(235, 69, 158, 0.5);
+}
+
+/* Create 3D letter rotation on hover for the entire hero title */
+.hero-title.interactive {
+    transform-style: preserve-3d;
+    transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.hero-title.interactive:hover {
+    transform: perspective(500px) rotateX(5deg);
 }
 
 /**
@@ -432,7 +535,6 @@ body {
     background: rgba(32, 34, 37, 0.3);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .content-card {
@@ -956,7 +1058,6 @@ body {
     background: rgba(35, 39, 42, 0.6);
     backdrop-filter: blur(15px);
     -webkit-backdrop-filter: blur(15px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 
         0 8px 32px 0 rgba(0, 0, 0, 0.2),
         0 0 20px 5px rgba(88, 101, 242, 0.1);
@@ -1022,5 +1123,156 @@ body {
     
     .tornado-cloud {
         animation-duration: 30s !important;
+    }
+}
+
+/* Improved Parallax Hero Styles - No Border */
+.scroll-parallax-container {
+    min-height: 80vh;
+    position: relative;
+    overflow: visible;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    /* Remove all border styles */
+    border: none;
+    border-radius: 0;
+    background: transparent;
+}
+
+/* Parallax Elements */
+.parallax-elements {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    overflow: visible;
+}
+
+.parallax-shape {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(6px);
+    opacity: 0.25;
+}
+
+/* Improved blob shapes with Discord brand colors */
+.blob-purple {
+    width: 350px;
+    height: 350px;
+    background: radial-gradient(circle at 30% 40%, rgba(88, 101, 242, 0.7), transparent 70%);
+    top: -150px;
+    left: -150px;
+}
+
+.blob-blue {
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle at 70% 60%, rgba(88, 101, 242, 0.6), transparent 70%);
+    bottom: -100px;
+    right: -100px;
+}
+
+.blob-green {
+    width: 250px;
+    height: 250px;
+    background: radial-gradient(circle at 50% 50%, rgba(87, 242, 135, 0.6), transparent 70%);
+    top: 40%;
+    left: -80px;
+}
+
+/* Improved parallax icon styling */
+.parallax-icon {
+    position: absolute;
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.2));
+    z-index: 2;
+    transform-origin: center center;
+    will-change: transform;
+}
+
+.discord-icon {
+    width: 50px;
+    height: 50px;
+    top: 20%;
+    right: 15%;
+}
+
+.cat-icon {
+    width: 70px;
+    height: 70px;
+    bottom: 25%;
+    right: 10%;
+}
+
+.leaf-icon {
+    width: 40px;
+    height: 40px;
+    top: 35%;
+    left: 10%;
+}
+
+/* GSAP Animation Classes */
+.gsap-fade-in {
+    opacity: 0;
+}
+
+.gsap-stagger-fade > * {
+    opacity: 0;
+}
+
+.gsap-width-reveal {
+    width: 0;
+}
+
+.gsap-chars-reveal {
+    opacity: 1;
+}
+
+.gsap-chars-reveal span {
+    opacity: 0;
+    display: inline-block;
+}
+
+.gsap-bounce {
+    opacity: 0;
+}
+
+/* Scroll indicator */
+.scroll-indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+}
+
+.scroll-indicator:hover {
+    opacity: 1;
+}
+
+/* Enhanced scramble text for better animation */
+.gsap-scramble-text {
+    display: inline-block;
+    user-select: none;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .blob-purple {
+        width: 200px;
+        height: 200px;
+    }
+    
+    .blob-blue {
+        width: 180px;
+        height: 180px;
+    }
+    
+    .blob-green {
+        width: 150px;
+        height: 150px;
     }
 }

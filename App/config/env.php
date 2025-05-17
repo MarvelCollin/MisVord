@@ -16,7 +16,7 @@ class EnvLoader {
         $env['DB_HOST'] = getenv('DB_HOST') ?: 'db';
         $env['DB_NAME'] = getenv('DB_NAME') ?: 'misvord';
         $env['DB_USER'] = getenv('DB_USER') ?: 'root';
-        $env['DB_PASS'] = getenv('DB_PASS') ?: 'MiscVord_secure_2023';
+        $env['DB_PASS'] = getenv('DB_PASS') ?: 'password';
         $env['DB_CHARSET'] = getenv('DB_CHARSET') ?: 'utf8mb4';
         $env['SOCKET_SERVER'] = getenv('SOCKET_SERVER') ?: 'http://socket-server:3000';
         $env['SOCKET_API_KEY'] = getenv('SOCKET_API_KEY') ?: 'kolin123';
@@ -67,7 +67,7 @@ class EnvLoader {
         $host = self::get('DB_HOST', 'db');
         $dbname = self::get('DB_NAME', 'misvord');
         $username = self::get('DB_USER', 'root');
-        $password = self::get('DB_PASS', 'MiscVord_secure_2023');
+        $password = self::get('DB_PASS', 'password');
         $charset = self::get('DB_CHARSET', 'utf8mb4');
         
         try {

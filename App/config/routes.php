@@ -12,6 +12,7 @@ require_once __DIR__ . '/../controllers/ServerController.php';
 require_once __DIR__ . '/../controllers/ChannelController.php';
 require_once __DIR__ . '/../controllers/MessageController.php';
 require_once __DIR__ . '/../controllers/GoogleAuthController.php';
+require_once __DIR__ . '/env.php';
 
 // Define application routes
 return [
@@ -145,6 +146,32 @@ return [
     // Add a debug endpoint
     'GET:/api/debug' => function() {
         include __DIR__ . '/../debug_api.php';
+    },
+    
+    // Health check endpoint for Docker
+    'GET:/health' => function() {
+        try {
+            // Try to get a database connection
+            $pdo = EnvLoader::getPDOConnection();
+            $pdo->query("SELECT 1");
+            
+            // Return a success response
+            header('Content-Type: application/json');
+            echo json_encode([
+                'status' => 'healthy',
+                'database' => 'connected',
+                'timestamp' => date('c')
+            ]);
+        } catch (Exception $e) {
+            // Return an error response
+            header('Content-Type: application/json');
+            http_response_code(500);
+            echo json_encode([
+                'status' => 'unhealthy',
+                'error' => $e->getMessage(),
+                'timestamp' => date('c')
+            ]);
+        }
     },
     
     // 404 page - shown when no route matches
