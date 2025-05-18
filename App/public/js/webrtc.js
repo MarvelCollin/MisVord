@@ -1061,18 +1061,17 @@ function connectToSignalingServer() {
             socketServerUrl = socketServerUrl.replace('http:', 'https:');
         }
         
-        // Ensure the URL is correct and doesn't have duplicate paths
-        if (socketServerUrl.includes('/misvord/socket')) {
-            // Reset to a clean URL to avoid duplicate paths
-            socketServerUrl = 'https://marvelcollin.my.id/';
+        // Reset to absolute minimal URL and path for marvelcollin.my.id
+        socketServerUrl = 'https://marvelcollin.my.id';
+        socketPath = '/socket.io';
+        
+        // For misvord subpath
+        if (window.location.pathname.includes('/misvord/')) {
             socketPath = '/misvord/socket/socket.io';
-            
-            // Prevent duplicate paths in socketPath
-            socketPath = socketPath.replace(/\/+/g, '/').replace(/\/misvord\/socket\/misvord\/socket\//, '/misvord/socket/');
         }
         
         // Force secure WebSockets
-        addLogEntry(`Forcing secure WebSockets for marvelcollin.my.id domain: ${socketServerUrl}`, 'system');
+        addLogEntry(`Using secure WebSockets for marvelcollin.my.id: ${socketServerUrl} with path: ${socketPath}`, 'system');
         isSecurePage = true;
     }
     
@@ -1143,6 +1142,21 @@ function connectToSignalingServer() {
     
     // Add final checks before connecting
     if (envType === 'vps' || envType === 'marvel') {
+        // Special case for marvelcollin.my.id - always use these exact settings
+        if (hostname === 'marvelcollin.my.id') {
+            // Base URL with no path
+            socketServerUrl = 'https://marvelcollin.my.id';
+            
+            // Path depends on whether we're in misvord subpath or not
+            if (window.location.pathname.includes('/misvord/')) {
+                socketPath = '/misvord/socket/socket.io';
+            } else {
+                socketPath = '/socket.io';
+            }
+            
+            addLogEntry(`marvelcollin.my.id final config: ${socketServerUrl} with path ${socketPath}`, 'system');
+        }
+        
         // Ensure the socket path and URL are compatible - common issue in VPS environments
         
         // 1. Make sure socket path includes /socket.io
@@ -1941,6 +1955,23 @@ function pingAllUsers() {
 // WebSocket diagnostic function for VPS environments - NEW FUNCTION
 function diagnoseWebSocketIssues(socketUrl, socketPath, envType, isSecurePage) {
     addLogEntry(`Diagnosing WebSocket connection issue...`, 'system');
+    
+    // Special handling for marvelcollin.my.id domain
+    if (window.location.hostname === 'marvelcollin.my.id') {
+        addLogEntry(`Special diagnosis for marvelcollin.my.id domain`, 'system');
+        
+        // Force correct URL and path
+        let correctedUrl = 'https://marvelcollin.my.id';
+        let correctedPath = window.location.pathname.includes('/misvord/') ? 
+            '/misvord/socket/socket.io' : '/socket.io';
+        
+        // Create WebSocket URL for testing
+        const correctedWsUrl = correctedUrl.replace(/^http/, 'ws') + correctedPath;
+        
+        addLogEntry(`Testing connection with fixed URL/path: ${correctedWsUrl}`, 'system');
+        testWebSocketConnection(correctedWsUrl);
+        return;
+    }
     
     // Check for duplicate paths
     const pathSegmentsToCheck = ['/misvord/socket', '/miscvord/socket', '/socket/socket.io'];
