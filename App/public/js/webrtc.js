@@ -1056,11 +1056,23 @@ function connectToSignalingServer() {
     
     // Special handling for marvelcollin.my.id - ALWAYS use HTTPS/WSS
     if (hostname === 'marvelcollin.my.id') {
+        // Force HTTPS for the URL
         if (socketServerUrl.startsWith('http:')) {
             socketServerUrl = socketServerUrl.replace('http:', 'https:');
         }
+        
+        // Ensure the URL is correct and doesn't have duplicate paths
+        if (socketServerUrl.includes('/misvord/socket')) {
+            // Reset to a clean URL to avoid duplicate paths
+            socketServerUrl = 'https://marvelcollin.my.id/misvord/socket';
+            socketPath = '/misvord/socket/socket.io';
+            
+            // Prevent duplicate paths in socketPath
+            socketPath = socketPath.replace(/\/+/g, '/').replace(/\/misvord\/socket\/misvord\/socket\//, '/misvord/socket/');
+        }
+        
         // Force secure WebSockets
-        addLogEntry(`Forcing secure WebSockets for marvelcollin.my.id domain`, 'system');
+        addLogEntry(`Forcing secure WebSockets for marvelcollin.my.id domain: ${socketServerUrl}`, 'system');
         isSecurePage = true;
     }
     
@@ -1148,13 +1160,39 @@ function connectToSignalingServer() {
             socketServerUrl = socketServerUrl.replace(/\/socket\.io$/, '');
         }
         
-        // 4. Final prefix check for subpath installations
+        // 4. Check for duplicate path segments
+        const pathSegments = ['/misvord/', '/miscvord/', '/socket/'];
+        pathSegments.forEach(segment => {
+            // Check for duplicated segments in URL
+            const segmentRegex = new RegExp(`(${segment.replace(/\//g, '\\/').replace(/\./g, '\\.')}.*?${segment.replace(/\//g, '\\/').replace(/\./g, '\\.')})`, 'i');
+            if (segmentRegex.test(socketServerUrl)) {
+                const correctedUrl = socketServerUrl.replace(segmentRegex, segment);
+                addLogEntry(`Fixed duplicate path segment in URL: ${socketServerUrl} → ${correctedUrl}`, 'warn');
+                socketServerUrl = correctedUrl;
+            }
+            
+            // Check for duplicated segments in path
+            if (segmentRegex.test(socketPath)) {
+                const correctedPath = socketPath.replace(segmentRegex, segment);
+                addLogEntry(`Fixed duplicate path segment in socket path: ${socketPath} → ${correctedPath}`, 'warn');
+                socketPath = correctedPath;
+            }
+        });
+        
+        // 5. Final prefix check for subpath installations
         if (socketPath.includes('/misvord/') || socketPath.includes('/miscvord/')) {
             const subpathMatch = socketPath.match(/\/(mis[cv]ord)\//i);
             if (subpathMatch && !socketServerUrl.includes(subpathMatch[1].toLowerCase())) {
                 addLogEntry(`VPS subpath mismatch detected. Updating URL to match path.`, 'warn');
                 socketServerUrl = `${window.location.protocol}//${window.location.host}/${subpathMatch[1].toLowerCase()}/socket`;
             }
+        }
+        
+        // 6. Protocol check - CRITICAL for avoiding Mixed Content errors
+        const pageProtocol = window.location.protocol;
+        if (pageProtocol === 'https:' && socketServerUrl.startsWith('http:')) {
+            addLogEntry(`MIXED CONTENT ISSUE: Forcing HTTPS for WebSocket on secure page`, 'error');
+            socketServerUrl = socketServerUrl.replace('http:', 'https:');
         }
     }
     
@@ -1904,6 +1942,26 @@ function pingAllUsers() {
 function diagnoseWebSocketIssues(socketUrl, socketPath, envType, isSecurePage) {
     addLogEntry(`Diagnosing WebSocket connection issue...`, 'system');
     
+    // Check for duplicate paths
+    const pathSegmentsToCheck = ['/misvord/socket', '/miscvord/socket', '/socket/socket.io'];
+    for (const segment of pathSegmentsToCheck) {
+        const pattern = segment.replace(/\//g, '\\/').replace(/\./g, '\\.');
+        const regex = new RegExp(`(${pattern}.*?${pattern})`, 'i');
+        if (regex.test(socketUrl)) {
+            addLogEntry(`DUPLICATE PATH DETECTED in URL: ${socketUrl}`, 'error');
+            const correctedUrl = socketUrl.replace(regex, segment);
+            addLogEntry(`Try with corrected URL: ${correctedUrl}`, 'system');
+            socketUrl = correctedUrl;
+        }
+        
+        if (regex.test(socketPath)) {
+            addLogEntry(`DUPLICATE PATH DETECTED in socket path: ${socketPath}`, 'error');
+            const correctedPath = socketPath.replace(regex, segment);
+            addLogEntry(`Try with corrected path: ${correctedPath}`, 'system');
+            socketPath = correctedPath;
+        }
+    }
+    
     // Check for port issues first (common problem)
     if (socketUrl.includes(':1001') || window.location.port === '1001') {
         addLogEntry(`Using web server on port 1001 but WebSocket server runs on port 1002`, 'system');
@@ -1923,24 +1981,47 @@ function diagnoseWebSocketIssues(socketUrl, socketPath, envType, isSecurePage) {
     const wsUrl = socketUrl.replace(/^http/, 'ws') + socketPath;
     addLogEntry(`WebSocket URL being tested: ${wsUrl}`, 'system');
     
+    // Check for protocol mismatch - CRITICAL
+    const pageProtocol = window.location.protocol;
+    const isSecureProtocol = pageProtocol === 'https:';
+    const socketProtocol = socketUrl.startsWith('https:') ? 'https:' : 'http:';
+    const expectedWsProtocol = isSecureProtocol ? 'wss:' : 'ws:';
+    const actualWsProtocol = wsUrl.startsWith('wss:') ? 'wss:' : 'ws:';
+    
+    addLogEntry(`Page protocol: ${pageProtocol}, Socket protocol: ${socketProtocol}, WS protocol: ${actualWsProtocol}`, 'system');
+    
+    if (isSecureProtocol && socketProtocol === 'http:') {
+        addLogEntry(`MIXED CONTENT ERROR: HTTPS page cannot use insecure WebSockets (ws://)`, 'error');
+        addLogEntry(`This is a serious security issue that browsers block. Must use wss:// for WebSockets on HTTPS sites.`, 'error');
+        
+        // Suggest corrected URL
+        const secureWsUrl = wsUrl.replace('ws:', 'wss:');
+        const secureSocketUrl = socketUrl.replace('http:', 'https:');
+        addLogEntry(`Try secure WebSocket URL: ${secureWsUrl}`, 'system');
+        addLogEntry(`Solution: Update socketServerUrl to use https:// instead of http://: ${secureSocketUrl}`, 'system');
+        
+        // Test secure connection
+        testWebSocketConnection(secureWsUrl);
+        return;
+    }
+    
+    // Check for protocol-path mismatch
+    if (isSecureProtocol && actualWsProtocol !== 'wss:') {
+        addLogEntry(`PROTOCOL MISMATCH: HTTPS page should use WSS protocol, but got ${actualWsProtocol}`, 'error');
+        const correctedWsUrl = wsUrl.replace('ws:', 'wss:');
+        addLogEntry(`Try with corrected protocol: ${correctedWsUrl}`, 'system');
+        
+        // Test with corrected protocol
+        testWebSocketConnection(correctedWsUrl);
+        return;
+    }
+    
     // Log browser WebSocket support
     const wsSupport = 'WebSocket' in window;
     addLogEntry(`Browser WebSocket support: ${wsSupport ? 'Yes' : 'No'}`, 'system');
     if (!wsSupport) {
         addLogEntry(`Your browser doesn't support WebSockets! This is a critical issue.`, 'error');
         return;
-    }
-    
-    // Check for protocol mismatch
-    const pageProtocol = window.location.protocol;
-    const isSecureProtocol = pageProtocol === 'https:';
-    const socketProtocol = socketUrl.startsWith('https:') ? 'https:' : 'http:';
-    const expectedWsProtocol = isSecureProtocol ? 'wss:' : 'ws:';
-    
-    addLogEntry(`Page protocol: ${pageProtocol}, Socket protocol: ${socketProtocol}`, 'system');
-    if (isSecureProtocol && socketProtocol === 'http:') {
-        addLogEntry(`MIXED CONTENT ERROR: HTTPS page cannot use insecure WebSockets (ws://)`, 'error');
-        addLogEntry(`Solution: Update socketServerUrl to use https:// instead of http://`, 'system');
     }
     
     // Fix for localhost - make sure correct port is used
