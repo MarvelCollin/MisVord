@@ -30,7 +30,8 @@ if (empty($socket_server_url)) {
         $socket_server_url = 'http://localhost:1002';
     } else if ($is_marvel_domain) {
         // Production on marvelcollin.my.id domain with subpath
-        $socket_server_url = $protocol . '://' . $host_domain . '/misvord/socket';
+        // IMPORTANT: Use HTTPS for production
+        $socket_server_url = 'https://' . $host_domain . '/misvord/socket';
     } else {
         // Other production/VPS environments: direct port
         $host_domain = preg_replace('#^https?://#', '', $host_domain);
@@ -49,6 +50,7 @@ $additional_head = '
 <meta name="socket-server" content="' . $socket_server_url . '">
 <meta name="socket-path" content="' . $socket_path . '">
 <meta name="env-type" content="' . ($is_local ? 'local' : ($is_marvel_domain ? 'marvel' : 'vps')) . '">
+<meta name="socket-secure" content="' . ($protocol === 'https' ? 'true' : 'false') . '">
 <style>
     .video-grid {
         display: grid;

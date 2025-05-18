@@ -32,7 +32,18 @@ const io = new Server(server, {
   transports: ['websocket', 'polling'],
   // Allow Socket.IO to work behind Nginx with path prefix
   path: socketPath,
-  allowEIO3: true
+  allowEIO3: true,
+  // Trust proxies for secure WebSocket connections
+  handlePreflightRequest: (req, res) => {
+    const headers = {
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Origin': req.headers.origin || '*',
+      'Access-Control-Allow-Credentials': true,
+      'Access-Control-Allow-Methods': 'GET,POST,OPTIONS,PUT,DELETE'
+    };
+    res.writeHead(200, headers);
+    res.end();
+  }
 });
 
 // Enhanced debugging configuration
@@ -690,8 +701,15 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 1002;
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Socket.IO server for video calls running on port ${PORT}`);
-  console.log(`Socket.IO server available at http://localhost:${PORT}`);
+
+// Safety check to avoid port 3000 that's already in use
+const FINAL_PORT = PORT === 3000 ? 1002 : PORT;
+if (FINAL_PORT !== PORT) {
+  console.log(`⚠️ Port ${PORT} (possibly from environment) cannot be used. Using port ${FINAL_PORT} instead.`);
+}
+
+server.listen(FINAL_PORT, '0.0.0.0', () => {
+  console.log(`🚀 Socket.IO server for video calls running on port ${FINAL_PORT}`);
+  console.log(`Socket.IO server available at http://localhost:${FINAL_PORT}`);
   console.log(`Socket.IO path: ${socketPath}`);
 });

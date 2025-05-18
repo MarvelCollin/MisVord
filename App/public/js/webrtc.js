@@ -989,6 +989,7 @@ function connectToSignalingServer() {
     const socketServerUrlMeta = document.querySelector('meta[name="socket-server"]');
     const socketPathMeta = document.querySelector('meta[name="socket-path"]');
     const envTypeMeta = document.querySelector('meta[name="env-type"]');
+    const socketSecureMeta = document.querySelector('meta[name="socket-secure"]');
     
     if (!socketServerUrlMeta) {
         addLogEntry("Socket server URL meta tag not found!", "error");
@@ -1002,22 +1003,34 @@ function connectToSignalingServer() {
         // Get window hostname for potential fallback
         const hostname = window.location.hostname;
         const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
-        const fallbackUrl = isLocalhost ? 'http://localhost:1002' : `http://${hostname}:1002`;
+        const isSecure = window.location.protocol === 'https:';
+        const protocol = isSecure ? 'https' : 'http';
+        const fallbackUrl = isLocalhost ? 'http://localhost:1002' : `${protocol}://${hostname}:1002`;
         
         addLogEntry(`Using fallback socket URL: ${fallbackUrl}`, 'system');
         tryFallbackSocketConnection(fallbackUrl);
         return;
     }
     
-    const socketServerUrl = socketServerUrlMeta.content;
+    let socketServerUrl = socketServerUrlMeta.content;
     const socketPath = socketPathMeta ? socketPathMeta.content : '/socket.io';
     const envType = envTypeMeta ? envTypeMeta.content : 'unknown';
+    const isSecurePage = socketSecureMeta ? socketSecureMeta.content === 'true' : window.location.protocol === 'https:';
     
-    addLogEntry(`Connecting to signaling server at ${socketServerUrl} (Path: ${socketPath}, Env: ${envType})...`, 'system');
+    // Force HTTPS/WSS if page is loaded over HTTPS
+    if (isSecurePage && socketServerUrl.startsWith('http:')) {
+        // Replace http: with https: for secure WebSockets
+        socketServerUrl = socketServerUrl.replace('http:', 'https:');
+        addLogEntry(`Enforcing secure WebSockets, updated URL to: ${socketServerUrl}`, 'system');
+    }
+    
+    addLogEntry(`Connecting to signaling server at ${socketServerUrl} (Path: ${socketPath}, Env: ${envType}, Secure: ${isSecurePage})...`, 'system');
     console.log('%c[SOCKET SERVER CONFIG]', 'background:#007bff;color:white;padding:2px 5px;', {
         url: socketServerUrl,
         path: socketPath,
-        environment: envType
+        environment: envType,
+        secure: isSecurePage,
+        pageProtocol: window.location.protocol
     });
 
     if (socket && socket.connected) {
@@ -1033,10 +1046,12 @@ function connectToSignalingServer() {
             reconnectionDelay: 3000,
             timeout: 10000,
             forceNew: true,
+            secure: isSecurePage, // Force secure WebSockets when on HTTPS
             query: {
                 clientVersion: '1.0.0',
                 userAgent: navigator.userAgent,
-                envType: envType
+                envType: envType,
+                secure: isSecurePage
             }
         });
 
