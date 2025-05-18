@@ -1013,10 +1013,10 @@ function connectToSignalingServer() {
         return;
     }
     
-    const socketServerUrl = socketServerUrlMeta.content;
+    let socketServerUrl = socketServerUrlMeta.content;
     let socketPath = socketPathMeta ? socketPathMeta.content : '/socket.io';
     const envType = envTypeMeta ? envTypeMeta.content : 'unknown';
-    const isSecurePage = socketSecureMeta ? socketSecureMeta.content === 'true' : window.location.protocol === 'https:';
+    let isSecurePage = socketSecureMeta ? socketSecureMeta.content === 'true' : window.location.protocol === 'https:';
     const isSubpath = socketSubpathMeta ? socketSubpathMeta.content === 'true' : false;
     
     // Define isLocalhost variable

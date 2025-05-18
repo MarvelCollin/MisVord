@@ -1,5 +1,7 @@
 const express = require('express');
 const http = require('http');
+const https = require('https');
+const fs = require('fs');
 const { Server } = require('socket.io');
 const cors = require('cors');
 // const path = require('path'); // Not used in this simplified version
@@ -12,7 +14,32 @@ app.use(cors({
   credentials: true
 })); 
 
-const server = http.createServer(app);
+// Create HTTP server
+const httpServer = http.createServer(app);
+
+// Try to create HTTPS server if cert files exist
+let httpsServer = null;
+let server = httpServer; // Default to HTTP server
+
+// Check if we can enable HTTPS/WSS
+try {
+  if (fs.existsSync('./docker/certs/server.key') && fs.existsSync('./docker/certs/server.crt')) {
+    console.log('🔒 SSL certificates found! Enabling secure WebSockets (WSS)');
+    const options = {
+      key: fs.readFileSync('./docker/certs/server.key'),
+      cert: fs.readFileSync('./docker/certs/server.crt')
+    };
+    httpsServer = https.createServer(options, app);
+    // Use HTTPS server if available
+    server = httpsServer;
+    console.log('🔒 HTTPS/WSS server created successfully');
+  } else {
+    console.log('⚠️ SSL certificates not found. Running in HTTP/WS mode only.');
+  }
+} catch (err) {
+  console.log('⚠️ Error setting up HTTPS server:', err.message);
+  console.log('⚠️ Running in HTTP/WS mode only.');
+}
 
 // Get allowed origins from env or use default wildcard
 const corsAllowedOrigins = process.env.CORS_ALLOWED_ORIGINS || '*';
@@ -712,6 +739,7 @@ io.on('connection', (socket) => {
 // Always use port 1002 by default instead of 3000
 // Since we saw 3000 was already in use in the error logs
 const PORT = process.env.PORT || 1002;
+const SECURE_PORT = process.env.SECURE_PORT || 1443;
 
 // Safety check to avoid port 3000 that's already in use
 const FINAL_PORT = PORT === 3000 ? 1002 : PORT;
@@ -719,13 +747,23 @@ if (FINAL_PORT !== PORT) {
   console.log(`⚠️ Port ${PORT} (possibly from environment) cannot be used. Using port ${FINAL_PORT} instead.`);
 }
 
+// Start the HTTP server
 server.listen(FINAL_PORT, '0.0.0.0', () => {
   console.log(`🚀 Socket.IO server for video calls running on port ${FINAL_PORT}`);
   console.log(`Socket.IO server available at http://localhost:${FINAL_PORT}`);
   console.log(`Socket.IO path: ${socketPath}`);
+});
+
+// If HTTPS is enabled and we have a secure server instance, start it too
+if (httpsServer && process.env.USE_HTTPS === 'true') {
+  httpsServer.listen(SECURE_PORT, '0.0.0.0', () => {
+    console.log(`🔒 SECURE Socket.IO server (WSS) running on port ${SECURE_PORT}`);
+    console.log(`Secure Socket.IO server available at https://localhost:${SECURE_PORT}`);
+  });
+}
   
-  if (isVpsEnvironment) {
-    console.log(`
+if (isVpsEnvironment) {
+  console.log(`
 ======================= VPS DEPLOYMENT NOTES ========================
 This socket server is configured to work with Nginx reverse proxy.
 Make sure you have the following in your Nginx config:
@@ -755,5 +793,4 @@ location /misvord/socket/ {
 
 ===================================================================
 `);
-  }
-});
+}

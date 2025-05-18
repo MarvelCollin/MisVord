@@ -61,17 +61,20 @@ services:
       - miscvord_network
     ports:
       - "1002:1002"
+      - "1443:1443" # Added secure port for HTTPS/WSS
     environment:
       - NODE_ENV=production
       - PORT=1002
+      - SECURE_PORT=1443 # Added environment variable for secure port
       - SOCKET_API_KEY=kolin123
       - DB_HOST=db
       - DB_PORT=1003
       - DB_NAME=misvord
       - DB_USER=root
       - DB_PASS=password
-      - SOCKET_URL=http://socket-server:1002
+      - SOCKET_URL=https://socket-server:1443 # Updated to HTTPS
       - CORS_ALLOWED_ORIGINS=*
+      - USE_HTTPS=true # Enable HTTPS support
     security_opt:
       - no-new-privileges:true
     ulimits:

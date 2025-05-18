@@ -31,31 +31,27 @@ $socket_server_url = getenv('SOCKET_SERVER');
 
 // Auto-detect environment and set appropriate socket URL
 if (empty($socket_server_url)) {
-    if ($is_local) {
-        // Local development: direct port
-        $socket_server_url = 'http://localhost:1002';
-    } else if ($is_marvel_domain) {
+    // DOCKER ENVIRONMENT FIX - Always use direct port for WebSocket in browser
+    // When using Docker, we need to connect directly to the socket server port
+    // IMPORTANT: Use HTTPS for secure WebSockets (WSS) to avoid mixed-content warnings
+    $socket_server_url = $is_https ? 'https://localhost:1002' : 'http://localhost:1002'; 
+    
+    // In production environments, we might need subpath
+    if ($is_marvel_domain) {
         // Production on marvelcollin.my.id domain with subpath
         // IMPORTANT: ALWAYS use HTTPS for marvelcollin.my.id domain
         $socket_server_url = 'https://' . $host_domain . '/misvord/socket';
-    } else {
+    } else if (!$is_local && ($is_production || getenv('IS_VPS') === 'true')) {
         // Other production/VPS environments
         // Force HTTPS for WebSockets when the page is loaded over HTTPS
         $host_domain = preg_replace('#^https?://#', '', $host_domain);
         
-        // IMPORTANT: Don't use direct port references for production - always use subpath
-        // $socket_server_url = $protocol . '://' . $host_domain . ':1002';
-        $socket_server_url = $protocol . '://' . $host_domain . '/misvord/socket';
-        
-        // For VPS with Nginx proxy, use the subpath approach instead of direct port
-        if ($is_production || getenv('IS_VPS') === 'true') {
-            // Check if we're in a subpath
-            $request_uri = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '';
-            if (strpos($request_uri, '/misvord/') !== false) {
-                $socket_server_url = $protocol . '://' . $host_domain . '/misvord/socket';
-            } else if (strpos($request_uri, '/miscvord/') !== false) {
-                $socket_server_url = $protocol . '://' . $host_domain . '/miscvord/socket';
-            }
+        // Check if we're in a subpath
+        $request_uri = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '';
+        if (strpos($request_uri, '/misvord/') !== false) {
+            $socket_server_url = $protocol . '://' . $host_domain . '/misvord/socket';
+        } else if (strpos($request_uri, '/miscvord/') !== false) {
+            $socket_server_url = $protocol . '://' . $host_domain . '/miscvord/socket';
         }
     }
 }
@@ -68,6 +64,10 @@ if (strpos($socket_server_url, '/misvord/socket') !== false) {
 } else if (strpos($socket_server_url, '/miscvord/socket') !== false) {
     $socket_path = '/miscvord/socket/socket.io';
     $is_subpath = true;
+} else if (strpos($socket_server_url, 'localhost:1002') !== false) {
+    // Direct connection to socket server in Docker
+    $socket_path = '/socket.io';
+    $is_subpath = false;
 } else {
     $socket_path = '/socket.io';
 }
