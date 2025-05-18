@@ -70,18 +70,31 @@ if (empty($socket_server_url)) {
 // Add socket path config for JavaScript
 $is_subpath = false;
 if (strpos($socket_server_url, '/misvord/socket') !== false) {
-    $socket_path = '/misvord/socket/socket.io';
+    // For a subpath installation, make sure the path is correct for Socket.IO
+    $socket_path = '/misvord/socket/socket.io'; // This path must match server configuration
     $is_subpath = true;
 } else if (strpos($socket_server_url, '/miscvord/socket') !== false) {
-    $socket_path = '/miscvord/socket/socket.io';
+    // Alternative subpath
+    $socket_path = '/miscvord/socket/socket.io'; // This path must match server configuration
     $is_subpath = true;
 } else if (strpos($socket_server_url, 'localhost:1002') !== false || strpos($socket_server_url, '127.0.0.1:1002') !== false) {
-    // Direct connection to socket server in Docker
-    $socket_path = '/socket.io';
+    // Direct connection to socket server in Docker - use standard path
+    $socket_path = '/socket.io'; // Standard Socket.IO path
     $is_subpath = false;
 } else {
-    $socket_path = '/socket.io';
+    // Default path
+    $socket_path = '/socket.io'; // Standard Socket.IO path
 }
+
+// Additional check to ensure the path doesn't have a namespace appended
+if (strpos($socket_path, '#') !== false || strpos($socket_path, '?') !== false) {
+    // Remove any query parameters or hash fragments
+    $socket_path = strtok($socket_path, '?#');
+    error_log("Removed invalid characters from socket path: " . $socket_path);
+}
+
+// Ensure the path doesn't end with an invalid character
+$socket_path = rtrim($socket_path, '/');
 
 // Log for debugging
 $env_type = $is_local ? 'local' : ($is_marvel_domain ? 'marvel' : 'vps');
