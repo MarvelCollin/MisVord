@@ -13,8 +13,12 @@ if (!function_exists('asset')) {
 $page_title = 'MiscVord - Global Video Chat';
 $body_class = 'bg-gray-900 text-white overflow-hidden';
 
+// Define the socket server URL directly in this page to override any other settings
+$socket_server_url = 'http://localhost:1002';
 
 $additional_head = '
+<!-- Force socket server URL for WebRTC -->
+<meta name="socket-server" content="' . $socket_server_url . '">
 <style>
     .video-grid {
         display: grid;
@@ -253,6 +257,51 @@ $additional_head = '
     </div>
 </div>
 
+<!-- Debug Panel for WebRTC (Initially Hidden) -->
+<div id="webrtcDebugPanel" class="fixed left-0 top-0 bottom-0 bg-gray-800 border-r border-gray-700 w-80 p-4 transform -translate-x-full transition-transform duration-300 z-50 overflow-y-auto">
+    <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
+        <h3 class="text-lg font-bold">WebRTC Debug</h3>
+        <button id="closeDebugPanel" class="text-gray-400 hover:text-white">&times;</button>
+    </div>
+    
+    <div class="mb-4">
+        <h4 class="text-sm font-semibold mb-2 text-blue-400">Socket Connection</h4>
+        <div id="debugSocketInfo" class="bg-gray-900 rounded p-2 text-xs">
+            <div>Status: <span id="debugSocketStatus">Unknown</span></div>
+            <div>URL: <span id="debugSocketURL">Unknown</span></div>
+            <div>Transport: <span id="debugSocketTransport">Unknown</span></div>
+            <div>Room: <span id="debugSocketRoom">Unknown</span></div>
+        </div>
+    </div>
+    
+    <div class="mb-4">
+        <h4 class="text-sm font-semibold mb-2 text-blue-400">User Info</h4>
+        <div id="debugUserInfo" class="bg-gray-900 rounded p-2 text-xs">
+            <div>Local Name: <span id="debugLocalUserName">Unknown</span></div>
+            <div>Socket ID: <span id="debugSocketId">Unknown</span></div>
+            <div>Media Status: <span id="debugMediaStatus">Unknown</span></div>
+        </div>
+    </div>
+    
+    <div class="mb-4">
+        <h4 class="text-sm font-semibold mb-2 text-blue-400">Peer Connections</h4>
+        <div id="debugPeerList" class="bg-gray-900 rounded p-2 text-xs">
+            <div class="italic text-gray-500">No peers connected</div>
+        </div>
+    </div>
+    
+    <div>
+        <button id="refreshDebugInfo" class="w-full bg-blue-600 text-white text-xs py-1 px-2 rounded hover:bg-blue-700">
+            Refresh Info
+        </button>
+    </div>
+</div>
+
+<!-- Debug Toggle Button -->
+<button id="toggleDebugPanel" class="fixed bottom-4 left-4 bg-gray-700 hover:bg-gray-600 text-white rounded-full w-10 h-10 flex items-center justify-center shadow-lg z-50">
+    <span class="text-lg">��</span>
+</button>
+
 <div class="flex h-screen">
     <div class="main-content flex-1 flex flex-col">
         <div class="flex justify-between items-center mb-4">
@@ -318,6 +367,7 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log("Checking for WebRTC modules...");
     console.log("WebRTCCompat available:", typeof window.WebRTCCompat !== 'undefined');
     console.log("WebRTCDebug available:", typeof window.WebRTCDebug !== 'undefined');
+    console.log("WebRTCPlayer available:", typeof window.WebRTCPlayer !== 'undefined');
     
     // If modules aren't loaded, try to load them manually
     if (typeof window.WebRTCCompat === 'undefined') {
@@ -326,11 +376,26 @@ document.addEventListener('DOMContentLoaded', function() {
         compatScript.src = '/js/webrtc-modules/browser-compatibility.js';
         compatScript.onload = function() {
             console.log("WebRTCCompat manually loaded successfully");
+            // Run compatibility check once loaded
+            if (typeof window.WebRTCCompat?.check === 'function') {
+                const compatInfo = window.WebRTCCompat.check();
+                if (!compatInfo.isCompatible || compatInfo.issues.length > 0) {
+                    window.WebRTCCompat.showWarning(compatInfo);
+                }
+            }
         };
         compatScript.onerror = function() {
             console.error("Failed to manually load WebRTCCompat");
         };
         document.head.appendChild(compatScript);
+    } else {
+        // Run compatibility check if already loaded
+        if (typeof window.WebRTCCompat?.check === 'function') {
+            const compatInfo = window.WebRTCCompat.check();
+            if (!compatInfo.isCompatible || compatInfo.issues.length > 0) {
+                window.WebRTCCompat.showWarning(compatInfo);
+            }
+        }
     }
     
     if (typeof window.WebRTCDebug === 'undefined') {
@@ -339,6 +404,13 @@ document.addEventListener('DOMContentLoaded', function() {
         debugScript.src = '/js/webrtc-modules/video-debug.js';
         document.head.appendChild(debugScript);
     }
+    
+    if (typeof window.WebRTCPlayer === 'undefined') {
+        console.warn("WebRTCPlayer not loaded, attempting to load it manually");
+        const playerScript = document.createElement('script');
+        playerScript.src = '/js/webrtc-modules/video-player.js';
+        document.head.appendChild(playerScript);
+    }
 });
 </script>
 
@@ -346,7 +418,123 @@ document.addEventListener('DOMContentLoaded', function() {
 <script src="/js/webrtc-modules/browser-compatibility.js"></script>
 <script src="/js/webrtc-modules/video-debug.js"></script>
 <script src="/js/webrtc-modules/video-player.js"></script>
+<script src="/js/webrtc-modules/connection-monitor.js"></script>
 <script src="/js/webrtc.js"></script>
+
+<!-- WebRTC Debugging Script -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Debug panel elements
+    const debugPanel = document.getElementById('webrtcDebugPanel');
+    const toggleDebugBtn = document.getElementById('toggleDebugPanel');
+    const closeDebugBtn = document.getElementById('closeDebugPanel');
+    const refreshDebugBtn = document.getElementById('refreshDebugInfo');
+    
+    // Debug info elements
+    const debugSocketStatus = document.getElementById('debugSocketStatus');
+    const debugSocketURL = document.getElementById('debugSocketURL');
+    const debugSocketTransport = document.getElementById('debugSocketTransport');
+    const debugSocketRoom = document.getElementById('debugSocketRoom');
+    const debugLocalUserName = document.getElementById('debugLocalUserName');
+    const debugSocketId = document.getElementById('debugSocketId');
+    const debugMediaStatus = document.getElementById('debugMediaStatus');
+    const debugPeerList = document.getElementById('debugPeerList');
+    
+    // Toggle debug panel visibility
+    toggleDebugBtn.addEventListener('click', function() {
+        debugPanel.classList.toggle('-translate-x-full');
+        updateDebugInfo();
+    });
+    
+    // Close debug panel
+    closeDebugBtn.addEventListener('click', function() {
+        debugPanel.classList.add('-translate-x-full');
+    });
+    
+    // Refresh debug info
+    refreshDebugBtn.addEventListener('click', updateDebugInfo);
+    
+    // Update debug information
+    function updateDebugInfo() {
+        // Access window-level WebRTC variables
+        setTimeout(() => {
+            try {
+                // Socket connection info
+                if (window.socket) {
+                    debugSocketStatus.textContent = window.socket.connected ? 'Connected' : 'Disconnected';
+                    debugSocketStatus.className = window.socket.connected ? 'text-green-400' : 'text-red-400';
+                    debugSocketURL.textContent = window.socket.io.uri || 'Unknown';
+                    debugSocketTransport.textContent = window.socket.io.engine.transport.name || 'Unknown';
+                    debugSocketRoom.textContent = window.VIDEO_CHAT_ROOM || 'Unknown';
+                } else {
+                    debugSocketStatus.textContent = 'Not Initialized';
+                    debugSocketStatus.className = 'text-yellow-400';
+                }
+                
+                // User info
+                debugLocalUserName.textContent = window.userName || 'Unknown';
+                debugSocketId.textContent = window.socketId || 'Unknown';
+                
+                // Media status
+                const mediaState = [];
+                if (window.localStream) {
+                    const videoTracks = window.localStream.getVideoTracks();
+                    const audioTracks = window.localStream.getAudioTracks();
+                    mediaState.push(`Video: ${videoTracks.length > 0 ? (videoTracks[0].enabled ? 'On' : 'Off') : 'None'}`);
+                    mediaState.push(`Audio: ${audioTracks.length > 0 ? (audioTracks[0].enabled ? 'On' : 'Off') : 'None'}`);
+                } else {
+                    mediaState.push('No local media');
+                }
+                debugMediaStatus.textContent = mediaState.join(', ');
+                
+                // Peer connections
+                if (window.peers && Object.keys(window.peers).length > 0) {
+                    let peerHTML = '';
+                    for (const [peerId, peerData] of Object.entries(window.peers)) {
+                        const connectionState = peerData.pc ? peerData.pc.connectionState : 'unknown';
+                        const iceState = peerData.pc ? peerData.pc.iceConnectionState : 'unknown';
+                        
+                        let stateColor = 'text-yellow-400';
+                        if (connectionState === 'connected' || iceState === 'connected') {
+                            stateColor = 'text-green-400';
+                        } else if (connectionState === 'failed' || iceState === 'failed' || 
+                                 connectionState === 'disconnected' || iceState === 'disconnected') {
+                            stateColor = 'text-red-400';
+                        }
+                        
+                        peerHTML += `
+                            <div class="border-b border-gray-700 py-2">
+                                <div><span class="font-semibold">User:</span> ${peerData.userName || 'Unknown'}</div>
+                                <div><span class="font-semibold">ID:</span> <span class="text-xs">${peerId.substring(0,8)}...</span></div>
+                                <div><span class="font-semibold">State:</span> <span class="${stateColor}">${connectionState} / ${iceState}</span></div>
+                            </div>
+                        `;
+                    }
+                    debugPeerList.innerHTML = peerHTML;
+                } else {
+                    debugPeerList.innerHTML = '<div class="italic text-gray-500">No peers connected</div>';
+                }
+                
+                console.log('[DEBUG] Info updated at', new Date().toLocaleTimeString());
+            } catch (err) {
+                console.error('[DEBUG] Error updating debug info:', err);
+            }
+        }, 100); // Small delay to ensure window variables are available
+    }
+    
+    // Update info every 3 seconds
+    setInterval(updateDebugInfo, 3000);
+    
+    // Show debug panel with keyboard shortcut (Ctrl+D)
+    document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.key === 'd') {
+            e.preventDefault();
+            debugPanel.classList.toggle('-translate-x-full');
+            updateDebugInfo();
+        }
+    });
+});
+</script>
 
 <?php 
 

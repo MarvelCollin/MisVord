@@ -6,9 +6,7 @@
   "scripts": {
     "start": "node socket-server.js",
     "dev": "nodemon socket-server.js",
-    "legacy:server": "node server.js",
-    "legacy:socket": "node socket-server.js",
-    "legacy:all": "concurrently \"npm run legacy:server\" \"npm run legacy:socket\""
+    "legacy:socket": "node socket-server.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

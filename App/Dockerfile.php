@@ -31,6 +31,19 @@ COPY docker/apache/000-default.conf /etc/apache2/sites-available/000-default.con
 # Set working directory
 WORKDIR /var/www/html
 
+# Copy core PHP files
+COPY index.php /var/www/html/
+COPY router.php /var/www/html/
+COPY config /var/www/html/config
+COPY views /var/www/html/views
+COPY public /var/www/html/public
+COPY controllers /var/www/html/controllers
+COPY bootstrap /var/www/html/bootstrap
+COPY migrations /var/www/html/migrations
+COPY database /var/www/html/database
+COPY utils /var/www/html/utils
+COPY .htaccess /var/www/html/
+
 # Create storage directory with proper permissions
 RUN mkdir -p /var/www/html/storage && \
     chown -R www-data:www-data /var/www/html/storage && \

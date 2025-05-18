@@ -1,5 +1,9 @@
 <?php
-define('APP_ROOT', __DIR__);
+// Fallback router file for the public directory
+
+if (!defined('APP_ROOT')) {
+    define('APP_ROOT', dirname(__DIR__));
+}
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -9,7 +13,7 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
 // Enable detailed error logging
-error_log("Router processing request: " . $_SERVER['REQUEST_URI']);
+error_log("Public router processing request: " . $_SERVER['REQUEST_URI']);
 error_log("Script Name: " . $_SERVER['SCRIPT_NAME']);
 error_log("Document Root: " . $_SERVER['DOCUMENT_ROOT']);
 
@@ -41,9 +45,9 @@ if (preg_match('/\\.(?:css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|webp|map)$
 
     // Check common static file locations
     $searchPaths = [
-        __DIR__ . '/public/',          // For /css/, /js/, /assets/ under public
-        __DIR__ . '/',                  // For direct root access
-        __DIR__ . '/public/' . dirname($requestFile) . '/', // For nested directories
+        __DIR__ . '/',                  // For files in public
+        dirname(__DIR__) . '/public/',  // For main public directory
+        dirname(__DIR__) . '/',         // For direct root access
     ];
     
     error_log("Looking for file: " . $requestFile);
@@ -73,12 +77,13 @@ if ($_SERVER['REQUEST_URI'] === '/webrtc' || $_SERVER['REQUEST_URI'] === '/webrt
 }
 
 // Route handling via web.php
-if (file_exists(__DIR__ . '/config/web.php')) {
-    error_log("Loading web.php configuration");
-    require_once __DIR__ . '/config/web.php';
+$webConfigPath = dirname(__DIR__) . '/config/web.php';
+if (file_exists($webConfigPath)) {
+    error_log("Loading web.php configuration from: " . $webConfigPath);
+    require_once $webConfigPath;
     exit; // This line ensures the router exits after handling the route
 } else {
-    error_log("Fatal error: Cannot find web.php configuration file.");
+    error_log("Fatal error: Cannot find web.php configuration file at: " . $webConfigPath);
     http_response_code(500);
     echo "Server configuration error: web.php not found";
     exit;
@@ -87,4 +92,4 @@ if (file_exists(__DIR__ . '/config/web.php')) {
 // This line should never be reached as we always exit above,
 // but just in case, return a 404
 http_response_code(404);
-echo "Page not found";
+echo "Page not found"; 

@@ -14,11 +14,12 @@ class EnvLoader {
         
         // Database connection variables
         $env['DB_HOST'] = getenv('DB_HOST') ?: 'db';
+        $env['DB_PORT'] = getenv('DB_PORT') ?: '1003';
         $env['DB_NAME'] = getenv('DB_NAME') ?: 'misvord';
         $env['DB_USER'] = getenv('DB_USER') ?: 'root';
         $env['DB_PASS'] = getenv('DB_PASS') ?: 'password';
         $env['DB_CHARSET'] = getenv('DB_CHARSET') ?: 'utf8mb4';
-        $env['SOCKET_SERVER'] = getenv('SOCKET_SERVER') ?: 'http://socket-server:3000';
+        $env['SOCKET_SERVER'] = getenv('SOCKET_SERVER') ?: 'http://socket-server:1002';
         $env['SOCKET_API_KEY'] = getenv('SOCKET_API_KEY') ?: 'kolin123';
         
         // Try to load from .env file if it exists
@@ -65,13 +66,14 @@ class EnvLoader {
         }
         
         $host = self::get('DB_HOST', 'db');
+        $port = self::get('DB_PORT', '1003');
         $dbname = self::get('DB_NAME', 'misvord');
         $username = self::get('DB_USER', 'root');
         $password = self::get('DB_PASS', 'password');
         $charset = self::get('DB_CHARSET', 'utf8mb4');
         
         try {
-            $dsn = "mysql:host=$host;dbname=$dbname;charset=$charset";
+            $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=$charset";
             
             $options = [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
@@ -85,12 +87,12 @@ class EnvLoader {
         } catch (PDOException $e) {
             if ($e->getCode() == 1049) {
                 try {
-                    $dsn = "mysql:host=$host;charset=$charset";
+                    $dsn = "mysql:host=$host;port=$port;charset=$charset";
                     self::$pdoInstance = new PDO($dsn, $username, $password, $options);
                     
                     self::$pdoInstance->exec("CREATE DATABASE IF NOT EXISTS `$dbname` CHARACTER SET $charset");
                     
-                    $dsn = "mysql:host=$host;dbname=$dbname;charset=$charset";
+                    $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=$charset";
                     self::$pdoInstance = new PDO($dsn, $username, $password, $options);
                     
                     echo "Notice: Database '$dbname' was created automatically.\n";

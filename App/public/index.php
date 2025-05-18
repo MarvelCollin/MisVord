@@ -1,31 +1,19 @@
 <?php
-/**
- * MiscVord Application Front Controller
- * 
- * This is the main entry point for the MiscVord application.
- * All HTTP requests are routed through this file.
- */
+// Define the application root directory
+define('APP_ROOT', dirname(__DIR__));
 
-// Define the application base path
-define('APP_BASE_PATH', dirname(__DIR__));
+// Start session if not already started
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
-// Enable error reporting for debugging
+// Enable error display for debugging
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-// Load configuration files
-require_once APP_BASE_PATH . '/config/helpers.php';
+// Log the request for debugging
+error_log("Request: " . $_SERVER['REQUEST_URI']);
+error_log("APP_ROOT: " . APP_ROOT);
 
-// Load the router directly
-require_once APP_BASE_PATH . '/config/web.php';
-
-// Health check endpoint for Docker
-if ($_SERVER['REQUEST_URI'] === '/health') {
-    header('Content-Type: application/json');
-    echo json_encode(['status' => 'ok', 'time' => time()]);
-    exit;
-}
-
-// This code will only run if the router didn't handle the request
-echo "Error: Request could not be processed";
-exit;
+// Use the local version of router.php in the public directory
+require_once __DIR__ . '/router.php'; 

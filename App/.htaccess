@@ -6,10 +6,5 @@ RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 
-# Set correct base for assets
-RewriteRule ^assets/(.*)$ assets/$1 [L]
-RewriteRule ^css/(.*)$ css/$1 [L]
-RewriteRule ^js/(.*)$ js/$1 [L]
-
 # Otherwise, redirect all requests to index.php
-RewriteRule ^ index.php [QSA,L] 
+RewriteRule ^ index.php [L] 

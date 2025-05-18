@@ -18,6 +18,9 @@ services:
       - ./database:/var/www/html/database:ro
       - ./utils:/var/www/html/utils:ro
       - ./storage:/var/www/html/storage:rw
+      - ./router.php:/var/www/html/router.php:ro
+      - ./index.php:/var/www/html/index.php:ro
+      - ./.htaccess:/var/www/html/.htaccess:ro
     depends_on:
       - socket-server
       - db
@@ -32,7 +35,7 @@ services:
       - DB_USER=root
       - DB_PASS=password
       - DB_CHARSET=utf8mb4
-      - SOCKET_SERVER=http://socket-server:3000
+      - SOCKET_SERVER=http://socket-server:1002
       - SOCKET_SERVER_LOCAL=http://localhost:1002
       - SOCKET_API_KEY=kolin123
     security_opt:
@@ -56,16 +59,16 @@ services:
     networks:
       - miscvord_network
     ports:
-      - "1002:3000"
+      - "1002:1002"
     environment:
       - NODE_ENV=production
-      - PORT=3000
+      - PORT=1002
       - SOCKET_API_KEY=kolin123
       - DB_HOST=db
       - DB_NAME=misvord
       - DB_USER=root
       - DB_PASS=password
-      - SOCKET_URL=http://socket-server:3000
+      - SOCKET_URL=http://socket-server:1002
       - CORS_ALLOWED_ORIGINS=*
     security_opt:
       - no-new-privileges:true
@@ -74,7 +77,7 @@ services:
         soft: 1024
         hard: 2048
     healthcheck:
-      test: ["CMD", "wget", "--spider", "--quiet", "http://localhost:3000/health" , "||", "exit", "1"]
+      test: ["CMD", "wget", "--spider", "--quiet", "http://localhost:1002/health" , "||", "exit", "1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -89,17 +92,18 @@ services:
       MYSQL_DATABASE: misvord
       MYSQL_ROOT_PASSWORD: password
       MYSQL_ROOT_HOST: "%"
+      MYSQL_TCP_PORT: 1003
     volumes:
       - miscvord_db_data:/var/lib/mysql
     networks:
       - miscvord_network
     ports:
-      - "1003:3306"
-    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+      - "1003:1003"
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --port=1003
     security_opt:
       - seccomp:unconfined
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-P", "1003"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -117,7 +121,7 @@ services:
       - "1004:80"
     environment:
       - PMA_HOST=db
-      - PMA_PORT=3306
+      - PMA_PORT=1003
       - PMA_ARBITRARY=1
       - UPLOAD_LIMIT=500M
       - PMA_USER=root

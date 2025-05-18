@@ -12,15 +12,42 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
     $socketServer = getenv('SOCKET_SERVER');
     $socketServerLocal = getenv('SOCKET_SERVER_LOCAL');
     $isLocalhost = (isset($_SERVER['SERVER_NAME']) && 
-                    ($_SERVER['SERVER_NAME'] === 'localhost' || $_SERVER['SERVER_NAME'] === '127.0.0.1'));
+                   ($_SERVER['SERVER_NAME'] === 'localhost' || $_SERVER['SERVER_NAME'] === '127.0.0.1'));
+    
+    // Enhanced debugging for socket server configuration
+    error_log("--- WebRTC Socket Server Configuration ---");
+    error_log("SOCKET_SERVER env: " . ($socketServer ?: 'not set'));
+    error_log("SOCKET_SERVER_LOCAL env: " . ($socketServerLocal ?: 'not set'));
+    error_log("SERVER_NAME: " . (isset($_SERVER['SERVER_NAME']) ? $_SERVER['SERVER_NAME'] : 'not set'));
+    error_log("isLocalhost detection: " . ($isLocalhost ? 'true' : 'false'));
     
     // Use local socket server if accessing from localhost, otherwise use container socket server
     $effectiveSocketServer = $isLocalhost ? $socketServerLocal : $socketServer;
     
     // Default fallback if neither is set
     if (empty($effectiveSocketServer)) {
-        $effectiveSocketServer = $isLocalhost ? 'http://localhost:1002' : 'http://socket-server:3000';
+        $effectiveSocketServer = $isLocalhost ? 'http://localhost:1002' : 'http://localhost:1002';
+        error_log("WARNING: Using fallback socket server URL: " . $effectiveSocketServer);
     }
+    
+    error_log("FINAL Socket server URL: " . $effectiveSocketServer);
+    
+    // Additional debug: Check if socket server is reachable
+    $socketServerStatus = "unknown";
+    try {
+        $socketServerHeaders = @get_headers($effectiveSocketServer);
+        if ($socketServerHeaders && strpos($socketServerHeaders[0], '200') !== false) {
+            $socketServerStatus = "reachable";
+        } else {
+            $socketServerStatus = "unreachable";
+        }
+    } catch (Exception $e) {
+        $socketServerStatus = "error: " . $e->getMessage();
+    }
+    error_log("Socket server status: " . $socketServerStatus);
+    
+    // Add debug attribute to the meta tag
+    echo '<meta name="socket-server-debug" content="ENV: ' . getenv('SOCKET_SERVER') . ', LOCAL: ' . getenv('SOCKET_SERVER_LOCAL') . ', IS_LOCALHOST: ' . ($isLocalhost ? 'true' : 'false') . ', STATUS: ' . $socketServerStatus . '">';
     ?>
     <!-- Socket server URL from environment variables -->
     <meta name="socket-server" content="<?php echo $effectiveSocketServer; ?>">

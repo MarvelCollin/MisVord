@@ -1,59 +1,45 @@
 #!/bin/bash
 
-# MiscVord Deployment Script
-# For use on marvelcollin.my.id VPS
+# Exit on error
+set -e
 
-echo "=== MiscVord Deployment Script ==="
-echo "This script will deploy MiscVord to your VPS with domain marvelcollin.my.id"
-echo "Assumes Docker and Docker Compose are already installed"
+# Define colors for output
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
 
-# Make sure the storage directory exists and is writable
-mkdir -p storage
-chmod -R 777 storage
+echo -e "${YELLOW}Starting deployment process...${NC}"
 
-# Update the docker-compose.yml file with the correct ports
-echo "Updating docker-compose.yml with custom ports..."
-sed -i 's/"8000:80"/"1001:80"/g' docker-compose.yml
-sed -i 's/"3001:3000"/"1002:3000"/g' docker-compose.yml
-sed -i 's/"3306:3306"/"1003:3306"/g' docker-compose.yml
-sed -i 's/"8080:80"/"1004:80"/g' docker-compose.yml
-sed -i 's/"8081:8080"/"1005:8080"/g' docker-compose.yml
-
-# Update the socket connection URL in webrtc.js to use your domain
-echo "Updating socket connection URL in client-side files..."
-if [ -f public/js/webrtc.js ]; then
-    sed -i "s|const socket = io('https:.*|const socket = io('https://marvelcollin.my.id:1002', {|g" public/js/webrtc.js
-    sed -i "s|const remoteUrl = 'https:.*|const remoteUrl = 'https://marvelcollin.my.id:1002';|g" public/js/webrtc.js
-    echo "Socket URLs updated successfully."
-else
-    echo "Warning: Could not find webrtc.js file. Socket URLs not updated."
+# Check if docker-compose.yml exists
+if [ ! -f docker-compose.yml ]; then
+    echo -e "${RED}docker-compose.yml not found!${NC}"
+    exit 1
 fi
 
-# Make check-ports.sh executable if it exists
-if [ -f check-ports.sh ]; then
-    chmod +x check-ports.sh
-    echo "Made check-ports.sh executable."
-fi
+# Update port mappings for production
+echo -e "${YELLOW}Updating port mappings for production...${NC}"
+sed -i 's/"1003:1003"/"1003:1003"/g' docker-compose.yml
+sed -i 's/"1001:80"/"80:80"/g' docker-compose.yml
+sed -i 's/"1002:1002"/"1002:1002"/g' docker-compose.yml
 
-# Start the Docker containers
-echo "Starting Docker containers..."
+# Remove development services
+echo -e "${YELLOW}Removing development services...${NC}"
+sed -i '/phpmyadmin:/,/^$/d' docker-compose.yml
+sed -i '/adminer:/,/^$/d' docker-compose.yml
+
+# Set production environment variables
+echo -e "${YELLOW}Setting production environment variables...${NC}"
+sed -i 's/APP_ENV=development/APP_ENV=production/g' docker-compose.yml
+sed -i 's/NODE_ENV=development/NODE_ENV=production/g' docker-compose.yml
+
+# Build and start containers
+echo -e "${YELLOW}Building and starting containers...${NC}"
+docker-compose build --no-cache
 docker-compose up -d
 
-# Verify services started correctly
-echo "Verifying services..."
-sleep 5  # Give containers a moment to start
-docker ps
+echo -e "${GREEN}Deployment completed successfully!${NC}"
 
-echo ""
-echo "=== Deployment Completed ==="
-echo ""
-echo "MiscVord should now be running at:"
-echo "Main Application: https://marvelcollin.my.id:1001"
-echo "Socket Server: https://marvelcollin.my.id:1002"
-echo "PHPMyAdmin: https://marvelcollin.my.id:1004"
-echo "Adminer: https://marvelcollin.my.id:1005"
-echo ""
-echo "Important: Make sure to configure your domain DNS and open the necessary ports in your firewall."
-echo "You might also want to set up SSL certificates using Let's Encrypt for HTTPS."
-echo ""
-echo "Run ./check-ports.sh to verify all services are running correctly." 
+# Check container status
+echo -e "${YELLOW}Container status:${NC}"
+docker-compose ps 
