@@ -382,23 +382,40 @@ function createPeerConnection(peerSocketId, peerUserName) {
     // Simplified WebRTC STUN/TURN Server Configuration
     const configuration = { 
         iceServers: [
-            // STUN servers - for NAT traversal
+            // Google's public STUN servers
             { urls: 'stun:stun.l.google.com:19302' },
             { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' },
+            { urls: 'stun:stun3.l.google.com:19302' },
+            { urls: 'stun:stun4.l.google.com:19302' },
             
-            // Free TURN servers (fewer options for simplicity)
+            // Backup STUN servers
+            { urls: 'stun:stun.stunprotocol.org:3478' },
+            { urls: 'stun:stun.voiparound.com' },
+            
+            // Free TURN servers with credentials
             {
-                urls: 'turn:openrelay.metered.ca:80',
+                urls: [
+                    'turn:openrelay.metered.ca:80',
+                    'turn:openrelay.metered.ca:443',
+                    'turn:openrelay.metered.ca:443?transport=tcp',
+                    'turns:openrelay.metered.ca:443'
+                ],
                 username: 'openrelayproject',
                 credential: 'openrelayproject'
             },
+            // Backup TURN servers
             {
-                urls: 'turn:openrelay.metered.ca:443',
-                username: 'openrelayproject',
-                credential: 'openrelayproject'
+                urls: 'turn:global.turn.twilio.com:3478?transport=udp',
+                username: 'f4b4035eaa76f4a55de5f4351567653ee4ff6fa97b50b6b334fcc1be9c27212d',
+                credential: 'w1WpuQsPVLZfmACB9rU+6h9GYTMp51Iw9VTyGgpYgR8='
             }
         ],
-        iceCandidatePoolSize: 10
+        iceCandidatePoolSize: 10,
+        iceTransportPolicy: 'all',        // Try both TURN and STUN/Host candidates
+        bundlePolicy: 'max-bundle',       // Bundle all media on one connection when possible
+        rtcpMuxPolicy: 'require',         // Use RTCP multiplexing
+        sdpSemantics: 'unified-plan'      // Use modern SDP format for better compatibility
     };
     
     // Create new peer connection
@@ -445,11 +462,28 @@ function createPeerConnection(peerSocketId, peerUserName) {
     // Handle ICE candidates
     pc.onicecandidate = (event) => {
         if (event.candidate) {
-            addLogEntry(`Sending ICE candidate to ${peerUserName} (${peerSocketId})`, 'signal');
+            addLogEntry(`Sending ICE candidate to ${peerUserName} (${peerSocketId}) - type: ${event.candidate.type || 'unknown'}`, 'signal');
+            
+            // Add some debugging info about the candidate type
+            try {
+                const candidateType = event.candidate.candidate.split(' ')[7] || 'unknown';
+                addLogEntry(`Candidate type: ${candidateType}`, 'debug');
+                
+                // Log if this is a relay (TURN) candidate which is important for NAT traversal
+                if (candidateType === 'relay') {
+                    addLogEntry(`Found TURN relay candidate - good for NAT traversal`, 'success');
+                }
+            } catch (e) {
+                // Just ignore errors in candidate debugging
+            }
+            
             socket.emit('webrtc-ice-candidate', {
                 to: peerSocketId,
                 candidate: event.candidate,
             });
+        } else {
+            // Null candidate means ICE gathering is complete
+            addLogEntry(`ICE gathering complete for connection with ${peerUserName}`, 'peer');
         }
     };
 
@@ -530,7 +564,7 @@ function createPeerConnection(peerSocketId, peerUserName) {
             const statusIndicator = videoContainer.querySelector('.connection-state-indicator');
             if (statusIndicator) {
                 statusIndicator.textContent = 'Connected';
-                statusIndicator.style.backgroundColor = 'rgba(72, 187, 120, 0.8)'; // Green background
+                statusIndicator.style.backgroundColor = 'rgba(72, 187, 120, 0.8)'; // Green
             }
         } else {
             addLogEntry(`Failed to set remote stream for ${peerUserName}`, 'error');
@@ -540,6 +574,42 @@ function createPeerConnection(peerSocketId, peerUserName) {
     // Connection state monitoring
     pc.oniceconnectionstatechange = () => {
         addLogEntry(`ICE connection state for ${peerUserName} (${peerSocketId}): ${pc.iceConnectionState}`, 'pc');
+        
+        // Log connection details for debugging
+        try {
+            if (window.debugMode) {
+                // Try to get selected candidate pair if available
+                pc.getStats().then(stats => {
+                    stats.forEach(report => {
+                        if (report.type === 'transport') {
+                            addLogEntry(`Transport for ${peerUserName}: bytes sent=${report.bytesSent}, bytes received=${report.bytesReceived}`, 'debug');
+                        }
+                        
+                        if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+                            addLogEntry(`Active ICE candidate pair found for ${peerUserName}`, 'success');
+                            
+                            // Try to find the actual candidates
+                            pc.getStats().then(fullStats => {
+                                fullStats.forEach(candidateReport => {
+                                    if (candidateReport.type === 'local-candidate' && 
+                                        candidateReport.id === report.localCandidateId) {
+                                        addLogEntry(`Local candidate: ${candidateReport.candidateType}, protocol: ${candidateReport.protocol}`, 'debug');
+                                    }
+                                    if (candidateReport.type === 'remote-candidate' && 
+                                        candidateReport.id === report.remoteCandidateId) {
+                                        addLogEntry(`Remote candidate: ${candidateReport.candidateType}, protocol: ${candidateReport.protocol}`, 'debug');
+                                    }
+                                });
+                            });
+                        }
+                    });
+                }).catch(e => {
+                    // Ignore stats errors, they're just for debugging
+                });
+            }
+        } catch (e) {
+            // Ignore stats errors
+        }
         
         // Update connection status indicator
         const videoContainer = document.getElementById(`video-container-${peerSocketId}`);
@@ -552,16 +622,62 @@ function createPeerConnection(peerSocketId, peerUserName) {
                 } else if (pc.iceConnectionState === 'checking') {
                     statusIndicator.textContent = 'Connecting...';
                     statusIndicator.style.backgroundColor = 'rgba(236, 201, 75, 0.8)'; // Yellow
-        } else if (pc.iceConnectionState === 'failed') {
+                } else if (pc.iceConnectionState === 'failed') {
                     statusIndicator.textContent = 'Failed';
                     statusIndicator.style.backgroundColor = 'rgba(245, 101, 101, 0.8)'; // Red
                     
-                    // Try to restart ICE if failed
+                    // Aggressive recovery: Try multiple approaches to recover the connection
                     addLogEntry(`Connection to ${peerUserName} failed. Attempting to restart ICE.`, 'warn');
+                    
+                    // Approach 1: Try a simple ICE restart
                     try {
                         pc.restartIce();
+                        
+                        // Also recreate the offer with explicit ICE restart
+                        pc.createOffer({iceRestart: true})
+                            .then(offer => pc.setLocalDescription(offer))
+                            .then(() => {
+                                socket.emit('webrtc-offer', {
+                                    to: peerSocketId,
+                                    offer: pc.localDescription,
+                                    fromUserName: userName,
+                                    isIceRestart: true
+                                });
+                            })
+                            .catch(e => {
+                                addLogEntry(`Error creating ICE restart offer: ${e.message}`, 'error');
+                            });
+                        
                     } catch (e) {
                         addLogEntry(`Error restarting ICE: ${e.message}`, 'error');
+                        
+                        // If ICE restart failed, try creating a new connection after a delay
+                        setTimeout(() => {
+                            if (peers[peerSocketId] && 
+                                (peers[peerSocketId].pc.iceConnectionState === 'failed' ||
+                                 peers[peerSocketId].pc.iceConnectionState === 'disconnected')) {
+                                
+                                addLogEntry(`Recreating failed connection with ${peerUserName}`, 'system');
+                                removePeer(peerSocketId);
+                                
+                                const newPc = createPeerConnection(peerSocketId, peerUserName);
+                                if (newPc) {
+                                    newPc.createOffer()
+                                        .then(offer => newPc.setLocalDescription(offer))
+                                        .then(() => {
+                                            socket.emit('webrtc-offer', {
+                                                to: peerSocketId,
+                                                offer: newPc.localDescription,
+                                                fromUserName: userName,
+                                                isReconnect: true
+                                            });
+                                        })
+                                        .catch(e => {
+                                            addLogEntry(`Error creating offer for new connection: ${e.message}`, 'error');
+                                        });
+                                }
+                            }
+                        }, 5000);
                     }
                 } else if (pc.iceConnectionState === 'disconnected') {
                     statusIndicator.textContent = 'Disconnected';
@@ -571,18 +687,35 @@ function createPeerConnection(peerSocketId, peerUserName) {
                     setTimeout(() => {
                         if (pc.iceConnectionState === 'disconnected' && peers[peerSocketId]) {
                             addLogEntry(`Attempting to reconnect to ${peerUserName}`, 'pc');
+                            
+                            // Try ICE restart first
                             try {
                                 pc.restartIce();
+                                
+                                // Also create a new offer with ICE restart flag
+                                pc.createOffer({iceRestart: true})
+                                    .then(offer => pc.setLocalDescription(offer))
+                                    .then(() => {
+                                        socket.emit('webrtc-offer', {
+                                            to: peerSocketId,
+                                            offer: pc.localDescription,
+                                            fromUserName: userName,
+                                            isIceRestart: true
+                                        });
+                                    })
+                                    .catch(e => {
+                                        addLogEntry(`Error creating reconnection offer: ${e.message}`, 'error');
+                                    });
                             } catch (e) {
                                 addLogEntry(`Error restarting ICE: ${e.message}`, 'error');
                             }
                         }
                     }, 2000);
-        } else if (pc.iceConnectionState === 'closed') {
+                } else if (pc.iceConnectionState === 'closed') {
                     statusIndicator.textContent = 'Closed';
                     statusIndicator.style.backgroundColor = 'rgba(45, 55, 72, 0.8)'; // Dark gray
                     removePeer(peerSocketId);
-        }
+                }
             }
         }
         
@@ -807,12 +940,57 @@ function setupSocketEvents() {
     });
 
     socket.on('webrtc-offer', (data) => {
-        const { from, offer, fromUserName } = data;
-        addLogEntry(`Received WebRTC offer from ${fromUserName} (${from})`, 'signal');
+        const { from, offer, fromUserName, isIceRestart, isReconnect } = data;
+        addLogEntry(`Received WebRTC offer from ${fromUserName} (${from})${isIceRestart ? ' (ICE Restart)' : ''}${isReconnect ? ' (Reconnection)' : ''}`, 'signal');
 
         if (from === socketId) {
             addLogEntry(`Ignoring offer from self`, 'debug');
             return; // Skip offers from self (should not happen)
+        }
+
+        // For ICE restart or reconnect, handle differently
+        if (isIceRestart && peers[from] && peers[from].pc) {
+            const pc = peers[from].pc;
+            
+            addLogEntry(`Processing ICE restart offer from ${fromUserName}`, 'peer');
+            
+            // Set the remote description directly for ICE restart
+            pc.setRemoteDescription(new RTCSessionDescription(offer))
+                .then(() => {
+                    addLogEntry(`Set remote ICE restart offer from ${fromUserName}`, 'peer');
+                    processBufferedCandidates(from);
+                    return pc.createAnswer();
+                })
+                .then(answer => {
+                    addLogEntry(`Created answer for ICE restart from ${fromUserName}`, 'peer');
+                    return pc.setLocalDescription(answer);
+                })
+                .then(() => {
+                    addLogEntry(`Sending ICE restart answer to ${fromUserName}`, 'signal');
+                    socket.emit('webrtc-answer', {
+                        to: from,
+                        answer: pc.localDescription,
+                        fromUserName: userName,
+                        isIceRestart: true
+                    });
+                })
+                .catch(e => {
+                    addLogEntry(`Error processing ICE restart offer: ${e.message}`, 'error');
+                    // On severe errors, try full reconnection
+                    if (e.message.includes('SetRemoteDescription')) {
+                        recreateConnection();
+                    }
+                });
+            return;
+        }
+        
+        // For reconnection, create a fresh connection
+        if (isReconnect) {
+            // Close existing connection if there is one
+            if (peers[from] && peers[from].pc) {
+                addLogEntry(`Closing existing connection for reconnect with ${fromUserName}`, 'peer');
+                peers[from].pc.close();
+            }
         }
 
         // Create peer connection if it doesn't exist
@@ -830,60 +1008,72 @@ function setupSocketEvents() {
             addLogEntry(`Cannot set remote offer - peer connection is in ${pc.signalingState} state. Expected 'stable'`, 'warn');
             
             // If we're in have-local-offer, we have a glare condition (both peers created an offer)
-            if (pc.signalingState === 'have-local-offer') {
-                // Compare timestamps to decide which offer to accept - newer ID wins
-                // This is a simple way to resolve the conflict
-                if (from > socketId) {
-                    addLogEntry(`Glare condition: both peers sent offers. Accepting remote offer from ${fromUserName}`, 'warn');
-                    
-                    // Rollback our local description to get back to stable state
+            if (pc.signalingState === 'have-local-offer' || pc.signalingState === 'have-remote-offer') {
+                // Use rollback for modern browsers
+                addLogEntry(`Handling signaling collision for ${fromUserName}`, 'warn');
+                
+                // Try rollback if supported
+                const supportsRollback = typeof RTCPeerConnection.prototype.restartIce !== 'undefined';
+                
+                if (supportsRollback) {
                     try {
+                        addLogEntry(`Using rollback to handle offer in state: ${pc.signalingState}`, 'system');
+                        // Rollback to stable state
                         pc.setLocalDescription({type: "rollback"})
                             .then(() => {
-                                // Now we can apply the remote offer
+                                // Once we're back to stable, process the offer
                                 processRemoteOffer();
                             })
                             .catch(e => {
-                                addLogEntry(`Rollback failed: ${e.message}`, 'error');
+                                addLogEntry(`Rollback failed: ${e.message}. Recreating connection.`, 'error');
+                                // If rollback fails, close and recreate the connection
+                                recreateConnection();
                             });
                     } catch (e) {
-                        addLogEntry(`Error during rollback: ${e.message}`, 'error');
+                        addLogEntry(`Error during rollback: ${e.message}. Recreating connection.`, 'error');
+                        recreateConnection();
                     }
+                    return;
                 } else {
-                    // We keep our offer and reject the remote one
-                    addLogEntry(`Glare condition: both peers sent offers. Keeping our offer, ignoring from ${fromUserName}`, 'warn');
-                    
-                    // Send our local description as an offer again
-                    if (pc.localDescription) {
-                        socket.emit('webrtc-offer', {
-                            to: from,
-                            offer: pc.localDescription,
-                            fromUserName: userName
-                        });
-                    }
-                }
-                return;
-            }
-            
-            // Other states might indicate a connection in process of closing/updating
-            addLogEntry(`Attempting to reset the connection state for offer from ${fromUserName}`, 'warn');
-            
-            try {
-                // Close and recreate the peer connection
-                pc.close();
-                pc = createPeerConnection(from, fromUserName);
-                if (!pc) {
-                    addLogEntry(`Failed to create new peer connection for offer from ${fromUserName}`, 'error');
+                    // For older browsers without rollback support, recreate the connection
+                    addLogEntry(`Browser doesn't support rollback. Recreating connection for ${fromUserName}`, 'warn');
+                    recreateConnection();
                     return;
                 }
-                processRemoteOffer();
-            } catch (e) {
-                addLogEntry(`Error resetting connection: ${e.message}`, 'error');
+            } else if (pc.signalingState === 'closed') {
+                // Connection is closed, must recreate
+                addLogEntry(`Connection is closed. Recreating for ${fromUserName}`, 'warn');
+                recreateConnection();
+                return;
+            } else {
+                // Other unexpected states
+                addLogEntry(`Unexpected signaling state: ${pc.signalingState}. Attempting to recover.`, 'warn');
+                recreateConnection();
+                return;
             }
-            return;
         } else {
             // In stable state - normal case, process the offer
             processRemoteOffer();
+        }
+
+        // Function to recreate the peer connection
+        function recreateConnection() {
+            try {
+                // Close the existing connection
+                if (pc) pc.close();
+                
+                // Create a new connection
+                pc = createPeerConnection(from, fromUserName);
+                if (!pc) {
+                    addLogEntry(`Failed to recreate peer connection for ${fromUserName}`, 'error');
+                    return;
+                }
+                
+                // Process the offer with the new connection
+                processRemoteOffer();
+            } catch (e) {
+                addLogEntry(`Error recreating connection: ${e.message}`, 'error');
+            }
         }
 
         // Function to process the remote offer
@@ -918,8 +1108,8 @@ function setupSocketEvents() {
     });
 
     socket.on('webrtc-answer', (data) => {
-        const { from, answer, fromUserName } = data;
-        addLogEntry(`Received WebRTC answer from ${fromUserName} (${from})`, 'signal');
+        const { from, answer, fromUserName, isIceRestart } = data;
+        addLogEntry(`Received WebRTC answer from ${fromUserName} (${from})${isIceRestart ? ' (ICE Restart)' : ''}`, 'signal');
 
         if (!peers[from] || !peers[from].pc) {
             addLogEntry(`Received answer from ${fromUserName} but no peer connection exists`, 'error');
@@ -928,54 +1118,107 @@ function setupSocketEvents() {
 
         // Check the signaling state before applying the answer
         const pc = peers[from].pc;
+        
+        // Special handling for ICE restart answers
+        if (isIceRestart) {
+            addLogEntry(`Processing ICE restart answer from ${fromUserName}`, 'peer');
+            
+            // For ICE restart answers, we can apply them in more states
+            if (pc.signalingState === 'have-local-offer' || pc.signalingState === 'stable') {
+                pc.setRemoteDescription(new RTCSessionDescription(answer))
+                    .then(() => {
+                        addLogEntry(`Successfully applied ICE restart answer from ${fromUserName}`, 'success');
+                        processBufferedCandidates(from);
+                    })
+                    .catch(e => {
+                        addLogEntry(`Error setting ICE restart answer: ${e.message}`, 'error');
+                    });
+                return;
+            }
+        }
+        
+        // Normal answer processing for non-ICE-restart scenarios
         if (pc.signalingState !== 'have-local-offer') {
             addLogEntry(`Cannot set remote answer - peer connection is in ${pc.signalingState} state, expected 'have-local-offer'`, 'error');
             
             // If in stable state, we might have already processed this answer or received a duplicate
             if (pc.signalingState === 'stable') {
-                addLogEntry(`Connection already stable with ${fromUserName}, ignoring redundant answer`, 'warn');
+                addLogEntry(`Connection already stable with ${fromUserName}, processing buffered candidates`, 'warn');
                 
-                // Process any buffered ICE candidates that arrived before the answer
+                // Still process any buffered ICE candidates that arrived before the answer
                 processBufferedCandidates(from);
                 return;
             }
             
-            // If in another state, something is wrong with the signaling flow
-            addLogEntry(`Unexpected signaling state for ${fromUserName}: ${pc.signalingState}`, 'error');
-            
-            // Try to recover by creating a new offer if needed
-            if (['closed', 'have-remote-offer'].includes(pc.signalingState)) {
-                addLogEntry(`Attempting to recover connection with ${fromUserName}`, 'system');
-                
-                // Reset the connection if possible
-                try {
-                    // Create a new offer to restart the signaling process
-                    pc.createOffer({iceRestart: true})
-                        .then(offer => pc.setLocalDescription(offer))
+            // For other states, try to recover
+            if (pc.signalingState === 'closed') {
+                addLogEntry(`Connection with ${fromUserName} is closed, can't process answer`, 'error');
+                // Try to recreate the connection
+                const newPc = createPeerConnection(from, fromUserName);
+                if (newPc) {
+                    addLogEntry(`Recreated connection with ${fromUserName}, sending new offer`, 'system');
+                    
+                    // Create a new offer
+                    newPc.createOffer({iceRestart: true})
+                        .then(offer => newPc.setLocalDescription(offer))
                         .then(() => {
                             socket.emit('webrtc-offer', {
                                 to: from, 
-                                offer: pc.localDescription,
+                                offer: newPc.localDescription,
                                 fromUserName: userName
                             });
                         })
                         .catch(e => {
                             addLogEntry(`Error creating recovery offer: ${e.message}`, 'error');
                         });
-                } catch (e) {
-                    addLogEntry(`Recovery attempt failed: ${e.message}`, 'error');
                 }
+                return;
+            }
+            
+            // Handle unexpected states
+            addLogEntry(`Attempting to recover from unexpected state: ${pc.signalingState}`, 'warn');
+            
+            // Try to force connection to stable state by creating a new offer
+            try {
+                pc.createOffer({iceRestart: true})
+                    .then(offer => pc.setLocalDescription(offer))
+                    .then(() => {
+                        socket.emit('webrtc-offer', {
+                            to: from, 
+                            offer: pc.localDescription,
+                            fromUserName: userName
+                        });
+                    })
+                    .catch(e => {
+                        addLogEntry(`Error creating recovery offer: ${e.message}`, 'error');
+                    });
+            } catch (e) {
+                addLogEntry(`Recovery attempt failed: ${e.message}`, 'error');
             }
             
             return;
         }
 
-        peers[from].pc.setRemoteDescription(new RTCSessionDescription(answer))
+        // Normal case - apply the answer
+        pc.setRemoteDescription(new RTCSessionDescription(answer))
             .then(() => {
                 addLogEntry(`Set remote description from ${fromUserName}'s answer`, 'peer');
                 
                 // Now that remote description is set, process any buffered ICE candidates
                 processBufferedCandidates(from);
+                
+                // Check connection status after brief delay
+                setTimeout(() => {
+                    if (pc.iceConnectionState === 'checking' || pc.iceConnectionState === 'new') {
+                        addLogEntry(`Connection with ${fromUserName} still ${pc.iceConnectionState} after 5s, trying ICE restart`, 'warn');
+                        // Try to restart ICE to get past potential NAT issues
+                        try {
+                            pc.restartIce();
+                        } catch (e) {
+                            addLogEntry(`ICE restart error: ${e.message}`, 'error');
+                        }
+                    }
+                }, 5000);
             })
             .catch(e => {
                 addLogEntry(`Error setting remote description from ${fromUserName}: ${e.message}`, 'error');
@@ -2047,14 +2290,28 @@ function showPingResultsWindow(users, timestamp) {
 
 // Update the status for a specific user in the ping results window
 function updatePingResult(userId, resultData) {
+    // Check if ping result window exists
     const pingResultItem = document.getElementById(`ping-result-${userId}`);
-    if (!pingResultItem) return;
+    if (!pingResultItem) {
+        // Element doesn't exist, silently ignore
+        console.log(`Ping result element for user ${userId} not found`);
+        return;
+    }
     
     const statusElement = pingResultItem.querySelector('.ping-status');
-    if (!statusElement) return;
+    if (!statusElement) {
+        console.log(`Status element for user ${userId} not found`);
+        return;
+    }
     
     const statusDot = statusElement.querySelector('span:first-child');
     const statusText = statusElement.querySelector('span:last-child');
+    
+    // Make sure both elements exist before updating
+    if (!statusDot || !statusText) {
+        console.log(`Status dot or text elements missing for user ${userId}`);
+        return;
+    }
     
     // Update status based on result
     if (resultData.status === 'received') {
@@ -2512,8 +2769,17 @@ function addVideoPlayRetryButton(videoElement) {
 // Updated ontrack handler within the createPeerConnection function
 // Insert this code in the pc.ontrack function where remote videos are handled
 function updateRemoteVideoElement(remoteVideoElement, userId, stream) {
-    if (!remoteVideoElement || !stream) return;
+    if (!remoteVideoElement || !stream) {
+        addLogEntry(`Cannot update video: ${!remoteVideoElement ? 'Missing video element' : 'Missing stream'} for ${userId}`, 'error');
+        return;
+    }
     
+    // Check if the element is still in the DOM before proceeding
+    if (!document.body.contains(remoteVideoElement)) {
+        addLogEntry(`Video element for ${userId} is no longer in the DOM`, 'warn');
+        return;
+    }
+
     // Set all required attributes for maximum autoplay compatibility
     remoteVideoElement.autoplay = true;
     remoteVideoElement.playsInline = true;
@@ -2524,42 +2790,162 @@ function updateRemoteVideoElement(remoteVideoElement, userId, stream) {
     remoteVideoElement.setAttribute('disablePictureInPicture', '');
     remoteVideoElement.setAttribute('controlsList', 'nodownload');
     
-    // Set the stream
-    remoteVideoElement.srcObject = stream;
-    
-    // Try to play immediately with muted audio
-    remoteVideoElement.play().then(() => {
-        addLogEntry(`Video playback started for ${userId} (muted)`, 'success');
-        
-        // Once playing, add unmute button
-        if (typeof window.WebRTCPlayer?.addUnmuteButton === 'function') {
-            window.WebRTCPlayer.addUnmuteButton(remoteVideoElement, userId);
+    // Important: Stop and clean up any existing streams first to prevent memory leaks
+    if (remoteVideoElement.srcObject) {
+        try {
+            const oldStream = remoteVideoElement.srcObject;
+            oldStream.getTracks().forEach(track => track.stop());
+        } catch (e) {
+            // Ignore errors from stopping old tracks
         }
-    }).catch(e => {
-        addLogEntry(`Autoplay failed for ${userId}: ${e.message}. Trying with safe play method.`, 'warn');
+    }
+    
+    // Set the new stream with error handling
+    try {
+        remoteVideoElement.srcObject = stream;
+    } catch (e) {
+        addLogEntry(`Error setting srcObject for ${userId}: ${e.message}`, 'error');
         
-        // Fall back to the enhanced safe play method
-        safePlayVideo(remoteVideoElement)
-            .then(() => {
-                addLogEntry(`Fallback video playback started for ${userId}`, 'success');
-            })
-            .catch(e => {
-                addLogEntry(`Remote video play error for ${userId}: ${e.message}`, 'error');
-                
-                // Use the WebRTCPlayer module's play button if available
+        // Fallback for older browsers
+        try {
+            // @ts-ignore
+            remoteVideoElement.src = window.URL.createObjectURL(stream);
+        } catch (objUrlError) {
+            addLogEntry(`Error creating object URL: ${objUrlError.message}`, 'error');
+            return;
+        }
+    }
+    
+    // Add stream visualization debug
+    if (window.debugMode) {
+        // Update the status indicator in the video container
+        const container = remoteVideoElement.closest('.video-container');
+        if (container) {
+            const statusIndicator = container.querySelector('.connection-state-indicator');
+            if (statusIndicator) {
+                statusIndicator.textContent = 'Media Received';
+                statusIndicator.style.backgroundColor = 'rgba(72, 187, 120, 0.8)'; // Green
+            }
+        }
+    }
+
+    // Play with retries and fallbacks
+    const maxPlayAttempts = 3;
+    let playAttempt = 0;
+    
+    function attemptPlay() {
+        playAttempt++;
+        addLogEntry(`Play attempt ${playAttempt} for ${userId}`, 'media');
+        
+        remoteVideoElement.play().then(() => {
+            addLogEntry(`Video playback started for ${userId} (muted)`, 'success');
+            
+            // Check if video is actually displaying frames after a short delay
+            setTimeout(() => {
+                if (remoteVideoElement.readyState < 3 || 
+                    remoteVideoElement.videoWidth === 0 || 
+                    remoteVideoElement.videoHeight === 0) {
+                    addLogEntry(`Video appears stuck for ${userId}, retrying...`, 'warn');
+                    retryVideoSetup();
+                } else {
+                    // Add unmute button once we know video is playing properly
+                    addLogEntry(`Video confirmed working for ${userId} (${remoteVideoElement.videoWidth}x${remoteVideoElement.videoHeight})`, 'success');
+                    
+                    if (typeof window.WebRTCPlayer?.addUnmuteButton === 'function') {
+                        window.WebRTCPlayer.addUnmuteButton(remoteVideoElement, userId);
+                    } else {
+                        addLogEntry(`WebRTCPlayer module not available for unmute button`, 'warn');
+                        // Add a simple unmute button as fallback
+                        addSimpleUnmuteButton(remoteVideoElement, userId);
+                    }
+                }
+            }, 2000);
+        }).catch(e => {
+            addLogEntry(`Autoplay failed for ${userId}: ${e.message}`, 'warn');
+            
+            if (playAttempt < maxPlayAttempts) {
+                // Wait a bit and try again
+                setTimeout(attemptPlay, 1000);
+            } else {
+                // After max attempts, try with user intervention
                 if (typeof window.WebRTCPlayer?.addImprovedPlayButton === 'function') {
                     window.WebRTCPlayer.addImprovedPlayButton(remoteVideoElement, userId);
                 } else {
                     // Fallback to simple play button
-                    addVideoPlayRetryButton(remoteVideoElement);
+                    addSimplePlayButton(remoteVideoElement, userId);
                 }
+            }
+        });
+    }
+    
+    function retryVideoSetup() {
+        addLogEntry(`Retrying video setup for ${userId}`, 'media');
+        
+        // Refresh the video element by setting srcObject again
+        try {
+            remoteVideoElement.srcObject = null;
+            setTimeout(() => {
+                remoteVideoElement.srcObject = stream;
+                attemptPlay();
+            }, 500);
+        } catch (e) {
+            addLogEntry(`Error during video retry: ${e.message}`, 'error');
+        }
+    }
+    
+    // Start the first play attempt
+    attemptPlay();
+}
+
+// Simple unmute button for fallback
+function addSimpleUnmuteButton(videoElement, userId) {
+    if (!videoElement || !videoElement.parentElement) return;
+    
+    // Check if button already exists
+    if (videoElement.parentElement.querySelector('.unmute-button')) return;
+    
+    const unmuteButton = document.createElement('button');
+    unmuteButton.className = 'unmute-button absolute bottom-2 right-2 bg-blue-600 text-white px-2 py-1 rounded text-xs z-10';
+    unmuteButton.textContent = 'Unmute';
+    unmuteButton.onclick = () => {
+        videoElement.muted = false;
+        unmuteButton.remove();
+    };
+    
+    videoElement.parentElement.appendChild(unmuteButton);
+}
+
+// Simple play button for fallback
+function addSimplePlayButton(videoElement, userId) {
+    if (!videoElement || !videoElement.parentElement) return;
+    
+    // Check if button already exists
+    if (videoElement.parentElement.querySelector('.play-button')) return;
+    
+    const playButton = document.createElement('button');
+    playButton.className = 'play-button absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 z-10';
+    playButton.innerHTML = '<div class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center"><span class="text-2xl">▶️</span></div>';
+    playButton.onclick = () => {
+        videoElement.play()
+            .then(() => {
+                playButton.remove();
+            })
+            .catch(e => {
+                console.error(`Play error: ${e.message}`);
             });
-    });
+    };
+    
+    videoElement.parentElement.appendChild(playButton);
 }
 
 // Function to add ICE candidate with proper checking and buffering
 function addIceCandidateWithCheck(peerId, candidate) {
-    if (!peers[peerId] || !peers[peerId].pc) {
+    if (!peers[peerId]) {
+        addLogEntry(`Received ICE candidate but peer ${peerId} doesn't exist`, 'warn');
+        return;
+    }
+    
+    if (!peers[peerId].pc) {
         addLogEntry(`Received ICE candidate but no peer connection exists for ${peerId}`, 'warn');
         return;
     }
@@ -2567,22 +2953,62 @@ function addIceCandidateWithCheck(peerId, candidate) {
     const pc = peers[peerId].pc;
     const fromUserName = peers[peerId]?.userName || 'Unknown peer';
     
-    // If we have a remote description, add candidate directly
+    // Store the candidate in the buffer regardless of current state
+    // This ensures we don't lose candidates that arrive right before remote description is set
+    if (!peers[peerId].iceCandidateBuffer) {
+        peers[peerId].iceCandidateBuffer = [];
+    }
+    
+    // Always store the candidate in buffer first
+    peers[peerId].iceCandidateBuffer.push(candidate);
+    
+    // If we have a remote description, try to process all buffered candidates immediately
     if (pc.remoteDescription && pc.remoteDescription.type) {
         try {
+            // Process this candidate immediately
             pc.addIceCandidate(new RTCIceCandidate(candidate))
+                .then(() => {
+                    // Successfully added, remove from buffer
+                    const index = peers[peerId].iceCandidateBuffer.indexOf(candidate);
+                    if (index > -1) {
+                        peers[peerId].iceCandidateBuffer.splice(index, 1);
+                    }
+                })
                 .catch(e => {
                     addLogEntry(`Error adding ICE candidate from ${fromUserName}: ${e.message}`, 'error');
-                    console.error('Error adding ICE candidate:', e);
+                    
+                    // For "Invalid state" errors, keep in buffer and try again after a delay
+                    if (e.message.includes("InvalidStateError") || e.message.includes("Invalid state")) {
+                        addLogEntry(`Will retry adding candidate for ${fromUserName} after a delay`, 'system');
+                        setTimeout(() => {
+                            // If connection still exists, try again
+                            if (peers[peerId] && peers[peerId].pc && peers[peerId].pc.remoteDescription) {
+                                processBufferedCandidates(peerId);
+                            }
+                        }, 2000);
+                    }
                 });
         } catch (e) {
             addLogEntry(`Exception processing ICE candidate: ${e.message}`, 'error');
+            // Keep candidate in buffer
         }
     } else {
-        // Buffer the candidate if we don't have a remote description yet
-        addLogEntry(`Buffering ICE candidate from ${fromUserName} until remote description is set`, 'peer');
-        peers[peerId].iceCandidateBuffer = peers[peerId].iceCandidateBuffer || [];
-        peers[peerId].iceCandidateBuffer.push(candidate);
+        // Remote description not set yet, log this info
+        addLogEntry(`Buffering ICE candidate from ${fromUserName} until remote description is set (${pc.signalingState})`, 'peer');
+        
+        // Set a timeout to try processing the buffer again after a delay
+        // This helps if the remote description arrives slightly after candidates
+        if (!peers[peerId].candidateProcessTimer) {
+            peers[peerId].candidateProcessTimer = setTimeout(() => {
+                // Clear the timer reference
+                peers[peerId].candidateProcessTimer = null;
+                
+                // Check if peer still exists and has remote description now
+                if (peers[peerId] && peers[peerId].pc && peers[peerId].pc.remoteDescription) {
+                    processBufferedCandidates(peerId);
+                }
+            }, 3000);
+        }
     }
 }
 
@@ -2594,22 +3020,45 @@ function processBufferedCandidates(peerId) {
     const buffer = peers[peerId].iceCandidateBuffer;
     const fromUserName = peers[peerId]?.userName || 'Unknown peer';
     
+    // Check for remote description before trying to process candidates
+    if (!pc.remoteDescription || !pc.remoteDescription.type) {
+        addLogEntry(`Cannot process ICE candidates yet - no remote description for ${fromUserName}`, 'warn');
+        return; // Keep candidates in buffer until we have a remote description
+    }
+    
     if (buffer.length > 0) {
         addLogEntry(`Processing ${buffer.length} buffered ICE candidates for ${fromUserName}`, 'peer');
         
-        buffer.forEach(candidate => {
+        // Process candidates one by one with proper error handling
+        const processNextCandidate = (index) => {
+            if (index >= buffer.length) {
+                // All candidates processed, clear buffer
+                peers[peerId].iceCandidateBuffer = [];
+                return;
+            }
+            
+            const candidate = buffer[index];
+            
             try {
                 pc.addIceCandidate(new RTCIceCandidate(candidate))
+                    .then(() => {
+                        // Successfully added, process next candidate
+                        processNextCandidate(index + 1);
+                    })
                     .catch(e => {
                         addLogEntry(`Error adding buffered ICE candidate: ${e.message}`, 'error');
+                        // Continue with next candidate despite error
+                        processNextCandidate(index + 1);
                     });
             } catch (e) {
                 addLogEntry(`Exception processing buffered ICE candidate: ${e.message}`, 'error');
+                // Continue with next candidate despite error
+                processNextCandidate(index + 1);
             }
-        });
+        };
         
-        // Clear the buffer
-        peers[peerId].iceCandidateBuffer = [];
+        // Start processing from first candidate
+        processNextCandidate(0);
     }
 }
 
