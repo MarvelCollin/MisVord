@@ -171,7 +171,7 @@ function updateParticipantsList(currentPeers) {
             } else {
                 statusDot.classList.add('bg-red-500'); // Problem - red
             }
-            
+
             participantItem.appendChild(avatar);
             participantItem.appendChild(nameSpan);
             participantItem.appendChild(statusDot);
@@ -356,7 +356,7 @@ function createPeerConnection(peerSocketId, peerUserName) {
     addLogEntry(`Creating new peer connection for ${peerUserName} (ID: ${peerSocketId})`, 'pc');
     
     // Simplified WebRTC STUN/TURN Server Configuration
-    const configuration = {
+    const configuration = { 
         iceServers: [
             // STUN servers - for NAT traversal
             { urls: 'stun:stun.l.google.com:19302' },
@@ -535,7 +535,7 @@ function createPeerConnection(peerSocketId, peerUserName) {
                 } else if (pc.iceConnectionState === 'checking') {
                     statusIndicator.textContent = 'Connecting...';
                     statusIndicator.style.backgroundColor = 'rgba(236, 201, 75, 0.8)'; // Yellow
-                } else if (pc.iceConnectionState === 'failed') {
+        } else if (pc.iceConnectionState === 'failed') {
                     statusIndicator.textContent = 'Failed';
                     statusIndicator.style.backgroundColor = 'rgba(245, 101, 101, 0.8)'; // Red
                     
@@ -561,11 +561,11 @@ function createPeerConnection(peerSocketId, peerUserName) {
                             }
                         }
                     }, 2000);
-                } else if (pc.iceConnectionState === 'closed') {
+        } else if (pc.iceConnectionState === 'closed') {
                     statusIndicator.textContent = 'Closed';
                     statusIndicator.style.backgroundColor = 'rgba(45, 55, 72, 0.8)'; // Dark gray
                     removePeer(peerSocketId);
-                }
+        }
             }
         }
         
@@ -663,7 +663,7 @@ function setupSocketEvents() {
     socket.off('ping-response');
     socket.off('ping-all-response');
     socket.off('ping-all-update');
-    
+
     // Verbose connection tracking
     socket.on('connect', () => {
         socketId = socket.id;
@@ -692,14 +692,14 @@ function setupSocketEvents() {
         updateConnectionStatus('disconnected', `Connection Error: ${error.message}`);
         console.error('Socket connection error details:', error);
     });
-    
+
     socket.on('video-room-users', (data) => {
         const { users } = data; // users is an array of { userId, userName, socketId }
         addLogEntry(`[SOCKET] Received initial list of users in room: ${users.length} users.`, 'socket');
         
         if (DEBUG_USER_TRACKING) {
             console.group('🔍 Video Room Users Received');
-            console.log('%c[SOCKET] Current users in room:', 'color: #20c997; font-weight: bold;', users);
+        console.log('%c[SOCKET] Current users in room:', 'color: #20c997; font-weight: bold;', users);
             console.table(users);
             console.groupEnd();
         }
@@ -720,22 +720,22 @@ function setupSocketEvents() {
             }
             
             addLogEntry(`[SOCKET] Processing remote user: ${user.userName} (${user.socketId})`, 'user');
-            const pc = createPeerConnection(user.socketId, user.userName);
-            if (pc) {
+                const pc = createPeerConnection(user.socketId, user.userName);
+                if (pc) {
                 addLogEntry(`[SOCKET] Creating offer to ${user.userName} (${user.socketId})`, 'signal');
-                pc.createOffer()
+                    pc.createOffer()
                     .then(offer => {
                         addLogEntry(`[SOCKET] Setting local description for ${user.userName}`, 'peer');
                         return pc.setLocalDescription(offer);
                     })
-                    .then(() => {
+                        .then(() => {
                         addLogEntry(`[SOCKET] Sending WebRTC offer to ${user.userName} (${user.socketId})`, 'signal');
-                        socket.emit('webrtc-offer', {
-                            to: user.socketId,
-                            offer: pc.localDescription,
-                            fromUserName: userName
-                        });
-                    })
+                            socket.emit('webrtc-offer', {
+                                to: user.socketId,
+                                offer: pc.localDescription,
+                                fromUserName: userName
+                            });
+                        })
                     .catch(e => {
                         addLogEntry(`[SOCKET] Error creating initial offer for ${user.userName}: ${e.message}`, 'error');
                         console.error('Offer creation error:', e);
@@ -780,15 +780,15 @@ function setupSocketEvents() {
                 .catch(e => {
                     addLogEntry(`Error creating offer for ${userData.userName}: ${e.message}`, 'error');
                     console.error('Offer creation error for new user:', e);
-                });
+    });
         } else {
             addLogEntry(`Failed to create peer connection for new user ${userData.userName}`, 'error');
         }
-        
+
         // Force update UI after new user joins
         setTimeout(() => updateParticipantsList(peers), 500);
     });
-    
+
     socket.on('webrtc-offer', (data) => {
         const { from, offer, fromUserName } = data;
         addLogEntry(`Received WebRTC offer from ${fromUserName} (${from})`, 'signal');
@@ -804,7 +804,7 @@ function setupSocketEvents() {
             pc = createPeerConnection(from, fromUserName);
             if (!pc) {
                 addLogEntry(`Failed to create peer connection for offer from ${fromUserName}`, 'error');
-                return;
+             return;
             }
         }
 
@@ -820,9 +820,9 @@ function setupSocketEvents() {
             })
             .then(() => {
                 addLogEntry(`Sending WebRTC answer to ${fromUserName} (${from})`, 'signal');
-                socket.emit('webrtc-answer', {
-                    to: from,
-                    answer: pc.localDescription,
+            socket.emit('webrtc-answer', {
+                to: from,
+                answer: pc.localDescription,
                     fromUserName: userName
                 });
             })
@@ -867,7 +867,7 @@ function setupSocketEvents() {
                     addLogEntry(`Error adding ICE candidate from ${fromUserName}: ${e.message}`, 'error');
                     console.error('Error adding ICE candidate:', e);
                 });
-        } catch (e) {
+            } catch (e) {
             addLogEntry(`Exception processing ICE candidate: ${e.message}`, 'error');
         }
     });
@@ -987,6 +987,9 @@ function setupSocketEvents() {
 // --- Enhanced Connection Function ---
 function connectToSignalingServer() {
     const socketServerUrlMeta = document.querySelector('meta[name="socket-server"]');
+    const socketPathMeta = document.querySelector('meta[name="socket-path"]');
+    const envTypeMeta = document.querySelector('meta[name="env-type"]');
+    
     if (!socketServerUrlMeta) {
         addLogEntry("Socket server URL meta tag not found!", "error");
         console.error("Missing meta tag: socket-server");
@@ -996,14 +999,26 @@ function connectToSignalingServer() {
         const allMeta = document.querySelectorAll('meta');
         console.log('Available meta tags:', Array.from(allMeta).map(m => ({name: m.getAttribute('name'), content: m.getAttribute('content')})));
         
-        // Fallback to localhost port 1002 if meta tag is missing
-        tryFallbackSocketConnection('http://localhost:1002');
+        // Get window hostname for potential fallback
+        const hostname = window.location.hostname;
+        const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+        const fallbackUrl = isLocalhost ? 'http://localhost:1002' : `http://${hostname}:1002`;
+        
+        addLogEntry(`Using fallback socket URL: ${fallbackUrl}`, 'system');
+        tryFallbackSocketConnection(fallbackUrl);
         return;
     }
     
     const socketServerUrl = socketServerUrlMeta.content;
-    addLogEntry(`Connecting to signaling server at ${socketServerUrl}...`, 'system');
-    console.log('%c[SOCKET SERVER URL]', 'background:#007bff;color:white;padding:2px 5px;', socketServerUrl);
+    const socketPath = socketPathMeta ? socketPathMeta.content : '/socket.io';
+    const envType = envTypeMeta ? envTypeMeta.content : 'unknown';
+    
+    addLogEntry(`Connecting to signaling server at ${socketServerUrl} (Path: ${socketPath}, Env: ${envType})...`, 'system');
+    console.log('%c[SOCKET SERVER CONFIG]', 'background:#007bff;color:white;padding:2px 5px;', {
+        url: socketServerUrl,
+        path: socketPath,
+        environment: envType
+    });
 
     if (socket && socket.connected) {
         addLogEntry('Disconnecting existing socket connection...', 'system');
@@ -1012,6 +1027,7 @@ function connectToSignalingServer() {
 
     try {
         socket = io(socketServerUrl, {
+            path: socketPath,
             transports: ['websocket', 'polling'],
             reconnectionAttempts: 5,
             reconnectionDelay: 3000,
@@ -1019,7 +1035,8 @@ function connectToSignalingServer() {
             forceNew: true,
             query: {
                 clientVersion: '1.0.0',
-                userAgent: navigator.userAgent
+                userAgent: navigator.userAgent,
+                envType: envType
             }
         });
 
@@ -1031,6 +1048,27 @@ function connectToSignalingServer() {
             addLogEntry(`Socket.IO transport error: ${error}`, 'error');
             console.error('Socket transport error details:', error);
             updateConnectionStatus('disconnected', `Connection Error: ${error}`);
+            
+            // If error occurs, try alternative connection approaches based on environment
+            if (envType === 'marvel') {
+                // For marvel domain, first try without path
+                setTimeout(() => {
+                    addLogEntry(`Trying alternative connection without special path`, 'system');
+                    tryFallbackSocketConnection(socketServerUrl, '/socket.io');
+                }, 3000);
+            } else {
+                // For other environments, use standard fallback
+                const hostname = window.location.hostname;
+                const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+                const fallbackUrl = isLocalhost ? 'http://localhost:1002' : `http://${hostname}:1002`;
+                
+                if (socketServerUrl !== fallbackUrl) {
+                    setTimeout(() => {
+                        addLogEntry(`Trying alternative connection: ${fallbackUrl}`, 'system');
+                        tryFallbackSocketConnection(fallbackUrl);
+                    }, 3000);
+                }
+            }
         });
 
         socket.io.on("reconnect_attempt", (attempt) => {
@@ -1045,6 +1083,7 @@ function connectToSignalingServer() {
                 id: socket.id,
                 transport: transport,
                 url: socket.io.uri,
+                path: socket.io.opts.path,
                 namespace: socket.nsp
             });
         });
@@ -1053,14 +1092,19 @@ function connectToSignalingServer() {
         console.error('Socket connection error:', e);
         updateConnectionStatus('disconnected', `Connection Error`);
         
-        setTimeout(tryFallbackSocketConnection, 3000);
+        // If error occurs, try fallback with the hostname-based URL
+        const hostname = window.location.hostname;
+        const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+        const fallbackUrl = isLocalhost ? 'http://localhost:1002' : `http://${hostname}:1002`;
+        
+        setTimeout(() => tryFallbackSocketConnection(fallbackUrl), 3000);
     }
 }
 
 // Function to try fallback socket server connections
-function tryFallbackSocketConnection(fallbackUrl = 'http://localhost:1002') {
-    addLogEntry(`Trying fallback socket connection to ${fallbackUrl}`, 'system');
-    updateConnectionStatus('connecting', `Trying fallback connection to ${fallbackUrl}`);
+function tryFallbackSocketConnection(fallbackUrl = 'http://localhost:1002', fallbackPath = '/socket.io') {
+    addLogEntry(`Trying fallback socket connection to ${fallbackUrl} (Path: ${fallbackPath})`, 'system');
+    updateConnectionStatus('connecting', `Trying fallback connection...`);
     
     try {
         if (socket && socket.connected) {
@@ -1068,6 +1112,7 @@ function tryFallbackSocketConnection(fallbackUrl = 'http://localhost:1002') {
         }
         
         socket = io(fallbackUrl, {
+            path: fallbackPath,
             transports: ['websocket', 'polling'],
             reconnectionAttempts: 3,
             reconnectionDelay: 2000,
@@ -1081,10 +1126,48 @@ function tryFallbackSocketConnection(fallbackUrl = 'http://localhost:1002') {
         socket.io.on("error", (error) => {
             addLogEntry(`Fallback socket connection error: ${error}`, 'error');
             updateConnectionStatus('disconnected', `Connection Error: ${error}`);
+            
+            // Final fallback - try with direct IP and standard path
+            const hostname = window.location.hostname;
+            if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+                const finalUrl = `http://${hostname}:1002`;
+                if (fallbackUrl !== finalUrl || fallbackPath !== '/socket.io') {
+                    setTimeout(() => {
+                        addLogEntry(`Final attempt with direct connection: ${finalUrl}`, 'system');
+                        tryDirectConnection(finalUrl);
+                    }, 3000);
+                }
+            }
         });
     } catch (e) {
         addLogEntry(`Error creating fallback socket connection: ${e.message}`, 'error');
         updateConnectionStatus('disconnected', `Connection Failed`);
+    }
+}
+
+// Direct IP connection attempt as last resort
+function tryDirectConnection(serverUrl) {
+    addLogEntry(`Trying direct IP connection to ${serverUrl}`, 'system');
+    updateConnectionStatus('connecting', `Direct connection to ${serverUrl}`);
+    
+    try {
+        if (socket && socket.connected) {
+            socket.disconnect();
+        }
+        
+        socket = io(serverUrl, {
+            path: '/socket.io',
+            transports: ['websocket', 'polling'],
+            reconnectionAttempts: 2,
+            reconnectionDelay: 2000,
+            timeout: 5000,
+            forceNew: true
+        });
+        
+        setupSocketEvents();
+    } catch (e) {
+        addLogEntry(`All connection attempts failed: ${e.message}`, 'error');
+        updateConnectionStatus('disconnected', `All Connection Attempts Failed`);
     }
 }
 
@@ -1262,7 +1345,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     `;
     document.head.appendChild(style);
-    
+
     addLogEntry("WebRTC client initialized. Waiting for media permissions.", 'system');
 });
 

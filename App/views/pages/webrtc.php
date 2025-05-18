@@ -13,12 +13,42 @@ if (!function_exists('asset')) {
 $page_title = 'MiscVord - Global Video Chat';
 $body_class = 'bg-gray-900 text-white overflow-hidden';
 
-// Define the socket server URL directly in this page to override any other settings
-$socket_server_url = 'http://localhost:1002';
+// Define the socket server URL based on environment
+$is_production = getenv('APP_ENV') === 'production';
+$host_domain = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'localhost';
+$is_local = $host_domain === 'localhost' || strpos($host_domain, '127.0.0.1') !== false;
+$is_marvel_domain = strpos($host_domain, 'marvelcollin.my.id') !== false;
+$protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
+
+// Get socket URL from environment or use appropriate default
+$socket_server_url = getenv('SOCKET_SERVER');
+
+// Auto-detect environment and set appropriate socket URL
+if (empty($socket_server_url)) {
+    if ($is_local) {
+        // Local development: direct port
+        $socket_server_url = 'http://localhost:1002';
+    } else if ($is_marvel_domain) {
+        // Production on marvelcollin.my.id domain with subpath
+        $socket_server_url = $protocol . '://' . $host_domain . '/misvord/socket';
+    } else {
+        // Other production/VPS environments: direct port
+        $host_domain = preg_replace('#^https?://#', '', $host_domain);
+        $socket_server_url = $protocol . '://' . $host_domain . ':1002';
+    }
+}
+
+// Add socket path config for JavaScript
+$socket_path = $is_marvel_domain ? '/misvord/socket/socket.io' : '/socket.io';
+
+// Log for debugging
+error_log("WebRTC socket server URL: " . $socket_server_url . ", Path: " . $socket_path);
 
 $additional_head = '
-<!-- Force socket server URL for WebRTC -->
+<!-- Socket server configuration -->
 <meta name="socket-server" content="' . $socket_server_url . '">
+<meta name="socket-path" content="' . $socket_path . '">
+<meta name="env-type" content="' . ($is_local ? 'local' : ($is_marvel_domain ? 'marvel' : 'vps')) . '">
 <style>
     .video-grid {
         display: grid;

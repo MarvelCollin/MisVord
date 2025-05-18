@@ -6,17 +6,33 @@ const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
-app.use(cors()); // Basic CORS setup
+app.use(cors({
+  origin: '*', // Allow all origins in development/testing
+  methods: ['GET', 'POST'],
+  credentials: true
+})); 
 
 const server = http.createServer(app);
 
+// Get allowed origins from env or use default wildcard
+const corsAllowedOrigins = process.env.CORS_ALLOWED_ORIGINS || '*';
+console.log(`CORS allowed origins: ${corsAllowedOrigins}`);
+
+// Get Socket.IO path from environment variable or use default
+const socketPath = process.env.SOCKET_PATH || '/socket.io';
+console.log(`Using Socket.IO path: ${socketPath}`);
+
+// Setup Socket.IO with enhanced CORS and path support for Nginx subpath
 const io = new Server(server, {
   cors: {
-    origin: "*", // Allow all origins for simplicity in dev; restrict in production
+    origin: corsAllowedOrigins, // Use environment variable or allow all
     methods: ["GET", "POST"],
     credentials: true
   },
   transports: ['websocket', 'polling'],
+  // Allow Socket.IO to work behind Nginx with path prefix
+  path: socketPath,
+  allowEIO3: true
 });
 
 // Enhanced debugging configuration
@@ -29,30 +45,30 @@ const DEBUG_USERS = true;
 function debugLog(...args) {
   const timestamp = new Date().toISOString();
   
-  // Support log levels: info, error, success, warn, debug
-  let level = 'info';
-  if (typeof args[0] === 'string') {
-    const msg = args[0].toLowerCase();
-    if (msg.includes('error')) level = 'error';
-    else if (msg.includes('success')) level = 'success';
-    else if (msg.includes('warn')) level = 'warn';
-    else if (msg.includes('debug')) level = 'debug';
-    else if (msg.includes('fail')) level = 'error';
+    // Support log levels: info, error, success, warn, debug
+    let level = 'info';
+    if (typeof args[0] === 'string') {
+      const msg = args[0].toLowerCase();
+      if (msg.includes('error')) level = 'error';
+      else if (msg.includes('success')) level = 'success';
+      else if (msg.includes('warn')) level = 'warn';
+      else if (msg.includes('debug')) level = 'debug';
+      else if (msg.includes('fail')) level = 'error';
     else if (msg.includes('[user]')) level = 'user';
     else if (msg.includes('[signal]')) level = 'signal';
-  }
+    }
   
-  const color = {
-    info: '\x1b[36m', // cyan
-    error: '\x1b[31m', // red
-    success: '\x1b[32m', // green
-    warn: '\x1b[33m', // yellow
+    const color = {
+      info: '\x1b[36m', // cyan
+      error: '\x1b[31m', // red
+      success: '\x1b[32m', // green
+      warn: '\x1b[33m', // yellow
     debug: '\x1b[35m', // magenta,
     user: '\x1b[33m\x1b[1m', // bright yellow (bold)
     signal: '\x1b[36m\x1b[1m', // bright cyan (bold)
-  }[level] || '\x1b[0m';
+    }[level] || '\x1b[0m';
   
-  const reset = '\x1b[0m';
+    const reset = '\x1b[0m';
   
   if (DEBUG_MODE) {
     console.log(`${color}[${level.toUpperCase()} ${timestamp}]${reset}`, ...args);
@@ -101,12 +117,28 @@ app.get('/health', (req, res) => {
     uptime: process.uptime(),
     videoChatUserCount: Object.keys(videoChatUsers).length,
     port: PORT,
+    socketPath: socketPath,
     timestamp: new Date().toISOString(),
     env: {
       NODE_ENV: process.env.NODE_ENV || 'not set',
       PORT: process.env.PORT || 'not set',
       SOCKET_URL: process.env.SOCKET_URL || 'not set',
-      CORS_ALLOWED_ORIGINS: process.env.CORS_ALLOWED_ORIGINS || 'not set'
+      CORS_ALLOWED_ORIGINS: process.env.CORS_ALLOWED_ORIGINS || 'not set',
+      SOCKET_PATH: process.env.SOCKET_PATH || 'not set (using default /socket.io)'
+    }
+  });
+});
+
+// Add an endpoint specifically for the /misvord/socket/ path to verify it's working
+app.get('/socket-test', (req, res) => {
+  res.json({
+    message: "Socket server path test endpoint reached successfully",
+    serverTime: new Date().toISOString(),
+    socketPath: socketPath,
+    activeUsers: Object.keys(videoChatUsers).length,
+    clientInfo: {
+      ip: req.ip,
+      headers: req.headers
     }
   });
 });
@@ -156,7 +188,11 @@ function getRoomMembers(roomName) {
 io.on('connection', (socket) => {
   activeConnections++;
   const clientIp = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address;
+  const clientPath = socket.handshake.query.path || 'Not provided';
+  const clientEnv = socket.handshake.query.envType || 'Not provided';
+  
   console.log(`[CONNECTION] Socket connected: ${socket.id} from ${clientIp} (Total: ${activeConnections})`);
+  console.log(`[CONNECTION] Client info: Environment=${clientEnv}, Path=${clientPath}`);
   
   debugLog(`User connected: ${socket.id}`);
 
@@ -355,7 +391,7 @@ io.on('connection', (socket) => {
 
   socket.on('webrtc-answer', (data) => {
     const { to, answer, fromUserName } = data;
-    if (!to || !answer) {
+     if (!to || !answer) {
       debugLog(`Invalid WebRTC answer from ${socket.id}. Missing 'to' or 'answer'.`);
       return;
     }
@@ -657,4 +693,5 @@ const PORT = process.env.PORT || 1002;
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Socket.IO server for video calls running on port ${PORT}`);
   console.log(`Socket.IO server available at http://localhost:${PORT}`);
+  console.log(`Socket.IO path: ${socketPath}`);
 });

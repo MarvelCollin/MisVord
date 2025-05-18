@@ -31,6 +31,7 @@ services:
     environment:
       - APP_ENV=production
       - DB_HOST=db
+      - DB_PORT=1003
       - DB_NAME=misvord
       - DB_USER=root
       - DB_PASS=password
@@ -65,6 +66,7 @@ services:
       - PORT=1002
       - SOCKET_API_KEY=kolin123
       - DB_HOST=db
+      - DB_PORT=1003
       - DB_NAME=misvord
       - DB_USER=root
       - DB_PASS=password
