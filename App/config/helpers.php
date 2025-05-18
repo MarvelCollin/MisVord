@@ -65,9 +65,18 @@ function getBaseUrl() {
         return 'http://localhost:1001';
     }
     
-    $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http';
+    // In production, and especially for marvelcollin.my.id, always use HTTPS
     $host = $_SERVER['HTTP_HOST'] ?? 'localhost:1001';
     
+    // Force HTTPS for production domains and when accessed via HTTPS
+    $useHttps = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+    
+    // Always use HTTPS for marvelcollin.my.id domain
+    if (strpos($host, 'marvelcollin.my.id') !== false) {
+        $useHttps = true;
+    }
+    
+    $protocol = $useHttps ? 'https' : 'http';
     $scriptDir = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? ''), '/');
     
     return "{$protocol}://{$host}{$scriptDir}";

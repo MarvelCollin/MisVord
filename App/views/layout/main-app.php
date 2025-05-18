@@ -55,8 +55,8 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
     <!-- Tailwind CSS via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
-    <!-- Socket.io client library -->
-    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <!-- Socket.io client library - using HTTPS to avoid mixed content warnings -->
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js" integrity="sha384-c79GN5VsunZvi+Q/WObgk2in0CbZsHnjEqvFxC5DxHn9lTfNce2WW6h2pH6u/kF+" crossorigin="anonymous"></script>
     <script>
         tailwind.config = {
             theme: {
