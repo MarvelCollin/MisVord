@@ -92,6 +92,12 @@ function playWithUnmuteSequence(videoElement, userId) {
         if (window.WebRTCDebug) {
             window.WebRTCDebug.showOverlay(userId, "Initial muted play succeeded", "success");
         }
+        
+        // Add unmute button if we're auto-playing muted but need sound
+        if (!wasMuted) {
+            addUnmuteButton(videoElement, userId);
+        }
+        
         handleSuccessfulPlay();
     }).catch(err => {
         if (window.WebRTCDebug) {
@@ -118,11 +124,12 @@ function playWithUnmuteSequence(videoElement, userId) {
             }
             
             // Successfully playing, restore original settings
-            videoElement.muted = wasMuted;
+            // We'll handle unmuting with the unmute button instead
+            // videoElement.muted = wasMuted;
             videoElement.controls = wasControls;
             
             if (window.WebRTCDebug) {
-                window.WebRTCDebug.showOverlay(userId, `Video unmuted, dimensions: ${videoElement.videoWidth}x${videoElement.videoHeight}`, "success");
+                window.WebRTCDebug.showOverlay(userId, `Video playing, dimensions: ${videoElement.videoWidth}x${videoElement.videoHeight}, muted: ${videoElement.muted}`, "success");
             }
             
             // Start monitoring playback quality
@@ -156,6 +163,83 @@ function playWithUnmuteSequence(videoElement, userId) {
             }
         });
     }
+}
+
+// Function to add an unmute button overlay when video plays muted
+function addUnmuteButton(videoElement, userId) {
+    // Check if container exists
+    const container = document.getElementById(`container-${userId}`);
+    if (!container) return;
+    
+    // First check if we already have an unmute button
+    if (document.getElementById(`unmute-btn-${userId}`)) return;
+    
+    // Create the unmute button overlay
+    const unmuteOverlay = document.createElement('div');
+    unmuteOverlay.id = `unmute-overlay-${userId}`;
+    unmuteOverlay.className = 'absolute inset-0 flex items-center justify-center z-20 pointer-events-none';
+    
+    const unmuteButton = document.createElement('button');
+    unmuteButton.id = `unmute-btn-${userId}`;
+    unmuteButton.className = 'bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full pointer-events-auto flex items-center';
+    unmuteButton.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z" clip-rule="evenodd" />
+        </svg>
+        Tap to Unmute
+    `;
+    
+    // Handle click event
+    unmuteButton.addEventListener('click', function() {
+        try {
+            // Unmute the video
+            videoElement.muted = false;
+            
+            // Check if video is paused, if so play it
+            if (videoElement.paused) {
+                videoElement.play().catch(e => {
+                    console.error("Failed to play video after unmuting:", e);
+                });
+            }
+            
+            // Remove the unmute button
+            if (unmuteOverlay.parentNode) {
+                unmuteOverlay.parentNode.removeChild(unmuteOverlay);
+            }
+            
+            // Log the unmute action
+            if (window.WebRTCDebug) {
+                window.WebRTCDebug.showOverlay(userId, "Video unmuted by user", "success");
+            }
+        } catch (err) {
+            console.error("Error unmuting video:", err);
+            if (window.WebRTCDebug) {
+                window.WebRTCDebug.showOverlay(userId, `Failed to unmute: ${err.message}`, "error");
+            }
+        }
+    });
+    
+    unmuteOverlay.appendChild(unmuteButton);
+    container.appendChild(unmuteOverlay);
+    
+    // Auto-remove the unmute button after 15 seconds if not clicked
+    setTimeout(() => {
+        if (document.getElementById(`unmute-overlay-${userId}`)) {
+            // Make it fade away visually
+            const overlay = document.getElementById(`unmute-overlay-${userId}`);
+            if (overlay) {
+                overlay.style.transition = 'opacity 1s';
+                overlay.style.opacity = '0';
+                
+                // Then remove it from DOM after fade out
+                setTimeout(() => {
+                    if (overlay.parentNode) {
+                        overlay.parentNode.removeChild(overlay);
+                    }
+                }, 1000);
+            }
+        }
+    }, 15000);
 }
 
 // Function to simulate a user gesture to help with autoplay

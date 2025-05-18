@@ -2176,74 +2176,70 @@ function diagnoseWebSocketIssues(socketUrl, socketPath, envType, isSecurePage) {
 
 // Check and request autoplay permissions
 async function checkAutoplayPermission() {
-    addLogEntry(`Checking autoplay permission...`, 'media');
-    
     try {
-        // Create a temporary silent audio context to test autoplay
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        await audioContext.resume();
+        // Create a more reliable permission check
+        const permissionPrompt = document.getElementById('autoplayPermissionPrompt') || document.createElement('div');
         
-        // Create a temporary video element to test video autoplay
-        const tempVideo = document.createElement('video');
-        tempVideo.muted = true;
-        tempVideo.srcObject = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-        tempVideo.style.display = 'none';
-        document.body.appendChild(tempVideo);
+        if (!document.getElementById('autoplayPermissionPrompt')) {
+            permissionPrompt.id = 'autoplayPermissionPrompt';
+            permissionPrompt.className = 'fixed inset-0 flex items-center justify-center bg-black bg-opacity-75 z-50';
+            permissionPrompt.innerHTML = `
+                <div class="bg-gray-800 p-6 rounded-lg shadow-xl max-w-md w-full text-center">
+                    <h3 class="text-xl font-bold text-white mb-4">Permission Required</h3>
+                    <p class="text-gray-300 mb-6">This app requires permission to play audio and video automatically.</p>
+                    <button id="allowAutoplayBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg">
+                        Enable Audio & Video
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(permissionPrompt);
+        }
         
-        // Try to play the video
-        await tempVideo.play();
+        // Check if we already have autoplay permission
+        const testAudio = document.createElement('audio');
+        testAudio.src = 'data:audio/mpeg;base64,/+MYxAAAAANIAAAAAExBTUUzLjk4LjIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
         
-        // If we get here, autoplay is allowed
-        document.body.removeChild(tempVideo);
-        tempVideo.srcObject.getTracks().forEach(track => track.stop());
-        
-        addLogEntry(`Autoplay permission granted`, 'success');
-        return true;
-    } catch (error) {
-        addLogEntry(`Autoplay permission denied: ${error.message}`, 'error');
-        
-        // Create permission request UI
-        const permissionUI = document.createElement('div');
-        permissionUI.className = 'autoplay-permission';
-        permissionUI.style.position = 'fixed';
-        permissionUI.style.top = '50%';
-        permissionUI.style.left = '50%';
-        permissionUI.style.transform = 'translate(-50%, -50%)';
-        permissionUI.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
-        permissionUI.style.padding = '20px';
-        permissionUI.style.borderRadius = '8px';
-        permissionUI.style.zIndex = '9999';
-        permissionUI.style.boxShadow = '0 0 20px rgba(0, 0, 0, 0.5)';
-        permissionUI.style.color = 'white';
-        permissionUI.style.textAlign = 'center';
-        
-        permissionUI.innerHTML = `
-            <h3 style="margin-top: 0;">Autoplay Permission Required</h3>
-            <p>Your browser requires permission to autoplay videos with audio.</p>
-            <p>Please click the button below to enable video playback.</p>
-            <button id="enableAutoplay" style="padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Enable Video Playback</button>
-        `;
-        
-        document.body.appendChild(permissionUI);
-        
-        // Listen for click to enable autoplay
-        return new Promise(resolve => {
-            document.getElementById('enableAutoplay').addEventListener('click', async () => {
-                try {
-                    // Try to play audio after user interaction
-                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                    await audioContext.resume();
-                    
-                    // Remove the permission UI
-                    document.body.removeChild(permissionUI);
-                    addLogEntry(`Autoplay permission granted after user interaction`, 'success');
-                    resolve(true);
-                } catch (e) {
-                    addLogEntry(`Still couldn't get autoplay permission: ${e.message}`, 'error');
-                    resolve(false);
-                }
+        try {
+            // Try to play silently first to check if we already have permission
+            testAudio.volume = 0.01;
+            const playResult = await testAudio.play();
+            
+            // If we get here, we already have permission!
+            testAudio.pause();
+            permissionPrompt.style.display = 'none';
+            addLogEntry('Autoplay already allowed by browser', 'success');
+            window.browserAllowsAutoplay = true;
+            return true;
+        } catch (e) {
+            // We need user interaction
+            addLogEntry('Autoplay blocked by browser, waiting for user interaction', 'warn');
+            
+            return new Promise(resolve => {
+                document.getElementById('allowAutoplayBtn').addEventListener('click', async () => {
+                    try {
+                        // Play audio on user interaction
+                        testAudio.volume = 0.01;
+                        await testAudio.play();
+                        testAudio.pause();
+                        
+                        // Hide the permission UI
+                        permissionPrompt.style.display = 'none';
+                        
+                        // Mark that browser now allows autoplay
+                        window.browserAllowsAutoplay = true;
+                        addLogEntry('Autoplay permission granted by user', 'success');
+                        resolve(true);
+                    } catch (error) {
+                        addLogEntry(`Error enabling autoplay: ${error.message}`, 'error');
+                        permissionPrompt.style.display = 'none';
+                        resolve(false);
+                    }
+                });
             });
-        });
+        }
+    } catch (error) {
+        addLogEntry(`Autoplay permission check error: ${error.message}`, 'error');
+        return false;
     }
 }
 
@@ -2251,64 +2247,47 @@ async function checkAutoplayPermission() {
 async function safePlayVideo(videoElement) {
     if (!videoElement) return Promise.reject(new Error('No video element provided'));
     
-    // Make sure the video element has a valid srcObject
-    if (!videoElement.srcObject) {
-        return Promise.reject(new Error('No media source attached to video element'));
-    }
-    
-    // Add event listeners to detect when the video is ready to play
-    return new Promise((resolve, reject) => {
-        // Check if video is already playing
-        if (!videoElement.paused) {
-            resolve('Video already playing');
+    try {
+        // If we know browser allows autoplay, just play
+        if (window.browserAllowsAutoplay) {
+            await videoElement.play();
             return;
         }
         
-        // Setup event handlers before attempting to play
-        const loadedHandler = () => {
-            videoElement.removeEventListener('loadedmetadata', loadedHandler);
-            
-            // Attempt to play with timeout to detect possible issues
-            let playPromise;
-            try {
-                playPromise = videoElement.play();
-                
-                // Handle browsers that don't return a promise
-                if (playPromise === undefined) {
-                    addLogEntry('Browser does not return play promise, assuming success', 'warn');
-                    resolve('Play started');
-                    return;
-                }
-                
-                playPromise.then(() => {
-                    addLogEntry(`Video playback started successfully`, 'success');
-                    resolve('Play started');
-                }).catch(error => {
-                    addLogEntry(`Play failed: ${error.message}`, 'error');
-                    reject(error);
-                });
-            } catch (e) {
-                addLogEntry(`Exception during play attempt: ${e.message}`, 'error');
-                reject(e);
-            }
-        };
+        // Make sure video has playsinline attribute (crucial for iOS)
+        videoElement.setAttribute('playsinline', '');
+        videoElement.setAttribute('webkit-playsinline', '');
         
-        // If already loaded, try to play immediately
-        if (videoElement.readyState >= 2) {
-            loadedHandler();
-        } else {
-            // Wait for video to be ready before playing
-            videoElement.addEventListener('loadedmetadata', loadedHandler);
+        // First try muted play (browsers allow muted autoplay)
+        const wasMuted = videoElement.muted;
+        videoElement.muted = true;
+        
+        try {
+            await videoElement.play();
             
-            // Add timeout to detect if video loading takes too long
-            setTimeout(() => {
-                if (videoElement.paused) {
-                    videoElement.removeEventListener('loadedmetadata', loadedHandler);
-                    reject(new Error('Video loading timeout'));
-                }
-            }, 5000);
+            // If muted play works but we want sound, request permission
+            if (!wasMuted) {
+                // Wait a moment so the muted video is visible first
+                setTimeout(async () => {
+                    try {
+                        // Now try to unmute after successful play
+                        videoElement.muted = wasMuted;
+                    } catch (e) {
+                        addLogEntry(`Could not unmute video: ${e.message}`, 'warn');
+                        // Keep it muted if unmuting fails
+                    }
+                }, 500);
+            }
+        } catch (err) {
+            addLogEntry(`Safe play failed: ${err.message}`, 'error');
+            // If we get here, we need to try the permission request
+            await checkAutoplayPermission();
+            // Try one more time after permission
+            await videoElement.play();
         }
-    });
+    } catch (error) {
+        return Promise.reject(error);
+    }
 }
 
 // Add a retry button for videos that fail to play
