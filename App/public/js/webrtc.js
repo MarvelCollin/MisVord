@@ -1101,16 +1101,60 @@ function connectToSignalingServer() {
             addLogEntry('WARNING: Direct port reference detected in socket URL. This can cause Mixed Content errors.', 'error');
             // Replace direct port with subpath approach
             const urlBase = window.location.protocol + '//' + window.location.host;
-            socketServerUrl = `${urlBase}/misvord/socket`;
-            addLogEntry(`Replacing direct port reference with subpath URL: ${socketServerUrl}`, 'system');
+            
+            // Always use the standard path for this VPS
+            const subpathMatch = window.location.pathname.match(/\/(mis[cv]ord)\//i);
+            let subpathPrefix = '';
+            
+            if (subpathMatch && subpathMatch[1]) {
+                // Found subpath in URL
+                subpathPrefix = `/${subpathMatch[1].toLowerCase()}`;
+            } else {
+                // Default to misvord if no subpath detected
+                subpathPrefix = '/misvord';
+            }
+            
+            // Set corrected URL and path
+            socketServerUrl = `${urlBase}${subpathPrefix}/socket`;
+            socketPath = `${subpathPrefix}/socket/socket.io`;
+            
+            addLogEntry(`VPS fix: Using subpath URL: ${socketServerUrl} with path: ${socketPath}`, 'system');
         }
         
-        // For VPS environments, prefer relative URLs to avoid cross-origin issues
         // For VPS environments, prefer relative URLs to avoid cross-origin issues
         if (socketServerUrl.includes(window.location.host)) {
             const pathOnly = socketServerUrl.replace(/^https?:\/\/[^/]+/, '');
             addLogEntry(`VPS optimization: Using relative URL: ${pathOnly} instead of: ${socketServerUrl}`, 'system');
             socketServerUrl = pathOnly; // Use relative URL
+        }
+    }
+    
+    // Add final checks before connecting
+    if (envType === 'vps' || envType === 'marvel') {
+        // Ensure the socket path and URL are compatible - common issue in VPS environments
+        
+        // 1. Make sure socket path includes /socket.io
+        if (!socketPath.includes('/socket.io')) {
+            addLogEntry(`VPS socket path fixed: Adding missing /socket.io`, 'warn');
+            socketPath = socketPath + '/socket.io';
+        }
+        
+        // 2. Remove double slashes in paths
+        socketPath = socketPath.replace(/\/+/g, '/');
+        
+        // 3. Ensure URL doesn't end with /socket.io (should be in path)
+        if (socketServerUrl.endsWith('/socket.io')) {
+            addLogEntry(`VPS socket URL fixed: Removing /socket.io from URL (belongs in path)`, 'warn');
+            socketServerUrl = socketServerUrl.replace(/\/socket\.io$/, '');
+        }
+        
+        // 4. Final prefix check for subpath installations
+        if (socketPath.includes('/misvord/') || socketPath.includes('/miscvord/')) {
+            const subpathMatch = socketPath.match(/\/(mis[cv]ord)\//i);
+            if (subpathMatch && !socketServerUrl.includes(subpathMatch[1].toLowerCase())) {
+                addLogEntry(`VPS subpath mismatch detected. Updating URL to match path.`, 'warn');
+                socketServerUrl = `${window.location.protocol}//${window.location.host}/${subpathMatch[1].toLowerCase()}/socket`;
+            }
         }
     }
     
@@ -1175,30 +1219,52 @@ function connectToSignalingServer() {
                 
                 // Always use the default namespace
                 let fixedUrl = socketServerUrl;
+                let fixedPath = '/socket.io';  // Default Socket.IO path
                 
-                // Remove any potential namespace indicators (/, #, ?)
-                if (fixedUrl.includes('#') || fixedUrl.includes('?')) {
-                    fixedUrl = fixedUrl.split(/[?#]/)[0];
+                // For VPS environments, we need special handling
+                if (envType === 'vps' || envType === 'marvel') {
+                    // Try to extract the correct subpath from the URL or pathname
+                    const subpathMatch = window.location.pathname.match(/\/(mis[cv]ord)\//i);
+                    let subpathPrefix = '';
+                    
+                    if (subpathMatch && subpathMatch[1]) {
+                        // Found subpath in URL
+                        subpathPrefix = `/${subpathMatch[1].toLowerCase()}`;
+                        fixedUrl = `${window.location.protocol}//${window.location.host}${subpathPrefix}/socket`;
+                        fixedPath = `${subpathPrefix}/socket/socket.io`;
+                    } else {
+                        // Default to standard path
+                        fixedUrl = `${window.location.protocol}//${window.location.host}/socket`;
+                        fixedPath = `/socket/socket.io`;
+                    }
+                    
+                    addLogEntry(`VPS namespace fix: Using ${fixedUrl} with path ${fixedPath}`, 'system');
+                } else {
+                    // For local development
+                    // Remove any potential namespace indicators (/, #, ?)
+                    if (fixedUrl.includes('#') || fixedUrl.includes('?')) {
+                        fixedUrl = fixedUrl.split(/[?#]/)[0];
+                    }
+                    
+                    // Remove trailing slash that could be interpreted as namespace
+                    fixedUrl = fixedUrl.replace(/\/$/, '');
                 }
                 
-                // Remove trailing slash that could be interpreted as namespace
-                fixedUrl = fixedUrl.replace(/\/$/, '');
-                
-                addLogEntry(`Reconnecting with fixed URL (default namespace): ${fixedUrl}`, 'system');
+                addLogEntry(`Reconnecting with fixed URL: ${fixedUrl}, path: ${fixedPath}`, 'system');
                 
                 // Update retry button
                 const retryButton = document.getElementById('retryConnection');
                 if (retryButton) {
                     retryButton.innerText = 'Retry Connection';
                     retryButton.onclick = () => {
-                        // Use direct connection with corrected URL
-                        tryDirectConnection(fixedUrl, '/socket.io');
+                        // Use direct connection with corrected URL and path
+                        tryDirectConnection(fixedUrl, fixedPath);
                     };
                 }
                 
                 // Try to connect automatically after short delay
                 setTimeout(() => {
-                    tryDirectConnection(fixedUrl, '/socket.io');
+                    tryDirectConnection(fixedUrl, fixedPath);
                 }, 1000);
                 
                 return;
