@@ -167,8 +167,19 @@ function playWithUnmuteSequence(videoElement, userId) {
 
 // Function to add an unmute button overlay when video plays muted
 function addUnmuteButton(videoElement, userId) {
-    // Check if container exists
-    const container = document.getElementById(`container-${userId}`);
+    // Check if container exists - try both naming patterns
+    let container = document.getElementById(`container-${userId}`);
+    
+    // If not found, try the video-container pattern
+    if (!container) {
+        container = document.getElementById(`video-container-${userId}`);
+    }
+    
+    // If still no container, try the parent of the video element
+    if (!container && videoElement && videoElement.parentElement) {
+        container = videoElement.parentElement;
+    }
+    
     if (!container) return;
     
     // First check if we already have an unmute button
@@ -552,8 +563,19 @@ function monitorVideoPlayback(videoElement, userId) {
 
 // Add a better play button with more diagnostics
 function addImprovedPlayButton(videoElement, userId) {
-    // Find the container
-    const container = document.getElementById(`container-${userId}`);
+    // Find the container - try multiple naming patterns
+    let container = document.getElementById(`container-${userId}`);
+    
+    // If not found, try the video-container pattern
+    if (!container) {
+        container = document.getElementById(`video-container-${userId}`);
+    }
+    
+    // If still no container, try the parent of the video element
+    if (!container && videoElement && videoElement.parentElement) {
+        container = videoElement.parentElement;
+    }
+    
     if (!container) return;
     
     // Remove existing button if any
