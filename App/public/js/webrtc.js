@@ -213,21 +213,33 @@ async function initLocalStream(audio = true, video = true) {
 
         localStream = await navigator.mediaDevices.getUserMedia(constraints);
         
-        // Check for autoplay permission before attempting to play the video
-        await checkAutoplayPermission();
-        
         if (localVideo) {
+            // Apply autoplay optimizations to local video
+            if (window.WebRTCPlayer?.optimizeVideoForAutoplay) {
+                window.WebRTCPlayer.optimizeVideoForAutoplay(localVideo);
+            } else {
+                localVideo.autoplay = true;
+                localVideo.muted = true; // Local video should always be muted to prevent echo
+                localVideo.setAttribute('playsinline', '');
+                localVideo.setAttribute('webkit-playsinline', '');
+            }
+            
             localVideo.srcObject = localStream;
-            localVideo.muted = true; // Mute local video to prevent echo
             
             try {
-                // Use safe play method with error handling
-                await safePlayVideo(localVideo);
+                // Try to play directly first
+                await localVideo.play();
                 addLogEntry('Local video playing successfully', 'success');
             } catch (playError) {
                 addLogEntry(`Local video play error: ${playError.message}. Will retry.`, 'error');
-                // Add a retry button for local video
-                addVideoPlayRetryButton(localVideo);
+                // Try the safe play method as fallback
+                try {
+                    await safePlayVideo(localVideo);
+                    addLogEntry('Local video playing after fallback', 'success');
+                } catch (fallbackError) {
+                    // Add a retry button for local video as last resort
+                    addVideoPlayRetryButton(localVideo);
+                }
             }
         }
         
@@ -808,32 +820,96 @@ function setupSocketEvents() {
             pc = createPeerConnection(from, fromUserName);
             if (!pc) {
                 addLogEntry(`Failed to create peer connection for offer from ${fromUserName}`, 'error');
-             return;
+                return;
             }
         }
 
-        // Process the offer
-        pc.setRemoteDescription(new RTCSessionDescription(offer))
-            .then(() => {
-                addLogEntry(`Set remote description from ${fromUserName}'s offer`, 'peer');
-                return pc.createAnswer();
-            })
-            .then(answer => {
-                addLogEntry(`Created answer for ${fromUserName}`, 'peer');
-                return pc.setLocalDescription(answer);
-            })
-            .then(() => {
-                addLogEntry(`Sending WebRTC answer to ${fromUserName} (${from})`, 'signal');
-            socket.emit('webrtc-answer', {
-                to: from,
-                answer: pc.localDescription,
-                    fromUserName: userName
+        // Check the signaling state before applying the offer
+        if (pc.signalingState !== 'stable') {
+            addLogEntry(`Cannot set remote offer - peer connection is in ${pc.signalingState} state. Expected 'stable'`, 'warn');
+            
+            // If we're in have-local-offer, we have a glare condition (both peers created an offer)
+            if (pc.signalingState === 'have-local-offer') {
+                // Compare timestamps to decide which offer to accept - newer ID wins
+                // This is a simple way to resolve the conflict
+                if (from > socketId) {
+                    addLogEntry(`Glare condition: both peers sent offers. Accepting remote offer from ${fromUserName}`, 'warn');
+                    
+                    // Rollback our local description to get back to stable state
+                    try {
+                        pc.setLocalDescription({type: "rollback"})
+                            .then(() => {
+                                // Now we can apply the remote offer
+                                processRemoteOffer();
+                            })
+                            .catch(e => {
+                                addLogEntry(`Rollback failed: ${e.message}`, 'error');
+                            });
+                    } catch (e) {
+                        addLogEntry(`Error during rollback: ${e.message}`, 'error');
+                    }
+                } else {
+                    // We keep our offer and reject the remote one
+                    addLogEntry(`Glare condition: both peers sent offers. Keeping our offer, ignoring from ${fromUserName}`, 'warn');
+                    
+                    // Send our local description as an offer again
+                    if (pc.localDescription) {
+                        socket.emit('webrtc-offer', {
+                            to: from,
+                            offer: pc.localDescription,
+                            fromUserName: userName
+                        });
+                    }
+                }
+                return;
+            }
+            
+            // Other states might indicate a connection in process of closing/updating
+            addLogEntry(`Attempting to reset the connection state for offer from ${fromUserName}`, 'warn');
+            
+            try {
+                // Close and recreate the peer connection
+                pc.close();
+                pc = createPeerConnection(from, fromUserName);
+                if (!pc) {
+                    addLogEntry(`Failed to create new peer connection for offer from ${fromUserName}`, 'error');
+                    return;
+                }
+                processRemoteOffer();
+            } catch (e) {
+                addLogEntry(`Error resetting connection: ${e.message}`, 'error');
+            }
+            return;
+        } else {
+            // In stable state - normal case, process the offer
+            processRemoteOffer();
+        }
+
+        // Function to process the remote offer
+        function processRemoteOffer() {
+            // Process the offer
+            pc.setRemoteDescription(new RTCSessionDescription(offer))
+                .then(() => {
+                    addLogEntry(`Set remote description from ${fromUserName}'s offer`, 'peer');
+                    return pc.createAnswer();
+                })
+                .then(answer => {
+                    addLogEntry(`Created answer for ${fromUserName}`, 'peer');
+                    return pc.setLocalDescription(answer);
+                })
+                .then(() => {
+                    addLogEntry(`Sending WebRTC answer to ${fromUserName} (${from})`, 'signal');
+                    socket.emit('webrtc-answer', {
+                        to: from,
+                        answer: pc.localDescription,
+                        fromUserName: userName
+                    });
+                })
+                .catch(e => {
+                    addLogEntry(`Error processing offer from ${fromUserName}: ${e.message}`, 'error');
+                    console.error('Error processing offer:', e);
                 });
-            })
-            .catch(e => {
-                addLogEntry(`Error processing offer from ${fromUserName}: ${e.message}`, 'error');
-                console.error('Error processing offer:', e);
-            });
+        }
     });
 
     socket.on('webrtc-answer', (data) => {
@@ -842,6 +918,47 @@ function setupSocketEvents() {
 
         if (!peers[from] || !peers[from].pc) {
             addLogEntry(`Received answer from ${fromUserName} but no peer connection exists`, 'error');
+            return;
+        }
+
+        // Check the signaling state before applying the answer
+        const pc = peers[from].pc;
+        if (pc.signalingState !== 'have-local-offer') {
+            addLogEntry(`Cannot set remote answer - peer connection is in ${pc.signalingState} state, expected 'have-local-offer'`, 'error');
+            
+            // If in stable state, we might have already processed this answer or received a duplicate
+            if (pc.signalingState === 'stable') {
+                addLogEntry(`Connection already stable with ${fromUserName}, ignoring redundant answer`, 'warn');
+                return;
+            }
+            
+            // If in another state, something is wrong with the signaling flow
+            addLogEntry(`Unexpected signaling state for ${fromUserName}: ${pc.signalingState}`, 'error');
+            
+            // Try to recover by creating a new offer if needed
+            if (['closed', 'have-remote-offer'].includes(pc.signalingState)) {
+                addLogEntry(`Attempting to recover connection with ${fromUserName}`, 'system');
+                
+                // Reset the connection if possible
+                try {
+                    // Create a new offer to restart the signaling process
+                    pc.createOffer({iceRestart: true})
+                        .then(offer => pc.setLocalDescription(offer))
+                        .then(() => {
+                            socket.emit('webrtc-offer', {
+                                to: from, 
+                                offer: pc.localDescription,
+                                fromUserName: userName
+                            });
+                        })
+                        .catch(e => {
+                            addLogEntry(`Error creating recovery offer: ${e.message}`, 'error');
+                        });
+                } catch (e) {
+                    addLogEntry(`Recovery attempt failed: ${e.message}`, 'error');
+                }
+            }
+            
             return;
         }
 
@@ -938,6 +1055,7 @@ function setupSocketEvents() {
         }
         
         addLogEntry(`Ping all ${status}: ${roomSize} users in room`, 'ping');
+        
         
         if (status === 'initiated') {
             // Show the ping results window
@@ -2364,30 +2482,46 @@ function addVideoPlayRetryButton(videoElement) {
 function updateRemoteVideoElement(remoteVideoElement, userId, stream) {
     if (!remoteVideoElement || !stream) return;
     
-    // Set all required attributes
+    // Set all required attributes for maximum autoplay compatibility
     remoteVideoElement.autoplay = true;
     remoteVideoElement.playsInline = true;
+    remoteVideoElement.muted = true; // Start muted to help with autoplay
     remoteVideoElement.setAttribute('playsinline', '');
     remoteVideoElement.setAttribute('webkit-playsinline', '');
+    remoteVideoElement.setAttribute('x-webkit-airplay', 'allow');
+    remoteVideoElement.setAttribute('disablePictureInPicture', '');
+    remoteVideoElement.setAttribute('controlsList', 'nodownload');
     
     // Set the stream
     remoteVideoElement.srcObject = stream;
     
-    // Try to play using the enhanced safe play method
-    safePlayVideo(remoteVideoElement)
-        .then(() => {
-            addLogEntry(`Video playback started for ${userId}`, 'success');
-        })
-        .catch(e => {
-            addLogEntry(`Remote video play error for ${userId}: ${e.message}`, 'error');
-            
-            // Use the WebRTCPlayer module's play button if available
-            if (typeof window.WebRTCPlayer?.addImprovedPlayButton === 'function') {
-                window.WebRTCPlayer.addImprovedPlayButton(remoteVideoElement, userId);
-            } else {
-                // Fallback to simple play button
-                addVideoPlayRetryButton(remoteVideoElement);
-            }
-        });
+    // Try to play immediately with muted audio
+    remoteVideoElement.play().then(() => {
+        addLogEntry(`Video playback started for ${userId} (muted)`, 'success');
+        
+        // Once playing, add unmute button
+        if (typeof window.WebRTCPlayer?.addUnmuteButton === 'function') {
+            window.WebRTCPlayer.addUnmuteButton(remoteVideoElement, userId);
+        }
+    }).catch(e => {
+        addLogEntry(`Autoplay failed for ${userId}: ${e.message}. Trying with safe play method.`, 'warn');
+        
+        // Fall back to the enhanced safe play method
+        safePlayVideo(remoteVideoElement)
+            .then(() => {
+                addLogEntry(`Fallback video playback started for ${userId}`, 'success');
+            })
+            .catch(e => {
+                addLogEntry(`Remote video play error for ${userId}: ${e.message}`, 'error');
+                
+                // Use the WebRTCPlayer module's play button if available
+                if (typeof window.WebRTCPlayer?.addImprovedPlayButton === 'function') {
+                    window.WebRTCPlayer.addImprovedPlayButton(remoteVideoElement, userId);
+                } else {
+                    // Fallback to simple play button
+                    addVideoPlayRetryButton(remoteVideoElement);
+                }
+            });
+    });
 }
 

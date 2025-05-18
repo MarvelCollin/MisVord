@@ -7,4 +7,9 @@ RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 
 # Otherwise, redirect all requests to index.php
-RewriteRule ^ index.php [L] 
+RewriteRule ^ index.php [L]
+
+# Enable autoplay permission policy
+<IfModule mod_headers.c>
+    Header set Permissions-Policy "autoplay=*"
+</IfModule> 

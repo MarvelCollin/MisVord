@@ -6,6 +6,9 @@
  * which is the proper entry point for the application when using Apache.
  */
 
+// Set autoplay permission policy
+header("Permissions-Policy: autoplay=*");
+
 // Check if accessed directly (should happen only during development)
 if (php_sapi_name() !== 'cli-server' && 
     !isset($_SERVER['DOCUMENT_ROOT']) && 

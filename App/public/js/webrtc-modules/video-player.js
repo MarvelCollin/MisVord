@@ -195,7 +195,7 @@ function addUnmuteButton(videoElement, userId) {
     unmuteButton.className = 'bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full pointer-events-auto flex items-center';
     unmuteButton.innerHTML = `
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z" clip-rule="evenodd" />
+            <path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071a1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243a1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828a1 1 0 010-1.415z" clip-rule="evenodd" />
         </svg>
         Tap to Unmute
     `;
@@ -217,6 +217,9 @@ function addUnmuteButton(videoElement, userId) {
             if (unmuteOverlay.parentNode) {
                 unmuteOverlay.parentNode.removeChild(unmuteOverlay);
             }
+            
+            // Set a flag to remember this video has been unmuted by user
+            videoElement.dataset.userUnmuted = 'true';
             
             // Log the unmute action
             if (window.WebRTCDebug) {
@@ -685,10 +688,37 @@ function addImprovedPlayButton(videoElement, userId) {
     });
 }
 
+// Function to optimize and ensure a video element is ready for autoplay
+function optimizeVideoForAutoplay(videoElement) {
+    if (!videoElement) return videoElement;
+    
+    // Set all autoplay-friendly attributes
+    videoElement.autoplay = true;
+    videoElement.playsInline = true;
+    videoElement.muted = true; // Start muted for best autoplay success
+    videoElement.setAttribute('playsinline', '');
+    videoElement.setAttribute('webkit-playsinline', '');
+    videoElement.setAttribute('x-webkit-airplay', 'allow');
+    videoElement.setAttribute('disablePictureInPicture', '');
+    videoElement.setAttribute('controlsList', 'nodownload');
+    
+    // Add autoplay-specific event listeners
+    videoElement.addEventListener('canplay', function autoplayHandler() {
+        if (videoElement.paused) {
+            videoElement.play().catch(e => console.log("Autoplay failed on canplay:", e.message));
+        }
+        videoElement.removeEventListener('canplay', autoplayHandler);
+    });
+    
+    return videoElement;
+}
+
 // Export functions to the global scope
 window.WebRTCPlayer = {
     playWithUnmuteSequence: playWithUnmuteSequence,
     simulateUserGesture: simulateUserGesture,
     monitorVideoPlayback: monitorVideoPlayback,
-    addImprovedPlayButton: addImprovedPlayButton
+    addImprovedPlayButton: addImprovedPlayButton,
+    addUnmuteButton: addUnmuteButton,
+    optimizeVideoForAutoplay: optimizeVideoForAutoplay
 }; 
