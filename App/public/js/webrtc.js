@@ -1023,6 +1023,27 @@ function connectToSignalingServer() {
     const hostname = window.location.hostname;
     const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.includes('192.168.');
     
+    // FIX PORT MISMATCH: Check for common port errors in the URL
+    if (isLocalhost) {
+        // Fix incorrect local port (1001 instead of 1002)
+        if (socketServerUrl.includes(':1001')) {
+            addLogEntry(`Detected incorrect port 1001 in socket URL. The Socket.IO server runs on port 1002.`, 'error');
+            socketServerUrl = socketServerUrl.replace(':1001', ':1002');
+            addLogEntry(`Fixed URL to: ${socketServerUrl}`, 'success');
+        }
+        
+        // Also check for potential issues with path format if using port 1001 in the browser
+        if (window.location.port === '1001' && !socketServerUrl.includes(':1002')) {
+            addLogEntry(`You are accessing through port 1001 but need to connect WebSockets to port 1002.`, 'warn');
+            
+            // Try to automatically fix by replacing the port
+            const url = new URL(socketServerUrl);
+            url.port = '1002';
+            socketServerUrl = url.toString();
+            addLogEntry(`Adjusted socket URL to use port 1002: ${socketServerUrl}`, 'success');
+        }
+    }
+    
     // Force HTTPS/WSS if page is loaded over HTTPS
     if (isSecurePage && socketServerUrl.startsWith('http:')) {
         // Replace http: with https: for secure WebSockets
@@ -1141,7 +1162,43 @@ function connectToSignalingServer() {
             console.error('Socket transport error details:', error);
             updateConnectionStatus('disconnected', `Connection Error: ${error}`);
             
-            // Diagnose WebSocket Issues
+            // Special handling for port-related errors
+            const hostname = window.location.hostname;
+            const currentPort = window.location.port || '80';
+            
+            // Check for the common port error case
+            if (currentPort === '1001' || socketServerUrl.includes(':1001')) {
+                // This is likely a port mismatch issue where we're using port 1001 (PHP) but need 1002 (Socket.IO)
+                addLogEntry(`PORT MISMATCH DETECTED: You need to connect to port 1002 for WebSockets, not port 1001.`, 'error');
+                
+                // Try to fix URL 
+                let fixedUrl;
+                if (socketServerUrl.includes(':1001')) {
+                    fixedUrl = socketServerUrl.replace(':1001', ':1002');
+                } else {
+                    fixedUrl = `${window.location.protocol}//${hostname}:1002`;
+                }
+                
+                addLogEntry(`Trying with corrected URL: ${fixedUrl}`, 'system');
+                
+                // Create a retry button with the correct port
+                const retryPorts = document.getElementById('retryConnection');
+                if (retryPorts) {
+                    retryPorts.innerText = 'Connect to port 1002';
+                    retryPorts.onclick = () => {
+                        tryDirectConnection(fixedUrl);
+                    };
+                }
+                
+                // Attempt direct connection after delay
+                setTimeout(() => {
+                    tryDirectConnection(fixedUrl);
+                }, 1500);
+                
+                return;
+            }
+            
+            // Diagnose WebSocket Issues for other error types
             diagnoseWebSocketIssues(socketServerUrl, socketPath, envType, isSecurePage);
             
             // If error occurs, try alternative connection approaches based on environment
@@ -1218,6 +1275,13 @@ function tryFallbackSocketConnection(fallbackUrl = 'http://localhost:1002', fall
     addLogEntry(`Trying fallback socket connection to ${fallbackUrl} (Path: ${fallbackPath})`, 'system');
     updateConnectionStatus('connecting', `Trying fallback connection...`);
     
+    // Check for port issues
+    if (fallbackUrl.includes('localhost:1001') || fallbackUrl.includes('127.0.0.1:1001')) {
+        const correctedUrl = fallbackUrl.replace(':1001', ':1002');
+        addLogEntry(`Correcting fallback URL port from 1001 to 1002: ${correctedUrl}`, 'system');
+        fallbackUrl = correctedUrl;
+    }
+    
     try {
         if (socket && socket.connected) {
             socket.disconnect();
@@ -1227,33 +1291,36 @@ function tryFallbackSocketConnection(fallbackUrl = 'http://localhost:1002', fall
             path: fallbackPath,
             transports: ['websocket', 'polling'],
             reconnectionAttempts: 3,
-            reconnectionDelay: 2000,
-            timeout: 8000,
-            forceNew: true
-        });
-        
-        setupSocketEvents();
-        
-        // Add connection debugging
-        socket.io.on("error", (error) => {
-            addLogEntry(`Fallback socket connection error: ${error}`, 'error');
-            updateConnectionStatus('disconnected', `Connection Error: ${error}`);
-            
-            // Final fallback - try with direct IP and standard path
-            const hostname = window.location.hostname;
-            if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
-                const finalUrl = `http://${hostname}:1002`;
-                if (fallbackUrl !== finalUrl || fallbackPath !== '/socket.io') {
-                    setTimeout(() => {
-                        addLogEntry(`Final attempt with direct connection: ${finalUrl}`, 'system');
-                        tryDirectConnection(finalUrl);
-                    }, 3000);
-                }
+            reconnectionDelay: 1000,
+            timeout: 5000,
+            forceNew: true,
+            query: {
+                fallback: 'true',
+                clientVersion: '1.0.0',
+                userAgent: navigator.userAgent
             }
         });
+
+        setupSocketEvents();
+        
+        socket.io.on("error", (error) => {
+            addLogEntry(`Fallback socket connection error: ${error}`, 'error');
+            updateConnectionStatus('disconnected', `Fallback connection failed`);
+            
+            // Try one more approach: direct connection with correct port
+            if (fallbackUrl !== 'http://localhost:1002') {
+                setTimeout(() => {
+                    addLogEntry('Attempting final fallback connection to standard Socket.IO port', 'system');
+                    tryDirectConnection('http://localhost:1002');
+                }, 2000);
+            }
+        });
+        
+        // Display the port we're using in the fallback
+        const currentPort = fallbackUrl.match(/:(\d+)/) ? fallbackUrl.match(/:(\d+)/)[1] : 'default';
+        addLogEntry(`Using port ${currentPort} for socket connection`, 'system');
     } catch (e) {
         addLogEntry(`Error creating fallback socket connection: ${e.message}`, 'error');
-        updateConnectionStatus('disconnected', `Connection Failed`);
     }
 }
 
@@ -1718,6 +1785,26 @@ function pingAllUsers() {
 function diagnoseWebSocketIssues(socketUrl, socketPath, envType, isSecurePage) {
     addLogEntry(`Diagnosing WebSocket connection issue...`, 'system');
     
+    // Check for port issues first (common problem)
+    if (socketUrl.includes(':1001') || window.location.port === '1001') {
+        addLogEntry(`CRITICAL ERROR: You're using port 1001 (PHP) but need port 1002 (Socket.IO)`, 'error');
+        
+        // Try to fix the URL
+        const fixedSocketUrl = socketUrl.replace(':1001', ':1002');
+        const wsUrl = fixedSocketUrl.replace(/^http/, 'ws') + socketPath;
+        
+        addLogEntry(`Corrected WebSocket URL: ${wsUrl}`, 'success');
+        addLogEntry(`Attempting test connection with corrected URL...`, 'system');
+        
+        // Test the connection
+        testWebSocketConnection(wsUrl);
+        return;
+    }
+    
+    // Construct WebSocket URL early for use throughout the function
+    const wsUrl = socketUrl.replace(/^http/, 'ws') + socketPath;
+    addLogEntry(`WebSocket URL being tested: ${wsUrl}`, 'system');
+    
     // Log browser WebSocket support
     const wsSupport = 'WebSocket' in window;
     addLogEntry(`Browser WebSocket support: ${wsSupport ? 'Yes' : 'No'}`, 'system');
@@ -1738,6 +1825,26 @@ function diagnoseWebSocketIssues(socketUrl, socketPath, envType, isSecurePage) {
         addLogEntry(`Solution: Update socketServerUrl to use https:// instead of http://`, 'system');
     }
     
+    // Fix for localhost - make sure correct port is used
+    const hostname = window.location.hostname;
+    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+    
+    if (isLocalhost) {
+        // Check if we're trying to connect to the PHP port instead of Socket port
+        if (wsUrl.includes('localhost:1001') || wsUrl.includes('127.0.0.1:1001')) {
+            addLogEntry(`ERROR: Attempting to connect to PHP port (1001) instead of Socket.IO port (1002)`, 'error');
+            addLogEntry(`Solution: Use port 1002 for WebSocket connections`, 'system');
+            
+            // Suggest correct URL
+            const correctWsUrl = wsUrl.replace(':1001', ':1002');
+            addLogEntry(`Try connecting to: ${correctWsUrl}`, 'system');
+            
+            // Test the correct URL
+            testWebSocketConnection(correctWsUrl);
+            return;
+        }
+    }
+    
     // Check for subpath issues in VPS environments
     if (envType === 'vps' || envType === 'marvel') {
         if (!socketPath.includes('/socket.io')) {
@@ -1754,10 +1861,16 @@ function diagnoseWebSocketIssues(socketUrl, socketPath, envType, isSecurePage) {
     
     // Attempt to create a raw WebSocket to the endpoint (without Socket.IO)
     try {
-        const wsUrl = socketUrl.replace(/^http/, 'ws') + socketPath;
         addLogEntry(`Testing raw WebSocket connection to ${wsUrl}...`, 'system');
         
-        const testWs = new WebSocket(wsUrl);
+        testWebSocketConnection(wsUrl);
+    } catch (e) {
+        addLogEntry(`Raw WebSocket test error: ${e.message}`, 'error');
+    }
+    
+    // Helper function to test WebSocket connection
+    function testWebSocketConnection(url) {
+        const testWs = new WebSocket(url);
         
         testWs.onopen = () => {
             addLogEntry(`Raw WebSocket connection succeeded! Socket.IO issue likely in path/transport.`, 'success');
@@ -1771,27 +1884,6 @@ function diagnoseWebSocketIssues(socketUrl, socketPath, envType, isSecurePage) {
             addLogEntry(`proxy_set_header Upgrade $http_upgrade;`, 'system');
             addLogEntry(`proxy_set_header Connection "upgrade";`, 'system');
         };
-    } catch (e) {
-        addLogEntry(`Raw WebSocket test error: ${e.message}`, 'error');
-    }
-    
-    // Log helpful NGINX config for common VPS issues
-    if (envType === 'vps' || envType === 'marvel') {
-        const subPath = window.location.pathname.match(/^\/([^/]+)/) ? window.location.pathname.match(/^\/([^/]+)/)[1] : '';
-        
-        console.log(`
-%c=== VPS NGINX WebSocket Config ===
-location /${subPath || 'misvord'}/socket/ {
-    rewrite ^/${subPath || 'misvord'}/socket/(.*) /$1 break;
-    proxy_pass http://localhost:1002;
-    proxy_http_version 1.1;
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection "upgrade";
-    proxy_set_header Host $host;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-}`,
-        'background: #333; color: #42d392; padding: 5px; border-radius: 5px; font-family: monospace;');
     }
 }
 

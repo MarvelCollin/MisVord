@@ -33,8 +33,19 @@ $socket_server_url = getenv('SOCKET_SERVER');
 if (empty($socket_server_url)) {
     // DOCKER ENVIRONMENT FIX - Always use direct port for WebSocket in browser
     // When using Docker, we need to connect directly to the socket server port
-    // IMPORTANT: Use HTTPS for secure WebSockets (WSS) to avoid mixed-content warnings
-    $socket_server_url = $is_https ? 'https://localhost:1002' : 'http://localhost:1002'; 
+    
+    // Check if we're accessing through port 1001 (PHP app)
+    if (strpos($_SERVER['HTTP_HOST'], ':1001') !== false) {
+        // Extract hostname without port
+        $host_without_port = preg_replace('/:1001$/', '', $_SERVER['HTTP_HOST']);
+        
+        // Force connection to port 1002 for WebSockets
+        $socket_server_url = $is_https ? "https://{$host_without_port}:1002" : "http://{$host_without_port}:1002";
+        error_log("Accessing through port 1001, using socket server on port 1002: " . $socket_server_url);
+    } else {
+        // Standard connection - still use port 1002 for socket server
+        $socket_server_url = $is_https ? 'https://localhost:1002' : 'http://localhost:1002';
+    }
     
     // In production environments, we might need subpath
     if ($is_marvel_domain) {
@@ -64,7 +75,7 @@ if (strpos($socket_server_url, '/misvord/socket') !== false) {
 } else if (strpos($socket_server_url, '/miscvord/socket') !== false) {
     $socket_path = '/miscvord/socket/socket.io';
     $is_subpath = true;
-} else if (strpos($socket_server_url, 'localhost:1002') !== false) {
+} else if (strpos($socket_server_url, 'localhost:1002') !== false || strpos($socket_server_url, '127.0.0.1:1002') !== false) {
     // Direct connection to socket server in Docker
     $socket_path = '/socket.io';
     $is_subpath = false;
