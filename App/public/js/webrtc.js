@@ -2160,35 +2160,14 @@ function diagnoseWebSocketIssues(socketUrl, socketPath, envType, isSecurePage) {
 // Check and request autoplay permissions
 async function checkAutoplayPermission() {
     try {
-        // Create a more reliable permission check
-        const permissionPrompt = document.getElementById('autoplayPermissionPrompt') || document.createElement('div');
-        
-        if (!document.getElementById('autoplayPermissionPrompt')) {
-            permissionPrompt.id = 'autoplayPermissionPrompt';
-            permissionPrompt.className = 'fixed inset-0 flex items-center justify-center bg-black bg-opacity-75 z-50';
-            permissionPrompt.innerHTML = `
-                <div class="bg-gray-800 p-6 rounded-lg shadow-xl max-w-md w-full text-center">
-                    <h3 class="text-xl font-bold text-white mb-4">Permission Required</h3>
-                    <p class="text-gray-300 mb-6">This app requires permission to play audio and video automatically.</p>
-                    <button id="allowAutoplayBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg">
-                        Enable Audio & Video
-                    </button>
-                </div>
-            `;
-            document.body.appendChild(permissionPrompt);
-        }
-        
-        // Set display to none initially - will show if needed
-        permissionPrompt.style.display = 'none';
-        
-        // Check if we already have autoplay permission
+        // Try playing a silent audio file first without showing any UI
         const testAudio = document.createElement('audio');
         testAudio.src = 'data:audio/mpeg;base64,/+MYxAAAAANIAAAAAExBTUUzLjk4LjIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+        testAudio.volume = 0.01;
         
         try {
             // Try to play silently first to check if we already have permission
-            testAudio.volume = 0.01;
-            const playResult = await testAudio.play();
+            await testAudio.play();
             
             // If we get here, we already have permission!
             testAudio.pause();
@@ -2329,10 +2308,8 @@ function addVideoPlayRetryButton(videoElement) {
         try {
             overlayContainer.textContent = "Starting video...";
             
-            // First try to get autoplay permission
-            await checkAutoplayPermission();
-            
-            // Then try to play the video with muted first
+            // Don't wait for autoplay permission - user clicked the button, so we have permission
+            // Just play the video directly
             videoElement.muted = true;
             await videoElement.play();
             
