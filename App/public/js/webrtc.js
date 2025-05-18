@@ -2,10 +2,13 @@ let socket = null;
 let socketId = null;
 
 document.addEventListener('DOMContentLoaded', () => {
+    console.log("WebRTC.js loaded - DOMContentLoaded event fired");
     
+    // Initialize DOM elements
     const permissionRequest = document.getElementById('permissionRequest');
     const permissionStatus = document.getElementById('permissionStatus');
     const retryPermissionBtn = document.getElementById('retryPermissionBtn');
+    const audioOnlyBtn = document.getElementById('audioOnlyBtn');
     const retryConnection = document.getElementById('retryConnection');
     const videoGrid = document.getElementById('videoGrid');
     const localVideo = document.getElementById('localVideo');
@@ -18,6 +21,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusIndicator = document.getElementById('statusIndicator');
     const statusText = document.getElementById('statusText');
     
+    // Validate DOM elements
+    if (!permissionRequest) console.error("Required element 'permissionRequest' not found");
+    if (!permissionStatus) console.error("Required element 'permissionStatus' not found");
+    if (!retryPermissionBtn) console.error("Required element 'retryPermissionBtn' not found");
+    if (!audioOnlyBtn) console.error("Required element 'audioOnlyBtn' not found");
+    
+    // Make sure permission request is visible
+    if (permissionRequest) {
+        console.log("Setting permission request dialog to visible");
+        permissionRequest.style.display = 'flex';
+    }
+    
+    // Show waiting status
+    if (permissionStatus) {
+        permissionStatus.textContent = 'Waiting for you to allow camera and microphone access...';
+        permissionStatus.className = 'p-3 bg-gray-700 rounded mb-4 text-center text-yellow-300';
+    }
     
     let localStream = null;
     let screenStream = null;
@@ -40,20 +60,80 @@ document.addEventListener('DOMContentLoaded', () => {
     
     let debugMode = true; 
     
+    // Initialize permission request system
+    console.log('Initializing WebRTC permission system...');
     
+    // First check browser compatibility
     console.log('Running browser compatibility check...');
     
     // Make sure WebRTCCompat exists before using it
     if (window.WebRTCCompat && typeof window.WebRTCCompat.check === 'function') {
         const browserCompat = window.WebRTCCompat.check();
         console.log('Browser compatibility check:', browserCompat);
+        
+        // Show warning if there are compatibility issues
+        if (!browserCompat.isCompatible || browserCompat.issues.length > 0) {
+            window.WebRTCCompat.showWarning(browserCompat);
+        }
+        
+        // If permissions are already denied, show specific message
+        if (browserCompat.permissions.camera === 'denied' || browserCompat.permissions.microphone === 'denied') {
+            permissionStatus.textContent = 'Permission previously denied. Please check your browser settings.';
+            permissionStatus.classList.add('text-red-500');
+        }
     } else {
         console.warn('Browser compatibility module not loaded or not available');
     }
     
+    // Wait a short delay to ensure UI is visible before requesting permissions
+    setTimeout(() => {
+        console.log("Initial permission request after delay...");
+        requestMediaPermissions();
+    }, 500);
     
-    testServerConnectivity();
-    
+    // Function to explicitly request media permissions
+    function requestMediaPermissions() {
+        console.log('Requesting media permissions...');
+        permissionStatus.textContent = 'Requesting camera and microphone access...';
+        
+        initLocalStream()
+            .then(success => {
+                if (success) {
+                    permissionStatus.textContent = 'Camera and microphone access granted!';
+                    permissionStatus.classList.remove('text-red-500', 'text-yellow-300');
+                    permissionStatus.classList.add('text-green-500');
+                    
+                    // Hide permission dialog after a short delay
+                    setTimeout(() => {
+                        permissionRequest.style.display = 'none';
+                        testServerConnectivity();
+                    }, 1500);
+                } else {
+                    permissionStatus.textContent = 'Permission denied. Please check your browser settings and try again.';
+                    permissionStatus.classList.remove('text-yellow-300');
+                    permissionStatus.classList.add('text-red-500');
+                }
+            })
+            .catch(error => {
+                console.error('Error accessing media:', error);
+                
+                // More user-friendly error messages
+                let errorMessage = '';
+                if (error.name === 'NotAllowedError') {
+                    errorMessage = 'Permission denied. Please click "Allow" when prompted by your browser.';
+                } else if (error.name === 'NotFoundError') {
+                    errorMessage = 'No camera or microphone found on your device.';
+                } else if (error.name === 'NotReadableError') {
+                    errorMessage = 'Your camera or microphone is being used by another application.';
+                } else {
+                    errorMessage = error.message;
+                }
+                
+                permissionStatus.textContent = 'Error: ' + errorMessage;
+                permissionStatus.classList.remove('text-yellow-300');
+                permissionStatus.classList.add('text-red-500');
+            });
+    }
     
     function testServerConnectivity() {
         
@@ -66,23 +146,346 @@ document.addEventListener('DOMContentLoaded', () => {
     
     retryPermissionBtn.addEventListener('click', () => {
         console.log("Retry permission button clicked");
+        console.log("Clearing existing media streams and requesting new permissions...");
+        
         permissionStatus.textContent = 'Requesting permission again...';
+        permissionStatus.classList.remove('text-red-500', 'text-green-500');
+        permissionStatus.classList.add('text-yellow-300');
         
+        // Stop any existing streams
+        if (localStream) {
+            console.log("Stopping existing media tracks...");
+            localStream.getTracks().forEach(track => {
+                console.log(`Stopping ${track.kind} track`);
+                track.stop();
+            });
+            localStream = null;
+        }
         
-        initLocalStream().then(success => {
-            if (success) {
-                permissionRequest.style.display = 'none';
-                connectToSignalingServer();
-            } else {
-                permissionStatus.textContent = 'Permission denied. Please check your browser settings and try again.';
-                permissionStatus.classList.add('text-red-500');
+        // Clear video element
+        if (localVideo) {
+            console.log("Clearing video element source");
+            localVideo.srcObject = null;
+        }
+        
+        // Force browser to show permission dialog by requesting with exact constraints
+        console.log("Explicitly requesting media permissions with getUserMedia...");
+        const constraints = {
+            audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true
+            },
+            video: true
+        };
+        
+        // First try to check if permissions are already granted
+        if (navigator.permissions && navigator.permissions.query) {
+            console.log("Checking current permission status...");
+            Promise.all([
+                navigator.permissions.query({ name: 'camera' }),
+                navigator.permissions.query({ name: 'microphone' })
+            ]).then(([camera, mic]) => {
+                console.log(`Current permission status - Camera: ${camera.state}, Microphone: ${mic.state}`);
+                
+                // If either is denied, show specific instructions
+                if (camera.state === 'denied' || mic.state === 'denied') {
+                    console.log("Permission previously denied, showing instructions to user");
+                    permissionStatus.innerHTML = 'Permission was denied. Please reset permissions in your browser:<br>' +
+                        '1. Click the lock/camera icon in your address bar<br>' +
+                        '2. Change camera and microphone settings to "Allow"<br>' +
+                        '3. Then reload the page';
+                    permissionStatus.classList.remove('text-yellow-300');
+                    permissionStatus.classList.add('text-red-500');
+                    
+                    // Add a reload button
+                    const reloadBtn = document.createElement('button');
+                    reloadBtn.className = 'mt-2 px-4 py-2 bg-blue-600 text-white rounded';
+                    reloadBtn.textContent = 'Reload Page';
+                    reloadBtn.onclick = () => window.location.reload();
+                    permissionStatus.appendChild(reloadBtn);
+                    return;
+                }
+                
+                // Otherwise request normally
+                requestMediaPermissions();
+            }).catch(err => {
+                console.warn("Could not query permission status:", err);
+                // Fall back to regular request
+                requestMediaPermissions();
+            });
+        } else {
+            // Browser doesn't support permission query, just try requesting
+            requestMediaPermissions();
+        }
+    });
+    
+    // Function to request permissions with proper error handling
+    function requestMediaPermissions() {
+        console.log("Requesting media permissions with getUserMedia API...");
+        permissionStatus.textContent = 'Requesting camera and microphone access...';
+        
+        navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true
             }
+        }).then(stream => {
+            console.log("Permission granted successfully");
+            localStream = stream;
+            localVideo.srcObject = stream;
+            
+            permissionStatus.textContent = 'Camera and microphone access granted!';
+            permissionStatus.classList.remove('text-red-500', 'text-yellow-300');
+            permissionStatus.classList.add('text-green-500');
+            
+            // Show success message and hide permission dialog after a delay
+            setTimeout(() => {
+                console.log("Hiding permission dialog");
+                permissionRequest.style.display = 'none';
+                testServerConnectivity();
+            }, 1500);
+            
+            // Ensure video plays
+            localVideo.play().catch(e => {
+                console.error('Error playing local video:', e);
+                addPlayButtonToLocalVideo();
+            });
+            
         }).catch(error => {
             console.error('Error accessing media:', error);
-            permissionStatus.textContent = 'Error: ' + error.message;
+            let errorMessage = 'Permission request failed: ';
+            
+            // More user-friendly error messages
+            if (error.name === 'NotAllowedError') {
+                errorMessage += 'You denied permission. Please click Allow when prompted by your browser.';
+            } else if (error.name === 'NotFoundError') {
+                errorMessage += 'No camera or microphone found on your device.';
+            } else if (error.name === 'NotReadableError') {
+                errorMessage += 'Your camera or microphone is already in use by another application.';
+            } else {
+                errorMessage += error.message;
+            }
+            
+            permissionStatus.textContent = errorMessage;
+            permissionStatus.classList.remove('text-yellow-300');
             permissionStatus.classList.add('text-red-500');
+            
+            // Add help text with browser-specific instructions
+            const browser = getBrowserInfo();
+            let helpText = '';
+            
+            if (browser.name === 'Chrome') {
+                helpText = 'To fix in Chrome: Click the camera icon in the address bar → Site settings → Allow';
+            } else if (browser.name === 'Firefox') {
+                helpText = 'To fix in Firefox: Click the lock icon in the address bar → Allow';
+            } else if (browser.name === 'Safari') {
+                helpText = 'To fix in Safari: Check Safari → Preferences → Websites → Camera/Microphone';
+            }
+            
+            const helpDiv = document.createElement('div');
+            helpDiv.className = 'mt-2 p-2 bg-gray-600 rounded text-sm';
+            helpDiv.textContent = helpText;
+            
+            // Remove any existing help text before adding new one
+            const existingHelp = permissionStatus.querySelector('div');
+            if (existingHelp) {
+                permissionStatus.removeChild(existingHelp);
+            }
+            
+            permissionStatus.appendChild(helpDiv);
         });
-    });
+    }
+    
+    // Helper function to get browser info
+    function getBrowserInfo() {
+        const userAgent = navigator.userAgent;
+        let browserName = 'Unknown';
+        
+        if (userAgent.match(/chrome|chromium|crios/i)) {
+            browserName = "Chrome";
+        } else if (userAgent.match(/firefox|fxios/i)) {
+            browserName = "Firefox";
+        } else if (userAgent.match(/safari/i)) {
+            browserName = "Safari";
+        } else if (userAgent.match(/opr\//i)) {
+            browserName = "Opera";
+        } else if (userAgent.match(/edg/i)) {
+            browserName = "Edge";
+        }
+        
+        return { name: browserName };
+    }
+    
+    // Add audio-only button event listener
+    if (audioOnlyBtn) {
+        audioOnlyBtn.addEventListener('click', () => {
+            console.log("Audio-only button clicked");
+            console.log("Requesting audio-only permissions...");
+            
+            permissionStatus.textContent = 'Requesting audio-only permission...';
+            permissionStatus.classList.remove('text-red-500', 'text-green-500');
+            permissionStatus.classList.add('text-yellow-300');
+            
+            // Stop any existing streams
+            if (localStream) {
+                console.log("Stopping existing media tracks...");
+                localStream.getTracks().forEach(track => {
+                    console.log(`Stopping ${track.kind} track`);
+                    track.stop();
+                });
+                localStream = null;
+            }
+            
+            // Clear video element
+            if (localVideo) {
+                console.log("Clearing video element source");
+                localVideo.srcObject = null;
+            }
+            
+            // Request audio only
+            console.log("Explicitly requesting audio-only permissions...");
+            navigator.mediaDevices.getUserMedia({
+                video: false,
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true
+                }
+            }).then(stream => {
+                console.log("Audio-only permission granted successfully");
+                localStream = stream;
+                
+                // Create black video canvas as placeholder
+                console.log("Creating placeholder video canvas for audio-only mode");
+                const canvas = document.createElement('canvas');
+                canvas.width = 640;
+                canvas.height = 480;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = 'black';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Add text to canvas
+                ctx.fillStyle = 'white';
+                ctx.font = '20px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('Camera disabled', canvas.width/2, canvas.height/2);
+                ctx.font = '14px Arial';
+                ctx.fillText('Audio-only mode', canvas.width/2, canvas.height/2 + 30);
+                
+                // Create video stream from canvas
+                console.log("Creating video track from canvas for audio-only mode");
+                const emptyVideoStream = canvas.captureStream(1); // 1 fps
+                const emptyVideoTrack = emptyVideoStream.getVideoTracks()[0];
+                
+                if (emptyVideoTrack) {
+                    localStream.addTrack(emptyVideoTrack);
+                    console.log('Added placeholder video track to stream');
+                }
+                
+                // Set local video
+                console.log("Setting local video display with audio-only stream");
+                localVideo.srcObject = localStream;
+                
+                // Update UI
+                permissionStatus.textContent = 'Audio-only mode activated';
+                permissionStatus.classList.remove('text-yellow-300', 'text-red-500');
+                permissionStatus.classList.add('text-green-500');
+                
+                // Hide permission dialog after success
+                setTimeout(() => {
+                    console.log("Hiding permission dialog");
+                    permissionRequest.style.display = 'none';
+                    connectToSignalingServer();
+                }, 1500);
+                
+                // Auto-play local video
+                localVideo.play().catch(e => {
+                    console.error('Error playing local video:', e);
+                    addPlayButtonToLocalVideo();
+                });
+                
+            }).catch(error => {
+                console.error('Error accessing audio:', error);
+                let errorMessage = 'Error accessing microphone: ';
+                
+                // More user-friendly error messages
+                if (error.name === 'NotAllowedError') {
+                    errorMessage += 'You denied microphone permission.';
+                } else if (error.name === 'NotFoundError') {
+                    errorMessage += 'No microphone found on your device.';
+                } else if (error.name === 'NotReadableError') {
+                    errorMessage += 'Your microphone is already in use by another application.';
+                } else {
+                    errorMessage += error.message;
+                }
+                
+                permissionStatus.textContent = errorMessage;
+                permissionStatus.classList.remove('text-yellow-300');
+                permissionStatus.classList.add('text-red-500');
+                
+                // Add help button to try again
+                const retryDiv = document.createElement('div');
+                retryDiv.className = 'mt-4 text-center';
+                retryDiv.innerHTML = `
+                    <button class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                        Try Again
+                    </button>
+                `;
+                
+                // Remove any existing retry button before adding new one
+                const existingRetry = permissionStatus.nextElementSibling;
+                if (existingRetry && existingRetry.classList.contains('mt-4')) {
+                    existingRetry.parentNode.removeChild(existingRetry);
+                }
+                
+                permissionStatus.parentNode.insertBefore(retryDiv, permissionStatus.nextSibling);
+                
+                // Add click handler to retry button
+                const retryButton = retryDiv.querySelector('button');
+                if (retryButton) {
+                    retryButton.addEventListener('click', () => {
+                        audioOnlyBtn.click(); // Trigger the audio-only flow again
+                    });
+                }
+            });
+        });
+    }
+    
+    // Add permission monitoring to auto-reload page when permissions change
+    function setupPermissionMonitoring() {
+        // Only if the browser supports it
+        if (navigator.permissions && navigator.permissions.query) {
+            // Monitor camera permissions
+            navigator.permissions.query({ name: 'camera' })
+                .then(status => {
+                    status.onchange = function() {
+                        console.log('Camera permission changed to:', this.state);
+                        if (this.state === 'granted' && !localStream) {
+                            // Permission just granted, reload page
+                            window.location.reload();
+                        }
+                    };
+                }).catch(e => console.warn('Cannot monitor camera permission:', e));
+                
+            // Monitor microphone permissions
+            navigator.permissions.query({ name: 'microphone' })
+                .then(status => {
+                    status.onchange = function() {
+                        console.log('Microphone permission changed to:', this.state);
+                        if (this.state === 'granted' && !localStream) {
+                            // Permission just granted, reload page
+                            window.location.reload();
+                        }
+                    };
+                }).catch(e => console.warn('Cannot monitor microphone permission:', e));
+        }
+    }
+    
+    // Setup permission monitoring
+    setupPermissionMonitoring();
     
     
     let logsVisible = false;
@@ -213,23 +616,50 @@ document.addEventListener('DOMContentLoaded', () => {
     function connectToSignalingServer() {
         updateConnectionStatus('connecting');
         
+        // Get socket server URL from meta tag (set by PHP from environment variables)
+        const metaSocketServer = document.querySelector('meta[name="socket-server"]')?.getAttribute('content');
         
-        const remoteUrl = 'http://localhost:1002';
-        logConnectionDebug(`Attempting to connect to local signaling server at ${remoteUrl}...`);
+        // Get the current hostname and protocol
+        const protocol = window.location.protocol;
+        const hostname = window.location.hostname;
         
-        addLogEntry(`Connecting to server: ${remoteUrl}`, 'info');
-        console.log(`Attempting connection to: ${remoteUrl}`);
+        // Determine if we're in local dev or production environment
+        const isLocalDev = hostname === 'localhost' || hostname === '127.0.0.1';
         
+        // Determine the socket URL based on available information
+        let socketUrl;
         
-        socket = io(remoteUrl, {
-            reconnectionAttempts: 5,
+        if (metaSocketServer) {
+            // First priority: Use the environment-provided URL from meta tag
+            socketUrl = metaSocketServer;
+            console.log(`[SOCKET] Using environment-provided socket URL: ${socketUrl}`);
+        } else if (isLocalDev) {
+            // Local development fallback
+            socketUrl = `${protocol}//${hostname}:1002`;
+            console.log(`[SOCKET] Using local development socket URL: ${socketUrl}`);
+        } else {
+            // Production Docker fallback
+            socketUrl = `${protocol}//socket-server:3000`;
+            console.log(`[SOCKET] Using Docker service name socket URL: ${socketUrl}`);
+        }
+        
+        // Log the final connection attempt
+        console.log(`[SOCKET] Attempting connection to signaling server at ${socketUrl}`);
+        addLogEntry(`Connecting to socket server: ${socketUrl}`, 'info');
+        
+        // Create socket connection with enhanced retry configuration
+        socket = io(socketUrl, {
+            reconnectionAttempts: 10,
             reconnectionDelay: 1000,
             reconnectionDelayMax: 5000,
-            timeout: 10000,
+            timeout: 20000,
             transports: ['polling', 'websocket'],
             forceNew: true,
             withCredentials: false,
-            // Use default socket.io path
+            upgrade: true,
+            rememberUpgrade: true,
+            autoConnect: true,
+            reconnection: true,
             query: {
                 username: userName,
                 room: GLOBAL_ROOM,
@@ -237,36 +667,61 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         
+        if (shouldDebug) {
+            // Expose socket globally for debugging
+            window._socketDebug = socket;
+            
+            // Add additional connection state debugging
+            console.log(`[SOCKET] Initial state:`, {
+                connected: socket.connected,
+                disconnected: socket.disconnected,
+                id: socket.id
+            });
+        }
         
+        // Handle connection errors
         socket.on('connect_error', (error) => {
+            console.error(`[SOCKET] Connection error: ${error.message}`);
             logConnectionDebug(`Connection error: ${error.message}`);
             updateConnectionStatus('disconnected');
             addLogEntry(`Connection error: ${error.message}`, 'error');
             
-            
-            const errorMsg = document.createElement('div');
-            errorMsg.className = 'fixed top-0 left-0 right-0 bg-red-600 text-white text-center p-4';
-            errorMsg.innerHTML = `
-                Connection to signaling server failed.<br>
-                <span class="text-sm">Could not connect to server: ${error.message}</span><br>
-                <span class="text-sm mt-2">WebRTC functionality will not work.</span>
-            `;
-            document.body.appendChild(errorMsg);
-            
-            
-            const reloadBtn = document.createElement('button');
-            reloadBtn.className = 'ml-4 px-4 py-1 bg-white text-red-600 rounded';
-            reloadBtn.textContent = 'Reload Page';
-            reloadBtn.onclick = () => window.location.reload();
-            errorMsg.appendChild(reloadBtn);
+            // If in Docker and local connection fails, try the alternative URL
+            if (!isLocalDev && !socket.connected) {
+                addLogEntry('[SOCKET] Attempting fallback connection to localhost...', 'info');
+                setTimeout(() => {
+                    // Try connecting directly to the service port
+                    const fallbackUrl = `http://localhost:1002`;
+                    console.log(`[SOCKET] Attempting fallback to ${fallbackUrl}`);
+                    socket.io.uri = fallbackUrl;
+                    socket.connect();
+                }, 2000);
+            } else {
+                // Show error UI for user
+                const errorMsg = document.createElement('div');
+                errorMsg.className = 'fixed top-0 left-0 right-0 bg-red-600 text-white text-center p-4';
+                errorMsg.innerHTML = `
+                    Connection to signaling server failed.<br>
+                    <span class="text-sm">Could not connect to server: ${error.message}</span><br>
+                    <span class="text-sm mt-2">WebRTC functionality will not work.</span>
+                `;
+                document.body.appendChild(errorMsg);
+                
+                // Add reload button
+                const reloadBtn = document.createElement('button');
+                reloadBtn.className = 'ml-4 px-4 py-1 bg-white text-red-600 rounded';
+                reloadBtn.textContent = 'Reload Page';
+                reloadBtn.onclick = () => window.location.reload();
+                errorMsg.appendChild(reloadBtn);
+            }
         });
         
-        
-        // Set up the socket event handlers if socket was created
+        // Set up event handlers if socket was created
         if (socket) {
             setupSocketEventHandlers();
         } else {
-            console.error("Failed to create socket connection.");
+            console.error("[SOCKET] Failed to create socket connection. Socket is null.");
+            addLogEntry("Failed to create socket connection", 'error');
         }
     }
     
@@ -310,50 +765,63 @@ document.addEventListener('DOMContentLoaded', () => {
             socketId = socket.id;
             updateConnectionStatus('connected');
             
-            
             addLogEntry(`🟢 CONNECTED with ID: ${socket.id}`, 'received');
+            console.log(`[SOCKET] Connected with ID: ${socket.id}`);
             
-            
-            // Check if it appears to be a mock socket
-            const isMockSocket = socket.id.indexOf('mock-socket') > -1 || 
-                                 (socket.io && socket.io.engine && socket.io.engine.transport.name === 'mock-transport');
+            // Check if it appears to be a mock socket - safely handle undefined socket.id
+            const isMockSocket = socket && socket.id && (
+                socket.id.indexOf('mock-socket') > -1 || 
+                (socket.io && socket.io.engine && socket.io.engine.transport && socket.io.engine.transport.name === 'mock-transport')
+            );
             
             if (isMockSocket) {
                 addLogEntry(`Using mock socket.io implementation`, 'warning');
-                
                 showToast('Using mock socket implementation - WebRTC calls will be simulated', 'warning');
             }
             
-            addLogEntry(`Socket Details - Transport: ${socket.io.engine.transport.name}`, 'info');
-            console.log('Socket Connection Details:', {
-                id: socket.id,
-                connected: socket.connected,
-                isMock: isMockSocket,
-                transport: socket.io.engine.transport.name
-            });
+            // Check if socket.io and engine are properly initialized
+            if (socket.io && socket.io.engine) {
+                addLogEntry(`Socket Details - Transport: ${socket.io.engine.transport.name}`, 'info');
+                console.log('[SOCKET] Connection Details:', {
+                    id: socket.id,
+                    connected: socket.connected,
+                    isMock: isMockSocket,
+                    transport: socket.io.engine.transport.name
+                });
+            } else {
+                addLogEntry(`Socket.io engine not initialized properly`, 'warning');
+                console.warn('[SOCKET] Socket.io engine not initialized properly');
+            }
             
+            // Clear existing participant list
+            if (participantsList) {
+                console.log("[SOCKET] Clearing existing participants list");
+                Array.from(document.querySelectorAll('.participant-item')).forEach(item => {
+                    participantsList.removeChild(item);
+                });
+            }
             
+            // Join the global room
+            console.log(`[SOCKET] Joining global room: ${GLOBAL_ROOM}`);
             socket.emit('join-global-room', {
                 roomId: GLOBAL_ROOM,
                 userId: socket.id,
                 userName: userName
             });
             
-            
-            Array.from(document.querySelectorAll('.participant-item')).forEach(item => {
-                participantsList.removeChild(item);
-            });
-            
-            
+            // Add ourselves to the participants list
+            console.log(`[SOCKET] Adding ourselves to participant list as: ${userName} (You)`);
             addParticipantItem(socket.id, userName + ' (You)');
             
-            
+            // Request global users list after a short delay
             setTimeout(() => {
+                console.log('[SOCKET] Requesting global users list...');
                 logConnectionDebug('Requesting global users list...');
                 socket.emit('get-global-users', { 
-                    roomId: GLOBAL_ROOM 
+                    roomId: GLOBAL_ROOM,
+                    userName: userName
                 });
-            }, 1500); 
+            }, 1000);  // Reduced delay for faster user discovery
         });
         
         socket.on('disconnect', (reason) => {
@@ -491,14 +959,15 @@ document.addEventListener('DOMContentLoaded', () => {
         
         socket.on('user-joined', (data) => {
             logConnectionDebug(`User joined: ${data.userId} (${data.userName || 'Unknown'})`);
+            console.log(`User joined event received:`, data);
             
+            // Process the user who joined directly
+            handleUserJoined(data);
             
-            
+            // Also request updated global user list
             socket.emit('get-global-users', { 
                 roomId: GLOBAL_ROOM 
             });
-            
-            
         });
         
         socket.on('user-left', (data) => {
@@ -523,6 +992,23 @@ document.addEventListener('DOMContentLoaded', () => {
             addLogEntry(`Server error: ${data.message}`, 'error');
             handleError(data);
         });
+        
+        // Add handler for auto-join events from server
+        socket.on('auto-joined', (data) => {
+            console.log(`[SOCKET] Auto-joined to room ${data.roomId} with name ${data.userName}`);
+            
+            // Update our username if provided by server
+            if (data.userName && data.userName !== userName) {
+                console.log(`[SOCKET] Updating username from ${userName} to ${data.userName}`);
+                userName = data.userName;
+            }
+            
+            // Immediately request the global user list
+            socket.emit('get-global-users', { 
+                roomId: data.roomId || GLOBAL_ROOM,
+                userName: userName
+            });
+        });
     }
     
     
@@ -530,20 +1016,67 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             console.log('Requesting media permissions...');
             
-            
-            localStream = await navigator.mediaDevices.getUserMedia({
-                video: {
-                    width: { ideal: 640 }, 
-                    height: { ideal: 480 }, 
-                    frameRate: { ideal: 24 } 
-                },
+            // Create constraints with ideal settings but fallbacks
+            const constraints = {
                 audio: {
                     echoCancellation: true,
                     noiseSuppression: true,
                     autoGainControl: true
+                },
+                video: {
+                    width: { ideal: 640, min: 320 },
+                    height: { ideal: 480, min: 240 },
+                    frameRate: { ideal: 24, min: 15 }
                 }
-            });
+            };
             
+            // First try with both audio and video
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia(constraints);
+                
+                console.log('Successfully obtained audio and video permissions');
+                addLogEntry('Successfully obtained audio and video permissions', 'info');
+            } catch (e) {
+                console.warn('Could not get video and audio, trying audio only:', e.message);
+                addLogEntry('Could not get both audio and video. Trying audio only...', 'warning');
+                
+                // Try with just audio as fallback
+                try {
+                    localStream = await navigator.mediaDevices.getUserMedia({
+                        video: false,
+                        audio: constraints.audio
+                    });
+                    console.log('Successfully obtained audio-only permissions');
+                    addLogEntry('Successfully obtained audio-only permissions', 'info');
+                    
+                    // Create an empty black video track since we couldn't get camera
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 640;
+                    canvas.height = 480;
+                    const ctx = canvas.getContext('2d');
+                    ctx.fillStyle = 'black';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    // Add text to canvas
+                    ctx.fillStyle = 'white';
+                    ctx.font = '20px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('Camera disabled', canvas.width/2, canvas.height/2);
+                    ctx.font = '14px Arial';
+                    ctx.fillText('Audio-only mode', canvas.width/2, canvas.height/2 + 30);
+                    
+                    // Create video stream from canvas
+                    const emptyVideoStream = canvas.captureStream(1); // 1 fps
+                    const emptyVideoTrack = emptyVideoStream.getVideoTracks()[0];
+                    if (emptyVideoTrack) {
+                        localStream.addTrack(emptyVideoTrack);
+                        console.log('Added placeholder video track');
+                    }
+                } catch (audioError) {
+                    console.error('Could not get even audio permissions:', audioError.message);
+                    throw audioError; // Re-throw to be handled by outer catch
+                }
+            }
             
             const videoTrack = localStream.getVideoTracks()[0];
             const audioTrack = localStream.getAudioTracks()[0];
@@ -552,6 +1085,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log('Video track obtained:', videoTrack.label);
                 console.log('Video track settings:', videoTrack.getSettings());
                 
+                permissionStatus.textContent = 'Camera and microphone access granted!';
+                permissionStatus.classList.add('text-green-500');
                 
                 videoTrack.onended = () => {
                     console.warn('Video track ended unexpectedly');
@@ -559,12 +1094,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
             } else {
                 console.warn('No video track obtained');
+                permissionStatus.textContent = 'Microphone access granted, but no camera available.';
+                permissionStatus.classList.add('text-yellow-500');
             }
             
             if (audioTrack) {
                 console.log('Audio track obtained:', audioTrack.label);
             } else {
                 console.warn('No audio track obtained');
+                permissionStatus.textContent = permissionStatus.textContent + ' (No microphone)';
             }
             
             console.log('Local stream obtained with tracks:', localStream.getTracks().map(t => `${t.kind}:${t.enabled}`));
@@ -620,18 +1158,32 @@ document.addEventListener('DOMContentLoaded', () => {
             
             
             let errorMessage = 'Could not access camera or microphone. ';
+            let errorDetail = '';
             
             if (error.name === 'NotAllowedError') {
-                errorMessage += 'You denied permission to use your camera/microphone. Please allow access in your browser settings.';
+                errorDetail = 'You denied permission to use your camera/microphone. Please allow access in your browser settings.';
+                permissionStatus.textContent = 'Permission denied! Please click "Allow" when prompted by your browser.';
             } else if (error.name === 'NotFoundError') {
-                errorMessage += 'No camera or microphone found on your device.';
+                errorDetail = 'No camera or microphone found on your device.';
+                permissionStatus.textContent = 'No camera or microphone detected on your device.';
             } else if (error.name === 'NotReadableError') {
-                errorMessage += 'Your camera or microphone is already in use by another application.';
+                errorDetail = 'Your camera or microphone is already in use by another application.';
+                permissionStatus.textContent = 'Camera/mic is being used by another application.';
+            } else if (error.name === 'OverconstrainedError') {
+                errorDetail = 'The requested camera/microphone settings could not be satisfied.';
+                permissionStatus.textContent = 'Camera/mic constraints not satisfied. Please try again.';
+            } else if (error.name === 'TypeError') {
+                errorDetail = 'No cameras or microphones available, or permission was denied.';
+                permissionStatus.textContent = 'Media devices not available or permission denied.';
             } else {
-                errorMessage += error.message;
+                errorDetail = error.message;
+                permissionStatus.textContent = 'Error: ' + error.message;
             }
             
-            alert(errorMessage);
+            permissionStatus.classList.add('text-red-500');
+            errorMessage += errorDetail;
+            console.log('Detailed error info:', errorMessage);
+            
             return false;
         }
     }
@@ -758,41 +1310,61 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function handleUserJoined(data) {
         const { userId, userName } = data;
-        console.log(`User joined: ${userName || userId}`);
+        console.log(`User joined: ${userName || userId}`, data);
         
-        
-        if (userId === socketId) return;
-        
-        
-        if (document.getElementById(`participant-${userId}`)) {
-            console.log(`User ${userId} is already in the participant list, skipping duplicate join event`);
+        // Skip if this is our own ID
+        if (userId === socketId) {
+            console.log(`Ignoring our own join event`);
             return;
         }
         
-        
+        // Check if user is already in the list to avoid duplicates
         const existingItem = document.getElementById(`participant-${userId}`);
         const existingPeer = peers[userId];
         const existingVideo = document.getElementById(`container-${userId}`);
         
+        // If user is fully set up, skip
         if (existingItem && existingPeer && existingVideo) {
-            console.log(`User ${userId} is already in the participant list, skipping duplicate join event`);
+            console.log(`User ${userId} is already fully set up, skipping duplicate join event`);
             return;
         }
         
+        console.log(`Setting up user ${userId} - Existing UI: ${!!existingItem}, Existing peer: ${!!existingPeer}, Existing video: ${!!existingVideo}`);
         
+        // Step 1: Add to participants list if needed
         if (!existingItem) {
-            addParticipantItem(userId, userName || `User_${userId.substring(0, 4)}`);
+            const displayName = userName || `User_${userId.substring(0, 4)}`;
+            addParticipantItem(userId, displayName);
+            console.log(`Added participant ${displayName} to the list`);
+            addLogEntry(`New user joined: ${displayName}`, 'info');
+            
+            // Show a toast notification for new user
+            showToast(`${displayName} joined the room`, 'info');
         }
         
-        
+        // Step 2: Create peer connection if needed
         if (!existingPeer) {
-            console.log(`Creating new peer connection for joined user ${userId}`);
+            console.log(`Creating new peer connection for user ${userId}`);
             const peerConnection = createPeerConnection(userId, userName);
+            console.log(`Peer connection created for ${userId}`);
         }
         
-        
+        // Step 3: Create video container if needed
         if (!existingVideo) {
+            console.log(`Creating video container for ${userId}`);
             updateRemoteVideo(userId, null, userName || `User_${userId.substring(0, 4)}`);
+        }
+        
+        // Step 4: Trigger connection immediately
+        if (peers[userId] && peers[userId].signalingState === 'stable') {
+            console.log(`Initiating WebRTC negotiation with ${userId}`);
+            // Delay slightly to ensure everything is set up
+            setTimeout(() => {
+                if (peers[userId]) {
+                    console.log(`Triggering negotiation with ${userId}`);
+                    peers[userId].onnegotiationneeded();
+                }
+            }, 1000);
         }
     }
     
@@ -817,110 +1389,190 @@ document.addEventListener('DOMContentLoaded', () => {
     
     
     function handleGlobalUsers(data) {
-        const { users } = data;
+        console.log("[USERS] handleGlobalUsers called with data:", data);
+        
+        // Guard against undefined data
+        if (!data) {
+            console.error("[USERS] Received undefined data in handleGlobalUsers");
+            return;
+        }
+        
+        const { users, roomId, totalCount } = data;
+        
+        // Guard against undefined users
+        if (!users) {
+            console.error("[USERS] No users data found in global users list");
+            addLogEntry("Error: Received global users list with no user data", 'error');
+            return;
+        }
+        
         // Convert object to array if it's not already an array
         const userList = Array.isArray(users) ? users : Object.values(users);
         
-        console.log(`Received global users: ${userList.length}`);
+        console.log(`[USERS] Received ${userList.length} users in room ${roomId || GLOBAL_ROOM}`);
         
-        const usernameMap = new Map();
+        // Show debug info for received users
+        userList.forEach(user => {
+            if (user && user.userId) {
+                console.log(`[USERS] User in list: ${user.userName} (${user.userId})`);
+            }
+        });
         
-        // Add our own username to the map
-        usernameMap.set(userName.replace(' (You)', ''), socketId);
+        // Add a toast notification with user count
+        showToast(`${userList.length} user${userList.length !== 1 ? 's' : ''} online`, 'info');
         
-        // Get current participants
+        // Keep track of all valid user IDs we received
+        const receivedUserIds = userList
+            .filter(user => user && user.userId) // Filter out invalid users
+            .map(user => user.userId);
+            
+        console.log(`[USERS] Valid user IDs received:`, receivedUserIds);
+        
+        // Get current participants displayed in the UI
         const currentParticipants = Array.from(document.querySelectorAll('.participant-item'))
             .map(el => el.id.replace('participant-', ''));
-        
-        // Keep track of valid user IDs
-        const validUserIds = [];
-        
-        // Process users
-        userList.forEach(user => {
-            // Add to valid IDs
-            validUserIds.push(user.userId);
             
-            // Extract username without "(You)" suffix
-            const cleanUsername = (user.userName || '').replace(' (You)', '');
-            
-            // Skip if this is a duplicate of our username
-            if (cleanUsername === userName.replace(' (You)', '') && user.userId !== socketId) {
-                console.log(`Found duplicate user with our username: ${cleanUsername}, ID: ${user.userId}`);
-                return;
-            }
-            
-            // Add to username map
-            usernameMap.set(cleanUsername, user.userId);
-        });
+        console.log(`[USERS] Current participants in UI:`, currentParticipants);
         
-        // Make sure our ID is included
-        if (!validUserIds.includes(socketId)) {
-            validUserIds.push(socketId);
+        // Make sure we have our own ID in the valid list
+        if (!receivedUserIds.includes(socketId) && socketId) {
+            console.log(`[USERS] Adding our own ID ${socketId} to valid user list`);
+            receivedUserIds.push(socketId);
         }
         
-        console.log(`Current participants: ${currentParticipants.length}, Valid users: ${validUserIds.length}`);
-        
-        // Remove stale participants
+        // 1. Remove participants that are no longer in the room
         currentParticipants.forEach(id => {
-            if (!validUserIds.includes(id)) {
-                console.log(`Removing stale participant: ${id}`);
+            if (!receivedUserIds.includes(id)) {
+                console.log(`[USERS] Removing participant ${id} - no longer in room`);
+                
+                // Remove from participants list
                 removeParticipantItem(id);
                 
+                // Clean up peer connection if it exists
                 if (peers[id]) {
+                    console.log(`[USERS] Closing peer connection for ${id}`);
                     peers[id].close();
                     delete peers[id];
-                    logConnectionDebug(`Cleaned up peer connection for ${id} (stale)`);
                 }
+                
+                // Remove video container
                 const container = document.getElementById(`container-${id}`);
                 if (container) {
-                    videoGrid.removeChild(container);
+                    console.log(`[USERS] Removing video container for ${id}`);
+                    if (videoGrid.contains(container)) {
+                        videoGrid.removeChild(container);
+                    }
                 }
             }
         });
         
-        // Check for duplicate usernames
-        const userEls = document.querySelectorAll('.participant-item');
-        userEls.forEach(el => {
-            const id = el.id.replace('participant-', '');
-            const nameEl = el.querySelector('.participant-name');
-            if (nameEl) {
-                // Check if this username matches another ID
-                const displayedName = nameEl.textContent.replace(' (You)', '');
-                const expectedId = usernameMap.get(displayedName);
-                
-                // If so, remove the duplicate (keep the one that matches the map)
-                if (expectedId && expectedId !== id) {
-                    console.log(`Removing duplicate participant with username ${displayedName}`);
-                    removeParticipantItem(id);
-                }
-            }
-        });
-        
-        // Make sure we're in the list
+        // 2. Make sure we're in the list
         if (!document.getElementById(`participant-${socketId}`)) {
+            console.log(`[USERS] Adding ourselves to the participant list`);
             addParticipantItem(socketId, userName + ' (You)');
         }
         
-        // Add remote users
+        // 3. Process all valid users
         userList.forEach(user => {
-            // Skip if this is us or a duplicate username
-            if (user.userId === socketId || 
-                (user.userName && user.userName.replace(' (You)', '') === userName.replace(' (You)', ''))) {
+            // Skip invalid users
+            if (!user || !user.userId) {
+                console.warn("[USERS] Skipping invalid user entry", user);
                 return;
             }
             
-            // Add participant to the list
-            addParticipantItem(user.userId, user.userName || `User_${user.userId.substring(0, 4)}`);
+            // Skip ourselves
+            if (user.userId === socketId) {
+                console.log(`[USERS] Skipping our own user entry`);
+                return;
+            }
             
-            // Create peer connection if needed
+            const displayName = user.userName || `User_${user.userId.substring(0, 4)}`;
+            console.log(`[USERS] Processing remote user: ${displayName} (${user.userId})`);
+            
+            // Add to participant list if not already there
+            if (!document.getElementById(`participant-${user.userId}`)) {
+                console.log(`[USERS] Adding new participant ${displayName} to list`);
+                addParticipantItem(user.userId, displayName);
+            }
+            
+            // Create peer connection if doesn't exist
             if (!peers[user.userId]) {
-                console.log(`Creating new peer connection for ${user.userId}`);
-                const peerConnection = createPeerConnection(user.userId, user.userName);
+                console.log(`[USERS] Creating new peer connection for ${user.userId}`);
+                createPeerConnection(user.userId, user.userName);
                 
-                // Add placeholder video
-                updateRemoteVideo(user.userId, null, user.userName || `User_${user.userId.substring(0, 4)}`);
+                // Create video container if needed
+                if (!document.getElementById(`container-${user.userId}`)) {
+                    console.log(`[USERS] Creating video container for ${user.userId}`);
+                    updateRemoteVideo(user.userId, null, displayName);
+                }
+                
+                // Initialize connection
+                setTimeout(() => {
+                    if (peers[user.userId] && peers[user.userId].signalingState === 'stable') {
+                        console.log(`[USERS] Triggering negotiation for ${user.userId}`);
+                        peers[user.userId].onnegotiationneeded();
+                    }
+                }, 1000);
             }
         });
+        
+        // Update the count display
+        updateParticipantCount(receivedUserIds.length);
+        
+        // Periodic connection check for all peers
+        setTimeout(() => {
+            console.log(`[USERS] Checking connection status for all peers`);
+            Object.keys(peers).forEach(peerId => {
+                const peer = peers[peerId];
+                if (peer) {
+                    const state = peer.connectionState || peer.iceConnectionState;
+                    console.log(`[USERS] Peer ${peerId} connection state: ${state}`);
+                    
+                    // If peer is disconnected but should be connected (is in user list)
+                    if ((state === 'disconnected' || state === 'failed' || state === 'closed') && 
+                        receivedUserIds.includes(peerId)) {
+                        console.log(`[USERS] Reconnecting to disconnected peer ${peerId}`);
+                        
+                        // Close and recreate connection
+                        peer.close();
+                        delete peers[peerId];
+                        
+                        // Get user info
+                        const userInfo = userList.find(u => u.userId === peerId);
+                        if (userInfo) {
+                            createPeerConnection(peerId, userInfo.userName);
+                            
+                            // Trigger negotiation
+                            setTimeout(() => {
+                                if (peers[peerId]) {
+                                    peers[peerId].onnegotiationneeded();
+                                }
+                            }, 500);
+                        }
+                    }
+                }
+            });
+        }, 5000);
+    }
+    
+    // Add this function to show the participant count
+    function updateParticipantCount(count) {
+        // Find or create participant count element
+        let countElement = document.getElementById('participant-count');
+        if (!countElement) {
+            const participantsTitle = document.querySelector('.participants-panel h2');
+            if (participantsTitle) {
+                countElement = document.createElement('span');
+                countElement.id = 'participant-count';
+                countElement.className = 'ml-2 px-2 py-1 bg-blue-600 text-white text-sm rounded-full';
+                participantsTitle.appendChild(countElement);
+            }
+        }
+        
+        // Update count
+        if (countElement) {
+            countElement.textContent = count;
+        }
     }
     
     
@@ -931,11 +1583,14 @@ document.addEventListener('DOMContentLoaded', () => {
     
     
     function updateRemoteVideo(userId, stream, userName) {
+        console.log(`updateRemoteVideo called for ${userId} with stream:`, stream ? `Stream with ${stream.getTracks().length} tracks` : 'No stream');
+        
         // Find existing container or create a new one
         let container = document.getElementById(`container-${userId}`);
         let video;
         
         if (!container) {
+            console.log(`Creating new video container for ${userId}`);
             // Create container for the video
             container = document.createElement('div');
             container.id = `container-${userId}`;
@@ -986,10 +1641,14 @@ document.addEventListener('DOMContentLoaded', () => {
             actionButtons.className = 'absolute top-0 right-0 p-1 flex gap-1 z-10';
             actionButtons.innerHTML = `
                 <button class="refresh-video-btn p-1 bg-blue-600 text-white rounded opacity-70 hover:opacity-100 transition-opacity" title="Refresh Video">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />                    </svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
                 </button>
                 <button class="resubscribe-btn p-1 bg-green-600 text-white rounded opacity-70 hover:opacity-100 transition-opacity" title="Resubscribe">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />                    </svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
                 </button>
             `;
             container.appendChild(actionButtons);
@@ -1127,27 +1786,67 @@ document.addEventListener('DOMContentLoaded', () => {
                 }, 3000);
             }
         } else {
+            console.log(`Using existing video container for ${userId}`);
             video = document.getElementById(`video-${userId}`);
+            
+            // Update username if provided
+            if (userName) {
+                const usernameEl = container.querySelector('.username');
+                if (usernameEl && usernameEl.textContent !== userName) {
+                    console.log(`Updating username for ${userId} to ${userName}`);
+                    usernameEl.textContent = userName;
+                }
+            }
         }
         
         // If we have a stream, attach it to the video element
         if (stream && video) {
-            showVideoDebugOverlay(userId, `Setting new stream with ${stream.getTracks().length} tracks`, "info");
+            console.log(`Setting stream for ${userId} video element`);
             
-            // Log track details for debugging
-            stream.getTracks().forEach(track => {
-                showVideoDebugOverlay(userId, `Track: ${track.kind}, state: ${track.readyState}, enabled: ${track.enabled}`, "info");
-            });
+            // Check if we need to replace the stream
+            const currentStream = video.srcObject;
             
-            // Set the stream and play
-            video.srcObject = stream;
+            if (!currentStream) {
+                // No current stream, just set the new one
+                console.log(`No current stream for ${userId}, setting new stream`);
+                video.srcObject = stream;
+                
+                // Show debug info about tracks
+                showVideoDebugOverlay(userId, `Setting new stream with ${stream.getTracks().length} tracks`, "info");
+                stream.getTracks().forEach(track => {
+                    showVideoDebugOverlay(userId, `Track: ${track.kind}, state: ${track.readyState}, enabled: ${track.enabled}`, "info");
+                });
+            } else {
+                console.log(`Existing stream found for ${userId}`);
+                
+                // Check if it's the same stream (by comparing track IDs)
+                const existingTrackIds = Array.from(currentStream.getTracks()).map(t => t.id).sort().join(',');
+                const newTrackIds = Array.from(stream.getTracks()).map(t => t.id).sort().join(',');
+                
+                if (existingTrackIds !== newTrackIds) {
+                    console.log(`Stream has changed for ${userId}, replacing`);
+                    video.srcObject = stream;
+                    
+                    // Show debug info
+                    showVideoDebugOverlay(userId, `Replacing stream with ${stream.getTracks().length} new tracks`, "info");
+                } else {
+                    console.log(`Same stream detected for ${userId}, not replacing`);
+                    // Still log tracks for debugging
+                    stream.getTracks().forEach(track => {
+                        console.log(`Track in stream: ${track.kind}, state: ${track.readyState}, enabled: ${track.enabled}`);
+                    });
+                }
+            }
             
-            // Try to play the video
+            // Try to play the video after a short delay
             setTimeout(() => {
+                console.log(`Attempting to play video for ${userId}`);
                 playWithUnmuteSequence(video, userId);
             }, 100);
         } else if (video && !video.srcObject) {
-            showVideoDebugOverlay(userId, "No stream available yet", "warning");
+            // No stream yet, show a placeholder
+            console.log(`No stream available yet for ${userId}`);
+            showVideoDebugOverlay(userId, "Waiting for media stream...", "warning");
             
             // Add a play button as fallback
             addImprovedPlayButton(video, userId);
@@ -1682,29 +2381,31 @@ document.addEventListener('DOMContentLoaded', () => {
         
         
         peerConnection.onnegotiationneeded = async () => {
-            
+            // Prevent multiple negotiations happening at once
             if (peerConnection._isNegotiating) return;
             peerConnection._isNegotiating = true;
             
             try {
-                
+                // Only proceed if connection is stable
                 if (peerConnection.signalingState === 'stable') {
-                    updateDebugInfo(userId, 'Negotiating...');
+                    updateDebugInfo(userId, 'Creating offer...');
                     
-                    
+                    // Set up offer options with proper constraints
                     const offerOptions = {
                         offerToReceiveAudio: true,
                         offerToReceiveVideo: true,
                         iceRestart: peerConnection.iceConnectionState === 'failed'
                     };
                     
+                    // Create the offer
                     const offer = await peerConnection.createOffer(offerOptions);
                     
-                    
+                    // Only proceed if still in stable state
                     if (peerConnection.signalingState === 'stable') {
+                        // Set our local description
                         await peerConnection.setLocalDescription(offer);
                         
-                        
+                        // Function to send the offer to remote peer
                         const sendOffer = () => {
                             socket.emit('offer', {
                                 offer: peerConnection.localDescription,
@@ -1712,18 +2413,20 @@ document.addEventListener('DOMContentLoaded', () => {
                                 from: socketId,
                                 userName: userName
                             });
+                            console.log(`Sent offer to ${userId}`);
                         };
                         
-                        
+                        // Either send immediately if ICE gathering is complete,
+                        // or wait for gathering to finish or timeout
                         if (peerConnection.iceGatheringState === 'complete') {
                             sendOffer();
                         } else {
-                            
+                            // Set a timeout to send offer even if gathering isn't complete
                             const gatheringTimeout = setTimeout(() => {
                                 sendOffer();
                             }, 1000);
                             
-                            
+                            // Helper to check ICE gathering state
                             const checkGatheringState = () => {
                                 if (peerConnection.iceGatheringState === 'complete') {
                                     clearTimeout(gatheringTimeout);
@@ -1733,7 +2436,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 return false;
                             };
                             
-                            
+                            // Hook into gathering state changes
                             if (!checkGatheringState()) {
                                 const originalHandler = peerConnection.onicegatheringstatechange;
                                 peerConnection.onicegatheringstatechange = () => {
@@ -1749,7 +2452,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (err) {
                 console.error(`Error during negotiation with ${userId}:`, err);
             } finally {
-                
+                // Reset negotiation flag after delay
                 setTimeout(() => {
                     peerConnection._isNegotiating = false;
                 }, 3000);
@@ -1764,38 +2467,58 @@ document.addEventListener('DOMContentLoaded', () => {
             // Log detailed track info for debugging
             console.log(`Track details - kind: ${event.track.kind}, enabled: ${event.track.enabled}, muted: ${event.track.muted}, readyState: ${event.track.readyState}`);
             
+            // Get the stream from the event or create a new one if none exists
+            let remoteStream = null;
+            
+            // First try to get the stream from the event
+            if (event.streams && event.streams.length > 0) {
+                remoteStream = event.streams[0];
+                console.log(`Using existing stream from track event with ${remoteStream.getTracks().length} tracks`);
+            } else {
+                // Create a new stream if none was provided
+                console.log(`No stream in track event, creating synthetic stream for ${userId}`);
+                remoteStream = new MediaStream();
+                remoteStream.addTrack(event.track);
+            }
+            
+            // Log track and stream details
+            console.log(`Remote stream for ${userId} now has ${remoteStream.getTracks().length} tracks`);
+            console.log(`Remote stream tracks:`, remoteStream.getTracks().map(t => `${t.kind}:${t.readyState}`));
+            
             // Handle track state changes
             event.track.onunmute = () => {
                 console.log(`Track ${event.track.kind} from ${userId} is now unmuted and should be visible`);
                 updateDebugInfo(userId, `${event.track.kind} active`);
                 
-                // For video tracks, handle video element updates
-                if (event.track.kind === 'video') {
-                    // Get the video element
-                    const existingVideo = document.getElementById(`video-${userId}`);
-                    if (existingVideo) {
-                        // Try to play if paused
-                        if (existingVideo.paused) {
-                            playWithUnmuteSequence(existingVideo, userId);
-                        }
-                        
-                        // Hide debug indicator
-                        const debugIndicator = document.getElementById(`video-debug-${userId}`);
-                        if (debugIndicator) {
-                            debugIndicator.style.opacity = '0';
-                        }
+                // Check if this video exists and update it
+                const existingVideo = document.getElementById(`video-${userId}`);
+                if (existingVideo) {
+                    console.log(`Found existing video element for ${userId}`);
+                    
+                    // Try to play if paused
+                    if (existingVideo.paused) {
+                        console.log(`Video element is paused, attempting to play`);
+                        playWithUnmuteSequence(existingVideo, userId);
                     }
+                    
+                    // Hide debug indicator
+                    const debugIndicator = document.getElementById(`video-debug-${userId}`);
+                    if (debugIndicator) {
+                        debugIndicator.style.opacity = '0';
+                    }
+                    
+                    // Check if video has dimensions
+                    if (existingVideo.videoWidth > 0 && existingVideo.videoHeight > 0) {
+                        console.log(`Video dimensions: ${existingVideo.videoWidth}x${existingVideo.videoHeight}`);
+                    } else {
+                        console.log(`Video dimensions are still zero, waiting for video to render`);
+                    }
+                } else {
+                    console.log(`No video element found for ${userId}, will create one`);
                 }
                 
-                // Force refresh the video element to stimulate rendering
-                const existingVideo = document.getElementById(`video-${userId}`);
-                if (existingVideo && event.track.kind === 'video') {
-                    // Apply a small style change to trigger a repaint
-                    existingVideo.style.opacity = '0.99';
-                    setTimeout(() => {
-                        existingVideo.style.opacity = '1';
-                    }, 100);
-                }
+                // Refresh the video display regardless
+                updateRemoteVideo(userId, remoteStream, remoteUserName || `User_${userId.substring(0, 4)}`);
             };
             
             // Handle track ending
@@ -1812,93 +2535,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             };
             
-            // Get the stream from the event
-            let remoteStream = event.streams && event.streams.length > 0 ? event.streams[0] : null;
-            
-            // Create a synthetic stream if no stream was provided
-            if (!remoteStream) {
-                console.log(`Creating synthetic stream for ${userId} as no stream was provided with the track`);
-                remoteStream = new MediaStream();
-                remoteStream.addTrack(event.track);
-            }
-            
-            console.log(`Remote stream for ${userId} has ${remoteStream.getTracks().length} tracks`);
-            
-            // Get or create the video element
-            const existingVideo = document.getElementById(`video-${userId}`);
-            
-            if (existingVideo) {
-                // Update existing video element with the new track
-                const currentStream = existingVideo.srcObject;
-                
-                if (currentStream instanceof MediaStream) {
-                    // Check if the track already exists
-                    const trackExists = currentStream.getTracks().some(t => 
-                        t.id === event.track.id || t.kind === event.track.kind
-                    );
-                    
-                    if (!trackExists) {
-                        // Remove existing tracks of the same kind to avoid conflicts
-                        const existingTracksOfSameKind = currentStream.getTracks()
-                            .filter(t => t.kind === event.track.kind);
-                        
-                        existingTracksOfSameKind.forEach(t => {
-                            console.log(`Removing existing ${t.kind} track before adding new one`);
-                            currentStream.removeTrack(t);
-                        });
-                        
-                        // Add the new track
-                        currentStream.addTrack(event.track);
-                        console.log(`Added ${event.track.kind} track to existing stream for ${userId}`);
-                        
-                        // Special handling for video tracks to check dimensions
-                        if (event.track.kind === 'video') {
-                            // Set a timeout to check if video dimensions are valid
-                            setTimeout(() => {
-                                if (existingVideo.videoWidth === 0 || existingVideo.videoHeight === 0) {
-                                    console.warn(`Video track added but dimensions still zero for ${userId}`);
-                                    showVideoDebugOverlay(userId, "Video has zero dimensions", "warning");
-                                    
-                                    // Try replacing the entire stream as a fallback
-                                    console.log(`Trying to replace entire stream for ${userId}`);
-                                    existingVideo.srcObject = remoteStream;
-                                    
-                                    // Attempt to play the video
-                                    playWithUnmuteSequence(existingVideo, userId);
-                                } else {
-                                    console.log(`Video dimensions: ${existingVideo.videoWidth}x${existingVideo.videoHeight}`);
-                                    showVideoDebugOverlay(userId, `Video dimensions: ${existingVideo.videoWidth}x${existingVideo.videoHeight}`, "info");
-                                }
-                            }, 2000);
-                        }
-                    } else {
-                        console.log(`Track ${event.track.kind} already exists, not adding duplicate`);
-                    }
-                    
-                    // Log current video element state
-                    console.log(`Video element state for ${userId}: readyState=${existingVideo.readyState}, paused=${existingVideo.paused}, videoWidth=${existingVideo.videoWidth}, videoHeight=${existingVideo.videoHeight}`);
-                    
-                    // Make extra effort to ensure video starts playing
-                    if (existingVideo.paused) {
-                        console.log(`Video is paused for ${userId}, attempting to play...`);
-                        playWithUnmuteSequence(existingVideo, userId);
-                    }
-                } else {
-                    // If srcObject is not a MediaStream, replace it
-                    console.log(`Replacing invalid stream for ${userId} with new stream`);
-                    existingVideo.srcObject = remoteStream;
-                    
-                    // Try to play the video
-                    playWithUnmuteSequence(existingVideo, userId);
-                }
-            } else {
-                // Create new video element if it doesn't exist
-                console.log(`Creating new video element for ${userId}`);
-                updateRemoteVideo(userId, remoteStream, remoteUserName);
-            }
-            
-            // Debug message in UI to show track was received
-            showVideoDebugOverlay(userId, `Received ${event.track.kind} track: ${event.track.readyState}`, "info");
+            // Always update the remote video with the new stream
+            console.log(`Updating remote video for ${userId} with stream containing ${remoteStream.getTracks().length} tracks`);
+            updateRemoteVideo(userId, remoteStream, remoteUserName || `User_${userId.substring(0, 4)}`);
         };
         
         
@@ -1954,44 +2593,112 @@ document.addEventListener('DOMContentLoaded', () => {
         
         console.log(`Attempting to play video for ${userId}`);
         
+        // Make sure we have tracks in the stream
+        const stream = videoElement.srcObject;
+        if (!stream) {
+            console.error(`No stream attached to video element for ${userId}`);
+            showVideoDebugOverlay(userId, "No stream to play", "error");
+            return;
+        }
+        
+        // Check if we have any tracks in the stream
+        const tracks = stream.getTracks();
+        console.log(`Stream has ${tracks.length} tracks for ${userId}`);
+        if (tracks.length === 0) {
+            console.error(`Stream has no tracks for ${userId}`);
+            showVideoDebugOverlay(userId, "Stream has no tracks", "error");
+            return;
+        }
+        
+        // Check track states
+        const videoTracks = stream.getVideoTracks();
+        if (videoTracks.length > 0) {
+            const videoTrack = videoTracks[0];
+            console.log(`Video track state for ${userId}: ${videoTrack.readyState}, enabled: ${videoTrack.enabled}`);
+            
+            if (videoTrack.readyState === 'ended') {
+                console.warn(`Video track is in 'ended' state for ${userId}`);
+                showVideoDebugOverlay(userId, "Video track ended", "warning");
+            }
+        } else {
+            console.warn(`No video tracks for ${userId}`);
+            showVideoDebugOverlay(userId, "Audio-only connection", "info");
+        }
+        
         // Some browsers need a user gesture simulation
         simulateUserGesture(() => {
-            // First try regular play
-            videoElement.play()
-                .then(() => {
-                    console.log(`Video playing successfully for ${userId}`);
-                    showVideoDebugOverlay(userId, "Video playing", "success");
-                })
-                .catch(error => {
-                    console.warn(`Initial play failed for ${userId}: ${error}`);
-                    showVideoDebugOverlay(userId, `Play failed: ${error.message}`, "warning");
+            // First try regular play with a safety timeout
+            const playPromise = videoElement.play();
+            
+            if (playPromise !== undefined) {
+                let playTimeoutId = setTimeout(() => {
+                    console.warn(`Play timeout for ${userId} - video may be stuck`);
+                    showVideoDebugOverlay(userId, "Play timeout - retrying", "warning");
                     
-                    // Try with a timeout
+                    // Try refreshing the stream
+                    const currentStream = videoElement.srcObject;
+                    videoElement.srcObject = null;
                     setTimeout(() => {
-                        videoElement.play()
-                            .then(() => console.log(`Delayed play succeeded for ${userId}`))
-                            .catch(e => {
-                                console.error(`Delayed play also failed for ${userId}: ${e}`);
-                                
-                                // Last resort: try muting first then unmuting after playing
-                                videoElement.muted = true;
-                                videoElement.play()
-                                    .then(() => {
-                                        console.log(`Muted play succeeded for ${userId}, will unmute shortly`);
-                                        // Unmute after playing starts
-                                        setTimeout(() => {
-                                            videoElement.muted = false;
-                                            console.log(`Unmuted video for ${userId} after autoplay`);
-                                        }, 1000);
-                                    })
-                                    .catch(finalError => {
-                                        console.error(`All play attempts failed for ${userId}`);
-                                        // Add a manual play button as fallback
-                                        addImprovedPlayButton(videoElement, userId);
-                                    });
-                            });
-                    }, 500);
-                });
+                        videoElement.srcObject = currentStream;
+                        videoElement.play().catch(e => {
+                            console.error(`Refresh play failed for ${userId}: ${e}`);
+                        });
+                    }, 100);
+                }, 5000);
+                
+                playPromise
+                    .then(() => {
+                        clearTimeout(playTimeoutId);
+                        console.log(`Video playing successfully for ${userId}`);
+                        showVideoDebugOverlay(userId, "Video playing", "success");
+                    })
+                    .catch(error => {
+                        clearTimeout(playTimeoutId);
+                        console.warn(`Initial play failed for ${userId}: ${error}`);
+                        showVideoDebugOverlay(userId, `Play failed: ${error.message}`, "warning");
+                        
+                        // Try with a timeout
+                        setTimeout(() => {
+                            videoElement.play()
+                                .then(() => console.log(`Delayed play succeeded for ${userId}`))
+                                .catch(e => {
+                                    console.error(`Delayed play also failed for ${userId}: ${e}`);
+                                    
+                                    // Last resort: try muting first then unmuting after playing
+                                    videoElement.muted = true;
+                                    videoElement.play()
+                                        .then(() => {
+                                            console.log(`Muted play succeeded for ${userId}, will unmute shortly`);
+                                            // Unmute after playing starts
+                                            setTimeout(() => {
+                                                videoElement.muted = false;
+                                                console.log(`Unmuted video for ${userId} after autoplay`);
+                                            }, 1000);
+                                        })
+                                        .catch(finalError => {
+                                            console.error(`All play attempts failed for ${userId}`);
+                                            // Add a manual play button as fallback
+                                            addImprovedPlayButton(videoElement, userId);
+                                        });
+                                });
+                        }, 500);
+                    });
+            } else {
+                console.warn(`Play promise undefined for ${userId}, browser may not support promises for media`);
+                
+                // Monitor video state manually
+                const checkVideoPlaying = setInterval(() => {
+                    if (!videoElement.paused) {
+                        console.log(`Video now playing for ${userId} (manually detected)`);
+                        clearInterval(checkVideoPlaying);
+                    }
+                }, 500);
+                
+                // Clear after a reasonable timeout
+                setTimeout(() => {
+                    clearInterval(checkVideoPlaying);
+                }, 10000);
+            }
         });
         
         // Set up monitoring for the video element

@@ -7,7 +7,24 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title><?php echo isset($page_title) ? $page_title : 'MiscVord - Your Place to Talk and Hang Out'; ?></title>    <!-- Favicon -->    <link rel="icon" href="<?php echo asset('landing-page/main-logo.png'); ?>" type="image/png">    <link rel="shortcut icon" href="<?php echo asset('landing-page/main-logo.png'); ?>" type="image/png">
+    <?php
+    // Determine the appropriate socket server URL based on environment
+    $socketServer = getenv('SOCKET_SERVER');
+    $socketServerLocal = getenv('SOCKET_SERVER_LOCAL');
+    $isLocalhost = (isset($_SERVER['SERVER_NAME']) && 
+                    ($_SERVER['SERVER_NAME'] === 'localhost' || $_SERVER['SERVER_NAME'] === '127.0.0.1'));
+    
+    // Use local socket server if accessing from localhost, otherwise use container socket server
+    $effectiveSocketServer = $isLocalhost ? $socketServerLocal : $socketServer;
+    
+    // Default fallback if neither is set
+    if (empty($effectiveSocketServer)) {
+        $effectiveSocketServer = $isLocalhost ? 'http://localhost:1002' : 'http://socket-server:3000';
+    }
+    ?>
+    <!-- Socket server URL from environment variables -->
+    <meta name="socket-server" content="<?php echo $effectiveSocketServer; ?>">
+    <title><?php echo isset($page_title) ? $page_title : 'MiscVord - Your Place to Talk and Hang Out'; ?></title>    <!-- Favicon -->    <link rel="icon" href="<?php echo asset('landing-page/main-logo.png'); ?>" type="image/png">    <link rel="shortcut icon" href="<?php echo asset('landing-page/main-logo.png'); ?>" type="image/png">
     <!-- Tailwind CSS via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>

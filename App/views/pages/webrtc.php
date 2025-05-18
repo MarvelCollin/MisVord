@@ -205,14 +205,51 @@ $additional_head = '
 <?php ob_start(); ?>
 
 
-<div id="permissionRequest" class="username-modal">
-    <div class="bg-gray-800 p-6 rounded-lg w-full max-w-md">
+<div id="permissionRequest" class="username-modal" style="display: flex;">
+    <div class="bg-gray-800 p-6 rounded-lg w-full max-w-md shadow-lg">
         <h3 class="text-xl font-bold mb-4">Camera & Microphone Access</h3>
         <p class="mb-4 text-gray-300">Please allow access to your camera and microphone when prompted by your browser.</p>
-        <div id="permissionStatus" class="p-3 bg-gray-700 rounded mb-4 text-center">
+        
+        <div class="flex justify-center mb-4">
+            <div class="flex items-center justify-center w-16 h-16 bg-indigo-600 rounded-full animate-pulse">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                    <path fill-rule="evenodd" d="M10 1a9 9 0 100 18A9 9 0 0010 1zm0 16a7 7 0 100-14 7 7 0 000 14z" clip-rule="evenodd" />
+                </svg>
+            </div>
+        </div>
+        
+        <div id="permissionStatus" class="p-3 bg-gray-700 rounded mb-4 text-center text-yellow-300">
             Waiting for permission...
         </div>
-        <button id="retryPermissionBtn" class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Retry</button>
+        
+        <div class="flex justify-center mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-indigo-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-indigo-500 ml-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+            </svg>
+        </div>
+        
+        <div class="mt-4 text-sm text-gray-400 mb-4">
+            <p class="mb-2"><strong>Troubleshooting Tips:</strong></p>
+            <ul class="list-disc pl-5">
+                <li>Check if your camera is not being used by another application</li>
+                <li>Click the camera icon in your browser's address bar to grant permission</li>
+                <li>Make sure you click "Allow" when the browser permission popup appears</li>
+                <li>Try reloading the page if the permission dialog doesn't appear</li>
+            </ul>
+        </div>
+        
+        <div class="flex gap-2">
+            <button id="retryPermissionBtn" class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-bold text-lg">
+                Allow Camera & Mic
+            </button>
+            <button id="audioOnlyBtn" class="px-4 py-3 bg-gray-600 text-white rounded-md hover:bg-gray-700">
+                Audio Only
+            </button>
+        </div>
     </div>
 </div>
 
@@ -272,7 +309,44 @@ $additional_head = '
     </div>
 </div>
 
+<!-- Add script to verify module loading -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("DOMContentLoaded event fired");
+    
+    // Check which modules are loaded
+    console.log("Checking for WebRTC modules...");
+    console.log("WebRTCCompat available:", typeof window.WebRTCCompat !== 'undefined');
+    console.log("WebRTCDebug available:", typeof window.WebRTCDebug !== 'undefined');
+    
+    // If modules aren't loaded, try to load them manually
+    if (typeof window.WebRTCCompat === 'undefined') {
+        console.warn("WebRTCCompat not loaded, attempting to load it manually");
+        const compatScript = document.createElement('script');
+        compatScript.src = '/js/webrtc-modules/browser-compatibility.js';
+        compatScript.onload = function() {
+            console.log("WebRTCCompat manually loaded successfully");
+        };
+        compatScript.onerror = function() {
+            console.error("Failed to manually load WebRTCCompat");
+        };
+        document.head.appendChild(compatScript);
+    }
+    
+    if (typeof window.WebRTCDebug === 'undefined') {
+        console.warn("WebRTCDebug not loaded, attempting to load it manually");
+        const debugScript = document.createElement('script');
+        debugScript.src = '/js/webrtc-modules/video-debug.js';
+        document.head.appendChild(debugScript);
+    }
+});
+</script>
+
 <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+<script src="/js/webrtc-modules/browser-compatibility.js"></script>
+<script src="/js/webrtc-modules/video-debug.js"></script>
+<script src="/js/webrtc-modules/video-player.js"></script>
+<script src="/js/webrtc.js"></script>
 
 <?php 
 
