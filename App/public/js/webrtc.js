@@ -382,52 +382,112 @@ function createPeerConnection(peerSocketId, peerUserName) {
     // Simplified WebRTC STUN/TURN Server Configuration
     const configuration = { 
         iceServers: [
-            // Google's public STUN servers
-            { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' },
-            { urls: 'stun:stun2.l.google.com:19302' },
-            { urls: 'stun:stun3.l.google.com:19302' },
-            { urls: 'stun:stun4.l.google.com:19302' },
+            // Google's public STUN servers - multiple for redundancy
+            { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
+            { urls: ['stun:stun2.l.google.com:19302', 'stun:stun3.l.google.com:19302'] },
+            { urls: ['stun:stun4.l.google.com:19302', 'stun:stun.stunprotocol.org:3478'] },
             
-            // Backup STUN servers
-            { urls: 'stun:stun.stunprotocol.org:3478' },
+            // Additional STUN servers for better NAT traversal
             { urls: 'stun:stun.voiparound.com' },
+            { urls: 'stun:stun.sipnet.net:3478' },
+            { urls: 'stun:stun.ideasip.com:3478' },
+            { urls: 'stun:stun.iptel.org:3478' },
             
-            // Free TURN servers with credentials
+            // Free TURN servers with credentials - crucial for NAT traversal
             {
                 urls: [
-                    'turn:openrelay.metered.ca:80',
-                    'turn:openrelay.metered.ca:443',
-                    'turn:openrelay.metered.ca:443?transport=tcp',
-                    'turns:openrelay.metered.ca:443'
+                    'turn:openrelay.metered.ca:80',                  // TURN over TCP port 80 (firewall-friendly)
+                    'turn:openrelay.metered.ca:443',                 // TURN over UDP port 443 (standard)
+                    'turn:openrelay.metered.ca:443?transport=tcp',   // TURN over TCP port 443 (most compatible)
+                    'turns:openrelay.metered.ca:443'                 // TURN over TLS port 443 (secure)
                 ],
                 username: 'openrelayproject',
                 credential: 'openrelayproject'
             },
-            // Backup TURN servers
+            
+            // Alternative TURN servers in case the primary ones fail
             {
-                urls: 'turn:global.turn.twilio.com:3478?transport=udp',
+                urls: [
+                    'turn:global.turn.twilio.com:3478?transport=udp',
+                    'turn:global.turn.twilio.com:3478?transport=tcp',
+                    'turn:global.turn.twilio.com:443?transport=tcp' // Port 443 works best with firewalls
+                ],
                 username: 'f4b4035eaa76f4a55de5f4351567653ee4ff6fa97b50b6b334fcc1be9c27212d',
                 credential: 'w1WpuQsPVLZfmACB9rU+6h9GYTMp51Iw9VTyGgpYgR8='
+            },
+            
+            // Another free TURN server as additional fallback
+            {
+                urls: [
+                    'turn:relay.backups.cz:3478?transport=tcp',
+                    'turn:relay.backups.cz:3478?transport=udp',
+                    'turns:relay.backups.cz:5349'  // Secure TURN over TLS
+                ],
+                username: 'webrtc',
+                credential: 'webrtc'
+            },
+            
+            // Public mBiTX test TURN server
+            {
+                urls: 'turn:turn.mbitx.net:3478',
+                username: 'free',
+                credential: 'free'
             }
         ],
-        iceCandidatePoolSize: 10,
-        iceTransportPolicy: 'all',        // Try both TURN and STUN/Host candidates
-        bundlePolicy: 'max-bundle',       // Bundle all media on one connection when possible
-        rtcpMuxPolicy: 'require',         // Use RTCP multiplexing
-        sdpSemantics: 'unified-plan'      // Use modern SDP format for better compatibility
+        iceCandidatePoolSize: 10,            // Increase pool size for more candidates
+        iceTransportPolicy: 'all',           // Try both TURN and STUN/Host candidates
+        bundlePolicy: 'max-bundle',          // Bundle all media on one connection when possible
+        rtcpMuxPolicy: 'require',            // Use RTCP multiplexing
+        sdpSemantics: 'unified-plan',        // Use modern SDP format for better compatibility
+        
+        // Additional options for aggressive connectivity
+        iceTransportPolicy: 'all',           // Use all available transport methods
+        
+        // PeerConnection constraints
+        // These are optional but help with connections on different networks
+        optional: [
+            {DtlsSrtpKeyAgreement: true},    // Enable DTLS-SRTP key agreement
+            {RtpDataChannels: true}          // Backward compatibility for older browsers
+        ]
     };
     
-    // Create new peer connection
-    const pc = new RTCPeerConnection(configuration);
+    // Use special configuration for mobile devices
+    let pc;
+    if (window.mobilePeerConfig && isMobileNetwork) {
+        addLogEntry(`Using mobile-optimized connection settings for ${peerUserName}`, 'system');
+        // Apply mobile-specific configuration
+        const mobileConfig = {
+            ...configuration,
+            iceCandidatePoolSize: 5  // Smaller pool size for mobile
+        };
+        pc = new RTCPeerConnection(mobileConfig);
+    } else {
+        // Standard configuration
+        pc = new RTCPeerConnection(configuration);
+    }
 
     // Store peer connection with buffer for ICE candidates
     peers[peerSocketId] = { 
         pc: pc, 
         userName: peerUserName,
         createdAt: Date.now(),
-        iceCandidateBuffer: [] // Buffer for ICE candidates received before remote description
+        lastOfferSentTime: 0,          // Track when we last sent an offer (for timing consistency)
+        lastAnswerReceived: 0,         // Track when we last received an answer
+        lastRemoteDescriptionTime: 0,  // Track when we last set a remote description
+        iceCandidateBuffer: [],        // Buffer for ICE candidates received before remote description
+        candidatesProcessed: 0,        // Counter for tracking processed ICE candidates
+        signallingRetries: 0           // Track how many times we've retried signaling
     };
+    
+    // Check if we have early ICE candidates for this peer and add them to the buffer
+    if (window.earlyIceCandidates && window.earlyIceCandidates.has(peerSocketId)) {
+        const earlyBuffer = window.earlyIceCandidates.get(peerSocketId);
+        if (earlyBuffer && earlyBuffer.length > 0) {
+            addLogEntry(`Adding ${earlyBuffer.length} early ICE candidates to buffer for ${peerUserName}`, 'system');
+            peers[peerSocketId].iceCandidateBuffer = earlyBuffer.slice();
+            window.earlyIceCandidates.delete(peerSocketId); // Clear after using
+        }
+    }
     
     // Always update UI immediately when creating a connection
     updateParticipantsList(peers);
@@ -572,117 +632,267 @@ function createPeerConnection(peerSocketId, peerUserName) {
     };
     
     // Connection state monitoring
-    pc.oniceconnectionstatechange = () => {
-        addLogEntry(`ICE connection state for ${peerUserName} (${peerSocketId}): ${pc.iceConnectionState}`, 'pc');
+pc.oniceconnectionstatechange = () => {
+    addLogEntry(`ICE connection state for ${peerUserName} (${peerSocketId}): ${pc.iceConnectionState}`, 'pc');
+    
+    // Store the previous connection state for better transitioning
+    if (!peers[peerSocketId]) return;
+    
+    const previousState = peers[peerSocketId].lastIceState || 'new';
+    peers[peerSocketId].lastIceState = pc.iceConnectionState;
+    peers[peerSocketId].lastIceStateChangeTime = Date.now();
+    
+    // Detect unstable transitions and track them
+    if (!peers[peerSocketId].connectionStateHistory) {
+        peers[peerSocketId].connectionStateHistory = [];
+    }
+    
+    // Add latest state to history, keeping last 5 states
+    peers[peerSocketId].connectionStateHistory.push({
+        state: pc.iceConnectionState,
+        time: Date.now()
+    });
+    
+    // Keep only the last 5 states
+    if (peers[peerSocketId].connectionStateHistory.length > 5) {
+        peers[peerSocketId].connectionStateHistory.shift();
+    }
+    
+    // Check for oscillating states or frequent transitions
+    if (peers[peerSocketId].connectionStateHistory.length >= 3) {
+        const lastThreeStates = peers[peerSocketId].connectionStateHistory.slice(-3);
         
-        // Log connection details for debugging
-        try {
-            if (window.debugMode) {
-                // Try to get selected candidate pair if available
-                pc.getStats().then(stats => {
-                    stats.forEach(report => {
-                        if (report.type === 'transport') {
-                            addLogEntry(`Transport for ${peerUserName}: bytes sent=${report.bytesSent}, bytes received=${report.bytesReceived}`, 'debug');
-                        }
-                        
-                        if (report.type === 'candidate-pair' && report.state === 'succeeded') {
-                            addLogEntry(`Active ICE candidate pair found for ${peerUserName}`, 'success');
-                            
-                            // Try to find the actual candidates
-                            pc.getStats().then(fullStats => {
-                                fullStats.forEach(candidateReport => {
-                                    if (candidateReport.type === 'local-candidate' && 
-                                        candidateReport.id === report.localCandidateId) {
-                                        addLogEntry(`Local candidate: ${candidateReport.candidateType}, protocol: ${candidateReport.protocol}`, 'debug');
-                                    }
-                                    if (candidateReport.type === 'remote-candidate' && 
-                                        candidateReport.id === report.remoteCandidateId) {
-                                        addLogEntry(`Remote candidate: ${candidateReport.candidateType}, protocol: ${candidateReport.protocol}`, 'debug');
-                                    }
-                                });
-                            });
-                        }
-                    });
-                }).catch(e => {
-                    // Ignore stats errors, they're just for debugging
-                });
-            }
-        } catch (e) {
-            // Ignore stats errors
-        }
+        // Detect oscillating pattern (e.g., connected->disconnected->connected)
+        const isOscillating = lastThreeStates[0].state === lastThreeStates[2].state &&
+                           lastThreeStates[0].state !== lastThreeStates[1].state;
         
-        // Update connection status indicator
-        const videoContainer = document.getElementById(`video-container-${peerSocketId}`);
-        if (videoContainer) {
-            const statusIndicator = videoContainer.querySelector('.connection-state-indicator');
-            if (statusIndicator) {
-                if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
-                    statusIndicator.textContent = 'Connected';
-                    statusIndicator.style.backgroundColor = 'rgba(72, 187, 120, 0.8)'; // Green
-                } else if (pc.iceConnectionState === 'checking') {
-                    statusIndicator.textContent = 'Connecting...';
-                    statusIndicator.style.backgroundColor = 'rgba(236, 201, 75, 0.8)'; // Yellow
-                } else if (pc.iceConnectionState === 'failed') {
-                    statusIndicator.textContent = 'Failed';
-                    statusIndicator.style.backgroundColor = 'rgba(245, 101, 101, 0.8)'; // Red
+        // Detect rapid transitions (3 state changes in less than 5 seconds)
+        const firstTime = lastThreeStates[0].time;
+        const lastTime = lastThreeStates[2].time;
+        const isRapidTransition = (lastTime - firstTime) < 5000;
+        
+        if (isOscillating || isRapidTransition) {
+            addLogEntry(`Unstable connection detected with ${peerUserName} - ${isOscillating ? 'oscillating states' : 'rapid transitions'}`, 'warn');
+            
+            // If we're oscillating, try a more thorough connection reset
+            peers[peerSocketId].connectionUnstable = true;
+            
+            // If connection quality is degrading persistently, try a complete reconnection
+            if (peers[peerSocketId].connectionUnstable && peers[peerSocketId].unstableReconnectAttempts !== undefined) {
+                peers[peerSocketId].unstableReconnectAttempts = (peers[peerSocketId].unstableReconnectAttempts || 0) + 1;
+                
+                if (peers[peerSocketId].unstableReconnectAttempts >= 2) {
+                    // Escalate to a full reconnection after repeated instability
+                    addLogEntry(`Connection with ${peerUserName} persistently unstable. Performing full reconnection.`, 'system');
                     
-                    // Aggressive recovery: Try multiple approaches to recover the connection
-                    addLogEntry(`Connection to ${peerUserName} failed. Attempting to restart ICE.`, 'warn');
-                    
-                    // Approach 1: Try a simple ICE restart
-                    try {
-                        pc.restartIce();
+                    // Debounce reconnection attempts
+                    if (!peers[peerSocketId].fullReconnectInProgress) {
+                        peers[peerSocketId].fullReconnectInProgress = true;
                         
-                        // Also recreate the offer with explicit ICE restart
-                        pc.createOffer({iceRestart: true})
-                            .then(offer => pc.setLocalDescription(offer))
-                            .then(() => {
-                                socket.emit('webrtc-offer', {
-                                    to: peerSocketId,
-                                    offer: pc.localDescription,
-                                    fromUserName: userName,
-                                    isIceRestart: true
-                                });
-                            })
-                            .catch(e => {
-                                addLogEntry(`Error creating ICE restart offer: ${e.message}`, 'error');
-                            });
-                        
-                    } catch (e) {
-                        addLogEntry(`Error restarting ICE: ${e.message}`, 'error');
-                        
-                        // If ICE restart failed, try creating a new connection after a delay
-                        setTimeout(() => {
-                            if (peers[peerSocketId] && 
-                                (peers[peerSocketId].pc.iceConnectionState === 'failed' ||
-                                 peers[peerSocketId].pc.iceConnectionState === 'disconnected')) {
-                                
-                                addLogEntry(`Recreating failed connection with ${peerUserName}`, 'system');
-                                removePeer(peerSocketId);
-                                
-                                const newPc = createPeerConnection(peerSocketId, peerUserName);
-                                if (newPc) {
-                                    newPc.createOffer()
-                                        .then(offer => newPc.setLocalDescription(offer))
-                                        .then(() => {
-                                            socket.emit('webrtc-offer', {
-                                                to: peerSocketId,
-                                                offer: newPc.localDescription,
-                                                fromUserName: userName,
-                                                isReconnect: true
-                                            });
-                                        })
-                                        .catch(e => {
-                                            addLogEntry(`Error creating offer for new connection: ${e.message}`, 'error');
-                                        });
-                                }
-                            }
-                        }, 5000);
+                        // Schedule a full connection reset with a proper timed sequence
+                        performThoroughConnectionReset(peerSocketId, peerUserName);
                     }
-                } else if (pc.iceConnectionState === 'disconnected') {
-                    statusIndicator.textContent = 'Disconnected';
-                    statusIndicator.style.backgroundColor = 'rgba(160, 174, 192, 0.8)'; // Gray
+                }
+            } else {
+                peers[peerSocketId].unstableReconnectAttempts = 1;
+            }
+        }
+    }
+    
+    // Log connection details for debugging
+    try {
+        if (window.debugMode) {
+            // Try to get selected candidate pair if available
+            pc.getStats().then(stats => {
+                // Store candidate types for diagnostics
+                peers[peerSocketId].stats = peers[peerSocketId].stats || {};
+                peers[peerSocketId].stats.lastUpdate = Date.now();
+                
+                stats.forEach(report => {
+                    if (report.type === 'transport') {
+                        // Store transport statistics
+                        peers[peerSocketId].stats.transport = {
+                            bytesSent: report.bytesSent,
+                            bytesReceived: report.bytesReceived,
+                            timestamp: Date.now()
+                        };
+                        
+                        addLogEntry(`Transport for ${peerUserName}: bytes sent=${report.bytesSent}, bytes received=${report.bytesReceived}`, 'debug');
+                    }
                     
+                    if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+                        addLogEntry(`Active ICE candidate pair found for ${peerUserName}`, 'success');
+                        
+                        // Store the active candidate pair ID
+                        peers[peerSocketId].stats.activeCandidatePair = {
+                            localId: report.localCandidateId,
+                            remoteId: report.remoteCandidateId,
+                            timestamp: Date.now()
+                        };
+                        
+                        // Try to find the actual candidates
+                        pc.getStats().then(fullStats => {
+                            // Parse and store candidate types
+                            let localType = 'unknown';
+                            let remoteType = 'unknown';
+                            let protocol = 'unknown';
+                            
+                            fullStats.forEach(candidateReport => {
+                                if (candidateReport.type === 'local-candidate' && 
+                                    candidateReport.id === report.localCandidateId) {
+                                    localType = candidateReport.candidateType;
+                                    protocol = candidateReport.protocol;
+                                    addLogEntry(`Local candidate: ${candidateReport.candidateType}, protocol: ${candidateReport.protocol}`, 'debug');
+                                }
+                                if (candidateReport.type === 'remote-candidate' && 
+                                    candidateReport.id === report.remoteCandidateId) {
+                                    remoteType = candidateReport.candidateType;
+                                    addLogEntry(`Remote candidate: ${candidateReport.candidateType}, protocol: ${candidateReport.protocol}`, 'debug');
+                                }
+                            });
+                            
+                            // Store candidate types
+                            peers[peerSocketId].stats.candidateTypes = {
+                                local: localType,
+                                remote: remoteType,
+                                protocol: protocol,
+                                timestamp: Date.now()
+                            };
+                            
+                            // Check for suboptimal connections
+                            if (localType === 'relay' && remoteType === 'relay') {
+                                addLogEntry(`Connection between ${userName} and ${peerUserName} using double-relay (TURN-to-TURN)`, 'warn');
+                                // This is expensive but sometimes necessary for strict NATs
+                            } else if (localType === 'host' && remoteType === 'host') {
+                                addLogEntry(`Direct local connection between ${userName} and ${peerUserName} (host-to-host)`, 'success');
+                                // This is ideal but rare across different networks
+                            } else if (localType === 'srflx' || remoteType === 'srflx') {
+                                addLogEntry(`STUN-assisted connection between ${userName} and ${peerUserName}`, 'debug');
+                                // This is common for connections across different networks
+                            }
+                        });
+                    }
+                });
+            }).catch(e => {
+                // Ignore stats errors, they're just for debugging
+                console.debug('Stats gathering error:', e);
+            });
+        }
+    } catch (e) {
+        // Ignore stats errors
+        console.debug('Stats handling error:', e);
+    }
+    
+    // Reset unstable flag if we're in a good state
+    if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+        if (peers[peerSocketId].connectionUnstable) {
+            addLogEntry(`Connection with ${peerUserName} has stabilized`, 'success');
+            peers[peerSocketId].connectionUnstable = false;
+            peers[peerSocketId].unstableReconnectAttempts = 0;
+            peers[peerSocketId].fullReconnectInProgress = false;
+        }
+    }
+    
+    // Update connection status indicator
+    const videoContainer = document.getElementById(`video-container-${peerSocketId}`);
+    if (videoContainer) {
+        const statusIndicator = videoContainer.querySelector('.connection-state-indicator');
+        if (statusIndicator) {
+            if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+                statusIndicator.textContent = 'Connected';
+                statusIndicator.style.backgroundColor = 'rgba(72, 187, 120, 0.8)'; // Green
+            } else if (pc.iceConnectionState === 'checking') {
+                statusIndicator.textContent = 'Connecting...';
+                statusIndicator.style.backgroundColor = 'rgba(236, 201, 75, 0.8)'; // Yellow
+            } else if (pc.iceConnectionState === 'failed') {
+                statusIndicator.textContent = 'Failed';
+                statusIndicator.style.backgroundColor = 'rgba(245, 101, 101, 0.8)'; // Red
+                
+                // Aggressive recovery: Try multiple approaches to recover the connection
+                addLogEntry(`Connection to ${peerUserName} failed. Attempting to restart ICE.`, 'warn');
+                
+                // Track failures for statistics
+                peers[peerSocketId].failureCount = (peers[peerSocketId].failureCount || 0) + 1;
+                
+                // Approach 1: Try a simple ICE restart
+                try {
+                    pc.restartIce();
+                    
+                    // Also recreate the offer with explicit ICE restart
+                    pc.createOffer({iceRestart: true})
+                        .then(offer => pc.setLocalDescription(offer))
+                        .then(() => {
+                            socket.emit('webrtc-offer', {
+                                to: peerSocketId,
+                                offer: pc.localDescription,
+                                fromUserName: userName,
+                                isIceRestart: true
+                            });
+                        })
+                        .catch(e => {
+                            addLogEntry(`Error creating ICE restart offer: ${e.message}`, 'error');
+                        });
+                    
+                } catch (e) {
+                    addLogEntry(`Error restarting ICE: ${e.message}`, 'error');
+                    
+                    // If ICE restart failed, try creating a new connection after a delay
+                    setTimeout(() => {
+                        if (peers[peerSocketId] && 
+                            (peers[peerSocketId].pc.iceConnectionState === 'failed' ||
+                                peers[peerSocketId].pc.iceConnectionState === 'disconnected')) {
+                            
+                            addLogEntry(`Recreating failed connection with ${peerUserName}`, 'system');
+                            // Track that we're doing a full reconnection
+                            peers[peerSocketId].fullReconnectInProgress = true;
+                            
+                            // Keep a reference to the old peer data before removing
+                            const oldPeerData = {
+                                userName: peers[peerSocketId].userName,
+                                lastIceState: peers[peerSocketId].lastIceState,
+                                failureCount: peers[peerSocketId].failureCount
+                            };
+                            
+                            removePeer(peerSocketId);
+                            
+                            // Create a new peer connection with the saved information
+                            const newPc = createPeerConnection(peerSocketId, oldPeerData.userName);
+                            if (newPc) {
+                                // Copy over relevant metadata
+                                peers[peerSocketId].lastIceState = oldPeerData.lastIceState;
+                                peers[peerSocketId].failureCount = oldPeerData.failureCount;
+                                
+                                newPc.createOffer()
+                                    .then(offer => newPc.setLocalDescription(offer))
+                                    .then(() => {
+                                        socket.emit('webrtc-offer', {
+                                            to: peerSocketId,
+                                            offer: newPc.localDescription,
+                                            fromUserName: userName,
+                                            isReconnect: true
+                                        });
+                                    })
+                                    .catch(e => {
+                                        addLogEntry(`Error creating offer for new connection: ${e.message}`, 'error');
+                                    });
+                            }
+                        }
+                    }, 5000);
+                }
+            } else if (pc.iceConnectionState === 'disconnected') {
+                statusIndicator.textContent = 'Disconnected';
+                statusIndicator.style.backgroundColor = 'rgba(160, 174, 192, 0.8)'; // Gray
+                
+                // Check how long we've been disconnected
+                const disconnectTime = Date.now() - (peers[peerSocketId].lastConnectedTime || 0);
+                const isLongDisconnect = disconnectTime > 10000; // 10 seconds
+                
+                // For short disconnects, just try ICE restart
+                // For longer disconnects, try a more thorough reset
+                if (isLongDisconnect) {
+                    addLogEntry(`Connection with ${peerUserName} disconnected for ${Math.round(disconnectTime/1000)}s. Attempting thorough reconnection.`, 'system');
+                    performThoroughConnectionReset(peerSocketId, peerUserName);
+                } else {
                     // Try to reconnect after a brief delay
                     setTimeout(() => {
                         if (pc.iceConnectionState === 'disconnected' && peers[peerSocketId]) {
@@ -711,17 +921,128 @@ function createPeerConnection(peerSocketId, peerUserName) {
                             }
                         }
                     }, 2000);
-                } else if (pc.iceConnectionState === 'closed') {
-                    statusIndicator.textContent = 'Closed';
-                    statusIndicator.style.backgroundColor = 'rgba(45, 55, 72, 0.8)'; // Dark gray
-                    removePeer(peerSocketId);
                 }
+            } else if (pc.iceConnectionState === 'closed') {
+                statusIndicator.textContent = 'Closed';
+                statusIndicator.style.backgroundColor = 'rgba(45, 55, 72, 0.8)'; // Dark gray
+                removePeer(peerSocketId);
             }
         }
+    }
+    
+    // Record the time when we're in a connected state
+    if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+        peers[peerSocketId].lastConnectedTime = Date.now();
+    }
+    
+    // Update the participant list to reflect connection state
+    updateParticipantsList(peers);
+};
+
+// Function to perform a thorough connection reset with proper sequence
+function performThoroughConnectionReset(peerId, peerName) {
+    if (!peers[peerId] || !peers[peerId].pc) return;
+    
+    // Mark that reset is in progress to prevent multiple attempts
+    if (peers[peerId].resetInProgress) return;
+    peers[peerId].resetInProgress = true;
+    
+    addLogEntry(`Performing thorough connection reset for ${peerName}`, 'system');
+    
+    // Step 1: Close existing data channels
+    if (peers[peerId].heartbeatChannel) {
+        peers[peerId].heartbeatChannel.close();
+    }
+    
+    // Step 2: Try ice restart first
+    try {
+        peers[peerId].pc.restartIce();
+        addLogEntry(`ICE restart requested for ${peerName}`, 'debug');
+    } catch (e) {
+        addLogEntry(`ICE restart failed: ${e.message}`, 'error');
+    }
+    
+    // Step 3: After a short delay, try a new offer with ICE restart flag
+    setTimeout(() => {
+        if (!peers[peerId] || !peers[peerId].pc) return;
         
-        // Update the participant list to reflect connection state
-        updateParticipantsList(peers);
-    };
+        try {
+            peers[peerId].pc.createOffer({iceRestart: true})
+                .then(offer => {
+                    return peers[peerId].pc.setLocalDescription(offer);
+                })
+                .then(() => {
+                    socket.emit('webrtc-offer', {
+                        to: peerId,
+                        offer: peers[peerId].pc.localDescription,
+                        fromUserName: userName,
+                        isIceRestart: true
+                    });
+                    addLogEntry(`Sent ICE restart offer to ${peerName}`, 'signal');
+                })
+                .catch(e => {
+                    addLogEntry(`Error creating reset offer: ${e.message}`, 'error');
+                });
+        } catch (e) {
+            addLogEntry(`Error in reset sequence: ${e.message}`, 'error');
+        }
+    }, 1000);
+    
+    // Step 4: After a longer delay, if still not connected, recreate the connection
+    setTimeout(() => {
+        if (!peers[peerId] || !peers[peerId].pc) return;
+        
+        const currentState = peers[peerId].pc.iceConnectionState;
+        if (currentState !== 'connected' && currentState !== 'completed') {
+            addLogEntry(`Connection still ${currentState} after restart attempt. Recreating connection with ${peerName}`, 'warn');
+            
+            // Save important peer data
+            const oldPeerData = {
+                userName: peers[peerId].userName,
+                lastIceState: peers[peerId].lastIceState,
+                failureCount: (peers[peerId].failureCount || 0) + 1
+            };
+            
+            // Remove the existing peer connection
+            if (peers[peerId].pc) {
+                peers[peerId].pc.close();
+            }
+            delete peers[peerId];
+            
+            // Create a completely new connection
+            setTimeout(() => {
+                const newPc = createPeerConnection(peerId, oldPeerData.userName);
+                if (newPc) {
+                    // Copy over important metadata
+                    peers[peerId].lastIceState = oldPeerData.lastIceState;
+                    peers[peerId].failureCount = oldPeerData.failureCount;
+                    peers[peerId].resetInProgress = false;
+                    
+                    // Create a new offer
+                    newPc.createOffer()
+                        .then(offer => newPc.setLocalDescription(offer))
+                        .then(() => {
+                            socket.emit('webrtc-offer', {
+                                to: peerId,
+                                offer: newPc.localDescription,
+                                fromUserName: userName,
+                                isReconnect: true
+                            });
+                            addLogEntry(`Sent reconnection offer to ${peerName}`, 'signal');
+                        })
+                        .catch(e => {
+                            addLogEntry(`Error creating reconnection offer: ${e.message}`, 'error');
+                            peers[peerId].resetInProgress = false;
+                        });
+                }
+            }, 500);
+        } else {
+            // Connection has recovered, clear the reset flag
+            peers[peerId].resetInProgress = false;
+            addLogEntry(`Connection with ${peerName} has recovered`, 'success');
+        }
+    }, 6000);
+}
     
     // Connection signaling state monitoring
     pc.onsignalingstatechange = () => {
@@ -771,6 +1092,9 @@ function createPeerConnection(peerSocketId, peerUserName) {
         }
     };
 
+    // Add heartbeat mechanism to peers
+    startConnectionHeartbeat(peerSocketId);
+
     return pc;
 }
 
@@ -788,6 +1112,11 @@ function removePeer(peerSocketId) {
             videoContainer.remove();
         }
         updateParticipantsList(peers); // Update UI
+    }
+    // Add cleanup to the removePeer function, before deleting the peer
+    if (connectionHeartbeatIntervals[peerSocketId]) {
+        clearInterval(connectionHeartbeatIntervals[peerSocketId]);
+        delete connectionHeartbeatIntervals[peerSocketId];
     }
 }
 
@@ -948,36 +1277,66 @@ function setupSocketEvents() {
             return; // Skip offers from self (should not happen)
         }
 
+        // Track offers we've already processed to avoid duplicates
+        if (!window.processedOffers) {
+            window.processedOffers = new Map();
+        }
+        
+        // Generate a unique key for this offer
+        const offerSdp = offer.sdp;
+        const offerKey = `${from}-${offerSdp.substring(0, 50)}`; // First 50 chars should be unique enough
+        
+        // Check if we've processed this exact offer recently (within last 5 seconds)
+        const now = Date.now();
+        if (window.processedOffers.has(offerKey)) {
+            const lastProcessed = window.processedOffers.get(offerKey);
+            if (now - lastProcessed < 5000) { // 5 seconds
+                addLogEntry(`Ignoring duplicate offer from ${fromUserName}`, 'warn');
+                
+                // Still send back our last answer if we have one
+                if (peers[from]?.pc?.localDescription?.type === 'answer') {
+                    addLogEntry(`Resending previous answer to ${fromUserName}`, 'system');
+                    socket.emit('webrtc-answer', {
+                        to: from, 
+                        answer: peers[from].pc.localDescription,
+                        fromUserName: userName
+                    });
+                }
+                return;
+            }
+        }
+        
+        // Mark this offer as processed
+        window.processedOffers.set(offerKey, now);
+        
+        // Clean up old entries from processedOffers map
+        for (const [key, timestamp] of window.processedOffers.entries()) {
+            if (now - timestamp > 30000) { // Remove entries older than 30 seconds
+                window.processedOffers.delete(key);
+            }
+        }
+
         // For ICE restart or reconnect, handle differently
         if (isIceRestart && peers[from] && peers[from].pc) {
             const pc = peers[from].pc;
             
             addLogEntry(`Processing ICE restart offer from ${fromUserName}`, 'peer');
             
-            // Set the remote description directly for ICE restart
-            pc.setRemoteDescription(new RTCSessionDescription(offer))
-                .then(() => {
-                    addLogEntry(`Set remote ICE restart offer from ${fromUserName}`, 'peer');
-                    processBufferedCandidates(from);
-                    return pc.createAnswer();
-                })
+            // Set the remote description for ICE restart
+            applyRemoteOffer(pc, offer, from, fromUserName, true)
                 .then(answer => {
                     addLogEntry(`Created answer for ICE restart from ${fromUserName}`, 'peer');
-                    return pc.setLocalDescription(answer);
-                })
-                .then(() => {
-                    addLogEntry(`Sending ICE restart answer to ${fromUserName}`, 'signal');
                     socket.emit('webrtc-answer', {
                         to: from,
-                        answer: pc.localDescription,
+                        answer: answer,
                         fromUserName: userName,
                         isIceRestart: true
                     });
                 })
                 .catch(e => {
                     addLogEntry(`Error processing ICE restart offer: ${e.message}`, 'error');
-                    // On severe errors, try full reconnection
-                    if (e.message.includes('SetRemoteDescription')) {
+                    // On error, try full reconnection if needed
+                    if (e.message.includes('SetRemoteDescription') || e.name === 'InvalidStateError') {
                         recreateConnection();
                     }
                 });
@@ -990,7 +1349,30 @@ function setupSocketEvents() {
             if (peers[from] && peers[from].pc) {
                 addLogEntry(`Closing existing connection for reconnect with ${fromUserName}`, 'peer');
                 peers[from].pc.close();
+                delete peers[from]; // Completely remove it
             }
+            
+            // Create new peer connection for the reconnect
+            const pc = createPeerConnection(from, fromUserName);
+            if (!pc) {
+                addLogEntry(`Failed to create peer connection for reconnect from ${fromUserName}`, 'error');
+                return;
+            }
+            
+            // Process the offer with the new connection
+            applyRemoteOffer(pc, offer, from, fromUserName)
+                .then(answer => {
+                    socket.emit('webrtc-answer', {
+                        to: from,
+                        answer: answer,
+                        fromUserName: userName,
+                        isReconnect: true
+                    });
+                })
+                .catch(e => {
+                    addLogEntry(`Error handling reconnect offer: ${e.message}`, 'error');
+                });
+            return;
         }
 
         // Create peer connection if it doesn't exist
@@ -1062,6 +1444,9 @@ function setupSocketEvents() {
                 // Close the existing connection
                 if (pc) pc.close();
                 
+                // Remove from peers
+                delete peers[from];
+                
                 // Create a new connection
                 pc = createPeerConnection(from, fromUserName);
                 if (!pc) {
@@ -1079,30 +1464,56 @@ function setupSocketEvents() {
         // Function to process the remote offer
         function processRemoteOffer() {
             // Process the offer
-            pc.setRemoteDescription(new RTCSessionDescription(offer))
-                .then(() => {
-                    addLogEntry(`Set remote description from ${fromUserName}'s offer`, 'peer');
-                    
-                    // Now that remote description is set, process any buffered ICE candidates
-                    processBufferedCandidates(from);
-                    
-                    return pc.createAnswer();
-                })
+            applyRemoteOffer(pc, offer, from, fromUserName)
                 .then(answer => {
-                    addLogEntry(`Created answer for ${fromUserName}`, 'peer');
-                    return pc.setLocalDescription(answer);
-                })
-                .then(() => {
                     addLogEntry(`Sending WebRTC answer to ${fromUserName} (${from})`, 'signal');
+                    
+                    // Track when we sent the answer
+                    peers[from].lastAnswerSentTime = Date.now();
+                    
                     socket.emit('webrtc-answer', {
-                        to: from,
-                        answer: pc.localDescription,
+                        to: from, 
+                        answer: answer,
                         fromUserName: userName
                     });
+                    
+                    // Set up a check to verify the connection completes within a reasonable time
+                    setTimeout(() => {
+                        if (peers[from] && peers[from].pc) {
+                            const currentState = peers[from].pc.iceConnectionState;
+                            // If still not connected after 10 seconds, try to improve connection
+                            if (currentState === 'checking' || currentState === 'new') {
+                                addLogEntry(`Connection with ${fromUserName} still in ${currentState} after answer. Attempting to improve.`, 'warn');
+                                // Try an ICE restart if the connection is struggling
+                                if (peers[from].pc.canTrickleIceCandidates === false) {
+                                    addLogEntry(`No trickle ICE support detected for ${fromUserName}, sending full ICE restart`, 'system');
+                                    performThoroughConnectionReset(from, fromUserName);
+                                } else {
+                                    // Just try to restart ICE without full reset
+                                    try {
+                                        peers[from].pc.restartIce();
+                                        addLogEntry(`Sent ICE restart for slow-connecting peer ${fromUserName}`, 'signal');
+                                    } catch (e) {
+                                        addLogEntry(`Failed to restart ICE: ${e.message}`, 'error');
+                                    }
+                                }
+                            }
+                        }
+                    }, 10000); // 10 second check
                 })
                 .catch(e => {
                     addLogEntry(`Error processing offer from ${fromUserName}: ${e.message}`, 'error');
                     console.error('Error processing offer:', e);
+                    
+                    // Only recreate if it's a critical error, not just a transient issue
+                    if (e.name === 'InvalidStateError' || e.message.includes('setRemoteDescription')) {
+                        addLogEntry(`Critical error processing offer. Recreating connection with ${fromUserName}`, 'system');
+                        setTimeout(() => {
+                            if (peers[from]) {
+                                recreateConnection();
+                            }
+                        }, 1000);
+                    }
                 });
         }
     });
@@ -1119,36 +1530,91 @@ function setupSocketEvents() {
         // Check the signaling state before applying the answer
         const pc = peers[from].pc;
         
+        // Track answers we've already processed to avoid duplicates
+        if (!peers[from].processedAnswers) {
+            peers[from].processedAnswers = [];
+        }
+        
+        // Check if we've already processed this exact answer to avoid duplicate processing
+        const answerSdp = answer.sdp;
+        if (peers[from].processedAnswers.includes(answerSdp)) {
+            addLogEntry(`Already processed this exact answer from ${fromUserName}, ignoring duplicate`, 'warn');
+            // Still process any pending ICE candidates
+            processBufferedCandidates(from);
+            return;
+        }
+        
         // Special handling for ICE restart answers
         if (isIceRestart) {
             addLogEntry(`Processing ICE restart answer from ${fromUserName}`, 'peer');
             
             // For ICE restart answers, we can apply them in more states
             if (pc.signalingState === 'have-local-offer' || pc.signalingState === 'stable') {
-                pc.setRemoteDescription(new RTCSessionDescription(answer))
+                applyRemoteDescription(pc, answer, from, fromUserName, true)
                     .then(() => {
-                        addLogEntry(`Successfully applied ICE restart answer from ${fromUserName}`, 'success');
-                        processBufferedCandidates(from);
-                    })
-                    .catch(e => {
-                        addLogEntry(`Error setting ICE restart answer: ${e.message}`, 'error');
+                        // Mark this answer as processed
+                        peers[from].processedAnswers.push(answerSdp);
                     });
                 return;
             }
         }
         
+        // Handle the case where we're in stable state but expected have-local-offer
+        // This can happen when using multiple devices or if answer arrives before offer completes
+        if (pc.signalingState === 'stable') {
+            addLogEntry(`Peer connection with ${fromUserName} is in stable state but received an answer`, 'warn');
+            
+            // Store the answer for later processing
+            if (!peers[from].pendingRemoteDescription) {
+                peers[from].pendingRemoteDescription = answer;
+                addLogEntry(`Storing answer from ${fromUserName} for later processing`, 'system');
+                
+                // Set a timer to retry applying the answer after a short delay
+                // This helps in case the signaling state changes to have-local-offer soon
+                setTimeout(() => {
+                    if (peers[from] && peers[from].pendingRemoteDescription && pc.signalingState === 'have-local-offer') {
+                        addLogEntry(`Applying delayed answer from ${fromUserName} after signaling state changed`, 'system');
+                        applyRemoteDescription(pc, peers[from].pendingRemoteDescription, from, fromUserName)
+                            .then(() => {
+                                peers[from].pendingRemoteDescription = null;
+                                // Mark as processed
+                                peers[from].processedAnswers.push(answerSdp);
+                            });
+                    } else if (peers[from] && peers[from].pendingRemoteDescription) {
+                        // If we're still not in the right state, we need to recreate the connection
+                        addLogEntry(`Unable to apply stored answer from ${fromUserName}, resetting connection`, 'warn');
+                        
+                        // Try to create a new offer
+                        try {
+                            pc.createOffer({iceRestart: true})
+                                .then(offer => pc.setLocalDescription(offer))
+                                .then(() => {
+                                    socket.emit('webrtc-offer', {
+                                        to: from, 
+                                        offer: pc.localDescription,
+                                        fromUserName: userName,
+                                        isReconnect: true
+                                    });
+                                    peers[from].pendingRemoteDescription = null;
+                                })
+                                .catch(e => {
+                                    addLogEntry(`Error creating recovery offer: ${e.message}`, 'error');
+                                });
+                        } catch (e) {
+                            addLogEntry(`Recovery attempt failed: ${e.message}`, 'error');
+                        }
+                    }
+                }, 2000);
+            }
+            
+            // Process any buffered ICE candidates regardless
+            processBufferedCandidates(from);
+            return;
+        }
+        
         // Normal answer processing for non-ICE-restart scenarios
         if (pc.signalingState !== 'have-local-offer') {
             addLogEntry(`Cannot set remote answer - peer connection is in ${pc.signalingState} state, expected 'have-local-offer'`, 'error');
-            
-            // If in stable state, we might have already processed this answer or received a duplicate
-            if (pc.signalingState === 'stable') {
-                addLogEntry(`Connection already stable with ${fromUserName}, processing buffered candidates`, 'warn');
-                
-                // Still process any buffered ICE candidates that arrived before the answer
-                processBufferedCandidates(from);
-                return;
-            }
             
             // For other states, try to recover
             if (pc.signalingState === 'closed') {
@@ -1165,7 +1631,8 @@ function setupSocketEvents() {
                             socket.emit('webrtc-offer', {
                                 to: from, 
                                 offer: newPc.localDescription,
-                                fromUserName: userName
+                                fromUserName: userName,
+                                isReconnect: true
                             });
                         })
                         .catch(e => {
@@ -1178,6 +1645,9 @@ function setupSocketEvents() {
             // Handle unexpected states
             addLogEntry(`Attempting to recover from unexpected state: ${pc.signalingState}`, 'warn');
             
+            // Store the answer for later application
+            peers[from].pendingRemoteDescription = answer;
+            
             // Try to force connection to stable state by creating a new offer
             try {
                 pc.createOffer({iceRestart: true})
@@ -1186,7 +1656,8 @@ function setupSocketEvents() {
                         socket.emit('webrtc-offer', {
                             to: from, 
                             offer: pc.localDescription,
-                            fromUserName: userName
+                            fromUserName: userName,
+                            isReconnect: true
                         });
                     })
                     .catch(e => {
@@ -1200,17 +1671,26 @@ function setupSocketEvents() {
         }
 
         // Normal case - apply the answer
-        pc.setRemoteDescription(new RTCSessionDescription(answer))
+        applyRemoteDescription(pc, answer, from, fromUserName)
             .then(() => {
-                addLogEntry(`Set remote description from ${fromUserName}'s answer`, 'peer');
+                // Mark this answer as processed to avoid duplicates
+                peers[from].processedAnswers.push(answerSdp);
+            });
+    });
+
+    // Helper function to apply remote description with proper error handling
+    function applyRemoteDescription(pc, description, peerId, peerName, isIceRestart = false) {
+        return pc.setRemoteDescription(new RTCSessionDescription(description))
+            .then(() => {
+                addLogEntry(`Set remote description from ${peerName}'s ${isIceRestart ? 'ICE restart ' : ''}answer`, 'peer');
                 
                 // Now that remote description is set, process any buffered ICE candidates
-                processBufferedCandidates(from);
+                processBufferedCandidates(peerId);
                 
                 // Check connection status after brief delay
                 setTimeout(() => {
                     if (pc.iceConnectionState === 'checking' || pc.iceConnectionState === 'new') {
-                        addLogEntry(`Connection with ${fromUserName} still ${pc.iceConnectionState} after 5s, trying ICE restart`, 'warn');
+                        addLogEntry(`Connection with ${peerName} still ${pc.iceConnectionState} after 5s, trying ICE restart`, 'warn');
                         // Try to restart ICE to get past potential NAT issues
                         try {
                             pc.restartIce();
@@ -1221,10 +1701,51 @@ function setupSocketEvents() {
                 }, 5000);
             })
             .catch(e => {
-                addLogEntry(`Error setting remote description from ${fromUserName}: ${e.message}`, 'error');
+                addLogEntry(`Error setting remote description from ${peerName}: ${e.message}`, 'error');
                 console.error('Error setting remote description:', e);
+                
+                // For specific errors, try special recovery techniques
+                if (e.name === 'InvalidStateError' || e.message.includes('InvalidStateError')) {
+                    addLogEntry(`Invalid state error detected, will retry with delayed approach`, 'system');
+                    
+                    // Store the description for later
+                    if (!peers[peerId].pendingRemoteDescription) {
+                        peers[peerId].pendingRemoteDescription = description;
+                        
+                        // Try again after a short delay - sometimes this resolves signaling state issues
+                        setTimeout(() => {
+                            if (peers[peerId] && peers[peerId].pendingRemoteDescription && peers[peerId].pc) {
+                                addLogEntry(`Retrying remote description application for ${peerName}`, 'system');
+                                peers[peerId].pc.setRemoteDescription(new RTCSessionDescription(peers[peerId].pendingRemoteDescription))
+                                    .then(() => {
+                                        addLogEntry(`Delayed remote description application succeeded for ${peerName}`, 'success');
+                                        peers[peerId].pendingRemoteDescription = null;
+                                        processBufferedCandidates(peerId);
+                                    })
+                                    .catch(retryErr => {
+                                        addLogEntry(`Delayed remote description still failed: ${retryErr.message}`, 'error');
+                                        // At this point, we probably need a full reconnect
+                                        if (peers[peerId] && peers[peerId].pc) {
+                                            // Try restarting ICE or recreating the connection
+                                            try {
+                                                peers[peerId].pc.restartIce();
+                                            } catch (restartErr) {
+                                                // If restart fails, we'll need to do a full reconnect in the next step
+                                            }
+                                        }
+                                    });
+                            }
+                        }, 2000);
+                    }
+                }
+                
+                // Process buffered candidates anyway - they might help establish connection
+                // even with signaling issues
+                processBufferedCandidates(peerId);
+                
+                return Promise.reject(e); // Propagate the error to the caller
             });
-    });
+    }
 
     socket.on('webrtc-ice-candidate', (data) => {
         const { from, candidate } = data;
@@ -1921,6 +2442,11 @@ function hangUpCall() {
 document.addEventListener('DOMContentLoaded', () => {
     addLogEntry("DOM fully loaded and parsed.", 'system');
 
+    // Start the key monitoring systems
+    startSignalingConsistencyChecks();
+    startGlobalConnectionMonitoring();
+    detectNetworkConditions();
+    
     if (permissionRequest) permissionRequest.style.display = 'flex'; // Show permission dialog initially
     if (permissionStatus) permissionStatus.textContent = 'Please allow camera and microphone access.';
 
@@ -2942,6 +3468,18 @@ function addSimplePlayButton(videoElement, userId) {
 function addIceCandidateWithCheck(peerId, candidate) {
     if (!peers[peerId]) {
         addLogEntry(`Received ICE candidate but peer ${peerId} doesn't exist`, 'warn');
+        
+        // Create a temporary buffer for candidates that arrive before the peer is created
+        if (!window.earlyIceCandidates) {
+            window.earlyIceCandidates = new Map();
+        }
+        
+        if (!window.earlyIceCandidates.has(peerId)) {
+            window.earlyIceCandidates.set(peerId, []);
+        }
+        
+        window.earlyIceCandidates.get(peerId).push(candidate);
+        addLogEntry(`Stored early ICE candidate for future peer ${peerId}`, 'system');
         return;
     }
     
@@ -2972,6 +3510,18 @@ function addIceCandidateWithCheck(peerId, candidate) {
                     const index = peers[peerId].iceCandidateBuffer.indexOf(candidate);
                     if (index > -1) {
                         peers[peerId].iceCandidateBuffer.splice(index, 1);
+                    }
+                    
+                    // Log the candidate type for debugging
+                    try {
+                        const candidateType = candidate.candidate.split(' ')[7] || 'unknown';
+                        if (candidateType === 'relay') {
+                            addLogEntry(`Added TURN relay candidate for ${fromUserName} - good for NAT traversal`, 'success');
+                        } else if (candidateType === 'srflx') {
+                            addLogEntry(`Added STUN reflexive candidate for ${fromUserName}`, 'debug');
+                        }
+                    } catch (e) {
+                        // Ignore errors in candidate type detection
                     }
                 })
                 .catch(e => {
@@ -3014,10 +3564,10 @@ function addIceCandidateWithCheck(peerId, candidate) {
 
 // Function to process buffered ICE candidates
 function processBufferedCandidates(peerId) {
-    if (!peers[peerId] || !peers[peerId].pc || !peers[peerId].iceCandidateBuffer) return;
+    if (!peers[peerId] || !peers[peerId].pc) return;
     
     const pc = peers[peerId].pc;
-    const buffer = peers[peerId].iceCandidateBuffer;
+    let buffer = peers[peerId].iceCandidateBuffer || [];
     const fromUserName = peers[peerId]?.userName || 'Unknown peer';
     
     // Check for remote description before trying to process candidates
@@ -3026,22 +3576,53 @@ function processBufferedCandidates(peerId) {
         return; // Keep candidates in buffer until we have a remote description
     }
     
+    // Also process any early candidates that might have been received before this peer existed
+    if (window.earlyIceCandidates && window.earlyIceCandidates.has(peerId)) {
+        const earlyBuffer = window.earlyIceCandidates.get(peerId);
+        if (earlyBuffer && earlyBuffer.length > 0) {
+            addLogEntry(`Adding ${earlyBuffer.length} early ICE candidates for ${fromUserName}`, 'system');
+            buffer = buffer.concat(earlyBuffer);
+            window.earlyIceCandidates.delete(peerId); // Clear after using
+        }
+    }
+    
+    // Initialize flag for tracking relay candidates
+    let hasRelayCandidate = false;
+    
     if (buffer.length > 0) {
         addLogEntry(`Processing ${buffer.length} buffered ICE candidates for ${fromUserName}`, 'peer');
         
         // Process candidates one by one with proper error handling
         const processNextCandidate = (index) => {
             if (index >= buffer.length) {
-                // All candidates processed, clear buffer
+                // All candidates processed
                 peers[peerId].iceCandidateBuffer = [];
+                
+                // If no relay candidates were found, warn the user
+                if (!hasRelayCandidate && peers[peerId].candidatesProcessed > 4) {
+                    addLogEntry(`No TURN candidates found for ${fromUserName}. Connection may fail on strict networks.`, 'warn');
+                }
                 return;
             }
             
             const candidate = buffer[index];
             
             try {
+                // Check for relay candidates for NAT traversal
+                try {
+                    if (candidate.candidate && candidate.candidate.includes(' relay ')) {
+                        hasRelayCandidate = true;
+                        addLogEntry(`Found TURN relay candidate for ${fromUserName} - good for NAT traversal`, 'success');
+                    }
+                } catch (e) {
+                    // Ignore errors in candidate analysis
+                }
+                
                 pc.addIceCandidate(new RTCIceCandidate(candidate))
                     .then(() => {
+                        // Count successfully processed candidates for diagnostics
+                        peers[peerId].candidatesProcessed = (peers[peerId].candidatesProcessed || 0) + 1;
+                        
                         // Successfully added, process next candidate
                         processNextCandidate(index + 1);
                     })
@@ -3193,3 +3774,867 @@ async function requestAutoplayPermission() {
     });
 }
 
+// Helper function to apply a remote offer and create answer
+function applyRemoteOffer(pc, offer, peerId, peerName, isIceRestart = false) {
+    return pc.setRemoteDescription(new RTCSessionDescription(offer))
+        .then(() => {
+            addLogEntry(`Set remote description from ${peerName}'s ${isIceRestart ? 'ICE restart ' : ''}offer`, 'peer');
+            
+            // Now that remote description is set, process any buffered ICE candidates
+            processBufferedCandidates(peerId);
+            
+            return pc.createAnswer();
+        })
+        .then(answer => {
+            addLogEntry(`Created answer for ${peerName}`, 'peer');
+            return pc.setLocalDescription(answer)
+                .then(() => {
+                    // Return the local description (answer) to be sent
+                    return pc.localDescription;
+                });
+        })
+        .catch(e => {
+            addLogEntry(`Error during offer processing for ${peerName}: ${e.message}`, 'error');
+            
+            // For specific errors, try special recovery techniques
+            if (e.name === 'InvalidStateError' || e.message.includes('InvalidStateError')) {
+                addLogEntry(`Invalid state error detected during offer processing, attempting recovery`, 'system');
+                
+                // Try to reset the peer connection state
+                return new Promise((resolve, reject) => {
+                    setTimeout(() => {
+                        try {
+                            // Check if connection still exists
+                            if (peers[peerId] && peers[peerId].pc) {
+                                // Try again with a fresh connection
+                                const newPc = createPeerConnection(peerId, peerName);
+                                if (newPc) {
+                                    newPc.setRemoteDescription(new RTCSessionDescription(offer))
+                                        .then(() => newPc.createAnswer())
+                                        .then(answer => newPc.setLocalDescription(answer))
+                                        .then(() => {
+                                            addLogEntry(`Recovery successful for ${peerName} with new connection`, 'success');
+                                            resolve(newPc.localDescription);
+                                        })
+                                        .catch(retryErr => {
+                                            reject(retryErr);
+                                        });
+                                } else {
+                                    reject(new Error("Could not create new peer connection for recovery"));
+                                }
+                            } else {
+                                reject(new Error("Peer no longer exists for recovery"));
+                            }
+                        } catch (recoveryErr) {
+                            reject(recoveryErr);
+                        }
+                    }, 1000);
+                });
+            }
+            
+            return Promise.reject(e); // Propagate the error to the caller
+        });
+}
+
+// Add to the beginning of the file, with other global variables
+let connectionHeartbeatIntervals = {}; // Map of peer IDs to heartbeat interval timers
+
+// Add heartbeat mechanism to peers
+function startConnectionHeartbeat(peerId) {
+    // Clear any existing heartbeat first
+    if (connectionHeartbeatIntervals[peerId]) {
+        clearInterval(connectionHeartbeatIntervals[peerId]);
+    }
+    
+    // Don't start a heartbeat if the peer doesn't exist
+    if (!peers[peerId] || !peers[peerId].pc) return;
+    
+    const HEARTBEAT_INTERVAL = 15000; // 15 seconds
+    const MAX_CONSECUTIVE_FAILURES = 3;
+    
+    // Initialize counters
+    peers[peerId].heartbeatFailures = 0;
+    peers[peerId].lastHeartbeatResponse = Date.now();
+    
+    // Create a data channel for heartbeats if it doesn't exist
+    if (!peers[peerId].heartbeatChannel) {
+        try {
+            peers[peerId].heartbeatChannel = peers[peerId].pc.createDataChannel('heartbeat');
+            peers[peerId].heartbeatChannel.onopen = () => {
+                addLogEntry(`Heartbeat channel open for ${peers[peerId].userName || peerId}`, 'debug');
+            };
+            peers[peerId].heartbeatChannel.onclose = () => {
+                addLogEntry(`Heartbeat channel closed for ${peers[peerId].userName || peerId}`, 'debug');
+            };
+            peers[peerId].heartbeatChannel.onerror = (err) => {
+                addLogEntry(`Heartbeat channel error for ${peers[peerId].userName || peerId}: ${err}`, 'warn');
+            };
+            peers[peerId].heartbeatChannel.onmessage = (event) => {
+                // Reset failure counter on any message
+                peers[peerId].heartbeatFailures = 0;
+                peers[peerId].lastHeartbeatResponse = Date.now();
+            };
+        } catch (e) {
+            addLogEntry(`Could not create heartbeat channel for ${peers[peerId].userName || peerId}: ${e.message}`, 'error');
+        }
+    }
+    
+    // Start the heartbeat interval
+    connectionHeartbeatIntervals[peerId] = setInterval(() => {
+        // Only check active peer connections
+        if (!peers[peerId] || !peers[peerId].pc) {
+            clearInterval(connectionHeartbeatIntervals[peerId]);
+            delete connectionHeartbeatIntervals[peerId];
+            return;
+        }
+        
+        // Check connection state
+        const connectionState = peers[peerId].pc.connectionState;
+        const iceConnectionState = peers[peerId].pc.iceConnectionState;
+        const peerName = peers[peerId].userName || peerId;
+        
+        // Try to send a heartbeat message
+        if (peers[peerId].heartbeatChannel && peers[peerId].heartbeatChannel.readyState === 'open') {
+            try {
+                peers[peerId].heartbeatChannel.send(JSON.stringify({
+                    type: 'heartbeat',
+                    timestamp: Date.now()
+                }));
+            } catch (e) {
+                // If sending fails, increment failure counter
+                peers[peerId].heartbeatFailures++;
+                addLogEntry(`Heartbeat send failed for ${peerName}: ${e.message}`, 'warn');
+            }
+        } else if (connectionState === 'connected' || iceConnectionState === 'connected') {
+            // Channel should be open if we're connected
+            peers[peerId].heartbeatFailures++;
+        }
+        
+        // Check if heartbeat has failed too many times
+        if (peers[peerId].heartbeatFailures >= MAX_CONSECUTIVE_FAILURES) {
+            addLogEntry(`Connection heartbeat failed ${MAX_CONSECUTIVE_FAILURES} times for ${peerName}. Attempting recovery.`, 'warn');
+            
+            // Check how much time has passed since last heartbeat
+            const timeSinceLastHeartbeat = Date.now() - peers[peerId].lastHeartbeatResponse;
+            
+            if (timeSinceLastHeartbeat > HEARTBEAT_INTERVAL * 2) {
+                // Connection is likely dead, restart it
+                addLogEntry(`No heartbeat response in ${Math.round(timeSinceLastHeartbeat/1000)}s from ${peerName}. Restarting connection.`, 'system');
+                
+                // Try to restart ICE first
+                try {
+                    peers[peerId].pc.restartIce();
+                    
+                    // Also send a new offer with ICE restart
+                    peers[peerId].pc.createOffer({iceRestart: true})
+                        .then(offer => peers[peerId].pc.setLocalDescription(offer))
+                        .then(() => {
+                            socket.emit('webrtc-offer', {
+                                to: peerId,
+                                offer: peers[peerId].pc.localDescription,
+                                fromUserName: userName,
+                                isIceRestart: true
+                            });
+                            
+                            // Reset failure counter after attempted restart
+                            peers[peerId].heartbeatFailures = 0;
+                        })
+                        .catch(e => {
+                            addLogEntry(`Failed to create restart offer for ${peerName}: ${e.message}`, 'error');
+                        });
+                } catch (e) {
+                    addLogEntry(`ICE restart failed for ${peerName}: ${e.message}`, 'error');
+                    
+                    // If ICE restart fails, recreate the connection entirely
+                    if (peers[peerId]) {
+                        if (peers[peerId].pc) {
+                            peers[peerId].pc.close();
+                        }
+                        
+                        const peerUserName = peers[peerId].userName;
+                        delete peers[peerId];
+                        
+                        // Recreate after a short delay
+                        setTimeout(() => {
+                            const newPc = createPeerConnection(peerId, peerUserName);
+                            if (newPc) {
+                                newPc.createOffer()
+                                    .then(offer => newPc.setLocalDescription(offer))
+                                    .then(() => {
+                                        socket.emit('webrtc-offer', {
+                                            to: peerId,
+                                            offer: newPc.localDescription,
+                                            fromUserName: userName,
+                                            isReconnect: true
+                                        });
+                                    })
+                                    .catch(e => {
+                                        addLogEntry(`Error creating offer for new connection: ${e.message}`, 'error');
+                                    });
+                            }
+                        }, 1000);
+                    }
+                }
+            } else {
+                // Just try a simple ICE restart
+                try {
+                    peers[peerId].pc.restartIce();
+                    peers[peerId].heartbeatFailures = 0;
+                } catch (e) {
+                    addLogEntry(`ICE restart failed for ${peerName}: ${e.message}`, 'error');
+                }
+            }
+        }
+    }, HEARTBEAT_INTERVAL);
+}
+
+// Add to the createPeerConnection function, just before returning pc
+// (Add this line at the end of createPeerConnection before the return statement)
+startConnectionHeartbeat(peerSocketId);
+
+// Add cleanup to the removePeer function, before deleting the peer
+// (Add this to the removePeer function inside the if statement)
+if (connectionHeartbeatIntervals[peerSocketId]) {
+    clearInterval(connectionHeartbeatIntervals[peerSocketId]);
+    delete connectionHeartbeatIntervals[peerSocketId];
+}
+
+// Add to the beginning of file with other variables
+let isMobileNetwork = false;
+let isLowBandwidthConnection = false;
+
+// Add function to detect network conditions
+function detectNetworkConditions() {
+    // Check if device is mobile
+    const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    // Use Network Information API if available
+    if (navigator.connection) {
+        // Store network type
+        const connectionType = navigator.connection.type;
+        const effectiveType = navigator.connection.effectiveType;
+        const downlink = navigator.connection.downlink; // Mbps
+        
+        isMobileNetwork = connectionType === 'cellular' || 
+                          effectiveType === 'slow-2g' || 
+                          effectiveType === '2g' || 
+                          effectiveType === '3g';
+        
+        isLowBandwidthConnection = downlink < 1.5 || // Less than 1.5 Mbps
+                                  effectiveType === 'slow-2g' || 
+                                  effectiveType === '2g';
+        
+        addLogEntry(`Network detected: type=${connectionType}, effectiveType=${effectiveType}, downlink=${downlink}Mbps`, 'system');
+        
+        // Listen for changes in connection
+        navigator.connection.addEventListener('change', () => {
+            const newType = navigator.connection.type;
+            const newEffectiveType = navigator.connection.effectiveType;
+            const newDownlink = navigator.connection.downlink;
+            
+            addLogEntry(`Network changed: type=${newType}, effectiveType=${newEffectiveType}, downlink=${newDownlink}Mbps`, 'system');
+            
+            // Update connection flags
+            isMobileNetwork = newType === 'cellular' || 
+                              newEffectiveType === 'slow-2g' || 
+                              newEffectiveType === '2g' || 
+                              newEffectiveType === '3g';
+            
+            isLowBandwidthConnection = newDownlink < 1.5 || 
+                                      newEffectiveType === 'slow-2g' || 
+                                      newEffectiveType === '2g';
+            
+            // Apply optimizations for low bandwidth
+            if (isLowBandwidthConnection) {
+                applyLowBandwidthOptimizations();
+            }
+        });
+    } else {
+        // Fallback detection based on user agent and connection performance
+        isMobileNetwork = isMobileDevice;
+        
+        // Try to estimate bandwidth
+        estimateBandwidth().then(bandwidth => {
+            isLowBandwidthConnection = bandwidth < 1500; // 1.5 Mbps threshold
+            
+            if (isLowBandwidthConnection) {
+                applyLowBandwidthOptimizations();
+            }
+        });
+    }
+    
+    // Apply optimizations if on mobile regardless of detected bandwidth
+    if (isMobileDevice) {
+        addLogEntry('Mobile device detected, applying mobile optimizations', 'system');
+        applyMobileOptimizations();
+    }
+}
+
+// Estimate bandwidth by downloading a small test file
+function estimateBandwidth() {
+    return new Promise(resolve => {
+        const startTime = Date.now();
+        const testImageUrl = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; // 1x1 transparent GIF
+        
+        const img = new Image();
+        img.onload = () => {
+            const endTime = Date.now();
+            const duration = endTime - startTime;
+            
+            // Rough bandwidth estimate in Kbps (assuming ~1KB test image)
+            const bandwidth = 8 / (duration / 1000); 
+            addLogEntry(`Estimated bandwidth: ${Math.round(bandwidth * 1000)}Kbps`, 'system');
+            resolve(bandwidth * 1000);
+        };
+        
+        img.onerror = () => {
+            addLogEntry('Bandwidth estimation failed', 'error');
+            resolve(5000); // Assume reasonable bandwidth
+        };
+        
+        // Set timeout in case it never loads
+        setTimeout(() => {
+            if (!img.complete) {
+                addLogEntry('Bandwidth estimation timed out', 'warn');
+                resolve(800); // Assume low bandwidth
+            }
+        }, 3000);
+        
+        img.src = testImageUrl;
+    });
+}
+
+// Apply optimizations for mobile devices
+function applyMobileOptimizations() {
+    // Use lower video quality for mobile
+    if (localStream) {
+        const videoTracks = localStream.getVideoTracks();
+        if (videoTracks.length > 0) {
+            try {
+                // Apply constraints for lower resolution
+                videoTracks[0].applyConstraints({
+                    width: { ideal: 640 },
+                    height: { ideal: 480 },
+                    frameRate: { max: 20 }
+                }).then(() => {
+                    addLogEntry('Applied mobile video constraints', 'success');
+                }).catch(e => {
+                    addLogEntry(`Could not apply mobile video constraints: ${e.message}`, 'error');
+                });
+            } catch (e) {
+                addLogEntry(`Error applying mobile constraints: ${e.message}`, 'error');
+            }
+        }
+    }
+    
+    // Modify peer connection configuration for mobile
+    window.mobilePeerConfig = {
+        iceCandidatePoolSize: 5,        // Smaller pool for mobile
+        bundlePolicy: 'max-bundle',     // Bundle all media to reduce overhead
+        rtcpMuxPolicy: 'require'        // Require RTCP multiplexing
+    };
+}
+
+// Apply optimizations for low bandwidth connections
+function applyLowBandwidthOptimizations() {
+    addLogEntry('Low bandwidth detected, applying optimizations', 'system');
+    
+    // Modify all active peer connections
+    for (const peerId in peers) {
+        if (peers[peerId] && peers[peerId].pc) {
+            try {
+                // Modify sending bandwidth
+                const sender = peers[peerId].pc.getSenders().find(s => s.track && s.track.kind === 'video');
+                if (sender && sender.getParameters) {
+                    const params = sender.getParameters();
+                    if (params.encodings && params.encodings.length > 0) {
+                        // Reduce bandwidth to 150kbps
+                        params.encodings.forEach(encoding => {
+                            encoding.maxBitrate = 150 * 1000;
+                            encoding.scaleResolutionDownBy = 2.0; // Scale down resolution
+                        });
+                        
+                        sender.setParameters(params).then(() => {
+                            addLogEntry(`Applied low bandwidth optimizations for peer ${peerId}`, 'system');
+                        }).catch(e => {
+                            addLogEntry(`Failed to set bandwidth parameters: ${e.message}`, 'error');
+                        });
+                    }
+                }
+                
+                // If severely constrained, consider disabling video
+                if (isLowBandwidthConnection && navigator.connection && navigator.connection.downlink < 0.5) {
+                    // Show notification to user
+                    showLowBandwidthWarning();
+                }
+            } catch (e) {
+                addLogEntry(`Error applying low bandwidth optimizations: ${e.message}`, 'error');
+            }
+        }
+    }
+    
+    // Lower local video quality drastically
+    if (localStream) {
+        const videoTracks = localStream.getVideoTracks();
+        if (videoTracks.length > 0) {
+            try {
+                videoTracks[0].applyConstraints({
+                    width: { ideal: 320 },
+                    height: { ideal: 240 },
+                    frameRate: { max: 15 }
+                });
+            } catch (e) {
+                addLogEntry(`Could not lower video quality: ${e.message}`, 'error');
+            }
+        }
+    }
+}
+
+// Show a warning to the user about low bandwidth
+function showLowBandwidthWarning() {
+    // Check if we've already shown this warning
+    if (document.getElementById('low-bandwidth-warning')) return;
+    
+    const warningDiv = document.createElement('div');
+    warningDiv.id = 'low-bandwidth-warning';
+    warningDiv.style.position = 'fixed';
+    warningDiv.style.bottom = '10px';
+    warningDiv.style.left = '10px';
+    warningDiv.style.backgroundColor = 'rgba(255, 59, 48, 0.9)';
+    warningDiv.style.color = 'white';
+    warningDiv.style.padding = '8px 16px';
+    warningDiv.style.borderRadius = '4px';
+    warningDiv.style.zIndex = '9999';
+    warningDiv.style.fontSize = '14px';
+    warningDiv.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
+    
+    warningDiv.innerHTML = `
+        <div style="display: flex; align-items: center;">
+            <div style="margin-right: 10px;">⚠️</div>
+            <div>
+                <div style="font-weight: bold; margin-bottom: 4px;">Low Bandwidth Detected</div>
+                <div>Video quality reduced to maintain connection. Consider disabling video.</div>
+            </div>
+            <button id="close-bandwidth-warning" style="margin-left: 10px; background: transparent; border: none; color: white; cursor: pointer;">✕</button>
+        </div>
+        <div style="margin-top: 8px; display: flex; gap: 8px;">
+            <button id="disable-video-btn" style="background: white; color: #FF3B30; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Disable Video</button>
+            <button id="continue-anyway-btn" style="background: transparent; color: white; border: 1px solid white; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Continue</button>
+        </div>
+    `;
+    
+    document.body.appendChild(warningDiv);
+    
+    // Add event listeners
+    document.getElementById('close-bandwidth-warning').addEventListener('click', () => {
+        warningDiv.remove();
+    });
+    
+    document.getElementById('disable-video-btn').addEventListener('click', () => {
+        if (localStream) {
+            localStream.getVideoTracks().forEach(track => {
+                track.enabled = false;
+            });
+            if (toggleVideoBtn) {
+                isVideoEnabled = false;
+                updateMediaToggleButtons();
+            }
+        }
+        warningDiv.remove();
+    });
+    
+    document.getElementById('continue-anyway-btn').addEventListener('click', () => {
+        warningDiv.remove();
+    });
+    
+    // Auto-remove after 15 seconds
+    setTimeout(() => {
+        if (document.getElementById('low-bandwidth-warning')) {
+            warningDiv.style.opacity = '0';
+            warningDiv.style.transition = 'opacity 0.5s ease';
+            setTimeout(() => warningDiv.remove(), 500);
+        }
+    }, 15000);
+}
+
+// Add call to detectNetworkConditions in the DOMContentLoaded event listener
+// Add this at the beginning of the DOMContentLoaded event handler
+detectNetworkConditions();
+
+// Add this new function after processBufferedCandidates
+function ensureSignalingStateConsistency(peerId, peerName) {
+    if (!peers[peerId] || !peers[peerId].pc) return;
+    
+    const pc = peers[peerId].pc;
+    
+    // Log the current state of all connections
+    addLogEntry(`Checking signaling state for ${peerName}: ${pc.signalingState}, ICE state: ${pc.iceConnectionState}`, 'debug');
+    
+    // Check if the signaling state is stuck or inconsistent
+    if (pc.signalingState === 'stable' && pc.iceConnectionState === 'checking') {
+        addLogEntry(`Potential signaling state mismatch for ${peerName}: stable while still checking ICE`, 'warn');
+        
+        // Create a new offer to restart ICE
+        try {
+            pc.createOffer({iceRestart: true})
+                .then(offer => pc.setLocalDescription(offer))
+                .then(() => {
+                    socket.emit('webrtc-offer', {
+                        to: peerId,
+                        offer: pc.localDescription,
+                        fromUserName: userName,
+                        isIceRestart: true
+                    });
+                    addLogEntry(`Sent ICE restart offer to address signaling state mismatch with ${peerName}`, 'signal');
+                })
+                .catch(e => {
+                    addLogEntry(`Failed to create consistency offer: ${e.message}`, 'error');
+                });
+        } catch (e) {
+            addLogEntry(`Error creating consistency offer: ${e.message}`, 'error');
+        }
+        return;
+    }
+    
+    // Check if we're in have-local-offer for too long without getting an answer
+    if (pc.signalingState === 'have-local-offer') {
+        // Check when we last sent an offer
+        const lastOfferTime = peers[peerId].lastOfferSentTime || 0;
+        const timeSinceOffer = Date.now() - lastOfferTime;
+        
+        // If we've been waiting for an answer too long, send a new offer
+        if (timeSinceOffer > 10000) { // 10 seconds
+            addLogEntry(`No answer received from ${peerName} after 10s, sending new offer`, 'warn');
+            
+            try {
+                pc.createOffer({iceRestart: true})
+                    .then(offer => pc.setLocalDescription(offer))
+                    .then(() => {
+                        socket.emit('webrtc-offer', {
+                            to: peerId,
+                            offer: pc.localDescription,
+                            fromUserName: userName,
+                            isIceRestart: true
+                        });
+                        peers[peerId].lastOfferSentTime = Date.now();
+                        addLogEntry(`Sent follow-up offer to ${peerName} after no response`, 'signal');
+                    })
+                    .catch(e => {
+                        addLogEntry(`Failed to create follow-up offer: ${e.message}`, 'error');
+                    });
+            } catch (e) {
+                addLogEntry(`Error creating follow-up offer: ${e.message}`, 'error');
+            }
+        }
+    }
+}
+
+// Add a periodic signaling state consistency check for all peers
+function startSignalingConsistencyChecks() {
+    // Clear any existing interval
+    if (window.signalingCheckInterval) {
+        clearInterval(window.signalingCheckInterval);
+    }
+    
+    // Set up a new interval to check all peers
+    window.signalingCheckInterval = setInterval(() => {
+        for (const peerId in peers) {
+            if (peers[peerId] && peers[peerId].pc) {
+                // Only check active connections
+                if (peers[peerId].pc.connectionState !== 'closed') {
+                    ensureSignalingStateConsistency(peerId, peers[peerId].userName || peerId);
+                }
+            }
+        }
+    }, 5000); // Check every 5 seconds
+}
+
+// Add this call to connectToSignalingServer function
+// Add this after the successful socket connection setup
+// (Just before you set up socket event handlers)
+startSignalingConsistencyChecks();
+
+// Add to beginning of file with other global variables
+let connectionHealthCheckInterval = null;
+let globalConnectionHealthMetrics = {
+    successfulConnections: 0,
+    failedConnections: 0,
+    reconnectionAttempts: 0,
+    lastGlobalCheck: 0
+};
+
+// Add function for global connection monitoring
+function startGlobalConnectionMonitoring() {
+    // Clear existing interval if any
+    if (connectionHealthCheckInterval) {
+        clearInterval(connectionHealthCheckInterval);
+    }
+    
+    addLogEntry('Starting global connection monitoring system', 'system');
+    
+    // Run health check every 30 seconds
+    connectionHealthCheckInterval = setInterval(() => {
+        // Only run if we have peers
+        if (Object.keys(peers).length === 0) return;
+        
+        globalConnectionHealthMetrics.lastGlobalCheck = Date.now();
+        
+        // Check all peer connections
+        checkAllConnectionsHealth();
+        
+        // Diagnostic - run ICE network diagnostics if a certain percentage of connections are failing
+        const totalConnections = globalConnectionHealthMetrics.successfulConnections + globalConnectionHealthMetrics.failedConnections;
+        
+        if (totalConnections > 0) {
+            const failureRate = globalConnectionHealthMetrics.failedConnections / totalConnections;
+            
+            // If over 50% of connections are failing, there may be a systemic network issue
+            if (failureRate > 0.5 && totalConnections >= 2) {
+                addLogEntry(`High connection failure rate detected (${Math.round(failureRate * 100)}%). Running network diagnostics...`, 'warn');
+                
+                // Try to determine if this is a NAT or firewall issue
+                checkNetworkConnectivity();
+            }
+        }
+    }, 30000); // Every 30 seconds
+}
+
+// Check all connections for health issues
+function checkAllConnectionsHealth() {
+    addLogEntry('Running global connection health check', 'debug');
+    
+    // Reset counters for this check
+    let connectedCount = 0;
+    let failingCount = 0;
+    let checkingCount = 0;
+    
+    // Track ICE candidate types to diagnose NAT issues
+    let relayCount = 0;
+    let reflexiveCount = 0;
+    let hostCount = 0;
+    
+    // Check each peer
+    for (const peerId in peers) {
+        if (peers[peerId] && peers[peerId].pc) {
+            const pc = peers[peerId].pc;
+            const peerName = peers[peerId].userName || peerId;
+            
+            // Check connection state
+            const iceState = pc.iceConnectionState;
+            const connState = pc.connectionState;
+            
+            // Track stats for this peer
+            if (iceState === 'connected' || iceState === 'completed' || connState === 'connected') {
+                connectedCount++;
+            } else if (iceState === 'failed' || connState === 'failed') {
+                failingCount++;
+                
+                // Automatically attempt recovery for failed connections
+                if (!peers[peerId].isRecovering) {
+                    addLogEntry(`Health check detected failed connection with ${peerName}. Initiating recovery.`, 'system');
+                    peers[peerId].isRecovering = true;
+                    
+                    // Use thorough reset for failed connections
+                    performThoroughConnectionReset(peerId, peerName);
+                    
+                    // Clear the recovery flag after a reasonable time
+                    setTimeout(() => {
+                        if (peers[peerId]) {
+                            peers[peerId].isRecovering = false;
+                        }
+                    }, 15000);
+                }
+            } else if (iceState === 'checking') {
+                checkingCount++;
+                
+                // Check how long it's been in checking state
+                const checkingStartTime = peers[peerId].checkingStartTime || Date.now();
+                if (!peers[peerId].checkingStartTime) {
+                    peers[peerId].checkingStartTime = checkingStartTime;
+                }
+                
+                const checkingDuration = Date.now() - checkingStartTime;
+                
+                // If stuck in checking for too long, try to help
+                if (checkingDuration > 15000) { // 15 seconds is too long for checking
+                    addLogEntry(`Connection with ${peerName} stuck in checking state for ${Math.round(checkingDuration/1000)}s`, 'warn');
+                    
+                    // Increment stuck counter
+                    peers[peerId].stuckInCheckingCount = (peers[peerId].stuckInCheckingCount || 0) + 1;
+                    
+                    // If repeatedly stuck, try more aggressive recovery
+                    if (peers[peerId].stuckInCheckingCount >= 2 && !peers[peerId].isRecovering) {
+                        addLogEntry(`Connection with ${peerName} persistently stuck in checking. Initiating recovery.`, 'system');
+                        peers[peerId].isRecovering = true;
+                        
+                        // Try to reset the connection
+                        performThoroughConnectionReset(peerId, peerName);
+                        
+                        // Clear recovery flag after timeout
+                        setTimeout(() => {
+                            if (peers[peerId]) {
+                                peers[peerId].isRecovering = false;
+                            }
+                        }, 15000);
+                    } else {
+                        // For first occurrence, just try ICE restart
+                        try {
+                            pc.restartIce();
+                            addLogEntry(`Restarting ICE for connection stuck in checking with ${peerName}`, 'system');
+                        } catch (e) {
+                            addLogEntry(`Failed to restart ICE: ${e.message}`, 'error');
+                        }
+                    }
+                }
+            }
+            
+            // Collect ICE candidate statistics if available
+            if (peers[peerId].stats && peers[peerId].stats.candidateTypes) {
+                const types = peers[peerId].stats.candidateTypes;
+                if (types.local === 'relay' || types.remote === 'relay') {
+                    relayCount++;
+                } else if (types.local === 'srflx' || types.remote === 'srflx') {
+                    reflexiveCount++;
+                } else if (types.local === 'host' && types.remote === 'host') {
+                    hostCount++;
+                }
+            }
+        }
+    }
+    
+    // Update global metrics
+    globalConnectionHealthMetrics.successfulConnections = connectedCount;
+    globalConnectionHealthMetrics.failedConnections = failingCount;
+    
+    // Log summary
+    const totalPeers = Object.keys(peers).length;
+    addLogEntry(`Connection health: ${connectedCount}/${totalPeers} connected, ${failingCount}/${totalPeers} failing, ${checkingCount}/${totalPeers} still checking`, 'system');
+    
+    // Log ICE candidate types distribution
+    const candidateTotal = relayCount + reflexiveCount + hostCount;
+    if (candidateTotal > 0) {
+        addLogEntry(`ICE candidates: ${Math.round(hostCount/candidateTotal*100)}% host, ${Math.round(reflexiveCount/candidateTotal*100)}% STUN, ${Math.round(relayCount/candidateTotal*100)}% TURN`, 'debug');
+        
+        // If relying heavily on TURN, notify user of potential NAT/firewall issues
+        if (relayCount/candidateTotal > 0.7) {
+            addLogEntry('Connections mostly using TURN relays. You may have restrictive network/firewall settings.', 'warn');
+        }
+    }
+}
+
+// Check network connectivity to diagnose issues
+function checkNetworkConnectivity() {
+    addLogEntry('Running network connectivity diagnostics', 'system');
+    
+    // Test STUN/TURN server connectivity
+    const stunServerUrls = [
+        'stun:stun.l.google.com:19302',
+        'stun:stun1.l.google.com:19302'
+    ];
+    
+    const turnServerUrls = [
+        'turn:openrelay.metered.ca:80',
+        'turn:openrelay.metered.ca:443?transport=tcp' 
+    ];
+    
+    // Test STUN server connectivity
+    let stunTestsPassed = 0;
+    let stunTestsTotal = stunServerUrls.length;
+    
+    stunServerUrls.forEach(serverUrl => {
+        const pc = new RTCPeerConnection({
+            iceServers: [{ urls: serverUrl }]
+        });
+        
+        pc.onicecandidate = (event) => {
+            if (event.candidate) {
+                // Look for server reflexive candidates (indicates STUN is working)
+                if (event.candidate.candidate.indexOf('srflx') !== -1) {
+                    stunTestsPassed++;
+                    addLogEntry(`STUN connectivity confirmed for ${serverUrl}`, 'success');
+                }
+            }
+        };
+        
+        // Create data channel to trigger ICE gathering
+        pc.createDataChannel('connectivityTest');
+        
+        pc.createOffer()
+            .then(offer => pc.setLocalDescription(offer))
+            .catch(e => {
+                addLogEntry(`STUN connectivity test error: ${e.message}`, 'error');
+            });
+            
+        // Close the test connection after a reasonable time
+        setTimeout(() => {
+            pc.close();
+        }, 5000);
+    });
+    
+    // After tests complete, show results
+    setTimeout(() => {
+        addLogEntry(`STUN connectivity: ${stunTestsPassed}/${stunTestsTotal} servers accessible`, 'system');
+        
+        if (stunTestsPassed === 0) {
+            addLogEntry('STUN servers inaccessible. This indicates a firewall is blocking UDP or port restriction.', 'error');
+            
+            // Show a user-friendly alert about network issues
+            showNetworkConnectivityAlert('STUN servers inaccessible. Your firewall or network may be blocking WebRTC traffic.');
+        }
+    }, 6000);
+    
+    // We don't test TURN here since it would require credentials and more complex setup
+ }
+
+ // Show a user-friendly alert about network connectivity issues
+ function showNetworkConnectivityAlert(message) {
+     // Create the alert element if it doesn't exist
+     if (document.getElementById('network-alert')) return;
+     
+     const alertDiv = document.createElement('div');
+     alertDiv.id = 'network-alert';
+     alertDiv.style.position = 'fixed';
+     alertDiv.style.top = '10px';
+     alertDiv.style.left = '50%';
+     alertDiv.style.transform = 'translateX(-50%)';
+     alertDiv.style.zIndex = '9999';
+     alertDiv.style.backgroundColor = 'rgba(220, 53, 69, 0.9)';
+     alertDiv.style.color = 'white';
+     alertDiv.style.padding = '10px 20px';
+     alertDiv.style.borderRadius = '5px';
+     alertDiv.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
+     alertDiv.style.maxWidth = '80%';
+     alertDiv.style.textAlign = 'center';
+     
+     alertDiv.innerHTML = `
+         <div style="font-weight:bold;margin-bottom:5px;">⚠️ Network Connectivity Issue Detected</div>
+         <div>${message}</div>
+         <div style="margin-top:10px;font-size:0.9em;">This may prevent connections with other users.</div>
+         <button id="close-network-alert" style="background:white;color:#dc3545;border:none;padding:3px 10px;margin-top:10px;border-radius:3px;cursor:pointer;">Dismiss</button>
+     `;
+     
+     document.body.appendChild(alertDiv);
+     
+     // Add event listener for the close button
+     document.getElementById('close-network-alert').addEventListener('click', () => {
+         alertDiv.remove();
+     });
+     
+     // Auto-remove after 20 seconds
+     setTimeout(() => {
+         if (document.getElementById('network-alert')) {
+             alertDiv.style.opacity = '0';
+             alertDiv.style.transition = 'opacity 0.5s ease';
+             setTimeout(() => {
+                 if (document.getElementById('network-alert')) {
+                     alertDiv.remove();
+                 }
+             }, 500);
+         }
+     }, 20000);
+ }
+
+ // Add to the connectToSignalingServer function after successful connection
+ // Add this after establishing socket connection, before setupSocketEvents
+ // Add to DOMContentLoaded event handler alongside startSignalingConsistencyChecks
+ startGlobalConnectionMonitoring();
