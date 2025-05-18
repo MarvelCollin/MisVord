@@ -7,7 +7,7 @@ require('dotenv').config();
 
 const app = express();
 app.use(cors({
-  origin: '*', // Allow all origins in development/testing
+  origin: process.env.CORS_ALLOWED_ORIGINS || '*', // Use env variable in production
   methods: ['GET', 'POST'],
   credentials: true
 })); 
@@ -109,6 +109,12 @@ setInterval(() => {
   }
 }, 60000);
 
+// VPS detection - helps with automatic protocol detection
+const isVpsEnvironment = process.env.NODE_ENV === 'production' || process.env.IS_VPS === 'true';
+if (isVpsEnvironment) {
+  console.log('🌐 Running in VPS environment - enabling production optimizations');
+}
+
 const VIDEO_CHAT_ROOM = 'global-video-chat';
 const videoChatUsers = {}; // Store users in the video chat { socketId: { userId, userName, socketId } }
 
@@ -169,7 +175,8 @@ app.get('/info', (req, res) => {
     port: PORT,
     env: {
       NODE_ENV: process.env.NODE_ENV || 'development',
-      SOCKET_URL: process.env.SOCKET_URL || 'not set'
+      SOCKET_URL: process.env.SOCKET_URL || 'not set',
+      IS_VPS: process.env.IS_VPS || 'false'
     }
   });
 });
@@ -201,9 +208,11 @@ io.on('connection', (socket) => {
   const clientIp = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address;
   const clientPath = socket.handshake.query.path || 'Not provided';
   const clientEnv = socket.handshake.query.envType || 'Not provided';
+  const protocol = socket.handshake.headers['x-forwarded-proto'] || 'http';
+  const isSecure = protocol === 'https' || socket.handshake.secure;
   
   console.log(`[CONNECTION] Socket connected: ${socket.id} from ${clientIp} (Total: ${activeConnections})`);
-  console.log(`[CONNECTION] Client info: Environment=${clientEnv}, Path=${clientPath}`);
+  console.log(`[CONNECTION] Client info: Environment=${clientEnv}, Path=${clientPath}, Protocol=${protocol}, Secure=${isSecure}`);
   
   debugLog(`User connected: ${socket.id}`);
 
@@ -700,6 +709,8 @@ io.on('connection', (socket) => {
   });
 });
 
+// Always use port 1002 by default instead of 3000
+// Since we saw 3000 was already in use in the error logs
 const PORT = process.env.PORT || 1002;
 
 // Safety check to avoid port 3000 that's already in use
@@ -712,4 +723,37 @@ server.listen(FINAL_PORT, '0.0.0.0', () => {
   console.log(`🚀 Socket.IO server for video calls running on port ${FINAL_PORT}`);
   console.log(`Socket.IO server available at http://localhost:${FINAL_PORT}`);
   console.log(`Socket.IO path: ${socketPath}`);
+  
+  if (isVpsEnvironment) {
+    console.log(`
+======================= VPS DEPLOYMENT NOTES ========================
+This socket server is configured to work with Nginx reverse proxy.
+Make sure you have the following in your Nginx config:
+
+location /socket.io/ {
+    proxy_pass http://localhost:${FINAL_PORT};
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+
+For path-based deployment (like /misvord/socket/), use:
+
+location /misvord/socket/ {
+    rewrite ^/misvord/socket/(.*) /$1 break;
+    proxy_pass http://localhost:${FINAL_PORT};
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+
+===================================================================
+`);
+  }
 });

@@ -18,7 +18,13 @@ $is_production = getenv('APP_ENV') === 'production';
 $host_domain = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'localhost';
 $is_local = $host_domain === 'localhost' || strpos($host_domain, '127.0.0.1') !== false;
 $is_marvel_domain = strpos($host_domain, 'marvelcollin.my.id') !== false;
-$protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
+
+// Improved HTTPS detection - more reliable than just checking $_SERVER['HTTPS']
+$is_https = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') || 
+            (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') ||
+            (isset($_SERVER['HTTP_X_FORWARDED_SSL']) && $_SERVER['HTTP_X_FORWARDED_SSL'] === 'on');
+
+$protocol = $is_https ? 'https' : 'http';
 
 // Get socket URL from environment or use appropriate default
 $socket_server_url = getenv('SOCKET_SERVER');
@@ -33,24 +39,47 @@ if (empty($socket_server_url)) {
         // IMPORTANT: Use HTTPS for production
         $socket_server_url = 'https://' . $host_domain . '/misvord/socket';
     } else {
-        // Other production/VPS environments: direct port
+        // Other production/VPS environments
+        // Force HTTPS for WebSockets when the page is loaded over HTTPS
         $host_domain = preg_replace('#^https?://#', '', $host_domain);
         $socket_server_url = $protocol . '://' . $host_domain . ':1002';
+        
+        // For VPS with Nginx proxy, use the subpath approach instead of direct port
+        if ($is_production || getenv('IS_VPS') === 'true') {
+            // Check if we're in a subpath
+            $request_uri = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '';
+            if (strpos($request_uri, '/misvord/') !== false) {
+                $socket_server_url = $protocol . '://' . $host_domain . '/misvord/socket';
+            } else if (strpos($request_uri, '/miscvord/') !== false) {
+                $socket_server_url = $protocol . '://' . $host_domain . '/miscvord/socket';
+            }
+        }
     }
 }
 
 // Add socket path config for JavaScript
-$socket_path = $is_marvel_domain ? '/misvord/socket/socket.io' : '/socket.io';
+$is_subpath = false;
+if (strpos($socket_server_url, '/misvord/socket') !== false) {
+    $socket_path = '/misvord/socket/socket.io';
+    $is_subpath = true;
+} else if (strpos($socket_server_url, '/miscvord/socket') !== false) {
+    $socket_path = '/miscvord/socket/socket.io';
+    $is_subpath = true;
+} else {
+    $socket_path = '/socket.io';
+}
 
 // Log for debugging
-error_log("WebRTC socket server URL: " . $socket_server_url . ", Path: " . $socket_path);
+$env_type = $is_local ? 'local' : ($is_marvel_domain ? 'marvel' : 'vps');
+error_log("WebRTC socket server URL: " . $socket_server_url . ", Path: " . $socket_path . ", Protocol: " . $protocol . ", Env: " . $env_type);
 
 $additional_head = '
 <!-- Socket server configuration -->
 <meta name="socket-server" content="' . $socket_server_url . '">
 <meta name="socket-path" content="' . $socket_path . '">
-<meta name="env-type" content="' . ($is_local ? 'local' : ($is_marvel_domain ? 'marvel' : 'vps')) . '">
-<meta name="socket-secure" content="' . ($protocol === 'https' ? 'true' : 'false') . '">
+<meta name="env-type" content="' . $env_type . '">
+<meta name="socket-secure" content="' . ($is_https ? 'true' : 'false') . '">
+<meta name="socket-subpath" content="' . ($is_subpath ? 'true' : 'false') . '">
 <style>
     .video-grid {
         display: grid;

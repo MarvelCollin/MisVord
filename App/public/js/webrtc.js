@@ -1024,6 +1024,30 @@ function connectToSignalingServer() {
         addLogEntry(`Enforcing secure WebSockets, updated URL to: ${socketServerUrl}`, 'system');
     }
     
+    // VPS safety check: ensure proper protocol and path for subdomain deployments
+    if (envType === 'vps' || envType === 'marvel') {
+        // For subpath deployments, ensure the URL is correct
+        const pageUrl = window.location.href;
+        const isSubpath = pageUrl.includes('/misvord/') || pageUrl.includes('/miscvord/');
+        
+        // Make sure socket path is correct and secure if needed
+        if (isSubpath && !socketPath.includes('/misvord') && !socketPath.includes('/miscvord')) {
+            // Auto-correct common socket path issues in VPS environments
+            const subpathMatch = pageUrl.match(/\/(mis[cv]ord)\//i);
+            if (subpathMatch && subpathMatch[1]) {
+                const correctPath = `/${subpathMatch[1].toLowerCase()}/socket/socket.io`;
+                addLogEntry(`VPS subpath detected. Correcting socket path to: ${correctPath}`, 'system');
+                socketPath = correctPath;
+            }
+        }
+        
+        // Ensure WebSocket security matches page security
+        if (isSecurePage && !socketServerUrl.startsWith('https:')) {
+            addLogEntry('VPS security: Forcing secure WebSocket for HTTPS page', 'system');
+            socketServerUrl = socketServerUrl.replace('http:', 'https:');
+        }
+    }
+    
     addLogEntry(`Connecting to signaling server at ${socketServerUrl} (Path: ${socketPath}, Env: ${envType}, Secure: ${isSecurePage})...`, 'system');
     console.log('%c[SOCKET SERVER CONFIG]', 'background:#007bff;color:white;padding:2px 5px;', {
         url: socketServerUrl,
@@ -1051,7 +1075,8 @@ function connectToSignalingServer() {
                 clientVersion: '1.0.0',
                 userAgent: navigator.userAgent,
                 envType: envType,
-                secure: isSecurePage
+                secure: isSecurePage,
+                path: socketPath // Include path in query for debugging
             }
         });
 
@@ -1065,11 +1090,16 @@ function connectToSignalingServer() {
             updateConnectionStatus('disconnected', `Connection Error: ${error}`);
             
             // If error occurs, try alternative connection approaches based on environment
-            if (envType === 'marvel') {
-                // For marvel domain, first try without path
+            if (envType === 'marvel' || envType === 'vps') {
+                // For VPS/subpath deployments, try the direct host with explicit path
+                const hostname = window.location.hostname;
+                const isSecure = window.location.protocol === 'https:';
+                const protocol = isSecure ? 'https' : 'http';
+                const fallbackUrl = `${protocol}://${hostname}`;
+                
                 setTimeout(() => {
-                    addLogEntry(`Trying alternative connection without special path`, 'system');
-                    tryFallbackSocketConnection(socketServerUrl, '/socket.io');
+                    addLogEntry(`Trying alternative VPS connection: ${fallbackUrl} with path ${socketPath}`, 'system');
+                    tryFallbackSocketConnection(fallbackUrl, socketPath);
                 }, 3000);
             } else {
                 // For other environments, use standard fallback
