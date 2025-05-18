@@ -475,6 +475,8 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
+<!-- Socket.io library - local reference to avoid CDN issues -->
+<script src="/js/socket.io.min.js"></script>
 <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
 <script src="/js/webrtc-modules/browser-compatibility.js"></script>
 <script src="/js/webrtc-modules/video-debug.js"></script>

@@ -990,6 +990,7 @@ function connectToSignalingServer() {
     const socketPathMeta = document.querySelector('meta[name="socket-path"]');
     const envTypeMeta = document.querySelector('meta[name="env-type"]');
     const socketSecureMeta = document.querySelector('meta[name="socket-secure"]');
+    const socketSubpathMeta = document.querySelector('meta[name="socket-subpath"]');
     
     if (!socketServerUrlMeta) {
         addLogEntry("Socket server URL meta tag not found!", "error");
@@ -1013,9 +1014,10 @@ function connectToSignalingServer() {
     }
     
     let socketServerUrl = socketServerUrlMeta.content;
-    const socketPath = socketPathMeta ? socketPathMeta.content : '/socket.io';
+    let socketPath = socketPathMeta ? socketPathMeta.content : '/socket.io';
     const envType = envTypeMeta ? envTypeMeta.content : 'unknown';
     const isSecurePage = socketSecureMeta ? socketSecureMeta.content === 'true' : window.location.protocol === 'https:';
+    const isSubpath = socketSubpathMeta ? socketSubpathMeta.content === 'true' : false;
     
     // Force HTTPS/WSS if page is loaded over HTTPS
     if (isSecurePage && socketServerUrl.startsWith('http:')) {
@@ -1028,16 +1030,25 @@ function connectToSignalingServer() {
     if (envType === 'vps' || envType === 'marvel') {
         // For subpath deployments, ensure the URL is correct
         const pageUrl = window.location.href;
-        const isSubpath = pageUrl.includes('/misvord/') || pageUrl.includes('/miscvord/');
+        const isPageSubpath = pageUrl.includes('/misvord/') || pageUrl.includes('/miscvord/');
         
         // Make sure socket path is correct and secure if needed
-        if (isSubpath && !socketPath.includes('/misvord') && !socketPath.includes('/miscvord')) {
+        if (isPageSubpath && isSubpath) {
             // Auto-correct common socket path issues in VPS environments
             const subpathMatch = pageUrl.match(/\/(mis[cv]ord)\//i);
             if (subpathMatch && subpathMatch[1]) {
-                const correctPath = `/${subpathMatch[1].toLowerCase()}/socket/socket.io`;
-                addLogEntry(`VPS subpath detected. Correcting socket path to: ${correctPath}`, 'system');
-                socketPath = correctPath;
+                if (!socketPath.includes('/socket.io')) {
+                    const correctPath = `/${subpathMatch[1].toLowerCase()}/socket/socket.io`;
+                    addLogEntry(`VPS subpath detected. Correcting socket path to: ${correctPath}`, 'system');
+                    socketPath = correctPath;
+                }
+                
+                // Also correct the URL if needed
+                if (!socketServerUrl.includes(subpathMatch[1].toLowerCase())) {
+                    const urlBase = window.location.protocol + '//' + window.location.host;
+                    socketServerUrl = `${urlBase}/${subpathMatch[1].toLowerCase()}/socket`;
+                    addLogEntry(`VPS subpath detected. Correcting socket URL to: ${socketServerUrl}`, 'system');
+                }
             }
         }
         
@@ -1045,6 +1056,13 @@ function connectToSignalingServer() {
         if (isSecurePage && !socketServerUrl.startsWith('https:')) {
             addLogEntry('VPS security: Forcing secure WebSocket for HTTPS page', 'system');
             socketServerUrl = socketServerUrl.replace('http:', 'https:');
+        }
+        
+        // For VPS environments, prefer relative URLs to avoid cross-origin issues
+        if (socketServerUrl.includes(window.location.host)) {
+            const pathOnly = socketServerUrl.replace(/^https?:\/\/[^/]+/, '');
+            addLogEntry(`VPS optimization: Using relative URL: ${pathOnly} instead of: ${socketServerUrl}`, 'system');
+            socketServerUrl = pathOnly; // Use relative URL
         }
     }
     
@@ -1054,7 +1072,8 @@ function connectToSignalingServer() {
         path: socketPath,
         environment: envType,
         secure: isSecurePage,
-        pageProtocol: window.location.protocol
+        pageProtocol: window.location.protocol,
+        isSubpath: isSubpath
     });
 
     if (socket && socket.connected) {
@@ -1063,20 +1082,24 @@ function connectToSignalingServer() {
     }
 
     try {
+        // Enhanced socket connection configuration
         socket = io(socketServerUrl, {
             path: socketPath,
-            transports: ['websocket', 'polling'],
+            transports: ['websocket', 'polling'], // Try WebSocket first, fall back to polling
             reconnectionAttempts: 5,
             reconnectionDelay: 3000,
             timeout: 10000,
             forceNew: true,
             secure: isSecurePage, // Force secure WebSockets when on HTTPS
+            rejectUnauthorized: !isLocalhost, // Don't reject self-signed certs on localhost
+            autoConnect: true,
             query: {
                 clientVersion: '1.0.0',
                 userAgent: navigator.userAgent,
                 envType: envType,
-                secure: isSecurePage,
-                path: socketPath // Include path in query for debugging
+                secure: isSecurePage ? 'true' : 'false',
+                path: socketPath, // Include path in query for debugging
+                subpath: isSubpath ? 'true' : 'false'
             }
         });
 
@@ -1088,6 +1111,9 @@ function connectToSignalingServer() {
             addLogEntry(`Socket.IO transport error: ${error}`, 'error');
             console.error('Socket transport error details:', error);
             updateConnectionStatus('disconnected', `Connection Error: ${error}`);
+            
+            // Diagnose WebSocket Issues
+            diagnoseWebSocketIssues(socketServerUrl, socketPath, envType, isSecurePage);
             
             // If error occurs, try alternative connection approaches based on environment
             if (envType === 'marvel' || envType === 'vps') {
@@ -1119,6 +1145,18 @@ function connectToSignalingServer() {
         socket.io.on("reconnect_attempt", (attempt) => {
             addLogEntry(`Socket reconnect attempt #${attempt}`, 'warn');
             updateConnectionStatus('connecting', `Reconnecting (Attempt ${attempt})`);
+            
+            // On reconnection attempts, try with different transports
+            if (attempt > 1) {
+                addLogEntry('Trying with different transports for reconnection', 'system');
+                // After first attempt, force polling which may work better in some VPS environments
+                socket.io.opts.transports = ['polling', 'websocket'];
+            }
+            
+            if (attempt > 3) {
+                // After multiple failures, try alternative URL
+                addLogEntry('Multiple reconnection failures, will try alternative URL after this attempt', 'warn');
+            }
         });
         
         // Log connection details
@@ -1645,5 +1683,86 @@ function pingAllUsers() {
     socket.emit('ping-all', {
         timestamp: Date.now()
     });
+}
+
+// WebSocket diagnostic function for VPS environments - NEW FUNCTION
+function diagnoseWebSocketIssues(socketUrl, socketPath, envType, isSecurePage) {
+    addLogEntry(`Diagnosing WebSocket connection issue...`, 'system');
+    
+    // Log browser WebSocket support
+    const wsSupport = 'WebSocket' in window;
+    addLogEntry(`Browser WebSocket support: ${wsSupport ? 'Yes' : 'No'}`, 'system');
+    if (!wsSupport) {
+        addLogEntry(`Your browser doesn't support WebSockets! This is a critical issue.`, 'error');
+        return;
+    }
+    
+    // Check for protocol mismatch
+    const pageProtocol = window.location.protocol;
+    const isSecureProtocol = pageProtocol === 'https:';
+    const socketProtocol = socketUrl.startsWith('https:') ? 'https:' : 'http:';
+    const expectedWsProtocol = isSecureProtocol ? 'wss:' : 'ws:';
+    
+    addLogEntry(`Page protocol: ${pageProtocol}, Socket protocol: ${socketProtocol}`, 'system');
+    if (isSecureProtocol && socketProtocol === 'http:') {
+        addLogEntry(`MIXED CONTENT ERROR: HTTPS page cannot use insecure WebSockets (ws://)`, 'error');
+        addLogEntry(`Solution: Update socketServerUrl to use https:// instead of http://`, 'system');
+    }
+    
+    // Check for subpath issues in VPS environments
+    if (envType === 'vps' || envType === 'marvel') {
+        if (!socketPath.includes('/socket.io')) {
+            addLogEntry(`VPS ERROR: Socket path doesn't include '/socket.io': ${socketPath}`, 'error');
+            addLogEntry(`Solution: Path should be something like '/misvord/socket/socket.io'`, 'system');
+        }
+        
+        // Check for direct port usage which may be blocked in VPS
+        if (socketUrl.match(/:\d{2,5}$/)) {
+            addLogEntry(`VPS WARNING: Using direct port number in URL (${socketUrl})`, 'warn');
+            addLogEntry(`This may be blocked by firewalls. Consider using Nginx proxy with subpath instead.`, 'warn');
+        }
+    }
+    
+    // Attempt to create a raw WebSocket to the endpoint (without Socket.IO)
+    try {
+        const wsUrl = socketUrl.replace(/^http/, 'ws') + socketPath;
+        addLogEntry(`Testing raw WebSocket connection to ${wsUrl}...`, 'system');
+        
+        const testWs = new WebSocket(wsUrl);
+        
+        testWs.onopen = () => {
+            addLogEntry(`Raw WebSocket connection succeeded! Socket.IO issue likely in path/transport.`, 'success');
+            testWs.close();
+        };
+        
+        testWs.onerror = (err) => {
+            addLogEntry(`Raw WebSocket connection failed: This confirms a network/server issue.`, 'error');
+            addLogEntry(`VPS CONFIG: Ensure your Nginx is configured with proper WebSocket headers:`, 'system');
+            addLogEntry(`proxy_http_version 1.1;`, 'system');
+            addLogEntry(`proxy_set_header Upgrade $http_upgrade;`, 'system');
+            addLogEntry(`proxy_set_header Connection "upgrade";`, 'system');
+        };
+    } catch (e) {
+        addLogEntry(`Raw WebSocket test error: ${e.message}`, 'error');
+    }
+    
+    // Log helpful NGINX config for common VPS issues
+    if (envType === 'vps' || envType === 'marvel') {
+        const subPath = window.location.pathname.match(/^\/([^/]+)/) ? window.location.pathname.match(/^\/([^/]+)/)[1] : '';
+        
+        console.log(`
+%c=== VPS NGINX WebSocket Config ===
+location /${subPath || 'misvord'}/socket/ {
+    rewrite ^/${subPath || 'misvord'}/socket/(.*) /$1 break;
+    proxy_pass http://localhost:1002;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}`,
+        'background: #333; color: #42d392; padding: 5px; border-radius: 5px; font-family: monospace;');
+    }
 }
 

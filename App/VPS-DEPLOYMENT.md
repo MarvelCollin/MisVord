@@ -98,7 +98,7 @@ server {
         rewrite /misvord/(.*)$ /misvord/index.php?/$1 last;
     }
     
-    # Socket.IO for WebRTC signaling
+    # Socket.IO for WebRTC signaling - ENHANCED CONFIGURATION
     location /misvord/socket/ {
         rewrite ^/misvord/socket/(.*) /$1 break;
         proxy_pass http://localhost:1002;
@@ -109,10 +109,44 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         
+        # WebSocket Error Handling
+        proxy_intercept_errors on;
+        error_page 502 503 504 /misvord/socket-error.html;
+        
         # Increase timeouts for WebRTC connections
         proxy_connect_timeout 7d;
         proxy_send_timeout 7d;
         proxy_read_timeout 7d;
+        
+        # Add CORS headers for WebSockets
+        add_header 'Access-Control-Allow-Origin' 'https://yourdomain.com' always;
+        add_header 'Access-Control-Allow-Credentials' 'true' always;
+        add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
+        add_header 'Access-Control-Allow-Headers' 'DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type' always;
+        
+        # Handle OPTIONS preflight requests for WebSocket
+        if ($request_method = 'OPTIONS') {
+            add_header 'Access-Control-Allow-Origin' 'https://yourdomain.com' always;
+            add_header 'Access-Control-Allow-Credentials' 'true' always;
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
+            add_header 'Access-Control-Allow-Headers' 'DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type' always;
+            add_header 'Access-Control-Max-Age' 1728000;
+            add_header 'Content-Type' 'text/plain charset=UTF-8';
+            add_header 'Content-Length' 0;
+            return 204;
+        }
+    }
+    
+    # Make Socket.IO available directly at the socket.io path for backward compatibility
+    location /misvord/socket.io/ {
+        rewrite ^/misvord/socket.io/(.*) /socket.io/$1 break;
+        proxy_pass http://localhost:1002;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
     
     # Static assets with cache control
@@ -120,6 +154,12 @@ server {
         alias /path/to/app/public/;
         expires max;
         add_header Cache-Control "public, max-age=31536000";
+    }
+    
+    # Socket error page
+    location = /misvord/socket-error.html {
+        root /path/to/app/public;
+        internal;
     }
 }
 ```
@@ -187,6 +227,97 @@ If WebRTC peers cannot connect:
 1. Make sure TURN server configuration is correct
 2. Check if firewalls are blocking UDP traffic 
 3. Try using TCP fallback for TURN
+
+## 6.1 WebSocket Troubleshooting Guide
+
+### Common WebSocket Error: "websocket error"
+
+If you see this error in your browser console:
+```
+Socket transport error details: i: websocket error
+```
+
+Follow these specific steps:
+
+1. **Check Socket Server:**
+   ```bash
+   # Is socket server running?
+   pm2 status misvord-socket
+   
+   # Check socket server logs for errors
+   pm2 logs misvord-socket
+   ```
+
+2. **Debug Nginx WebSocket Configuration:**
+   ```bash
+   # Check nginx error logs for WebSocket issues
+   tail -f /var/log/nginx/error.log
+   
+   # Test Nginx configuration
+   nginx -t
+   ```
+
+3. **Verify proper HTTP to HTTPS redirects:**
+   ```bash
+   curl -I http://yourdomain.com/misvord/socket/socket-test
+   ```
+   
+   The response should show a 301 redirect to HTTPS.
+
+4. **Create a debug HTML file to test Socket.IO directly:**
+   Create a file at `/path/to/app/public/socket-test.html`:
+   ```html
+   <!DOCTYPE html>
+   <html>
+   <head>
+     <title>Socket.IO Test</title>
+     <script src="/js/socket.io.min.js"></script>
+   </head>
+   <body>
+     <h1>Socket.IO Test</h1>
+     <div id="status">Connecting...</div>
+     <script>
+       const socket = io('/misvord/socket', {
+         path: '/socket.io',
+         transports: ['websocket']
+       });
+       
+       socket.on('connect', () => {
+         document.getElementById('status').innerHTML = 
+           `Connected! Socket ID: ${socket.id}`;
+       });
+       
+       socket.on('connect_error', (err) => {
+         document.getElementById('status').innerHTML = 
+           `Error: ${err.message}`;
+         console.error('Connection error:', err);
+       });
+     </script>
+   </body>
+   </html>
+   ```
+   Then access it at `https://yourdomain.com/misvord/socket-test.html`
+
+5. **Common Solutions:**
+
+   - Add `socket.io.min.js` locally instead of using CDN
+   - Update Nginx configuration with better WebSocket handling
+   - Set proper CORS headers for WebSocket connections
+   - Ensure SSL certificates are valid and trusted
+
+6. **Use the built-in diagnostic tool:**
+
+   When the WebSocket error occurs, our built-in diagnostic function will run automatically and provide specific guidance in the browser console. Look for messages that start with `[SYSTEM]` in the console.
+
+7. **Try a simple WebSocket test:**
+
+   ```bash
+   # Install wscat if you don't have it
+   npm install -g wscat
+   
+   # Test WebSocket connection directly
+   wscat -c wss://yourdomain.com/misvord/socket/socket.io/?EIO=4&transport=websocket
+   ```
 
 ## 7. Production VPS Security
 
