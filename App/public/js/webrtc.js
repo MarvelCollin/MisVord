@@ -404,11 +404,12 @@ function createPeerConnection(peerSocketId, peerUserName) {
     // Create new peer connection
     const pc = new RTCPeerConnection(configuration);
 
-    // Store peer connection
+    // Store peer connection with buffer for ICE candidates
     peers[peerSocketId] = { 
         pc: pc, 
         userName: peerUserName,
-        createdAt: Date.now() 
+        createdAt: Date.now(),
+        iceCandidateBuffer: [] // Buffer for ICE candidates received before remote description
     };
     
     // Always update UI immediately when creating a connection
@@ -891,6 +892,10 @@ function setupSocketEvents() {
             pc.setRemoteDescription(new RTCSessionDescription(offer))
                 .then(() => {
                     addLogEntry(`Set remote description from ${fromUserName}'s offer`, 'peer');
+                    
+                    // Now that remote description is set, process any buffered ICE candidates
+                    processBufferedCandidates(from);
+                    
                     return pc.createAnswer();
                 })
                 .then(answer => {
@@ -929,6 +934,9 @@ function setupSocketEvents() {
             // If in stable state, we might have already processed this answer or received a duplicate
             if (pc.signalingState === 'stable') {
                 addLogEntry(`Connection already stable with ${fromUserName}, ignoring redundant answer`, 'warn');
+                
+                // Process any buffered ICE candidates that arrived before the answer
+                processBufferedCandidates(from);
                 return;
             }
             
@@ -965,6 +973,9 @@ function setupSocketEvents() {
         peers[from].pc.setRemoteDescription(new RTCSessionDescription(answer))
             .then(() => {
                 addLogEntry(`Set remote description from ${fromUserName}'s answer`, 'peer');
+                
+                // Now that remote description is set, process any buffered ICE candidates
+                processBufferedCandidates(from);
             })
             .catch(e => {
                 addLogEntry(`Error setting remote description from ${fromUserName}: ${e.message}`, 'error');
@@ -976,21 +987,13 @@ function setupSocketEvents() {
         const { from, candidate } = data;
         const fromUserName = peers[from]?.userName || 'Unknown peer';
         
-        if (!peers[from] || !peers[from].pc) {
-            addLogEntry(`Received ICE candidate from ${fromUserName} (${from}) but no peer connection exists`, 'warn');
+        if (!candidate) {
+            addLogEntry(`Received empty ICE candidate from ${fromUserName}`, 'warn');
             return;
         }
-
-        try {
-            addLogEntry(`Adding ICE candidate from ${fromUserName}`, 'peer');
-            peers[from].pc.addIceCandidate(new RTCIceCandidate(candidate))
-                .catch(e => {
-                    addLogEntry(`Error adding ICE candidate from ${fromUserName}: ${e.message}`, 'error');
-                    console.error('Error adding ICE candidate:', e);
-                });
-            } catch (e) {
-            addLogEntry(`Exception processing ICE candidate: ${e.message}`, 'error');
-        }
+        
+        // Use the new candidate handling function with buffering
+        addIceCandidateWithCheck(from, candidate);
     });
 
     socket.on('user-left-video-room', (data) => {
@@ -2351,6 +2354,11 @@ async function checkAutoplayPermission() {
 async function safePlayVideo(videoElement) {
     if (!videoElement) return Promise.reject(new Error('No video element provided'));
     
+    // Check if the video element is still in the DOM
+    if (!document.body.contains(videoElement)) {
+        return Promise.reject(new Error('Video element is not in the document'));
+    }
+    
     // Always ensure these attributes are set
     videoElement.autoplay = true;
     videoElement.setAttribute('playsinline', '');
@@ -2359,8 +2367,13 @@ async function safePlayVideo(videoElement) {
     try {
         // If we know browser allows autoplay, just play
         if (window.browserAllowsAutoplay) {
-            await videoElement.play();
-            return;
+            try {
+                await videoElement.play();
+                return;
+            } catch (directPlayError) {
+                // If direct play fails, continue with the muted approach
+                addLogEntry(`Direct play failed: ${directPlayError.message}, trying muted`, 'warn');
+            }
         }
         
         // First try muted play (browsers allow muted autoplay)
@@ -2368,34 +2381,53 @@ async function safePlayVideo(videoElement) {
         videoElement.muted = true;
         
         try {
+            // Check if the element is still in the DOM before playing
+            if (!document.body.contains(videoElement)) {
+                throw new Error('Video element was removed from the document');
+            }
+            
             await videoElement.play();
             
-            // If muted play works but we want sound, request permission
+            // If muted play works but we want sound, add an unmute button
             if (!wasMuted) {
-                // Ask for permission to play with sound
-                const permissionResult = await checkAutoplayPermission();
-                
-                if (permissionResult) {
-                    // Permission granted, unmute the video
-                    videoElement.muted = wasMuted;
-                } else {
-                    // If permission check returned false, add an unmute button
-                    const userId = videoElement.id.replace('video-', '');
+                try {
+                    // Get user ID from video element ID if possible
+                    let userId = 'unknown';
+                    if (videoElement.id && videoElement.id.includes('-')) {
+                        userId = videoElement.id.split('-')[1];
+                    }
+                    
+                    // Check if we have the WebRTCPlayer unmute button function
                     if (typeof window.WebRTCPlayer?.addUnmuteButton === 'function') {
                         window.WebRTCPlayer.addUnmuteButton(videoElement, userId);
                     }
+                } catch (buttonError) {
+                    addLogEntry(`Could not add unmute button: ${buttonError.message}`, 'warn');
                 }
             }
         } catch (err) {
             addLogEntry(`Safe play failed: ${err.message}`, 'error');
             
+            // If the video was removed, we can't do much else
+            if (err.message.includes('removed from the document')) {
+                throw err;
+            }
+            
             // If play failed even when muted, we need explicit user interaction
-            const userId = videoElement.id.replace('video-', '');
-            if (typeof window.WebRTCPlayer?.addImprovedPlayButton === 'function') {
-                window.WebRTCPlayer.addImprovedPlayButton(videoElement, userId);
-            } else {
-                // Fallback to simple play button
-                addVideoPlayRetryButton(videoElement);
+            // Get user ID from video element ID if possible
+            let userId = 'unknown';
+            if (videoElement.id && videoElement.id.includes('-')) {
+                userId = videoElement.id.split('-')[1];
+            }
+            
+            // Only add play button if the element is still in the DOM
+            if (document.body.contains(videoElement)) {
+                if (typeof window.WebRTCPlayer?.addImprovedPlayButton === 'function') {
+                    window.WebRTCPlayer.addImprovedPlayButton(videoElement, userId);
+                } else {
+                    // Fallback to simple play button
+                    addVideoPlayRetryButton(videoElement);
+                }
             }
         }
     } catch (error) {
@@ -2522,6 +2554,193 @@ function updateRemoteVideoElement(remoteVideoElement, userId, stream) {
                     addVideoPlayRetryButton(remoteVideoElement);
                 }
             });
+    });
+}
+
+// Function to add ICE candidate with proper checking and buffering
+function addIceCandidateWithCheck(peerId, candidate) {
+    if (!peers[peerId] || !peers[peerId].pc) {
+        addLogEntry(`Received ICE candidate but no peer connection exists for ${peerId}`, 'warn');
+        return;
+    }
+
+    const pc = peers[peerId].pc;
+    const fromUserName = peers[peerId]?.userName || 'Unknown peer';
+    
+    // If we have a remote description, add candidate directly
+    if (pc.remoteDescription && pc.remoteDescription.type) {
+        try {
+            pc.addIceCandidate(new RTCIceCandidate(candidate))
+                .catch(e => {
+                    addLogEntry(`Error adding ICE candidate from ${fromUserName}: ${e.message}`, 'error');
+                    console.error('Error adding ICE candidate:', e);
+                });
+        } catch (e) {
+            addLogEntry(`Exception processing ICE candidate: ${e.message}`, 'error');
+        }
+    } else {
+        // Buffer the candidate if we don't have a remote description yet
+        addLogEntry(`Buffering ICE candidate from ${fromUserName} until remote description is set`, 'peer');
+        peers[peerId].iceCandidateBuffer = peers[peerId].iceCandidateBuffer || [];
+        peers[peerId].iceCandidateBuffer.push(candidate);
+    }
+}
+
+// Function to process buffered ICE candidates
+function processBufferedCandidates(peerId) {
+    if (!peers[peerId] || !peers[peerId].pc || !peers[peerId].iceCandidateBuffer) return;
+    
+    const pc = peers[peerId].pc;
+    const buffer = peers[peerId].iceCandidateBuffer;
+    const fromUserName = peers[peerId]?.userName || 'Unknown peer';
+    
+    if (buffer.length > 0) {
+        addLogEntry(`Processing ${buffer.length} buffered ICE candidates for ${fromUserName}`, 'peer');
+        
+        buffer.forEach(candidate => {
+            try {
+                pc.addIceCandidate(new RTCIceCandidate(candidate))
+                    .catch(e => {
+                        addLogEntry(`Error adding buffered ICE candidate: ${e.message}`, 'error');
+                    });
+            } catch (e) {
+                addLogEntry(`Exception processing buffered ICE candidate: ${e.message}`, 'error');
+            }
+        });
+        
+        // Clear the buffer
+        peers[peerId].iceCandidateBuffer = [];
+    }
+}
+
+// New function to explicitly request permission with UI
+async function requestAutoplayPermission() {
+    return new Promise((resolve) => {
+        try {
+            // Remove any existing permission dialog
+            const existingPrompt = document.getElementById('autoplayPermissionPrompt');
+            if (existingPrompt) {
+                existingPrompt.remove();
+            }
+            
+            // Create a new permission dialog
+            const permissionPrompt = document.createElement('div');
+            permissionPrompt.id = 'autoplayPermissionPrompt';
+            permissionPrompt.className = 'fixed inset-0 flex items-center justify-center bg-black bg-opacity-75 z-50';
+            permissionPrompt.style.position = 'fixed';
+            permissionPrompt.style.top = '0';
+            permissionPrompt.style.left = '0';
+            permissionPrompt.style.width = '100%';
+            permissionPrompt.style.height = '100%';
+            permissionPrompt.style.display = 'flex';
+            permissionPrompt.style.alignItems = 'center';
+            permissionPrompt.style.justifyContent = 'center';
+            permissionPrompt.style.backgroundColor = 'rgba(0, 0, 0, 0.75)';
+            permissionPrompt.style.zIndex = '9999';
+            
+            permissionPrompt.innerHTML = `
+                <div style="background-color: #1F2937; padding: 1.5rem; border-radius: 0.5rem; max-width: 24rem; width: 100%; text-align: center; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);">
+                    <h3 style="font-size: 1.25rem; font-weight: bold; color: white; margin-bottom: 1rem;">Enable Audio & Video</h3>
+                    <p style="color: #D1D5DB; margin-bottom: 1.5rem;">Click the button below to enable automatic playback of audio and video.</p>
+                    <div style="display: flex; gap: 1rem; justify-content: center;">
+                        <button id="allowAutoplayBtn" style="background-color: #2563EB; color: white; font-weight: bold; padding: 0.5rem 1rem; border-radius: 0.375rem; border: none; cursor: pointer;">Enable</button>
+                        <button id="cancelAutoplayBtn" style="background-color: #4B5563; color: white; padding: 0.5rem 1rem; border-radius: 0.375rem; border: none; cursor: pointer;">Cancel</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(permissionPrompt);
+            
+            // Create and play a test audio element when allow button is clicked
+            const testAudio = document.createElement('audio');
+            testAudio.src = 'data:audio/mpeg;base64,/+MYxAAAAANIAAAAAExBTUUzLjk4LjIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+            testAudio.volume = 0.01;
+            
+            // Add event listener to the allow button
+            const allowButton = document.getElementById('allowAutoplayBtn');
+            if (!allowButton) {
+                addLogEntry('Could not find allowAutoplayBtn element', 'error');
+                resolve(false);
+                return;
+            }
+            
+            allowButton.addEventListener('click', async () => {
+                try {
+                    // Try to play audio with user gesture
+                    await testAudio.play();
+                    testAudio.pause();
+                    
+                    // Success!
+                    window.browserAllowsAutoplay = true;
+                    addLogEntry('Autoplay permission granted by user', 'success');
+                    
+                    // Try to play all videos
+                    document.querySelectorAll('video').forEach(video => {
+                        if (video.paused) {
+                            video.play().catch(() => {});
+                        }
+                    });
+                    
+                    // Remove the permission prompt
+                    if (permissionPrompt.parentNode) {
+                        permissionPrompt.parentNode.removeChild(permissionPrompt);
+                    }
+                    
+                    resolve(true);
+                } catch (error) {
+                    addLogEntry(`Failed to enable autoplay: ${error.message}`, 'error');
+                    
+                    // Show error message in the prompt
+                    const messageElement = permissionPrompt.querySelector('p');
+                    if (messageElement) {
+                        messageElement.textContent = 
+                            `Error: ${error.message}. Please try again or press Cancel to continue without autoplay.`;
+                    }
+                    
+                    // Don't remove the prompt yet - let the user try again
+                }
+            });
+            
+            // Add event listener to the cancel button
+            const cancelButton = document.getElementById('cancelAutoplayBtn');
+            if (!cancelButton) {
+                addLogEntry('Could not find cancelAutoplayBtn element', 'error');
+                resolve(false);
+                return;
+            }
+            
+            cancelButton.addEventListener('click', () => {
+                addLogEntry('User cancelled autoplay permission', 'warn');
+                
+                // Remove the permission prompt
+                if (permissionPrompt.parentNode) {
+                    permissionPrompt.parentNode.removeChild(permissionPrompt);
+                }
+                
+                // Continue without autoplay
+                window.browserAllowsAutoplay = false;
+                resolve(false);
+            });
+            
+            // Auto-dismiss after 20 seconds to prevent getting stuck
+            setTimeout(() => {
+                if (document.body.contains(permissionPrompt)) {
+                    addLogEntry('Permission dialog timed out - continuing without autoplay', 'warn');
+                    
+                    // Remove the permission prompt
+                    if (permissionPrompt.parentNode) {
+                        permissionPrompt.parentNode.removeChild(permissionPrompt);
+                    }
+                    
+                    // Continue without autoplay
+                    window.browserAllowsAutoplay = false;
+                    resolve(false);
+                }
+            }, 20000);
+        } catch (err) {
+            addLogEntry(`Error in requestAutoplayPermission: ${err.message}`, 'error');
+            resolve(false);
+        }
     });
 }
 
