@@ -213,10 +213,22 @@ async function initLocalStream(audio = true, video = true) {
 
         localStream = await navigator.mediaDevices.getUserMedia(constraints);
         
+        // Check for autoplay permission before attempting to play the video
+        await checkAutoplayPermission();
+        
         if (localVideo) {
             localVideo.srcObject = localStream;
             localVideo.muted = true; // Mute local video to prevent echo
-            localVideo.play().catch(e => addLogEntry(`Local video play error: ${e.message}`, 'error'));
+            
+            try {
+                // Use safe play method with error handling
+                await safePlayVideo(localVideo);
+                addLogEntry('Local video playing successfully', 'success');
+            } catch (playError) {
+                addLogEntry(`Local video play error: ${playError.message}. Will retry.`, 'error');
+                // Add a retry button for local video
+                addVideoPlayRetryButton(localVideo);
+            }
         }
         
         isVideoEnabled = video;
@@ -500,7 +512,7 @@ function createPeerConnection(peerSocketId, peerUserName) {
             remoteVideoElement.srcObject = event.streams[0];
             
             // Ensure video plays (handle autoplay restrictions)
-            remoteVideoElement.play()
+            safePlayVideo(remoteVideoElement)
                 .then(() => {
                     addLogEntry(`Video playback started for ${peerUserName}`, 'success');
                     
@@ -513,7 +525,16 @@ function createPeerConnection(peerSocketId, peerUserName) {
                 })
                 .catch(e => {
                     addLogEntry(`Remote video play error for ${peerUserName}: ${e.message}`, 'error');
-                    alert(`Video playback error: ${e.message}. Try clicking on the page to enable autoplay.`);
+                    
+                    // Add play button for user interaction
+                    addVideoPlayRetryButton(remoteVideoElement);
+                    
+                    // Display a message to the user
+                    const statusIndicator = videoContainer.querySelector('.connection-state-indicator');
+                    if (statusIndicator) {
+                        statusIndicator.textContent = 'Tap to enable video';
+                        statusIndicator.style.backgroundColor = 'rgba(236, 201, 75, 0.8)'; // Yellow background
+                    }
                 });
         } else {
             addLogEntry(`Failed to set remote stream for ${peerUserName}`, 'error');
@@ -1556,6 +1577,40 @@ document.addEventListener('DOMContentLoaded', () => {
     if (permissionRequest) permissionRequest.style.display = 'flex'; // Show permission dialog initially
     if (permissionStatus) permissionStatus.textContent = 'Please allow camera and microphone access.';
 
+    // Check for autoplay support early
+    checkAutoplayPermission()
+        .then(isAutoplayAllowed => {
+            if (isAutoplayAllowed) {
+                addLogEntry('Autoplay is allowed', 'success');
+            } else {
+                addLogEntry('Autoplay permission was denied. User interaction will be required to play videos.', 'warn');
+                // Create global UI notice about autoplay
+                const autoplayNotice = document.createElement('div');
+                autoplayNotice.className = 'autoplay-notice';
+                autoplayNotice.style.position = 'fixed';
+                autoplayNotice.style.bottom = '10px';
+                autoplayNotice.style.left = '10px';
+                autoplayNotice.style.padding = '10px';
+                autoplayNotice.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+                autoplayNotice.style.color = 'white';
+                autoplayNotice.style.borderRadius = '5px';
+                autoplayNotice.style.zIndex = '1000';
+                autoplayNotice.style.fontSize = '12px';
+                autoplayNotice.textContent = '💡 You may need to click on videos to play them due to browser autoplay policies';
+                document.body.appendChild(autoplayNotice);
+                
+                // Hide the notice after 10 seconds
+                setTimeout(() => {
+                    autoplayNotice.style.opacity = '0';
+                    autoplayNotice.style.transition = 'opacity 1s';
+                    setTimeout(() => autoplayNotice.remove(), 1000);
+                }, 10000);
+            }
+        })
+        .catch(error => {
+            addLogEntry(`Error checking autoplay permission: ${error.message}`, 'error');
+        });
+
     // Listen for stream recovery events from video-player.js
     document.addEventListener('webrtc-stream-recovery', (event) => {
         const { userId, reason } = event.detail;
@@ -2115,5 +2170,189 @@ function diagnoseWebSocketIssues(socketUrl, socketPath, envType, isSecurePage) {
             addLogEntry(`proxy_set_header Connection "upgrade";`, 'system');
         };
     }
+}
+
+// --- WebRTC Core Functions ---
+
+// Check and request autoplay permissions
+async function checkAutoplayPermission() {
+    addLogEntry(`Checking autoplay permission...`, 'media');
+    
+    try {
+        // Create a temporary silent audio context to test autoplay
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        await audioContext.resume();
+        
+        // Create a temporary video element to test video autoplay
+        const tempVideo = document.createElement('video');
+        tempVideo.muted = true;
+        tempVideo.srcObject = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        tempVideo.style.display = 'none';
+        document.body.appendChild(tempVideo);
+        
+        // Try to play the video
+        await tempVideo.play();
+        
+        // If we get here, autoplay is allowed
+        document.body.removeChild(tempVideo);
+        tempVideo.srcObject.getTracks().forEach(track => track.stop());
+        
+        addLogEntry(`Autoplay permission granted`, 'success');
+        return true;
+    } catch (error) {
+        addLogEntry(`Autoplay permission denied: ${error.message}`, 'error');
+        
+        // Create permission request UI
+        const permissionUI = document.createElement('div');
+        permissionUI.className = 'autoplay-permission';
+        permissionUI.style.position = 'fixed';
+        permissionUI.style.top = '50%';
+        permissionUI.style.left = '50%';
+        permissionUI.style.transform = 'translate(-50%, -50%)';
+        permissionUI.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+        permissionUI.style.padding = '20px';
+        permissionUI.style.borderRadius = '8px';
+        permissionUI.style.zIndex = '9999';
+        permissionUI.style.boxShadow = '0 0 20px rgba(0, 0, 0, 0.5)';
+        permissionUI.style.color = 'white';
+        permissionUI.style.textAlign = 'center';
+        
+        permissionUI.innerHTML = `
+            <h3 style="margin-top: 0;">Autoplay Permission Required</h3>
+            <p>Your browser requires permission to autoplay videos with audio.</p>
+            <p>Please click the button below to enable video playback.</p>
+            <button id="enableAutoplay" style="padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Enable Video Playback</button>
+        `;
+        
+        document.body.appendChild(permissionUI);
+        
+        // Listen for click to enable autoplay
+        return new Promise(resolve => {
+            document.getElementById('enableAutoplay').addEventListener('click', async () => {
+                try {
+                    // Try to play audio after user interaction
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    await audioContext.resume();
+                    
+                    // Remove the permission UI
+                    document.body.removeChild(permissionUI);
+                    addLogEntry(`Autoplay permission granted after user interaction`, 'success');
+                    resolve(true);
+                } catch (e) {
+                    addLogEntry(`Still couldn't get autoplay permission: ${e.message}`, 'error');
+                    resolve(false);
+                }
+            });
+        });
+    }
+}
+
+// Safe video playback function with better error handling
+async function safePlayVideo(videoElement) {
+    if (!videoElement) return Promise.reject(new Error('No video element provided'));
+    
+    // Make sure the video element has a valid srcObject
+    if (!videoElement.srcObject) {
+        return Promise.reject(new Error('No media source attached to video element'));
+    }
+    
+    // Add event listeners to detect when the video is ready to play
+    return new Promise((resolve, reject) => {
+        // Check if video is already playing
+        if (!videoElement.paused) {
+            resolve('Video already playing');
+            return;
+        }
+        
+        // Setup event handlers before attempting to play
+        const loadedHandler = () => {
+            videoElement.removeEventListener('loadedmetadata', loadedHandler);
+            
+            // Attempt to play with timeout to detect possible issues
+            let playPromise;
+            try {
+                playPromise = videoElement.play();
+                
+                // Handle browsers that don't return a promise
+                if (playPromise === undefined) {
+                    addLogEntry('Browser does not return play promise, assuming success', 'warn');
+                    resolve('Play started');
+                    return;
+                }
+                
+                playPromise.then(() => {
+                    addLogEntry(`Video playback started successfully`, 'success');
+                    resolve('Play started');
+                }).catch(error => {
+                    addLogEntry(`Play failed: ${error.message}`, 'error');
+                    reject(error);
+                });
+            } catch (e) {
+                addLogEntry(`Exception during play attempt: ${e.message}`, 'error');
+                reject(e);
+            }
+        };
+        
+        // If already loaded, try to play immediately
+        if (videoElement.readyState >= 2) {
+            loadedHandler();
+        } else {
+            // Wait for video to be ready before playing
+            videoElement.addEventListener('loadedmetadata', loadedHandler);
+            
+            // Add timeout to detect if video loading takes too long
+            setTimeout(() => {
+                if (videoElement.paused) {
+                    videoElement.removeEventListener('loadedmetadata', loadedHandler);
+                    reject(new Error('Video loading timeout'));
+                }
+            }, 5000);
+        }
+    });
+}
+
+// Add a retry button for videos that fail to play
+function addVideoPlayRetryButton(videoElement) {
+    if (!videoElement || !videoElement.parentElement) return;
+    
+    // Check if retry button already exists
+    if (videoElement.parentElement.querySelector('.video-retry-btn')) return;
+    
+    const retryBtn = document.createElement('button');
+    retryBtn.className = 'video-retry-btn';
+    retryBtn.innerHTML = '▶️ Tap to Play';
+    retryBtn.style.position = 'absolute';
+    retryBtn.style.top = '50%';
+    retryBtn.style.left = '50%';
+    retryBtn.style.transform = 'translate(-50%, -50%)';
+    retryBtn.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+    retryBtn.style.color = 'white';
+    retryBtn.style.padding = '10px 20px';
+    retryBtn.style.border = 'none';
+    retryBtn.style.borderRadius = '5px';
+    retryBtn.style.cursor = 'pointer';
+    retryBtn.style.zIndex = '10';
+    
+    // Add click handler to retry playing
+    retryBtn.addEventListener('click', async () => {
+        try {
+            // First try to get autoplay permission
+            await checkAutoplayPermission();
+            
+            // Then try to play the video
+            await videoElement.play();
+            
+            // If successful, remove the button
+            if (retryBtn.parentElement) {
+                retryBtn.parentElement.removeChild(retryBtn);
+            }
+            
+            addLogEntry('Video playback started after user interaction', 'success');
+        } catch (e) {
+            addLogEntry(`Failed to play video after retry: ${e.message}`, 'error');
+        }
+    });
+    
+    videoElement.parentElement.appendChild(retryBtn);
 }
 
