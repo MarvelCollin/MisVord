@@ -1064,7 +1064,7 @@ function connectToSignalingServer() {
         // Ensure the URL is correct and doesn't have duplicate paths
         if (socketServerUrl.includes('/misvord/socket')) {
             // Reset to a clean URL to avoid duplicate paths
-            socketServerUrl = 'https://marvelcollin.my.id/misvord/socket';
+            socketServerUrl = 'https://marvelcollin.my.id/';
             socketPath = '/misvord/socket/socket.io';
             
             // Prevent duplicate paths in socketPath
