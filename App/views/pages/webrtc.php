@@ -36,13 +36,16 @@ if (empty($socket_server_url)) {
         $socket_server_url = 'http://localhost:1002';
     } else if ($is_marvel_domain) {
         // Production on marvelcollin.my.id domain with subpath
-        // IMPORTANT: Use HTTPS for production
+        // IMPORTANT: ALWAYS use HTTPS for marvelcollin.my.id domain
         $socket_server_url = 'https://' . $host_domain . '/misvord/socket';
     } else {
         // Other production/VPS environments
         // Force HTTPS for WebSockets when the page is loaded over HTTPS
         $host_domain = preg_replace('#^https?://#', '', $host_domain);
-        $socket_server_url = $protocol . '://' . $host_domain . ':1002';
+        
+        // IMPORTANT: Don't use direct port references for production - always use subpath
+        // $socket_server_url = $protocol . '://' . $host_domain . ':1002';
+        $socket_server_url = $protocol . '://' . $host_domain . '/misvord/socket';
         
         // For VPS with Nginx proxy, use the subpath approach instead of direct port
         if ($is_production || getenv('IS_VPS') === 'true') {

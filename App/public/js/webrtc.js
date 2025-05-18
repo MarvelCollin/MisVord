@@ -1013,17 +1013,31 @@ function connectToSignalingServer() {
         return;
     }
     
-    let socketServerUrl = socketServerUrlMeta.content;
+    const socketServerUrl = socketServerUrlMeta.content;
     let socketPath = socketPathMeta ? socketPathMeta.content : '/socket.io';
     const envType = envTypeMeta ? envTypeMeta.content : 'unknown';
     const isSecurePage = socketSecureMeta ? socketSecureMeta.content === 'true' : window.location.protocol === 'https:';
     const isSubpath = socketSubpathMeta ? socketSubpathMeta.content === 'true' : false;
+    
+    // Define isLocalhost variable
+    const hostname = window.location.hostname;
+    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.includes('192.168.');
     
     // Force HTTPS/WSS if page is loaded over HTTPS
     if (isSecurePage && socketServerUrl.startsWith('http:')) {
         // Replace http: with https: for secure WebSockets
         socketServerUrl = socketServerUrl.replace('http:', 'https:');
         addLogEntry(`Enforcing secure WebSockets, updated URL to: ${socketServerUrl}`, 'system');
+    }
+    
+    // Special handling for marvelcollin.my.id - ALWAYS use HTTPS/WSS
+    if (hostname === 'marvelcollin.my.id') {
+        if (socketServerUrl.startsWith('http:')) {
+            socketServerUrl = socketServerUrl.replace('http:', 'https:');
+        }
+        // Force secure WebSockets
+        addLogEntry(`Forcing secure WebSockets for marvelcollin.my.id domain`, 'system');
+        isSecurePage = true;
     }
     
     // VPS safety check: ensure proper protocol and path for subdomain deployments
@@ -1058,6 +1072,16 @@ function connectToSignalingServer() {
             socketServerUrl = socketServerUrl.replace('http:', 'https:');
         }
         
+        // Check for incorrect direct port usage (1002) which causes Mixed Content errors
+        if (socketServerUrl.includes(':1002')) {
+            addLogEntry('WARNING: Direct port reference detected in socket URL. This can cause Mixed Content errors.', 'error');
+            // Replace direct port with subpath approach
+            const urlBase = window.location.protocol + '//' + window.location.host;
+            socketServerUrl = `${urlBase}/misvord/socket`;
+            addLogEntry(`Replacing direct port reference with subpath URL: ${socketServerUrl}`, 'system');
+        }
+        
+        // For VPS environments, prefer relative URLs to avoid cross-origin issues
         // For VPS environments, prefer relative URLs to avoid cross-origin issues
         if (socketServerUrl.includes(window.location.host)) {
             const pathOnly = socketServerUrl.replace(/^https?:\/\/[^/]+/, '');
@@ -1093,6 +1117,11 @@ function connectToSignalingServer() {
             secure: isSecurePage, // Force secure WebSockets when on HTTPS
             rejectUnauthorized: !isLocalhost, // Don't reject self-signed certs on localhost
             autoConnect: true,
+            // Force WSS for marvelcollin.my.id
+            ...(hostname === 'marvelcollin.my.id' ? { 
+                secure: true,
+                withCredentials: true 
+            } : {}),
             query: {
                 clientVersion: '1.0.0',
                 userAgent: navigator.userAgent,
