@@ -1,78 +1,71 @@
-# MiscVord - Voice and Text Chat Application
+# MiscVord
 
-MiscVord is a Discord-like communication platform with text and voice/video chat capabilities.
+A modern communications platform with text and video chat capabilities.
 
-## Deployment Instructions
+## Quick Start
 
-### Prerequisites
-- A VPS with Docker and Docker Compose installed
-- Domain pointing to your VPS
-- Open ports: 1001-1005
+### Local Development
+1. Clone the repository
+2. Run `./deploy.sh` (the script will automatically detect local environment)
+3. Access the application at `http://localhost:1001`
 
-### Quick Start
+### VPS Deployment
 1. Clone the repository to your VPS
-2. Navigate to the App directory: `cd MisVord/App`
-3. Run the deployment script: `./deploy.sh`
-4. Access the application at: `http://your-domain:1001`
+2. Run `./deploy.sh` (the script will detect VPS environment and prompt for domain)
+3. Follow the instructions to configure NGINX
+4. Access the application at `https://your-domain/misvord`
 
-### Service Ports
-- PHP App: 1001
-- Socket Server: 1002 
-- MySQL Database: 1003
-- PHPMyAdmin: 1004
-- Adminer: 1005
+## Docker Services
 
-### Troubleshooting
-If you encounter issues:
-1. Check container logs: `docker logs miscvord_php`
-2. Verify port accessibility: `sudo netstat -tulpn | grep 1001`
-3. Ensure firewall allows connections: `sudo ufw allow 1001/tcp`
+| Service | Local Port | Description |
+|---------|------------|-------------|
+| app | 1001 | PHP application serving the web interface |
+| socket-server | 1002 | Node.js server for real-time communication |
+| db | 1003 | MySQL database for data storage |
+| phpmyadmin | 1004 | Database management web interface |
+| adminer | 1005 | Alternative database management tool |
 
-### Note About HTTPS
-To enable HTTPS:
-1. Install Nginx and Certbot
-2. Set up a reverse proxy using the provided nginx-config.conf
-3. Run Certbot to get SSL certificates
+## Environment Configuration
 
-## Features
+The application now uses dynamic configuration through environment variables.
+You can create a `.env` file or let the deploy script auto-generate one for you.
 
-- Real-time text messaging
-- Voice and video chat using WebRTC
-- Server and channel organization
-- User authentication system
-- Invite link system for servers
+Key environment variables:
+- `APP_ENV`: local/production
+- `IS_VPS`: true/false
+- `DOMAIN`: your domain name
+- `SUBPATH`: deployment subpath (default: misvord)
+- `USE_HTTPS`: true/false
 
-## Tech Stack
+See `docs-env.md` for complete environment configuration details.
 
-- **Backend**: PHP and Node.js
-- **Frontend**: HTML, CSS, JavaScript
-- **Database**: MySQL
-- **Real-time Communication**: Socket.io
-- **Voice/Video**: WebRTC
-- **Containerization**: Docker
+## WebRTC Video Chat
 
-## Docker Infrastructure
+The video chat functionality uses WebRTC with a Socket.IO signaling server:
 
-The project uses Docker for easy deployment, with these containers:
-
-- **app**: PHP application serving the web interface
-- **socket-server**: Node.js server for real-time communication
-- **db**: MySQL database for data storage
-- **phpmyadmin**: Database management web interface
-- **adminer**: Alternative database management tool
+- `check-websocket.sh` - Test WebSocket connectivity
+- `public/js/webrtc-modules/` - WebRTC modules for video chat
 
 ## Troubleshooting
 
-If you encounter any issues, check:
+If you encounter any issues:
 
-1. Container status with `docker ps -a`
-2. Service logs with `docker logs [container_name]`
-3. Connectivity with `./check-ports.sh`
-4. Restart services with `docker-compose restart`
+1. Container status: `docker-compose ps`
+2. Service logs: `docker-compose logs -f [service]`
+3. WebSocket connectivity: `./check-websocket.sh`
+4. Restart services: `docker-compose restart`
 
 ## Security Notes
 
 For production environments:
-- Configure proper SSL certificates with Let's Encrypt
+- Use HTTPS with proper SSL certificates (Let's Encrypt)
 - Set strong database passwords
-- Use a reverse proxy like Nginx for cleaner URLs and security 
+- Use a reverse proxy like NGINX for cleaner URLs and security
+
+## Deploying to Subpath
+
+For deploying to a subpath on existing servers:
+1. Run `./deploy-subpath.sh`
+2. Follow the prompts to configure domain and subpath
+3. Use the generated NGINX configuration
+4. Access at `https://your-domain/your-subpath` 

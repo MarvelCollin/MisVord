@@ -49,6 +49,17 @@ console.log(`CORS allowed origins: ${corsAllowedOrigins}`);
 const socketPath = process.env.SOCKET_PATH || '/socket.io';
 console.log(`Using Socket.IO path: ${socketPath}`);
 
+// Detect environment - VPS or local
+const isVpsEnvironment = process.env.IS_VPS === 'true';
+const domain = process.env.DOMAIN || 'localhost';
+const subpath = process.env.SUBPATH || 'misvord';
+
+// Enhanced environment logging
+console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+console.log(`VPS mode: ${isVpsEnvironment ? 'Yes' : 'No'}`);
+console.log(`Domain: ${domain}`);
+console.log(`Subpath: ${subpath}`);
+
 // Setup Socket.IO with enhanced CORS and path support for Nginx subpath
 const io = socketIo(server, {
   cors: {
@@ -136,11 +147,7 @@ setInterval(() => {
   }
 }, 60000);
 
-// VPS detection - helps with automatic protocol detection
-const isVpsEnvironment = process.env.NODE_ENV === 'production' || process.env.IS_VPS === 'true';
-if (isVpsEnvironment) {
-  console.log('🌐 Running in VPS environment - enabling production optimizations');
-}
+// VPS detection - already initialized earlierif (isVpsEnvironment) {  console.log('🌐 Running in VPS environment - enabling production optimizations');}
 
 const VIDEO_CHAT_ROOM = 'global-video-chat';
 const videoChatUsers = {}; // Store users in the video chat { socketId: { userId, userName, socketId } }
@@ -232,16 +239,26 @@ function getRoomMembers(roomName) {
 
 io.on('connection', (socket) => {
   activeConnections++;
-  const clientIp = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address;
+  
+  const clientIP = socket.handshake.headers['x-forwarded-for'] || 
+                 socket.handshake.headers['x-real-ip'] || 
+                 socket.handshake.address;
+  const clientProtocol = socket.handshake.headers['x-forwarded-proto'] || 'http';
+  const clientHost = socket.handshake.headers['x-forwarded-host'] || socket.handshake.headers.host || 'unknown';
   const clientPath = socket.handshake.query.path || 'Not provided';
-  const clientEnv = socket.handshake.query.envType || 'Not provided';
-  const protocol = socket.handshake.headers['x-forwarded-proto'] || 'http';
-  const isSecure = protocol === 'https' || socket.handshake.secure;
   
-  console.log(`[CONNECTION] Socket connected: ${socket.id} from ${clientIp} (Total: ${activeConnections})`);
-  console.log(`[CONNECTION] Client info: Environment=${clientEnv}, Path=${clientPath}, Protocol=${protocol}, Secure=${isSecure}`);
+  console.log(`[CONNECT] New connection from ${clientIP} via ${clientProtocol}://${clientHost}`);
+  debugLog(`Client environment data: Path=${clientPath}`);
   
-  debugLog(`User connected: ${socket.id}`);
+  if (DEBUG_CONNECTION) {
+    console.log(`[CONNECT] Socket ${socket.id} connected - Active: ${activeConnections}`);
+    console.log(`[CONNECT] Client headers:`, JSON.stringify({
+      'x-forwarded-for': socket.handshake.headers['x-forwarded-for'],
+      'x-forwarded-host': socket.handshake.headers['x-forwarded-host'],
+      'x-forwarded-proto': socket.handshake.headers['x-forwarded-proto'],
+      'host': socket.handshake.headers.host
+    }));
+  }
 
   // Track connection quality
   let connectionQuality = 'unknown';
@@ -778,11 +795,10 @@ location /socket.io/ {
     proxy_set_header X-Forwarded-Proto $scheme;
 }
 
-For path-based deployment (like /misvord/socket/), use:
+For path-based deployment (like /${subpath}/socket/), use:
 
-location /misvord/socket/ {
-    rewrite ^/misvord/socket/(.*) /$1 break;
-    proxy_pass http://localhost:${FINAL_PORT};
+location /${subpath}/socket/ {
+    proxy_pass http://localhost:${FINAL_PORT}/;
     proxy_http_version 1.1;
     proxy_set_header Upgrade $http_upgrade;
     proxy_set_header Connection "upgrade";
@@ -791,6 +807,15 @@ location /misvord/socket/ {
     proxy_set_header X-Forwarded-Proto $scheme;
 }
 
+location /${subpath}/socket/socket.io/ {
+    proxy_pass http://localhost:${FINAL_PORT}/socket.io/;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
 ===================================================================
 `);
 }

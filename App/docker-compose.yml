@@ -27,18 +27,22 @@ services:
     networks:
       - miscvord_network
     ports:
-      - "1001:80"
+      - "${APP_PORT:-1001}:80"
     environment:
-      - APP_ENV=production
+      - APP_ENV=${APP_ENV:-local}
+      - APP_DEBUG=${APP_DEBUG:-true}
       - DB_HOST=db
-      - DB_PORT=1003
-      - DB_NAME=misvord
-      - DB_USER=root
-      - DB_PASS=password
-      - DB_CHARSET=utf8mb4
-      - SOCKET_SERVER=http://socket-server:1002
-      - SOCKET_SERVER_LOCAL=http://localhost:1002
-      - SOCKET_API_KEY=kolin123
+      - DB_PORT=${DB_PORT:-1003}
+      - DB_NAME=${DB_NAME:-misvord}
+      - DB_USER=${DB_USER:-root}
+      - DB_PASS=${DB_PASS:-password}
+      - DB_CHARSET=${DB_CHARSET:-utf8mb4}
+      - SOCKET_SERVER=${SOCKET_SERVER:-http://socket-server:1002}
+      - SOCKET_SERVER_LOCAL=${SOCKET_SERVER_LOCAL:-http://localhost:1002}
+      - SOCKET_API_KEY=${SOCKET_API_KEY:-kolin123}
+      - IS_VPS=${IS_VPS:-false}
+      - DOMAIN=${DOMAIN:-localhost}
+      - SUBPATH=${SUBPATH:-misvord}
     security_opt:
       - no-new-privileges:true
     healthcheck:
@@ -60,21 +64,25 @@ services:
     networks:
       - miscvord_network
     ports:
-      - "1002:1002"
-      - "1443:1443" # Added secure port for HTTPS/WSS
+      - "${SOCKET_PORT:-1002}:1002"
+      - "${SOCKET_SECURE_PORT:-1443}:1443" # Added secure port for HTTPS/WSS
     environment:
-      - NODE_ENV=production
-      - PORT=1002
-      - SECURE_PORT=1443 # Added environment variable for secure port
-      - SOCKET_API_KEY=kolin123
+      - NODE_ENV=${APP_ENV:-local}
+      - PORT=${SOCKET_PORT:-1002}
+      - SECURE_PORT=${SOCKET_SECURE_PORT:-1443}
+      - SOCKET_API_KEY=${SOCKET_API_KEY:-kolin123}
       - DB_HOST=db
-      - DB_PORT=1003
-      - DB_NAME=misvord
-      - DB_USER=root
-      - DB_PASS=password
-      - SOCKET_URL=https://socket-server:1443 # Updated to HTTPS
-      - CORS_ALLOWED_ORIGINS=*
-      - USE_HTTPS=true # Enable HTTPS support
+      - DB_PORT=${DB_PORT:-1003}
+      - DB_NAME=${DB_NAME:-misvord}
+      - DB_USER=${DB_USER:-root}
+      - DB_PASS=${DB_PASS:-password}
+      - SOCKET_URL=${SOCKET_SERVER:-http://socket-server:1002}
+      - SOCKET_PATH=${SOCKET_PATH:-/socket.io}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-*}
+      - USE_HTTPS=${USE_HTTPS:-false}
+      - IS_VPS=${IS_VPS:-false}
+      - DOMAIN=${DOMAIN:-localhost}
+      - SUBPATH=${SUBPATH:-misvord}
     security_opt:
       - no-new-privileges:true
     ulimits:
@@ -94,27 +102,27 @@ services:
     container_name: miscvord_db
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: misvord
-      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: ${DB_NAME:-misvord}
+      MYSQL_ROOT_PASSWORD: ${DB_PASS:-password}
       MYSQL_ROOT_HOST: "%"
-      MYSQL_TCP_PORT: 1003
+      MYSQL_TCP_PORT: ${DB_PORT:-1003}
     volumes:
       - miscvord_db_data:/var/lib/mysql
     networks:
       - miscvord_network
     ports:
-      - "1003:1003"
-    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --port=1003
+      - "${DB_PORT:-1003}:${DB_PORT:-1003}"
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --port=${DB_PORT:-1003}
     security_opt:
       - seccomp:unconfined
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-P", "1003"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-P", "${DB_PORT:-1003}"]
       interval: 10s
       timeout: 5s
       retries: 3
       start_period: 30s
 
-  # Enhanced PHPMyAdmin 
+  # Enhanced PHPMyAdmin
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
     container_name: miscvord_phpmyadmin
@@ -123,14 +131,14 @@ services:
     networks:
       - miscvord_network
     ports:
-      - "1004:80"
+      - "${PMA_PORT:-1004}:80"
     environment:
       - PMA_HOST=db
-      - PMA_PORT=1003
+      - PMA_PORT=${DB_PORT:-1003}
       - PMA_ARBITRARY=1
       - UPLOAD_LIMIT=500M
-      - PMA_USER=root
-      - PMA_PASSWORD=password
+      - PMA_USER=${DB_USER:-root}
+      - PMA_PASSWORD=${DB_PASS:-password}
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
@@ -144,7 +152,7 @@ services:
     networks:
       - miscvord_network
     ports:
-      - "1005:8080"
+      - "${ADMINER_PORT:-1005}:8080"
     environment:
       ADMINER_DEFAULT_SERVER: db
       ADMINER_DESIGN: pepa-linha

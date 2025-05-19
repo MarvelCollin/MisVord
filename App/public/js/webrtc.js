@@ -89,15 +89,15 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // If we've initialized but the permission UI is still visible,
         // update the status to prompt the user
-        setTimeout(() => {
+                    setTimeout(() => {
             const permissionRequest = document.getElementById('permissionRequest');
             if (permissionRequest && permissionRequest.style.display !== 'none') {
                 const permissionStatus = document.getElementById('permissionStatus');
                 if (permissionStatus) {
                     permissionStatus.innerHTML = 'Please click "Allow Camera & Mic" below to start.';
                 }
-            }
-        }, 3000);
+                    }
+                }, 3000);
     }).catch(error => {
         console.error("Failed to load WebRTC modules:", error);
         // Show error message on permission UI
@@ -230,7 +230,7 @@ function setupRetryPermissionHandler() {
                             }
                             
                             // Hide permission dialog after delay
-                            setTimeout(() => {
+                    setTimeout(() => {
                                 const permissionRequest = document.getElementById('permissionRequest');
                                 if (permissionRequest) {
                                     permissionRequest.style.display = 'none';
@@ -252,7 +252,7 @@ function setupRetryPermissionHandler() {
                                     permissionStatus.innerHTML = '<i class="fas fa-times-circle mr-2"></i> Permission denied. Please allow camera and microphone access.';
                                 } else if (error.name === 'NotFoundError') {
                                     permissionStatus.innerHTML = '<i class="fas fa-exclamation-triangle mr-2"></i> No camera or microphone found on your device.';
-                                } else {
+                } else {
                                     permissionStatus.innerHTML = `<i class="fas fa-exclamation-triangle mr-2"></i> ${error.message || 'Unknown error accessing media devices'}`;
                                 }
                             }
@@ -301,7 +301,7 @@ function setupRetryPermissionHandler() {
                             }
                             
                             // Hide permission dialog after delay
-                            setTimeout(() => {
+    setTimeout(() => {
                                 const permissionRequest = document.getElementById('permissionRequest');
                                 if (permissionRequest) {
                                     permissionRequest.style.display = 'none';
