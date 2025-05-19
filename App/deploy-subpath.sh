@@ -42,13 +42,13 @@ cat > .env << EOL
 APP_ENV=production         # ALWAYS set to production for VPS deployment
 APP_DEBUG=false            # ALWAYS disable debug for production
 
-# Docker ports configuration
-APP_PORT=1001              # Use port 1001 to avoid conflicts
-SOCKET_PORT=1002
-SOCKET_SECURE_PORT=1443
-DB_PORT=1003
-PMA_PORT=1004
-ADMINER_PORT=1005
+# Docker ports configuration - consistent port numbers on both host and container
+APP_PORT=1001              # App port 1001 for both host and container
+SOCKET_PORT=1002           # Socket server port 1002
+SOCKET_SECURE_PORT=1443    # Secure socket port 1443
+DB_PORT=1003               # MySQL port 1003
+PMA_PORT=1004              # PHPMyAdmin port 1004
+ADMINER_PORT=1005          # Adminer port 1005
 
 # Database configuration
 DB_HOST=db
@@ -80,7 +80,11 @@ echo -e "  ${BLUE}• Domain:${NC} ${DOMAIN}"
 echo -e "  ${BLUE}• Subpath:${NC} ${SUBPATH}"
 echo -e "  ${BLUE}• HTTPS:${NC} Enabled"
 echo -e "  ${BLUE}• Socket Path:${NC} /${SUBPATH}/socket/socket.io"
-echo -e "  ${BLUE}• App Port:${NC} 1001 (changed from 80 to avoid conflicts)"
+echo -e "  ${BLUE}• App Port:${NC} 1001"
+echo -e "  ${BLUE}• Socket Port:${NC} 1002"
+echo -e "  ${BLUE}• DB Port:${NC} 1003"
+echo -e "  ${BLUE}• PHPMyAdmin Port:${NC} 1004"
+echo -e "  ${BLUE}• Adminer Port:${NC} 1005"
 
 # Check for docker-compose
 if command -v docker-compose > /dev/null 2>&1; then
@@ -126,7 +130,7 @@ location /${SUBPATH}/ {
 
 # Socket.IO server for /${SUBPATH}/socket
 location /${SUBPATH}/socket/ {
-    proxy_pass http://localhost:${SOCKET_PORT:-1002}/;
+    proxy_pass http://localhost:1002/;
     proxy_http_version 1.1;
     proxy_set_header Upgrade \$http_upgrade;
     proxy_set_header Connection "upgrade";
@@ -140,7 +144,7 @@ location /${SUBPATH}/socket/ {
 
 # Socket.IO specific handlers
 location /${SUBPATH}/socket/socket.io/ {
-    proxy_pass http://localhost:${SOCKET_PORT:-1002}/socket.io/;
+    proxy_pass http://localhost:1002/socket.io/;
     proxy_http_version 1.1;
     proxy_set_header Upgrade \$http_upgrade;
     proxy_set_header Connection "upgrade";
@@ -157,4 +161,10 @@ echo -e "\n${YELLOW}Next steps:${NC}"
 echo -e "1. Add the NGINX configuration above to your server"
 echo -e "2. Reload NGINX: ${BLUE}sudo systemctl reload nginx${NC}"
 echo -e "3. Test your WebSocket connection: ${BLUE}sh check-websocket.sh${NC}"
-echo -e "4. Access your application at: ${BLUE}${PROTOCOL}://${DOMAIN}/${SUBPATH}/${NC}" 
+echo -e "4. Access your application at: ${BLUE}${PROTOCOL}://${DOMAIN}/${SUBPATH}/${NC}"
+echo -e "\n${YELLOW}Port configuration:${NC}"
+echo -e "  ${BLUE}• Main app:${NC} http://localhost:1001"
+echo -e "  ${BLUE}• Socket server:${NC} http://localhost:1002"
+echo -e "  ${BLUE}• MySQL:${NC} localhost:1003"
+echo -e "  ${BLUE}• PHPMyAdmin:${NC} http://localhost:1004"
+echo -e "  ${BLUE}• Adminer:${NC} http://localhost:1005" 

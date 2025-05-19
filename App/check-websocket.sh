@@ -75,6 +75,9 @@ echo -e "  ${BLUE}• Subpath:${NC} /${SUBPATH}"
 echo -e "  ${BLUE}• HTTPS:${NC} $([ "$USE_HTTPS" = "true" ] && echo "${GREEN}Enabled${NC}" || echo "${YELLOW}Disabled${NC}")"
 echo -e "  ${BLUE}• Socket URL:${NC} ${SOCKET_URL}"
 echo -e "  ${BLUE}• WebSocket URL:${NC} ${SOCKET_WS_URL}"
+echo -e "  ${BLUE}• APP_PORT:${NC} ${APP_PORT:-1001}"
+echo -e "  ${BLUE}• SOCKET_PORT:${NC} ${SOCKET_PORT:-1002}"
+echo -e "  ${BLUE}• DB_PORT:${NC} ${DB_PORT:-1003}"
 
 echo -e "\n${YELLOW}Testing Socket Server Health Endpoint...${NC}"
 if command -v curl &> /dev/null; then
@@ -87,7 +90,7 @@ if command -v curl &> /dev/null; then
         
         # Try alternative URL for different environments
         if [ "$IS_VPS" = "true" ]; then
-            ALT_URL="http://localhost:$SOCKET_PORT/health"
+            ALT_URL="http://localhost:1002/health"
             echo -e "Trying direct port: ${ALT_URL}"
             if curl -s "$ALT_URL" | grep -q "healthy"; then
                 echo -e "${GREEN}✓ Socket server is healthy on direct port${NC}"
@@ -102,7 +105,7 @@ if command -v curl &> /dev/null; then
             fi
         else
             # For local dev, try without socket-server container name
-            ALT_URL="http://localhost:$SOCKET_PORT/health" 
+            ALT_URL="http://localhost:1002/health" 
             echo -e "Trying direct localhost: ${ALT_URL}"
             if curl -s "$ALT_URL" | grep -q "healthy"; then
                 echo -e "${GREEN}✓ Socket server is healthy on localhost${NC}"
@@ -142,7 +145,7 @@ if [ "$IS_VPS" = "true" ]; then
     echo -e "Make sure your NGINX configuration includes the following WebSocket settings:"
     echo -e "${BLUE}"
     echo -e "location /${SUBPATH}/socket/ {"
-    echo -e "    proxy_pass http://localhost:$SOCKET_PORT/;"
+    echo -e "    proxy_pass http://localhost:1002/;"
     echo -e "    proxy_http_version 1.1;"
     echo -e "    proxy_set_header Upgrade \$http_upgrade;"
     echo -e "    proxy_set_header Connection \"upgrade\";"
@@ -163,7 +166,7 @@ if [ "$IS_VPS" = "true" ]; then
     
 else
     echo -e "\n${YELLOW}==== LOCAL DEVELOPMENT CONFIGURATION ====${NC}"
-    echo -e "Your socket server is running directly on port $SOCKET_PORT"
+    echo -e "Your socket server is running directly on port 1002"
     
     # Add message about how to change environment if needed
     echo -e "\n${YELLOW}To deploy to marvelcollin.my.id:${NC}"
@@ -182,4 +185,11 @@ if [ "$IS_MARVELCOLLIN" = "true" ]; then
     echo -e "   ${BLUE}https://marvelcollin.my.id/${SUBPATH}/${NC}"
 else
     echo -e "   ${BLUE}$PROTOCOL://$DOMAIN/$([ "$IS_VPS" = "true" ] && echo "$SUBPATH" || echo "")${NC}"
-fi 
+fi
+
+echo -e "\n${YELLOW}Port Summary:${NC}"
+echo -e "  ${BLUE}• App Server:${NC} http://localhost:1001"
+echo -e "  ${BLUE}• Socket Server:${NC} http://localhost:1002"
+echo -e "  ${BLUE}• Database:${NC} port 1003"
+echo -e "  ${BLUE}• PHPMyAdmin:${NC} http://localhost:1004"
+echo -e "  ${BLUE}• Adminer:${NC} http://localhost:1005" 

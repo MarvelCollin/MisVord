@@ -1,13 +1,25 @@
-FROM node:18
+FROM node:18-alpine
 
-WORKDIR /app
+# Create app directory
+WORKDIR /usr/src/app
 
+# Install app dependencies
 COPY package*.json ./
 
+# Install dependencies
 RUN npm install
 
-COPY socket-server.js ./
+# Bundle app source
+COPY . .
 
+# Set environment variables with defaults
+ENV PORT=1002
+ENV SECURE_PORT=1443
+ENV NODE_ENV=production
+
+# Expose ports
 EXPOSE 1002
+EXPOSE 1443
 
-CMD ["node", "socket-server.js"]
+# Start socket server
+CMD [ "node", "socket-server.js" ]

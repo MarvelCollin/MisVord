@@ -1,60 +1,54 @@
-FROM php:8.0-apache
+FROM php:8.1-apache
 
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
-    libzip-dev \
+    git \
+    curl \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
     zip \
     unzip \
-    curl \
-    && docker-php-ext-install zip pdo_mysql
+    libssl-dev \
+    libzip-dev \
+    wget \
+    libwebp-dev \
+    libjpeg62-turbo-dev \
+    libxpm-dev \
+    default-mysql-client
 
-# Enable Apache rewrite module
-RUN a2enmod rewrite
+# Clear cache
+RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Set up PHP configuration
-RUN echo "memory_limit=256M" > /usr/local/etc/php/conf.d/memory-limit.ini
-RUN echo "upload_max_filesize=100M" > /usr/local/etc/php/conf.d/upload-limit.ini
-RUN echo "post_max_size=100M" > /usr/local/etc/php/conf.d/post-limit.ini
+# Install PHP extensions
+RUN docker-php-ext-configure gd --with-webp --with-jpeg
+RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd xml zip soap intl
 
-# Enable environment variables to be read by PHP
-ENV APACHE_ENVVARS=/etc/apache2/envvars
-RUN echo "export DB_HOST=\${DB_HOST}" >> $APACHE_ENVVARS
-RUN echo "export DB_NAME=\${DB_NAME}" >> $APACHE_ENVVARS
-RUN echo "export DB_USER=\${DB_USER}" >> $APACHE_ENVVARS
-RUN echo "export DB_PASS=\${DB_PASS}" >> $APACHE_ENVVARS
-RUN echo "export DB_CHARSET=\${DB_CHARSET}" >> $APACHE_ENVVARS
-RUN echo "export SOCKET_SERVER=\${SOCKET_SERVER}" >> $APACHE_ENVVARS
-RUN echo "export SOCKET_API_KEY=\${SOCKET_API_KEY}" >> $APACHE_ENVVARS
-
-# Configure Apache
-COPY docker/apache/000-default.conf /etc/apache2/sites-available/000-default.conf
+# Get latest Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 # Set working directory
 WORKDIR /var/www/html
 
-# Copy core PHP files
-COPY index.php /var/www/html/
-COPY router.php /var/www/html/
-COPY config /var/www/html/config
-COPY views /var/www/html/views
-COPY public /var/www/html/public
-COPY controllers /var/www/html/controllers
-COPY bootstrap /var/www/html/bootstrap
-COPY migrations /var/www/html/migrations
-COPY database /var/www/html/database
-COPY utils /var/www/html/utils
-COPY .htaccess /var/www/html/
+# Copy application files
+COPY . /var/www/html/
 
-# Create storage directory with proper permissions
-RUN mkdir -p /var/www/html/storage && \
-    chown -R www-data:www-data /var/www/html/storage && \
-    chmod -R 777 /var/www/html/storage
+# Install dependencies
+RUN composer install --optimize-autoloader --no-dev
 
-# Copy PHP configuration
-COPY docker/php/php.ini /usr/local/etc/php/conf.d/app.ini
+# Set permissions
+RUN chown -R www-data:www-data /var/www/html/
+RUN chmod -R 775 /var/www/html/storage
 
-# Fix permissions
-RUN chown -R www-data:www-data /var/www/html
+# Configure Apache to listen on port 1001 instead of 80
+RUN sed -i 's/Listen 80/Listen 1001/g' /etc/apache2/ports.conf
+RUN sed -i 's/:80/:1001/g' /etc/apache2/sites-available/000-default.conf
 
-EXPOSE 80
+# Enable Apache modules
+RUN a2enmod rewrite headers ssl
 
+# Expose port 1001 instead of 80
+EXPOSE 1001
+
+# Start Apache
 CMD ["apache2-foreground"]

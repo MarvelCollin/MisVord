@@ -44,6 +44,7 @@ APP_ENV=production
 APP_DEBUG=false
 
 # Docker ports configuration
+# Each service uses the same port number for both host and container
 APP_PORT=1001
 SOCKET_PORT=1002
 SOCKET_SECURE_PORT=1443
@@ -82,6 +83,10 @@ echo -e "  ${BLUE}• HTTPS:${NC} Enabled"
 echo -e "  ${BLUE}• Subpath:${NC} /$SUBPATH"
 echo -e "  ${BLUE}• Socket Path:${NC} /$SUBPATH/socket/socket.io"
 echo -e "  ${BLUE}• App Port:${NC} 1001"
+echo -e "  ${BLUE}• Socket Port:${NC} 1002"
+echo -e "  ${BLUE}• DB Port:${NC} 1003"
+echo -e "  ${BLUE}• PHPMyAdmin Port:${NC} 1004"
+echo -e "  ${BLUE}• Adminer Port:${NC} 1005"
 
 # Check for docker-compose
 if ! command -v docker-compose &> /dev/null; then
@@ -137,7 +142,7 @@ server {
 
     # Socket server under /${SUBPATH}/socket
     location /${SUBPATH}/socket/ {
-        proxy_pass http://localhost:${SOCKET_PORT}/;
+        proxy_pass http://localhost:1002/;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -151,7 +156,7 @@ server {
 
     # Socket.IO specific path for connections
     location /${SUBPATH}/socket/socket.io/ {
-        proxy_pass http://localhost:${SOCKET_PORT}/socket.io/;
+        proxy_pass http://localhost:1002/socket.io/;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -178,4 +183,10 @@ echo -e "2. Ensure you have SSL certificates for ${DOMAIN}"
 echo -e "   If not, obtain them using: ${BLUE}sudo certbot --nginx -d ${DOMAIN}${NC}"
 echo -e "3. Reload NGINX: ${BLUE}sudo systemctl reload nginx${NC}"
 echo -e "4. Test your WebSocket connection: ${BLUE}sh check-websocket.sh${NC}"
-echo -e "5. Access your application at: ${BLUE}https://${DOMAIN}/${SUBPATH}/${NC}" 
+echo -e "5. Access your application at: ${BLUE}https://${DOMAIN}/${SUBPATH}/${NC}"
+echo -e "\n${YELLOW}Port configuration:${NC}"
+echo -e "  ${BLUE}• Main app:${NC} http://localhost:1001"
+echo -e "  ${BLUE}• Socket server:${NC} http://localhost:1002"
+echo -e "  ${BLUE}• MySQL:${NC} localhost:1003"
+echo -e "  ${BLUE}• PHPMyAdmin:${NC} http://localhost:1004"
+echo -e "  ${BLUE}• Adminer:${NC} http://localhost:1005" 
