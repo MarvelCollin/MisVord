@@ -36,6 +36,9 @@ COPY . /var/www/html/
 # Install dependencies
 RUN composer install --optimize-autoloader --no-dev
 
+# Create storage directory if it doesn't exist
+RUN mkdir -p /var/www/html/storage
+
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html/
 RUN chmod -R 775 /var/www/html/storage
