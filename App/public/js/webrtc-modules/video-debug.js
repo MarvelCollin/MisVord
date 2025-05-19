@@ -10,24 +10,34 @@
  * - Automatic recovery attempts
  */
 
-// Enable debug mode by default for troubleshooting
-const debugMode = true;
+// Initialize the namespace if it doesn't exist
+window.VideoDebug = window.VideoDebug || {};
 
-// Debug levels and settings
-const DEBUG_LEVELS = {
-  ERROR: 'error',
-  WARNING: 'warning',
-  INFO: 'info',
-  SUCCESS: 'success'
-};
+// Only set properties if they don't exist yet
+if (!window.VideoDebug.hasOwnProperty('debugMode')) {
+    window.VideoDebug.debugMode = true;
+}
 
-// Keep track of recovery attempts to prevent infinite loops
-const recoveryAttempts = {};
-const MAX_RECOVERY_ATTEMPTS = 3;
+if (!window.VideoDebug.hasOwnProperty('DEBUG_LEVELS')) {
+    window.VideoDebug.DEBUG_LEVELS = {
+        ERROR: 'error',
+        WARNING: 'warning',
+        INFO: 'info',
+        SUCCESS: 'success'
+    };
+}
+
+if (!window.VideoDebug.hasOwnProperty('recoveryAttempts')) {
+    window.VideoDebug.recoveryAttempts = {};
+}
+
+if (!window.VideoDebug.hasOwnProperty('MAX_RECOVERY_ATTEMPTS')) {
+    window.VideoDebug.MAX_RECOVERY_ATTEMPTS = 3;
+}
 
 // Display a debug overlay on video elements for the specified user
 function showVideoDebugOverlay(userId, message, type = 'warning') {
-    if (!debugMode) return;
+    if (!window.VideoDebug.debugMode) return;
     
     const container = document.getElementById(`container-${userId}`);
     if (!container) return;
@@ -67,10 +77,10 @@ function showVideoDebugOverlay(userId, message, type = 'warning') {
 
 // Advanced video analysis for quality and freezing detection
 function setupVideoAnalyzer(videoElement, userId) {
-    if (!videoElement || !debugMode) return;
+    if (!videoElement || !window.VideoDebug.debugMode) return;
     
     // Reset recovery attempts counter for this user
-    recoveryAttempts[userId] = 0;
+    window.VideoDebug.recoveryAttempts[userId] = 0;
     
     // Create an offscreen canvas for video analysis
     const canvas = document.createElement('canvas');
@@ -87,7 +97,7 @@ function setupVideoAnalyzer(videoElement, userId) {
         container.appendChild(indicator);
         
         // Add a stats overlay if in debug mode
-        if (debugMode) {
+        if (window.VideoDebug.debugMode) {
             const statsOverlay = document.createElement('div');
             statsOverlay.className = 'absolute bottom-4 left-2 text-xs bg-black bg-opacity-70 p-1 rounded text-white z-20';
             statsOverlay.id = `stats-overlay-${userId}`;
@@ -176,9 +186,9 @@ function setupVideoAnalyzer(videoElement, userId) {
                     blackFrameCount = 0; // Reset counter
                     
                     // Try to refresh the video if we haven't attempted too many times
-                    if (recoveryAttempts[userId] < MAX_RECOVERY_ATTEMPTS) {
+                    if (window.VideoDebug.recoveryAttempts[userId] < window.VideoDebug.MAX_RECOVERY_ATTEMPTS) {
                         triggerVideoRefresh(videoElement, userId);
-                        recoveryAttempts[userId]++;
+                        window.VideoDebug.recoveryAttempts[userId]++;
                     }
                 }
             } else {
@@ -198,9 +208,9 @@ function setupVideoAnalyzer(videoElement, userId) {
                     showVideoDebugOverlay(userId, `Possible frozen video detected (${unchangedFrameCount} identical frames)`, "error");
                     
                     // Try to refresh the video if we haven't attempted too many times
-                    if (recoveryAttempts[userId] < MAX_RECOVERY_ATTEMPTS) {
+                    if (window.VideoDebug.recoveryAttempts[userId] < window.VideoDebug.MAX_RECOVERY_ATTEMPTS) {
                         triggerVideoRefresh(videoElement, userId);
-                        recoveryAttempts[userId]++;
+                        window.VideoDebug.recoveryAttempts[userId]++;
                     }
                     
                     unchangedFrameCount = 0; // Reset counter
@@ -329,11 +339,17 @@ function collectRTCDiagnostics(userId) {
     return diagnostics;
 }
 
-// Export functions to the global WebRTCDebug object
-window.WebRTCDebug = {
+// Export the functions to the VideoDebug namespace
+window.VideoDebug = {
+    ...window.VideoDebug,
     showOverlay: showVideoDebugOverlay,
     setupAnalyzer: setupVideoAnalyzer,
     triggerRefresh: triggerVideoRefresh,
     collectDiagnostics: collectRTCDiagnostics,
-    isDebugMode: () => debugMode
-}; 
+    isDebugMode: () => window.VideoDebug.debugMode
+};
+
+// If the module is loaded in a Node.js environment, export it
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = window.VideoDebug;
+} 

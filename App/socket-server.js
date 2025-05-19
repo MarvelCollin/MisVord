@@ -2,7 +2,7 @@ const express = require('express');
 const http = require('http');
 const https = require('https');
 const fs = require('fs');
-const { Server } = require('socket.io');
+const socketIo = require('socket.io');
 const cors = require('cors');
 // const path = require('path'); // Not used in this simplified version
 require('dotenv').config();
@@ -50,7 +50,7 @@ const socketPath = process.env.SOCKET_PATH || '/socket.io';
 console.log(`Using Socket.IO path: ${socketPath}`);
 
 // Setup Socket.IO with enhanced CORS and path support for Nginx subpath
-const io = new Server(server, {
+const io = socketIo(server, {
   cors: {
     origin: corsAllowedOrigins, // Use environment variable or allow all
     methods: ["GET", "POST"],

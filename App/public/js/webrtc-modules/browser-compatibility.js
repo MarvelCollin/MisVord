@@ -574,15 +574,53 @@ function showBrowserCompatibilityWarning(browserInfo) {
 
 // Force permission request function
 function forcePermissionRequest() {
+    // Show the permission request UI
+    if (window.WebRTCMedia && typeof window.WebRTCMedia.updatePermissionUI === 'function') {
+        window.WebRTCMedia.updatePermissionUI('requesting');
+    }
+    
+    const permissionRequest = document.getElementById('permissionRequest');
+    if (permissionRequest) {
+        permissionRequest.style.display = 'flex';
+    }
+    
     // Create temporary audio and video tracks to trigger browser permission prompt
     return navigator.mediaDevices.getUserMedia({ audio: true, video: true })
         .then(stream => {
             // Stop all tracks immediately after getting permissions
             stream.getTracks().forEach(track => track.stop());
+            
+            // Update the UI
+            if (window.WebRTCMedia && typeof window.WebRTCMedia.updatePermissionUI === 'function') {
+                window.WebRTCMedia.updatePermissionUI('granted');
+                
+                // Hide permission dialog after delay
+                setTimeout(() => {
+                    const permissionRequest = document.getElementById('permissionRequest');
+                    if (permissionRequest) {
+                        permissionRequest.style.display = 'none';
+                    }
+                }, 1000);
+            }
+            
             return true;
         })
         .catch(error => {
             console.warn('Permission request failed:', error.name);
+            
+            // Update UI based on error type
+            if (window.WebRTCMedia && typeof window.WebRTCMedia.updatePermissionUI === 'function') {
+                if (error.name === 'NotAllowedError') {
+                    window.WebRTCMedia.updatePermissionUI('denied');
+                } else if (error.name === 'NotFoundError') {
+                    window.WebRTCMedia.updatePermissionUI('notfound');
+                } else if (error.name === 'NotReadableError') {
+                    window.WebRTCMedia.updatePermissionUI('inuse');
+                } else {
+                    window.WebRTCMedia.updatePermissionUI('error', error.message);
+                }
+            }
+            
             return false;
         });
 }

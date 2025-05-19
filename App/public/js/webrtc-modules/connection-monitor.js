@@ -3,25 +3,39 @@
  * This module provides a way to monitor and debug peer connections in real-time
  */
 
-// Namespace for connection monitoring
+// Initialize the namespace if it doesn't exist
 window.WebRTCMonitor = window.WebRTCMonitor || {};
 
-// Configuration
-const CONFIG = {
-    monitorInterval: 3000, // Check connections every 3 seconds
-    autoRecover: true,    // Attempt automatic recovery of failing connections
-    debugToConsole: true  // Log debug info to console
-};
+// Only set CONFIG if it doesn't exist yet
+if (!window.WebRTCMonitor.hasOwnProperty('CONFIG')) {
+    window.WebRTCMonitor.CONFIG = {
+        monitorInterval: 3000, // Check connections every 3 seconds
+        autoRecover: true,    // Attempt automatic recovery of failing connections
+        debugToConsole: true  // Log debug info to console
+    };
+}
 
-// State tracking
-const connectionStates = new Map(); // Track connection state history
-let monitoringActive = false;
-let monitorInterval = null;
+// Set up state tracking in the namespace
+if (!window.WebRTCMonitor.hasOwnProperty('connectionStates')) {
+    window.WebRTCMonitor.connectionStates = new Map(); // Track connection state history
+}
+if (!window.WebRTCMonitor.hasOwnProperty('monitoringActive')) {
+    window.WebRTCMonitor.monitoringActive = false;
+}
+if (!window.WebRTCMonitor.hasOwnProperty('monitorInterval')) {
+    window.WebRTCMonitor.monitorInterval = null;
+}
 
-// UI elements
-let debugPanel = null;
-let connectionList = null;
-let statsArea = null;
+// UI elements in the namespace
+if (!window.WebRTCMonitor.hasOwnProperty('debugPanel')) {
+    window.WebRTCMonitor.debugPanel = null;
+}
+if (!window.WebRTCMonitor.hasOwnProperty('connectionList')) {
+    window.WebRTCMonitor.connectionList = null;
+}
+if (!window.WebRTCMonitor.hasOwnProperty('statsArea')) {
+    window.WebRTCMonitor.statsArea = null;
+}
 
 // Initialize the monitor
 function initConnectionMonitor() {
@@ -40,29 +54,29 @@ function initConnectionMonitor() {
 function createDebugUI() {
     // Check if panel already exists
     if (document.getElementById('webrtc-monitor-panel')) {
-        debugPanel = document.getElementById('webrtc-monitor-panel');
+        window.WebRTCMonitor.debugPanel = document.getElementById('webrtc-monitor-panel');
         return;
     }
     
     // Create monitor panel
-    debugPanel = document.createElement('div');
-    debugPanel.id = 'webrtc-monitor-panel';
-    debugPanel.className = 'webrtc-debug-panel';
-    debugPanel.style.position = 'fixed';
-    debugPanel.style.top = '60px';
-    debugPanel.style.right = '10px';
-    debugPanel.style.width = '320px';
-    debugPanel.style.maxHeight = '70vh';
-    debugPanel.style.overflow = 'auto';
-    debugPanel.style.backgroundColor = 'rgba(0, 0, 0, 0.85)';
-    debugPanel.style.color = '#fff';
-    debugPanel.style.padding = '10px';
-    debugPanel.style.borderRadius = '5px';
-    debugPanel.style.fontFamily = 'monospace';
-    debugPanel.style.fontSize = '12px';
-    debugPanel.style.zIndex = '9999';
-    debugPanel.style.display = 'none';
-    debugPanel.style.boxShadow = '0 0 10px rgba(0, 0, 0, 0.5)';
+    window.WebRTCMonitor.debugPanel = document.createElement('div');
+    window.WebRTCMonitor.debugPanel.id = 'webrtc-monitor-panel';
+    window.WebRTCMonitor.debugPanel.className = 'webrtc-debug-panel';
+    window.WebRTCMonitor.debugPanel.style.position = 'fixed';
+    window.WebRTCMonitor.debugPanel.style.top = '60px';
+    window.WebRTCMonitor.debugPanel.style.right = '10px';
+    window.WebRTCMonitor.debugPanel.style.width = '320px';
+    window.WebRTCMonitor.debugPanel.style.maxHeight = '70vh';
+    window.WebRTCMonitor.debugPanel.style.overflow = 'auto';
+    window.WebRTCMonitor.debugPanel.style.backgroundColor = 'rgba(0, 0, 0, 0.85)';
+    window.WebRTCMonitor.debugPanel.style.color = '#fff';
+    window.WebRTCMonitor.debugPanel.style.padding = '10px';
+    window.WebRTCMonitor.debugPanel.style.borderRadius = '5px';
+    window.WebRTCMonitor.debugPanel.style.fontFamily = 'monospace';
+    window.WebRTCMonitor.debugPanel.style.fontSize = '12px';
+    window.WebRTCMonitor.debugPanel.style.zIndex = '9999';
+    window.WebRTCMonitor.debugPanel.style.display = 'none';
+    window.WebRTCMonitor.debugPanel.style.boxShadow = '0 0 10px rgba(0, 0, 0, 0.5)';
     
     // Create header
     const header = document.createElement('div');
@@ -86,10 +100,10 @@ function createDebugUI() {
     closeButton.style.color = '#fff';
     closeButton.style.cursor = 'pointer';
     closeButton.style.fontSize = '16px';
-    closeButton.onclick = () => { debugPanel.style.display = 'none'; };
+    closeButton.onclick = () => { window.WebRTCMonitor.debugPanel.style.display = 'none'; };
     header.appendChild(closeButton);
     
-    debugPanel.appendChild(header);
+    window.WebRTCMonitor.debugPanel.appendChild(header);
     
     // Connection list
     const listHeader = document.createElement('div');
@@ -97,12 +111,12 @@ function createDebugUI() {
     listHeader.style.fontWeight = 'bold';
     listHeader.style.marginTop = '5px';
     listHeader.style.marginBottom = '5px';
-    debugPanel.appendChild(listHeader);
+    window.WebRTCMonitor.debugPanel.appendChild(listHeader);
     
-    connectionList = document.createElement('div');
-    connectionList.id = 'webrtc-connection-list';
-    connectionList.style.marginBottom = '10px';
-    debugPanel.appendChild(connectionList);
+    window.WebRTCMonitor.connectionList = document.createElement('div');
+    window.WebRTCMonitor.connectionList.id = 'webrtc-connection-list';
+    window.WebRTCMonitor.connectionList.style.marginBottom = '10px';
+    window.WebRTCMonitor.debugPanel.appendChild(window.WebRTCMonitor.connectionList);
     
     // Stats area
     const statsHeader = document.createElement('div');
@@ -110,12 +124,12 @@ function createDebugUI() {
     statsHeader.style.fontWeight = 'bold';
     statsHeader.style.marginTop = '10px';
     statsHeader.style.marginBottom = '5px';
-    debugPanel.appendChild(statsHeader);
+    window.WebRTCMonitor.debugPanel.appendChild(statsHeader);
     
-    statsArea = document.createElement('div');
-    statsArea.id = 'webrtc-stats-area';
-    statsArea.style.fontSize = '11px';
-    debugPanel.appendChild(statsArea);
+    window.WebRTCMonitor.statsArea = document.createElement('div');
+    window.WebRTCMonitor.statsArea.id = 'webrtc-stats-area';
+    window.WebRTCMonitor.statsArea.style.fontSize = '11px';
+    window.WebRTCMonitor.debugPanel.appendChild(window.WebRTCMonitor.statsArea);
     
     // Action buttons
     const actions = document.createElement('div');
@@ -147,20 +161,20 @@ function createDebugUI() {
     reconnectButton.onclick = () => { attemptReconnectAll(); };
     actions.appendChild(reconnectButton);
     
-    debugPanel.appendChild(actions);
+    window.WebRTCMonitor.debugPanel.appendChild(actions);
     
     // Add to document
-    document.body.appendChild(debugPanel);
+    document.body.appendChild(window.WebRTCMonitor.debugPanel);
 }
 
 // Start monitoring connections
 function startMonitoring() {
-    if (monitoringActive) return;
+    if (window.WebRTCMonitor.monitoringActive) return;
     
-    monitoringActive = true;
-    monitorInterval = setInterval(() => {
+    window.WebRTCMonitor.monitoringActive = true;
+    window.WebRTCMonitor.monitorInterval = setInterval(() => {
         updateConnectionList();
-    }, CONFIG.monitorInterval);
+    }, window.WebRTCMonitor.CONFIG.monitorInterval);
     
     // Initial update
     updateConnectionList(true);
@@ -168,15 +182,15 @@ function startMonitoring() {
 
 // Stop monitoring connections
 function stopMonitoring() {
-    if (!monitoringActive) return;
+    if (!window.WebRTCMonitor.monitoringActive) return;
     
-    clearInterval(monitorInterval);
-    monitoringActive = false;
+    clearInterval(window.WebRTCMonitor.monitorInterval);
+    window.WebRTCMonitor.monitoringActive = false;
 }
 
 // Update the connection list
 function updateConnectionList(forceUpdate = false) {
-    if (!window.peers || !connectionList) return;
+    if (!window.peers || !window.WebRTCMonitor.connectionList) return;
     
     const peersArray = Object.entries(window.peers);
     
@@ -184,12 +198,12 @@ function updateConnectionList(forceUpdate = false) {
     const connectionCount = peersArray.length;
     
     if (connectionCount === 0) {
-        connectionList.innerHTML = '<div style="color:#aaa;font-style:italic;">No active connections</div>';
+        window.WebRTCMonitor.connectionList.innerHTML = '<div style="color:#aaa;font-style:italic;">No active connections</div>';
         return;
     }
     
     // Create or update connection items
-    connectionList.innerHTML = '';
+    window.WebRTCMonitor.connectionList.innerHTML = '';
     
     peersArray.forEach(([peerId, peerData]) => {
         const pc = peerData.pc;
@@ -280,11 +294,11 @@ function updateConnectionList(forceUpdate = false) {
         
         item.appendChild(actions);
         
-        connectionList.appendChild(item);
+        window.WebRTCMonitor.connectionList.appendChild(item);
         
         // Track states for history
-        if (!connectionStates.has(peerId)) {
-            connectionStates.set(peerId, {
+        if (!window.WebRTCMonitor.connectionStates.has(peerId)) {
+            window.WebRTCMonitor.connectionStates.set(peerId, {
                 previous: null,
                 current: connectionState,
                 history: [{
@@ -294,7 +308,7 @@ function updateConnectionList(forceUpdate = false) {
                 }]
             });
         } else {
-            const state = connectionStates.get(peerId);
+            const state = window.WebRTCMonitor.connectionStates.get(peerId);
             state.previous = state.current;
             state.current = connectionState;
             
@@ -320,7 +334,7 @@ function updateConnectionList(forceUpdate = false) {
 
 // Update connection statistics
 function updateConnectionStats() {
-    if (!statsArea) return;
+    if (!window.WebRTCMonitor.statsArea) return;
     
     const totalConnections = Object.keys(window.peers || {}).length;
     let connectedCount = 0;
@@ -342,7 +356,7 @@ function updateConnectionStats() {
     }
     
     // Format stats
-    statsArea.innerHTML = `
+    window.WebRTCMonitor.statsArea.innerHTML = `
         <div>Total peers: ${totalConnections}</div>
         <div style="color:#4CAF50">Connected: ${connectedCount}</div>
         <div style="color:#FF9800">Connecting: ${connectingCount}</div>
@@ -427,7 +441,7 @@ function showConnectionDetails(peerId) {
     }
     
     // Connection history
-    const history = connectionStates.get(peerId)?.history || [];
+    const history = window.WebRTCMonitor.connectionStates.get(peerId)?.history || [];
     let historyHtml = '';
     
     if (history.length > 0) {
@@ -639,34 +653,46 @@ function getStateColor(state) {
 
 // Toggle the debug panel visibility
 function toggleDebugPanel() {
-    if (!debugPanel) {
+    if (!window.WebRTCMonitor.debugPanel) {
         createDebugUI();
     }
     
-    debugPanel.style.display = debugPanel.style.display === 'none' ? 'block' : 'none';
+    window.WebRTCMonitor.debugPanel.style.display = window.WebRTCMonitor.debugPanel.style.display === 'none' ? 'block' : 'none';
     
-    if (debugPanel.style.display === 'block') {
+    if (window.WebRTCMonitor.debugPanel.style.display === 'block') {
         updateConnectionList(true);
     }
 }
 
-// Expose public API
+// Export functions to the WebRTCMonitor namespace
 window.WebRTCMonitor = {
+    ...window.WebRTCMonitor,
     init: initConnectionMonitor,
+    start: startMonitoring,
+    stop: stopMonitoring,
+    togglePanel: toggleDebugPanel,
+    updateConnections: updateConnectionList,
+    getStateColor: getStateColor,
+    attemptReconnectAll: attemptReconnectAll,
+    attemptReconnectPeer: attemptReconnectPeer,
     show: function() { 
-        if (!debugPanel) createDebugUI();
-        debugPanel.style.display = 'block';
+        if (!window.WebRTCMonitor.debugPanel) createDebugUI();
+        window.WebRTCMonitor.debugPanel.style.display = 'block';
         updateConnectionList(true);
     },
     hide: function() { 
-        if (debugPanel) debugPanel.style.display = 'none';
+        if (window.WebRTCMonitor.debugPanel) window.WebRTCMonitor.debugPanel.style.display = 'none';
     },
     toggle: toggleDebugPanel,
     refresh: function() {
         updateConnectionList(true);
-    },
-    reconnectAll: attemptReconnectAll
+    }
 };
+
+// If the module is loaded in a Node.js environment, export it
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = window.WebRTCMonitor;
+}
 
 // Define keyboard shortcut to toggle debug panel (Ctrl+M)
 document.addEventListener('keydown', function(e) {

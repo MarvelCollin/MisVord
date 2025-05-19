@@ -504,7 +504,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <!-- Socket.io library - local reference to avoid CDN issues -->
 <script src="/js/socket.io.min.js"></script>
-<script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+<!-- Removing external adapter reference that's failing to load -->
+<!-- <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script> -->
 <script src="/js/webrtc-modules/browser-compatibility.js"></script>
 <script src="/js/webrtc-modules/video-debug.js"></script>
 <script src="/js/webrtc-modules/video-player.js"></script>
