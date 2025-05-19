@@ -114,11 +114,120 @@ else
     echo -e "${YELLOW}Container build skipped. Run '$DOCKER_COMPOSE up -d' manually when ready.${NC}"
 fi
 
-# Generate NGINX configuration
-echo -e "\n${YELLOW}=== NGINX CONFIGURATION FOR ${DOMAIN} ====${NC}"
-echo -e "Add the following to your NGINX server block:\n"
+# Check for existing NGINX configuration
+echo -e "\n${YELLOW}=== CHECKING NGINX CONFIGURATION ===${NC}"
 
-cat << EOF
+# Check for existing NGINX configuration
+NGINX_CONFIG_PATH="nginx-config.conf"
+EXISTING_NGINX_PATH="/etc/nginx/sites-available/${DOMAIN}.conf"
+
+if [ -f "$NGINX_CONFIG_PATH" ]; then
+    echo -e "${GREEN}Found existing NGINX configuration: ${NGINX_CONFIG_PATH}${NC}"
+    echo -e "${YELLOW}Would you like to use this existing configuration?${NC}"
+    read -p "This is recommended to avoid conflicts (y/n, default: y): " use_existing_config
+    
+    if [[ -z "$use_existing_config" || "$use_existing_config" =~ ^[Yy] ]]; then
+        echo -e "${GREEN}Using existing NGINX configuration from ${NGINX_CONFIG_PATH}${NC}"
+        NGINX_CONFIG_FILE=$NGINX_CONFIG_PATH
+        
+        # Check if the configuration contains the correct subpath
+        if grep -q "location /${SUBPATH}/" "$NGINX_CONFIG_FILE"; then
+            echo -e "${GREEN}Configuration includes the correct subpath /${SUBPATH}/${NC}"
+        else
+            echo -e "${YELLOW}Warning: The configuration file doesn't have the current subpath '${SUBPATH}'.${NC}"
+            echo -e "${YELLOW}It might be configured for a different subpath. Please check the file manually.${NC}"
+        fi
+    else
+        echo -e "${YELLOW}Creating new configuration file...${NC}"
+        NGINX_CONFIG_FILE="${SUBPATH}-subpath.conf"
+        config_type="new"
+        
+        # Ask if this should be a new site or an addition to existing
+        read -p "Is this a new site configuration or adding to existing server? (new/existing, default: existing): " config_type
+        config_type=${config_type:-existing}
+        
+        if [[ $config_type == "new" ]]; then
+            create_full_config=true
+        else
+            create_full_config=false
+        fi
+        
+        # Generate appropriate config file
+        if [ "$create_full_config" = true ]; then
+            cat > $NGINX_CONFIG_FILE << EOF
+server {
+    listen 443 ssl;
+    server_name ${DOMAIN};
+    
+    ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    
+    # MiscVord application running on subpath /${SUBPATH}
+    location /${SUBPATH}/ {
+        proxy_pass http://localhost:1001/;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+
+    # Socket.IO server for /${SUBPATH}/socket
+    location /${SUBPATH}/socket/ {
+        proxy_pass http://localhost:1002/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_cache_bypass \$http_upgrade;
+        proxy_read_timeout 86400;
+    }
+
+    # Socket.IO specific handlers
+    location /${SUBPATH}/socket/socket.io/ {
+        proxy_pass http://localhost:1002/socket.io/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_cache_bypass \$http_upgrade;
+        proxy_read_timeout 86400;
+    }
+
+    # PHPMyAdmin under /${SUBPATH}/pma
+    location /${SUBPATH}/pma/ {
+        proxy_pass http://localhost:1004/;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+
+    # Adminer under /${SUBPATH}/adminer
+    location /${SUBPATH}/adminer/ {
+        proxy_pass http://localhost:1005/;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+}
+
+# Redirect HTTP to HTTPS
+server {
+    listen 80;
+    server_name ${DOMAIN};
+    return 301 https://\$host\$request_uri;
+}
+EOF
+        else
+            cat > $NGINX_CONFIG_FILE << EOF
 # MiscVord application running on subpath /${SUBPATH}
 location /${SUBPATH}/ {
     proxy_pass http://localhost:1001/;
@@ -155,16 +264,355 @@ location /${SUBPATH}/socket/socket.io/ {
     proxy_cache_bypass \$http_upgrade;
     proxy_read_timeout 86400;
 }
-EOF
 
-echo -e "\n${YELLOW}Next steps:${NC}"
-echo -e "1. Add the NGINX configuration above to your server"
-echo -e "2. Reload NGINX: ${BLUE}sudo systemctl reload nginx${NC}"
-echo -e "3. Test your WebSocket connection: ${BLUE}sh check-websocket.sh${NC}"
-echo -e "4. Access your application at: ${BLUE}${PROTOCOL}://${DOMAIN}/${SUBPATH}/${NC}"
+# PHPMyAdmin under /${SUBPATH}/pma
+location /${SUBPATH}/pma/ {
+    proxy_pass http://localhost:1004/;
+    proxy_set_header Host \$host;
+    proxy_set_header X-Real-IP \$remote_addr;
+    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto \$scheme;
+}
+
+# Adminer under /${SUBPATH}/adminer
+location /${SUBPATH}/adminer/ {
+    proxy_pass http://localhost:1005/;
+    proxy_set_header Host \$host;
+    proxy_set_header X-Real-IP \$remote_addr;
+    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto \$scheme;
+}
+EOF
+        fi
+        
+        echo -e "${YELLOW}Warning: Using a new configuration may conflict with existing ones.${NC}"
+    fi
+else
+    echo -e "${YELLOW}No existing nginx-config.conf found in current directory.${NC}"
+    echo -e "${YELLOW}Checking if there's an existing NGINX configuration on the server...${NC}"
+    
+    if [ -f "$EXISTING_NGINX_PATH" ]; then
+        echo -e "${GREEN}Found existing NGINX configuration file on server: ${EXISTING_NGINX_PATH}${NC}"
+        echo -e "${YELLOW}Would you like to add to this existing configuration?${NC}"
+        read -p "This is recommended if the server is already configured (y/n, default: y): " use_server_config
+        
+        if [[ -z "$use_server_config" || "$use_server_config" =~ ^[Yy] ]]; then
+            echo -e "${YELLOW}Will append to existing server configuration.${NC}"
+            config_type="existing"
+            NGINX_CONFIG_FILE="${SUBPATH}-locations.conf"
+            
+            cat > $NGINX_CONFIG_FILE << EOF
+# MiscVord application running on subpath /${SUBPATH}
+location /${SUBPATH}/ {
+    proxy_pass http://localhost:1001/;
+    proxy_set_header Host \$host;
+    proxy_set_header X-Real-IP \$remote_addr;
+    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto \$scheme;
+}
+
+# Socket.IO server for /${SUBPATH}/socket
+location /${SUBPATH}/socket/ {
+    proxy_pass http://localhost:1002/;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade \$http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host \$host;
+    proxy_set_header X-Real-IP \$remote_addr;
+    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto \$scheme;
+    proxy_cache_bypass \$http_upgrade;
+    proxy_read_timeout 86400;
+}
+
+# Socket.IO specific handlers
+location /${SUBPATH}/socket/socket.io/ {
+    proxy_pass http://localhost:1002/socket.io/;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade \$http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host \$host;
+    proxy_set_header X-Real-IP \$remote_addr;
+    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto \$scheme;
+    proxy_cache_bypass \$http_upgrade;
+    proxy_read_timeout 86400;
+}
+
+# PHPMyAdmin under /${SUBPATH}/pma
+location /${SUBPATH}/pma/ {
+    proxy_pass http://localhost:1004/;
+    proxy_set_header Host \$host;
+    proxy_set_header X-Real-IP \$remote_addr;
+    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto \$scheme;
+}
+
+# Adminer under /${SUBPATH}/adminer
+location /${SUBPATH}/adminer/ {
+    proxy_pass http://localhost:1005/;
+    proxy_set_header Host \$host;
+    proxy_set_header X-Real-IP \$remote_addr;
+    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto \$scheme;
+}
+EOF
+        else
+            echo -e "${YELLOW}Creating new configuration file...${NC}"
+            config_type="new"
+            NGINX_CONFIG_FILE="${SUBPATH}.conf"
+            
+            cat > $NGINX_CONFIG_FILE << EOF
+server {
+    listen 443 ssl;
+    server_name ${DOMAIN};
+    
+    ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    
+    # MiscVord application running on subpath /${SUBPATH}
+    location /${SUBPATH}/ {
+        proxy_pass http://localhost:1001/;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+
+    # Socket.IO server for /${SUBPATH}/socket
+    location /${SUBPATH}/socket/ {
+        proxy_pass http://localhost:1002/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_cache_bypass \$http_upgrade;
+        proxy_read_timeout 86400;
+    }
+
+    # Socket.IO specific handlers
+    location /${SUBPATH}/socket/socket.io/ {
+        proxy_pass http://localhost:1002/socket.io/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_cache_bypass \$http_upgrade;
+        proxy_read_timeout 86400;
+    }
+
+    # PHPMyAdmin under /${SUBPATH}/pma
+    location /${SUBPATH}/pma/ {
+        proxy_pass http://localhost:1004/;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+
+    # Adminer under /${SUBPATH}/adminer
+    location /${SUBPATH}/adminer/ {
+        proxy_pass http://localhost:1005/;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+}
+
+# Redirect HTTP to HTTPS
+server {
+    listen 80;
+    server_name ${DOMAIN};
+    return 301 https://\$host\$request_uri;
+}
+EOF
+        fi
+    else
+        echo -e "${YELLOW}No existing NGINX configuration found. Creating a new one...${NC}"
+        config_type="new"
+        NGINX_CONFIG_FILE="${DOMAIN}.conf"
+        
+        cat > $NGINX_CONFIG_FILE << EOF
+server {
+    listen 443 ssl;
+    server_name ${DOMAIN};
+    
+    ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    
+    # MiscVord application running on subpath /${SUBPATH}
+    location /${SUBPATH}/ {
+        proxy_pass http://localhost:1001/;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+
+    # Socket.IO server for /${SUBPATH}/socket
+    location /${SUBPATH}/socket/ {
+        proxy_pass http://localhost:1002/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_cache_bypass \$http_upgrade;
+        proxy_read_timeout 86400;
+    }
+
+    # Socket.IO specific handlers
+    location /${SUBPATH}/socket/socket.io/ {
+        proxy_pass http://localhost:1002/socket.io/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_cache_bypass \$http_upgrade;
+        proxy_read_timeout 86400;
+    }
+
+    # PHPMyAdmin under /${SUBPATH}/pma
+    location /${SUBPATH}/pma/ {
+        proxy_pass http://localhost:1004/;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+
+    # Adminer under /${SUBPATH}/adminer
+    location /${SUBPATH}/adminer/ {
+        proxy_pass http://localhost:1005/;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+}
+
+# Redirect HTTP to HTTPS
+server {
+    listen 80;
+    server_name ${DOMAIN};
+    return 301 https://\$host\$request_uri;
+}
+EOF
+    fi
+fi
+
+echo -e "${GREEN}NGINX configuration file: ${NGINX_CONFIG_FILE}${NC}"
+echo -e "${YELLOW}Would you like to install the NGINX configuration?${NC}"
+read -p "This requires sudo privileges (y/n, default: y): " install_nginx
+
+if [[ -z "$install_nginx" || "$install_nginx" =~ ^[Yy] ]]; then
+    if [[ "$config_type" == "existing" && "$NGINX_CONFIG_FILE" != "$NGINX_CONFIG_PATH" ]]; then
+        echo -e "${YELLOW}Adding to existing NGINX configuration...${NC}"
+        echo -e "${YELLOW}Enter the path to your existing NGINX server configuration file:${NC}"
+        read -p "Path (default: /etc/nginx/sites-available/default): " nginx_path
+        nginx_path=${nginx_path:-"/etc/nginx/sites-available/default"}
+
+        if [ -f "$nginx_path" ]; then
+            echo -e "${YELLOW}Backing up original configuration...${NC}"
+            sudo cp "$nginx_path" "${nginx_path}.bak.$(date +%s)"
+            
+            echo -e "${YELLOW}Appending MiscVord configuration to $nginx_path...${NC}"
+            echo "" | sudo tee -a "$nginx_path" > /dev/null
+            echo "# Added by MiscVord deploy-subpath.sh for ${SUBPATH} on $(date)" | sudo tee -a "$nginx_path" > /dev/null
+            cat "$NGINX_CONFIG_FILE" | sudo tee -a "$nginx_path" > /dev/null
+        else
+            echo -e "${RED}Error: NGINX configuration file $nginx_path not found.${NC}"
+            echo -e "${RED}Manual installation required.${NC}"
+            exit 1
+        fi
+    else
+        echo -e "${YELLOW}Installing NGINX configuration as a new file...${NC}"
+        if [ "$NGINX_CONFIG_FILE" = "$NGINX_CONFIG_PATH" ]; then
+            NGINX_DEST="/etc/nginx/sites-available/${DOMAIN}.conf"
+        else
+            NGINX_DEST="/etc/nginx/sites-available/${NGINX_CONFIG_FILE}"
+        fi
+        
+        echo -e "${YELLOW}Installing configuration to ${NGINX_DEST}...${NC}"
+        
+        # Check for SSL certificates if we're creating a full server block
+        if [[ "$config_type" == "new" && ! -d "/etc/letsencrypt/live/${DOMAIN}" ]]; then
+            echo -e "${YELLOW}SSL certificates for ${DOMAIN} not found. Would you like to generate them now?${NC}"
+            read -p "This requires sudo privileges and certbot installed (y/n, default: y): " gen_ssl
+            
+            if [[ -z "$gen_ssl" || "$gen_ssl" =~ ^[Yy] ]]; then
+                echo -e "${YELLOW}Generating SSL certificates with certbot...${NC}"
+                sudo certbot --nginx -d ${DOMAIN}
+            else
+                echo -e "${RED}Warning: Continuing without SSL certificates. HTTPS will not work correctly.${NC}"
+            fi
+        fi
+        
+        # Copy NGINX config to sites-available
+        sudo cp $NGINX_CONFIG_FILE $NGINX_DEST
+
+        # Create symlink in sites-enabled if it doesn't exist
+        if [ ! -f "/etc/nginx/sites-enabled/$(basename $NGINX_DEST)" ]; then
+            sudo ln -s $NGINX_DEST /etc/nginx/sites-enabled/
+            echo -e "${GREEN}Created symlink in sites-enabled${NC}"
+        else
+            echo -e "${GREEN}Symlink in sites-enabled already exists${NC}"
+        fi
+    fi
+    
+    # Test NGINX config
+    echo -e "${YELLOW}Testing NGINX configuration...${NC}"
+    sudo nginx -t
+    
+    if [ $? -eq 0 ]; then
+        # Reload NGINX
+        echo -e "${YELLOW}Reloading NGINX...${NC}"
+        sudo systemctl reload nginx
+        
+        echo -e "${GREEN}NGINX configuration installed and reloaded successfully!${NC}"
+        
+        # Run WebSocket check
+        echo -e "${YELLOW}Testing WebSocket connection...${NC}"
+        sh check-websocket.sh
+    else
+        echo -e "${RED}NGINX configuration test failed. Please check the configuration manually.${NC}"
+        echo -e "${RED}NGINX was not reloaded to prevent service disruption.${NC}"
+    fi
+else
+    echo -e "${YELLOW}Manual NGINX installation:${NC}"
+    if [[ "$config_type" == "new" ]]; then
+        echo -e "1. Copy the configuration file to your NGINX sites-available directory:"
+        echo -e "   ${BLUE}sudo cp ${NGINX_CONFIG_FILE} /etc/nginx/sites-available/${NC}"
+        echo -e "2. Create symlink: ${BLUE}sudo ln -s /etc/nginx/sites-available/${NGINX_CONFIG_FILE} /etc/nginx/sites-enabled/${NC}"
+    else
+        echo -e "1. Add the contents of ${NGINX_CONFIG_FILE} to your existing server block"
+        echo -e "   ${BLUE}sudo nano /etc/nginx/sites-available/default${NC}"
+    fi
+    echo -e "3. Test configuration: ${BLUE}sudo nginx -t${NC}"
+    echo -e "4. Reload NGINX: ${BLUE}sudo systemctl reload nginx${NC}"
+    echo -e "5. Test your WebSocket connection: ${BLUE}sh check-websocket.sh${NC}"
+fi
+
+echo -e "\n${GREEN}Deployment Complete!${NC}"
+echo -e "${BLUE}Your MiscVord app should now be accessible at: ${PROTOCOL}://${DOMAIN}/${SUBPATH}/${NC}"
+
 echo -e "\n${YELLOW}Port configuration:${NC}"
-echo -e "  ${BLUE}• Main app:${NC} http://localhost:1001"
-echo -e "  ${BLUE}• Socket server:${NC} http://localhost:1002"
-echo -e "  ${BLUE}• MySQL:${NC} localhost:1003"
-echo -e "  ${BLUE}• PHPMyAdmin:${NC} http://localhost:1004"
-echo -e "  ${BLUE}• Adminer:${NC} http://localhost:1005" 
+echo -e "  ${BLUE}• App Server:${NC} http://localhost:1001"
+echo -e "  ${BLUE}• Socket Server:${NC} http://localhost:1002"
+echo -e "  ${BLUE}• Database:${NC} port 1003"
+echo -e "  ${BLUE}• PHPMyAdmin:${NC} http://localhost:1004 (available at ${PROTOCOL}://${DOMAIN}/${SUBPATH}/pma/)"
+echo -e "  ${BLUE}• Adminer:${NC} http://localhost:1005 (available at ${PROTOCOL}://${DOMAIN}/${SUBPATH}/adminer/)" 

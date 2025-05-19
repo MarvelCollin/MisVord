@@ -117,11 +117,34 @@ else
     echo -e "${YELLOW}Container build skipped. Run '$DOCKER_COMPOSE up -d' manually when ready.${NC}"
 fi
 
-# Generate NGINX configuration for VPS
-echo -e "\n${YELLOW}=== NGINX CONFIGURATION FOR ${DOMAIN} ===${NC}"
-echo -e "Add the following to your NGINX server block:\n"
+# Check for existing NGINX configuration
+NGINX_CONFIG_PATH="nginx-config.conf"
+NGINX_SITES_PATH="/etc/nginx/sites-available/marvelcollin.my.id.conf"
 
-cat << EOF
+echo -e "\n${YELLOW}=== CHECKING NGINX CONFIGURATION ===${NC}"
+
+if [ -f "$NGINX_CONFIG_PATH" ]; then
+    echo -e "${GREEN}Found existing NGINX configuration: ${NGINX_CONFIG_PATH}${NC}"
+    echo -e "${YELLOW}Would you like to use this existing configuration?${NC}"
+    read -p "This is recommended to avoid conflicts (y/n, default: y): " use_existing_config
+    
+    if [[ -z "$use_existing_config" || "$use_existing_config" =~ ^[Yy] ]]; then
+        echo -e "${GREEN}Using existing NGINX configuration from ${NGINX_CONFIG_PATH}${NC}"
+        NGINX_CONFIG_FILE=$NGINX_CONFIG_PATH
+        
+        # Check if the configuration contains the correct subpath
+        if grep -q "location /${SUBPATH}/" "$NGINX_CONFIG_FILE"; then
+            echo -e "${GREEN}Configuration includes the correct subpath /${SUBPATH}/${NC}"
+        else
+            echo -e "${YELLOW}Warning: Configuration may not contain the correct subpath /${SUBPATH}/${NC}"
+            echo -e "${YELLOW}Please review the configuration file manually.${NC}"
+        fi
+    else
+        echo -e "${YELLOW}Generating new NGINX configuration...${NC}"
+        NGINX_CONFIG_FILE="${SUBPATH}-new.conf"
+        
+        # Generate new config file
+        cat > $NGINX_CONFIG_FILE << EOF
 server {
     listen 443 ssl;
     server_name ${DOMAIN};
@@ -176,14 +199,142 @@ server {
     return 301 https://\$host\$request_uri;
 }
 EOF
+        echo -e "${YELLOW}Warning: Using a new configuration may conflict with the existing one.${NC}"
+    fi
+else
+    echo -e "${YELLOW}No existing NGINX configuration found. Generating new one...${NC}"
+    NGINX_CONFIG_FILE="${SUBPATH}.conf"
+    
+    # Generate new config file
+    cat > $NGINX_CONFIG_FILE << EOF
+server {
+    listen 443 ssl;
+    server_name ${DOMAIN};
+    
+    ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    
+    # Main application under /${SUBPATH}
+    location /${SUBPATH}/ {
+        proxy_pass http://localhost:1001/;
+        proxy_http_version 1.1;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
 
-echo -e "\n${YELLOW}Next steps:${NC}"
-echo -e "1. Add the NGINX configuration above to your server"
-echo -e "2. Ensure you have SSL certificates for ${DOMAIN}"
-echo -e "   If not, obtain them using: ${BLUE}sudo certbot --nginx -d ${DOMAIN}${NC}"
-echo -e "3. Reload NGINX: ${BLUE}sudo systemctl reload nginx${NC}"
-echo -e "4. Test your WebSocket connection: ${BLUE}sh check-websocket.sh${NC}"
-echo -e "5. Access your application at: ${BLUE}https://${DOMAIN}/${SUBPATH}/${NC}"
+    # Socket server under /${SUBPATH}/socket
+    location /${SUBPATH}/socket/ {
+        proxy_pass http://localhost:1002/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_cache_bypass \$http_upgrade;
+        proxy_read_timeout 86400;
+    }
+
+    # Socket.IO specific path for connections
+    location /${SUBPATH}/socket/socket.io/ {
+        proxy_pass http://localhost:1002/socket.io/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_cache_bypass \$http_upgrade;
+        proxy_read_timeout 86400;
+    }
+}
+
+# Redirect HTTP to HTTPS
+server {
+    listen 80;
+    server_name ${DOMAIN};
+    return 301 https://\$host\$request_uri;
+}
+EOF
+fi
+
+echo -e "${GREEN}NGINX configuration file: ${NGINX_CONFIG_FILE}${NC}"
+echo -e "${YELLOW}Would you like to install the NGINX configuration?${NC}"
+read -p "This requires sudo privileges (y/n, default: y): " install_nginx
+
+if [[ -z "$install_nginx" || "$install_nginx" =~ ^[Yy] ]]; then
+    echo -e "${YELLOW}Installing NGINX configuration...${NC}"
+    
+    # Check if this is using the existing config
+    if [ "$NGINX_CONFIG_FILE" = "$NGINX_CONFIG_PATH" ]; then
+        NGINX_DEST="/etc/nginx/sites-available/marvelcollin.my.id.conf"
+        echo -e "${YELLOW}Installing existing configuration to $NGINX_DEST...${NC}"
+    else
+        NGINX_DEST="/etc/nginx/sites-available/${NGINX_CONFIG_FILE}"
+        echo -e "${YELLOW}Installing new configuration to $NGINX_DEST...${NC}"
+    fi
+    
+    # Check for SSL certificates
+    if [ ! -d "/etc/letsencrypt/live/${DOMAIN}" ]; then
+        echo -e "${YELLOW}SSL certificates for ${DOMAIN} not found. Would you like to generate them now?${NC}"
+        read -p "This requires sudo privileges and certbot installed (y/n, default: y): " gen_ssl
+        
+        if [[ -z "$gen_ssl" || "$gen_ssl" =~ ^[Yy] ]]; then
+            echo -e "${YELLOW}Generating SSL certificates with certbot...${NC}"
+            sudo certbot --nginx -d ${DOMAIN}
+        else
+            echo -e "${RED}Warning: Continuing without SSL certificates. HTTPS will not work correctly.${NC}"
+        fi
+    else
+        echo -e "${GREEN}SSL certificates for ${DOMAIN} already exist.${NC}"
+    fi
+    
+    # Copy NGINX config to sites-available
+    sudo cp $NGINX_CONFIG_FILE $NGINX_DEST
+
+    # Create symlink in sites-enabled if it doesn't exist
+    if [ ! -f "/etc/nginx/sites-enabled/$(basename $NGINX_DEST)" ]; then
+        sudo ln -s $NGINX_DEST /etc/nginx/sites-enabled/
+        echo -e "${GREEN}Created symlink in sites-enabled${NC}"
+    else
+        echo -e "${GREEN}Symlink in sites-enabled already exists${NC}"
+    fi
+    
+    # Test NGINX config
+    echo -e "${YELLOW}Testing NGINX configuration...${NC}"
+    sudo nginx -t
+    
+    if [ $? -eq 0 ]; then
+        # Reload NGINX
+        echo -e "${YELLOW}Reloading NGINX...${NC}"
+        sudo systemctl reload nginx
+        
+        echo -e "${GREEN}NGINX configuration installed and reloaded successfully!${NC}"
+    else
+        echo -e "${RED}NGINX configuration test failed. Please check the configuration manually.${NC}"
+        echo -e "${RED}NGINX was not reloaded to prevent service disruption.${NC}"
+    fi
+    
+    # Run WebSocket check
+    echo -e "${YELLOW}Testing WebSocket connection...${NC}"
+    sh check-websocket.sh
+else
+    echo -e "${YELLOW}Manual NGINX installation:${NC}"
+    echo -e "1. Copy the configuration file to your NGINX sites-available directory:"
+    echo -e "   ${BLUE}sudo cp ${NGINX_CONFIG_FILE} /etc/nginx/sites-available/${NC}"
+    echo -e "2. Create symlink: ${BLUE}sudo ln -s /etc/nginx/sites-available/$(basename $NGINX_CONFIG_FILE) /etc/nginx/sites-enabled/${NC}"
+    echo -e "3. Test configuration: ${BLUE}sudo nginx -t${NC}"
+    echo -e "4. Reload NGINX: ${BLUE}sudo systemctl reload nginx${NC}"
+    echo -e "5. Test your WebSocket connection: ${BLUE}sh check-websocket.sh${NC}"
+fi
+
+echo -e "\n${GREEN}Deployment Complete!${NC}"
+echo -e "${BLUE}Your MiscVord app is now available at: https://${DOMAIN}/${SUBPATH}/${NC}"
 echo -e "\n${YELLOW}Port configuration:${NC}"
 echo -e "  ${BLUE}• Main app:${NC} http://localhost:1001"
 echo -e "  ${BLUE}• Socket server:${NC} http://localhost:1002"
