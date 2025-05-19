@@ -43,7 +43,7 @@ APP_ENV=production         # ALWAYS set to production for VPS deployment
 APP_DEBUG=false            # ALWAYS disable debug for production
 
 # Docker ports configuration
-APP_PORT=80                # Use port 80 for VPS deployment
+APP_PORT=1001              # Use port 1001 to avoid conflicts
 SOCKET_PORT=1002
 SOCKET_SECURE_PORT=1443
 DB_PORT=1003
@@ -80,6 +80,7 @@ echo -e "  ${BLUE}• Domain:${NC} ${DOMAIN}"
 echo -e "  ${BLUE}• Subpath:${NC} ${SUBPATH}"
 echo -e "  ${BLUE}• HTTPS:${NC} Enabled"
 echo -e "  ${BLUE}• Socket Path:${NC} /${SUBPATH}/socket/socket.io"
+echo -e "  ${BLUE}• App Port:${NC} 1001 (changed from 80 to avoid conflicts)"
 
 # Check for docker-compose
 if command -v docker-compose > /dev/null 2>&1; then
@@ -116,7 +117,7 @@ echo -e "Add the following to your NGINX server block:\n"
 cat << EOF
 # MiscVord application running on subpath /${SUBPATH}
 location /${SUBPATH}/ {
-    proxy_pass http://localhost:${APP_PORT:-80}/;
+    proxy_pass http://localhost:1001/;
     proxy_set_header Host \$host;
     proxy_set_header X-Real-IP \$remote_addr;
     proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;

@@ -44,7 +44,7 @@ APP_ENV=production
 APP_DEBUG=false
 
 # Docker ports configuration
-APP_PORT=80
+APP_PORT=1001
 SOCKET_PORT=1002
 SOCKET_SECURE_PORT=1443
 DB_PORT=1003
@@ -81,7 +81,7 @@ echo -e "  ${BLUE}• Domain:${NC} $DOMAIN"
 echo -e "  ${BLUE}• HTTPS:${NC} Enabled"
 echo -e "  ${BLUE}• Subpath:${NC} /$SUBPATH"
 echo -e "  ${BLUE}• Socket Path:${NC} /$SUBPATH/socket/socket.io"
-echo -e "  ${BLUE}• App Port:${NC} 80"
+echo -e "  ${BLUE}• App Port:${NC} 1001"
 
 # Check for docker-compose
 if ! command -v docker-compose &> /dev/null; then
@@ -127,7 +127,7 @@ server {
     
     # Main application under /${SUBPATH}
     location /${SUBPATH}/ {
-        proxy_pass http://localhost:${APP_PORT:-80}/;
+        proxy_pass http://localhost:1001/;
         proxy_http_version 1.1;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
