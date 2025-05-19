@@ -195,7 +195,8 @@ const WebRTCController = {
      * @param {Array} users - List of users already in the room
      */
     handleRoomJoined(users) {
-        window.WebRTCUI.addLogEntry(`Joined room with ${users.length} users`, 'success');
+        console.log('handleRoomJoined called with users:', users);
+        window.WebRTCUI.addLogEntry(`Joined room with ${users ? users.length : 0} users`, 'success');
 
         // Store our socket ID
         this.state.localSocketId = window.WebRTCSignaling.getSocketId();
@@ -204,9 +205,35 @@ const WebRTCController = {
         this.startConnectionMonitoring();
 
         // Create peer connections for existing users
-        users.forEach(user => {
-            this.createPeerConnection(user.socketId, user.userName);
-        });
+        if (users && Array.isArray(users)) {
+            users.forEach(async user => {
+                if (user && user.socketId && user.socketId !== this.state.localSocketId) {
+                    window.WebRTCUI.addLogEntry(`Creating connection to existing user: ${user.userName} (${user.socketId})`, 'peer');
+                    
+                    // Create peer connection for this user
+                    const pc = this.createPeerConnection(user.socketId, user.userName);
+                    
+                    // Initiate WebRTC connection by creating an offer
+                    if (pc) {
+                        try {
+                            // Slight delay to ensure everything is initialized properly
+                            setTimeout(async () => {
+                                // Create and send offer
+                                const offer = await window.WebRTCPeerConnection.createOffer(user.socketId);
+                                if (offer) {
+                                    window.WebRTCSignaling.sendWebRTCOffer(user.socketId, offer, {
+                                        fromUserName: this.state.userName
+                                    });
+                                    window.WebRTCUI.addLogEntry(`Sent offer to existing user: ${user.userName}`, 'signal');
+                                }
+                            }, 500);
+                        } catch (error) {
+                            window.WebRTCUI.addLogEntry(`Error creating offer for ${user.userName}: ${error.message}`, 'error');
+                        }
+                    }
+                }
+            });
+        }
 
         // Update participants UI
         window.WebRTCUI.updateParticipantsList(

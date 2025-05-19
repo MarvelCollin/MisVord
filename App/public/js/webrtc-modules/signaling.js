@@ -35,7 +35,10 @@ function connectToSignalingServer(roomId, userName, onConnected, onError) {
     }
 
     // Determine the socket connection URL
-    const protocol = 'wss://';  // Always use secure WebSocket
+    const protocolMap = {
+        'http:': 'ws://',
+        'https:': 'wss://'
+    };
     const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     
     let socketUrl;
@@ -45,10 +48,13 @@ function connectToSignalingServer(roomId, userName, onConnected, onError) {
         // For local development, use explicit port 1002
         socketUrl = `http://localhost:1002`;
         socketPath = '/socket.io';
+        console.log("Using localhost connection:", socketUrl);
     } else {
-        // For production, use same host with secure protocol
+        // For production/Docker, derive protocol from current page
+        const protocol = protocolMap[window.location.protocol] || 'wss://';
         socketUrl = `${protocol}${window.location.host}`;
         socketPath = '/socket.io';
+        console.log("Using production/Docker connection:", socketUrl);
     }
 
     try {
@@ -197,6 +203,7 @@ function setupSocketEvents(roomId, userName, onConnected, onError) {
     socket.off('reconnect_error');
     socket.off('reconnect_failed');
     socket.off('room-joined');
+    socket.off('video-room-users');
     socket.off('user-joined-video-room');
     socket.off('user-left-video-room');
     socket.off('webrtc-offer');
@@ -253,6 +260,20 @@ function setupSocketEvents(roomId, userName, onConnected, onError) {
         const { roomId, users } = data;
         window.WebRTCUI.addLogEntry(`Joined room: ${roomId} with ${users.length} other users`, 'socket');
         window.WebRTCUI.updateConnectionStatus('in-room', `Connected to Room: ${roomId}`);
+        
+        if (onConnected) onConnected(users);
+    });
+    
+    // Handle Docker-specific 'video-room-users' event
+    socket.on('video-room-users', (data) => {
+        const { users } = data;
+        window.WebRTCUI.addLogEntry(`Received users list with ${users.length} users`, 'socket');
+        window.WebRTCUI.updateConnectionStatus('in-room', `Connected to Room: ${roomId}`);
+        
+        // Log users for debugging
+        if (users.length > 0) {
+            console.log('Users in video room:', users);
+        }
         
         if (onConnected) onConnected(users);
     });

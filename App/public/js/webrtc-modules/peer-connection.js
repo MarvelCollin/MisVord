@@ -20,7 +20,7 @@ const defaultRTCConfig = {
         { urls: 'stun:stun.ideasip.com:3478' },
         { urls: 'stun:stun.iptel.org:3478' },
         
-        // Free TURN servers with credentials - crucial for NAT traversal
+        // Free TURN servers with credentials - crucial for NAT traversal and Docker networks
         {
             urls: [
                 'turn:openrelay.metered.ca:80',                  // TURN over TCP port 80 (firewall-friendly)
@@ -32,6 +32,13 @@ const defaultRTCConfig = {
             credential: 'openrelayproject'
         },
         
+        // Additional free TURN servers for Docker compatibility
+        {
+            urls: 'turn:turn.anyfirewall.com:443?transport=tcp',
+            username: 'webrtc',
+            credential: 'webrtc'
+        },
+        
         // Alternative TURN servers in case the primary ones fail
         {
             urls: [
@@ -41,27 +48,9 @@ const defaultRTCConfig = {
             ],
             username: 'f4b4035eaa76f4a55de5f4351567653ee4ff6fa97b50b6b334fcc1be9c27212d',
             credential: 'w1WpuQsPVLZfmACB9rU+6h9GYTMp51Iw9VTyGgpYgR8='
-        },
-        
-        // Another free TURN server as additional fallback
-        {
-            urls: [
-                'turn:relay.backups.cz:3478?transport=tcp',
-                'turn:relay.backups.cz:3478?transport=udp',
-                'turns:relay.backups.cz:5349'  // Secure TURN over TLS
-            ],
-            username: 'webrtc',
-            credential: 'webrtc'
-        },
-        
-        // Public mBiTX test TURN server
-        {
-            urls: 'turn:turn.mbitx.net:3478',
-            username: 'free',
-            credential: 'free'
         }
     ],
-    iceCandidatePoolSize: 10,            // Increase pool size for more candidates
+    iceCandidatePoolSize: 5,             // More reasonable pool size for Docker
     iceTransportPolicy: 'all',           // Try both TURN and STUN/Host candidates
     bundlePolicy: 'max-bundle',          // Bundle all media on one connection when possible
     rtcpMuxPolicy: 'require',            // Use RTCP multiplexing
@@ -107,6 +96,11 @@ function createPeerConnection(
     onConnectionStateChange,
     localStream
 ) {
+    if (!peerSocketId) {
+        console.error('Cannot create peer connection: Missing peer socket ID');
+        return null;
+    }
+    
     if (peerSocketId === WebRTCSignaling.getSocketId()) {
         console.warn(`Skipping peer connection for self (ID: ${peerSocketId})`);
         return null;
@@ -123,13 +117,20 @@ function createPeerConnection(
     // Select config based on network type
     let pc;
     
-    // Use special configuration for mobile devices
-    if (window.isMobileNetwork) {
-        console.log('Using mobile-optimized connection settings');
-        pc = new RTCPeerConnection(mobileRTCConfig);
-    } else {
-        // Standard configuration
-        pc = new RTCPeerConnection(defaultRTCConfig);
+    try {
+        // Use special configuration for mobile devices
+        if (window.isMobileNetwork) {
+            console.log('Using mobile-optimized connection settings');
+            pc = new RTCPeerConnection(mobileRTCConfig);
+        } else {
+            // Standard configuration
+            pc = new RTCPeerConnection(defaultRTCConfig);
+        }
+        
+        console.log(`Peer connection created successfully for ${peerUserName}`);
+    } catch (err) {
+        console.error(`Error creating RTCPeerConnection: ${err.message}`);
+        return null;
     }
 
     // Store peer connection with metadata
