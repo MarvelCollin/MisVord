@@ -1076,18 +1076,19 @@ window.checkSocketIoPath = function() {
     const basePath = getBasePath();
     console.log('Base path detected:', basePath || '/' + ' (empty means root)');
     
-    // Get potential paths with proper base path prefixing
+    // Always using the standardized path - removing other options to avoid confusion
+    const standardPath = '/misvord/socket/socket.io';
+    console.log('Using standardized socket.io path:', standardPath);
+    
+    // Only check the standardized path
     const paths = [
-        (basePath + '/js/socket.io.min.js'), // Local script in js folder on port 1001
-        (basePath + '/socket.io/socket.io.js'), // Standard Socket.IO path with base path
-        '/socket.io/socket.io.js' // Standard Socket.IO path on current port (1001)
+        (basePath + standardPath + '/socket.io.js') // Standardized path with socket.io.js
     ];
     
     // Add direct socket server path for localhost
     if (isLocalhost) {
-        // This is on port 1002 - direct access to socket server
-        paths.push('http://localhost:1002/socket.io/socket.io.js');
-        paths.push('http://localhost:1002/misvord/socket/socket.io/socket.io.js'); // With standardized path
+        // This is on port 1002 - direct access to socket server with standardized path
+        paths.push('http://localhost:1002' + standardPath + '/socket.io.js');
     }
     
     // Check meta tag configuration
@@ -1098,7 +1099,7 @@ window.checkSocketIoPath = function() {
     console.log('Meta tag - socket-path:', socketPathMeta ? socketPathMeta.content : 'Not found');
     
     // Check each path with a test request
-    console.log('Testing paths:');
+    console.log('Testing standardized path:');
     paths.forEach(path => {
         // Handle both relative and absolute URLs
         const fullUrl = path.startsWith('http') ? path : window.location.origin + path;
@@ -1114,10 +1115,8 @@ window.checkSocketIoPath = function() {
     });
     
     // Log WebSocket URLs for clarity
-    if (isLocalhost) {
-        console.log('Expected WebSocket connection should be to: ws://localhost:1002/misvord/socket/socket.io/');
-        console.log('Standardized socket path: /misvord/socket/socket.io');
-    }
+    console.log('Expected WebSocket connection should be to: ws://localhost:1002/misvord/socket/socket.io/');
+    console.log('Standardized socket path: /misvord/socket/socket.io');
     
     console.groupEnd();
     

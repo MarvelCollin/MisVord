@@ -88,45 +88,22 @@ try {
 }
 
 const corsAllowedOrigins = process.env.CORS_ALLOWED_ORIGINS || '*';
-const socketPath = process.env.SOCKET_PATH || '/socket.io';
+const socketPath = process.env.SOCKET_PATH || '/misvord/socket/socket.io';
 const isVpsEnvironment = process.env.IS_VPS === 'true';
 const domain = process.env.DOMAIN || 'localhost';
 const subpath = process.env.SUBPATH || 'misvord';
+const alwaysUseStandardPath = process.env.ALWAYS_USE_STANDARD_PATH === 'true';
 
-let effectivePath = socketPath;
+// Always use the standardized path for consistency
+let effectivePath = `/${subpath}/socket/socket.io`;
 
-// Determine the effective Socket.IO path based on environment
-if (isVpsEnvironment) {
-  // VPS/Production environment
-  if (domain === 'localhost' || domain === '127.0.0.1') {
-    // Special case: VPS=true but on localhost - use the standardized path
-    effectivePath = `/${subpath}/socket/socket.io`;
-    console.log(`VPS mode on localhost: Using standardized Socket.IO path: ${effectivePath}`);
-  } else if (socketPath && socketPath.includes(`/${subpath}/`)) {
-    // Use configured socket path
-    effectivePath = socketPath;
-    console.log(`VPS Mode: Using configured Socket.IO path: ${effectivePath}`);
-  } else {
-    // Default VPS path
-    effectivePath = `/${subpath}/socket/socket.io`;
-    console.log(`VPS Mode: Using default VPS Socket.IO path: ${effectivePath}`);
-  }
-} else {
-  // Local development environment - use standardized path for consistency
-  effectivePath = `/${subpath}/socket/socket.io`;
-  console.log(`Local Mode: Using standardized Socket.IO path (for consistency): ${effectivePath}`);
-}
-
-// For localhost, always use the standardized socket path
-if (domain === 'localhost' || domain === '127.0.0.1') {
-  // Always use the standardized path for localhost
-  effectivePath = `/${subpath}/socket/socket.io`;
-  console.log(`Using standardized Socket.IO path for localhost development: ${effectivePath}`);
-  
-  // Set CORS to allow all origins for local development
-  console.log('Setting CORS to allow all origins for localhost development');
-  // Don't try to reassign corsAllowedOrigins as it's a constant
-}
+// Log the path configuration
+console.log('Socket Path Configuration:');
+console.log('  - Configured SOCKET_PATH:', socketPath);
+console.log('  - SUBPATH:', subpath);
+console.log('  - Domain:', domain);
+console.log('  - IS_VPS:', isVpsEnvironment);
+console.log('  - Using standardized path:', effectivePath);
 
 // Make sure path doesn't have double slashes
 effectivePath = effectivePath.replace(/\/+/g, '/');

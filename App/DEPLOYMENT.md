@@ -15,7 +15,7 @@ To start the application in development mode:
 
 1. Start the socket server:
    ```
-   set DISABLE_DOTENV=true && set IS_VPS=true && set SOCKET_PATH=/misvord/socket/socket.io && set DOMAIN=localhost && node socket-server.js
+   set DISABLE_DOTENV=true && set IS_VPS=false && set SOCKET_PATH=/misvord/socket/socket.io && set DOMAIN=localhost && set ALWAYS_USE_STANDARD_PATH=true && node socket-server.js
    ```
    
    Alternatively, you can use the batch script:
@@ -36,7 +36,7 @@ To deploy the application in production:
 
 1. Start the socket server using the production environment variables:
    ```
-   set DISABLE_DOTENV=true && set IS_VPS=true && set SOCKET_PATH=/misvord/socket/socket.io && set DOMAIN=marvelcollin.my.id && set SUBPATH=misvord && set USE_HTTPS=true && node socket-server.js
+   set DISABLE_DOTENV=true && set IS_VPS=true && set SOCKET_PATH=/misvord/socket/socket.io && set DOMAIN=marvelcollin.my.id && set SUBPATH=misvord && set USE_HTTPS=true && set ALWAYS_USE_STANDARD_PATH=true && node socket-server.js
    ```
 
    Alternatively, you can use the batch script:
@@ -60,13 +60,16 @@ To deploy the application in production:
        proxy_set_header X-Forwarded-Proto $scheme;
    }
    
-   # Socket.IO specific path
+   # Socket.IO specific path - CRITICAL FOR SOCKET.IO CONNECTION
    location /misvord/socket/socket.io/ {
-       proxy_pass http://localhost:1002/;
+       proxy_pass http://localhost:1002/socket.io/;
        proxy_http_version 1.1;
        proxy_set_header Upgrade $http_upgrade;
        proxy_set_header Connection "upgrade";
        proxy_set_header Host $host;
+       proxy_set_header X-Real-IP $remote_addr;
+       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+       proxy_set_header X-Forwarded-Proto $scheme;
    }
    ```
 
@@ -101,7 +104,10 @@ If you encounter WebSocket connection issues:
    curl http://localhost:1002/misvord/socket/socket.io/?EIO=4&transport=polling
    ```
 
-3. Check the socket server logs for any errors
+3. Check the socket server logs for any errors:
+   ```
+   docker logs miscvord_socket
+   ```
 
 4. Make sure the client-side configuration matches the server configuration:
    - The meta tags in the HTML should have the correct values:
@@ -113,4 +119,14 @@ If you encounter WebSocket connection issues:
 5. Use the socket-test.html tool to test direct connections:
    ```
    start socket-test.html
+   ``` 
+
+6. Ensure your Nginx configuration correctly proxies both paths:
+   ```
+   sudo nginx -t
+   ```
+
+7. Check Nginx and socket server error logs:
+   ```
+   sudo tail -f /var/log/nginx/error.log
    ``` 

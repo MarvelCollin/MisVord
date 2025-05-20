@@ -40,6 +40,7 @@ services:
       # Ensure this reflects how Nginx will proxy to the socket server
       - SOCKET_SERVER=${SOCKET_SERVER:-wss://marvelcollin.my.id/misvord/socket} # Adjusted for VPS with SSL and subpath
       - SOCKET_SERVER_LOCAL=${SOCKET_SERVER_LOCAL:-http://socket-server:1002} # Internal communication
+      - SOCKET_PATH=/misvord/socket/socket.io  
       - SOCKET_API_KEY=${SOCKET_API_KEY:-kolin123} # Use .env file for this!
       - IS_VPS=${IS_VPS:-true} # Set to true for VPS
       - DOMAIN=${DOMAIN:-marvelcollin.my.id} # Set to your domain
@@ -92,6 +93,7 @@ services:
       - DEBUG_CONNECT=false # Debug connection off by default
       - DEBUG_CONNECTION=false # Debug connection details off by default  
       - VIDEO_CHAT_ROOM=global-video-chat # Default room name
+      - ALWAYS_USE_STANDARD_PATH=true # Enforce using the standardized path
     security_opt:
       - no-new-privileges:true
     ulimits:

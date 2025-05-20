@@ -59,29 +59,19 @@ function connectToSignalingServer(roomId, userName, onConnected, onError) {
     try {
         // Get socket server configuration from meta tags
         const socketServerMeta = document.querySelector('meta[name="socket-server"]');
-        const socketPathMeta = document.querySelector('meta[name="socket-path"]');
-        const isSecureMeta = document.querySelector('meta[name="socket-secure"]');
         
         // Set defaults
         let socketUrl = '';
-        let socketPath = '';
+        // Always use the standardized path for all environments
+        const socketPath = '/misvord/socket/socket.io';
         let isSecure = window.location.protocol === 'https:';
         
-        // Extract values from meta tags (if available)
+        // Extract URL from meta tag (if available)
         if (socketServerMeta && socketServerMeta.content) {
             socketUrl = socketServerMeta.content;
             // CRITICAL FIX: Fix Docker service names if present
             socketUrl = fixDockerServiceNames(socketUrl);
             console.log("Using socket server URL from meta tag:", socketUrl);
-        }
-        
-        if (socketPathMeta && socketPathMeta.content) {
-            socketPath = socketPathMeta.content;
-            console.log("Using socket path from meta tag:", socketPath);
-        }
-        
-        if (isSecureMeta && isSecureMeta.content) {
-            isSecure = isSecureMeta.content === 'true';
         }
         
         // Fallback for socket URL if not set
@@ -94,11 +84,7 @@ function connectToSignalingServer(roomId, userName, onConnected, onError) {
             console.log("Using fallback socket URL:", socketUrl);
         }
         
-        // Ensure socket path is always set to the standardized path
-        if (!socketPath) {
-            socketPath = '/misvord/socket/socket.io';
-            console.log("Using standardized socket path:", socketPath);
-        }
+        console.log("Using standardized socket path:", socketPath);
         
         // Ensure any existing socket is properly disconnected
         if (socket) {
@@ -177,7 +163,8 @@ function tryFallbackSocketConnection(fallbackUrl = null, fallbackPath = null, ro
     const socketPathMeta = document.querySelector('meta[name="socket-path"]');
     
     let trySocketUrl = fallbackUrl;
-    let trySocketPath = fallbackPath;
+    // Always use standardized path
+    let trySocketPath = '/misvord/socket/socket.io';
     
     // If URL not specified, try to get from meta tag first
     if (!trySocketUrl) {
@@ -201,18 +188,8 @@ function tryFallbackSocketConnection(fallbackUrl = null, fallbackPath = null, ro
         }
     }
     
-    // If path not specified, try to get from meta tag first
-    if (!trySocketPath) {
-        if (socketPathMeta && socketPathMeta.content) {
-            // Use the value from meta tag
-            trySocketPath = socketPathMeta.content;
-            console.log("Fallback using socket path from meta tag:", trySocketPath);
-        } else {
-            // Use standardized path for all environments
-            trySocketPath = '/misvord/socket/socket.io';
-            console.log("Using standardized socket path for all environments:", trySocketPath);
-        }
-    }
+    // Always use the standardized path - ignore any other path from params or meta tags
+    console.log(`[WebRTC] Using standardized socket path: ${trySocketPath}`);
     
     console.log(`[WebRTC] Fallback socket attempt - URL: ${trySocketUrl}, Path: ${trySocketPath}`);
     window.WebRTCUI.addLogEntry(`Trying fallback connection: ${trySocketUrl} (path: ${trySocketPath})`, 'socket');
@@ -295,7 +272,8 @@ function tryDirectConnection(serverUrl, socketIoPath = '/misvord/socket/socket.i
     
     // Final URL determination for direct connection
     let finalUrl = serverUrl;
-    let finalPath = socketIoPath;
+    // Always use the standardized path for consistency
+    let finalPath = '/misvord/socket/socket.io';
     
     if (!finalUrl) {
         const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
@@ -304,10 +282,6 @@ function tryDirectConnection(serverUrl, socketIoPath = '/misvord/socket/socket.i
         } else {
             finalUrl = window.location.origin;
         }
-    }
-    
-    if (!finalPath) {
-        finalPath = '/misvord/socket/socket.io'; // Standardized path for all environments
     }
     
     console.log(`FINAL CONNECTION ATTEMPT - URL: ${finalUrl}, Path: ${finalPath}`);
