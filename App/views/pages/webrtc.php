@@ -79,7 +79,7 @@ if (strpos($socket_server_url, '/misvord/socket') !== false) {
     $is_subpath = true;
 } else if (strpos($socket_server_url, 'localhost:1002') !== false || strpos($socket_server_url, '127.0.0.1:1002') !== false) {
     // Direct connection to socket server in Docker - use standard path
-    $socket_path = '/socket.io'; // Standard Socket.IO path
+    $socket_path = '/socket.io'; // Standard Socket.IO path for local development
     $is_subpath = false;
 } else {
     // Default path

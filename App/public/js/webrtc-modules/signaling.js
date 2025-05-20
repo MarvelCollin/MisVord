@@ -74,6 +74,9 @@ function connectToSignalingServer(roomId, userName, onConnected, onError) {
         socketUrl = window.location.protocol + '//' + window.location.hostname + ':1002';
         socketPath = '/socket.io'; // Standard Socket.IO path
         console.log("[WebRTC] Using localhost connection on port 1002:", socketUrl);
+        
+        // Add debug log to help diagnose connection issues
+        console.log("[WebRTC] Expected WebSocket URL:", socketUrl.replace('http:', 'ws:') + socketPath);
     } else if (socketServerMeta && socketServerMeta.content) {
         // Use the value from meta tag but fix any Docker service names
         socketUrl = socketServerMeta.content;
@@ -120,6 +123,10 @@ function connectToSignalingServer(roomId, userName, onConnected, onError) {
             socket.disconnect();
             socket = null;
         }
+        
+        // Log expected WebSocket URL for debugging
+        const expectedWsUrl = socketUrl.replace('http:', 'ws:').replace('https:', 'wss:') + socketPath;
+        console.log(`[WebRTC] Expected WebSocket URL: ${expectedWsUrl}`);
         
         socket = io(socketUrl, {
             path: socketPath,

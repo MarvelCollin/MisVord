@@ -236,17 +236,20 @@ window.SocketDiagnostics = {
         
         // Apply special handling for localhost
         if (isLocalhost) {
-            // For localhost development, ensure we're using the correct port and path
-            if (!socketUrl || socketUrl.includes('socket-server')) {
-                socketUrl = window.location.protocol + '//' + window.location.hostname + ':1002';
-                this.log(`Using localhost URL for socket connection: ${socketUrl}`, 'info');
-            }
+            // For localhost development, ALWAYS use port 1002 and standard path
+            socketUrl = window.location.protocol + '//' + window.location.hostname + ':1002';
+            socketPath = '/socket.io';
+            this.log(`Using localhost URL for socket connection: ${socketUrl}`, 'info');
             
-            // For localhost, always use standard socket.io path
-            if (socketPath !== '/socket.io') {
-                socketPath = '/socket.io';
-                this.log(`Using standard socket.io path for localhost: ${socketPath}`, 'info');
-            }
+            // Test if the Socket.IO script exists at this URL+path
+            fetch(`${socketUrl}/socket.io/socket.io.js`, { method: 'HEAD' })
+                .then(response => {
+                    this.log(`Socket.IO test at ${socketUrl}/socket.io/socket.io.js: ${response.ok ? 'Available' : 'Not found'} (${response.status})`, 
+                             response.ok ? 'success' : 'warning');
+                })
+                .catch(error => {
+                    this.log(`Socket.IO test error: ${error.message}`, 'error');
+                });
         } else if (!socketUrl) {
             // For non-localhost without explicit URL, use current origin
             socketUrl = window.location.origin;

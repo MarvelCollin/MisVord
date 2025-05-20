@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Socket.IO Test</title>
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        #status { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .connected { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .connecting { background-color: #fff3cd; color: #856404; }
+        #log { height: 200px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Socket.IO Connection Test</h1>
+    <div id="status" class="connecting">Connecting...</div>
+    <button id="connectBtn">Connect</button>
+    <button id="disconnectBtn">Disconnect</button>
+    <div>
+        <label for="socketUrl">Socket URL:</label>
+        <input type="text" id="socketUrl" value="http://localhost:1002" style="width: 250px">
+    </div>
+    <div>
+        <label for="socketPath">Socket Path:</label>
+        <input type="text" id="socketPath" value="/misvord/socket/socket.io" style="width: 250px">
+    </div>
+    <div>
+        <button id="testDevBtn">Use Dev Settings</button>
+        <button id="testProdBtn">Use Prod Settings</button>
+    </div>
+    <div id="log"></div>
+
+    <script>
+    const statusDiv = document.getElementById('status');
+    const logDiv = document.getElementById('log');
+    const connectBtn = document.getElementById('connectBtn');
+    const disconnectBtn = document.getElementById('disconnectBtn');
+    const socketUrlInput = document.getElementById('socketUrl');
+    const socketPathInput = document.getElementById('socketPath');
+    const testDevBtn = document.getElementById('testDevBtn');
+    const testProdBtn = document.getElementById('testProdBtn');
+
+    let socket = null;
+
+    function log(message, type = 'info') {
+        const entry = document.createElement('div');
+        entry.style.marginBottom = '5px';
+        entry.style.color = type === 'error' ? 'red' : type === 'success' ? 'green' : 'black';
+        entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+        logDiv.appendChild(entry);
+        logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    function updateStatus(message, type) {
+        statusDiv.textContent = message;
+        statusDiv.className = type;
+    }
+
+    function connectSocket() {
+        updateStatus('Connecting...', 'connecting');
+        const url = socketUrlInput.value;
+        const path = socketPathInput.value;
+        
+        log(`Attempting connection to ${url} with path ${path}`);
+        try {
+            // Disconnect existing socket if any
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+                log('Disconnected previous socket');
+            }
+            
+            // Create socket connection
+            socket = io(url, {
+                path: path,
+                transports: ['websocket', 'polling'],
+                reconnectionAttempts: 3,
+                timeout: 10000
+            });
+            
+            // Socket events
+            socket.on('connect', () => {
+                log(`Connected! Socket ID: ${socket.id}`, 'success');
+                updateStatus(`Connected (ID: ${socket.id})`, 'connected');
+                log(`Transport: ${socket.io.engine.transport.name}`);
+            });
+            
+            socket.on('disconnect', (reason) => {
+                log(`Disconnected: ${reason}`, 'error');
+                updateStatus('Disconnected', 'error');
+            });
+            
+            socket.on('connect_error', (error) => {
+                log(`Connection error: ${error.message}`, 'error');
+                updateStatus(`Error: ${error.message}`, 'error');
+            });
+            
+            socket.on('error', (error) => {
+                log(`Socket error: ${error.message || error}`, 'error');
+            });
+            
+            socket.io.on('error', (error) => {
+                log(`Transport error: ${error.message || error}`, 'error');
+            });
+            
+            socket.io.on('reconnect_attempt', (attempt) => {
+                log(`Reconnection attempt #${attempt}...`);
+            });
+            
+            socket.io.on('reconnect', (attempt) => {
+                log(`Reconnected after ${attempt} attempts`, 'success');
+                updateStatus('Reconnected', 'connected');
+            });
+            
+            socket.io.on('reconnect_error', (error) => {
+                log(`Reconnection error: ${error.message}`, 'error');
+            });
+            
+            socket.io.on('reconnect_failed', () => {
+                log('Failed to reconnect after maximum attempts', 'error');
+            });
+        } catch (e) {
+            log(`Error initializing socket: ${e.message}`, 'error');
+            updateStatus(`Error: ${e.message}`, 'error');
+        }
+    }
+    
+    connectBtn.addEventListener('click', connectSocket);
+    
+    disconnectBtn.addEventListener('click', () => {
+        if (socket) {
+            socket.disconnect();
+            log('Manually disconnected', 'info');
+            updateStatus('Disconnected', 'error');
+        }
+    });
+    
+    testDevBtn.addEventListener('click', () => {
+        socketUrlInput.value = 'http://localhost:1002';
+        socketPathInput.value = '/socket.io';
+        log('Set development connection settings', 'info');
+    });
+    
+    testProdBtn.addEventListener('click', () => {
+        socketUrlInput.value = 'http://localhost:1002';
+        socketPathInput.value = '/misvord/socket/socket.io';
+        log('Set production connection settings', 'info');
+    });
+    
+    window.addEventListener('load', connectSocket);
+    </script>
+</body>
+</html> 

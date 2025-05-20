@@ -5,7 +5,14 @@ const fs = require('fs');
 const socketIo = require('socket.io');
 const cors = require('cors');
 // const path = require('path'); // Not used in this simplified version
-require('dotenv').config();
+
+// Only load dotenv if not explicitly disabled
+if (process.env.DISABLE_DOTENV !== 'true') {
+  console.log('Loading environment from .env file');
+  require('dotenv').config();
+} else {
+  console.log('Bypassing .env file, using provided environment variables');
+}
 
 // Environment variables and configuration
 const DEBUG_MODE = process.env.DEBUG === 'true' || false;
@@ -13,13 +20,29 @@ const DEBUG_CONNECT = process.env.DEBUG_CONNECT === 'true' || false;
 const DEBUG_CONNECTION = process.env.DEBUG_CONNECTION === 'true' || false;
 const DEBUG_USERS = process.env.DEBUG_USERS === 'true' || false;
 
+// For local testing, always ensure these are defined with fallback values
+if (process.env.DEBUG_USERS === undefined) {
+  process.env.DEBUG_USERS = 'false';
+  console.log('DEBUG_USERS was undefined. Setting to false as fallback.');
+}
+
+// Check for explicit command-line environment configuration
+const envFromCommandLine = process.env.SOCKET_PATH && process.env.DOMAIN && process.env.IS_VPS;
+
 // Add VPS configuration to ensure consistent settings across page reloads
 if (process.env.IS_VPS === 'true') {
-    // Default VPS environment variables if not explicitly set
-    process.env.SOCKET_PATH = process.env.SOCKET_PATH || '/misvord/socket/socket.io';
-    process.env.SUBPATH = process.env.SUBPATH || 'misvord';
-    
-    console.log('VPS environment detected. Using socket path:', process.env.SOCKET_PATH);
+    // Default VPS environment variables if not explicitly set and not from command line
+    if (!envFromCommandLine) {
+        process.env.SOCKET_PATH = process.env.SOCKET_PATH || '/misvord/socket/socket.io';
+        process.env.SUBPATH = process.env.SUBPATH || 'misvord';
+        console.log('VPS environment detected. Using socket path:', process.env.SOCKET_PATH);
+    } else {
+        console.log('Using command-line provided environment for VPS mode:', process.env.SOCKET_PATH);
+    }
+} else if (process.env.IS_VPS === 'false') {
+    if (envFromCommandLine) {
+        console.log('Using command-line provided environment for development mode:', process.env.SOCKET_PATH);
+    }
 }
 
 // Log environment variables at startup
@@ -79,7 +102,7 @@ if (isVpsEnvironment) {
     // Special case: VPS=true but on localhost - use standard path
     effectivePath = '/socket.io';
     console.log(`Special case: VPS mode but on localhost. Using standard Socket.IO path: ${effectivePath}`);
-  } else if (socketPath.includes(`/${subpath}/`)) {
+  } else if (socketPath && socketPath.includes(`/${subpath}/`)) {
     // Use configured socket path
     effectivePath = socketPath;
     console.log(`VPS Mode: Using configured Socket.IO path: ${effectivePath}`);
@@ -93,6 +116,29 @@ if (isVpsEnvironment) {
   effectivePath = '/socket.io';
   console.log(`Local Mode: Using standard Socket.IO path: ${effectivePath}`);
 }
+
+// FORCE OVERRIDE FOR LOCALHOST - Always use standard path for localhost regardless of VPS setting
+if (domain === 'localhost' || domain === '127.0.0.1') {
+  effectivePath = '/socket.io';
+  console.log(`OVERRIDE: Force using standard Socket.IO path for localhost: ${effectivePath}`);
+  
+  // Also ensure CORS is set correctly for localhost
+  console.log('Setting CORS to allow all origins for localhost development');
+  corsAllowedOrigins = '*';
+}
+
+// Make sure path doesn't have double slashes
+effectivePath = effectivePath.replace(/\/+/g, '/');
+console.log(`Final effective path: ${effectivePath}`);
+
+// Safeguard against potential multiple server.handleUpgrade calls for the same socket
+process.on('uncaughtException', (err) => {
+  if (err.message && err.message.includes('server.handleUpgrade() was called more than once with the same socket')) {
+    console.warn('⚠️ Caught WebSocket upgrade conflict. This is expected during restart: ', err.message);
+  } else {
+    console.error('Uncaught exception:', err);
+  }
+});
 
 const io = socketIo(server, {
   // --- TEMPORARY: Extremely permissive CORS for Socket.IO debugging ---
@@ -651,21 +697,22 @@ app.get('/socket-status', (req, res) => {
 });
 
 // Add a plain-text response for /socket.io path to help troubleshoot connection issues
-app.get(effectivePath, (req, res) => { // Listen on the effectivePath for socket.io polling
-  if (req.query.transport === 'polling' && req.query.sid === undefined) {
-    const sid = "s-" + Date.now();
-    const bodyObject = {
-        sid: sid,
-        upgrades: ["websocket"],
-        pingInterval: 25000,
-        pingTimeout: 60000
-    };
-    const body = `0${JSON.stringify(bodyObject)}`;
-    res.setHeader('Content-Type', 'text/plain; charset=UTF-8');
-    return res.send(body);
-  }
-  res.status(200).send(`Socket.IO endpoint. Port: ${finalListenPort}. Path: ${effectivePath}`);
-});
+// COMMENTED OUT to avoid conflict with Socket.IO's built-in handlers
+// app.get(effectivePath, (req, res) => { // Listen on the effectivePath for socket.io polling
+//   if (req.query.transport === 'polling' && req.query.sid === undefined) {
+//     const sid = "s-" + Date.now();
+//     const bodyObject = {
+//         sid: sid,
+//         upgrades: ["websocket"],
+//         pingInterval: 25000,
+//         pingTimeout: 60000
+//     };
+//     const body = `0${JSON.stringify(bodyObject)}`;
+//     res.setHeader('Content-Type', 'text/plain; charset=UTF-8');
+//     return res.send(body);
+//   }
+//   res.status(200).send(`Socket.IO endpoint. Port: ${finalListenPort}. Path: ${effectivePath}`);
+// });
 
 // Fallback CORS middleware (less critical now with '*' but good for future)
 app.use((req, res, next) => {
@@ -676,4 +723,33 @@ app.use((req, res, next) => {
     res.header('Access-Control-Allow-Credentials', 'true');
 }
   next();
+});
+
+// Serve Socket.IO client library directly from this server
+// This helps with localhost development where browsers can't reach /socket.io/socket.io.js on port 1001
+let socketIoPath;
+try {
+  socketIoPath = require.resolve('socket.io-client/dist/socket.io.js');
+  console.log(`Socket.IO client library path: ${socketIoPath}`);
+} catch (error) {
+  console.error(`Error loading Socket.IO client library: ${error.message}`);
+  // Provide a fallback using CDN path or other mechanism
+  socketIoPath = null;
+}
+
+app.get('/socket.io/socket.io.js', (req, res) => {
+  if (socketIoPath) {
+    res.sendFile(socketIoPath);
+    console.log('Served Socket.IO client library');
+  } else {
+    // If local file not available, redirect to CDN
+    console.log('Redirecting to Socket.IO CDN');
+    res.redirect('https://cdn.socket.io/4.6.0/socket.io.js');
+  }
+});
+
+// Also serve the minified version for compatibility - use CDN redirect
+app.get('/socket.io/socket.io.min.js', (req, res) => {
+  console.log('Redirecting to Socket.IO min.js CDN');
+  res.redirect('https://cdn.socket.io/4.6.0/socket.io.min.js');
 });
