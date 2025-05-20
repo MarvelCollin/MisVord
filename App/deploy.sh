@@ -26,6 +26,38 @@ error() {
     exit 1
 }
 
+# Add a special MySQL function for safer database operations
+mysql_safe() {
+    local command="$1"
+    local error_message="$2"
+    local retry_count=0
+    local max_retries=3
+    local result=1
+
+    while [ $retry_count -lt $max_retries ] && [ $result -ne 0 ]; do
+        docker exec miscvord_db mysql -h db -u root -ppassword -e "$command" &>/dev/null
+        result=$?
+        
+        if [ $result -ne 0 ]; then
+            retry_count=$((retry_count + 1))
+            if [ $retry_count -lt $max_retries ]; then
+                info "MySQL command failed. Retrying in 3 seconds... ($retry_count/$max_retries)"
+                sleep 3
+            else
+                info "$error_message"
+                info "MySQL error. Here are some troubleshooting tips:"
+                info "1. Check if MySQL container is running: docker ps | grep miscvord_db"
+                info "2. Check MySQL logs: docker logs miscvord_db"
+                info "3. Try connecting manually: docker exec -it miscvord_db mysql -u root -ppassword"
+                info "4. Verify .env and docker-compose.yml have matching password configuration"
+                return 1
+            fi
+        fi
+    done
+
+    return 0
+}
+
 # Check if running as root (needed for some operations)
 if [ "$EUID" -ne 0 ]; then
     info "Note: Some operations may require sudo privileges"
@@ -464,38 +496,6 @@ if [ "${DB_PASS}" != "password" ] && [ "${DB_PASS}" != "" ]; then
     info "If you need to reset the password to default, you can run:"
     info "docker exec miscvord_db mysql -u root -p\"${DB_PASS}\" -e \"ALTER USER 'root'@'%' IDENTIFIED BY 'password';\""
 fi
-
-# Add a special MySQL function for safer database operations
-mysql_safe() {
-    local command="$1"
-    local error_message="$2"
-    local retry_count=0
-    local max_retries=3
-    local result=1
-
-    while [ $retry_count -lt $max_retries ] && [ $result -ne 0 ]; do
-        docker exec miscvord_db mysql -h db -u root -ppassword -e "$command" &>/dev/null
-        result=$?
-        
-        if [ $result -ne 0 ]; then
-            retry_count=$((retry_count + 1))
-            if [ $retry_count -lt $max_retries ]; then
-                info "MySQL command failed. Retrying in 3 seconds... ($retry_count/$max_retries)"
-                sleep 3
-            else
-                info "$error_message"
-                info "MySQL error. Here are some troubleshooting tips:"
-                info "1. Check if MySQL container is running: docker ps | grep miscvord_db"
-                info "2. Check MySQL logs: docker logs miscvord_db"
-                info "3. Try connecting manually: docker exec -it miscvord_db mysql -u root -ppassword"
-                info "4. Verify .env and docker-compose.yml have matching password configuration"
-                return 1
-            fi
-        fi
-    done
-
-    return 0
-}
 
 # Step 8: Verify deployment
 step "Verifying deployment"

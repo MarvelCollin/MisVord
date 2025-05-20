@@ -19,8 +19,20 @@ function asset($path) {
     // Get the base URL from server variables
     $baseUrl = getBaseUrl();
     
-    // Return the URL with the assets directory
-    return "{$baseUrl}/assets/{$path}";
+    // Check file extension to determine the appropriate directory
+    $extension = pathinfo($path, PATHINFO_EXTENSION);
+    
+    // Route to the appropriate directory based on file extension
+    if ($extension === 'js' || strpos($path, 'webrtc-modules/') !== false) {
+        // JavaScript files go to /js/ directory
+        return "{$baseUrl}/js/{$path}";
+    } elseif ($extension === 'css') {
+        // CSS files go to /css/ directory
+        return "{$baseUrl}/css/{$path}";
+    } else {
+        // All other assets go to /assets/ directory
+        return "{$baseUrl}/assets/{$path}";
+    }
 }
 
 /**

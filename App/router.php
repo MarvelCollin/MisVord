@@ -3,7 +3,7 @@
 
 // Define APP_ROOT only if not already defined
 if (!defined('APP_ROOT')) {
-    define('APP_ROOT', __DIR__);
+define('APP_ROOT', __DIR__);
 }
 
 if (session_status() === PHP_SESSION_NONE) {

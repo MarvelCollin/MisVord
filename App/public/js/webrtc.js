@@ -110,12 +110,49 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /**
+ * Get the base URL for assets based on the current page
+ * This handles subpath deployments and different environments
+ * @returns {string} The base URL for assets
+ */
+function getAssetBasePath() {
+    // Get the current URL to determine if we're in a subpath
+    const currentPath = window.location.pathname;
+    
+    // Check if we're in a subpath deployment (like /misvord/ or /miscvord/)
+    if (currentPath.includes('/misvord/')) {
+        return '/misvord'; // Return the subpath for this deployment
+    } else if (currentPath.includes('/miscvord/')) {
+        return '/miscvord'; // Return the subpath for this deployment
+    }
+    
+    // Default - no subpath
+    return '';
+}
+
+/**
  * Load all required WebRTC modules
  * The order matters - dependencies must be loaded first
  */
 async function loadModules() {
     try {
-        const moduleBase = './js/webrtc-modules/';
+        // Get the base path for assets
+        const basePath = getAssetBasePath();
+        console.log(`Using asset base path: "${basePath}"`);
+        
+        // Build the module base path with the asset base path
+        const moduleBase = `${basePath}/js/webrtc-modules/`;
+        
+        // First try to load Socket.IO since it's critical
+        try {
+            await loadScript(`${basePath}/js/socket.io.min.js`);
+            console.log('Socket.IO loaded successfully');
+        } catch (error) {
+            console.warn('Failed to load local Socket.IO, trying CDN fallback:', error);
+            // Try loading from CDN as fallback
+            await loadScript('https://cdn.socket.io/4.6.0/socket.io.min.js');
+            console.log('Socket.IO loaded from CDN successfully');
+        }
+        
         const requiredModules = [
             // Core modules - load media-control.js first to ensure it's available
             'media-control.js',
@@ -138,8 +175,13 @@ async function loadModules() {
         
         // Load each module in sequence
         for (const module of requiredModules) {
-            await loadScript(moduleBase + module);
-            console.log(`Loaded WebRTC module: ${module}`);
+            try {
+                await loadScript(moduleBase + module);
+                console.log(`Loaded WebRTC module: ${module}`);
+            } catch (error) {
+                console.error(`Failed to load module ${module}:`, error);
+                throw error; // Propagate the error
+            }
         }
         
         return true;
@@ -162,7 +204,10 @@ function loadScript(src) {
         script.async = true;
         
         script.onload = () => resolve();
-        script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
+        script.onerror = () => {
+            console.error(`Failed to load script: ${src}`);
+            reject(new Error(`Failed to load script: ${src}`));
+        };
         
         document.head.appendChild(script);
     });

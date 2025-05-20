@@ -293,7 +293,7 @@ io.on('connection', (socket) => {
     if (!roomId) {
         debugLog(`User ${userName} (${socket.id}) tried to join video room without roomId.`);
         socket.emit('video-room-error', { message: 'Room ID is required to join the video room.' });
-        return;
+      return;
     }
 
     console.log(`[USER-JOIN] ${userName} (${socket.id}) joining video room: ${roomId}`);
@@ -648,6 +648,6 @@ app.use((req, res, next) => {
     res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
     res.header('Access-Control-Allow-Credentials', 'true');
-  }
+}
   next();
 });

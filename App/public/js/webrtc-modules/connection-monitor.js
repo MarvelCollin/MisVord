@@ -9,10 +9,10 @@ window.WebRTCMonitor = window.WebRTCMonitor || {};
 // Only set CONFIG if it doesn't exist yet
 if (!window.WebRTCMonitor.hasOwnProperty('CONFIG')) {
     window.WebRTCMonitor.CONFIG = {
-        monitorInterval: 3000, // Check connections every 3 seconds
-        autoRecover: true,    // Attempt automatic recovery of failing connections
-        debugToConsole: true  // Log debug info to console
-    };
+    monitorInterval: 3000, // Check connections every 3 seconds
+    autoRecover: true,    // Attempt automatic recovery of failing connections
+    debugToConsole: true  // Log debug info to console
+};
 }
 
 // Set up state tracking in the namespace
