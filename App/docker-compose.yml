@@ -8,6 +8,8 @@ services:
       dockerfile: Dockerfile.php
     container_name: miscvord_php
     restart: unless-stopped
+    # For production, consider building code into the image and removing these code volumes
+    # Or, if you deploy by syncing code to the VPS and then running docker-compose, these are fine.
     volumes:
       - ./public:/var/www/html/public:ro
       - ./views:/var/www/html/views:ro
@@ -17,7 +19,7 @@ services:
       - ./migrations:/var/www/html/migrations:ro
       - ./database:/var/www/html/database:ro
       - ./utils:/var/www/html/utils:ro
-      - ./storage:/var/www/html/storage:rw
+      - ./storage:/var/www/html/storage:rw # Ensure this is writable for uploads/logs
       - ./router.php:/var/www/html/router.php:ro
       - ./index.php:/var/www/html/index.php:ro
       - ./.htaccess:/var/www/html/.htaccess:ro
@@ -26,24 +28,27 @@ services:
       - db
     networks:
       - miscvord_network
-    ports:
-      - "${APP_PORT:-1001}:1001"
+    # Port 1001 is exposed internally; Nginx on the host will proxy to this.
+    # No need to publish directly to host unless Nginx is also in a container on same network.
+    # ports:
+    #   - "${APP_PORT:-1001}:1001"
     environment:
-      - APP_ENV=${APP_ENV:-local}
-      - APP_DEBUG=${APP_DEBUG:-true}
+      - APP_ENV=${APP_ENV:-production} # Set to production for VPS
+      - APP_DEBUG=${APP_DEBUG:-false}  # Set to false for VPS
       - DB_HOST=db
       - DB_PORT=${DB_PORT:-1003}
       - DB_NAME=${DB_NAME:-misvord}
       - DB_USER=${DB_USER:-root}
-      - DB_PASS=${DB_PASS:-password}
+      - DB_PASS=${DB_PASS:-password} # Use .env file for this!
       - DB_CHARSET=${DB_CHARSET:-utf8mb4}
-      - SOCKET_SERVER=${SOCKET_SERVER:-http://socket-server:1002}
-      - SOCKET_SERVER_LOCAL=${SOCKET_SERVER_LOCAL:-http://localhost:1002}
-      - SOCKET_API_KEY=${SOCKET_API_KEY:-kolin123}
-      - IS_VPS=${IS_VPS:-false}
-      - DOMAIN=${DOMAIN:-localhost}
-      - SUBPATH=${SUBPATH:-misvord}
-      - PORT=1001
+      # Ensure this reflects how Nginx will proxy to the socket server
+      - SOCKET_SERVER=${SOCKET_SERVER:-wss://marvelcollin.my.id/misvord/socket} # Adjusted for VPS with SSL and subpath
+      - SOCKET_SERVER_LOCAL=${SOCKET_SERVER_LOCAL:-http://socket-server:1002} # Internal communication
+      - SOCKET_API_KEY=${SOCKET_API_KEY:-kolin123} # Use .env file for this!
+      - IS_VPS=${IS_VPS:-true} # Set to true for VPS
+      - DOMAIN=${DOMAIN:-marvelcollin.my.id} # Set to your domain
+      - SUBPATH=${SUBPATH:-misvord} # Keep or remove based on preference
+      - PORT=1001 # Internal port for PHP service
     security_opt:
       - no-new-privileges:true
     healthcheck:
@@ -64,26 +69,29 @@ services:
       - db
     networks:
       - miscvord_network
-    ports:
-      - "${SOCKET_PORT:-1002}:1002"
-      - "${SOCKET_SECURE_PORT:-1443}:1443" # Added secure port for HTTPS/WSS
+    # Port 1002 is exposed internally; Nginx on the host will proxy to this.
+    # No need to publish directly to host.
+    # ports:
+    #  - "${SOCKET_PORT:-1002}:1002"
+    #  - "${SOCKET_SECURE_PORT:-1443}:1443" # Not needed if Nginx handles SSL
     environment:
-      - NODE_ENV=${APP_ENV:-local}
-      - PORT=${SOCKET_PORT:-1002}
-      - SECURE_PORT=${SOCKET_SECURE_PORT:-1443}
-      - SOCKET_API_KEY=${SOCKET_API_KEY:-kolin123}
+      - NODE_ENV=${APP_ENV:-production} # Set to production for VPS
+      - PORT=${SOCKET_PORT:-1002} # Internal port for Node service
+      # - SECURE_PORT=${SOCKET_SECURE_PORT:-1443} # Not needed if Nginx handles SSL
+      - SOCKET_API_KEY=${SOCKET_API_KEY:-kolin123} # Use .env file for this!
       - DB_HOST=db
       - DB_PORT=${DB_PORT:-1003}
       - DB_NAME=${DB_NAME:-misvord}
       - DB_USER=${DB_USER:-root}
-      - DB_PASS=${DB_PASS:-password}
-      - SOCKET_URL=${SOCKET_SERVER:-http://socket-server:1002}
-      - SOCKET_PATH=${SOCKET_PATH:-/socket.io}
-      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-*}
-      - USE_HTTPS=${USE_HTTPS:-false}
-      - IS_VPS=${IS_VPS:-false}
-      - DOMAIN=${DOMAIN:-localhost}
-      - SUBPATH=${SUBPATH:-misvord}
+      - DB_PASS=${DB_PASS:-password} # Use .env file for this!
+      # This is the path Nginx will proxy to.
+      - SOCKET_URL=${SOCKET_SERVER_URL:-wss://marvelcollin.my.id/misvord/socket} # Adjusted for VPS with SSL and subpath
+      - SOCKET_PATH=${SOCKET_PATH:-/misvord/socket/socket.io} # Adjusted for subpath and Nginx config
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-https://marvelcollin.my.id} # Specific for your domain
+      - USE_HTTPS=${USE_HTTPS:-true} # Nginx handles actual SSL, but app might need to know
+      - IS_VPS=${IS_VPS:-true} # Set to true for VPS
+      - DOMAIN=${DOMAIN:-marvelcollin.my.id} # Set to your domain
+      - SUBPATH=${SUBPATH:-misvord} # Keep or remove
     security_opt:
       - no-new-privileges:true
     ulimits:
@@ -91,6 +99,7 @@ services:
         soft: 1024
         hard: 2048
     healthcheck:
+      # Adjusted healthcheck to work with subpath if needed, though internal healthcheck might not need subpath
       test: ["CMD", "wget", "--spider", "--quiet", "http://localhost:1002/health" , "||", "exit", "1"]
       interval: 30s
       timeout: 10s
@@ -104,18 +113,20 @@ services:
     restart: unless-stopped
     environment:
       MYSQL_DATABASE: ${DB_NAME:-misvord}
-      MYSQL_ROOT_PASSWORD: ${DB_PASS:-password}
+      MYSQL_ROOT_PASSWORD: ${DB_PASS:-password} # Use .env file for this!
       MYSQL_ROOT_HOST: "%"
       MYSQL_TCP_PORT: ${DB_PORT:-1003}
     volumes:
-      - miscvord_db_data:/var/lib/mysql
+      - miscvord_db_data:/var/lib/mysql # Persists DB data on the host
     networks:
       - miscvord_network
-    ports:
-      - "${DB_PORT:-1003}:${DB_PORT:-1003}"
+    # Expose DB port only if you need to connect from host, otherwise keep internal.
+    # For VPS, usually better to keep it internal and use phpMyAdmin/Adminer or SSH tunnel.
+    # ports:
+    #   - "${DB_PORT:-1003}:${DB_PORT:-1003}"
     command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --port=${DB_PORT:-1003}
     security_opt:
-      - seccomp:unconfined
+      - seccomp:unconfined # Required by MySQL for some operations
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-P", "${DB_PORT:-1003}"]
       interval: 10s
@@ -131,16 +142,17 @@ services:
       - db
     networks:
       - miscvord_network
-    ports:
-      - "${PMA_PORT:-1004}:1004"
+    # Port 1004 is exposed internally; Nginx on the host will proxy to this.
+    # ports:
+    #  - "${PMA_PORT:-1004}:1004"
     environment:
       - PMA_HOST=db
       - PMA_PORT=${DB_PORT:-1003}
       - PMA_ARBITRARY=1
       - UPLOAD_LIMIT=500M
       - PMA_USER=${DB_USER:-root}
-      - PMA_PASSWORD=${DB_PASS:-password}
-      - PORT=1004
+      - PMA_PASSWORD=${DB_PASS:-password} # Use .env file for this!
+      - PORT=1004 # Internal port for phpMyAdmin service
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
@@ -153,12 +165,13 @@ services:
       - db
     networks:
       - miscvord_network
-    ports:
-      - "${ADMINER_PORT:-1005}:1005"
+    # Port 1005 is exposed internally; Nginx on the host will proxy to this.
+    # ports:
+    #  - "${ADMINER_PORT:-1005}:1005"
     environment:
       ADMINER_DEFAULT_SERVER: db
-      ADMINER_DESIGN: pepa-linha
-      ADMINER_PORT: 1005
+      ADMINER_DESIGN: pepa-linha # Example theme
+      ADMINER_PORT: 1005 # Internal port for Adminer service
     security_opt:
       - no-new-privileges:true
 
@@ -167,4 +180,5 @@ networks:
     driver: bridge
 
 volumes:
-  miscvord_db_data:
+  miscvord_db_data: # Defines the volume for MySQL data persistence
+    driver: local # Explicitly define as local driver
