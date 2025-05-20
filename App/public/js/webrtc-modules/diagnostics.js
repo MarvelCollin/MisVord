@@ -184,103 +184,133 @@ const WebRTCDiagnostics = {
     },
     
     /**
-     * Diagnose WebSocket issues with comprehensive tests
-     * @param {string} socketUrl - The socket server URL
-     * @param {string} socketPath - The socket server path
-     * @param {string} envType - The environment type (local, staging, production)
-     * @param {boolean} isSecurePage - Whether the page is loaded over HTTPS
-     * @returns {Promise<object>} Comprehensive diagnostic results
+     * Diagnose WebSocket connectivity issues
+     * Identifies and reports potential connection problems
+     * @returns {Promise<Object>} Diagnosis results
      */
-    async diagnoseWebSocketIssues(socketUrl, socketPath, envType, isSecurePage) {
+    async diagnoseWebSocketIssues() {
         const results = {
-            environment: {
-                type: envType,
-                isSecurePage,
-                browser: navigator.userAgent,
-                timestamp: new Date().toISOString()
-            },
-            tests: {},
-            recommendations: []
+            errors: [],
+            warnings: [],
+            success: [],
+            details: {}
         };
         
-        // Log start of diagnostics
-        if (window.WebRTCUI) {
-            window.WebRTCUI.addLogEntry(`Starting WebSocket diagnostics for ${socketUrl}${socketPath}`, 'system');
-        }
-        
-        // Check basic online status
-        results.tests.navigatorOnline = navigator.onLine;
-        
-        // Construct WebSocket URL early for use throughout the function
-        const wsProtocol = isSecurePage ? 'wss:' : 'ws:';
-        let wsUrl;
-        
         try {
-            const urlObject = new URL(socketUrl);
-            wsUrl = `${wsProtocol}//${urlObject.host}${socketPath || ''}`;
-        } catch (e) {
-            wsUrl = null;
-            results.tests.urlParsing = {
-                success: false,
-                error: e.message
+            // Determine the socket connection URL
+            const protocolMap = {
+                'http:': 'ws://',
+                'https:': 'wss://'
             };
-        }
-        
-        // Test direct WebSocket connection if URL parsing succeeded
-        if (wsUrl) {
-            results.tests.directWebSocket = await this.testWebSocketConnection(wsUrl);
+            const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
             
-            // If direct WebSocket failed but we're on HTTPS, try secure WebSocket explicitly
-            if (!results.tests.directWebSocket.success && isSecurePage) {
-                const wssUrl = wsUrl.replace('ws:', 'wss:');
-                results.tests.secureWebSocket = await this.testWebSocketConnection(wssUrl);
+            // Generate all URLs to test
+            const urlsToTest = [];
+            
+            if (isLocalhost) {
+                // For localhost: Test both direct port and pathname
+                const wsProto = protocolMap[window.location.protocol] || 'ws://';
+                urlsToTest.push({
+                    url: `${wsProto}localhost:1001/socket.io/?EIO=4&transport=websocket`,
+                    desc: 'App port (1001)'
+                });
+                urlsToTest.push({
+                    url: `${wsProto}localhost:1002/socket.io/?EIO=4&transport=websocket`,
+                    desc: 'Socket port (1002)'
+                });
+            } else {
+                // For production/VPS
+                const wsProto = protocolMap[window.location.protocol] || 'wss://';
+                const host = window.location.host;
+                
+                // Check if we're in a subdirectory deployment
+                const pathParts = window.location.pathname.split('/');
+                const isSubpathDeployment = pathParts.length > 1 && pathParts[1].length > 0;
+                const subpath = isSubpathDeployment ? pathParts[1] : 'misvord';
+                
+                // Test default path
+                urlsToTest.push({
+                    url: `${wsProto}${host}/socket.io/?EIO=4&transport=websocket`,
+                    desc: 'Root path'
+                });
+                
+                // Test subpath
+                urlsToTest.push({
+                    url: `${wsProto}${host}/${subpath}/socket/socket.io/?EIO=4&transport=websocket`,
+                    desc: 'Subpath with socket'
+                });
             }
-        }
-        
-        // Test XHR connectivity to verify basic HTTP works
-        try {
-            const fetchStart = Date.now();
-            const response = await fetch(`${socketUrl}/socket.io/`, { 
-                method: 'HEAD', 
-                cache: 'no-cache' 
+            
+            // Record environment information
+            results.details.environment = {
+                hostname: window.location.hostname,
+                protocol: window.location.protocol,
+                port: window.location.port,
+                pathname: window.location.pathname,
+                isLocalhost,
+                urlsToTest
+            };
+            
+            // Test each URL
+            const testPromises = urlsToTest.map(async (testConfig) => {
+                const result = await this.testWebSocketConnection(testConfig.url);
+                return {
+                    ...result,
+                    url: testConfig.url,
+                    desc: testConfig.desc
+                };
             });
-            results.tests.httpConnectivity = {
-                success: response.ok,
-                status: response.status,
-                time: Date.now() - fetchStart
-            };
+            
+            results.details.connectionTests = await Promise.all(testPromises);
+            
+            // Check results
+            const anySuccessful = results.details.connectionTests.some(test => test.success);
+            
+            if (anySuccessful) {
+                // At least one connection worked
+                results.success.push('WebSocket connection successful on at least one endpoint');
+                
+                const workingUrls = results.details.connectionTests
+                    .filter(test => test.success)
+                    .map(test => test.desc);
+                
+                results.details.workingEndpoints = workingUrls;
+            } else {
+                // All connections failed
+                results.errors.push('WebSocket connection failed on all tested endpoints');
+                
+                // Add specific error details
+                results.details.connectionTests.forEach(test => {
+                    if (test.error === 'WebSocket error') {
+                        results.errors.push(`Connection to ${test.desc} failed with a WebSocket error`);
+                    } else if (test.error === 'Connection timed out') {
+                        results.errors.push(`Connection to ${test.desc} timed out`);
+                    }
+                });
+                
+                // Check for common issues
+                if (isLocalhost) {
+                    results.warnings.push('When using localhost, make sure the socket server is running on port 1002');
+                    results.warnings.push('Try using direct port URLs for localhost: ws://localhost:1002/socket.io/');
+                } else {
+                    results.warnings.push('For production deployments, check your NGINX/proxy configuration');
+                    results.warnings.push('Ensure WebSocket upgrade headers are properly configured in your proxy');
+                    results.warnings.push('Verify the namespace path matches between client and server configuration');
+                }
+            }
+            
+            // Check Socket.IO library
+            if (typeof io === 'undefined') {
+                results.errors.push('Socket.IO library is not loaded');
+            } else {
+                results.success.push('Socket.IO library is properly loaded');
+            }
+            
+            return results;
         } catch (e) {
-            results.tests.httpConnectivity = {
-                success: false,
-                error: e.message
-            };
+            results.errors.push(`Error during diagnosis: ${e.message}`);
+            return results;
         }
-        
-        // Generate recommendations based on test results
-        if (!results.tests.navigatorOnline) {
-            results.recommendations.push('Your device reports no internet connection. Check your network connection.');
-        }
-        
-        if (results.tests.directWebSocket && !results.tests.directWebSocket.success) {
-            if (isSecurePage && !wsUrl.startsWith('wss:')) {
-                results.recommendations.push('Secure pages require secure WebSocket connections (wss://). Try using a secure WebSocket URL.');
-            }
-            
-            if (results.tests.httpConnectivity && results.tests.httpConnectivity.success) {
-                results.recommendations.push('HTTP works but WebSocket fails. This could indicate a proxy or firewall issue blocking WebSocket connections.');
-            }
-        }
-        
-        // Log completion
-        if (window.WebRTCUI) {
-            window.WebRTCUI.addLogEntry('WebSocket diagnostics completed', 'success');
-            
-            if (results.recommendations.length > 0) {
-                window.WebRTCUI.addLogEntry(`Recommendations: ${results.recommendations.join(' ')}`, 'info');
-            }
-        }
-        
-        return results;
     },
     
     /**

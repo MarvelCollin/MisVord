@@ -51,28 +51,54 @@ function connectToSignalingServer(roomId, userName, onConnected, onError) {
         console.log("Using localhost connection:", socketUrl);
     } else {
         // For production/Docker, derive protocol from current page
-        const protocol = protocolMap[window.location.protocol] || 'wss://';
-        socketUrl = `${protocol}${window.location.host}`;
-        socketPath = '/socket.io';
-        console.log("Using production/Docker connection:", socketUrl);
+        const protocol = window.location.protocol;
+        
+        // Check if we're in a subdirectory deployment (VPS with subpath)
+        const pathParts = window.location.pathname.split('/');
+        const isSubpathDeployment = pathParts.length > 1 && pathParts[1].length > 0;
+        const subpath = isSubpathDeployment ? pathParts[1] : 'misvord';
+        
+        // For marvelcollin.my.id or other VPS domains
+        socketUrl = `${protocol}//${window.location.host}`;
+        socketPath = `/${subpath}/socket/socket.io`;
+        
+        console.log("Using production connection:", socketUrl, "with path:", socketPath);
+        
+        // Check specifically for marvelcollin.my.id domain
+        if (window.location.hostname === 'marvelcollin.my.id') {
+            console.log("Detected marvelcollin.my.id domain - using optimized settings");
+            socketPath = `/misvord/socket/socket.io`; // Hardcoded path for this specific domain
+        }
     }
 
     try {
-        window.WebRTCUI.addLogEntry(`Connecting to signaling server at ${socketUrl}`, 'socket');
+        window.WebRTCUI.addLogEntry(`Connecting to signaling server at ${socketUrl} (path: ${socketPath})`, 'socket');
         window.WebRTCUI.updateConnectionStatus('connecting', 'Connecting to server...');
         
-        // Initialize Socket.IO
+        // Initialize Socket.IO with detailed logging
+        console.log(`Socket.IO connection details - URL: ${socketUrl}, Path: ${socketPath}`);
         socket = io(socketUrl, {
             path: socketPath,
             transports: ['websocket', 'polling'],
             reconnectionAttempts: MAX_CONNECTION_ATTEMPTS,
             reconnectionDelay: 1000,
-            timeout: 8000,
+            timeout: 10000, // Increased timeout
             forceNew: true
         });
         
         // Setup event handlers
         setupSocketEvents(roomId, userName, onConnected, onError);
+        
+        // Add additional error handler for transport close
+        socket.io.on("close", (reason) => {
+            console.error("Transport closed:", reason);
+            window.WebRTCUI.addLogEntry(`Socket transport closed: ${reason}`, 'error');
+        });
+        
+        socket.io.on("error", (error) => {
+            console.error("Socket.IO error:", error);
+            window.WebRTCUI.addLogEntry(`Socket.IO error: ${error}`, 'error');
+        });
         
     } catch (e) {
         window.WebRTCUI.addLogEntry(`Error connecting to signaling server: ${e.message}`, 'error');
@@ -90,54 +116,92 @@ function connectToSignalingServer(roomId, userName, onConnected, onError) {
 }
 
 /**
- * Try a fallback socket connection with different parameters
+ * Try fallback socket connection methods
  */
-function tryFallbackSocketConnection(fallbackUrl = null, fallbackPath = '/socket.io', roomId, userName, onConnected, onError) {
+function tryFallbackSocketConnection(fallbackUrl = null, fallbackPath = null, roomId, userName, onConnected, onError) {
     window.WebRTCUI.addLogEntry('Attempting fallback socket connection', 'socket');
     
-    try {
-        // Clean up existing connection
-        if (socket) {
-            socket.disconnect();
-            socket = null;
-        }
-        
-        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        
-        // Fallback URL logic - check different ports for localhost
-        if (!fallbackUrl) {
-            if (isLocalhost) {
-                fallbackUrl = 'http://localhost:1002'; // Try port 1002 directly
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    
+    // Determine fallback connection details
+    let socketUrl = fallbackUrl;
+    let socketPath = fallbackPath;
+    
+    if (!socketUrl) {
+        if (isLocalhost) {
+            // Try port 1002 directly if on localhost
+            socketUrl = 'http://localhost:1002';
+            socketPath = '/socket.io';
+        } else {
+            // For production VPS, use the derived path
+            const pathParts = window.location.pathname.split('/');
+            const isSubpathDeployment = pathParts.length > 1 && pathParts[1].length > 0;
+            const subpath = isSubpathDeployment ? pathParts[1] : 'misvord';
+            
+            socketUrl = `${window.location.protocol}//${window.location.host}`;
+            
+            // For marvelcollin.my.id domain, ensure we use the correct path format
+            if (window.location.hostname === 'marvelcollin.my.id') {
+                socketPath = `/misvord/socket/socket.io`;
             } else {
-                // For production, try the base URL without any special path
-                fallbackUrl = window.location.origin;
+                socketPath = `/${subpath}/socket/socket.io`;
             }
         }
+    }
+    
+    if (!socketPath) {
+        socketPath = '/socket.io';
+    }
+    
+    window.WebRTCUI.addLogEntry(`Fallback connection to ${socketUrl} (path: ${socketPath})`, 'socket');
+    window.WebRTCUI.updateConnectionStatus('connecting', 'Trying fallback connection...');
+
+    try {
+        // Disconnect previous socket if exists
+        if (socket && socket.connected) {
+            socket.disconnect();
+        }
         
-        // Try the fallback connection
-        window.WebRTCUI.addLogEntry(`Connecting to fallback at ${fallbackUrl}`, 'socket');
-        window.WebRTCUI.updateConnectionStatus('connecting', 'Trying alternate connection...');
+        console.log(`Fallback Socket.IO attempt - URL: ${socketUrl}, Path: ${socketPath}`);
         
-        socket = io(fallbackUrl, {
-            path: fallbackPath,
+        // Create new socket with more robust settings
+        socket = io(socketUrl, {
+            path: socketPath,
             transports: ['websocket', 'polling'],
             reconnectionAttempts: 2,
-            timeout: 5000,
-            forceNew: true
+            reconnectionDelay: 2000,
+            timeout: 10000, // Increased timeout
+            forceNew: true,
+            autoConnect: true,
+            withCredentials: true // Add credentials for cross-origin requests
         });
         
+        // Setup event handlers
         setupSocketEvents(roomId, userName, onConnected, onError);
         
         socket.io.on("error", (error) => {
+            console.error("Fallback socket error:", error);
             window.WebRTCUI.addLogEntry(`Fallback socket connection error: ${error}`, 'error');
             window.WebRTCUI.updateConnectionStatus('disconnected', `Fallback connection failed`);
             
-            // Try one more approach with different port
-            if (isLocalhost) {
-                setTimeout(() => {
-                    window.WebRTCUI.addLogEntry('Attempting final fallback connection with WSS', 'system');
-                    tryDirectConnection('http://localhost:1002', '/socket.io', roomId, userName, onConnected, onError);
-                }, 2000);
+            // Try one more approach with direct connection
+            if (connectionAttempts < MAX_CONNECTION_ATTEMPTS) {
+                connectionAttempts++;
+                
+                if (isLocalhost) {
+                    setTimeout(() => {
+                        window.WebRTCUI.addLogEntry('Attempting final localhost fallback', 'system');
+                        tryDirectConnection('http://localhost:1002', '/socket.io', roomId, userName, onConnected, onError);
+                    }, 2000);
+                } else if (window.location.hostname === 'marvelcollin.my.id') {
+                    // Last attempt for marvelcollin.my.id - try an absolute URL
+                    setTimeout(() => {
+                        window.WebRTCUI.addLogEntry('Attempting direct connection to marvelcollin.my.id socket server', 'system');
+                        tryDirectConnection('https://marvelcollin.my.id', '/misvord/socket/socket.io', roomId, userName, onConnected, onError);
+                    }, 2000);
+                } else {
+                    if (onError) onError("All connection attempts failed");
+                }
             } else {
                 if (onError) onError("All connection attempts failed");
             }
@@ -153,7 +217,7 @@ function tryFallbackSocketConnection(fallbackUrl = null, fallbackPath = '/socket
  * Direct IP connection attempt as last resort
  */
 function tryDirectConnection(serverUrl, socketIoPath = '/socket.io', roomId, userName, onConnected, onError) {
-    window.WebRTCUI.addLogEntry(`Trying direct connection to ${serverUrl}`, 'system');
+    window.WebRTCUI.addLogEntry(`Trying direct connection to ${serverUrl} (path: ${socketIoPath})`, 'system');
     window.WebRTCUI.updateConnectionStatus('connecting', `Direct connection...`);
     
     try {

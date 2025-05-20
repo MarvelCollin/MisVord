@@ -7,6 +7,15 @@ const cors = require('cors');
 // const path = require('path'); // Not used in this simplified version
 require('dotenv').config();
 
+// Log environment variables at startup
+console.log('===== ENVIRONMENT VARIABLES AT STARTUP =====');
+console.log('IS_VPS:', process.env.IS_VPS);
+console.log('DOMAIN:', process.env.DOMAIN);
+console.log('SUBPATH:', process.env.SUBPATH);
+console.log('SOCKET_PATH:', process.env.SOCKET_PATH);
+console.log('USE_HTTPS:', process.env.USE_HTTPS);
+console.log('===========================================');
+
 const app = express();
 app.use(cors({
   origin: process.env.CORS_ALLOWED_ORIGINS || '*', // Use env variable in production
@@ -60,6 +69,28 @@ console.log(`VPS mode: ${isVpsEnvironment ? 'Yes' : 'No'}`);
 console.log(`Domain: ${domain}`);
 console.log(`Subpath: ${subpath}`);
 
+// Additional path handling for Socket.IO based on environment
+let effectivePath = socketPath;
+
+// For VPS deployments, make sure we handle the path correctly
+if (isVpsEnvironment) {
+  // Log original path from environment
+  console.log(`Original Socket.IO path from env: ${socketPath}`);
+  
+  // Check if the path already contains the subpath
+  if (socketPath.includes(`/${subpath}/`)) {
+    console.log(`Socket.IO path already contains subpath: ${socketPath}`);
+    effectivePath = socketPath;
+  } else {
+    // If path doesn't already have the subpath, ensure we're using a standard format
+    // The standard format for VPS deployment is /${subpath}/socket/socket.io
+    effectivePath = `/${subpath}/socket/socket.io`;
+    console.log(`Adjusted Socket.IO path for VPS to: ${effectivePath}`);
+  }
+} else {
+  console.log(`Using standard Socket.IO path for local development: ${effectivePath}`);
+}
+
 // Setup Socket.IO with enhanced CORS and path support for Nginx subpath
 const io = socketIo(server, {
   cors: {
@@ -69,7 +100,7 @@ const io = socketIo(server, {
   },
   transports: ['websocket', 'polling'],
   // Allow Socket.IO to work behind Nginx with path prefix
-  path: socketPath,
+  path: effectivePath,
   allowEIO3: true,
   // Trust proxies for secure WebSocket connections
   handlePreflightRequest: (req, res) => {
@@ -769,6 +800,14 @@ server.listen(FINAL_PORT, '0.0.0.0', () => {
   console.log(`🚀 Socket.IO server for video calls running on port ${FINAL_PORT}`);
   console.log(`Socket.IO server available at http://localhost:${FINAL_PORT}`);
   console.log(`Socket.IO path: ${socketPath}`);
+  console.log(`Socket.IO effective path: ${effectivePath}`);
+  console.log(`\n===== SOCKET SERVER CONFIGURATION =====`);
+  console.log(`• Environment: ${isVpsEnvironment ? 'VPS/Production' : 'Local Development'}`);
+  console.log(`• Domain: ${domain}`);
+  console.log(`• Subpath: ${subpath}`);
+  console.log(`• CORS: ${corsAllowedOrigins}`);
+  console.log(`• HTTPS Enabled: ${process.env.USE_HTTPS === 'true' ? 'Yes' : 'No'}`);
+  console.log(`=====================================\n`);
 });
 
 // If HTTPS is enabled and we have a secure server instance, start it too
@@ -819,3 +858,193 @@ location /${subpath}/socket/socket.io/ {
 ===================================================================
 `);
 }
+
+// Add an endpoint specifically to debug the socket.io configuration
+app.get('/debug-config', (req, res) => {
+  res.json({
+    environment: {
+      isVpsEnvironment,
+      domain,
+      subpath,
+      nodeEnv: process.env.NODE_ENV || 'development',
+    },
+    socketConfig: {
+      originalPath: socketPath,
+      effectivePath,
+      corsAllowedOrigins,
+      port: PORT,
+      secure_port: SECURE_PORT
+    },
+    useHttps: process.env.USE_HTTPS === 'true',
+    clientInfo: {
+      ip: req.ip,
+      headers: req.headers
+    }
+  });
+});
+
+// Add a WebSocket test HTML page
+app.get('/websocket-test', (req, res) => {
+  res.send(`
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Test - MiscVord</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .log { background: #f4f4f4; padding: 10px; border-radius: 5px; height: 300px; overflow-y: auto; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        .warn { color: orange; }
+        button { margin: 5px; padding: 8px 12px; }
+        .highlight { background-color: #ffc; padding: 5px; border-left: 4px solid #f90; }
+    </style>
+</head>
+<body>
+    <h1>MiscVord WebSocket Connection Test</h1>
+    <p>Server Configuration:</p>
+    <div class="highlight">
+        <ul>
+            <li>Socket Path: ${socketPath}</li>
+            <li>Effective Path: ${effectivePath}</li>
+            <li>VPS Mode: ${isVpsEnvironment ? 'Yes' : 'No'}</li>
+            <li>Domain: ${domain}</li>
+            <li>Environment: ${process.env.NODE_ENV || 'development'}</li>
+        </ul>
+    </div>
+    
+    <h3>Test Options:</h3>
+    <div>
+        <button id="testDefault">Test Default Connection</button>
+        <button id="testExplicit">Test With Explicit Path (${effectivePath})</button>
+        <button id="testMiscVordDomain">Test with marvelcollin.my.id Domain</button>
+        <button id="testLocalhost">Test With localhost</button>
+        <button id="clearLog">Clear Log</button>
+    </div>
+    
+    <h3>Connection Log:</h3>
+    <div class="log" id="log"></div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        function log(message, type = 'info') {
+            const logEl = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = type;
+            entry.textContent = \`[\${new Date().toISOString()}] \${message}\`;
+            logEl.appendChild(entry);
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function testConnection(options) {
+            if (window.socket) {
+                log('Disconnecting previous connection...', 'info');
+                window.socket.disconnect();
+            }
+            
+            const { url, path, description } = options;
+            
+            log(\`Testing connection: \${description}\`, 'info');
+            log(\`URL: \${url || window.location.origin}, Path: \${path}\`, 'info');
+            
+            try {
+                window.socket = io(url || window.location.origin, {
+                    path: path,
+                    transports: ['websocket', 'polling'],
+                    reconnectionAttempts: 3,
+                    reconnectionDelay: 1000,
+                    timeout: 5000,
+                    withCredentials: true
+                });
+
+                socket.on('connect', () => {
+                    log(\`✅ Connected successfully! Socket ID: \${socket.id}\`, 'success');
+                    log(\`Connection details: \${socket.io.uri}\`, 'success');
+                });
+
+                socket.on('disconnect', (reason) => {
+                    log(\`Disconnected: \${reason}\`, 'error');
+                });
+
+                socket.on('connect_error', (err) => {
+                    log(\`❌ Connection error: \${err.message}\`, 'error');
+                    log(\`Error details: \${JSON.stringify(err)}\`, 'error');
+                });
+                
+                socket.on('error', (err) => {
+                    log(\`Socket error: \${err}\`, 'error');
+                });
+            } catch (e) {
+                log(\`Error creating socket: \${e.message}\`, 'error');
+            }
+        }
+
+        document.getElementById('testDefault').addEventListener('click', () => {
+            testConnection({
+                path: '/socket.io',
+                description: 'Default path'
+            });
+        });
+        
+        document.getElementById('testExplicit').addEventListener('click', () => {
+            testConnection({
+                path: '${effectivePath}',
+                description: 'Explicit VPS path'
+            });
+        });
+        
+        document.getElementById('testMiscVordDomain').addEventListener('click', () => {
+            testConnection({
+                url: 'https://marvelcollin.my.id',
+                path: '/misvord/socket/socket.io',
+                description: 'Production domain (marvelcollin.my.id)'
+            });
+        });
+        
+        document.getElementById('testLocalhost').addEventListener('click', () => {
+            testConnection({
+                url: 'http://localhost:1002',
+                path: '/socket.io',
+                description: 'Direct localhost connection'
+            });
+        });
+        
+        document.getElementById('clearLog').addEventListener('click', () => {
+            document.getElementById('log').innerHTML = '';
+            log('Log cleared', 'info');
+        });
+        
+        // Initial environment check
+        window.addEventListener('load', () => {
+            log('Environment check:', 'info');
+            log(\`Location: \${window.location.href}\`, 'info');
+            log(\`Hostname: \${window.location.hostname}\`, 'info');
+            log(\`Protocol: \${window.location.protocol}\`, 'info');
+            log(\`Origin: \${window.location.origin}\`, 'info');
+            log(\`Path: \${window.location.pathname}\`, 'info');
+            
+            // Suggest connection path based on hostname
+            if (window.location.hostname === 'marvelcollin.my.id') {
+                log('Detected marvelcollin.my.id domain - recommend using "/misvord/socket/socket.io" path', 'warn');
+            } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                log('Detected localhost - recommend using "/socket.io" path', 'warn');
+            }
+        });
+    </script>
+</body>
+</html>
+  `);
+});
+
+// Add CORS headers middleware for marvelcollin.my.id
+app.use((req, res, next) => {
+  // Set CORS headers specifically for marvelcollin.my.id
+  if (isVpsEnvironment && domain === 'marvelcollin.my.id') {
+    res.header('Access-Control-Allow-Origin', 'https://marvelcollin.my.id');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+    res.header('Access-Control-Allow-Credentials', 'true');
+  }
+  next();
+});
