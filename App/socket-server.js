@@ -14,144 +14,92 @@ console.log('DOMAIN:', process.env.DOMAIN);
 console.log('SUBPATH:', process.env.SUBPATH);
 console.log('SOCKET_PATH:', process.env.SOCKET_PATH);
 console.log('USE_HTTPS:', process.env.USE_HTTPS);
+console.log('SOCKET_SECURE_PORT:', process.env.SOCKET_SECURE_PORT);
 console.log('===========================================');
 
 const app = express();
-app.use(cors({
-  origin: process.env.CORS_ALLOWED_ORIGINS || '*', // Use env variable in production
-  methods: ['GET', 'POST'],
-  credentials: true
-})); 
 
-// Create HTTP server
+// --- TEMPORARY: Extremely permissive CORS for debugging ---
+app.use(cors({ origin: '*' }));
+console.log('⚠️ Express CORS set to origin: * for debugging.');
+// --- END TEMPORARY CORS ---
+
 const httpServer = http.createServer(app);
-
-// Try to create HTTPS server if cert files exist
 let httpsServer = null;
-let server = httpServer; // Default to HTTP server
+let server = httpServer;
 
-// Check if we can enable HTTPS/WSS
+const certKeyPath = './docker/certs/server.key';
+const certCrtPath = './docker/certs/server.crt';
+
 try {
-  if (fs.existsSync('./docker/certs/server.key') && fs.existsSync('./docker/certs/server.crt')) {
-    console.log('🔒 SSL certificates found! Enabling secure WebSockets (WSS)');
+  if (fs.existsSync(certKeyPath) && fs.existsSync(certCrtPath)) {
+    console.log('🔒 SSL certificates found! Attempting to enable secure WebSockets (WSS).');
     const options = {
-      key: fs.readFileSync('./docker/certs/server.key'),
-      cert: fs.readFileSync('./docker/certs/server.crt')
+      key: fs.readFileSync(certKeyPath),
+      cert: fs.readFileSync(certCrtPath)
     };
     httpsServer = https.createServer(options, app);
-    // Use HTTPS server if available
     server = httpsServer;
-    console.log('🔒 HTTPS/WSS server created successfully');
+    console.log('🔒 HTTPS/WSS server created. It will be used if USE_HTTPS is not false.');
   } else {
-    console.log('⚠️ SSL certificates not found. Running in HTTP/WS mode only.');
+    console.log(`⚠️ SSL certificates not found (checked for ${certKeyPath} & ${certCrtPath}). HTTP/WS only.`);
   }
 } catch (err) {
-  console.log('⚠️ Error setting up HTTPS server:', err.message);
-  console.log('⚠️ Running in HTTP/WS mode only.');
+  console.error('⚠️ Error setting up HTTPS server:', err.message);
+  server = httpServer; // Fallback to HTTP
 }
 
-// Get allowed origins from env or use default wildcard
 const corsAllowedOrigins = process.env.CORS_ALLOWED_ORIGINS || '*';
-console.log(`CORS allowed origins: ${corsAllowedOrigins}`);
-
-// Get Socket.IO path from environment variable or use default
 const socketPath = process.env.SOCKET_PATH || '/socket.io';
-console.log(`Using Socket.IO path: ${socketPath}`);
-
-// Detect environment - VPS or local
 const isVpsEnvironment = process.env.IS_VPS === 'true';
 const domain = process.env.DOMAIN || 'localhost';
 const subpath = process.env.SUBPATH || 'misvord';
 
-// Enhanced environment logging
-console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-console.log(`VPS mode: ${isVpsEnvironment ? 'Yes' : 'No'}`);
-console.log(`Domain: ${domain}`);
-console.log(`Subpath: ${subpath}`);
-
-// Additional path handling for Socket.IO based on environment
 let effectivePath = socketPath;
-
-// For VPS deployments, make sure we handle the path correctly
 if (isVpsEnvironment) {
-  // Log original path from environment
-  console.log(`Original Socket.IO path from env: ${socketPath}`);
-  
-  // Check if the path already contains the subpath
   if (socketPath.includes(`/${subpath}/`)) {
-    console.log(`Socket.IO path already contains subpath: ${socketPath}`);
     effectivePath = socketPath;
   } else {
-    // If path doesn't already have the subpath, ensure we're using a standard format
-    // The standard format for VPS deployment is /${subpath}/socket/socket.io
     effectivePath = `/${subpath}/socket/socket.io`;
-    console.log(`Adjusted Socket.IO path for VPS to: ${effectivePath}`);
   }
+  console.log(`VPS Mode: Effective Socket.IO path: ${effectivePath}`);
 } else {
-  console.log(`Using standard Socket.IO path for local development: ${effectivePath}`);
+  console.log(`Local Mode: Effective Socket.IO path: ${effectivePath}`);
 }
 
-// Setup Socket.IO with enhanced CORS and path support for Nginx subpath
 const io = socketIo(server, {
+  // --- TEMPORARY: Extremely permissive CORS for Socket.IO debugging ---
   cors: {
-    origin: corsAllowedOrigins, // Use environment variable or allow all
-    methods: ["GET", "POST"],
-    credentials: true
+    origin: "*",
+    methods: ["GET", "POST", "OPTIONS"],
+    credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
   },
+  // --- END TEMPORARY CORS ---
   transports: ['websocket', 'polling'],
-  // Allow Socket.IO to work behind Nginx with path prefix
   path: effectivePath,
   allowEIO3: true,
-  // Trust proxies for secure WebSocket connections
+  pingTimeout: 60000,
+  pingInterval: 25000,
+  connectTimeout: 30000,
   handlePreflightRequest: (req, res) => {
     const headers = {
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
       'Access-Control-Allow-Origin': req.headers.origin || '*',
-      'Access-Control-Allow-Credentials': true,
+      'Access-Control-Allow-Credentials': 'true',
       'Access-Control-Allow-Methods': 'GET,POST,OPTIONS,PUT,DELETE'
     };
     res.writeHead(200, headers);
     res.end();
   }
 });
+console.log('⚠️ Socket.IO CORS set to origin: * for debugging.');
 
 // Enhanced debugging configuration
 const DEBUG_MODE = process.env.NODE_ENV !== 'production';
-const DEBUG_CONNECTION = true;
-const DEBUG_SIGNALING = true;
-const DEBUG_USERS = true;
-
-// Enhanced logging function with timestamps and color formatting
 function debugLog(...args) {
-  const timestamp = new Date().toISOString();
-  
-    // Support log levels: info, error, success, warn, debug
-    let level = 'info';
-    if (typeof args[0] === 'string') {
-      const msg = args[0].toLowerCase();
-      if (msg.includes('error')) level = 'error';
-      else if (msg.includes('success')) level = 'success';
-      else if (msg.includes('warn')) level = 'warn';
-      else if (msg.includes('debug')) level = 'debug';
-      else if (msg.includes('fail')) level = 'error';
-    else if (msg.includes('[user]')) level = 'user';
-    else if (msg.includes('[signal]')) level = 'signal';
-    }
-  
-    const color = {
-      info: '\x1b[36m', // cyan
-      error: '\x1b[31m', // red
-      success: '\x1b[32m', // green
-      warn: '\x1b[33m', // yellow
-    debug: '\x1b[35m', // magenta,
-    user: '\x1b[33m\x1b[1m', // bright yellow (bold)
-    signal: '\x1b[36m\x1b[1m', // bright cyan (bold)
-    }[level] || '\x1b[0m';
-  
-    const reset = '\x1b[0m';
-  
   if (DEBUG_MODE) {
-    console.log(`${color}[${level.toUpperCase()} ${timestamp}]${reset}`, ...args);
+    console.log(`[DEBUG ${new Date().toISOString()}]`, ...args);
   }
 }
 
@@ -192,21 +140,26 @@ app.get('/video-users', (req, res) => {
   });
 });
 
+const PORT = parseInt(process.env.PORT, 10) || 1002;
+const SECURE_PORT = parseInt(process.env.SOCKET_SECURE_PORT, 10) || 1443;
+
 // Basic health check
 app.get('/health', (req, res) => {
   res.json({
     status: 'healthy',
     uptime: process.uptime(),
     videoChatUserCount: Object.keys(videoChatUsers).length,
-    port: PORT,
-    socketPath: socketPath,
+    http_port: PORT, // Actual HTTP port it might be listening on
+    https_port: SECURE_PORT, // Actual HTTPS port it might be listening on
+    socketPath: effectivePath,
     timestamp: new Date().toISOString(),
     env: {
       NODE_ENV: process.env.NODE_ENV || 'not set',
-      PORT: process.env.PORT || 'not set',
+      PORT_ENV: process.env.PORT || 'not set (defaulted to 1002)',
+      SECURE_PORT_ENV: process.env.SOCKET_SECURE_PORT || 'not set (defaulted to 1443)',
       SOCKET_URL: process.env.SOCKET_URL || 'not set',
-      CORS_ALLOWED_ORIGINS: process.env.CORS_ALLOWED_ORIGINS || 'not set',
-      SOCKET_PATH: process.env.SOCKET_PATH || 'not set (using default /socket.io)'
+      CORS_ALLOWED_ORIGINS: corsAllowedOrigins, // Reflects temporary '*' if active
+      SOCKET_PATH_ENV: process.env.SOCKET_PATH || 'not set (using default /socket.io)' // Renamed to avoid conflict
     }
   });
 });
@@ -216,7 +169,7 @@ app.get('/socket-test', (req, res) => {
   res.json({
     message: "Socket server path test endpoint reached successfully",
     serverTime: new Date().toISOString(),
-    socketPath: socketPath,
+    socketPath: effectivePath,
     activeUsers: Object.keys(videoChatUsers).length,
     clientInfo: {
       ip: req.ip,
@@ -235,9 +188,10 @@ app.get('/info', (req, res) => {
       transports: io.engine.opts.transports
     },
     serverUptime: process.uptime(),
-    activeRooms: Array.from(io.sockets.adapter.rooms.keys()).filter(room => !room.startsWith('/')),
+    activeRooms: Array.from(io.sockets.adapter.rooms.keys()).filter(room => !io.sockets.sockets.get(room)), // More accurate room list
     activeUsers: Object.keys(videoChatUsers).length,
-    port: PORT,
+    listening_http_port: (server === httpServer && activeServer === httpServer) ? PORT : null,
+    listening_https_port: (server === httpsServer && activeServer === httpsServer) ? SECURE_PORT : null,
     env: {
       NODE_ENV: process.env.NODE_ENV || 'development',
       SOCKET_URL: process.env.SOCKET_URL || 'not set',
@@ -274,12 +228,12 @@ io.on('connection', (socket) => {
   const clientIP = socket.handshake.headers['x-forwarded-for'] || 
                  socket.handshake.headers['x-real-ip'] || 
                  socket.handshake.address;
-  const clientProtocol = socket.handshake.headers['x-forwarded-proto'] || 'http';
+  const clientProtocol = socket.handshake.headers['x-forwarded-proto'] || (socket.handshake.secure ? 'https' : 'http');
   const clientHost = socket.handshake.headers['x-forwarded-host'] || socket.handshake.headers.host || 'unknown';
   const clientPath = socket.handshake.query.path || 'Not provided';
   
-  console.log(`[CONNECT] New connection from ${clientIP} via ${clientProtocol}://${clientHost}`);
-  debugLog(`Client environment data: Path=${clientPath}`);
+  console.log(`[CONNECT] New connection from ${clientIP} via ${clientProtocol}://${clientHost}${socket.handshake.url}`);
+  debugLog(`Client environment data: Path=${clientPath}, Transport=${socket.conn.transport.name}`);
   
   if (DEBUG_CONNECTION) {
     console.log(`[CONNECT] Socket ${socket.id} connected - Active: ${activeConnections}`);
@@ -287,7 +241,8 @@ io.on('connection', (socket) => {
       'x-forwarded-for': socket.handshake.headers['x-forwarded-for'],
       'x-forwarded-host': socket.handshake.headers['x-forwarded-host'],
       'x-forwarded-proto': socket.handshake.headers['x-forwarded-proto'],
-      'host': socket.handshake.headers.host
+      'host': socket.handshake.headers.host,
+      'origin': socket.handshake.headers.origin // Log origin for CORS checks
     }));
   }
 
@@ -297,7 +252,7 @@ io.on('connection', (socket) => {
 
   // Send periodic pings to check connection quality
   const pingInterval = setInterval(() => {
-    if (!videoChatUsers[socket.id]) {
+    if (!videoChatUsers[socket.id] && !socket.connected) { // Check if socket still connected
       clearInterval(pingInterval);
       return;
     }
@@ -307,7 +262,7 @@ io.on('connection', (socket) => {
   }, 30000); // every 30 seconds
 
   socket.on('connection-pong', (data) => {
-    const latency = Date.now() - data.timestamp;
+    const latency = Date.now() - (data.timestamp || lastPingTime) ; // ensure data.timestamp exists
     
     // Update connection quality based on latency
     if (latency < 100) {
@@ -319,6 +274,7 @@ io.on('connection', (socket) => {
     } else {
       connectionQuality = 'poor';
     }
+    if(videoChatUsers[socket.id]) videoChatUsers[socket.id].connectionQuality = connectionQuality;
     
     // Let client know about their connection quality
     socket.emit('connection-quality', { 
@@ -328,66 +284,51 @@ io.on('connection', (socket) => {
   });
 
   socket.on('join-video-room', (data) => {
-    const { userName } = data || {};
+    const { roomId, userName } = data || {}; // Use roomId from data, not global VIDEO_CHAT_ROOM directly
     if (!userName) {
       debugLog(`User ${socket.id} tried to join video room without userName.`);
       socket.emit('video-room-error', { message: 'User name is required to join the video room.' });
       return;
     }
+    if (!roomId) {
+        debugLog(`User ${userName} (${socket.id}) tried to join video room without roomId.`);
+        socket.emit('video-room-error', { message: 'Room ID is required to join the video room.' });
+        return;
+    }
 
-    console.log(`[USER-JOIN] ${userName} (${socket.id}) joining video room: ${VIDEO_CHAT_ROOM}`);
-    debugLog(`[JOIN] User ${userName} (${socket.id}) joining video room: ${VIDEO_CHAT_ROOM}`);
+    console.log(`[USER-JOIN] ${userName} (${socket.id}) joining video room: ${roomId}`);
+    debugLog(`[JOIN] User ${userName} (${socket.id}) joining video room: ${roomId}`);
     
-    // Check if socket is already in the room
-    const isAlreadyInRoom = socket.rooms.has(VIDEO_CHAT_ROOM);
+    const isAlreadyInRoom = socket.rooms.has(roomId);
     if (isAlreadyInRoom) {
-      console.log(`[USER-JOIN] Warning: ${userName} (${socket.id}) is already in the room`);
+      console.log(`[USER-JOIN] Warning: ${userName} (${socket.id}) is already in the room ${roomId}`);
     }
     
-    // Get room members before join
-    const membersBeforeJoin = getRoomMembers(VIDEO_CHAT_ROOM);
-    console.log(`[USER-JOIN] Room members before join: ${membersBeforeJoin.length}`);
-    if (membersBeforeJoin.length > 0) {
-      console.table(membersBeforeJoin);
-    }
-    
-    socket.join(VIDEO_CHAT_ROOM);
+    socket.join(roomId); // Join the specific room ID from client
 
     videoChatUsers[socket.id] = {
       userId: socket.id,
       userName: userName,
       socketId: socket.id,
+      currentRoom: roomId, // Track user's current room
       connectionQuality: 'unknown',
       joinTime: new Date().toISOString()
     };
 
-    // Get all sockets in the room after joining
-    const roomSockets = io.sockets.adapter.rooms.get(VIDEO_CHAT_ROOM);
+    const roomSockets = io.sockets.adapter.rooms.get(roomId);
     const roomSize = roomSockets ? roomSockets.size : 0;
-    console.log(`[USER-JOIN] Room size after join: ${roomSize}, registered users: ${Object.keys(videoChatUsers).length}`);
+    console.log(`[USER-JOIN] Room ${roomId} size after join: ${roomSize}, registered users in any room: ${Object.keys(videoChatUsers).length}`);
 
-    // Get detailed member list after join
-    const membersAfterJoin = getRoomMembers(VIDEO_CHAT_ROOM);
-    console.log(`[USER-JOIN] Room members after join: ${membersAfterJoin.length}`);
-    if (membersAfterJoin.length > 0) {
-      console.table(membersAfterJoin);
-    }
+    // Notify others in THE SAME room
+    socket.to(roomId).emit('user-joined-video-room', videoChatUsers[socket.id]);
+    console.log(`[USER-JOIN] Notified others in room ${roomId} about ${userName} joining`);
 
-    // Notify others in the room
-    socket.to(VIDEO_CHAT_ROOM).emit('user-joined-video-room', videoChatUsers[socket.id]);
-    console.log(`[USER-JOIN] Notified others about ${userName} joining`);
-
-    // Send the current list of users in the room to the new joiner
-    const usersInRoom = Object.values(videoChatUsers).filter(u => 
-      // Verify the user is actually in the room by checking socket.rooms
-      roomSockets && roomSockets.has(u.socketId)
-    );
+    const usersInThisRoom = Object.values(videoChatUsers).filter(u => u.currentRoom === roomId && roomSockets && roomSockets.has(u.socketId));
     
-    socket.emit('video-room-users', { users: usersInRoom });
+    socket.emit('video-room-users', { users: usersInThisRoom, roomId: roomId });
     
-    console.log(`[USER-JOIN] Current users in room: ${usersInRoom.map(u => u.userName).join(', ')}`);
-    debugLog(`[JOIN] User ${userName} (${socket.id}) added. Current video room users:`, Object.keys(videoChatUsers).length);
-    debugLog(`[JOIN] Sent user list to ${userName}:`, usersInRoom.map(u=>u.userName));
+    console.log(`[USER-JOIN] Current users in room ${roomId}: ${usersInThisRoom.map(u => u.userName).join(', ')}`);
+    debugLog(`[JOIN] User ${userName} (${socket.id}) added to room ${roomId}. Total video users: ${Object.keys(videoChatUsers).length}`);
   });
 
   socket.on('leave-video-room', () => {
@@ -396,51 +337,39 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', (reason) => {
     activeConnections--;
-    console.log(`[DISCONNECT] User ${socket.id} disconnected: ${reason} (Total: ${activeConnections})`);
+    console.log(`[DISCONNECT] User ${socket.id} disconnected: ${reason} (Total active: ${activeConnections})`);
     debugLog(`User disconnected: ${socket.id}, reason: ${reason}`);
     clearInterval(pingInterval);
-    handleUserLeaveVideoRoom(socket);
+    handleUserLeaveVideoRoom(socket); // This will handle removing user and notifying room
   });
 
   function handleUserLeaveVideoRoom(socketInstance) {
-    if (videoChatUsers[socketInstance.id]) {
-      const leavingUser = videoChatUsers[socketInstance.id];
-      console.log(`[USER-LEAVE] ${leavingUser.userName} (${socketInstance.id}) leaving video room`);
-      debugLog(`User ${leavingUser.userName} (${socketInstance.id}) leaving video room: ${VIDEO_CHAT_ROOM}`);
+    const leavingUserData = videoChatUsers[socketInstance.id];
+    if (leavingUserData) {
+      const { userName, currentRoom } = leavingUserData;
+      console.log(`[USER-LEAVE] ${userName} (${socketInstance.id}) leaving video room ${currentRoom}`);
+      debugLog(`User ${userName} (${socketInstance.id}) leaving video room: ${currentRoom}`);
       
-      // Get room members before leave
-      const membersBeforeLeave = getRoomMembers(VIDEO_CHAT_ROOM);
-      console.log(`[USER-LEAVE] Room members before leave: ${membersBeforeLeave.length}`);
-      if (membersBeforeLeave.length > 0) {
-        console.table(membersBeforeLeave);
+      if(currentRoom) {
+          socketInstance.leave(currentRoom);
+          // Notify others in THAT specific room
+          io.to(currentRoom).emit('user-left-video-room', { 
+            userId: socketInstance.id, 
+            userName: userName,
+            roomId: currentRoom
+          });
+          console.log(`[USER-LEAVE] Notified room ${currentRoom} about ${userName} leaving.`);
+      } else {
+          console.log(`[USER-LEAVE] User ${userName} was not in a specific room, or room info missing.`);
       }
       
-      socketInstance.leave(VIDEO_CHAT_ROOM);
       delete videoChatUsers[socketInstance.id];
 
-      // Notify others in the room
-      io.to(VIDEO_CHAT_ROOM).emit('user-left-video-room', { 
-        userId: socketInstance.id, 
-        userName: leavingUser.userName 
-      });
-      
-      // Log the remaining users
-      const remainingUsers = Object.values(videoChatUsers).map(u => u.userName);
-      console.log(`[USER-LEAVE] After ${leavingUser.userName} left, remaining users: ${remainingUsers.join(', ') || 'None'}`);
-      
-      // Log room size and members after leave
-      const roomSockets = io.sockets.adapter.rooms.get(VIDEO_CHAT_ROOM);
-      const roomSize = roomSockets ? roomSockets.size : 0;
-      console.log(`[USER-LEAVE] Room size after user left: ${roomSize}, registered users: ${Object.keys(videoChatUsers).length}`);
-      
-      // Get detailed member list after leave
-      const membersAfterLeave = getRoomMembers(VIDEO_CHAT_ROOM);
-      console.log(`[USER-LEAVE] Room members after leave: ${membersAfterLeave.length}`);
-      if (membersAfterLeave.length > 0) {
-        console.table(membersAfterLeave);
-      }
-      
-      debugLog(`User ${leavingUser.userName} (${socketInstance.id}) removed. Current video room users:`, Object.keys(videoChatUsers).length);
+      const remainingUsersInAnyRoom = Object.keys(videoChatUsers).length;
+      console.log(`[USER-LEAVE] After ${userName} left. Total registered video users: ${remainingUsersInAnyRoom}`);
+      debugLog(`User ${userName} (${socketInstance.id}) removed. Total video users: ${remainingUsersInAnyRoom}`);
+    } else {
+        console.log(`[USER-LEAVE] Attempted to handle leave for socket ${socketInstance.id}, but no user data found.`);
     }
   }
 
@@ -448,599 +377,273 @@ io.on('connection', (socket) => {
   socket.on('webrtc-offer', (data) => {
     const { to, offer, fromUserName } = data;
     if (!to || !offer) {
-      debugLog(`Invalid WebRTC offer from ${socket.id}. Missing 'to' or 'offer'.`);
+      debugLog(`[SIGNAL] Invalid WebRTC offer from ${socket.id}. Missing 'to' or 'offer'. Data:`, data);
       return;
     }
-
-    console.log(`[SIGNAL] Offer from ${fromUserName} (${socket.id}) to ${to}`);
+    const senderUserName = fromUserName || videoChatUsers[socket.id]?.userName || 'Unknown Sender';
+    console.log(`[SIGNAL] Offer from ${senderUserName} (${socket.id}) to ${to}`);
     
-    // Get the target socket directly
     const targetSocket = io.sockets.sockets.get(to);
     if (!targetSocket) {
-      console.log(`[SIGNAL] WARNING: Target socket ${to} not found for offer from ${fromUserName}`);
-      
-      // Notify sender that the target is not available
-      socket.emit('user-left-video-room', { 
-        userId: to,
-        userName: videoChatUsers[to]?.userName || 'Unknown User'
-      });
-      
+      console.log(`[SIGNAL] WARNING: Target socket ${to} not found for offer from ${senderUserName}`);
+      socket.emit('video-room-error', { message: `User ${videoChatUsers[to]?.userName || to} not found or offline for offer.`});
+      // Optionally, emit 'user-left-video-room' if that's how client handles it
+      // socket.emit('user-left-video-room', { userId: to, userName: videoChatUsers[to]?.userName || 'Unknown User' });
       return;
     }
     
-    // Simply relay the offer to the target
-    debugLog(`Relaying WebRTC offer from ${fromUserName} (${socket.id}) to ${to}`);
+    debugLog(`Relaying WebRTC offer from ${senderUserName} (${socket.id}) to ${to}`);
     targetSocket.emit('webrtc-offer', { 
       from: socket.id, 
       offer,
-      fromUserName: fromUserName || videoChatUsers[socket.id]?.userName || 'Unknown'
+      fromUserName: senderUserName
     });
-    
-    // Send acknowledgment to sender that the offer was delivered
-    socket.emit('webrtc-signal-status', {
-      type: 'offer',
-      to: to,
-      status: 'delivered'
-    });
+    socket.emit('webrtc-signal-status', { type: 'offer', to: to, status: 'delivered' });
   });
 
   socket.on('webrtc-answer', (data) => {
     const { to, answer, fromUserName } = data;
      if (!to || !answer) {
-      debugLog(`Invalid WebRTC answer from ${socket.id}. Missing 'to' or 'answer'.`);
+      debugLog(`[SIGNAL] Invalid WebRTC answer from ${socket.id}. Missing 'to' or 'answer'. Data:`, data);
       return;
     }
-    
-    // Get the target socket directly
+    const senderUserName = fromUserName || videoChatUsers[socket.id]?.userName || 'Unknown Sender';
     const targetSocket = io.sockets.sockets.get(to);
     if (!targetSocket) {
-      console.log(`[SIGNAL] WARNING: Target socket ${to} not found for answer from ${fromUserName}`);
-      
-      // Notify sender that the target is not available
-      socket.emit('user-left-video-room', { 
-        userId: to,
-        userName: videoChatUsers[to]?.userName || 'Unknown User'
-      });
-      
+      console.log(`[SIGNAL] WARNING: Target socket ${to} not found for answer from ${senderUserName}`);
+      socket.emit('video-room-error', { message: `User ${videoChatUsers[to]?.userName || to} not found or offline for answer.`});
       return;
     }
     
-    console.log(`[SIGNAL] Answer from ${fromUserName} (${socket.id}) to ${to}`);
-    
-    // Relay the answer to the target
+    console.log(`[SIGNAL] Answer from ${senderUserName} (${socket.id}) to ${to}`);
     targetSocket.emit('webrtc-answer', { 
       from: socket.id, 
       answer,
-      fromUserName: fromUserName || videoChatUsers[socket.id]?.userName || 'Unknown'
+      fromUserName: senderUserName
     });
-    
-    // Send acknowledgment to sender that the answer was delivered
-    socket.emit('webrtc-signal-status', {
-      type: 'answer',
-      to: to,
-      status: 'delivered'
-    });
+    socket.emit('webrtc-signal-status', { type: 'answer', to: to, status: 'delivered' });
   });
 
   socket.on('webrtc-ice-candidate', (data) => {
     const { to, candidate } = data;
     if (!to || !candidate) {
-      debugLog(`Invalid WebRTC ICE candidate from ${socket.id}. Missing 'to' or 'candidate'.`);
+      if(DEBUG_SIGNALING) debugLog(`[SIGNAL] Invalid WebRTC ICE candidate from ${socket.id}. Missing 'to' or 'candidate'. Data:`, data);
       return;
     }
-    
-    // Get target socket directly
     const targetSocket = io.sockets.sockets.get(to);
     if (!targetSocket) {
-      // Less verbose for ICE candidates as there can be many
-      if (DEBUG_SIGNALING) {
-        console.log(`[SIGNAL] Target socket ${to} not found for ICE candidate from ${socket.id}`);
-      }
+      if (DEBUG_SIGNALING) console.log(`[SIGNAL] Target socket ${to} not found for ICE candidate from ${socket.id}`);
       return;
     }
-    
-    // Relay the ICE candidate to the target
-    targetSocket.emit('webrtc-ice-candidate', { 
-      from: socket.id, 
-      candidate
-    });
+    targetSocket.emit('webrtc-ice-candidate', { from: socket.id, candidate });
   });
 
-  // Handle reconnection attempts
   socket.on('webrtc-reconnect-request', (data) => {
     const { to, fromUserName } = data;
     if (!to) return;
-    
+    const senderUserName = fromUserName || videoChatUsers[socket.id]?.userName || 'Unknown Sender';
     const targetSocket = io.sockets.sockets.get(to);
     if (!targetSocket) {
-      console.log(`[SIGNAL] Target socket ${to} not found for reconnection from ${fromUserName}`);
+      console.log(`[SIGNAL] Target socket ${to} not found for reconnection from ${senderUserName}`);
       return;
     }
-    
-    console.log(`[SIGNAL] Reconnection request from ${fromUserName} (${socket.id}) to ${to}`);
-    debugLog(`Reconnection request from ${fromUserName} (${socket.id}) to ${to}`);
-    targetSocket.emit('webrtc-reconnect-request', { 
-      from: socket.id, 
-      fromUserName, 
-      timestamp: Date.now() 
-    });
+    console.log(`[SIGNAL] Reconnection request from ${senderUserName} (${socket.id}) to ${to}`);
+    targetSocket.emit('webrtc-reconnect-request', { from: socket.id, fromUserName: senderUserName, timestamp: Date.now() });
   });
 
-  // Connection diagnostic events
   socket.on('webrtc-connection-stats', (data) => {
     const { stats } = data;
     if (!stats) return;
-
     if (videoChatUsers[socket.id]) {
       videoChatUsers[socket.id].connectionQuality = stats.quality || 'unknown';
     }
   });
 
-  // Ping system for connection verification
   socket.on('ping-server', (data, callback) => {
     const timestamp = Date.now();
-    const pingTime = timestamp - (data.timestamp || timestamp);
-    
-    // Log the ping event
-    console.log(`[PING] Server received ping from ${socket.id}, latency: ${pingTime}ms`);
-    
-    // If callback is provided (using socket.io acknowledgements), respond with server data
+    const pingTime = timestamp - (data?.timestamp || timestamp);
+    if(DEBUG_CONNECTION) console.log(`[PING] Server received ping from ${socket.id}, latency: ${pingTime}ms`);
     if (typeof callback === 'function') {
-      callback({
-        serverTime: timestamp,
-        latency: pingTime,
-        serverUsers: Object.keys(videoChatUsers).length,
-        yourId: socket.id
-      });
+      callback({ serverTime: timestamp, latency: pingTime, serverUsers: Object.keys(videoChatUsers).length, yourId: socket.id });
     }
   });
   
   socket.on('ping-user', (data) => {
     const { targetId, echo, timestamp } = data;
-    
-    // Log the ping event
-    console.log(`[PING] User ${socket.id} is pinging ${targetId}`);
-    
+    const senderUserName = videoChatUsers[socket.id]?.userName || 'Unknown Sender';
+    if(DEBUG_CONNECTION) console.log(`[PING] User ${senderUserName} (${socket.id}) is pinging ${targetId}`);
     if (!targetId) return;
     
-    // Check if target user exists
     const targetSocket = io.sockets.sockets.get(targetId);
     if (!targetSocket) {
-      // Notify sender that target is not found
-      socket.emit('ping-response', {
-        targetId,
-        status: 'not-found',
-        message: `User with ID ${targetId} not found`,
-        timestamp: Date.now(),
-        originalTimestamp: timestamp
-      });
+      socket.emit('ping-response', { targetId, status: 'not-found', message: `User ${targetId} not found`, timestamp: Date.now(), originalTimestamp: timestamp });
       return;
     }
-    
-    // Send ping to target user
-    targetSocket.emit('ping-request', {
-      from: socket.id,
-      fromUserName: videoChatUsers[socket.id]?.userName || 'Unknown',
-      timestamp: Date.now(),
-      originalTimestamp: timestamp,
-      echo: echo
-    });
-    
-    // If echo is false, immediately respond to sender instead of waiting for target to respond
+    targetSocket.emit('ping-request', { from: socket.id, fromUserName: senderUserName, timestamp: Date.now(), originalTimestamp: timestamp, echo: echo });
     if (echo === false) {
-      socket.emit('ping-response', {
-        targetId,
-        status: 'delivered',
-        message: `Ping delivered to ${targetId}`,
-        timestamp: Date.now(),
-        originalTimestamp: timestamp
-      });
+      socket.emit('ping-response', { targetId, status: 'delivered', message: `Ping delivered to ${targetId}`, timestamp: Date.now(), originalTimestamp: timestamp });
     }
   });
   
   socket.on('ping-response', (data) => {
     const { to, status, latency, timestamp, originalTimestamp } = data;
-    
-    // Log the ping response
-    console.log(`[PING] User ${socket.id} is responding to ping from ${to} with status: ${status}`);
-    
+    const senderUserName = videoChatUsers[socket.id]?.userName || 'Unknown Sender';
+    if(DEBUG_CONNECTION) console.log(`[PING] User ${senderUserName} (${socket.id}) is responding to ping from ${to} with status: ${status}`);
     if (!to) return;
-    
-    // Check if target user exists
     const targetSocket = io.sockets.sockets.get(to);
     if (!targetSocket) {
-      console.log(`[PING] Cannot deliver ping response to ${to} - user not found`);
+      if(DEBUG_CONNECTION) console.log(`[PING] Cannot deliver ping response to ${to} - user not found`);
       return;
     }
-    
-    // Relay the response to the original sender
-    targetSocket.emit('ping-response', {
-      targetId: socket.id,
-      status: status,
-      latency: latency,
-      timestamp: Date.now(),
-      originalTimestamp: originalTimestamp
-    });
+    targetSocket.emit('ping-response', { targetId: socket.id, status: status, latency: latency, timestamp: Date.now(), originalTimestamp: originalTimestamp });
   });
   
   socket.on('ping-all', (data) => {
-    // Only allow if the user is in the video chat room
-    if (!videoChatUsers[socket.id]) {
-      socket.emit('ping-all-response', {
-        status: 'error',
-        message: 'You must be in a video room to ping all users',
-        timestamp: Date.now()
-      });
+    if (!videoChatUsers[socket.id] || !videoChatUsers[socket.id].currentRoom) {
+      socket.emit('ping-all-response', { status: 'error', message: 'You must be in a video room to ping all users', timestamp: Date.now() });
       return;
     }
-    
     const timestamp = Date.now();
     const fromUserName = videoChatUsers[socket.id]?.userName || 'Unknown';
+    const currentRoom = videoChatUsers[socket.id].currentRoom;
     
-    console.log(`[PING] ${fromUserName} (${socket.id}) is pinging all users in the room`);
+    if(DEBUG_CONNECTION) console.log(`[PING] ${fromUserName} (${socket.id}) is pinging all users in room ${currentRoom}`);
     
-    // Get all users in the room
-    const roomSockets = [...(io.sockets.adapter.rooms.get(VIDEO_CHAT_ROOM) || [])];
+    const roomSocketsSet = io.sockets.adapter.rooms.get(currentRoom);
+    if (!roomSocketsSet) {
+        socket.emit('ping-all-response', { status: 'error', message: `Room ${currentRoom} not found or empty.`, timestamp: Date.now() });
+        return;
+    }
+    const roomSocketsArray = [...roomSocketsSet];
     const pingResults = {};
     
-    // Track whether user is actually in the room despite being in videoChatUsers
-    const isActuallyInRoom = roomSockets.includes(socket.id);
-    
-    if (!isActuallyInRoom) {
-      socket.emit('ping-all-response', {
-        status: 'error',
-        message: 'You appear to be in users list but not in the room. Try reconnecting.',
-        timestamp: Date.now()
-      });
+    if (!roomSocketsArray.includes(socket.id)) {
+      socket.emit('ping-all-response', { status: 'error', message: 'You appear to not be in the room you are pinging. Try rejoining.', timestamp: Date.now() });
       return;
     }
-    
-    // Initialize results for all users
-    roomSockets.forEach(socketId => {
-      if (socketId !== socket.id) {
-        pingResults[socketId] = {
-          userName: videoChatUsers[socketId]?.userName || 'Unknown',
-          status: 'pending',
-          latency: null
-        };
+    roomSocketsArray.forEach(socketIdInRoom => {
+      if (socketIdInRoom !== socket.id) {
+        pingResults[socketIdInRoom] = { userName: videoChatUsers[socketIdInRoom]?.userName || 'Unknown', status: 'pending', latency: null };
       }
     });
+    socket.emit('ping-all-response', { status: 'initiated', users: pingResults, roomSize: roomSocketsArray.length, timestamp });
     
-    // Send initial response with all users that will be pinged
-    socket.emit('ping-all-response', {
-      status: 'initiated',
-      users: pingResults,
-      roomSize: roomSockets.length,
-      timestamp
-    });
-    
-    // Ping each user individually
-    roomSockets.forEach(targetId => {
-      if (targetId === socket.id) return; // Skip self
-      
+    roomSocketsArray.forEach(targetId => {
+      if (targetId === socket.id) return;
       const targetSocket = io.sockets.sockets.get(targetId);
       if (!targetSocket) {
-        // Update result for this user
-        pingResults[targetId] = {
-          ...pingResults[targetId],
-          status: 'not-found',
-          error: 'Socket not found'
-        };
+        pingResults[targetId] = { ...pingResults[targetId], status: 'not-found', error: 'Socket not found' };
         return;
       }
-      
-      // Send ping to this user
-      targetSocket.emit('ping-request', {
-        from: socket.id,
-        fromUserName,
-        timestamp: Date.now(),
-        originalTimestamp: timestamp,
-        isPingAll: true
-      });
+      targetSocket.emit('ping-request', { from: socket.id, fromUserName, timestamp: Date.now(), originalTimestamp: timestamp, isPingAll: true });
     });
-    
-    // Send immediate response to show deliveries
-    socket.emit('ping-all-update', {
-      users: pingResults,
-      timestamp: Date.now(),
-      originalTimestamp: timestamp
-    });
+    socket.emit('ping-all-update', { users: pingResults, timestamp: Date.now(), originalTimestamp: timestamp });
   });
 
-  // Support for backward compatibility with old 'offer'/'answer' events
+  // Legacy event support (should be phased out)
   socket.on('offer', (data) => {
     const { to } = data;
     if (!to) return;
-    
     debugLog(`[LEGACY] Converting 'offer' to 'webrtc-offer' from ${socket.id} to ${to}`);
-    io.to(to).emit('webrtc-offer', { 
-      from: socket.id, 
-      offer: data.offer || data.sdp,
-      fromUserName: data.fromUserName || (videoChatUsers[socket.id]?.userName || 'Unknown user')
-    });
+    io.to(to).emit('webrtc-offer', { from: socket.id, offer: data.offer || data.sdp, fromUserName: data.fromUserName || (videoChatUsers[socket.id]?.userName || 'Unknown user') });
   });
-
   socket.on('answer', (data) => {
     const { to } = data;
     if (!to) return;
-    
     debugLog(`[LEGACY] Converting 'answer' to 'webrtc-answer' from ${socket.id} to ${to}`);
-    io.to(to).emit('webrtc-answer', { 
-      from: socket.id, 
-      answer: data.answer || data.sdp,
-      fromUserName: data.fromUserName || (videoChatUsers[socket.id]?.userName || 'Unknown user')
-    });
+    io.to(to).emit('webrtc-answer', { from: socket.id, answer: data.answer || data.sdp, fromUserName: data.fromUserName || (videoChatUsers[socket.id]?.userName || 'Unknown user') });
   });
-
   socket.on('ice-candidate', (data) => {
     const { to } = data;
     if (!to) return;
-    
     debugLog(`[LEGACY] Converting 'ice-candidate' to 'webrtc-ice-candidate' from ${socket.id} to ${to}`);
-    io.to(to).emit('webrtc-ice-candidate', { 
-      from: socket.id, 
-      candidate: data.candidate
-    });
+    io.to(to).emit('webrtc-ice-candidate', { from: socket.id, candidate: data.candidate });
   });
 });
 
-// Always use port 1002 by default instead of 3000
-// Since we saw 3000 was already in use in the error logs
-const PORT = process.env.PORT || 1002;
-const SECURE_PORT = process.env.SECURE_PORT || 1443;
+let activeServer = server; // By default, this is httpServer or httpsServer if certs were found
+let finalListenPort = PORT;
 
-// Safety check to avoid port 3000 that's already in use
-const FINAL_PORT = PORT === 3000 ? 1002 : PORT;
-if (FINAL_PORT !== PORT) {
-  console.log(`⚠️ Port ${PORT} (possibly from environment) cannot be used. Using port ${FINAL_PORT} instead.`);
+// If httpsServer exists and USE_HTTPS is true (or not explicitly false), prioritize HTTPS
+if (httpsServer && process.env.USE_HTTPS !== 'false') {
+    console.log(`Attempting to use HTTPS on port ${SECURE_PORT}.`);
+    activeServer = httpsServer;
+    finalListenPort = SECURE_PORT;
+    if(io.server !== activeServer) io.attach(activeServer); // Ensure IO is on the active server
+} else {
+    console.log(`Using HTTP on port ${PORT}.`);
+    activeServer = httpServer;
+    finalListenPort = PORT;
+    if(io.server !== activeServer) io.attach(activeServer); // Ensure IO is on the active server
 }
 
-// Start the HTTP server
-server.listen(FINAL_PORT, '0.0.0.0', () => {
-  console.log(`🚀 Socket.IO server for video calls running on port ${FINAL_PORT}`);
-  console.log(`Socket.IO server available at http://localhost:${FINAL_PORT}`);
-  console.log(`Socket.IO path: ${socketPath}`);
-  console.log(`Socket.IO effective path: ${effectivePath}`);
-  console.log(`\n===== SOCKET SERVER CONFIGURATION =====`);
-  console.log(`• Environment: ${isVpsEnvironment ? 'VPS/Production' : 'Local Development'}`);
-  console.log(`• Domain: ${domain}`);
-  console.log(`• Subpath: ${subpath}`);
-  console.log(`• CORS: ${corsAllowedOrigins}`);
-  console.log(`• HTTPS Enabled: ${process.env.USE_HTTPS === 'true' ? 'Yes' : 'No'}`);
-  console.log(`=====================================\n`);
+activeServer.listen(finalListenPort, '0.0.0.0', () => {
+  const protocol = activeServer === httpsServer ? 'WSS/HTTPS' : 'WS/HTTP';
+  console.log(`🚀 Socket.IO server (${protocol}) running on port ${finalListenPort}, path: ${effectivePath}`);
+  if (isVpsEnvironment) {
+    // Simplified Nginx log for clarity
+    console.log("NGINX: Ensure proxy_pass to http://localhost:" + finalListenPort + effectivePath);
+  }
 });
 
-// If HTTPS is enabled and we have a secure server instance, start it too
-if (httpsServer && process.env.USE_HTTPS === 'true') {
-  httpsServer.listen(SECURE_PORT, '0.0.0.0', () => {
-    console.log(`🔒 SECURE Socket.IO server (WSS) running on port ${SECURE_PORT}`);
-    console.log(`Secure Socket.IO server available at https://localhost:${SECURE_PORT}`);
-  });
-}
+// Add a diagnostic endpoint that will help test the WebSocket connection
+app.get('/socket-status', (req, res) => {
+  const clientIP = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+  const clientOrigin = req.headers.origin || 'Unknown';
+  const userAgent = req.headers['user-agent'] || 'Unknown';
   
-if (isVpsEnvironment) {
-  console.log(`
-======================= VPS DEPLOYMENT NOTES ========================
-This socket server is configured to work with Nginx reverse proxy.
-Make sure you have the following in your Nginx config:
-
-location /socket.io/ {
-    proxy_pass http://localhost:${FINAL_PORT};
-    proxy_http_version 1.1;
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection "upgrade";
-    proxy_set_header Host $host;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-}
-
-For path-based deployment (like /${subpath}/socket/), use:
-
-location /${subpath}/socket/ {
-    proxy_pass http://localhost:${FINAL_PORT}/;
-    proxy_http_version 1.1;
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection "upgrade";
-    proxy_set_header Host $host;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-}
-
-location /${subpath}/socket/socket.io/ {
-    proxy_pass http://localhost:${FINAL_PORT}/socket.io/;
-    proxy_http_version 1.1;
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection "upgrade";
-    proxy_set_header Host $host;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-}
-===================================================================
-`);
-}
-
-// Add an endpoint specifically to debug the socket.io configuration
-app.get('/debug-config', (req, res) => {
   res.json({
-    environment: {
-      isVpsEnvironment,
-      domain,
-      subpath,
-      nodeEnv: process.env.NODE_ENV || 'development',
+    server: {
+      status: 'running',
+      listening_port: finalListenPort,
+      protocol: (activeServer === httpsServer ? 'wss/https' : 'ws/http'),
+      socketPath: effectivePath,
+      timestamp: new Date().toISOString(),
+      corsSettings: {
+        allowedOrigins: (io.opts.cors.origin === "*") ? "* (DEBUG MODE - ALL ALLOWED)" : corsAllowedOrigins,
+        allowCredentials: io.opts.cors.credentials
+      },
+      connections: {
+        total: io.engine?.clientsCount || 0,
+        activeSockets: Object.keys(io.sockets.sockets).length,
+        videoRoomUsers: Object.keys(videoChatUsers).length
+      }
     },
-    socketConfig: {
-      originalPath: socketPath,
-      effectivePath,
-      corsAllowedOrigins,
-      port: PORT,
-      secure_port: SECURE_PORT
+    client: {
+      ip: clientIP,
+      origin: clientOrigin,
+      userAgent: userAgent
     },
-    useHttps: process.env.USE_HTTPS === 'true',
-    clientInfo: {
-      ip: req.ip,
-      headers: req.headers
+    websocketTest: {
+      attemptUrl: `${activeServer === httpsServer ? 'wss' : 'ws'}://localhost:${finalListenPort}${effectivePath}`,
+      directWsUrl: `ws://localhost:${PORT}${effectivePath.replace(/\/socket.io$/, '')}/socket.io`,
+      directWssUrl: `wss://localhost:${SECURE_PORT}${effectivePath.replace(/\/socket.io$/, '')}/socket.io`,
+      testCommand: `wscat -c ${activeServer === httpsServer ? 'wss' : 'ws'}://localhost:${finalListenPort}${effectivePath}`,
+      curlPollingTest: `curl -v http://localhost:${PORT}${effectivePath.replace(/\/socket.io$/, '')}?EIO=4&transport=polling`
     }
   });
 });
 
-// Add a WebSocket test HTML page
-app.get('/websocket-test', (req, res) => {
-  res.send(`
-<!DOCTYPE html>
-<html>
-<head>
-    <title>WebSocket Test - MiscVord</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .log { background: #f4f4f4; padding: 10px; border-radius: 5px; height: 300px; overflow-y: auto; }
-        .success { color: green; }
-        .error { color: red; }
-        .info { color: blue; }
-        .warn { color: orange; }
-        button { margin: 5px; padding: 8px 12px; }
-        .highlight { background-color: #ffc; padding: 5px; border-left: 4px solid #f90; }
-    </style>
-</head>
-<body>
-    <h1>MiscVord WebSocket Connection Test</h1>
-    <p>Server Configuration:</p>
-    <div class="highlight">
-        <ul>
-            <li>Socket Path: ${socketPath}</li>
-            <li>Effective Path: ${effectivePath}</li>
-            <li>VPS Mode: ${isVpsEnvironment ? 'Yes' : 'No'}</li>
-            <li>Domain: ${domain}</li>
-            <li>Environment: ${process.env.NODE_ENV || 'development'}</li>
-        </ul>
-    </div>
-    
-    <h3>Test Options:</h3>
-    <div>
-        <button id="testDefault">Test Default Connection</button>
-        <button id="testExplicit">Test With Explicit Path (${effectivePath})</button>
-        <button id="testMiscVordDomain">Test with marvelcollin.my.id Domain</button>
-        <button id="testLocalhost">Test With localhost</button>
-        <button id="clearLog">Clear Log</button>
-    </div>
-    
-    <h3>Connection Log:</h3>
-    <div class="log" id="log"></div>
-
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
-        function log(message, type = 'info') {
-            const logEl = document.getElementById('log');
-            const entry = document.createElement('div');
-            entry.className = type;
-            entry.textContent = \`[\${new Date().toISOString()}] \${message}\`;
-            logEl.appendChild(entry);
-            logEl.scrollTop = logEl.scrollHeight;
-        }
-
-        function testConnection(options) {
-            if (window.socket) {
-                log('Disconnecting previous connection...', 'info');
-                window.socket.disconnect();
-            }
-            
-            const { url, path, description } = options;
-            
-            log(\`Testing connection: \${description}\`, 'info');
-            log(\`URL: \${url || window.location.origin}, Path: \${path}\`, 'info');
-            
-            try {
-                window.socket = io(url || window.location.origin, {
-                    path: path,
-                    transports: ['websocket', 'polling'],
-                    reconnectionAttempts: 3,
-                    reconnectionDelay: 1000,
-                    timeout: 5000,
-                    withCredentials: true
-                });
-
-                socket.on('connect', () => {
-                    log(\`✅ Connected successfully! Socket ID: \${socket.id}\`, 'success');
-                    log(\`Connection details: \${socket.io.uri}\`, 'success');
-                });
-
-                socket.on('disconnect', (reason) => {
-                    log(\`Disconnected: \${reason}\`, 'error');
-                });
-
-                socket.on('connect_error', (err) => {
-                    log(\`❌ Connection error: \${err.message}\`, 'error');
-                    log(\`Error details: \${JSON.stringify(err)}\`, 'error');
-                });
-                
-                socket.on('error', (err) => {
-                    log(\`Socket error: \${err}\`, 'error');
-                });
-            } catch (e) {
-                log(\`Error creating socket: \${e.message}\`, 'error');
-            }
-        }
-
-        document.getElementById('testDefault').addEventListener('click', () => {
-            testConnection({
-                path: '/socket.io',
-                description: 'Default path'
-            });
-        });
-        
-        document.getElementById('testExplicit').addEventListener('click', () => {
-            testConnection({
-                path: '${effectivePath}',
-                description: 'Explicit VPS path'
-            });
-        });
-        
-        document.getElementById('testMiscVordDomain').addEventListener('click', () => {
-            testConnection({
-                url: 'https://marvelcollin.my.id',
-                path: '/misvord/socket/socket.io',
-                description: 'Production domain (marvelcollin.my.id)'
-            });
-        });
-        
-        document.getElementById('testLocalhost').addEventListener('click', () => {
-            testConnection({
-                url: 'http://localhost:1002',
-                path: '/socket.io',
-                description: 'Direct localhost connection'
-            });
-        });
-        
-        document.getElementById('clearLog').addEventListener('click', () => {
-            document.getElementById('log').innerHTML = '';
-            log('Log cleared', 'info');
-        });
-        
-        // Initial environment check
-        window.addEventListener('load', () => {
-            log('Environment check:', 'info');
-            log(\`Location: \${window.location.href}\`, 'info');
-            log(\`Hostname: \${window.location.hostname}\`, 'info');
-            log(\`Protocol: \${window.location.protocol}\`, 'info');
-            log(\`Origin: \${window.location.origin}\`, 'info');
-            log(\`Path: \${window.location.pathname}\`, 'info');
-            
-            // Suggest connection path based on hostname
-            if (window.location.hostname === 'marvelcollin.my.id') {
-                log('Detected marvelcollin.my.id domain - recommend using "/misvord/socket/socket.io" path', 'warn');
-            } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                log('Detected localhost - recommend using "/socket.io" path', 'warn');
-            }
-        });
-    </script>
-</body>
-</html>
-  `);
+// Add a plain-text response for /socket.io path to help troubleshoot connection issues
+app.get(effectivePath, (req, res) => { // Listen on the effectivePath for socket.io polling
+  if (req.query.transport === 'polling' && req.query.sid === undefined) {
+    const sid = "s-" + Date.now();
+    const bodyObject = {
+        sid: sid,
+        upgrades: ["websocket"],
+        pingInterval: 25000,
+        pingTimeout: 60000
+    };
+    const body = `0${JSON.stringify(bodyObject)}`;
+    res.setHeader('Content-Type', 'text/plain; charset=UTF-8');
+    return res.send(body);
+  }
+  res.status(200).send(`Socket.IO endpoint. Port: ${finalListenPort}. Path: ${effectivePath}`);
 });
 
-// Add CORS headers middleware for marvelcollin.my.id
+// Fallback CORS middleware (less critical now with '*' but good for future)
 app.use((req, res, next) => {
-  // Set CORS headers specifically for marvelcollin.my.id
-  if (isVpsEnvironment && domain === 'marvelcollin.my.id') {
+  if (isVpsEnvironment && domain === 'marvelcollin.my.id' && req.headers.origin === 'https://marvelcollin.my.id') {
     res.header('Access-Control-Allow-Origin', 'https://marvelcollin.my.id');
     res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
