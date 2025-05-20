@@ -22,17 +22,48 @@ function asset($path) {
     // Check file extension to determine the appropriate directory
     $extension = pathinfo($path, PATHINFO_EXTENSION);
     
+    $finalUrl = '';
+    
+    // Special override for marvelcollin.my.id domain to ensure paths are correct
+    $host = $_SERVER['HTTP_HOST'] ?? '';
+    $isMarvelDomain = strpos($host, 'marvelcollin.my.id') !== false;
+    
     // Route to the appropriate directory based on file extension
     if ($extension === 'js' || strpos($path, 'webrtc-modules/') !== false) {
         // JavaScript files go to /js/ directory
-        return "{$baseUrl}/js/{$path}";
+        if ($isMarvelDomain && strpos($baseUrl, '/misvord') === false) {
+            // Force /misvord prefix for marvelcollin domain
+            $finalUrl = str_replace("://{$host}", "://{$host}/misvord", $baseUrl) . "/js/{$path}";
+        } else {
+            $finalUrl = "{$baseUrl}/js/{$path}";
+        }
     } elseif ($extension === 'css') {
         // CSS files go to /css/ directory
-        return "{$baseUrl}/css/{$path}";
+        if ($isMarvelDomain && strpos($baseUrl, '/misvord') === false) {
+            // Force /misvord prefix for marvelcollin domain
+            $finalUrl = str_replace("://{$host}", "://{$host}/misvord", $baseUrl) . "/css/{$path}";
+        } else {
+            $finalUrl = "{$baseUrl}/css/{$path}";
+        }
     } else {
         // All other assets go to /assets/ directory
-        return "{$baseUrl}/assets/{$path}";
+        if ($isMarvelDomain && strpos($baseUrl, '/misvord') === false) {
+            // Force /misvord prefix for marvelcollin domain
+            $finalUrl = str_replace("://{$host}", "://{$host}/misvord", $baseUrl) . "/assets/{$path}";
+        } else {
+            $finalUrl = "{$baseUrl}/assets/{$path}";
+        }
     }
+    
+    // Normalize URL to prevent double slashes
+    $finalUrl = preg_replace('#([^:])//+#', '$1/', $finalUrl);
+    
+    // Log the asset URL for debugging (only in development)
+    if (getenv('APP_ENV') !== 'production') {
+        error_log("Asset URL for '{$path}': {$finalUrl}");
+    }
+    
+    return $finalUrl;
 }
 
 /**
@@ -48,7 +79,27 @@ function css($path) {
     }
     
     $baseUrl = getBaseUrl();
-    return "{$baseUrl}/css/{$path}";
+    
+    // Special override for marvelcollin.my.id domain to ensure paths are correct
+    $host = $_SERVER['HTTP_HOST'] ?? '';
+    $isMarvelDomain = strpos($host, 'marvelcollin.my.id') !== false;
+    
+    if ($isMarvelDomain && strpos($baseUrl, '/misvord') === false) {
+        // Force /misvord prefix for marvelcollin domain
+        $finalUrl = str_replace("://{$host}", "://{$host}/misvord", $baseUrl) . "/css/{$path}";
+    } else {
+        $finalUrl = "{$baseUrl}/css/{$path}";
+    }
+    
+    // Normalize URL to prevent double slashes
+    $finalUrl = preg_replace('#([^:])//+#', '$1/', $finalUrl);
+    
+    // Log the CSS URL for debugging (only in development)
+    if (getenv('APP_ENV') !== 'production') {
+        error_log("CSS URL for '{$path}': {$finalUrl}");
+    }
+    
+    return $finalUrl;
 }
 
 /**
@@ -64,7 +115,27 @@ function js($path) {
     }
     
     $baseUrl = getBaseUrl();
-    return "{$baseUrl}/js/{$path}";
+    
+    // Special override for marvelcollin.my.id domain to ensure paths are correct
+    $host = $_SERVER['HTTP_HOST'] ?? '';
+    $isMarvelDomain = strpos($host, 'marvelcollin.my.id') !== false;
+    
+    if ($isMarvelDomain && strpos($baseUrl, '/misvord') === false) {
+        // Force /misvord prefix for marvelcollin domain
+        $finalUrl = str_replace("://{$host}", "://{$host}/misvord", $baseUrl) . "/js/{$path}";
+    } else {
+        $finalUrl = "{$baseUrl}/js/{$path}";
+    }
+    
+    // Normalize URL to prevent double slashes
+    $finalUrl = preg_replace('#([^:])//+#', '$1/', $finalUrl);
+    
+    // Log the JS URL for debugging (only in development)
+    if (getenv('APP_ENV') !== 'production') {
+        error_log("JS URL for '{$path}': {$finalUrl}");
+    }
+    
+    return $finalUrl;
 }
 
 /**
@@ -91,7 +162,33 @@ function getBaseUrl() {
     $protocol = $useHttps ? 'https' : 'http';
     $scriptDir = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? ''), '/');
     
-    return "{$protocol}://{$host}{$scriptDir}";
+    // Enhanced debugging for path construction
+    if (getenv('APP_ENV') !== 'production') {
+        error_log("Host: {$host}");
+        error_log("Script Name: " . ($_SERVER['SCRIPT_NAME'] ?? 'Not Set'));
+        error_log("Script Directory: {$scriptDir}");
+    }
+    
+    // Special handling for marvelcollin.my.id domain - always add /misvord to the path
+    if (strpos($host, 'marvelcollin.my.id') !== false) {
+        // Check if /misvord is already in the path
+        if (strpos($scriptDir, '/misvord') === false) {
+            // If not, add it
+            $scriptDir = '/misvord';
+            if (getenv('APP_ENV') !== 'production') {
+                error_log("Detected marvelcollin.my.id domain, forcing path to: {$scriptDir}");
+            }
+        }
+    }
+    
+    $baseUrl = "{$protocol}://{$host}{$scriptDir}";
+    
+    // Log the final URL for debugging
+    if (getenv('APP_ENV') !== 'production') {
+        error_log("Final base URL: {$baseUrl}");
+    }
+    
+    return $baseUrl;
 }
 
 /**

@@ -117,6 +117,13 @@ document.addEventListener('DOMContentLoaded', () => {
 function getAssetBasePath() {
     // Get the current URL to determine if we're in a subpath
     const currentPath = window.location.pathname;
+    const hostname = window.location.hostname;
+    
+    // Special handling for marvelcollin.my.id domain - always return /misvord
+    if (hostname.includes('marvelcollin.my.id')) {
+        console.log('Detected marvelcollin.my.id domain, using /misvord path');
+        return '/misvord';
+    }
     
     // Check if we're in a subpath deployment (like /misvord/ or /miscvord/)
     if (currentPath.includes('/misvord/')) {
@@ -130,6 +137,24 @@ function getAssetBasePath() {
 }
 
 /**
+ * Helper function to join paths without double slashes
+ * @param {string} base - The base path
+ * @param {string} path - The path to append
+ * @returns {string} - The joined path
+ */
+function joinPaths(base, path) {
+    if (!path) return base;
+    // Remove leading slash from path if base is not empty
+    if (base && path.startsWith('/')) {
+        path = path.substring(1);
+    }
+    // Handle case where base is empty
+    if (!base) return path;
+    // Join with a slash
+    return base + '/' + path;
+}
+
+/**
  * Load all required WebRTC modules
  * The order matters - dependencies must be loaded first
  */
@@ -140,11 +165,11 @@ async function loadModules() {
         console.log(`Using asset base path: "${basePath}"`);
         
         // Build the module base path with the asset base path
-        const moduleBase = `${basePath}/js/webrtc-modules/`;
+        const moduleBase = joinPaths(basePath, 'js/webrtc-modules/');
         
         // First try to load Socket.IO since it's critical
         try {
-            await loadScript(`${basePath}/js/socket.io.min.js`);
+            await loadScript(joinPaths(basePath, 'js/socket.io.min.js'));
             console.log('Socket.IO loaded successfully');
         } catch (error) {
             console.warn('Failed to load local Socket.IO, trying CDN fallback:', error);
@@ -176,7 +201,7 @@ async function loadModules() {
         // Load each module in sequence
         for (const module of requiredModules) {
             try {
-                await loadScript(moduleBase + module);
+                await loadScript(joinPaths(moduleBase, module));
                 console.log(`Loaded WebRTC module: ${module}`);
             } catch (error) {
                 console.error(`Failed to load module ${module}:`, error);

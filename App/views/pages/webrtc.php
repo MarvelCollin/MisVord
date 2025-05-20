@@ -446,89 +446,84 @@ $additional_head = '
     </div>
 </div>
 
-<!-- Add script to verify module loading -->
+<!-- Replace script tags with dynamic loading script -->
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    console.log("DOMContentLoaded event fired");
-    
-    // Get base path for assets
-    function getAssetBasePath() {
-        // Get the current URL to determine if we're in a subpath
-        const currentPath = window.location.pathname;
-        
-        // Check if we're in a subpath deployment (like /misvord/ or /miscvord/)
-        if (currentPath.includes('/misvord/')) {
-            return '/misvord'; // Return the subpath for this deployment
-        } else if (currentPath.includes('/miscvord/')) {
-            return '/miscvord'; // Return the subpath for this deployment
-        }
-        
-        // Default - no subpath
-        return '';
-    }
-    
-    const basePath = getAssetBasePath();
-    
-    // Check which modules are loaded
-    console.log("Checking for WebRTC modules...");
-    console.log("WebRTCCompat available:", typeof window.WebRTCCompat !== 'undefined');
-    console.log("WebRTCDebug available:", typeof window.WebRTCDebug !== 'undefined');
-    console.log("WebRTCPlayer available:", typeof window.WebRTCPlayer !== 'undefined');
-    
-    // If modules aren't loaded, try to load them manually
-    if (typeof window.WebRTCCompat === 'undefined') {
-        console.warn("WebRTCCompat not loaded, attempting to load it manually");
-        const compatScript = document.createElement('script');
-        compatScript.src = basePath + '/js/webrtc-modules/browser-compatibility.js';
-        compatScript.onload = function() {
-            console.log("WebRTCCompat manually loaded successfully");
-            // Run compatibility check once loaded
-            if (typeof window.WebRTCCompat?.check === 'function') {
-                const compatInfo = window.WebRTCCompat.check();
-                if (!compatInfo.isCompatible || compatInfo.issues.length > 0) {
-                    window.WebRTCCompat.showWarning(compatInfo);
+    // Get correct asset path based on current domain
+    (function() {
+        // Check if shared joinPaths function exists, otherwise create it
+        if (typeof window.joinPaths !== 'function') {
+            window.joinPaths = function(base, path) {
+                if (!path) return base;
+                // Remove leading slash from path if base is not empty
+                if (base && path.startsWith('/')) {
+                    path = path.substring(1);
                 }
+                // Handle case where base is empty
+                if (!base) return path;
+                // Join with a slash
+                return base + '/' + path;
+            };
+        }
+        
+        // Check if shared logPathInfo function exists, otherwise create it
+        if (typeof window.logPathInfo !== 'function') {
+            window.logPathInfo = function(source, path) {
+                console.log(`[${source}] Path: ${path}`);
+            };
+        }
+        
+        function getScriptBasePath() {
+            const hostname = window.location.hostname;
+            
+            // Special handling for marvelcollin.my.id domain
+            if (hostname.includes('marvelcollin.my.id')) {
+                return '/misvord/js';
             }
-        };
-        compatScript.onerror = function() {
-            console.error("Failed to manually load WebRTCCompat");
-        };
-        document.head.appendChild(compatScript);
-    } else {
-        // Run compatibility check if already loaded
-        if (typeof window.WebRTCCompat?.check === 'function') {
-            const compatInfo = window.WebRTCCompat.check();
-            if (!compatInfo.isCompatible || compatInfo.issues.length > 0) {
-                window.WebRTCCompat.showWarning(compatInfo);
+            
+            // Default path for other environments
+            const currentPath = window.location.pathname;
+            if (currentPath.includes('/misvord/')) {
+                return '/misvord/js';
+            } else if (currentPath.includes('/miscvord/')) {
+                return '/miscvord/js';
+            } else {
+                return '/js';
             }
         }
-    }
-    
-    if (typeof window.WebRTCDebug === 'undefined') {
-        console.warn("WebRTCDebug not loaded, attempting to load it manually");
-        const debugScript = document.createElement('script');
-        debugScript.src = basePath + '/js/webrtc-modules/video-debug.js';
-        document.head.appendChild(debugScript);
-    }
-    
-    if (typeof window.WebRTCPlayer === 'undefined') {
-        console.warn("WebRTCPlayer not loaded, attempting to load it manually");
-        const playerScript = document.createElement('script');
-        playerScript.src = basePath + '/js/webrtc-modules/video-player.js';
-        document.head.appendChild(playerScript);
-    }
-});
+        
+        // Load scripts with proper base path
+        const basePath = getScriptBasePath();
+        console.log("Loading scripts from base path:", basePath);
+        
+        // Function to create and append script with error handling
+        function loadScript(path) {
+            const fullPath = joinPaths(basePath, path);
+            logPathInfo('WebRTC Module', fullPath);
+            
+            const script = document.createElement('script');
+            script.src = fullPath;
+            script.async = false; // Keep script execution order
+            
+            // Add load/error events for debugging
+            script.onload = function() {
+                console.log(`✓ Successfully loaded: ${fullPath}`);
+            };
+            script.onerror = function() {
+                console.error(`✗ Failed to load script: ${fullPath}`);
+            };
+            
+            document.head.appendChild(script);
+        }
+        
+        // Load all required scripts in the correct order
+        loadScript('socket.io.min.js');
+        loadScript('webrtc-modules/browser-compatibility.js');
+        loadScript('webrtc-modules/video-debug.js');
+        loadScript('webrtc-modules/video-player.js');
+        loadScript('webrtc-modules/connection-monitor.js');
+        loadScript('webrtc.js');
+    })();
 </script>
-
-<!-- Socket.io library - local reference to avoid CDN issues -->
-<script src="<?php echo asset('socket.io.min.js'); ?>"></script>
-<!-- Removing external adapter reference that's failing to load -->
-<!-- <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script> -->
-<script src="<?php echo asset('webrtc-modules/browser-compatibility.js'); ?>"></script>
-<script src="<?php echo asset('webrtc-modules/video-debug.js'); ?>"></script>
-<script src="<?php echo asset('webrtc-modules/video-player.js'); ?>"></script>
-<script src="<?php echo asset('webrtc-modules/connection-monitor.js'); ?>"></script>
-<script src="<?php echo asset('webrtc.js'); ?>"></script>
 
 <!-- WebRTC Debugging Script -->
 <script>

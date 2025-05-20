@@ -51,12 +51,141 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
     ?>
     <!-- Socket server URL from environment variables -->
     <meta name="socket-server" content="<?php echo $effectiveSocketServer; ?>">
-    <title><?php echo isset($page_title) ? $page_title : 'MiscVord - Your Place to Talk and Hang Out'; ?></title>    <!-- Favicon -->    <link rel="icon" href="<?php echo asset('landing-page/main-logo.png'); ?>" type="image/png">    <link rel="shortcut icon" href="<?php echo asset('landing-page/main-logo.png'); ?>" type="image/png">
+    <title><?php echo isset($page_title) ? $page_title : 'MiscVord - Your Place to Talk and Hang Out'; ?></title>    
+    <!-- Common utility script for path handling -->
+    <script>
+        // Utility function for joining paths consistently
+        function joinPaths(base, path) {
+            if (!path) return base;
+            // Remove leading slash from path if base is not empty
+            if (base && path.startsWith('/')) {
+                path = path.substring(1);
+            }
+            // Handle case where base is empty
+            if (!base) return path;
+            // Join with a slash
+            return base + '/' + path;
+        }
+        
+        // Log function for debugging
+        function logPathInfo(source, path) {
+            console.log(`[${source}] Path: ${path}`);
+        }
+    </script>
+    <!-- Dynamic Favicon -->
+    <script>
+        (function() {
+            const hostname = window.location.hostname;
+            const currentPath = window.location.pathname;
+            let basePath = '';
+            
+            // Special handling for marvelcollin.my.id domain
+            if (hostname.includes('marvelcollin.my.id')) {
+                basePath = '/misvord';
+            }
+            // Default path for other environments
+            else if (currentPath.includes('/misvord/')) {
+                basePath = '/misvord';
+            } else if (currentPath.includes('/miscvord/')) {
+                basePath = '/miscvord';
+            } else {
+                basePath = '';
+            }
+            
+            // Use shared joinPaths function for consistent path handling
+            const faviconPath = joinPaths(basePath, 'assets/landing-page/main-logo.png');
+            logPathInfo('Favicon', faviconPath);
+            
+            // Create favicon links
+            const icon = document.createElement('link');
+            icon.rel = 'icon';
+            icon.href = faviconPath;
+            icon.type = 'image/png';
+            document.head.appendChild(icon);
+            
+            const shortcutIcon = document.createElement('link');
+            shortcutIcon.rel = 'shortcut icon';
+            shortcutIcon.href = faviconPath;
+            shortcutIcon.type = 'image/png';
+            document.head.appendChild(shortcutIcon);
+            
+            console.log("Favicon loaded from:", faviconPath);
+        })();
+    </script>
     <!-- Tailwind CSS via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
-    <!-- Socket.io client library - using local version to avoid CDN issues -->
-    <script src="<?php echo js('socket.io.min.js'); ?>"></script>
+    
+    <!-- Dynamic adapter script loading with fallback -->
+    <script>
+        (function() {
+            // Try to load WebRTC adapter from CDN
+            const adapterScript = document.createElement('script');
+            adapterScript.src = 'https://webrtc.github.io/adapter/adapter-latest.js';
+            
+            adapterScript.onload = function() {
+                console.log("WebRTC adapter loaded successfully from CDN");
+            };
+            
+            adapterScript.onerror = function() {
+                console.error("Failed to load WebRTC adapter from CDN, check network connection");
+                // No local fallback for adapter as it's a standard library
+            };
+            
+            document.head.appendChild(adapterScript);
+        })();
+    </script>
+    
+    <!-- Dynamic script loading for Socket.io -->
+    <script>
+        (function() {
+            const hostname = window.location.hostname;
+            const currentPath = window.location.pathname;
+            let basePath = '';
+            
+            // Special handling for marvelcollin.my.id domain
+            if (hostname.includes('marvelcollin.my.id')) {
+                basePath = '/misvord/js';
+            }
+            // Default path for other environments
+            else if (currentPath.includes('/misvord/')) {
+                basePath = '/misvord/js';
+            } else if (currentPath.includes('/miscvord/')) {
+                basePath = '/miscvord/js';
+            } else {
+                basePath = '/js';
+            }
+            
+            // Use shared joinPaths function for consistent path handling
+            const socketioPath = joinPaths(basePath, 'socket.io.min.js');
+            logPathInfo('Socket.io', socketioPath);
+            
+            // Create script with load/error handling
+            const script = document.createElement('script');
+            script.src = socketioPath;
+            
+            // Add load event for debugging
+            script.onload = function() {
+                console.log("Socket.io loaded successfully from:", socketioPath);
+            };
+            
+            script.onerror = function() {
+                console.error("Failed to load Socket.io from local path, trying CDN fallback");
+                const fallbackScript = document.createElement('script');
+                fallbackScript.src = 'https://cdn.socket.io/4.6.0/socket.io.min.js';
+                
+                // Log fallback success/failure
+                fallbackScript.onload = function() {
+                    console.log("Socket.io loaded from CDN successfully");
+                };
+                fallbackScript.onerror = function() {
+                    console.error("Critical error: Failed to load Socket.io from CDN");
+                };
+                
+                document.head.appendChild(fallbackScript);
+            };
+            document.head.appendChild(script);
+        })();
+    </script>
     <script>
         tailwind.config = {
             theme: {
