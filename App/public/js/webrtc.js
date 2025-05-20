@@ -36,6 +36,36 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
+    // Add handler for retry connection button
+    const retryConnectionBtn = document.getElementById('retryConnection');
+    if (retryConnectionBtn) {
+        retryConnectionBtn.addEventListener('click', function() {
+            console.log('[WebRTC] Manual reconnection requested');
+            if (window.WebRTCMonitor && typeof window.WebRTCMonitor.retryConnection === 'function') {
+                window.WebRTCMonitor.retryConnection();
+            } else if (window.WebRTCSignaling && typeof window.WebRTCSignaling.reconnect === 'function') {
+                window.WebRTCSignaling.reconnect();
+            } else if (window.socket) {
+                try {
+                    console.log('[WebRTC] Attempting direct socket reconnection');
+                    window.socket.connect();
+                } catch (e) {
+                    console.error('[WebRTC] Error reconnecting socket:', e);
+                    // If direct reconnection fails, reload page as last resort
+                    if (confirm('Cannot reconnect to server. Would you like to reload the page?')) {
+                        window.location.reload();
+                    }
+                }
+            } else {
+                console.error('[WebRTC] No reconnection method available');
+                // Reload page as last resort
+                if (confirm('Cannot reconnect to server. Would you like to reload the page?')) {
+                    window.location.reload();
+                }
+            }
+        });
+    }
+    
     // Check if modules have been loaded from webrtc.php's script tags
     const modulesLoadedByPage = (
         window.WebRTCMedia && 
@@ -50,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
         modulesLoaded = true;
         console.log("[WebRTC] Using modules pre-loaded by page");
         initializeAfterModulesLoaded();
-    } else {
+            } else {
         // Load modules ourselves as a backup
         console.log("[WebRTC] Pre-loaded modules not detected, loading modules manually");
         loadModules().then(() => {
@@ -80,8 +110,11 @@ function initializeAfterModulesLoaded() {
             userName: 'User_' + Math.floor(Math.random() * 10000),
             autoJoin: true
         });
-    } else {
+        } else {
         console.error("[WebRTC] WebRTCController not available for initialization");
+        
+        // Direct fallback for socket connection if controller failed
+        ensureSocketConnection();
     }
 
     // Initialize early ICE candidates buffer
@@ -104,7 +137,7 @@ function initializeAfterModulesLoaded() {
             if (window.WebRTCVideoHandler && typeof window.WebRTCVideoHandler.enableMediaPlayback === 'function') {
                 window.WebRTCVideoHandler.enableMediaPlayback();
             }
-        } catch (e) {
+            } catch (e) {
             console.error("[WebRTC] Error unlocking audio context:", e);
         }
         
@@ -123,16 +156,237 @@ function initializeAfterModulesLoaded() {
     
     // If we've initialized but the permission UI is still visible,
     // update the status to prompt the user
-    setTimeout(() => {
+                    setTimeout(() => {
         const permissionRequest = document.getElementById('permissionRequest');
         if (permissionRequest && permissionRequest.style.display !== 'none') {
             const permissionStatus = document.getElementById('permissionStatus');
-            if (permissionStatus) {
+        if (permissionStatus) {
                 permissionStatus.innerHTML = 'Please click "Allow Camera & Mic" below to start.';
             }
         }
-    }, 3000);
+        
+        // Double-check the socket connection after a short delay
+        ensureSocketConnection();
+                }, 3000);
+            }
+
+/**
+ * Ensure the socket connection is established
+ * This serves as a fallback if WebRTCController fails
+ */
+function ensureSocketConnection() {
+    // Check if socket exists and is connected
+    if (window.socket && window.socket.connected) {
+        console.log('[WebRTC] Socket already connected:', window.socket.id);
+        return;
+    }
+
+    // If WebRTCSignaling exists, use it
+    if (window.WebRTCSignaling && typeof window.WebRTCSignaling.connectToSignalingServer === 'function') {
+        console.log('[WebRTC] Initializing socket via WebRTCSignaling');
+        
+        // Get user name and room
+        const roomId = 'global-video-chat';
+        const userName = 'User_' + Math.floor(Math.random() * 10000);
+        window.userName = userName; // Store globally
+        window.VIDEO_CHAT_ROOM = roomId; // Store globally
+        
+        // Connect to signaling server
+        window.WebRTCSignaling.connectToSignalingServer(
+            roomId, 
+            userName,
+            (users) => {
+                console.log('[WebRTC] Connected to signaling server successfully, users:', users);
+                // Force export socket to window
+                if (typeof window.WebRTCSignaling.exportSocket === 'function') {
+                    window.WebRTCSignaling.exportSocket();
+                }
+                updateDebugInfo();
+            },
+            (error) => {
+                console.error('[WebRTC] Error connecting to signaling server:', error);
+                
+                // Create direct connection as last resort
+                createDirectSocketConnection();
+            }
+        );
+        return;
+    }
+
+    // Last resort: create socket connection directly
+    createDirectSocketConnection();
 }
+
+// Call ensureSocketConnection immediately to start socket connection as soon as possible
+setTimeout(ensureSocketConnection, 100);
+
+/**
+ * Create a direct socket connection as last resort
+ */
+function createDirectSocketConnection() {
+    if (window.socket && window.socket.connected) return;
+    
+    try {
+        console.log('[WebRTC] Creating direct socket connection');
+        
+        // Get socket server configuration from meta tags
+        const socketServerMeta = document.querySelector('meta[name="socket-server"]');
+        const socketPathMeta = document.querySelector('meta[name="socket-path"]');
+        
+        let socketUrl;
+        let socketPath;
+        
+        // Check if we're on localhost
+        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        
+        // CRITICAL FIX: For localhost, force standard path and port 1002
+        if (isLocalhost) {
+            // This is the CRITICAL part - we MUST use port 1002 for socket connections on localhost
+            // Using window.location.hostname instead of hardcoded 'localhost' to handle 127.0.0.1 too
+            socketUrl = window.location.protocol + '//' + window.location.hostname + ':1002';
+            socketPath = '/socket.io'; // Always use standard socket.io path for localhost
+            
+            // Log this important configuration
+            console.warn('[WebRTC] IMPORTANT: Using localhost settings with port 1002 for socket server:', socketUrl, socketPath);
+            console.warn('[WebRTC] WebSocket connection will be to: ws://' + window.location.hostname + ':1002/socket.io/');
+        } else {
+            // For non-localhost, use meta tags or fallbacks
+            if (socketServerMeta && socketServerMeta.content) {
+                socketUrl = socketServerMeta.content;
+                // Fix Docker service names if present
+                if (socketUrl.includes('socket-server')) {
+                    socketUrl = socketUrl.replace('socket-server', 'localhost');
+                    console.log('[WebRTC] Fixed Docker service name in URL:', socketUrl);
+                }
+            } else {
+                socketUrl = window.location.protocol + '//' + window.location.host;
+            }
+            
+            if (socketPathMeta && socketPathMeta.content) {
+                socketPath = socketPathMeta.content;
+            } else {
+                const pathParts = window.location.pathname.split('/').filter(p => p.length > 0);
+                const subpath = pathParts.length > 0 ? pathParts[0] : 'misvord';
+                socketPath = `/${subpath}/socket/socket.io`;
+            }
+        }
+        
+        console.log(`[WebRTC] Direct socket connection - URL: ${socketUrl}, Path: ${socketPath}`);
+        
+        // Create socket
+        if (typeof io !== 'function') {
+            console.error('[WebRTC] Socket.io library not available');
+            return;
+        }
+
+        window.socket = io(socketUrl, {
+            path: socketPath,
+            transports: ['websocket', 'polling'],
+            reconnectionAttempts: 5,
+            reconnectionDelay: 1000,
+            timeout: 20000,
+            forceNew: true,
+            query: { t: new Date().getTime() }
+        });
+        
+        // Set up basic events
+        window.socket.on('connect', () => {
+            console.log('[WebRTC] Socket connected:', window.socket.id);
+            window.socketId = window.socket.id;
+            
+            // Join room
+            const roomId = 'global-video-chat';
+            const userName = 'User_' + Math.floor(Math.random() * 10000);
+            window.userName = userName;
+            window.VIDEO_CHAT_ROOM = roomId;
+            
+            window.socket.emit('join-video-room', { roomId, userName });
+            console.log('[WebRTC] Joined room:', roomId, 'as', userName);
+            
+            // Update UI
+            updateDebugInfo();
+        });
+        
+        window.socket.on('disconnect', (reason) => {
+            console.log('[WebRTC] Socket disconnected:', reason);
+            updateDebugInfo();
+        });
+        
+        window.socket.on('connect_error', (error) => {
+            console.error('[WebRTC] Socket connection error:', error);
+            updateDebugInfo();
+            
+            // If we're on localhost and get connection error, try with alternate path
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                if (socketPath === '/socket.io') {
+                    console.log('[WebRTC] Retrying with alternate path: /misvord/socket/socket.io');
+                    setTimeout(() => {
+                        window.socket.disconnect();
+                        window.socket = io(socketUrl, {
+                            path: '/misvord/socket/socket.io',
+                            transports: ['websocket', 'polling'],
+                            reconnectionAttempts: 5,
+                            reconnectionDelay: 1000,
+                            timeout: 20000,
+                            forceNew: true,
+                            query: { t: new Date().getTime() }
+                        });
+                    }, 1000);
+                }
+            }
+        });
+        
+        window.socket.on('error', (error) => {
+            console.error('[WebRTC] Socket error:', error);
+        });
+        
+    } catch (e) {
+        console.error('[WebRTC] Error creating direct socket connection:', e);
+    }
+}
+
+// Add debug info updater to the global scope
+function updateDebugInfo() {
+    // Find debug elements
+    const debugSocketStatus = document.getElementById('debugSocketStatus');
+    const debugSocketURL = document.getElementById('debugSocketURL');
+    const debugSocketTransport = document.getElementById('debugSocketTransport');
+    const debugSocketRoom = document.getElementById('debugSocketRoom');
+    const debugLocalUserName = document.getElementById('debugLocalUserName');
+    const debugSocketId = document.getElementById('debugSocketId');
+    
+    if (!debugSocketStatus) return;
+    
+    try {
+        // Socket connection info
+        if (window.socket) {
+            debugSocketStatus.textContent = window.socket.connected ? 'Connected' : 'Disconnected';
+            debugSocketStatus.className = window.socket.connected ? 'text-green-400' : 'text-red-400';
+            debugSocketURL.textContent = window.socket.io ? window.socket.io.uri : 'Unknown';
+            
+            if (window.socket.io && window.socket.io.engine && window.socket.io.engine.transport) {
+                debugSocketTransport.textContent = window.socket.io.engine.transport.name;
+            } else {
+                debugSocketTransport.textContent = 'Unknown';
+            }
+            
+            debugSocketRoom.textContent = window.VIDEO_CHAT_ROOM || 'Unknown';
+        } else {
+            debugSocketStatus.textContent = 'Not Initialized';
+            debugSocketStatus.className = 'text-yellow-400';
+        }
+        
+        // User info
+        debugLocalUserName.textContent = window.userName || 'Unknown';
+        debugSocketId.textContent = window.socketId || 'Unknown';
+    } catch (e) {
+        console.error('[WebRTC] Error updating debug info:', e);
+    }
+}
+
+// Expose to global scope
+window.webrtcUpdateDebugInfo = updateDebugInfo;
+window.webrtcEnsureSocketConnection = ensureSocketConnection;
 
 /**
  * Get the base URL for assets based on the current page
@@ -316,7 +570,7 @@ function setupRetryPermissionHandler() {
             if (window.WebRTCMedia && typeof window.WebRTCMedia.retryMediaAccess === 'function') {
                 console.log("[WebRTC] Using WebRTCMedia.retryMediaAccess");
                 window.WebRTCMedia.retryMediaAccess(true); // true for video
-            } else {
+                } else {
                 console.warn('[WebRTC] WebRTCMedia.retryMediaAccess not available, attempting direct getUserMedia.');
                 // Direct getUserMedia call as fallback
                 navigator.mediaDevices.getUserMedia({ audio: true, video: true })
@@ -339,7 +593,7 @@ function setupRetryPermissionHandler() {
                             // Store stream in WebRTCMedia if it exists
                             if (window.WebRTCMedia) {
                                 window.WebRTCMedia.localStream = stream;
-                            } else {
+        } else {
                                 // Global fallback
                                 window.localStream = stream;
                             }
@@ -351,9 +605,9 @@ function setupRetryPermissionHandler() {
                         if (permissionStatus) {
                             permissionStatus.className = 'p-3 bg-red-700 rounded mb-4 text-center text-white';
                             permissionStatus.innerHTML = '<i class="fas fa-times-circle mr-2"></i> Permission denied. Please allow camera access in browser settings.';
-                        }
-                    });
             }
+        });
+    }
         });
     } else {
         console.error("[WebRTC] Retry permission button not found in DOM");
@@ -391,14 +645,14 @@ function setupRetryPermissionHandler() {
                             permissionStatus.className = 'p-3 bg-green-700 rounded mb-4 text-center text-white';
                             permissionStatus.innerHTML = '<i class="fas fa-check-circle mr-2"></i> Audio access granted! Starting chat...';
                         }
-                        setTimeout(() => {
+    setTimeout(() => {
                             const permissionRequestModal = document.getElementById('permissionRequest');
                             if (permissionRequestModal) {
                                 permissionRequestModal.style.display = 'none';
                             }
                             if (window.WebRTCMedia) {
                                 window.WebRTCMedia.localStream = stream;
-                            } else {
+        } else {
                                 // Global fallback
                                 window.localStream = stream;
                             }

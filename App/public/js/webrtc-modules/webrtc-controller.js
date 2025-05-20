@@ -27,6 +27,108 @@ const WebRTCController = {
             ...config
         };
 
+        // Check if Socket.IO is loaded
+        if (typeof io !== 'function') {
+            console.error("[WebRTCController] Socket.IO library not available! Attempting to load from CDN...");
+            
+            // Add Socket.IO connection diagnostics button to the debug panel
+            this.addSocketDiagnosticsButton();
+            
+            const script = document.createElement('script');
+            script.src = 'https://cdn.socket.io/4.6.0/socket.io.min.js';
+            script.onload = () => {
+                console.log("[WebRTCController] Socket.IO loaded from CDN successfully, continuing initialization");
+                this.continueInitialization();
+            };
+            script.onerror = () => {
+                console.error("[WebRTCController] Failed to load Socket.IO from CDN!");
+                alert("Critical library failed to load. Please refresh the page or check your internet connection.");
+            };
+            document.head.appendChild(script);
+            return;
+        }
+        
+        this.continueInitialization();
+    },
+    
+    /**
+     * Add Socket.IO diagnostics button to the debug panel
+     */
+    addSocketDiagnosticsButton() {
+        // Check if there's a debug panel to add the button to
+        const debugPanel = document.getElementById('webrtcDebugPanel');
+        if (!debugPanel) return;
+        
+        // Create a button for diagnostics
+        const diagButton = document.createElement('button');
+        diagButton.textContent = 'Test Socket Connection';
+        diagButton.className = 'bg-blue-500 text-white px-2 py-1 rounded text-sm';
+        diagButton.style.margin = '5px';
+        
+        diagButton.onclick = () => {
+            this.testSocketConnection();
+        };
+        
+        // Add to debug panel
+        debugPanel.appendChild(diagButton);
+    },
+    
+    /**
+     * Test Socket.IO connection and show results
+     */
+    testSocketConnection() {
+        // Show testing message
+        window.WebRTCUI.addLogEntry('Testing Socket.IO connection...', 'system');
+        
+        // Get socket server URL from meta tag
+        const socketServerMeta = document.querySelector('meta[name="socket-server"]');
+        let socketUrl = socketServerMeta ? socketServerMeta.content : null;
+        
+        // Fix Docker service names 
+        if (socketUrl && socketUrl.includes('socket-server')) {
+            const fixedUrl = socketUrl.replace('socket-server', 'localhost');
+            window.WebRTCUI.addLogEntry(`⚠️ Found Docker service name in URL. Original: ${socketUrl}, Fixed: ${fixedUrl}`, 'warning');
+            socketUrl = fixedUrl;
+        }
+        
+        // Get socket path from meta tag
+        const socketPathMeta = document.querySelector('meta[name="socket-path"]');
+        let socketPath = socketPathMeta ? socketPathMeta.content : '/socket.io';
+        
+        window.WebRTCUI.addLogEntry(`Socket.IO settings - URL: ${socketUrl}, Path: ${socketPath}`, 'info');
+        
+        // Try to establish a test connection
+        try {
+            const testSocket = io(socketUrl, {
+                path: socketPath,
+                transports: ['websocket', 'polling'],
+                timeout: 5000,
+                autoConnect: true
+            });
+            
+            testSocket.on('connect', () => {
+                window.WebRTCUI.addLogEntry(`✅ Socket.IO connected successfully (ID: ${testSocket.id})`, 'success');
+                testSocket.disconnect();
+            });
+            
+            testSocket.on('connect_error', (error) => {
+                window.WebRTCUI.addLogEntry(`❌ Socket.IO connection error: ${error.message}`, 'error');
+                testSocket.disconnect();
+            });
+            
+            testSocket.on('disconnect', () => {
+                window.WebRTCUI.addLogEntry('Socket.IO test connection closed', 'info');
+            });
+        } catch (error) {
+            window.WebRTCUI.addLogEntry(`❌ Socket.IO test failed: ${error.message}`, 'error');
+        }
+    },
+
+    /**
+     * Continue initialization after Socket.IO check
+     * @private
+     */
+    continueInitialization() {
         // Store config values in state
         this.state.roomId = this.config.roomId;
         this.state.userName = this.config.userName;

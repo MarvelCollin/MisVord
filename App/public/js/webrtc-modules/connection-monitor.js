@@ -37,16 +37,55 @@ if (!window.WebRTCMonitor.hasOwnProperty('statsArea')) {
     window.WebRTCMonitor.statsArea = null;
 }
 
+// Configuration
+const CONNECTION_MONITOR_CONFIG = {
+    updateInterval: 2000,          // How often to check connection status (ms)
+    maxSocketReconnectAttempts: 5, // Maximum attempts to reconnect socket
+    reconnectDelay: 3000,          // Delay between reconnect attempts (ms)
+    debug: true                     // Enable detailed debugging
+};
+
+// State
+let monitoringEnabled = false;
+let socketReconnectAttempts = 0;
+let lastSocketStatus = null;
+let lastPeerStatus = null;
+let connectionMonitorInterval = null;
+
+// Store module configuration
+const config = {
+    socketCheckInterval: 5000,    // Check socket every 5 seconds
+    localhostSettings: {
+        useDefaultPath: true,     // Use standard /socket.io path for localhost
+        port: 1002                // Use port 1002 for localhost
+    }
+};
+
+// Module state
+const state = {
+    isMonitoring: false,
+    intervalId: null,
+    lastSocketId: null
+};
+
 // Initialize the monitor
-function initConnectionMonitor() {
-    if (!window.peers) {
-        console.warn("[MONITOR] No peers object found in global scope. WebRTC Monitor may not function properly.");
-        return false;
+function initConnectionMonitor(config = {}) {
+    // Merge configs
+    Object.assign(CONNECTION_MONITOR_CONFIG, config);
+    
+    // Set up monitor interval
+    if (!connectionMonitorInterval) {
+        connectionMonitorInterval = setInterval(checkConnectionStatus, CONNECTION_MONITOR_CONFIG.updateInterval);
+        monitoringEnabled = true;
+        
+        logDebug('Connection monitor initialized');
     }
     
-    createDebugUI();
-    startMonitoring();
-    console.log("[MONITOR] WebRTC connection monitoring initialized");
+    // Add socket connection event listeners if socket exists
+    if (window.socket) {
+        attachSocketListeners(window.socket);
+    }
+    
     return true;
 }
 
@@ -711,4 +750,560 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('[MONITOR] WebRTC Monitor ready (Press Ctrl+M to toggle)');
         }
     }, 2000);
-}); 
+});
+
+/**
+ * Check the status of all connections and update UI
+ */
+function checkConnectionStatus() {
+    if (!monitoringEnabled) return;
+    
+    // Check socket status
+    const socketStatus = checkSocketStatus();
+    
+    // Check peer connections status
+    const peerStatus = checkPeerConnectionsStatus();
+    
+    // Update UI if status changed
+    if (socketStatus !== lastSocketStatus || peerStatus !== lastPeerStatus) {
+        updateConnectionStatusUI(socketStatus, peerStatus);
+        
+        lastSocketStatus = socketStatus;
+        lastPeerStatus = peerStatus;
+    }
+}
+
+/**
+ * Check socket connection status
+ * @returns {string} - 'connected', 'connecting', or 'disconnected'
+ */
+function checkSocketStatus() {
+    const socket = window.socket;
+    
+    if (!socket) {
+        logError('Socket not initialized');
+        return 'disconnected';
+    }
+    
+    // Log detailed socket info for debugging
+    if (CONNECTION_MONITOR_CONFIG.debug) {
+        logDebug('Socket status:', {
+            connected: socket.connected,
+            id: socket.id,
+            disconnected: socket.disconnected,
+            engine: socket.io ? {
+                transport: socket.io.engine ? socket.io.engine.transport : 'unknown',
+                readyState: socket.io.engine ? socket.io.engine.readyState : 'unknown',
+                hostname: socket.io.uri || 'unknown'
+            } : 'unknown'
+        });
+    }
+    
+    if (socket.connected) {
+        socketReconnectAttempts = 0;
+        return 'connected';
+    } else if (socket.connecting) {
+        return 'connecting';
+    } else {
+        // Check if we should attempt to reconnect
+        if (socketReconnectAttempts < CONNECTION_MONITOR_CONFIG.maxSocketReconnectAttempts) {
+            socketReconnectAttempts++;
+            logWarning(`Socket disconnected. Attempting to reconnect (${socketReconnectAttempts}/${CONNECTION_MONITOR_CONFIG.maxSocketReconnectAttempts})`);
+            
+            // Try to reconnect if socket exists but is disconnected
+            if (socket && !socket.connected && !socket.connecting) {
+                try {
+                    setTimeout(() => {
+                        if (socket && !socket.connected && !socket.connecting) {
+                            logInfo('Attempting socket reconnect...');
+                            socket.connect();
+                        }
+                    }, CONNECTION_MONITOR_CONFIG.reconnectDelay);
+                } catch (e) {
+                    logError('Socket reconnect error:', e);
+                }
+            }
+            
+            return 'connecting';
+        }
+        
+        return 'disconnected';
+    }
+}
+
+/**
+ * Check all peer connections status
+ * @returns {string} - 'connected', 'connecting', or 'disconnected'
+ */
+function checkPeerConnectionsStatus() {
+    // Get all peer connections
+    let peerConnections = [];
+    
+    if (window.WebRTCPeerConnection && typeof window.WebRTCPeerConnection.getAllPeers === 'function') {
+        peerConnections = window.WebRTCPeerConnection.getAllPeers();
+    } else if (window.peers) {
+        peerConnections = Object.values(window.peers);
+    }
+    
+    if (peerConnections.length === 0) {
+        // No peers yet, consider this "connecting" state
+        return 'connecting';
+    }
+    
+    // Count connection states
+    let connectedCount = 0;
+    let connectingCount = 0;
+    let disconnectedCount = 0;
+    
+    // Log detailed peer info for debugging
+    if (CONNECTION_MONITOR_CONFIG.debug) {
+        const peerInfo = peerConnections.map(peer => {
+            const pc = peer.pc || peer;
+            return {
+                id: peer.id || 'unknown',
+                connectionState: pc.connectionState || 'unknown',
+                iceConnectionState: pc.iceConnectionState || 'unknown',
+                iceGatheringState: pc.iceGatheringState || 'unknown'
+            };
+        });
+        logDebug('Peer connections:', peerInfo);
+    }
+    
+    peerConnections.forEach(peer => {
+        const pc = peer.pc || peer;
+        
+        if (!pc) return;
+        
+        // Check connection state
+        if (pc.connectionState === 'connected' || pc.iceConnectionState === 'connected') {
+            connectedCount++;
+        } else if (
+            pc.connectionState === 'connecting' || 
+            pc.connectionState === 'new' ||
+            pc.iceConnectionState === 'checking' || 
+            pc.iceConnectionState === 'new'
+        ) {
+            connectingCount++;
+        } else {
+            disconnectedCount++;
+        }
+    });
+    
+    // Determine overall status
+    if (connectedCount > 0) {
+        return 'connected';
+    } else if (connectingCount > 0) {
+        return 'connecting';
+    } else {
+        return 'disconnected';
+    }
+}
+
+/**
+ * Update the connection status UI
+ * @param {string} socketStatus - Socket connection status
+ * @param {string} peerStatus - Peer connections status
+ */
+function updateConnectionStatusUI(socketStatus, peerStatus) {
+    const statusIndicator = document.getElementById('statusIndicator');
+    const statusText = document.getElementById('statusText');
+    const retryConnection = document.getElementById('retryConnection');
+    
+    if (!statusIndicator || !statusText) return;
+    
+    // Remove old classes
+    statusIndicator.classList.remove('connected', 'connecting', 'disconnected');
+    
+    // Determine overall status (socket is more important)
+    let overallStatus = 'disconnected';
+    let statusMessage = 'Disconnected';
+    
+    if (socketStatus === 'connected') {
+        if (peerStatus === 'connected') {
+            overallStatus = 'connected';
+            statusMessage = 'Connected';
+        } else if (peerStatus === 'connecting') {
+            overallStatus = 'connecting';
+            statusMessage = 'Establishing peer connections...';
+        } else {
+            overallStatus = 'connecting';
+            statusMessage = 'Waiting for peers...';
+        }
+    } else if (socketStatus === 'connecting') {
+        overallStatus = 'connecting';
+        statusMessage = 'Connecting to server...';
+    } else {
+        overallStatus = 'disconnected';
+        statusMessage = 'Disconnected from server';
+    }
+    
+    // Update UI
+    statusIndicator.classList.add(overallStatus);
+    statusText.textContent = statusMessage;
+    
+    // Show/hide retry button
+    if (retryConnection) {
+        retryConnection.style.display = (overallStatus === 'disconnected') ? 'block' : 'none';
+    }
+    
+    // Log status change
+    logInfo(`Connection status: ${overallStatus} (Socket: ${socketStatus}, Peers: ${peerStatus})`);
+    
+    // Update document title to show connection status (optional)
+    document.title = overallStatus === 'disconnected' ? 
+        '⚠️ Disconnected - MiscVord' : 
+        'MiscVord - Global Video Chat';
+}
+
+/**
+ * Attach socket event listeners for monitoring connection
+ * @param {SocketIO.Socket} socket - The socket instance to monitor
+ */
+function attachSocketListeners(socket) {
+    if (!socket) return;
+    
+    // Remove any existing listeners
+    socket.off('connect');
+    socket.off('disconnect');
+    socket.off('error');
+    socket.off('connect_error');
+    socket.off('reconnect');
+    socket.off('reconnect_attempt');
+    socket.off('reconnect_error');
+    socket.off('reconnect_failed');
+    
+    // Add listeners for connection events
+    socket.on('connect', () => {
+        logInfo('Socket connected:', socket.id);
+        updateConnectionStatusUI('connected', lastPeerStatus || 'connecting');
+        socketReconnectAttempts = 0;
+    });
+    
+    socket.on('disconnect', (reason) => {
+        logWarning('Socket disconnected. Reason:', reason);
+        updateConnectionStatusUI('disconnected', lastPeerStatus || 'disconnected');
+    });
+    
+    socket.on('error', (error) => {
+        logError('Socket error:', error);
+    });
+    
+    socket.on('connect_error', (error) => {
+        logError('Socket connect error:', error);
+        updateConnectionStatusUI('disconnected', lastPeerStatus || 'disconnected');
+    });
+    
+    // Reconnection events
+    socket.on('reconnect', (attemptNumber) => {
+        logInfo('Socket reconnected after', attemptNumber, 'attempts');
+        updateConnectionStatusUI('connected', lastPeerStatus || 'connecting');
+    });
+    
+    socket.on('reconnect_attempt', (attemptNumber) => {
+        logInfo('Socket reconnect attempt:', attemptNumber);
+        updateConnectionStatusUI('connecting', lastPeerStatus || 'disconnected');
+    });
+    
+    socket.on('reconnect_error', (error) => {
+        logError('Socket reconnect error:', error);
+    });
+    
+    socket.on('reconnect_failed', () => {
+        logError('Socket reconnect failed after max attempts');
+        updateConnectionStatusUI('disconnected', lastPeerStatus || 'disconnected');
+    });
+    
+    logInfo('Socket listeners attached');
+}
+
+/**
+ * Log a message to the console and UI if available
+ */
+function logDebug(...args) {
+    if (!CONNECTION_MONITOR_CONFIG.debug) return;
+    console.debug('[ConnectionMonitor]', ...args);
+    
+    // Log to UI if available
+    if (window.WebRTCUI && typeof window.WebRTCUI.addLogEntry === 'function') {
+        window.WebRTCUI.addLogEntry('[ConnectionMonitor] ' + args.join(' '), 'debug');
+    }
+}
+
+function logInfo(...args) {
+    console.info('[ConnectionMonitor]', ...args);
+    
+    // Log to UI if available
+    if (window.WebRTCUI && typeof window.WebRTCUI.addLogEntry === 'function') {
+        window.WebRTCUI.addLogEntry('[ConnectionMonitor] ' + args.join(' '), 'info');
+    }
+}
+
+function logWarning(...args) {
+    console.warn('[ConnectionMonitor]', ...args);
+    
+    // Log to UI if available
+    if (window.WebRTCUI && typeof window.WebRTCUI.addLogEntry === 'function') {
+        window.WebRTCUI.addLogEntry('[ConnectionMonitor] ' + args.join(' '), 'warn');
+    }
+}
+
+function logError(...args) {
+    console.error('[ConnectionMonitor]', ...args);
+    
+    // Log to UI if available
+    if (window.WebRTCUI && typeof window.WebRTCUI.addLogEntry === 'function') {
+        window.WebRTCUI.addLogEntry('[ConnectionMonitor] ' + args.join(' '), 'error');
+    }
+}
+
+/**
+ * Try to reconnect to the signaling server
+ */
+function retryConnection() {
+    logInfo('Manual reconnection attempt initiated');
+    
+    if (window.socket) {
+        try {
+            window.socket.connect();
+            logInfo('Socket reconnect requested');
+        } catch (e) {
+            logError('Socket reconnect error:', e);
+        }
+    } else if (window.WebRTCSignaling && typeof window.WebRTCSignaling.tryDirectConnection === 'function') {
+        window.WebRTCSignaling.tryDirectConnection();
+        logInfo('Direct connection attempt initiated via WebRTCSignaling');
+    } else {
+        logError('No socket or WebRTCSignaling available for reconnection');
+        
+        // Reload page as last resort if user confirms
+        if (confirm('Cannot reconnect to server. Would you like to reload the page to try again?')) {
+            window.location.reload();
+        }
+    }
+}
+
+/**
+ * Stop monitoring connections
+ */
+function stopConnectionMonitor() {
+    if (connectionMonitorInterval) {
+        clearInterval(connectionMonitorInterval);
+        connectionMonitorInterval = null;
+    }
+    
+    monitoringEnabled = false;
+    logInfo('Connection monitor stopped');
+}
+
+// Export functions
+window.WebRTCMonitor = {
+    initConnectionMonitor,
+    checkConnectionStatus,
+    retryConnection,
+    stopConnectionMonitor
+};
+
+/**
+ * Initialize the connection monitor
+ */
+function init() {
+    // Avoid multiple initializations
+    if (state.isMonitoring) return;
+    
+    // Start socket monitoring interval
+    state.intervalId = setInterval(checkSocketConnection, config.socketCheckInterval);
+    state.isMonitoring = true;
+    
+    // Add listeners for connection state changes
+    window.addEventListener('online', handleNetworkChange);
+    window.addEventListener('offline', handleNetworkChange);
+    
+    // Special handler for localhost to ensure proper connections
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        applyLocalhostFixes();
+    }
+    
+    console.log('[WebRTC] Connection monitor initialized');
+}
+
+/**
+ * Apply special settings for localhost development
+ */
+function applyLocalhostFixes() {
+    console.log('[WebRTC] Applying localhost specific connection settings');
+    window.WebRTCUI.addLogEntry('Applying localhost connection fixes', 'system');
+    
+    // Force socket settings for localhost
+    const socketPathMeta = document.querySelector('meta[name="socket-path"]');
+    if (socketPathMeta) {
+        if (config.localhostSettings.useDefaultPath) {
+            // Override any existing socket path with the standard /socket.io path
+            socketPathMeta.content = '/socket.io';
+            console.log('[WebRTC] Forcing standard socket.io path for localhost:', socketPathMeta.content);
+        }
+    }
+    
+    // Force socket URL to include the correct port
+    const socketServerMeta = document.querySelector('meta[name="socket-server"]');
+    if (socketServerMeta) {
+        // Ensure URL has the correct port
+        let url = socketServerMeta.content;
+        if (!url.includes(':' + config.localhostSettings.port)) {
+            url = window.location.protocol + '//' + window.location.hostname + ':' + config.localhostSettings.port;
+            socketServerMeta.content = url;
+            console.log('[WebRTC] Forcing localhost socket URL with correct port:', url);
+        }
+    }
+    
+    // Extra debug UI elements for localhost
+    setTimeout(() => {
+        const debugPanel = document.getElementById('webrtcDebugPanel');
+        if (debugPanel) {
+            const localhostNotice = document.createElement('div');
+            localhostNotice.className = 'bg-indigo-900 text-white text-xs p-2 mb-2 rounded';
+            localhostNotice.innerHTML = '<b>Localhost Environment</b><br>Socket path: <span class="text-yellow-300">/socket.io</span><br>Socket port: <span class="text-yellow-300">1002</span>';
+            
+            // Insert at the beginning of the debug panel
+            if (debugPanel.firstChild) {
+                debugPanel.insertBefore(localhostNotice, debugPanel.firstChild);
+            } else {
+                debugPanel.appendChild(localhostNotice);
+            }
+        }
+    }, 1000);
+    
+    // Ensure socket connection is established immediately
+    ensureSocketConnection();
+}
+
+/**
+ * Check if the socket connection is established
+ */
+function checkSocketConnection() {
+    // Check WebRTCSignaling module
+    if (!window.WebRTCSignaling) {
+        console.warn('[WebRTC] WebRTCSignaling module not loaded.');
+        return;
+    }
+    
+    // Check if socket exists and is connected
+    const isConnected = window.WebRTCSignaling.isConnected();
+    const socketId = window.WebRTCSignaling.getSocketId();
+    
+    if (isConnected && socketId) {
+        if (state.lastSocketId !== socketId) {
+            // Socket reconnected with a different ID
+            console.log('[WebRTC] Socket reconnected with new ID:', socketId);
+            window.WebRTCUI.addLogEntry(`Socket reconnected: ${socketId}`, 'socket');
+            
+            // Update lastSocketId
+            state.lastSocketId = socketId;
+        }
+    } else {
+        // Socket disconnected or not initialized
+        if (state.lastSocketId !== null) {
+            // Was connected before, now disconnected
+            console.warn('[WebRTC] Socket disconnected');
+            window.WebRTCUI.addLogEntry('Socket disconnected', 'socket');
+            
+            // Reset lastSocketId
+            state.lastSocketId = null;
+            
+            // Try to reconnect
+            attemptReconnection();
+        } else {
+            // Was never connected or still trying to connect
+            ensureSocketConnection();
+        }
+    }
+}
+
+/**
+ * Handle network changes (online/offline)
+ */
+function handleNetworkChange(event) {
+    if (event.type === 'online') {
+        console.log('[WebRTC] Network online, attempting reconnection');
+        window.WebRTCUI.addLogEntry('Network connection restored', 'socket');
+        attemptReconnection();
+    } else {
+        console.log('[WebRTC] Network offline');
+        window.WebRTCUI.addLogEntry('Network connection lost', 'socket');
+        window.WebRTCUI.updateConnectionStatus('disconnected', 'Network connection lost');
+    }
+}
+
+/**
+ * Attempt to reconnect the socket
+ */
+function attemptReconnection() {
+    if (!window.WebRTCSignaling || !window.WebRTCSignaling.reconnect) {
+        console.warn('[WebRTC] WebRTCSignaling.reconnect not available');
+        return;
+    }
+    
+    console.log('[WebRTC] Attempting reconnection');
+    window.WebRTCUI.updateConnectionStatus('connecting', 'Reconnecting...');
+    
+    // Get room ID and username from global storage if available
+    const roomId = window.VIDEO_CHAT_ROOM || 'global-video-chat';
+    const userName = window.userName || 'User_' + Math.floor(Math.random() * 10000);
+    
+    // Call reconnect with current room and username
+    window.WebRTCSignaling.reconnect(roomId, userName);
+}
+
+/**
+ * Ensure socket connection is established
+ * This can be called from other modules or UI elements
+ */
+function ensureSocketConnection() {
+    if (window.WebRTCSignaling && window.WebRTCSignaling.isConnected()) {
+        console.log('[WebRTC] Socket already connected');
+        return;
+    }
+    
+    // If webrtc.js has a global connection function, use it
+    if (typeof window.webrtcEnsureSocketConnection === 'function') {
+        console.log('[WebRTC] Using global ensureSocketConnection function');
+        window.webrtcEnsureSocketConnection();
+        return;
+    }
+    
+    // Otherwise try using WebRTCSignaling directly
+    if (window.WebRTCSignaling && window.WebRTCSignaling.reconnect) {
+        console.log('[WebRTC] Using WebRTCSignaling.reconnect');
+        // Get room ID and username from global storage if available
+        const roomId = window.VIDEO_CHAT_ROOM || 'global-video-chat';
+        const userName = window.userName || 'User_' + Math.floor(Math.random() * 10000);
+        
+        window.WebRTCSignaling.reconnect(roomId, userName);
+    } else {
+        console.warn('[WebRTC] No method available to ensure socket connection');
+    }
+}
+
+// Export functions to the namespace
+window.WebRTCMonitor = {
+    ...window.WebRTCMonitor,
+    init,
+    checkSocketConnection,
+    retryConnection,
+    ensureSocketConnection
+};
+
+// Auto-initialize if all required modules are loaded
+if (window.WebRTCUI && window.WebRTCSignaling) {
+    init();
+} else {
+    // Wait for modules to be loaded
+    console.log('[WebRTC] Connection Monitor waiting for required modules');
+    
+    // Check every second for required modules
+    const checkInterval = setInterval(() => {
+        if (window.WebRTCUI && window.WebRTCSignaling) {
+            clearInterval(checkInterval);
+            init();
+        }
+    }, 1000);
+} 

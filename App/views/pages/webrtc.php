@@ -313,7 +313,7 @@ $additional_head = '
                  justify-content: center; align-items: center; margin-right: 15px;">
                 <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
                     <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
+            </svg>
             </div>
             <div style="background: #4f46e5; width: 60px; height: 60px; border-radius: 50%; display: flex; 
                  justify-content: center; align-items: center;">
@@ -346,8 +346,216 @@ $additional_head = '
     </div>
 </div>
 
+<!-- Preload socket.io script to ensure it's available early -->
+<script>
+// Dynamic socket.io loader with fallback to CDN
+(function() {
+    function loadSocketIO() {
+        // First try to load from local path
+        const script = document.createElement('script');
+        script.src = '/js/socket.io.min.js';
+        script.onload = function() {
+            console.log('Socket.IO loaded successfully from local path');
+            initSocketDiagnostics();
+        };
+        script.onerror = function() {
+            console.error('Failed to load Socket.IO from local path, trying CDN...');
+            
+            // Fallback to CDN
+            const cdnScript = document.createElement('script');
+            cdnScript.src = 'https://cdn.socket.io/4.6.0/socket.io.min.js';
+            cdnScript.onload = function() {
+                console.log('Socket.IO loaded successfully from CDN');
+                initSocketDiagnostics();
+            };
+            cdnScript.onerror = function() {
+                console.error('Failed to load Socket.IO even from CDN!');
+                alert('Failed to load required libraries. Please check your internet connection and try again.');
+            };
+            document.head.appendChild(cdnScript);
+        };
+        document.head.appendChild(script);
+    }
+    
+    function initSocketDiagnostics() {
+        // Load socket diagnostics after Socket.IO is loaded
+        const diagnosticsScript = document.createElement('script');
+        diagnosticsScript.src = '/js/socket-diagnostics.js';
+        diagnosticsScript.onload = function() {
+            console.log('Socket diagnostics utility loaded');
+            if (window.SocketDiagnostics) {
+                window.SocketDiagnostics.init({
+                    autoApplyFixes: true,
+                    addDebugButton: true,
+                    fixDockerServiceNames: true
+                });
+            }
+        };
+        document.head.appendChild(diagnosticsScript);
+    }
+    
+    // Start loading Socket.IO
+    loadSocketIO();
+})();
+</script>
+
 <!-- Direct camera access script - completely independent from WebRTC modules -->
 <script>
+// Create a dedicated diagnostics logger
+const MediaDiagnostics = {
+    logs: [],
+    maxLogs: 50,
+    
+    log: function(level, ...args) {
+        const timestamp = new Date().toISOString().substring(11, 23); // HH:MM:SS.mmm
+        const message = args.map(arg => {
+            if (typeof arg === 'object') {
+                try {
+                    return JSON.stringify(arg);
+                } catch (e) {
+                    return String(arg);
+                }
+            }
+            return String(arg);
+        }).join(' ');
+        
+        const entry = {
+            timestamp,
+            level,
+            message
+        };
+        
+        // Add to log array (with size limit)
+        this.logs.unshift(entry);
+        if (this.logs.length > this.maxLogs) {
+            this.logs.pop();
+        }
+        
+        // Output to console with proper formatting
+        const consoleMethod = level === 'error' ? console.error : 
+                            level === 'warn' ? console.warn : 
+                            level === 'info' ? console.info : console.log;
+        
+        consoleMethod(`[MediaDiagnostics][${level}][${timestamp}]`, ...args);
+        
+        // Update UI if diagnostic panel exists
+        this.updateUI();
+        
+        return entry;
+    },
+    
+    error: function(...args) {
+        return this.log('error', ...args);
+    },
+    
+    warn: function(...args) {
+        return this.log('warn', ...args);
+    },
+    
+    info: function(...args) {
+        return this.log('info', ...args);
+    },
+    
+    debug: function(...args) {
+        return this.log('debug', ...args);
+    },
+    
+    updateUI: function() {
+        // Add logs to debug panel if exists
+        const logContainer = document.getElementById('mediaDiagnosticsLog');
+        if (logContainer) {
+            let html = '';
+            this.logs.forEach(entry => {
+                const colorClass = entry.level === 'error' ? 'text-red-500' :
+                                  entry.level === 'warn' ? 'text-yellow-500' :
+                                  entry.level === 'info' ? 'text-blue-400' : 'text-gray-400';
+                
+                html += `<div class="${colorClass} text-xs mb-1">
+                           <span class="text-gray-500">[${entry.timestamp}]</span> 
+                           <span class="font-bold">[${entry.level}]</span> 
+                           ${entry.message}
+                         </div>`;
+            });
+            logContainer.innerHTML = html;
+        }
+    },
+    
+    createDiagnosticPanel: function() {
+        // Create a diagnostics panel if not already exists
+        if (!document.getElementById('mediaDiagnosticsPanel')) {
+            const panel = document.createElement('div');
+            panel.id = 'mediaDiagnosticsPanel';
+            panel.style.cssText = 'position:fixed; bottom:10px; left:10px; width:400px; max-height:300px; background:#1a1a1a; border:1px solid #444; border-radius:4px; z-index:9999; overflow:hidden; display:none;';
+            
+            panel.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:5px 10px; background:#333; border-bottom:1px solid #444;">
+                    <h3 style="margin:0; font-size:14px; color:#fff;">Media Diagnostics</h3>
+                    <div>
+                        <button id="clearMediaLogs" style="padding:2px 6px; background:#555; color:#fff; border:none; border-radius:2px; margin-right:5px; font-size:12px;">Clear</button>
+                        <button id="closeMediaDiagnostics" style="padding:2px 6px; background:#555; color:#fff; border:none; border-radius:2px; font-size:12px;">Close</button>
+                    </div>
+                </div>
+                <div id="mediaDiagnosticsLog" style="padding:10px; overflow-y:auto; max-height:250px; font-family:monospace;"></div>
+            `;
+            
+            document.body.appendChild(panel);
+            
+            // Add event listeners
+            document.getElementById('closeMediaDiagnostics').addEventListener('click', () => {
+                panel.style.display = 'none';
+            });
+            
+            document.getElementById('clearMediaLogs').addEventListener('click', () => {
+                this.logs = [];
+                this.updateUI();
+            });
+            
+            // Add keyboard shortcut to toggle panel
+            document.addEventListener('keydown', (e) => {
+                if (e.ctrlKey && e.key === 'm') {
+                    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+                    if (panel.style.display === 'block') {
+                        this.updateUI();
+                    }
+                }
+            });
+        }
+    },
+    
+    showPanel: function() {
+        const panel = document.getElementById('mediaDiagnosticsPanel');
+        if (panel) {
+            panel.style.display = 'block';
+            this.updateUI();
+        } else {
+            this.createDiagnosticPanel();
+            this.showPanel();
+        }
+    }
+};
+
+// Create the diagnostics panel
+MediaDiagnostics.createDiagnosticPanel();
+MediaDiagnostics.info('Media diagnostics system initialized');
+
+// Add button to toggle diagnostics panel to debug panel
+document.addEventListener('DOMContentLoaded', function() {
+    // Find the refresh button in the debug panel and add media diagnostics button next to it
+    setTimeout(() => {
+        const refreshBtn = document.getElementById('refreshDebugInfo');
+        if (refreshBtn && refreshBtn.parentNode) {
+            const mediaDiagBtn = document.createElement('button');
+            mediaDiagBtn.id = 'showMediaDiagnostics';
+            mediaDiagBtn.className = 'w-full bg-indigo-600 text-white text-xs py-1 px-2 rounded hover:bg-indigo-700 mt-2';
+            mediaDiagBtn.innerText = 'Show Media Diagnostics';
+            mediaDiagBtn.addEventListener('click', () => {
+                MediaDiagnostics.showPanel();
+            });
+            refreshBtn.parentNode.appendChild(mediaDiagBtn);
+        }
+    }, 1000);
+});
+
 // Create an in-memory audio element to help unblock autoplay restrictions
 const unblockAudio = document.createElement('audio');
 unblockAudio.src = 'data:audio/mpeg;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsuY29tIC8gTGFTb25vdGhlcXVlLm9yZwBURU5DAAAAHQAAA1N3aXRjaCBQbHVzIMKpIE5DSCBTb2Z0d2FyZQBUSVQyAAAABgAAAzIyMzUAVFNTRQAAAA8AAANMYXZmNTcuODMuMTAwAAAAAAAAAAAAAAD/80DEAAAAA0gAAAAATEFNRTMuMTAwVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQsRbAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQMSkAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV';
@@ -719,6 +927,37 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     </div>
     
+    <div class="mb-4">
+        <h4 class="text-sm font-semibold mb-2 text-blue-400">Network Info</h4>
+        <div id="debugNetworkInfo" class="bg-gray-900 rounded p-2 text-xs">
+            <div>Online: <span id="debugNetworkOnline">Checking...</span></div>
+            <div>Connection: <span id="debugNetworkType">Checking...</span></div>
+            <div>Protocol: <span id="debugNetworkProtocol">Checking...</span></div>
+            <div>WebRTC Support: <span id="debugWebRTCSupport">Checking...</span></div>
+            <div>App Port: <span class="text-teal-400">1001</span> | Socket Port: <span class="text-teal-400">1002</span></div>
+            <div>Socket Path: <span id="debugSocketPath">Checking...</span></div>
+        </div>
+    </div>
+    
+    <div class="mb-4">
+        <h4 class="text-sm font-semibold mb-2 text-blue-400">Troubleshooting</h4>
+        <div id="debugTroubleshooting" class="bg-gray-900 rounded p-2 text-xs">
+            <div class="text-yellow-400 mb-1">If socket connection fails:</div>
+            <ol class="list-decimal list-inside text-gray-400">
+                <li>Check if your network blocks WebSockets</li>
+                <li>Try refreshing the page</li>
+                <li>Clear browser cache and cookies</li>
+                <li>Click "Force Socket Connection" button</li>
+                <li>Try a different browser or network</li>
+            </ol>
+            <div class="mt-2">
+                <button id="runSocketDiagnostics" class="w-full bg-green-600 text-white text-xs py-1 px-2 rounded hover:bg-green-700">
+                    Run Socket Diagnostics
+                </button>
+            </div>
+        </div>
+    </div>
+    
     <div>
         <button id="refreshDebugInfo" class="w-full bg-blue-600 text-white text-xs py-1 px-2 rounded hover:bg-blue-700">
             Refresh Info
@@ -787,6 +1026,67 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 </div>
 
+<!-- Socket.io path checking utility -->
+<script>
+// Utility to help diagnose socket.io loading issues
+window.checkSocketIoPath = function() {
+    console.group('Socket.IO Path Diagnostics');
+    
+    // Check if Socket.IO is loaded
+    console.log('Socket.IO available:', typeof io === 'function' ? 'Yes' : 'No');
+    
+    // Check if we're on localhost
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    
+    // Get potential paths
+    const paths = [
+        '/js/socket.io.min.js', // Local script in js folder on port 1001
+        '/socket.io/socket.io.js' // Standard Socket.IO path on current port (1001)
+    ];
+    
+    // Add direct socket server path for localhost
+    if (isLocalhost) {
+        // This is on port 1002 - direct access to socket server
+        paths.push('http://localhost:1002/socket.io/socket.io.js');
+    }
+    
+    // Check meta tag configuration
+    const socketServerMeta = document.querySelector('meta[name="socket-server"]');
+    const socketPathMeta = document.querySelector('meta[name="socket-path"]');
+    
+    console.log('Meta tag - socket-server:', socketServerMeta ? socketServerMeta.content : 'Not found');
+    console.log('Meta tag - socket-path:', socketPathMeta ? socketPathMeta.content : 'Not found');
+    
+    // Check each path with a test request
+    console.log('Testing paths:');
+    paths.forEach(path => {
+        // Handle both relative and absolute URLs
+        const fullUrl = path.startsWith('http') ? path : window.location.origin + path;
+        console.log(`- Checking ${fullUrl}`);
+        
+        fetch(fullUrl, { method: 'HEAD' })
+            .then(response => {
+                console.log(`  ${path}: ${response.ok ? 'Found ✓' : 'Not found ✗'} (${response.status})`);
+            })
+            .catch(error => {
+                console.log(`  ${path}: Error (${error.message})`);
+            });
+    });
+    
+    // Log WebSocket URLs for clarity
+    if (isLocalhost) {
+        console.log('Expected WebSocket connection should be to: ws://localhost:1002/socket.io/');
+    }
+    
+    console.groupEnd();
+    
+    return 'Socket.IO path diagnostics initiated';
+};
+
+// Auto-run on page load with a delay
+setTimeout(window.checkSocketIoPath, 2000);
+</script>
+
 <!-- Replace script tags with dynamic loading script -->
 <script>
     // Get correct asset path based on current domain
@@ -850,14 +1150,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log(`✓ Successfully loaded: ${fullPath}`);
             };
             script.onerror = function() {
-                console.error(`✗ Failed to load script: ${fullPath}`);
+                console.error(`✗ Failed to load script: ${fullPath}`, script.src);
+                
+                // Try CDN fallback for socket.io if that's what failed
+                if (path.includes('socket.io.min.js')) {
+                    console.log('Attempting Socket.IO CDN fallback after local load failed');
+                    const cdnScript = document.createElement('script');
+                    cdnScript.src = 'https://cdn.socket.io/4.6.0/socket.io.min.js';
+                    document.head.appendChild(cdnScript);
+                }
             };
             
             document.head.appendChild(script);
         }
         
         // Load all required scripts in the correct order
-        loadScript('socket.io.min.js');
+        // Skip Socket.IO since we already loaded it at the top
+        // loadScript('socket.io.min.js');
         loadScript('webrtc-modules/browser-compatibility.js');
         loadScript('webrtc-modules/media-control.js');
         loadScript('webrtc-modules/ui-manager.js');
@@ -921,6 +1230,31 @@ document.addEventListener('DOMContentLoaded', function() {
     const toggleDebugBtn = document.getElementById('toggleDebugPanel');
     const closeDebugBtn = document.getElementById('closeDebugPanel');
     const refreshDebugBtn = document.getElementById('refreshDebugInfo');
+    const runSocketDiagnosticsBtn = document.getElementById('runSocketDiagnostics');
+    
+    // Socket diagnostics button handler
+    if (runSocketDiagnosticsBtn) {
+        runSocketDiagnosticsBtn.addEventListener('click', function() {
+            if (window.SocketDiagnostics) {
+                if (typeof window.SocketDiagnostics.checkSocketConfiguration === 'function') {
+                    // First run the configuration check
+                    console.log('Running socket configuration check...');
+                    window.SocketDiagnostics.checkSocketConfiguration();
+                    
+                    // Then run the connection test
+                    setTimeout(() => {
+                        console.log('Running socket connection test...');
+                        window.SocketDiagnostics.runDiagnostics();
+                    }, 1500);
+                } else {
+                    // Fall back to just running diagnostics if config check not available
+                    window.SocketDiagnostics.runDiagnostics();
+                }
+            } else {
+                alert('Socket Diagnostics utility not available. Make sure socket-diagnostics.js is loaded.');
+            }
+        });
+    }
     
     // Debug info elements
     const debugSocketStatus = document.getElementById('debugSocketStatus');
@@ -944,11 +1278,25 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Refresh debug info
-    refreshDebugBtn.addEventListener('click', updateDebugInfo);
+    refreshDebugBtn.addEventListener('click', function() {
+        console.log('[DEBUG] Manual refresh requested');
+        updateDebugInfo();
+        
+        // Also try to ensure socket connection if not connected
+        if (window.webrtcEnsureSocketConnection) {
+            window.webrtcEnsureSocketConnection();
+        }
+    });
     
     // Update debug information
     function updateDebugInfo() {
-        // Access window-level WebRTC variables
+        // First try to use the global updater function
+        if (window.webrtcUpdateDebugInfo) {
+            window.webrtcUpdateDebugInfo();
+            return;
+        }
+        
+        // Fall back to local implementation if global doesn't exist
         setTimeout(() => {
             try {
                 // Socket connection info
@@ -978,6 +1326,60 @@ document.addEventListener('DOMContentLoaded', function() {
                     mediaState.push('No local media');
                 }
                 debugMediaStatus.textContent = mediaState.join(', ');
+                
+                // Network information
+                const debugNetworkOnline = document.getElementById('debugNetworkOnline');
+                const debugNetworkType = document.getElementById('debugNetworkType');
+                const debugNetworkProtocol = document.getElementById('debugNetworkProtocol');
+                const debugWebRTCSupport = document.getElementById('debugWebRTCSupport');
+                
+                if (debugNetworkOnline) {
+                    const isOnline = navigator.onLine;
+                    debugNetworkOnline.textContent = isOnline ? 'Yes' : 'No';
+                    debugNetworkOnline.className = isOnline ? 'text-green-400' : 'text-red-400';
+                }
+                
+                if (debugNetworkType) {
+                    if ('connection' in navigator && navigator.connection) {
+                        debugNetworkType.textContent = navigator.connection.effectiveType || 'Unknown';
+                    } else {
+                        debugNetworkType.textContent = 'API not supported';
+                    }
+                }
+                
+                if (debugNetworkProtocol) {
+                    debugNetworkProtocol.textContent = window.location.protocol.replace(':', '');
+                }
+                
+                if (debugWebRTCSupport) {
+                    const hasWebRTC = !!(navigator.mediaDevices && 
+                                      navigator.mediaDevices.getUserMedia && 
+                                      window.RTCPeerConnection);
+                    debugWebRTCSupport.textContent = hasWebRTC ? 'Yes' : 'No';
+                    debugWebRTCSupport.className = hasWebRTC ? 'text-green-400' : 'text-red-400';
+                }
+                
+                // Update socket path info
+                const debugSocketPath = document.getElementById('debugSocketPath');
+                if (debugSocketPath) {
+                    // Check if socket is available
+                    if (window.socket && window.socket.io) {
+                        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                        if (isLocalhost) {
+                            // Show simplified info for localhost
+                            debugSocketPath.textContent = window.socket.io.opts.path || '/socket.io';
+                            debugSocketPath.className = 'text-green-400';
+                        } else {
+                            // Show full path for production
+                            const fullPath = window.socket.io.uri + (window.socket.io.opts.path || '/socket.io');
+                            debugSocketPath.textContent = fullPath;
+                            debugSocketPath.className = 'text-green-400';
+                        }
+                    } else {
+                        debugSocketPath.textContent = 'Socket not initialized';
+                        debugSocketPath.className = 'text-yellow-400';
+                    }
+                }
                 
                 // Peer connections
                 if (window.peers && Object.keys(window.peers).length > 0) {
@@ -1014,8 +1416,96 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 100); // Small delay to ensure window variables are available
     }
     
-    // Update info every 3 seconds
-    setInterval(updateDebugInfo, 3000);
+    // Add a button to force socket connection
+    const refreshBtn = document.getElementById('refreshDebugInfo');
+    if (refreshBtn && refreshBtn.parentNode) {
+        const connectBtn = document.createElement('button');
+        connectBtn.className = 'w-full bg-green-600 text-white text-xs py-1 px-2 rounded hover:bg-green-700 mt-2';
+        connectBtn.innerText = 'Force Socket Connection';
+        connectBtn.onclick = function() {
+            if (window.webrtcEnsureSocketConnection) {
+                window.webrtcEnsureSocketConnection();
+                setTimeout(updateDebugInfo, 1000);
+            } else if (window.WebRTCSignaling && typeof window.WebRTCSignaling.reconnect === 'function') {
+                window.WebRTCSignaling.reconnect();
+                setTimeout(updateDebugInfo, 1000);
+            }
+        };
+        refreshBtn.parentNode.appendChild(connectBtn);
+        
+        // Add a test socket button as well
+        const testSocketBtn = document.createElement('button');
+        testSocketBtn.className = 'w-full bg-purple-600 text-white text-xs py-1 px-2 rounded hover:bg-purple-700 mt-2';
+        testSocketBtn.innerText = 'Test Direct Socket';
+        testSocketBtn.onclick = function() {
+            try {
+                // Get socket server details
+                const socketServerMeta = document.querySelector('meta[name="socket-server"]');
+                const socketPathMeta = document.querySelector('meta[name="socket-path"]');
+                
+                let socketUrl = socketServerMeta ? socketServerMeta.content : window.location.origin;
+                let socketPath = socketPathMeta ? socketPathMeta.content : '/socket.io';
+                
+                console.log(`Testing direct socket connection to ${socketUrl} with path ${socketPath}`);
+                
+                // Check if io exists
+                if (typeof io !== 'function') {
+                    alert('Socket.IO library not loaded! Cannot create connection.');
+                    return;
+                }
+                
+                // Create a test socket
+                const testSocket = io(socketUrl, {
+                    path: socketPath,
+                    transports: ['websocket', 'polling'],
+                    timeout: 5000,
+                    query: { test: 'direct-debug-connection', t: new Date().getTime() }
+                });
+                
+                // Show status in UI
+                const statusDiv = document.createElement('div');
+                statusDiv.className = 'bg-gray-800 text-xs p-2 mt-2 rounded';
+                statusDiv.innerHTML = '<div>Testing connection...</div>';
+                refreshBtn.parentNode.appendChild(statusDiv);
+                
+                // Set up events
+                testSocket.on('connect', () => {
+                    statusDiv.innerHTML = `
+                        <div class="text-green-400">Connected! Socket ID: ${testSocket.id}</div>
+                        <div>Transport: ${testSocket.io.engine.transport.name}</div>
+                    `;
+                    console.log('Test socket connected!', testSocket);
+                    
+                    // Disconnect after 10 seconds
+                    setTimeout(() => {
+                        testSocket.disconnect();
+                        statusDiv.innerHTML += '<div class="text-gray-400">Test disconnected after timeout</div>';
+                    }, 10000);
+                });
+                
+                testSocket.on('connect_error', (error) => {
+                    statusDiv.innerHTML = `<div class="text-red-400">Connection error: ${error.message}</div>`;
+                    console.error('Test socket connection error:', error);
+                });
+                
+                testSocket.on('disconnect', (reason) => {
+                    statusDiv.innerHTML += `<div class="text-yellow-400">Disconnected: ${reason}</div>`;
+                    console.log('Test socket disconnected:', reason);
+                });
+            } catch (error) {
+                console.error('Error testing direct socket:', error);
+                alert(`Socket test error: ${error.message}`);
+            }
+        };
+        refreshBtn.parentNode.appendChild(testSocketBtn);
+    }
+    
+    // Update info more frequently (every second) when the panel is visible
+    const debugUpdateInterval = setInterval(() => {
+        if (!debugPanel.classList.contains('-translate-x-full')) {
+            updateDebugInfo();
+        }
+    }, 1000);
     
     // Show debug panel with keyboard shortcut (Ctrl+D)
     document.addEventListener('keydown', function(e) {

@@ -7,6 +7,21 @@ const cors = require('cors');
 // const path = require('path'); // Not used in this simplified version
 require('dotenv').config();
 
+// Environment variables and configuration
+const DEBUG_MODE = process.env.DEBUG === 'true' || false;
+const DEBUG_CONNECT = process.env.DEBUG_CONNECT === 'true' || false;
+const DEBUG_CONNECTION = process.env.DEBUG_CONNECTION === 'true' || false;
+const DEBUG_USERS = process.env.DEBUG_USERS === 'true' || false;
+
+// Add VPS configuration to ensure consistent settings across page reloads
+if (process.env.IS_VPS === 'true') {
+    // Default VPS environment variables if not explicitly set
+    process.env.SOCKET_PATH = process.env.SOCKET_PATH || '/misvord/socket/socket.io';
+    process.env.SUBPATH = process.env.SUBPATH || 'misvord';
+    
+    console.log('VPS environment detected. Using socket path:', process.env.SOCKET_PATH);
+}
+
 // Log environment variables at startup
 console.log('===== ENVIRONMENT VARIABLES AT STARTUP =====');
 console.log('IS_VPS:', process.env.IS_VPS);
@@ -56,15 +71,27 @@ const domain = process.env.DOMAIN || 'localhost';
 const subpath = process.env.SUBPATH || 'misvord';
 
 let effectivePath = socketPath;
+
+// Determine the effective Socket.IO path based on environment
 if (isVpsEnvironment) {
-  if (socketPath.includes(`/${subpath}/`)) {
+  // VPS/Production environment
+  if (domain === 'localhost' || domain === '127.0.0.1') {
+    // Special case: VPS=true but on localhost - use standard path
+    effectivePath = '/socket.io';
+    console.log(`Special case: VPS mode but on localhost. Using standard Socket.IO path: ${effectivePath}`);
+  } else if (socketPath.includes(`/${subpath}/`)) {
+    // Use configured socket path
     effectivePath = socketPath;
+    console.log(`VPS Mode: Using configured Socket.IO path: ${effectivePath}`);
   } else {
+    // Default VPS path
     effectivePath = `/${subpath}/socket/socket.io`;
+    console.log(`VPS Mode: Using default VPS Socket.IO path: ${effectivePath}`);
   }
-  console.log(`VPS Mode: Effective Socket.IO path: ${effectivePath}`);
 } else {
-  console.log(`Local Mode: Effective Socket.IO path: ${effectivePath}`);
+  // Local development environment - always use standard socket.io path
+  effectivePath = '/socket.io';
+  console.log(`Local Mode: Using standard Socket.IO path: ${effectivePath}`);
 }
 
 const io = socketIo(server, {
@@ -95,8 +122,7 @@ const io = socketIo(server, {
 });
 console.log('⚠️ Socket.IO CORS set to origin: * for debugging.');
 
-// Enhanced debugging configuration
-const DEBUG_MODE = process.env.NODE_ENV !== 'production';
+// Enhanced debugging function
 function debugLog(...args) {
   if (DEBUG_MODE) {
     console.log(`[DEBUG ${new Date().toISOString()}]`, ...args);
