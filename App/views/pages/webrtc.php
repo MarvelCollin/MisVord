@@ -245,7 +245,7 @@ $additional_head = '
         align-items: center;
         justify-content: center;
         background-color: rgba(0, 0, 0, 0.7);
-        z-index: 100;
+        z-index: 1000;
     }
     
     .connection-status {
@@ -297,56 +297,394 @@ $additional_head = '
 <?php ob_start(); ?>
 
 
-<div id="permissionRequest" class="username-modal" style="display: flex;">
-    <div class="bg-gray-800 p-6 rounded-lg w-full max-w-md shadow-lg">
-        <h3 class="text-xl font-bold mb-4">Camera & Microphone Access</h3>
-        <p class="mb-4 text-gray-300">Please allow access to your camera and microphone when prompted by your browser.</p>
+<!-- NEW SIMPLIFIED PERMISSION MODAL -->
+<div id="simpleCameraModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); 
+     display: flex; align-items: center; justify-content: center; z-index: 9999;">
+    <div style="background: #1f2937; width: 90%; max-width: 500px; border-radius: 8px; padding: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+        <h2 style="font-size: 22px; color: white; margin-bottom: 15px; text-align: center;">Camera & Microphone Access</h2>
         
-        <div class="flex justify-center mb-4">
-            <div class="flex items-center justify-center w-16 h-16 bg-indigo-600 rounded-full animate-pulse">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                    <path fill-rule="evenodd" d="M10 1a9 9 0 100 18A9 9 0 0010 1zm0 16a7 7 0 100-14 7 7 0 000 14z" clip-rule="evenodd" />
+        <div id="cameraStatus" style="background: #374151; color: #ffc107; padding: 12px; border-radius: 4px; 
+             margin: 15px 0; text-align: center; font-size: 16px;">
+            Waiting for permission...
+        </div>
+        
+        <div style="display: flex; justify-content: center; margin: 20px 0;">
+            <div style="background: #4f46e5; width: 60px; height: 60px; border-radius: 50%; display: flex; 
+                 justify-content: center; align-items: center; margin-right: 15px;">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                    <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+            </div>
+            <div style="background: #4f46e5; width: 60px; height: 60px; border-radius: 50%; display: flex; 
+                 justify-content: center; align-items: center;">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                    <path d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                 </svg>
             </div>
         </div>
         
-        <div id="permissionStatus" class="p-3 bg-gray-700 rounded mb-4 text-center text-yellow-300">
-            Waiting for permission...
-        </div>
-        
-        <div class="flex justify-center mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-indigo-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-            </svg>
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-indigo-500 ml-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-            </svg>
-        </div>
-        
-        <div class="mt-4 text-sm text-gray-400 mb-4">
-            <p class="mb-2"><strong>Troubleshooting Tips:</strong></p>
-            <ul class="list-disc pl-5">
-                <li>Check if your camera is not being used by another application</li>
-                <li>Click the camera icon in your browser's address bar to grant permission</li>
-                <li>Make sure you click "Allow" when the browser permission popup appears</li>
-                <li>Try reloading the page if the permission dialog doesn't appear</li>
+        <div style="margin: 15px 0; background: #374151; padding: 12px; border-radius: 4px;">
+            <p style="color: #d1d5db; font-size: 14px; margin-bottom: 8px;"><strong>Troubleshooting Tips:</strong></p>
+            <ul style="color: #d1d5db; font-size: 14px; padding-left: 20px;">
+                <li style="margin-bottom: 5px;">Check if your camera is used by another app</li>
+                <li style="margin-bottom: 5px;">Check browser permissions in the address bar</li>
+                <li style="margin-bottom: 5px;">Click "Allow" when prompted by your browser</li>
+                <li>Try refreshing the page if no prompt appears</li>
             </ul>
         </div>
         
-        <div class="flex gap-2">
-            <button id="retryPermissionBtn" class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-bold text-lg">
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button id="startCameraBtn" style="flex: 1; background: #2563eb; color: white; border: none; padding: 12px; 
+                   border-radius: 4px; font-weight: bold; font-size: 16px; cursor: pointer;">
                 Allow Camera & Mic
             </button>
-            <button id="audioOnlyBtn" class="px-4 py-3 bg-gray-600 text-white rounded-md hover:bg-gray-700">
+            <button id="startAudioBtn" style="background: #4b5563; color: white; border: none; padding: 12px; 
+                   border-radius: 4px; font-size: 16px; cursor: pointer;">
                 Audio Only
             </button>
         </div>
-        <button id="dismissPermissionBtn" class="mt-3 w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
-            Dismiss
-        </button>
     </div>
 </div>
+
+<!-- Direct camera access script - completely independent from WebRTC modules -->
+<script>
+// Create an in-memory audio element to help unblock autoplay restrictions
+const unblockAudio = document.createElement('audio');
+unblockAudio.src = 'data:audio/mpeg;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsuY29tIC8gTGFTb25vdGhlcXVlLm9yZwBURU5DAAAAHQAAA1N3aXRjaCBQbHVzIMKpIE5DSCBTb2Z0d2FyZQBUSVQyAAAABgAAAzIyMzUAVFNTRQAAAA8AAANMYXZmNTcuODMuMTAwAAAAAAAAAAAAAAD/80DEAAAAA0gAAAAATEFNRTMuMTAwVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQsRbAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQMSkAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV';
+unblockAudio.loop = false;
+unblockAudio.volume = 0.01; // Very quiet
+unblockAudio.autoplay = false;
+unblockAudio.muted = true;
+
+// Function to try unblocking autoplay restrictions
+function tryUnblockAutoplay() {
+    try {
+        // Try to play the audio (will likely be blocked)
+        unblockAudio.play().then(() => {
+            console.log('[SimpleCam] Autoplay unblocking successful');
+        }).catch(e => {
+            console.log('[SimpleCam] Autoplay still blocked, waiting for user interaction');
+        });
+        
+        // Create and initialize AudioContext (may help in some browsers)
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) {
+            const audioCtx = new AudioContext();
+            const source = audioCtx.createBufferSource();
+            source.connect(audioCtx.destination);
+            source.start(0);
+            source.stop(0.001);
+        }
+    } catch (e) {
+        console.warn('[SimpleCam] AudioContext unblocking failed:', e);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Try unblocking on page load (will likely fail but worth trying)
+    tryUnblockAutoplay();
+    
+    // Set up global interaction tracking to unblock media
+    let interactionCount = 0;
+    
+    function handleUserInteraction(e) {
+        // Only need to handle a few interactions
+        interactionCount++;
+        
+        // Try to play the unblocking audio
+        tryUnblockAutoplay();
+        
+        // After a few interactions, remove the listeners
+        if (interactionCount >= 3) {
+            document.removeEventListener('click', handleUserInteraction);
+            document.removeEventListener('touchstart', handleUserInteraction);
+            document.removeEventListener('keydown', handleUserInteraction);
+        }
+    }
+    
+    // Add listeners to detect user interaction
+    document.addEventListener('click', handleUserInteraction);
+    document.addEventListener('touchstart', handleUserInteraction);
+    document.addEventListener('keydown', handleUserInteraction);
+    
+    // Elements
+    const modal = document.getElementById('simpleCameraModal');
+    const statusEl = document.getElementById('cameraStatus');
+    const startCameraBtn = document.getElementById('startCameraBtn');
+    const startAudioBtn = document.getElementById('startAudioBtn');
+    
+    // Local stream
+    let localStream = null;
+    
+    // Check for button existence
+    if (!startCameraBtn || !startAudioBtn) {
+        console.error('[SimpleCam] Camera buttons not found in DOM');
+        return;
+    }
+    
+    // Update status display
+    function updateStatus(text, type = 'normal') {
+        if (!statusEl) return;
+        
+        statusEl.textContent = text;
+        
+        // Update styling based on status type
+        switch (type) {
+            case 'success':
+                statusEl.style.color = '#10b981'; // Green
+                statusEl.style.background = '#064e3b';
+                break;
+            case 'error':
+                statusEl.style.color = '#ef4444'; // Red
+                statusEl.style.background = '#7f1d1d';
+                break;
+            case 'warning':
+                statusEl.style.color = '#f59e0b'; // Yellow
+                statusEl.style.background = '#78350f';
+                break;
+            default:
+                statusEl.style.color = '#ffc107'; // Default yellow
+                statusEl.style.background = '#374151';
+        }
+    }
+
+    // Function to detect browser for specific fixes
+    function detectBrowser() {
+        const userAgent = navigator.userAgent.toLowerCase();
+        if (userAgent.indexOf('chrome') > -1) return 'chrome';
+        if (userAgent.indexOf('firefox') > -1) return 'firefox';
+        if (userAgent.indexOf('safari') > -1) return 'safari';
+        if (userAgent.indexOf('edge') > -1) return 'edge';
+        return 'unknown';
+    }
+    
+    // Function to safely play a video element with multiple fallbacks
+    async function safePlayVideo(videoElement, stream) {
+        if (!videoElement) return false;
+        
+        // Always mute the video first to help with autoplay restrictions
+        videoElement.muted = true;
+        videoElement.autoplay = true;
+        videoElement.playsInline = true; // Important for iOS
+        
+        // Ensure video is visible (some browsers won't play invisible videos)
+        videoElement.style.display = 'block';
+        
+        // Set the stream
+        try {
+            videoElement.srcObject = stream;
+        } catch (e) {
+            console.warn('[SimpleCam] Error setting srcObject, trying URL.createObjectURL fallback', e);
+            try {
+                videoElement.src = URL.createObjectURL(stream);
+            } catch (e2) {
+                console.error('[SimpleCam] Both srcObject and createObjectURL failed', e2);
+                return false;
+            }
+        }
+        
+        // Try playing with immediate error handling
+        try {
+            // First play attempt with await
+            await videoElement.play();
+            console.log('[SimpleCam] Video playing successfully (muted)');
+            return true;
+        } catch (e) {
+            console.warn('[SimpleCam] Initial play attempt failed:', e.name);
+            
+            // Try without awaiting (works in some browsers)
+            try {
+                const playPromise = videoElement.play();
+                if (playPromise === undefined) {
+                    // Play started synchronously (old browsers)
+                    console.log('[SimpleCam] Video playing started synchronously');
+                    return true;
+                } else {
+                    // Modern browsers return a promise, but we won't await it
+                    // Instead we'll set up handling for when it resolves/rejects
+                    playPromise.then(() => {
+                        console.log('[SimpleCam] Deferred play successful');
+                    }).catch(err => {
+                        console.warn('[SimpleCam] Deferred play failed:', err);
+                        
+                        // Try one more special case for iOS
+                        videoElement.controls = true; // Show controls can help on iOS
+                        setTimeout(() => {
+                            videoElement.play().catch(() => {
+                                console.warn('[SimpleCam] iOS-specific play attempt failed');
+                            });
+                        }, 100);
+                    });
+                    
+                    // Continuing regardless, as stream is set and UI can proceed
+                    return false;
+                }
+            } catch (e2) {
+                console.error('[SimpleCam] Secondary play attempt failed:', e2);
+                
+                // Setup user-interaction-triggered play as last resort
+                const playHandler = () => {
+                    videoElement.play().then(() => {
+                        console.log('[SimpleCam] Video playing after user interaction');
+                    }).catch(err => {
+                        console.error('[SimpleCam] Play failed even after user interaction:', err);
+                    });
+                };
+                
+                // Add temporary listeners for a single attempt
+                document.addEventListener('click', playHandler, { once: true });
+                document.addEventListener('touchstart', playHandler, { once: true });
+                
+                return false;
+            }
+        }
+    }
+    
+    // Request camera & mic access
+    async function requestCameraAccess(videoEnabled = true) {
+        try {
+            updateStatus(videoEnabled ? 'Requesting camera & microphone...' : 'Requesting microphone only...', 'warning');
+            
+            // Stop any existing stream to avoid conflicts
+            if (localStream) {
+                localStream.getTracks().forEach(track => {
+                    track.stop();
+                    console.log('[SimpleCam] Stopped existing track:', track.kind);
+                });
+                localStream = null;
+            }
+            
+            // Fix for Safari which requires user gesture to access getUserMedia
+            const browser = detectBrowser();
+            if (browser === 'safari') {
+                updateStatus('Safari detected - click again to grant permissions', 'warning');
+                return; // In Safari, we'll rely on the second click
+            }
+            
+            // Simple constraints with reasonable defaults for different devices
+            const constraints = {
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true
+                },
+                video: videoEnabled ? {
+                    width: { ideal: 1280, max: 1920 },
+                    height: { ideal: 720, max: 1080 },
+                    facingMode: 'user',
+                    frameRate: { max: 30 }
+                } : false
+            };
+            
+            console.log('[SimpleCam] Requesting media with constraints:', constraints);
+            
+            // Get user media with more detailed error handling
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia(constraints);
+                console.log('[SimpleCam] Media stream obtained:', 
+                    localStream.getTracks().map(t => `${t.kind}:${t.label}`).join(', '));
+            } catch (mediaError) {
+                // If high-res fails, try lower resolution
+                if (videoEnabled && mediaError.name === 'OverconstrainedError') {
+                    console.warn('[SimpleCam] High-res failed, trying lower resolution');
+                    constraints.video = {
+                        width: { ideal: 640, max: 640 },
+                        height: { ideal: 480, max: 480 },
+                        facingMode: 'user'
+                    };
+                    localStream = await navigator.mediaDevices.getUserMedia(constraints);
+                } else {
+                    // Re-throw if it's not a resolution issue
+                    throw mediaError;
+                }
+            }
+            
+            // Successfully got stream
+            updateStatus(videoEnabled ? 'Camera & microphone access granted!' : 'Microphone access granted!', 'success');
+            
+            // Update video element if available and video is enabled
+            const localVideo = document.getElementById('localVideo');
+            if (localVideo && videoEnabled) {
+                // Try to play the video with fallbacks
+                const playSuccess = await safePlayVideo(localVideo, localStream);
+                
+                if (!playSuccess) {
+                    console.log('[SimpleCam] Video play delayed, will attempt again on user interaction');
+                    updateStatus('Video ready! Click/tap anywhere to start video', 'warning');
+                    tryUnblockAutoplay();
+                }
+            }
+            
+            // Make stream available globally AND to the WebRTC modules
+            window.localStream = localStream;
+            
+            // If Modal Adapter exists, use it to integrate with WebRTC system
+            if (window.ModalAdapter && typeof window.ModalAdapter.setLocalStream === 'function') {
+                window.ModalAdapter.setLocalStream(localStream);
+            }
+            
+            // Also try to update WebRTCMedia directly
+            if (window.WebRTCMedia) {
+                if (typeof window.WebRTCMedia.setLocalStreamFromAdapter === 'function') {
+                    window.WebRTCMedia.setLocalStreamFromAdapter(localStream);
+                } else {
+                    window.WebRTCMedia.localStream = localStream;
+                }
+                
+                // Update WebRTCMedia state to match new stream
+                if (videoEnabled && typeof window.WebRTCMedia.updateMediaToggleButtons === 'function') {
+                    window.WebRTCMedia.updateMediaToggleButtons();
+                }
+            }
+            
+            // Close modal after a successful delay
+            setTimeout(() => {
+                if (modal) modal.style.display = 'none';
+                // Also hide any old permission UI elements that might be shown
+                const oldPermissionUI = document.getElementById('permissionRequest');
+                if (oldPermissionUI) oldPermissionUI.style.display = 'none';
+            }, 1500);
+            
+            return true;
+        } catch (error) {
+            console.error('[SimpleCam] Media access error:', error);
+            
+            // Handle common errors with friendly messages
+            if (error.name === 'NotAllowedError') {
+                updateStatus('Permission denied by browser. Please check your camera settings.', 'error');
+            } else if (error.name === 'NotFoundError') {
+                updateStatus(videoEnabled ? 
+                    'Camera not found. Try audio only.' : 
+                    'Microphone not found. Please check your settings.', 'error');
+            } else if (error.name === 'NotReadableError') {
+                updateStatus('Camera or microphone is already in use by another app.', 'error');
+            } else if (error.name === 'AbortError') {
+                updateStatus('Permission request was aborted. Please try again.', 'error');
+            } else if (error.name === 'TypeError' && browser === 'safari') {
+                // Safari sometimes throws TypeError if not triggered by user gesture
+                updateStatus('Safari requires you to click the button to allow camera access', 'warning');
+            } else {
+                updateStatus('Error accessing media: ' + error.message, 'error');
+            }
+            
+            return false;
+        }
+    }
+    
+    // Set up button handlers - ensure they actually work
+    startCameraBtn.addEventListener('click', function() {
+        console.log('[SimpleCam] Camera button clicked');
+        requestCameraAccess(true);
+    });
+    
+    startAudioBtn.addEventListener('click', function() {
+        console.log('[SimpleCam] Audio button clicked');
+        requestCameraAccess(false);
+    });
+    
+    console.log('[SimpleCam] Simple camera access handlers initialized');
+});
+</script>
 
 <!-- Debug Panel for WebRTC (Initially Hidden) -->
 <div id="webrtcDebugPanel" class="fixed left-0 top-0 bottom-0 bg-gray-800 border-r border-gray-700 w-80 p-4 transform -translate-x-full transition-transform duration-300 z-50 overflow-y-auto">
@@ -521,9 +859,18 @@ $additional_head = '
         // Load all required scripts in the correct order
         loadScript('socket.io.min.js');
         loadScript('webrtc-modules/browser-compatibility.js');
-        loadScript('webrtc-modules/video-debug.js');
+        loadScript('webrtc-modules/media-control.js');
+        loadScript('webrtc-modules/ui-manager.js');
+        loadScript('webrtc-modules/signaling.js');
+        loadScript('webrtc-modules/peer-connection.js');
+        loadScript('webrtc-modules/diagnostics.js');
+        loadScript('webrtc-modules/ping-system.js');
+        loadScript('webrtc-modules/video-handling.js');
         loadScript('webrtc-modules/video-player.js');
+        loadScript('webrtc-modules/video-debug.js');
         loadScript('webrtc-modules/connection-monitor.js');
+        loadScript('webrtc-modules/webrtc-controller.js');
+        loadScript('webrtc-modules/modal-adapter.js');
         loadScript('webrtc.js');
     })();
 </script>
@@ -531,6 +878,44 @@ $additional_head = '
 <!-- WebRTC Debugging Script -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Fix for previous permission modal code - update to work with our new simplified modal
+    if (window.WebRTCMedia) {
+        // Replace any references to the old modal with our new implementation
+        window.WebRTCMedia.updatePermissionUI = function(status, message) {
+            const modal = document.getElementById('simpleCameraModal');
+            const statusEl = document.getElementById('cameraStatus');
+            if (!modal || !statusEl) return;
+            
+            // Update status based on the status parameter
+            switch(status) {
+                case 'granted':
+                    statusEl.textContent = 'Permission granted! Starting video chat...';
+                    statusEl.style.color = '#10b981';
+                    statusEl.style.background = '#064e3b';
+                    setTimeout(() => { modal.style.display = 'none'; }, 1500);
+                    break;
+                case 'hiding':
+                    modal.style.display = 'none';
+                    break;
+                default:
+                    // Don't change the status for other cases - our direct implementation handles this
+                    break;
+            }
+        };
+        
+        // Update retryMediaAccess as well
+        window.WebRTCMedia.retryMediaAccess = function(videoEnabled) {
+            const startCameraBtn = document.getElementById('startCameraBtn');
+            const startAudioBtn = document.getElementById('startAudioBtn');
+            
+            if (videoEnabled && startCameraBtn) {
+                startCameraBtn.click();
+            } else if (!videoEnabled && startAudioBtn) {
+                startAudioBtn.click();
+            }
+        };
+    }
+    
     // Debug panel elements
     const debugPanel = document.getElementById('webrtcDebugPanel');
     const toggleDebugBtn = document.getElementById('toggleDebugPanel');

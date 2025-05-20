@@ -22,6 +22,8 @@ let modulesLoaded = false;
 
 // Initialize the application when the document is ready
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('[WebRTC] DOM fully loaded - initializing webcam permissions UI');
+    
     // Make sure the permission request is initially visible
     const permissionRequest = document.getElementById('permissionRequest');
     if (permissionRequest) {
@@ -34,80 +36,103 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // Load all required modules
-    loadModules().then(() => {
-        // Set flag that modules are loaded
+    // Check if modules have been loaded from webrtc.php's script tags
+    const modulesLoadedByPage = (
+        window.WebRTCMedia && 
+        typeof window.WebRTCMedia.retryMediaAccess === 'function' &&
+        window.WebRTCController
+    );
+    
+    console.log('[WebRTC] Modules pre-loaded by page:', modulesLoadedByPage);
+    
+    if (modulesLoadedByPage) {
+        // Modules already loaded by webrtc.php
         modulesLoaded = true;
-        console.log("All WebRTC modules have been loaded successfully");
-        // Configure and initialize the WebRTC controller
+        console.log("[WebRTC] Using modules pre-loaded by page");
+        initializeAfterModulesLoaded();
+    } else {
+        // Load modules ourselves as a backup
+        console.log("[WebRTC] Pre-loaded modules not detected, loading modules manually");
+        loadModules().then(() => {
+            modulesLoaded = true;
+            console.log("[WebRTC] All WebRTC modules have been loaded manually");
+            initializeAfterModulesLoaded();
+        }).catch(error => {
+            console.error("[WebRTC] Failed to load WebRTC modules:", error);
+            showModuleLoadError();
+        });
+    }
+    
+    // Force initialize permission handlers regardless of module loading
+    // This ensures buttons can respond even if modules fail to load
+    setupRetryPermissionHandler();
+});
+
+/**
+ * Initialize the application after modules are loaded
+ */
+function initializeAfterModulesLoaded() {
+    // Configure and initialize the WebRTC controller
+    if (window.WebRTCController && typeof window.WebRTCController.init === 'function') {
         window.WebRTCController.init({
             debugMode: window.appDebugMode,
             roomId: 'global-video-chat',
             userName: 'User_' + Math.floor(Math.random() * 10000),
             autoJoin: true
         });
+    } else {
+        console.error("[WebRTC] WebRTCController not available for initialization");
+    }
 
-        // Initialize early ICE candidates buffer
-        window.earlyIceCandidates = new Map();
+    // Initialize early ICE candidates buffer
+    window.earlyIceCandidates = new Map();
 
-        // Create a function to unlock audio/video autoplay
-        function unlockAudioVideo() {
-            // Create and play a silent audio context
-            try {
-                const AudioContext = window.AudioContext || window.webkitAudioContext;
-                const audioContext = new AudioContext();
-                const source = audioContext.createBufferSource();
-                source.buffer = audioContext.createBuffer(1, 1, 22050);
-                source.connect(audioContext.destination);
-                source.start(0);
-                
-                console.log("Audio context started on user interaction");
-                
-                // Try to play any videos that need to be played
-                if (window.WebRTCVideoHandler && typeof window.WebRTCVideoHandler.enableMediaPlayback === 'function') {
-                    window.WebRTCVideoHandler.enableMediaPlayback();
-                }
-            } catch (e) {
-                console.error("Error unlocking audio context:", e);
-            }
+    // Create a function to unlock audio/video autoplay
+    function unlockAudioVideo() {
+        // Create and play a silent audio context
+        try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            const audioContext = new AudioContext();
+            const source = audioContext.createBufferSource();
+            source.buffer = audioContext.createBuffer(1, 1, 22050);
+            source.connect(audioContext.destination);
+            source.start(0);
             
-            // Remove listeners after first interaction
-            document.removeEventListener('click', unlockAudioVideo);
-            document.removeEventListener('touchstart', unlockAudioVideo);
-            document.removeEventListener('keydown', unlockAudioVideo);
+            console.log("[WebRTC] Audio context started on user interaction");
+            
+            // Try to play any videos that need to be played
+            if (window.WebRTCVideoHandler && typeof window.WebRTCVideoHandler.enableMediaPlayback === 'function') {
+                window.WebRTCVideoHandler.enableMediaPlayback();
+            }
+        } catch (e) {
+            console.error("[WebRTC] Error unlocking audio context:", e);
         }
         
-        // Add event listeners for user interactions
-        document.addEventListener('click', unlockAudioVideo);
-        document.addEventListener('touchstart', unlockAudioVideo);
-        document.addEventListener('keydown', unlockAudioVideo);
-        
-        console.log("Added user interaction handlers for autoplay");
-        
-        // Set up retry permission button handler
-        setupRetryPermissionHandler();
-        
-        // If we've initialized but the permission UI is still visible,
-        // update the status to prompt the user
-                    setTimeout(() => {
-            const permissionRequest = document.getElementById('permissionRequest');
-            if (permissionRequest && permissionRequest.style.display !== 'none') {
-                const permissionStatus = document.getElementById('permissionStatus');
-                if (permissionStatus) {
-                    permissionStatus.innerHTML = 'Please click "Allow Camera & Mic" below to start.';
-                }
-                    }
-                }, 3000);
-    }).catch(error => {
-        console.error("Failed to load WebRTC modules:", error);
-        // Show error message on permission UI
-        const permissionStatus = document.getElementById('permissionStatus');
-        if (permissionStatus) {
-            permissionStatus.className = 'p-3 bg-red-700 rounded mb-4 text-center text-white';
-            permissionStatus.innerHTML = '<i class="fas fa-exclamation-triangle mr-2"></i> Failed to load WebRTC modules. Please refresh the page.';
+        // Remove listeners after first interaction
+        document.removeEventListener('click', unlockAudioVideo);
+        document.removeEventListener('touchstart', unlockAudioVideo);
+        document.removeEventListener('keydown', unlockAudioVideo);
+    }
+    
+    // Add event listeners for user interactions
+    document.addEventListener('click', unlockAudioVideo);
+    document.addEventListener('touchstart', unlockAudioVideo);
+    document.addEventListener('keydown', unlockAudioVideo);
+    
+    console.log("[WebRTC] Added user interaction handlers for autoplay");
+    
+    // If we've initialized but the permission UI is still visible,
+    // update the status to prompt the user
+    setTimeout(() => {
+        const permissionRequest = document.getElementById('permissionRequest');
+        if (permissionRequest && permissionRequest.style.display !== 'none') {
+            const permissionStatus = document.getElementById('permissionStatus');
+            if (permissionStatus) {
+                permissionStatus.innerHTML = 'Please click "Allow Camera & Mic" below to start.';
+            }
         }
-    });
-});
+    }, 3000);
+}
 
 /**
  * Get the base URL for assets based on the current page
@@ -267,141 +292,129 @@ function showModuleLoadError() {
  * Set up the retry permission handler
  */
 function setupRetryPermissionHandler() {
+    console.log("[WebRTC] Setting up permission button handlers");
+    
     // Add click handler for retry button
     const retryBtn = document.getElementById('retryPermissionBtn');
     if (retryBtn) {
-        retryBtn.addEventListener('click', function() {
-            console.log("Retry permission button clicked");
+        console.log("[WebRTC] Found retry button, adding click handler");
+        
+        // Remove any existing handlers first to prevent duplicates
+        const newRetryBtn = retryBtn.cloneNode(true);
+        retryBtn.parentNode.replaceChild(newRetryBtn, retryBtn);
+        
+        newRetryBtn.addEventListener('click', function(event) {
+            console.log("[WebRTC] Retry permission button clicked");
+            event.preventDefault();  // Ensure the click doesn't propagate
+            
+            const permissionStatus = document.getElementById('permissionStatus');
+            if (permissionStatus) {
+                permissionStatus.className = 'p-3 bg-gray-700 rounded mb-4 text-center text-yellow-300';
+                permissionStatus.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Retrying camera & microphone access...';
+            }
+            
             if (window.WebRTCMedia && typeof window.WebRTCMedia.retryMediaAccess === 'function') {
-                // Update UI to show we're retrying
-                const permissionStatus = document.getElementById('permissionStatus');
-                if (permissionStatus) {
-                    permissionStatus.className = 'p-3 bg-gray-700 rounded mb-4 text-center text-yellow-300';
-                    permissionStatus.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Retrying camera & microphone access...';
-                }
+                console.log("[WebRTC] Using WebRTCMedia.retryMediaAccess");
                 window.WebRTCMedia.retryMediaAccess(true); // true for video
             } else {
-                // Fallback if WebRTCMedia module isn't fully loaded or retryMediaAccess isn't available
-                console.warn('WebRTCMedia.retryMediaAccess not available, attempting direct getUserMedia.');
-                const permissionRequest = document.getElementById('permissionRequest');
-                if (permissionRequest) {
-                    const permissionStatus = document.getElementById('permissionStatus');
-                    if (permissionStatus) {
-                        permissionStatus.className = 'p-3 bg-gray-700 rounded mb-4 text-center text-yellow-300';
-                        permissionStatus.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Requesting camera access...';
-                    }
-                    
-                    // Direct getUserMedia call as fallback
-                    navigator.mediaDevices.getUserMedia({ audio: true, video: true })
-                        .then(stream => {
-                            console.log("Camera access granted via fallback");
-                            
-                            // Update UI
-                            if (permissionStatus) {
-                                permissionStatus.className = 'p-3 bg-green-700 rounded mb-4 text-center text-white';
-                                permissionStatus.innerHTML = '<i class="fas fa-check-circle mr-2"></i> Permission granted! Starting video chat...';
+                console.warn('[WebRTC] WebRTCMedia.retryMediaAccess not available, attempting direct getUserMedia.');
+                // Direct getUserMedia call as fallback
+                navigator.mediaDevices.getUserMedia({ audio: true, video: true })
+                    .then(stream => {
+                        console.log("[WebRTC] Camera access granted via fallback");
+                        
+                        // Update UI
+                        if (permissionStatus) {
+                            permissionStatus.className = 'p-3 bg-green-700 rounded mb-4 text-center text-white';
+                            permissionStatus.innerHTML = '<i class="fas fa-check-circle mr-2"></i> Permission granted! Starting video chat...';
+                        }
+                        
+                        // Hide permission dialog after delay
+                        setTimeout(() => {
+                            const permissionRequestModal = document.getElementById('permissionRequest');
+                            if (permissionRequestModal) {
+                                permissionRequestModal.style.display = 'none';
                             }
                             
-                            // Hide permission dialog after delay
-                    setTimeout(() => {
-                                const permissionRequestModal = document.getElementById('permissionRequest');
-                                if (permissionRequestModal) {
-                                    permissionRequestModal.style.display = 'none';
-                                }
-                                
-                                // Store stream in WebRTCMedia if it exists
-                                if (window.WebRTCMedia) {
-                                    window.WebRTCMedia.localStream = stream; // This might not be ideal way to set it
-                                }
-                            }, 1000);
-                        })
-                        .catch(error => {
-                            console.error("Camera access denied via fallback:", error);
-                            // Update UI based on error
-                            if (permissionStatus) {
-                                permissionStatus.className = 'p-3 bg-red-700 rounded mb-4 text-center text-white';
-                                permissionStatus.innerHTML = '<i class="fas fa-times-circle mr-2"></i> Permission denied. Please allow camera access in browser settings.';
+                            // Store stream in WebRTCMedia if it exists
+                            if (window.WebRTCMedia) {
+                                window.WebRTCMedia.localStream = stream;
+                            } else {
+                                // Global fallback
+                                window.localStream = stream;
                             }
-                             // Make sure buttons are visible if error occurs during retry
-                            if (window.WebRTCMedia && typeof window.WebRTCMedia.updatePermissionUI === 'function') {
-                                window.WebRTCMedia.updatePermissionUI('denied'); 
-                            }
-                        });
-                }
+                        }, 1000);
+                    })
+                    .catch(error => {
+                        console.error("[WebRTC] Camera access denied via fallback:", error);
+                        // Update UI based on error
+                        if (permissionStatus) {
+                            permissionStatus.className = 'p-3 bg-red-700 rounded mb-4 text-center text-white';
+                            permissionStatus.innerHTML = '<i class="fas fa-times-circle mr-2"></i> Permission denied. Please allow camera access in browser settings.';
+                        }
+                    });
             }
         });
+    } else {
+        console.error("[WebRTC] Retry permission button not found in DOM");
     }
 
     // Add click handler for audio-only button
     const audioOnlyBtn = document.getElementById('audioOnlyBtn');
     if (audioOnlyBtn) {
-        audioOnlyBtn.addEventListener('click', function() {
-            console.log("Audio only button clicked");
+        console.log("[WebRTC] Found audio-only button, adding click handler");
+        
+        // Remove any existing handlers first to prevent duplicates
+        const newAudioOnlyBtn = audioOnlyBtn.cloneNode(true);
+        audioOnlyBtn.parentNode.replaceChild(newAudioOnlyBtn, audioOnlyBtn);
+        
+        newAudioOnlyBtn.addEventListener('click', function(event) {
+            console.log("[WebRTC] Audio only button clicked");
+            event.preventDefault();  // Ensure the click doesn't propagate
+            
+            const permissionStatus = document.getElementById('permissionStatus');
+            if (permissionStatus) {
+                permissionStatus.className = 'p-3 bg-gray-700 rounded mb-4 text-center text-yellow-300';
+                permissionStatus.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Retrying microphone access...';
+            }
+            
             if (window.WebRTCMedia && typeof window.WebRTCMedia.retryMediaAccess === 'function') {
-                // Update UI to show we're retrying for audio only
-                const permissionStatus = document.getElementById('permissionStatus');
-                if (permissionStatus) {
-                    permissionStatus.className = 'p-3 bg-gray-700 rounded mb-4 text-center text-yellow-300';
-                    permissionStatus.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Retrying microphone access...';
-                }
-                window.WebRTCMedia.retryMediaAccess(false); // false for video (audio only)
+                console.log("[WebRTC] Using WebRTCMedia.retryMediaAccess for audio only");
+                window.WebRTCMedia.retryMediaAccess(false);
             } else {
-                 // Fallback for audio-only
-                console.warn('WebRTCMedia.retryMediaAccess not available, attempting direct getUserMedia for audio.');
-                const permissionRequest = document.getElementById('permissionRequest');
-                if (permissionRequest) {
-                    const permissionStatus = document.getElementById('permissionStatus');
-                    if (permissionStatus) {
-                        permissionStatus.className = 'p-3 bg-gray-700 rounded mb-4 text-center text-yellow-300';
-                        permissionStatus.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Requesting microphone access...';
-                    }
-                    
-                    navigator.mediaDevices.getUserMedia({ audio: true, video: false })
-                        .then(stream => {
-                            console.log("Audio access granted via fallback");
-                            if (permissionStatus) {
-                                permissionStatus.className = 'p-3 bg-green-700 rounded mb-4 text-center text-white';
-                                permissionStatus.innerHTML = '<i class="fas fa-check-circle mr-2"></i> Audio access granted! Starting chat...';
+                console.warn('[WebRTC] WebRTCMedia.retryMediaAccess not available, attempting direct getUserMedia for audio.');
+                // Direct getUserMedia call as fallback
+                navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+                    .then(stream => {
+                        console.log("[WebRTC] Audio access granted via fallback");
+                        if (permissionStatus) {
+                            permissionStatus.className = 'p-3 bg-green-700 rounded mb-4 text-center text-white';
+                            permissionStatus.innerHTML = '<i class="fas fa-check-circle mr-2"></i> Audio access granted! Starting chat...';
+                        }
+                        setTimeout(() => {
+                            const permissionRequestModal = document.getElementById('permissionRequest');
+                            if (permissionRequestModal) {
+                                permissionRequestModal.style.display = 'none';
                             }
-                            setTimeout(() => {
-                                const permissionRequestModal = document.getElementById('permissionRequest');
-                                if (permissionRequestModal) {
-                                    permissionRequestModal.style.display = 'none';
-                                }
-                                if (window.WebRTCMedia) {
-                                    window.WebRTCMedia.localStream = stream;
-                                }
-                            }, 1000);
-                        })
-                        .catch(error => {
-                            console.error("Audio access denied:", error);
-                            if (permissionStatus) {
-                                permissionStatus.className = 'p-3 bg-red-700 rounded mb-4 text-center text-white';
-                                permissionStatus.innerHTML = '<i class="fas fa-times-circle mr-2"></i> Audio permission denied. Please allow microphone access.';
+                            if (window.WebRTCMedia) {
+                                window.WebRTCMedia.localStream = stream;
+                            } else {
+                                // Global fallback
+                                window.localStream = stream;
                             }
-                            if (window.WebRTCMedia && typeof window.WebRTCMedia.updatePermissionUI === 'function') {
-                                window.WebRTCMedia.updatePermissionUI('denied');
-                            }
-                        });
-                }
+                        }, 1000);
+                    })
+                    .catch(error => {
+                        console.error("[WebRTC] Audio access denied:", error);
+                        if (permissionStatus) {
+                            permissionStatus.className = 'p-3 bg-red-700 rounded mb-4 text-center text-white';
+                            permissionStatus.innerHTML = '<i class="fas fa-times-circle mr-2"></i> Audio permission denied. Please allow microphone access.';
+                        }
+                    });
             }
         });
-    }
-
-    // Add click handler for dismiss button
-    const dismissBtn = document.getElementById('dismissPermissionBtn');
-    if (dismissBtn) {
-        dismissBtn.addEventListener('click', function() {
-            console.log("Dismiss permission button clicked");
-            const permissionRequest = document.getElementById('permissionRequest');
-            if (permissionRequest) {
-                permissionRequest.style.display = 'none';
-            }
-            // Optionally, you could also update the status to something generic or clear it
-            // if (window.WebRTCMedia && typeof window.WebRTCMedia.updatePermissionUI === 'function') {
-            // window.WebRTCMedia.updatePermissionUI('hiding'); // or some other status
-            // }
-        });
+    } else {
+        console.error("[WebRTC] Audio-only button not found in DOM");
     }
 }
 
