@@ -51,6 +51,8 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
     ?>
     <!-- Socket server URL from environment variables -->
     <meta name="socket-server" content="<?php echo $effectiveSocketServer; ?>">
+    <!-- Standardized socket path for all environments -->
+    <meta name="socket-path" content="/misvord/socket/socket.io">
     <title><?php echo isset($page_title) ? $page_title : 'MiscVord - Your Place to Talk and Hang Out'; ?></title>    
     <!-- Common utility script for path handling -->
     <script>

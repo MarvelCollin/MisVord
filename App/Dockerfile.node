@@ -19,6 +19,14 @@ COPY . .
 ENV PORT=1002
 ENV SECURE_PORT=1443
 ENV NODE_ENV=production
+ENV IS_VPS=true
+ENV SOCKET_PATH=/misvord/socket/socket.io
+ENV DISABLE_DOTENV=true
+ENV DEBUG_USERS=false
+ENV DEBUG=false
+ENV DEBUG_CONNECT=false
+ENV DEBUG_CONNECTION=false
+ENV VIDEO_CHAT_ROOM=global-video-chat
 
 # Expose ports
 EXPOSE 1002

@@ -1,2 +1,0 @@
-"// CRITICAL FIX: Docker service names fix"  
-"if (url.includes('socket-server')) {url = url.replace('socket-server', 'localhost');console.log('[WebRTC] Replaced Docker service name with localhost:', url);}" 

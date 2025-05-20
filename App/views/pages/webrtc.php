@@ -19,6 +19,17 @@ $host_domain = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'localhost
 $is_local = $host_domain === 'localhost' || strpos($host_domain, '127.0.0.1') !== false;
 $is_marvel_domain = strpos($host_domain, 'marvelcollin.my.id') !== false;
 
+// Define $is_subpath first before any other code that might use it
+$is_subpath = false;
+$request_uri = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '';
+if (strpos($request_uri, '/misvord/') !== false || strpos($request_uri, '/miscvord/') !== false) {
+    $is_subpath = true;
+}
+// Marvel domains always use a subpath
+if ($is_marvel_domain) {
+    $is_subpath = true;
+}
+
 // Improved HTTPS detection - more reliable than just checking $_SERVER['HTTPS']
 $is_https = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') || 
             (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') ||
@@ -57,7 +68,7 @@ if (empty($socket_server_url)) {
         // Force HTTPS for WebSockets when the page is loaded over HTTPS
         $host_domain = preg_replace('#^https?://#', '', $host_domain);
         
-        // Check if we're in a subpath
+        // Check if we're in a subpath - we've already set $is_subpath flag at the top
         $request_uri = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '';
         if (strpos($request_uri, '/misvord/') !== false) {
             $socket_server_url = $protocol . '://' . $host_domain . '/misvord/socket';
@@ -67,34 +78,8 @@ if (empty($socket_server_url)) {
     }
 }
 
-// Add socket path config for JavaScript
-$is_subpath = false;
-if (strpos($socket_server_url, '/misvord/socket') !== false) {
-    // For a subpath installation, make sure the path is correct for Socket.IO
-    $socket_path = '/misvord/socket/socket.io'; // This path must match server configuration
-    $is_subpath = true;
-} else if (strpos($socket_server_url, '/miscvord/socket') !== false) {
-    // Alternative subpath
-    $socket_path = '/miscvord/socket/socket.io'; // This path must match server configuration
-    $is_subpath = true;
-} else if (strpos($socket_server_url, 'localhost:1002') !== false || strpos($socket_server_url, '127.0.0.1:1002') !== false) {
-    // Direct connection to socket server in Docker - use standard path
-    $socket_path = '/socket.io'; // Standard Socket.IO path for local development
-    $is_subpath = false;
-} else {
-    // Default path
-    $socket_path = '/socket.io'; // Standard Socket.IO path
-}
-
-// Additional check to ensure the path doesn't have a namespace appended
-if (strpos($socket_path, '#') !== false || strpos($socket_path, '?') !== false) {
-    // Remove any query parameters or hash fragments
-    $socket_path = strtok($socket_path, '?#');
-    error_log("Removed invalid characters from socket path: " . $socket_path);
-}
-
-// Ensure the path doesn't end with an invalid character
-$socket_path = rtrim($socket_path, '/');
+// Ensure the socket path is properly set
+$socket_path = '/misvord/socket/socket.io';  // Using standardized path for all environments
 
 // Log for debugging
 $env_type = $is_local ? 'local' : ($is_marvel_domain ? 'marvel' : 'vps');
@@ -351,15 +336,38 @@ $additional_head = '
 // Dynamic socket.io loader with fallback to CDN
 (function() {
     function loadSocketIO() {
-        // First try to load from local path
+        // First, determine the correct base path for assets
+        const getBasePath = function() {
+            const hostname = window.location.hostname;
+            const currentPath = window.location.pathname;
+            
+            // Special handling for marvelcollin.my.id domain
+            if (hostname.includes('marvelcollin.my.id')) {
+                return '/misvord';
+            }
+            
+            // Check if we're in a subpath deployment (like /misvord/ or /miscvord/)
+            if (currentPath.includes('/misvord/')) {
+                return '/misvord';
+            } else if (currentPath.includes('/miscvord/')) {
+                return '/miscvord';
+            }
+            
+            return '';
+        };
+        
+        const basePath = getBasePath();
+        console.log('Using base path for socket.io:', basePath);
+        
+        // First try to load from local path with correct base path
         const script = document.createElement('script');
-        script.src = '/js/socket.io.min.js';
+        script.src = basePath + '/js/socket.io.min.js';
         script.onload = function() {
-            console.log('Socket.IO loaded successfully from local path');
+            console.log('Socket.IO loaded successfully from: ' + script.src);
             initSocketDiagnostics();
         };
         script.onerror = function() {
-            console.error('Failed to load Socket.IO from local path, trying CDN...');
+            console.error('Failed to load Socket.IO from local path: ' + script.src + ', trying CDN...');
             
             // Fallback to CDN
             const cdnScript = document.createElement('script');
@@ -378,11 +386,14 @@ $additional_head = '
     }
     
     function initSocketDiagnostics() {
+        // Get the base path from earlier function
+        const basePath = getBasePath();
+        
         // Load socket diagnostics after Socket.IO is loaded
         const diagnosticsScript = document.createElement('script');
-        diagnosticsScript.src = '/js/socket-diagnostics.js';
+        diagnosticsScript.src = basePath + '/js/socket-diagnostics.js';
         diagnosticsScript.onload = function() {
-            console.log('Socket diagnostics utility loaded');
+            console.log('Socket diagnostics utility loaded from: ' + diagnosticsScript.src);
             if (window.SocketDiagnostics) {
                 window.SocketDiagnostics.init({
                     autoApplyFixes: true,
@@ -391,7 +402,30 @@ $additional_head = '
                 });
             }
         };
+        diagnosticsScript.onerror = function() {
+            console.error('Failed to load socket diagnostics from: ' + diagnosticsScript.src);
+        };
         document.head.appendChild(diagnosticsScript);
+    }
+    
+    // Helper function to detect the base path
+    function getBasePath() {
+        const hostname = window.location.hostname;
+        const currentPath = window.location.pathname;
+        
+        // Special handling for marvelcollin.my.id domain
+        if (hostname.includes('marvelcollin.my.id')) {
+            return '/misvord';
+        }
+        
+        // Check if we're in a subpath deployment (like /misvord/ or /miscvord/)
+        if (currentPath.includes('/misvord/')) {
+            return '/misvord';
+        } else if (currentPath.includes('/miscvord/')) {
+            return '/miscvord';
+        }
+        
+        return '';
     }
     
     // Start loading Socket.IO
@@ -1038,9 +1072,14 @@ window.checkSocketIoPath = function() {
     // Check if we're on localhost
     const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     
-    // Get potential paths
+    // Get the base path - this is crucial for correct path checking
+    const basePath = getBasePath();
+    console.log('Base path detected:', basePath || '/' + ' (empty means root)');
+    
+    // Get potential paths with proper base path prefixing
     const paths = [
-        '/js/socket.io.min.js', // Local script in js folder on port 1001
+        (basePath + '/js/socket.io.min.js'), // Local script in js folder on port 1001
+        (basePath + '/socket.io/socket.io.js'), // Standard Socket.IO path with base path
         '/socket.io/socket.io.js' // Standard Socket.IO path on current port (1001)
     ];
     
@@ -1048,6 +1087,7 @@ window.checkSocketIoPath = function() {
     if (isLocalhost) {
         // This is on port 1002 - direct access to socket server
         paths.push('http://localhost:1002/socket.io/socket.io.js');
+        paths.push('http://localhost:1002/misvord/socket/socket.io/socket.io.js'); // With standardized path
     }
     
     // Check meta tag configuration
@@ -1075,7 +1115,8 @@ window.checkSocketIoPath = function() {
     
     // Log WebSocket URLs for clarity
     if (isLocalhost) {
-        console.log('Expected WebSocket connection should be to: ws://localhost:1002/socket.io/');
+        console.log('Expected WebSocket connection should be to: ws://localhost:1002/misvord/socket/socket.io/');
+        console.log('Standardized socket path: /misvord/socket/socket.io');
     }
     
     console.groupEnd();

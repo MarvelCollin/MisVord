@@ -46,76 +46,59 @@ function fixDockerServiceNames(url) {
  * @param {Function} onError - Callback when connection fails
  */
 function connectToSignalingServer(roomId, userName, onConnected, onError) {
-    if (!roomId) {
-        console.error("Room ID is required");
-        if (onError) onError("Room ID is required");
-        return;
-    }
-
-    if (!userName) {
-        console.error("User name is required");
-        if (onError) onError("User name is required");
-        return;
-    }
-
-    // Get socket server configuration from meta tags first
-    const socketServerMeta = document.querySelector('meta[name="socket-server"]');
-    const socketPathMeta = document.querySelector('meta[name="socket-path"]');
-    const isSubpathMeta = document.querySelector('meta[name="socket-subpath"]');
+    window.VIDEO_CHAT_ROOM = roomId || 'global-video-chat';
+    window.userName = userName || 'User_' + Math.floor(Math.random() * 10000);
     
-    let socketUrl;
-    let socketPath;
+    console.log(`Connecting to signaling server - Room: ${roomId}, User: ${userName}`);
+    window.WebRTCUI.addLogEntry(`Connecting to signaling server as ${userName}`, 'socket');
+    window.WebRTCUI.updateConnectionStatus('connecting', 'Connecting to signaling server...');
     
-    // Detect if we're on localhost
-    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    // Reset connection attempts counter
+    connectionAttempts = 0;
     
-    // CRITICAL: Always use port 1002 for localhost connections
-    if (isLocalhost) {
-        socketUrl = window.location.protocol + '//' + window.location.hostname + ':1002';
-        socketPath = '/socket.io'; // Standard Socket.IO path
-        console.log("[WebRTC] Using localhost connection on port 1002:", socketUrl);
+    try {
+        // Get socket server configuration from meta tags
+        const socketServerMeta = document.querySelector('meta[name="socket-server"]');
+        const socketPathMeta = document.querySelector('meta[name="socket-path"]');
+        const isSecureMeta = document.querySelector('meta[name="socket-secure"]');
         
-        // Add debug log to help diagnose connection issues
-        console.log("[WebRTC] Expected WebSocket URL:", socketUrl.replace('http:', 'ws:') + socketPath);
-    } else if (socketServerMeta && socketServerMeta.content) {
-        // Use the value from meta tag but fix any Docker service names
-        socketUrl = socketServerMeta.content;
+        // Set defaults
+        let socketUrl = '';
+        let socketPath = '';
+        let isSecure = window.location.protocol === 'https:';
         
-        // CRITICAL FIX: Docker service names - browsers can't resolve "socket-server" hostname
-        socketUrl = fixDockerServiceNames(socketUrl);
+        // Extract values from meta tags (if available)
+        if (socketServerMeta && socketServerMeta.content) {
+            socketUrl = socketServerMeta.content;
+            // CRITICAL FIX: Fix Docker service names if present
+            socketUrl = fixDockerServiceNames(socketUrl);
+            console.log("Using socket server URL from meta tag:", socketUrl);
+        }
         
-        console.log("Using socket URL from meta tag (fixed):", socketUrl);
-    } else {
-        // Fallback logic for production
-        const protocol = window.location.protocol;
-        const pathParts = window.location.pathname.split('/').filter(p => p.length > 0);
-        // Assuming subpath is the first part of the path if present, or default to 'misvord'
-        const subpath = pathParts.length > 0 ? pathParts[0] : 'misvord';
-        
-        socketUrl = `${protocol}//${window.location.host}`;
-        console.log("Using production connection:", socketUrl);
-    }
-    
-    // Non-localhost path handling
-    if (!isLocalhost) {
         if (socketPathMeta && socketPathMeta.content) {
-            // Use the value from meta tag
             socketPath = socketPathMeta.content;
             console.log("Using socket path from meta tag:", socketPath);
-        } else {
-            // Fallback path logic for production
-            const pathParts = window.location.pathname.split('/').filter(p => p.length > 0);
-            const subpath = pathParts.length > 0 ? pathParts[0] : 'misvord';
-            socketPath = `/${subpath}/socket/socket.io`;
-            console.log("Using fallback socket path:", socketPath);
         }
-    }
-
-    try {
-        window.WebRTCUI.addLogEntry(`Connecting to signaling server at ${socketUrl} (path: ${socketPath})`, 'socket');
-        window.WebRTCUI.updateConnectionStatus('connecting', 'Connecting to server...');
         
-        console.log(`Attempting Socket.IO connection - URL: ${socketUrl}, Path: ${socketPath}, Transports: ['websocket', 'polling']`);
+        if (isSecureMeta && isSecureMeta.content) {
+            isSecure = isSecureMeta.content === 'true';
+        }
+        
+        // Fallback for socket URL if not set
+        if (!socketUrl) {
+            const hostname = window.location.hostname;
+            const port = hostname === 'localhost' || hostname === '127.0.0.1' ? '1002' : window.location.port;
+            const protocol = isSecure ? 'https:' : 'http:';
+            socketUrl = `${protocol}//${hostname}:${port}`;
+            
+            console.log("Using fallback socket URL:", socketUrl);
+        }
+        
+        // Ensure socket path is always set to the standardized path
+        if (!socketPath) {
+            socketPath = '/misvord/socket/socket.io';
+            console.log("Using standardized socket path:", socketPath);
+        }
         
         // Ensure any existing socket is properly disconnected
         if (socket) {
@@ -221,22 +204,13 @@ function tryFallbackSocketConnection(fallbackUrl = null, fallbackPath = null, ro
     // If path not specified, try to get from meta tag first
     if (!trySocketPath) {
         if (socketPathMeta && socketPathMeta.content) {
+            // Use the value from meta tag
             trySocketPath = socketPathMeta.content;
             console.log("Fallback using socket path from meta tag:", trySocketPath);
         } else {
-            // Auto-detect fallback path
-            const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-            
-            if (isLocalhost) {
-                // CRITICAL FIX: For localhost development, use plain /socket.io path
-                trySocketPath = '/socket.io';
-                console.log("Using standard socket.io path for localhost:", trySocketPath);
-            } else {
-                const pathParts = window.location.pathname.split('/').filter(p => p.length > 0);
-                const subpath = pathParts.length > 0 ? pathParts[0] : 'misvord';
-                trySocketPath = `/${subpath}/socket/socket.io`;
-                console.log("Using subpath socket.io path for production:", trySocketPath);
-            }
+            // Use standardized path for all environments
+            trySocketPath = '/misvord/socket/socket.io';
+            console.log("Using standardized socket path for all environments:", trySocketPath);
         }
     }
     
@@ -303,91 +277,101 @@ function tryFallbackSocketConnection(fallbackUrl = null, fallbackPath = null, ro
 }
 
 /**
- * Direct IP connection attempt as last resort
- * @param {string} serverUrl - Direct server URL to connect to
- * @param {string} socketIoPath - Path for Socket.IO
+ * Final attempt to directly connect to socket server
+ * @param {string} serverUrl - The server URL
+ * @param {string} socketIoPath - The socket.io path
  * @param {string} roomId - The room ID to join
  * @param {string} userName - The user's display name
  * @param {Function} onConnected - Callback when connection is established
  * @param {Function} onError - Callback when connection fails
  */
-function tryDirectConnection(serverUrl, socketIoPath = '/socket.io', roomId, userName, onConnected, onError) {
+function tryDirectConnection(serverUrl, socketIoPath = '/misvord/socket/socket.io', roomId, userName, onConnected, onError) {
     window.WebRTCUI.addLogEntry(`Attempting direct socket connection to ${serverUrl}`, 'socket');
+    window.WebRTCUI.updateConnectionStatus('connecting', 'Final connection attempt...');
     
-    // CRITICAL FIX: Fix Docker service names here too
-    serverUrl = fixDockerServiceNames(serverUrl);
+    // Ensure direct connection has unique parameters to avoid caching
+    const timestamp = new Date().getTime();
+    const attemptId = Math.random().toString(36).substring(2, 15);
+    
+    // Final URL determination for direct connection
+    let finalUrl = serverUrl;
+    let finalPath = socketIoPath;
+    
+    if (!finalUrl) {
+        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        if (isLocalhost) {
+            finalUrl = `${window.location.protocol}//${window.location.hostname}:1002`;
+        } else {
+            finalUrl = window.location.origin;
+        }
+    }
+    
+    if (!finalPath) {
+        finalPath = '/misvord/socket/socket.io'; // Standardized path for all environments
+    }
+    
+    console.log(`FINAL CONNECTION ATTEMPT - URL: ${finalUrl}, Path: ${finalPath}`);
+    
+    // Ensure any existing socket is properly disconnected
+    if (socket) {
+        try { socket.disconnect(); } catch (e) { /* ignore */ }
+        socket = null;
+    }
     
     try {
-        // Get default path from meta tag if not specified
-        if (!socketIoPath || socketIoPath === '/socket.io') {
-            const socketPathMeta = document.querySelector('meta[name="socket-path"]');
-            if (socketPathMeta && socketPathMeta.content) {
-                socketIoPath = socketPathMeta.content;
-            } else {
-                // For localhost, always use the standard Socket.IO path
-                const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-                if (isLocalhost) {
-                    socketIoPath = '/socket.io';
-                }
-                // Otherwise keep the provided path
-            }
-        }
-        
-        // For localhost, ensure we're using port 1002
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            if (!serverUrl || !serverUrl.includes(':1002')) {
-                serverUrl = window.location.protocol + '//' + window.location.hostname + ':1002';
-            }
-        }
-
-        console.log(`[WebRTC][DIRECT] Attempting direct connection to ${serverUrl} with path ${socketIoPath}`);
-        window.WebRTCUI.updateConnectionStatus('connecting', 'Last resort direct connection attempt...');
-        window.WebRTCUI.addLogEntry(`Direct connection attempt to ${serverUrl} (${socketIoPath})`, 'socket');
-        
-        // Ensure any existing socket is disconnected
-        if (socket) {
-            try {
-                socket.disconnect();
-            } catch (e) {
-                console.error("Error disconnecting existing socket:", e);
-            }
-            socket = null;
-        }
-        
-        // Create new socket with direct connection
-        socket = io(serverUrl, {
-            path: socketIoPath,
-            transports: ['websocket', 'polling'], // Try both transports
-            reconnectionAttempts: 3,
-            reconnectionDelay: 1000,
-            timeout: 20000, // Extended timeout for direct connection
+        // Create final socket attempt with minimal options
+        socket = io(finalUrl, {
+            path: finalPath,
+            transports: ['polling', 'websocket'], // Try polling first as a last resort
+            reconnectionAttempts: 1,
+            timeout: 15000,
             forceNew: true,
-            query: { t: new Date().getTime(), direct: true }
+            upgrade: true,
+            rememberUpgrade: false,
+            query: { 
+                t: timestamp,
+                id: attemptId,
+                attempt: 'direct'
+            }
         });
         
-        setupSocketEvents(roomId, userName, onConnected, onError);
+        setupSocketEvents(roomId, userName, onConnected, onError, true);
         
-        // Add special handling for direct connection errors
-        socket.io.on("error", (error) => {
-            console.error("Direct connection error:", error);
-            window.WebRTCUI.addLogEntry(`Direct connection error: ${error.type || error.message}`, 'error');
-            window.WebRTCUI.updateConnectionStatus('disconnected', 'Direct connection failed');
+        // Add one-time error handler for final attempt
+        const finalErrorHandler = (error) => {
+            console.error("Final socket connection attempt failed:", error);
+            window.WebRTCUI.addLogEntry(`Final socket connection failed: ${error.type || error.message}`, 'error');
+            window.WebRTCUI.updateConnectionStatus('disconnected', 'All connection attempts failed');
             
-            if (onError) onError("Direct connection failed");
+            if (onError) {
+                onError("All connection attempts failed. Please try again later or contact support.");
+            }
+        };
+        
+        socket.io.once("error", finalErrorHandler);
+        
+        // Add specific one-time connect handler for final attempt
+        socket.once("connect", () => {
+            console.log("✅ Final socket connection attempt succeeded:", socket.id);
+            window.WebRTCUI.addLogEntry(`Final socket connection succeeded! ID: ${socket.id}`, 'success');
+            socket.io.off("error", finalErrorHandler); // Remove error handler on success
         });
+        
     } catch (e) {
         console.error("Error creating direct socket connection:", e);
-        window.WebRTCUI.addLogEntry(`Direct connection setup error: ${e.message}`, 'error');
-        window.WebRTCUI.updateConnectionStatus('disconnected', 'Connection Failed');
+        window.WebRTCUI.addLogEntry(`Final connection error: ${e.message}`, 'error');
+        window.WebRTCUI.updateConnectionStatus('disconnected', 'Connection failed');
         
-        if (onError) onError(e.message || "Direct connection failed");
+        if (onError) {
+            onError(e.message || "All connection attempts failed. Please try again later.");
+        }
     }
 }
 
 /**
  * Setup socket event handlers
  */
-function setupSocketEvents(roomId, userName, onConnected, onError) {
+function setupSocketEvents(roomId, userName, onConnected, onError, isFinalAttempt = false) {
     if (!socket) {
         window.WebRTCUI.addLogEntry('Socket not initialized for event setup.', 'error');
         return;

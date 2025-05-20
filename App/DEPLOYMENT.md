@@ -2,13 +2,20 @@
 
 This document provides step-by-step instructions for deploying the application in both development and production environments.
 
+## Socket Path Configuration
+
+Both development and production environments now use the same socket path:
+- **Socket Path**: `/misvord/socket/socket.io`
+
+This unified path simplifies deployment and minimizes environment-specific configuration.
+
 ## Development Environment
 
 To start the application in development mode:
 
 1. Start the socket server:
    ```
-   set DISABLE_DOTENV=true && set IS_VPS=false && set SOCKET_PATH=/socket.io && set DOMAIN=localhost && node socket-server.js
+   set DISABLE_DOTENV=true && set IS_VPS=true && set SOCKET_PATH=/misvord/socket/socket.io && set DOMAIN=localhost && node socket-server.js
    ```
    
    Alternatively, you can use the batch script:
@@ -16,7 +23,7 @@ To start the application in development mode:
    start-dev-socket-server.bat
    ```
 
-2. The socket server will run on port 1002 with the path `/socket.io` (standard Socket.IO path)
+2. The socket server will run on port 1002 with the path `/misvord/socket/socket.io`
 
 3. You can test the socket connection using the `socket-test.html` file:
    ```
@@ -41,8 +48,9 @@ To deploy the application in production:
 
 3. Configure your NGINX server to proxy WebSocket connections to the socket server:
    ```nginx
+   # General socket server path
    location /misvord/socket/ {
-       proxy_pass http://localhost:1002;
+       proxy_pass http://localhost:1002/;
        proxy_http_version 1.1;
        proxy_set_header Upgrade $http_upgrade;
        proxy_set_header Connection "upgrade";
@@ -51,7 +59,33 @@ To deploy the application in production:
        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
        proxy_set_header X-Forwarded-Proto $scheme;
    }
+   
+   # Socket.IO specific path
+   location /misvord/socket/socket.io/ {
+       proxy_pass http://localhost:1002/;
+       proxy_http_version 1.1;
+       proxy_set_header Upgrade $http_upgrade;
+       proxy_set_header Connection "upgrade";
+       proxy_set_header Host $host;
+   }
    ```
+
+## Docker Deployment (Recommended)
+
+The simplest way to deploy the application is using Docker:
+
+1. Ensure Docker and Docker Compose are installed on your server
+
+2. Start all services with a single command:
+   ```
+   docker-compose up -d
+   ```
+
+3. The Docker configuration automatically:
+   - Sets all necessary environment variables
+   - Runs the PHP application on port 1001
+   - Runs the socket server on port 1002
+   - Sets up the database and admin tools
 
 ## Troubleshooting
 
@@ -63,8 +97,9 @@ If you encounter WebSocket connection issues:
    ```
 
 2. Verify the Socket.IO path is accessible:
-   - Development: `curl http://localhost:1002/socket.io/?EIO=4&transport=polling`
-   - Production: `curl http://localhost:1002/misvord/socket/socket.io/?EIO=4&transport=polling`
+   ```
+   curl http://localhost:1002/misvord/socket/socket.io/?EIO=4&transport=polling
+   ```
 
 3. Check the socket server logs for any errors
 

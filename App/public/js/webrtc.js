@@ -239,106 +239,63 @@ function createDirectSocketConnection() {
         // Check if we're on localhost
         const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
         
-        // CRITICAL FIX: For localhost, force standard path and port 1002
+        // Use consistent path for all environments - standardized approach
         if (isLocalhost) {
-            // This is the CRITICAL part - we MUST use port 1002 for socket connections on localhost
-            // Using window.location.hostname instead of hardcoded 'localhost' to handle 127.0.0.1 too
+            // For local development
             socketUrl = window.location.protocol + '//' + window.location.hostname + ':1002';
-            socketPath = '/socket.io'; // Always use standard socket.io path for localhost
+            socketPath = '/misvord/socket/socket.io'; // Use standardized path for all environments
             
-            // Log this important configuration
-            console.warn('[WebRTC] IMPORTANT: Using localhost settings with port 1002 for socket server:', socketUrl, socketPath);
-            console.warn('[WebRTC] WebSocket connection will be to: ws://' + window.location.hostname + ':1002/socket.io/');
+            console.log('[WebRTC] Using localhost with standardized socket path:', socketUrl, socketPath);
+        } else if (socketServerMeta && socketPathMeta) {
+            // Use meta tag configuration for production
+            socketUrl = socketServerMeta.content;
+            socketPath = socketPathMeta.content;
+            console.log('[WebRTC] Using meta tag socket configuration:', socketUrl, socketPath);
         } else {
-            // For non-localhost, use meta tags or fallbacks
-            if (socketServerMeta && socketServerMeta.content) {
-                socketUrl = socketServerMeta.content;
-                // Fix Docker service names if present
-                if (socketUrl.includes('socket-server')) {
-                    socketUrl = socketUrl.replace('socket-server', 'localhost');
-                    console.log('[WebRTC] Fixed Docker service name in URL:', socketUrl);
-                }
-            } else {
-                socketUrl = window.location.protocol + '//' + window.location.host;
-            }
-            
-            if (socketPathMeta && socketPathMeta.content) {
-                socketPath = socketPathMeta.content;
-            } else {
-                const pathParts = window.location.pathname.split('/').filter(p => p.length > 0);
-                const subpath = pathParts.length > 0 ? pathParts[0] : 'misvord';
-                socketPath = `/${subpath}/socket/socket.io`;
-            }
+            // Default fallback (should rarely happen)
+            const domain = window.location.hostname;
+            socketUrl = window.location.protocol + '//' + domain;
+            socketPath = '/misvord/socket/socket.io';
+            console.warn('[WebRTC] Using fallback socket configuration:', socketUrl, socketPath);
         }
         
         console.log(`[WebRTC] Direct socket connection - URL: ${socketUrl}, Path: ${socketPath}`);
         
-        // Create socket
-        if (typeof io !== 'function') {
-            console.error('[WebRTC] Socket.io library not available');
-            return;
-        }
-
+        // Create socket instance
         window.socket = io(socketUrl, {
             path: socketPath,
             transports: ['websocket', 'polling'],
             reconnectionAttempts: 5,
             reconnectionDelay: 1000,
-            timeout: 20000,
-            forceNew: true,
-            query: { t: new Date().getTime() }
+            timeout: 10000
         });
         
-        // Set up basic events
+        // Set up socket event handlers
         window.socket.on('connect', () => {
             console.log('[WebRTC] Socket connected:', window.socket.id);
-            window.socketId = window.socket.id;
             
-            // Join room
-            const roomId = 'global-video-chat';
-            const userName = 'User_' + Math.floor(Math.random() * 10000);
-            window.userName = userName;
-            window.VIDEO_CHAT_ROOM = roomId;
+            // Join video chat room
+            window.socket.emit('joinRoom', {
+                roomId: 'global-video-chat',
+                userName: 'User_' + Math.floor(Math.random() * 10000)
+            });
             
-            window.socket.emit('join-video-room', { roomId, userName });
-            console.log('[WebRTC] Joined room:', roomId, 'as', userName);
-            
-            // Update UI
-            updateDebugInfo();
-        });
-        
-        window.socket.on('disconnect', (reason) => {
-            console.log('[WebRTC] Socket disconnected:', reason);
-            updateDebugInfo();
+            // Update debug info if available
+            if (typeof updateDebugInfo === 'function') {
+                updateDebugInfo();
+            }
         });
         
         window.socket.on('connect_error', (error) => {
             console.error('[WebRTC] Socket connection error:', error);
-            updateDebugInfo();
-            
-            // If we're on localhost and get connection error, try with alternate path
-            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                if (socketPath === '/socket.io') {
-                    console.log('[WebRTC] Retrying with alternate path: /misvord/socket/socket.io');
-                    setTimeout(() => {
-                        window.socket.disconnect();
-                        window.socket = io(socketUrl, {
-                            path: '/misvord/socket/socket.io',
-                            transports: ['websocket', 'polling'],
-                            reconnectionAttempts: 5,
-                            reconnectionDelay: 1000,
-                            timeout: 20000,
-                            forceNew: true,
-                            query: { t: new Date().getTime() }
-                        });
-                    }, 1000);
-                }
-            }
         });
         
-        window.socket.on('error', (error) => {
-            console.error('[WebRTC] Socket error:', error);
+        window.socket.on('disconnect', (reason) => {
+            console.warn('[WebRTC] Socket disconnected:', reason);
         });
+        
+        // Set a global reference
+        window.WebRTCSocket = window.socket;
         
     } catch (e) {
         console.error('[WebRTC] Error creating direct socket connection:', e);

@@ -7,7 +7,7 @@ taskkill /F /IM node.exe 2>nul
 REM Set environment variables for development
 set DISABLE_DOTENV=true
 set IS_VPS=false
-set SOCKET_PATH=/socket.io
+set SOCKET_PATH=/misvord/socket/socket.io
 set DOMAIN=localhost
 set CORS_ALLOWED_ORIGINS=*
 set DEBUG=true

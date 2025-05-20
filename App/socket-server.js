@@ -99,9 +99,9 @@ let effectivePath = socketPath;
 if (isVpsEnvironment) {
   // VPS/Production environment
   if (domain === 'localhost' || domain === '127.0.0.1') {
-    // Special case: VPS=true but on localhost - use standard path
-    effectivePath = '/socket.io';
-    console.log(`Special case: VPS mode but on localhost. Using standard Socket.IO path: ${effectivePath}`);
+    // Special case: VPS=true but on localhost - use the standardized path
+    effectivePath = `/${subpath}/socket/socket.io`;
+    console.log(`VPS mode on localhost: Using standardized Socket.IO path: ${effectivePath}`);
   } else if (socketPath && socketPath.includes(`/${subpath}/`)) {
     // Use configured socket path
     effectivePath = socketPath;
@@ -112,19 +112,20 @@ if (isVpsEnvironment) {
     console.log(`VPS Mode: Using default VPS Socket.IO path: ${effectivePath}`);
   }
 } else {
-  // Local development environment - always use standard socket.io path
-  effectivePath = '/socket.io';
-  console.log(`Local Mode: Using standard Socket.IO path: ${effectivePath}`);
+  // Local development environment - use standardized path for consistency
+  effectivePath = `/${subpath}/socket/socket.io`;
+  console.log(`Local Mode: Using standardized Socket.IO path (for consistency): ${effectivePath}`);
 }
 
-// FORCE OVERRIDE FOR LOCALHOST - Always use standard path for localhost regardless of VPS setting
+// For localhost, always use the standardized socket path
 if (domain === 'localhost' || domain === '127.0.0.1') {
-  effectivePath = '/socket.io';
-  console.log(`OVERRIDE: Force using standard Socket.IO path for localhost: ${effectivePath}`);
+  // Always use the standardized path for localhost
+  effectivePath = `/${subpath}/socket/socket.io`;
+  console.log(`Using standardized Socket.IO path for localhost development: ${effectivePath}`);
   
-  // Also ensure CORS is set correctly for localhost
+  // Set CORS to allow all origins for local development
   console.log('Setting CORS to allow all origins for localhost development');
-  corsAllowedOrigins = '*';
+  // Don't try to reassign corsAllowedOrigins as it's a constant
 }
 
 // Make sure path doesn't have double slashes

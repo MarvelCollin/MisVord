@@ -66,7 +66,7 @@ services:
     networks:
       - miscvord_network
     ports: # Ports exposed to the host
-     - "${SOCKET_PORT:-1002}:1002"
+      - "${SOCKET_PORT:-1002}:1002"
     #  - "${SOCKET_SECURE_PORT:-1443}:1443" # Not needed if Nginx on host handles SSL
     environment:
       - NODE_ENV=${APP_ENV:-production} # Set to production for VPS
@@ -80,12 +80,18 @@ services:
       - DB_PASS=${DB_PASS:-password} # Use .env file for this!
       # This is the path Nginx will proxy to.
       - SOCKET_URL=${SOCKET_SERVER:-wss://marvelcollin.my.id/misvord/socket} # Corrected to match .env-example
-      - SOCKET_PATH=${SOCKET_PATH:-/misvord/socket/socket.io} # Adjusted for subpath and Nginx config
+      - SOCKET_PATH=/misvord/socket/socket.io # Fixed path for both dev and prod
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-https://marvelcollin.my.id} # Specific for your domain
       - USE_HTTPS=${USE_HTTPS:-true} # Nginx handles actual SSL, but app might need to know
-      - IS_VPS=${IS_VPS:-true} # Set to true for VPS
+      - IS_VPS=true # Always true to ensure consistent socket path
       - DOMAIN=${DOMAIN:-marvelcollin.my.id} # Set to your domain
       - SUBPATH=${SUBPATH:-misvord} # Keep or remove
+      - DISABLE_DOTENV=true # Prevent .env file from overriding these settings
+      - DEBUG_USERS=false # Fix for crashing error
+      - DEBUG=false # Debug mode off by default
+      - DEBUG_CONNECT=false # Debug connection off by default
+      - DEBUG_CONNECTION=false # Debug connection details off by default  
+      - VIDEO_CHAT_ROOM=global-video-chat # Default room name
     security_opt:
       - no-new-privileges:true
     ulimits:
