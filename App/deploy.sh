@@ -39,7 +39,7 @@ mysql_safe() {
         result=$?
         
         if [ $result -ne 0 ]; then
-            retry_count=$((retry_count + 1))
+            retry_count=$(expr $retry_count + 1)
             if [ $retry_count -lt $max_retries ]; then
                 info "MySQL command failed. Retrying in 3 seconds... ($retry_count/$max_retries)"
                 sleep 3
@@ -48,7 +48,7 @@ mysql_safe() {
                 info "MySQL error. Here are some troubleshooting tips:"
                 info "1. Check if MySQL container is running: docker ps | grep miscvord_db"
                 info "2. Check MySQL logs: docker logs miscvord_db"
-                info "3. Try connecting manually: docker exec -it miscvord_db mysql -u root -p"${DB_PASS}" -e "SHOW DATABASES LIKE '${DB_NAME:-misvord}'"
+                info "3. Try connecting manually: docker exec -it miscvord_db mysql -u root -p\"${DB_PASS}\""
                 info "4. Verify .env and docker-compose.yml have matching password configuration"
                 return 1
             fi
@@ -340,9 +340,7 @@ fi
 
 # Enable the site
 info "Enabling Nginx site configuration..."
-if [ -f /etc/nginx/sites-enabled ]; then
-    sudo ln -sf $nginx_config_path $nginx_config_enabled
-fi
+sudo ln -sf "$nginx_config_path" "$nginx_config_enabled"
 
 # Test Nginx configuration
 info "Testing Nginx configuration..."

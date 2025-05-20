@@ -272,16 +272,19 @@ function setupRetryPermissionHandler() {
     if (retryBtn) {
         retryBtn.addEventListener('click', function() {
             console.log("Retry permission button clicked");
-            
-            // First verify if the module has been loaded
             if (window.WebRTCMedia && typeof window.WebRTCMedia.retryMediaAccess === 'function') {
-                console.log("WebRTCMedia.retryMediaAccess is available, calling it");
-                window.WebRTCMedia.retryMediaAccess(true);
+                // Update UI to show we're retrying
+                const permissionStatus = document.getElementById('permissionStatus');
+                if (permissionStatus) {
+                    permissionStatus.className = 'p-3 bg-gray-700 rounded mb-4 text-center text-yellow-300';
+                    permissionStatus.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Retrying camera & microphone access...';
+                }
+                window.WebRTCMedia.retryMediaAccess(true); // true for video
             } else {
-                console.error("WebRTCMedia.retryMediaAccess not available");
-                
-                // Manual fallback if the function isn't available
-                if (modulesLoaded) {
+                // Fallback if WebRTCMedia module isn't fully loaded or retryMediaAccess isn't available
+                console.warn('WebRTCMedia.retryMediaAccess not available, attempting direct getUserMedia.');
+                const permissionRequest = document.getElementById('permissionRequest');
+                if (permissionRequest) {
                     const permissionStatus = document.getElementById('permissionStatus');
                     if (permissionStatus) {
                         permissionStatus.className = 'p-3 bg-gray-700 rounded mb-4 text-center text-yellow-300';
@@ -301,83 +304,70 @@ function setupRetryPermissionHandler() {
                             
                             // Hide permission dialog after delay
                     setTimeout(() => {
-                                const permissionRequest = document.getElementById('permissionRequest');
-                                if (permissionRequest) {
-                                    permissionRequest.style.display = 'none';
+                                const permissionRequestModal = document.getElementById('permissionRequest');
+                                if (permissionRequestModal) {
+                                    permissionRequestModal.style.display = 'none';
                                 }
                                 
                                 // Store stream in WebRTCMedia if it exists
                                 if (window.WebRTCMedia) {
-                                    window.WebRTCMedia.localStream = stream;
+                                    window.WebRTCMedia.localStream = stream; // This might not be ideal way to set it
                                 }
                             }, 1000);
                         })
                         .catch(error => {
-                            console.error("Camera access denied:", error);
-                            
+                            console.error("Camera access denied via fallback:", error);
                             // Update UI based on error
                             if (permissionStatus) {
                                 permissionStatus.className = 'p-3 bg-red-700 rounded mb-4 text-center text-white';
-                                if (error.name === 'NotAllowedError') {
-                                    permissionStatus.innerHTML = '<i class="fas fa-times-circle mr-2"></i> Permission denied. Please allow camera and microphone access.';
-                                } else if (error.name === 'NotFoundError') {
-                                    permissionStatus.innerHTML = '<i class="fas fa-exclamation-triangle mr-2"></i> No camera or microphone found on your device.';
-                } else {
-                                    permissionStatus.innerHTML = `<i class="fas fa-exclamation-triangle mr-2"></i> ${error.message || 'Unknown error accessing media devices'}`;
-                                }
+                                permissionStatus.innerHTML = '<i class="fas fa-times-circle mr-2"></i> Permission denied. Please allow camera access in browser settings.';
+                            }
+                             // Make sure buttons are visible if error occurs during retry
+                            if (window.WebRTCMedia && typeof window.WebRTCMedia.updatePermissionUI === 'function') {
+                                window.WebRTCMedia.updatePermissionUI('denied'); 
                             }
                         });
-                } else {
-                    console.log("Modules not yet loaded, updating UI");
-                    // Update UI to show we're still loading
-                    const permissionStatus = document.getElementById('permissionStatus');
-                    if (permissionStatus) {
-                        permissionStatus.innerHTML = 'Modules still loading. Please wait a moment and try again...';
-                    }
                 }
             }
         });
     }
-    
-    // Audio only button 
+
+    // Add click handler for audio-only button
     const audioOnlyBtn = document.getElementById('audioOnlyBtn');
     if (audioOnlyBtn) {
         audioOnlyBtn.addEventListener('click', function() {
             console.log("Audio only button clicked");
-            
             if (window.WebRTCMedia && typeof window.WebRTCMedia.retryMediaAccess === 'function') {
-                console.log("WebRTCMedia.retryMediaAccess is available, calling with video=false");
-                window.WebRTCMedia.retryMediaAccess(false);
+                // Update UI to show we're retrying for audio only
+                const permissionStatus = document.getElementById('permissionStatus');
+                if (permissionStatus) {
+                    permissionStatus.className = 'p-3 bg-gray-700 rounded mb-4 text-center text-yellow-300';
+                    permissionStatus.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Retrying microphone access...';
+                }
+                window.WebRTCMedia.retryMediaAccess(false); // false for video (audio only)
             } else {
-                console.error("WebRTCMedia.retryMediaAccess not available");
-                
-                // Manual fallback if the function isn't available
-                if (modulesLoaded) {
+                 // Fallback for audio-only
+                console.warn('WebRTCMedia.retryMediaAccess not available, attempting direct getUserMedia for audio.');
+                const permissionRequest = document.getElementById('permissionRequest');
+                if (permissionRequest) {
                     const permissionStatus = document.getElementById('permissionStatus');
                     if (permissionStatus) {
                         permissionStatus.className = 'p-3 bg-gray-700 rounded mb-4 text-center text-yellow-300';
-                        permissionStatus.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Requesting audio only...';
+                        permissionStatus.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Requesting microphone access...';
                     }
                     
-                    // Direct getUserMedia call as fallback
                     navigator.mediaDevices.getUserMedia({ audio: true, video: false })
                         .then(stream => {
                             console.log("Audio access granted via fallback");
-                            
-                            // Update UI
                             if (permissionStatus) {
                                 permissionStatus.className = 'p-3 bg-green-700 rounded mb-4 text-center text-white';
                                 permissionStatus.innerHTML = '<i class="fas fa-check-circle mr-2"></i> Audio access granted! Starting chat...';
                             }
-                            
-                            // Hide permission dialog after delay
-    setTimeout(() => {
-                                const permissionRequest = document.getElementById('permissionRequest');
-                                if (permissionRequest) {
-                                    permissionRequest.style.display = 'none';
+                            setTimeout(() => {
+                                const permissionRequestModal = document.getElementById('permissionRequest');
+                                if (permissionRequestModal) {
+                                    permissionRequestModal.style.display = 'none';
                                 }
-                                
-                                // Store stream in WebRTCMedia if it exists
                                 if (window.WebRTCMedia) {
                                     window.WebRTCMedia.localStream = stream;
                                 }
@@ -385,15 +375,32 @@ function setupRetryPermissionHandler() {
                         })
                         .catch(error => {
                             console.error("Audio access denied:", error);
-                            
-                            // Update UI based on error
                             if (permissionStatus) {
                                 permissionStatus.className = 'p-3 bg-red-700 rounded mb-4 text-center text-white';
                                 permissionStatus.innerHTML = '<i class="fas fa-times-circle mr-2"></i> Audio permission denied. Please allow microphone access.';
                             }
+                            if (window.WebRTCMedia && typeof window.WebRTCMedia.updatePermissionUI === 'function') {
+                                window.WebRTCMedia.updatePermissionUI('denied');
+                            }
                         });
                 }
             }
+        });
+    }
+
+    // Add click handler for dismiss button
+    const dismissBtn = document.getElementById('dismissPermissionBtn');
+    if (dismissBtn) {
+        dismissBtn.addEventListener('click', function() {
+            console.log("Dismiss permission button clicked");
+            const permissionRequest = document.getElementById('permissionRequest');
+            if (permissionRequest) {
+                permissionRequest.style.display = 'none';
+            }
+            // Optionally, you could also update the status to something generic or clear it
+            // if (window.WebRTCMedia && typeof window.WebRTCMedia.updatePermissionUI === 'function') {
+            // window.WebRTCMedia.updatePermissionUI('hiding'); // or some other status
+            // }
         });
     }
 }
@@ -404,3 +411,4 @@ window.addEventListener('error', (event) => {
         window.WebRTCUI.addLogEntry(`Uncaught error: ${event.error.message}`, 'error');
     }
 });
+

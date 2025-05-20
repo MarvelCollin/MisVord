@@ -197,41 +197,75 @@ async function initLocalStream(audio = true, video = true, onSuccess = null, onE
 function updatePermissionUI(status, message = '') {
     const permissionRequest = document.getElementById('permissionRequest');
     const permissionStatus = document.getElementById('permissionStatus');
+    const retryBtn = document.getElementById('retryPermissionBtn');
+    const audioOnlyBtn = document.getElementById('audioOnlyBtn');
+    const dismissBtn = document.getElementById('dismissPermissionBtn');
     
-    if (!permissionRequest || !permissionStatus) return;
+    if (!permissionRequest || !permissionStatus || !retryBtn || !audioOnlyBtn || !dismissBtn) {
+        console.warn('Permission UI elements not found. Cannot update UI.');
+        return;
+    }
     
-    // Make sure the permission request is visible
-    permissionRequest.style.display = 'flex';
+    // Make sure the permission request is visible (unless explicitly hiding)
+    if (status !== 'hiding') { 
+        permissionRequest.style.display = 'flex';
+    }
+
+    // Default button states
+    retryBtn.style.display = 'none';
+    audioOnlyBtn.style.display = 'none';
+    dismissBtn.style.display = 'none';
     
     switch (status) {
         case 'requesting':
             permissionStatus.className = 'p-3 bg-gray-700 rounded mb-4 text-center text-yellow-300';
             permissionStatus.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Waiting for permission...';
+            // Buttons remain hidden
             break;
         
         case 'granted':
             permissionStatus.className = 'p-3 bg-green-700 rounded mb-4 text-center text-white';
             permissionStatus.innerHTML = '<i class="fas fa-check-circle mr-2"></i> Permission granted! Starting video chat...';
+            // Buttons remain hidden, modal will be dismissed by initLocalStream
             break;
         
         case 'denied':
             permissionStatus.className = 'p-3 bg-red-700 rounded mb-4 text-center text-white';
-            permissionStatus.innerHTML = '<i class="fas fa-times-circle mr-2"></i> Permission denied. Please allow camera and microphone access.';
+            // The detailed instructions are already set by initLocalStream's error handler for NotAllowedError
+            // If not set by that, use a generic message.
+            if (!permissionStatus.innerHTML.includes('Permission reset instructions')) {
+                 permissionStatus.innerHTML = '<i class="fas fa-times-circle mr-2"></i> Permission denied. Please check browser settings or try again.';
+            }
+            retryBtn.style.display = 'block';
+            audioOnlyBtn.style.display = 'block';
+            dismissBtn.style.display = 'block';
             break;
         
         case 'notfound':
             permissionStatus.className = 'p-3 bg-red-700 rounded mb-4 text-center text-white';
-            permissionStatus.innerHTML = '<i class="fas fa-exclamation-triangle mr-2"></i> No camera or microphone found on your device.';
+            permissionStatus.innerHTML = '<i class="fas fa-exclamation-triangle mr-2"></i> No camera or microphone found. Try audio only or check devices.';
+            retryBtn.style.display = 'block'; // User might plug in a device
+            audioOnlyBtn.style.display = 'block';
+            dismissBtn.style.display = 'block';
             break;
         
         case 'inuse':
             permissionStatus.className = 'p-3 bg-red-700 rounded mb-4 text-center text-white';
-            permissionStatus.innerHTML = '<i class="fas fa-exclamation-triangle mr-2"></i> Your camera is already in use by another application.';
+            permissionStatus.innerHTML = '<i class="fas fa-exclamation-triangle mr-2"></i> Camera/microphone is in use by another app. Close it or try again.';
+            retryBtn.style.display = 'block';
+            audioOnlyBtn.style.display = 'block'; // Audio might still work
+            dismissBtn.style.display = 'block';
             break;
         
         case 'error':
             permissionStatus.className = 'p-3 bg-red-700 rounded mb-4 text-center text-white';
-            permissionStatus.innerHTML = `<i class="fas fa-exclamation-triangle mr-2"></i> ${message || 'Error accessing media devices'}`;
+            permissionStatus.innerHTML = `<i class="fas fa-exclamation-triangle mr-2"></i> ${message || 'Error accessing media devices. Please try again.'}`;
+            retryBtn.style.display = 'block';
+            audioOnlyBtn.style.display = 'block';
+            dismissBtn.style.display = 'block';
+            break;
+        case 'hiding': // Special case to just hide the modal
+            permissionRequest.style.display = 'none';
             break;
     }
 }

@@ -342,6 +342,9 @@ $additional_head = '
                 Audio Only
             </button>
         </div>
+        <button id="dismissPermissionBtn" class="mt-3 w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
+            Dismiss
+        </button>
     </div>
 </div>
 
