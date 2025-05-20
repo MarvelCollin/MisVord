@@ -15,10 +15,14 @@ echo -e "${YELLOW}MiscVord WebSocket Connection Tester${NC}"
 # Load environment variables from .env if it exists
 if [ -f .env ]; then
     echo -e "${BLUE}Loading environment from .env file...${NC}"
-    export $(grep -v '^#' .env | xargs)
+    # Remove comments (lines starting with // or #), empty lines, and ensure KEY=VALUE format
+    # then source them to set and export variables.
+    set -a # automatically export all variables
+    source <(grep -v '^[[:space:]]*//' .env | grep -v '^[[:space:]]*#' | grep -v '^[[:space:]]*$' | grep '=' )
+    set +a # stop automatically exporting
     echo -e "${GREEN}Environment loaded successfully${NC}"
 else
-    echo -e "${RED}No .env file found. Run deploy.sh first to generate configuration.${NC}"
+    echo -e "${RED}No .env file found. Potentially run deploy-subpath.sh to generate configuration.${NC}"
     exit 1
 fi
 
@@ -127,6 +131,7 @@ else
     echo -e "${RED}wscat command not found. Install it with: npm install -g wscat${NC}"
     echo -e "${YELLOW}Alternative: Use the browser console to test the connection:${NC}"
     echo -e "${BLUE}const socket = io('$SOCKET_URL', {"
+
     echo -e "  path: '$([ "$IS_VPS" = "true" ] && echo "/$SUBPATH/socket/socket.io" || echo "/socket.io")',"
     echo -e "  transports: ['websocket', 'polling']"
     echo -e "});"
@@ -192,4 +197,4 @@ echo -e "  ${BLUE}• App Server:${NC} http://localhost:1001"
 echo -e "  ${BLUE}• Socket Server:${NC} http://localhost:1002"
 echo -e "  ${BLUE}• Database:${NC} port 1003"
 echo -e "  ${BLUE}• PHPMyAdmin:${NC} http://localhost:1004"
-echo -e "  ${BLUE}• Adminer:${NC} http://localhost:1005" 
+echo -e "  ${BLUE}• Adminer:${NC} http://localhost:1005"
