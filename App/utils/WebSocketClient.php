@@ -6,7 +6,8 @@ class WebSocketClient {
     private $apiKey;
     
     public function __construct($serverUrl = null, $apiKey = null) {
-        $this->serverUrl = $serverUrl ?: (getenv('SOCKET_SERVER') ?: 'http://socket-server:1002');
+        // Use SOCKET_SERVER_LOCAL for backend-to-backend communication
+        $this->serverUrl = $serverUrl ?: (getenv('SOCKET_SERVER_LOCAL') ?: 'http://socket-server:1002');
         $this->apiKey = $apiKey ?: (getenv('SOCKET_API_KEY') ?: 'kolin123');
     }
     
@@ -60,4 +61,4 @@ class WebSocketClient {
             'user' => $user
         ]);
     }
-} 
+}

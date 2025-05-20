@@ -19,15 +19,13 @@ DOMAIN="marvelcollin.my.id"
 USE_HTTPS=true
 PROTOCOL="https"
 
-# Get the subpath from user or use default
-DEFAULT_SUBPATH="misvord"
-read -p "Enter the subpath for your app (default: $DEFAULT_SUBPATH): " SUBPATH_INPUT
-SUBPATH=${SUBPATH_INPUT:-$DEFAULT_SUBPATH}
+# Set default subpath and use it directly
+SUBPATH="misvord"
 
 echo -e "${YELLOW}Setting up for VPS deployment at ${PROTOCOL}://${DOMAIN}/${SUBPATH}/${NC}"
 
 # Confirm with user
-read -p "Continue with these settings? (y/n, default: y): " confirm
+read -p "Deploying with SUBPATH='${SUBPATH}'. Continue? (y/n, default: y): " confirm
 if [[ $confirm =~ ^[Nn] ]]; then
     echo -e "${YELLOW}Deployment canceled.${NC}"
     exit 0
@@ -45,7 +43,7 @@ APP_DEBUG=false            # ALWAYS disable debug for production
 # Docker ports configuration - consistent port numbers on both host and container
 APP_PORT=1001              # App port 1001 for both host and container
 SOCKET_PORT=1002           # Socket server port 1002
-SOCKET_SECURE_PORT=1443    # Secure socket port 1443
+SOCKET_SECURE_PORT=1443    # Secure socket port 1443 (may not be used if Node doesn't start HTTPS)
 DB_PORT=1003               # MySQL port 1003
 PMA_PORT=1004              # PHPMyAdmin port 1004
 ADMINER_PORT=1005          # Adminer port 1005
@@ -54,14 +52,16 @@ ADMINER_PORT=1005          # Adminer port 1005
 DB_HOST=db
 DB_NAME=misvord
 DB_USER=root
-DB_PASS=password
+DB_PASS=password # IMPORTANT: Change this in a real production environment!
 DB_CHARSET=utf8mb4
 
 # Socket server configuration
+# SOCKET_SERVER is used by the client-side (JavaScript)
 SOCKET_SERVER=${PROTOCOL}://${DOMAIN}/${SUBPATH}/socket
-SOCKET_SERVER_LOCAL=http://localhost:1002
+# SOCKET_SERVER_LOCAL is used by the PHP backend to communicate with the Node.js socket server internally
+SOCKET_SERVER_LOCAL=http://socket-server:1002 
 SOCKET_PATH=/${SUBPATH}/socket/socket.io
-SOCKET_API_KEY=kolin123
+SOCKET_API_KEY=kolin123 # IMPORTANT: Change this in a real production environment!
 CORS_ALLOWED_ORIGINS=${PROTOCOL}://${DOMAIN}
 
 # VPS deployment specific - ALWAYS ENABLED
@@ -71,7 +71,7 @@ DOMAIN=${DOMAIN}
 SUBPATH=${SUBPATH}
 EOL
 
-echo -e "${GREEN}Created .env file with VPS configuration${NC}"
+echo -e "${GREEN}Created .env file with VPS configuration for SUBPATH='${SUBPATH}'${NC}"
 echo -e "${YELLOW}Environment Summary:${NC}"
 echo -e "  ${BLUE}• Environment:${NC} Production VPS (forced)"
 echo -e "  ${BLUE}• APP_ENV:${NC} production"
@@ -615,4 +615,4 @@ echo -e "  ${BLUE}• App Server:${NC} http://localhost:1001"
 echo -e "  ${BLUE}• Socket Server:${NC} http://localhost:1002"
 echo -e "  ${BLUE}• Database:${NC} port 1003"
 echo -e "  ${BLUE}• PHPMyAdmin:${NC} http://localhost:1004 (available at ${PROTOCOL}://${DOMAIN}/${SUBPATH}/pma/)"
-echo -e "  ${BLUE}• Adminer:${NC} http://localhost:1005 (available at ${PROTOCOL}://${DOMAIN}/${SUBPATH}/adminer/)" 
+echo -e "  ${BLUE}• Adminer:${NC} http://localhost:1005 (available at ${PROTOCOL}://${DOMAIN}/${SUBPATH}/adminer/)"

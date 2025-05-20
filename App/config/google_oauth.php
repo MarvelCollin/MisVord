@@ -5,15 +5,22 @@
  * This file contains settings for Google OAuth integration.
  */
 
+$domain = getenv('DOMAIN') ?: 'localhost';
+$subpath = getenv('SUBPATH') ? '/' . trim(getenv('SUBPATH'), '/') : '';
+$protocol = (getenv('USE_HTTPS') === 'true') ? 'https' : 'http';
+
+// Construct the base URL
+$baseUrl = $protocol . '://' . $domain . $subpath;
+
 return [
-    // Google OAuth Client ID
-    'client_id' => '833443291583-i4ae59d75dflj5va4fff64j0vug6ab49.apps.googleusercontent.com',
+    // Google OAuth Client ID - Loaded from environment
+    'client_id' => getenv('GOOGLE_CLIENT_ID') ?: '',
     
-    // Google OAuth Client Secret
-    'client_secret' => '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',
+    // Google OAuth Client Secret - Loaded from environment
+    'client_secret' => getenv('GOOGLE_CLIENT_SECRET') ?: '',
     
-    // OAuth redirect URL
-    'redirect_uri' => 'http://localhost:8000/google/',
+    // OAuth redirect URL - Dynamically constructed
+    'redirect_uri' => $baseUrl . '/google/', // Assuming /google/ is your callback endpoint
     
     // OAuth scopes
     'scopes' => ['email', 'profile'],

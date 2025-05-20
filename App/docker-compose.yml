@@ -28,10 +28,8 @@ services:
       - db
     networks:
       - miscvord_network
-    # Port 1001 is exposed internally; Nginx on the host will proxy to this.
-    # No need to publish directly to host unless Nginx is also in a container on same network.
-    # ports:
-    #   - "${APP_PORT:-1001}:1001"
+    ports: # Ports exposed to the host
+      - "${APP_PORT:-1001}:1001"
     environment:
       - APP_ENV=${APP_ENV:-production} # Set to production for VPS
       - APP_DEBUG=${APP_DEBUG:-false}  # Set to false for VPS
@@ -69,11 +67,9 @@ services:
       - db
     networks:
       - miscvord_network
-    # Port 1002 is exposed internally; Nginx on the host will proxy to this.
-    # No need to publish directly to host.
-    # ports:
-    #  - "${SOCKET_PORT:-1002}:1002"
-    #  - "${SOCKET_SECURE_PORT:-1443}:1443" # Not needed if Nginx handles SSL
+    ports: # Ports exposed to the host
+     - "${SOCKET_PORT:-1002}:1002"
+    #  - "${SOCKET_SECURE_PORT:-1443}:1443" # Not needed if Nginx on host handles SSL
     environment:
       - NODE_ENV=${APP_ENV:-production} # Set to production for VPS
       - PORT=${SOCKET_PORT:-1002} # Internal port for Node service
@@ -120,9 +116,7 @@ services:
       - miscvord_db_data:/var/lib/mysql # Persists DB data on the host
     networks:
       - miscvord_network
-    # Expose DB port only if you need to connect from host, otherwise keep internal.
-    # For VPS, usually better to keep it internal and use phpMyAdmin/Adminer or SSH tunnel.
-    # ports:
+    # ports: # Usually kept internal unless direct host access is needed
     #   - "${DB_PORT:-1003}:${DB_PORT:-1003}"
     command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --port=${DB_PORT:-1003}
     security_opt:
@@ -142,9 +136,8 @@ services:
       - db
     networks:
       - miscvord_network
-    # Port 1004 is exposed internally; Nginx on the host will proxy to this.
-    # ports:
-    #  - "${PMA_PORT:-1004}:1004"
+    ports: # Ports exposed to the host
+     - "${PMA_PORT:-1004}:1004"
     environment:
       - PMA_HOST=db
       - PMA_PORT=${DB_PORT:-1003}
@@ -165,9 +158,8 @@ services:
       - db
     networks:
       - miscvord_network
-    # Port 1005 is exposed internally; Nginx on the host will proxy to this.
-    # ports:
-    #  - "${ADMINER_PORT:-1005}:1005"
+    ports: # Ports exposed to the host
+     - "${ADMINER_PORT:-1005}:1005"
     environment:
       ADMINER_DEFAULT_SERVER: db
       ADMINER_DESIGN: pepa-linha # Example theme
