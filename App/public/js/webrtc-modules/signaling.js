@@ -15,6 +15,19 @@ let connectionAttempts = 0;
 const MAX_CONNECTION_ATTEMPTS = 3; // Max attempts for initial connection and for each fallback type
 
 /**
+ * Get the base path for the application
+ * @return {string} The base path (e.g. /misvord)
+ */
+function getBasePath() {
+    // Check if we have a subpath in the URL (e.g., /misvord)
+    const pathParts = window.location.pathname.split('/');
+    if (pathParts.length > 1 && pathParts[1]) {
+        return '/' + pathParts[1]; // Return the first path segment (e.g., /misvord)
+    }
+    return ''; // No subpath found
+}
+
+/**
  * Fix Docker service names in URLs
  * Browsers cannot resolve Docker internal service names like 'socket-server'
  * @param {string} url - The URL to fix
