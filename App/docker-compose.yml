@@ -79,7 +79,7 @@ services:
       - DB_USER=${DB_USER:-root}
       - DB_PASS=${DB_PASS:-password} # Use .env file for this!
       # This is the path Nginx will proxy to.
-      - SOCKET_URL=${SOCKET_SERVER_URL:-wss://marvelcollin.my.id/misvord/socket} # Adjusted for VPS with SSL and subpath
+      - SOCKET_URL=${SOCKET_SERVER:-wss://marvelcollin.my.id/misvord/socket} # Corrected to match .env-example
       - SOCKET_PATH=${SOCKET_PATH:-/misvord/socket/socket.io} # Adjusted for subpath and Nginx config
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-https://marvelcollin.my.id} # Specific for your domain
       - USE_HTTPS=${USE_HTTPS:-true} # Nginx handles actual SSL, but app might need to know

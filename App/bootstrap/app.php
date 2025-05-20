@@ -1,39 +1,77 @@
 <?php
 /**
- * Application Bootstrap File
+ * Application Bootstrap
  * 
- * This file initializes the application by loading necessary components,
- * setting up error handling, and starting the routing system.
+ * This file is the entry point for bootstrapping the application.
+ * It initializes all required components and sets up the environment.
  */
 
-// Load configuration files
-require_once dirname(__DIR__) . '/config/helpers.php';
+// Define base application path
+define('ROOT_PATH', dirname(__DIR__));
 
-// Load environment variables first to determine environment type
-require_once dirname(__DIR__) . '/config/env.php';
-$env = EnvLoader::getEnv(); // Assuming this loads .env and makes getenv() work
+// Load environment variables
+require_once ROOT_PATH . '/config/env.php';
 
-// Set up error handling based on environment
-if (getenv('APP_ENV') === 'production') {
-    ini_set('display_errors', 0);
-    ini_set('log_errors', 1);
-    // Ensure error_log is configured in php.ini or web server to write to a file
-    // For example, error_log = /var/log/php_errors.log or similar in your Docker PHP config
-} else {
-    ini_set('display_errors', 1);
-    error_reporting(E_ALL);
-}
-
-// Enable more comprehensive error logging
-error_log("App bootstrapping started. APP_ENV: " . (getenv('APP_ENV') ?: 'not_set'));
-
-// Initialize database connection early
+// Initialize database connection
 try {
-    $pdo = EnvLoader::getPDOConnection();
-    error_log("Database connection successful");
-} catch (Exception $e) {
-    error_log("Database connection failed: " . $e->getMessage());
+    // Get database configuration
+    $dbConfig = [
+        'host' => EnvLoader::get('DB_HOST', 'db'),
+        'port' => EnvLoader::get('DB_PORT', '1003'),
+        'dbname' => EnvLoader::get('DB_NAME', 'misvord'),
+        'username' => EnvLoader::get('DB_USER', 'root'),
+        'password' => EnvLoader::get('DB_PASS', 'password'),
+        'charset' => EnvLoader::get('DB_CHARSET', 'utf8mb4'),
+    ];
+    
+    // Connect to database
+    $dsn = "mysql:host={$dbConfig['host']};port={$dbConfig['port']};dbname={$dbConfig['dbname']};charset={$dbConfig['charset']}";
+    
+    $pdoOptions = [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES => false,
+    ];
+    
+    $pdo = new PDO($dsn, $dbConfig['username'], $dbConfig['password'], $pdoOptions);
+    
+    // Set global database connection
+    $GLOBALS['db'] = $pdo;
+    
+    // Initialize query builder
+    require_once ROOT_PATH . '/database/query.php';
+    $GLOBALS['query'] = new Query($pdo);
+    
+} catch (PDOException $e) {
+    // If cannot connect to database, try to create it
+    if ($e->getCode() == 1049) { // "Unknown database" error code
+        // Include database initialization script
+        require_once ROOT_PATH . '/init-db.php';
+        
+        // Try to reconnect after initialization
+        try {
+            $dsn = "mysql:host={$dbConfig['host']};port={$dbConfig['port']};dbname={$dbConfig['dbname']};charset={$dbConfig['charset']}";
+            $pdo = new PDO($dsn, $dbConfig['username'], $dbConfig['password'], $pdoOptions);
+            $GLOBALS['db'] = $pdo;
+            $GLOBALS['query'] = new Query($pdo);
+        } catch (PDOException $e) {
+            error_log("Failed to connect to database after initialization: " . $e->getMessage());
+            // Continue with application setup even if database connection fails
+        }
+    } else {
+        error_log("Database connection error: " . $e->getMessage());
+        // Continue with application setup even if database connection fails
+    }
 }
 
-// Load the router configuration and start routing
-require_once dirname(__DIR__) . '/config/web.php';
+// Load route definitions
+require_once ROOT_PATH . '/config/routes.php';
+
+// Initialize session
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+return [
+    'ready' => true
+];

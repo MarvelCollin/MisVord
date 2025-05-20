@@ -35,7 +35,7 @@ mysql_safe() {
     local result=1
 
     while [ $retry_count -lt $max_retries ] && [ $result -ne 0 ]; do
-        docker exec miscvord_db mysql -h db -u root -ppassword -e "$command" &>/dev/null
+        docker exec miscvord_db mysql -h db -u root -p"${DB_PASS}" -e "$command" &>/dev/null
         result=$?
         
         if [ $result -ne 0 ]; then
@@ -48,7 +48,7 @@ mysql_safe() {
                 info "MySQL error. Here are some troubleshooting tips:"
                 info "1. Check if MySQL container is running: docker ps | grep miscvord_db"
                 info "2. Check MySQL logs: docker logs miscvord_db"
-                info "3. Try connecting manually: docker exec -it miscvord_db mysql -u root -ppassword"
+                info "3. Try connecting manually: docker exec -it miscvord_db mysql -u root -p"${DB_PASS}" -e "SHOW DATABASES LIKE '${DB_NAME:-misvord}'"
                 info "4. Verify .env and docker-compose.yml have matching password configuration"
                 return 1
             fi
@@ -105,6 +105,14 @@ if [ ! -f .env ]; then
     fi
 else
     info ".env file already exists"
+    read -p "Do you want to update .env file from .env-example? (y/n): " update_env
+    if [[ "$update_env" == "y" || "$update_env" == "Y" ]]; then
+        info "Backing up existing .env to .env.backup"
+        cp .env .env.backup
+        info "Updating .env file from .env-example"
+        cp .env-example .env
+        info "The original .env file has been backed up to .env.backup"
+    fi
 fi
 
 # Add SSL_EMAIL variable to .env-example if it doesn't exist
@@ -430,7 +438,7 @@ step "Checking database initialization"
 info "Waiting for MySQL to be fully initialized..."
 attempt=1
 max_attempts=30
-until docker exec miscvord_db mysqladmin ping -h db -u root --password="password" --silent &>/dev/null || [ $attempt -gt $max_attempts ]
+until docker exec miscvord_db mysqladmin ping -h db -u root --password="${DB_PASS}" --silent &>/dev/null || [ $attempt -gt $max_attempts ]
 do
     info "Waiting for MySQL to be ready... Attempt $attempt/$max_attempts"
     sleep 3
@@ -444,7 +452,7 @@ fi
 info "MySQL is now ready"
 
 # Try with default password first - connecting to the container's database service
-if docker exec miscvord_db mysql -h db -u root -ppassword -e "SHOW DATABASES LIKE '${DB_NAME:-misvord}'" 2>/dev/null | grep -q "${DB_NAME:-misvord}"; then
+if docker exec miscvord_db mysql -h db -u root -p"${DB_PASS}" -e "SHOW DATABASES LIKE '${DB_NAME:-misvord}'" 2>/dev/null | grep -q "${DB_NAME:-misvord}"; then
     info "Database ${DB_NAME:-misvord} already exists"
 else
     info "Initializing database schema..."
@@ -454,15 +462,15 @@ else
         info "Trying alternative connection method..."
         
         # Try option 2: MySQL native authentication
-        if docker exec miscvord_db mysql -h db -u root -ppassword --default-auth=mysql_native_password -e "CREATE DATABASE IF NOT EXISTS \`${DB_NAME:-misvord}\`" 2>/dev/null; then
+        if docker exec miscvord_db mysql -h db -u root -p"${DB_PASS}" --default-auth=mysql_native_password -e "CREATE DATABASE IF NOT EXISTS \`${DB_NAME:-misvord}\`" 2>/dev/null; then
             info "Successfully created database using native authentication"
         else
             # Try option 3: Connect without host specification
-            if docker exec miscvord_db mysql -u root -ppassword -e "CREATE DATABASE IF NOT EXISTS \`${DB_NAME:-misvord}\`" 2>/dev/null; then
+            if docker exec miscvord_db mysql -u root -p"${DB_PASS}" -e "CREATE DATABASE IF NOT EXISTS \`${DB_NAME:-misvord}\`" 2>/dev/null; then
                 info "Successfully created database without host specification"
             else
                 # Try option 4: Connect with localhost as host
-                if docker exec miscvord_db mysql -h localhost -u root -ppassword -e "CREATE DATABASE IF NOT EXISTS \`${DB_NAME:-misvord}\`" 2>/dev/null; then
+                if docker exec miscvord_db mysql -h localhost -u root -p"${DB_PASS}" -e "CREATE DATABASE IF NOT EXISTS \`${DB_NAME:-misvord}\`" 2>/dev/null; then
                     info "Successfully created database using localhost"
                 else
                     error "Failed to create database after trying multiple methods. Please check MySQL configuration manually."
@@ -475,8 +483,8 @@ else
     if [ -f "database/schema.sql" ]; then
         info "Importing schema from database/schema.sql..."
         # Try different methods to import schema
-        if ! cat database/schema.sql | docker exec -i miscvord_db mysql -h db -u root -ppassword "${DB_NAME:-misvord}" 2>/dev/null; then
-            if ! cat database/schema.sql | docker exec -i miscvord_db mysql -u root -ppassword "${DB_NAME:-misvord}" 2>/dev/null; then
+        if ! cat database/schema.sql | docker exec -i miscvord_db mysql -h db -u root -p"${DB_PASS}" "${DB_NAME:-misvord}" 2>/dev/null; then
+            if ! cat database/schema.sql | docker exec -i miscvord_db mysql -u root -p"${DB_PASS}" "${DB_NAME:-misvord}" 2>/dev/null; then
                 error "Failed to import database schema. Please check the schema file and MySQL configuration."
             else
                 info "Successfully imported schema using alternative method"
@@ -494,7 +502,7 @@ if [ "${DB_PASS}" != "password" ] && [ "${DB_PASS}" != "" ]; then
     info "Note: You've specified a custom database password in your .env file."
     info "Make sure your application is using the correct password."
     info "If you need to reset the password to default, you can run:"
-    info "docker exec miscvord_db mysql -u root -p\"${DB_PASS}\" -e \"ALTER USER 'root'@'%' IDENTIFIED BY 'password';\""
+    info "docker exec miscvord_db mysql -u root -p\\"${DB_PASS}\\" -e \\"ALTER USER 'root'@'%' IDENTIFIED BY 'password';\\""
 fi
 
 # Step 8: Verify deployment

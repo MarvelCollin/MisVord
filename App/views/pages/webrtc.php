@@ -44,7 +44,7 @@ if (empty($socket_server_url)) {
         error_log("Accessing through port 1001, using socket server on port 1002: " . $socket_server_url);
     } else {
         // Standard connection - still use port 1002 for socket server
-        $socket_server_url = $is_https ? 'https://localhost:1002' : 'http://localhost:1002';
+    $socket_server_url = $is_https ? 'https://localhost:1002' : 'http://localhost:1002'; 
     }
     
     // In production environments, we might need subpath
@@ -478,7 +478,7 @@ $additional_head = '
             // Special handling for marvelcollin.my.id domain
             if (hostname.includes('marvelcollin.my.id')) {
                 return '/misvord/js';
-            }
+                }
             
             // Default path for other environments
             const currentPath = window.location.pathname;
@@ -486,7 +486,7 @@ $additional_head = '
                 return '/misvord/js';
             } else if (currentPath.includes('/miscvord/')) {
                 return '/miscvord/js';
-            } else {
+    } else {
                 return '/js';
             }
         }
