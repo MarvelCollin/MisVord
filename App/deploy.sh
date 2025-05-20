@@ -286,21 +286,63 @@ fi
 info "Testing Nginx configuration..."
 sudo nginx -t || error "Nginx configuration test failed"
 
-# Step 4: Build and start Docker containers
-step "Building Docker containers"
+# Step 4: Docker container management
+step "Docker container management"
 
-# Make sure to clear any existing containers with the same names
-info "Stopping any existing containers..."
-docker-compose down || true
+# Create docker network if it doesn't exist
+info "Ensuring docker network exists..."
+docker network inspect miscvord_network >/dev/null 2>&1 || docker network create miscvord_network
 
-# Build the containers
-info "Building containers..."
-docker-compose build || error "Docker build failed"
+# Check if docker containers already exist
+CONTAINERS_EXIST=false
+if docker ps -a | grep -q "miscvord_php\|miscvord_socket\|miscvord_db"; then
+    CONTAINERS_EXIST=true
+fi
 
-# Start the containers
-step "Starting Docker containers"
-info "Starting all services..."
-docker-compose up -d || error "Failed to start Docker containers"
+# Ask user if they want to rebuild or just restart
+if [ "$CONTAINERS_EXIST" = true ]; then
+    echo ""
+    echo -e "${YELLOW}Docker containers already exist. You have the following options:${NC}"
+    echo "1. Rebuild all containers (takes longer but ensures latest code)"
+    echo "2. Just restart existing containers (faster)"
+    read -p "Enter your choice (1/2, default is 2): " rebuild_choice
+    
+    if [[ "$rebuild_choice" == "1" ]]; then
+        info "Rebuilding all containers..."
+        docker-compose down || true
+        
+        # Handle potential DB Password issues
+        info "Note: MySQL default password is 'password'. If you're using a custom password in .env,"
+        info "make sure it matches what's in your docker-compose.yml file."
+        
+        # Build the containers
+        info "Building containers..."
+        docker-compose build || error "Docker build failed"
+        
+        # Start the containers
+        info "Starting all services..."
+        docker-compose up -d || error "Failed to start Docker containers"
+    else
+        info "Restarting existing containers..."
+        docker-compose restart || error "Failed to restart Docker containers"
+    fi
+else
+    # No existing containers, need to build
+    info "No existing containers found. Building new containers..."
+    docker-compose down || true
+    
+    # Handle potential DB Password issues
+    info "Note: MySQL default password is 'password'. If you're using a custom password in .env,"
+    info "make sure it matches what's in your docker-compose.yml file."
+    
+    # Build the containers
+    info "Building containers..."
+    docker-compose build || error "Docker build failed"
+    
+    # Start the containers
+    info "Starting all services..."
+    docker-compose up -d || error "Failed to start Docker containers"
+fi
 
 # Step 5: Verify environment variables
 step "Verifying environment variables"
@@ -329,19 +371,31 @@ sleep 15
 
 # Step 7: Initialize database if needed
 step "Checking database initialization"
-if docker exec miscvord_db mysql -u root -p"${DB_PASS:-password}" -e "SHOW DATABASES LIKE '${DB_NAME:-misvord}'" 2>/dev/null | grep -q "${DB_NAME:-misvord}"; then
+# Use the hard-coded default password for initial setup instead of the variable
+info "Attempting to connect to database using default credentials..."
+
+# Try with default password first
+if docker exec miscvord_db mysql -u root -p"password" -e "SHOW DATABASES LIKE '${DB_NAME:-misvord}'" 2>/dev/null | grep -q "${DB_NAME:-misvord}"; then
     info "Database ${DB_NAME:-misvord} already exists"
 else
     info "Initializing database schema..."
     # Check if a database schema file exists
     if [ -f "database/schema.sql" ]; then
-        docker exec -i miscvord_db mysql -u root -p"${DB_PASS:-password}" < database/schema.sql
+        docker exec -i miscvord_db mysql -u root -p"password" < database/schema.sql
         info "Database initialized from schema file"
     else
         # Create an empty database
-        docker exec miscvord_db mysql -u root -p"${DB_PASS:-password}" -e "CREATE DATABASE IF NOT EXISTS \`${DB_NAME:-misvord}\`"
+        docker exec miscvord_db mysql -u root -p"password" -e "CREATE DATABASE IF NOT EXISTS \`${DB_NAME:-misvord}\`"
         info "Empty database created. You'll need to set up the schema manually."
     fi
+fi
+
+# Update the db configuration if needed
+if [ "${DB_PASS}" != "password" ] && [ "${DB_PASS}" != "" ]; then
+    info "Note: You've specified a custom database password in your .env file."
+    info "Make sure your application is using the correct password."
+    info "If you need to reset the password to default, you can run:"
+    info "docker exec miscvord_db mysql -u root -p\"${DB_PASS}\" -e \"ALTER USER 'root'@'%' IDENTIFIED BY 'password';\""
 fi
 
 # Step 8: Verify deployment
@@ -388,10 +442,18 @@ if command -v ufw &> /dev/null; then
     sudo ufw allow 80/tcp
     sudo ufw allow 443/tcp
     
-    # Allow docker ports if needed from outside
-    # Uncomment if you need these ports accessible from outside the server
-    # sudo ufw allow ${APP_PORT:-1001}/tcp
-    # sudo ufw allow ${SOCKET_PORT:-1002}/tcp
+    # Allow Docker internal communication
+    # This ensures containers can talk to each other
+    sudo ufw allow in on docker0
+    sudo ufw route allow in on docker0
+    sudo ufw route allow out on docker0
+    
+    # Allow access to Docker published ports
+    sudo ufw allow ${APP_PORT:-1001}/tcp
+    sudo ufw allow ${SOCKET_PORT:-1002}/tcp
+    sudo ufw allow ${DB_PORT:-1003}/tcp comment 'MySQL database port'
+    sudo ufw allow ${PMA_PORT:-1004}/tcp comment 'PHPMyAdmin port'
+    sudo ufw allow ${ADMINER_PORT:-1005}/tcp comment 'Adminer port'
     
     info "Firewall configured successfully"
 else
