@@ -45,7 +45,10 @@ RUN chmod -R 775 /var/www/html/storage
 
 # Configure Apache to listen on port 1001 instead of 80
 RUN sed -i 's/Listen 80/Listen 1001/g' /etc/apache2/ports.conf
-RUN sed -i 's/:80/:1001/g' /etc/apache2/sites-available/000-default.conf
+RUN sed -i 's/<VirtualHost \*:80>/<VirtualHost *:1001>/g' /etc/apache2/sites-available/000-default.conf
+
+# Add a serverName directive to prevent Apache warning
+RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
 
 # Enable Apache modules
 RUN a2enmod rewrite headers ssl

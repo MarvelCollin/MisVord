@@ -1,5 +1,10 @@
 <?php
-define('APP_ROOT', __DIR__);
+// Ensure no whitespace or output before this opening PHP tag
+
+// Define APP_ROOT only if not already defined
+if (!defined('APP_ROOT')) {
+    define('APP_ROOT', __DIR__);
+}
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();

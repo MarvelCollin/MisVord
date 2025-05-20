@@ -150,6 +150,14 @@ return [
     
     // Health check endpoint for Docker
     'GET:/health' => function() {
+        // Ensure no output has been sent before this point
+        if (headers_sent($file, $line)) {
+            error_log("Headers already sent in $file:$line - health check may not work properly");
+        }
+        
+        // Disable error output for this endpoint
+        $oldErrorReporting = error_reporting(0);
+        
         try {
             // Try to get a database connection
             $pdo = EnvLoader::getPDOConnection();
@@ -172,6 +180,10 @@ return [
                 'timestamp' => date('c')
             ]);
         }
+        
+        // Restore error reporting
+        error_reporting($oldErrorReporting);
+        exit;
     },
     
     // 404 page - shown when no route matches

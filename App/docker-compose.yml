@@ -95,8 +95,8 @@ services:
         soft: 1024
         hard: 2048
     healthcheck:
-      # Adjusted healthcheck to work with subpath if needed, though internal healthcheck might not need subpath
-      test: ["CMD", "wget", "--spider", "--quiet", "http://localhost:1002/health" , "||", "exit", "1"]
+      # Using curl for healthcheck, simpler and often more available
+      test: ["CMD-SHELL", "curl -f http://localhost:1002/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -137,7 +137,7 @@ services:
     networks:
       - miscvord_network
     ports: # Ports exposed to the host
-     - "${PMA_PORT:-1004}:1004"
+     - "${PMA_PORT:-1004}:80"
     environment:
       - PMA_HOST=db
       - PMA_PORT=${DB_PORT:-1003}
@@ -145,7 +145,6 @@ services:
       - UPLOAD_LIMIT=500M
       - PMA_USER=${DB_USER:-root}
       - PMA_PASSWORD=${DB_PASS:-password} # Use .env file for this!
-      - PORT=1004 # Internal port for phpMyAdmin service
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
@@ -159,11 +158,10 @@ services:
     networks:
       - miscvord_network
     ports: # Ports exposed to the host
-     - "${ADMINER_PORT:-1005}:1005"
+     - "${ADMINER_PORT:-1005}:8080"
     environment:
       ADMINER_DEFAULT_SERVER: db
       ADMINER_DESIGN: pepa-linha # Example theme
-      ADMINER_PORT: 1005 # Internal port for Adminer service
     security_opt:
       - no-new-privileges:true
 
