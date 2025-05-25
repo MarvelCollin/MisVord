@@ -244,7 +244,11 @@ function updateConnectionList(forceUpdate = false) {
     // Create or update connection items
     window.WebRTCMonitor.connectionList.innerHTML = '';
     
+    // Keep track of valid peer IDs to clean up stale entries later
+    const activePeerIds = new Set();
+    
     peersArray.forEach(([peerId, peerData]) => {
+        activePeerIds.add(peerId);
         const pc = peerData.pc;
         if (!pc) return;
         
@@ -366,6 +370,22 @@ function updateConnectionList(forceUpdate = false) {
             }
         }
     });
+    
+    // Clean up stale connection states to prevent memory leaks
+    // This removes entries for connections that no longer exist
+    for (const storedPeerId of window.WebRTCMonitor.connectionStates.keys()) {
+        if (!activePeerIds.has(storedPeerId)) {
+            window.WebRTCMonitor.connectionStates.delete(storedPeerId);
+            console.log(`[MONITOR] Cleaned up stale connection state for peer: ${storedPeerId}`);
+            
+            // Also clean up any stored reconnect attempt flags in sessionStorage
+            try {
+                sessionStorage.removeItem(`failed_${storedPeerId}`);
+            } catch (e) {
+                // Ignore errors with sessionStorage
+            }
+        }
+    }
     
     // Update stats
     updateConnectionStats();
@@ -842,7 +862,7 @@ function checkPeerConnectionsStatus() {
     if (window.WebRTCPeerConnection && typeof window.WebRTCPeerConnection.getAllPeers === 'function') {
         peerConnections = window.WebRTCPeerConnection.getAllPeers();
     } else if (window.peers) {
-        peerConnections = Object.values(window.peers);
+        peerConnections = Object.entries(window.peers).map(([id, data]) => ({id, ...data}));
     }
     
     if (peerConnections.length === 0) {
@@ -854,6 +874,7 @@ function checkPeerConnectionsStatus() {
     let connectedCount = 0;
     let connectingCount = 0;
     let disconnectedCount = 0;
+    let failedCount = 0;
     
     // Log detailed peer info for debugging
     if (CONNECTION_MONITOR_CONFIG.debug) {
@@ -871,20 +892,44 @@ function checkPeerConnectionsStatus() {
     
     peerConnections.forEach(peer => {
         const pc = peer.pc || peer;
+        const peerId = peer.id || 'unknown';
         
         if (!pc) return;
         
         // Check connection state
-        if (pc.connectionState === 'connected' || pc.iceConnectionState === 'connected') {
+        const iceState = pc.iceConnectionState;
+        const connState = pc.connectionState;
+        
+        // Handle failed ICE connections with fallback strategy
+        if (iceState === 'failed' || connState === 'failed') {
+            failedCount++;
+            
+            // Track failed connections to avoid repeated fallback attempts
+            const failedKey = `failed_${peerId}`;
+            const lastAttempt = parseInt(sessionStorage.getItem(failedKey) || '0');
+            const now = Date.now();
+            
+            // Only try fallback every 30 seconds at most
+            if (now - lastAttempt > 30000) {
+                sessionStorage.setItem(failedKey, now.toString());
+                handleIceFailure(peerId, peer);
+            }
+        }
+        else if (connState === 'connected' || iceState === 'connected') {
             connectedCount++;
-        } else if (
-            pc.connectionState === 'connecting' || 
-            pc.connectionState === 'new' ||
-            pc.iceConnectionState === 'checking' || 
-            pc.iceConnectionState === 'new'
+            
+            // Clear failed flag if connection is established
+            sessionStorage.removeItem(`failed_${peerId}`);
+        }
+        else if (
+            connState === 'connecting' || 
+            connState === 'new' ||
+            iceState === 'checking' || 
+            iceState === 'new'
         ) {
             connectingCount++;
-        } else {
+        }
+        else {
             disconnectedCount++;
         }
     });
@@ -1057,29 +1102,15 @@ function logError(...args) {
 }
 
 /**
- * Try to reconnect to the signaling server
+ * Simple connection retry (legacy version for compatibility)
+ * Forwards to the enhanced recoverConnection function
  */
 function retryConnection() {
-    logInfo('Manual reconnection attempt initiated');
+    console.log("[Connection Monitor] Retry connection requested (legacy)");
+    window.WebRTCUI.addLogEntry('Connection retry requested', 'system');
     
-    if (window.socket) {
-        try {
-            window.socket.connect();
-            logInfo('Socket reconnect requested');
-        } catch (e) {
-            logError('Socket reconnect error:', e);
-        }
-    } else if (window.WebRTCSignaling && typeof window.WebRTCSignaling.tryDirectConnection === 'function') {
-        window.WebRTCSignaling.tryDirectConnection();
-        logInfo('Direct connection attempt initiated via WebRTCSignaling');
-    } else {
-        logError('No socket or WebRTCSignaling available for reconnection');
-        
-        // Reload page as last resort if user confirms
-        if (confirm('Cannot reconnect to server. Would you like to reload the page to try again?')) {
-            window.location.reload();
-        }
-    }
+    // Forward to the advanced recovery function
+    return recoverConnection();
 }
 
 /**
@@ -1105,25 +1136,54 @@ window.WebRTCMonitor = {
 
 /**
  * Initialize the connection monitor
+ * @param {Object} config - Optional configuration parameters
+ * @return {Object} Connection monitor interface
  */
-function init() {
-    // Avoid multiple initializations
-    if (state.isMonitoring) return;
+function init(config = {}) {
+    // Merge configuration
+    Object.assign(CONNECTION_MONITOR_CONFIG, config);
     
-    // Start socket monitoring interval
-    state.intervalId = setInterval(checkSocketConnection, config.socketCheckInterval);
-    state.isMonitoring = true;
+    // Apply special fixes for localhost environment
+    applyLocalhostFixes();
     
-    // Add listeners for connection state changes
+    // Start monitoring with a short delay
+    setTimeout(startMonitoring, 1000);
+    
+    // Add network change event listener
     window.addEventListener('online', handleNetworkChange);
     window.addEventListener('offline', handleNetworkChange);
     
-    // Special handler for localhost to ensure proper connections
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        applyLocalhostFixes();
+    // Listen for visibility changes to restart monitoring when tab becomes visible again
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible') {
+            console.log('[Connection Monitor] Tab visible, checking connection status');
+            checkConnectionStatus();
+        }
+    });
+    
+    // Create debug UI if requested
+    if (config.showDebugUI) {
+        createDebugUI();
     }
     
-    console.log('[WebRTC] Connection monitor initialized');
+    // Export interface to module namespace
+    window.WebRTCMonitor.startMonitoring = startMonitoring;
+    window.WebRTCMonitor.stopMonitoring = stopMonitoring;
+    window.WebRTCMonitor.checkConnectionStatus = checkConnectionStatus;
+    window.WebRTCMonitor.retryConnection = retryConnection;
+    window.WebRTCMonitor.recoverConnection = recoverConnection; // Export the new enhanced recovery function
+    window.WebRTCMonitor.toggleDebugPanel = toggleDebugPanel;
+    
+    console.log('[Connection Monitor] Initialized');
+    
+    return {
+        startMonitoring,
+        stopMonitoring,
+        checkConnectionStatus,
+        retryConnection, 
+        recoverConnection, // Expose enhanced recovery function
+        toggleDebugPanel
+    };
 }
 
 /**
@@ -1306,4 +1366,239 @@ if (window.WebRTCUI && window.WebRTCSignaling) {
             init();
         }
     }, 1000);
+}
+
+/**
+ * Handle failed ICE connections with fallback strategies
+ * @param {String} peerId - ID of the peer connection that failed
+ * @param {Object} peerInfo - Peer connection information
+ */
+function handleIceFailure(peerId, peerInfo) {
+    if (!peerInfo || !peerInfo.pc) {
+        logError(`Cannot handle ICE failure for peer ${peerId}: Invalid peer information`);
+        return;
+    }
+
+    logWarning(`ICE connection to peer ${peerId} failed, trying fallback strategies`);
+    
+    // Strategy 1: Try ICE restart
+    if (typeof peerInfo.pc.restartIce === 'function') {
+        logInfo(`Attempting ICE restart for peer ${peerId}`);
+        peerInfo.pc.restartIce();
+        
+        // Create a new offer with ICE restart flag
+        peerInfo.pc.createOffer({ iceRestart: true })
+            .then(offer => {
+                return peerInfo.pc.setLocalDescription(offer);
+            })
+            .then(() => {
+                // If we have a signaling channel, send the offer
+                if (window.WebRTCSignaling && typeof window.WebRTCSignaling.sendWebRTCOffer === 'function') {
+                    window.WebRTCSignaling.sendWebRTCOffer(
+                        peerId, 
+                        peerInfo.pc.localDescription, 
+                        { isIceRestart: true, isReconnect: true }
+                    );
+                    logInfo(`Sent ICE restart offer to peer ${peerId}`);
+                }
+            })
+            .catch(err => {
+                logError(`Error creating ICE restart offer: ${err.message}`);
+                
+                // Move to next strategy if ICE restart fails
+                tryRelayCandidateOnly(peerId, peerInfo);
+            });
+    } else {
+        // If ICE restart not supported, try relay candidates only
+        tryRelayCandidateOnly(peerId, peerInfo);
+    }
+}
+
+/**
+ * Try connecting using only relay candidates
+ * This is useful when direct connections fail due to NAT/firewall issues
+ * @param {String} peerId - ID of the peer
+ * @param {Object} peerInfo - Peer connection information
+ */
+function tryRelayCandidateOnly(peerId, peerInfo) {
+    logInfo(`Attempting relay-only connection for peer ${peerId}`);
+    
+    // Get current ICE transport policy
+    const currentPolicy = peerInfo.pc.getConfiguration()?.iceTransportPolicy || 'all';
+    
+    // Only proceed if we're not already using relay-only
+    if (currentPolicy !== 'relay') {
+        // Create new config with relay-only
+        const newConfig = peerInfo.pc.getConfiguration() || {};
+        newConfig.iceTransportPolicy = 'relay';
+        
+        try {
+            // Apply new configuration if supported
+            if (typeof peerInfo.pc.setConfiguration === 'function') {
+                peerInfo.pc.setConfiguration(newConfig);
+                logInfo(`Set ICE transport policy to relay-only for peer ${peerId}`);
+                
+                // Force ICE restart with new configuration
+                peerInfo.pc.restartIce();
+                
+                // Create a new offer with new configuration
+                peerInfo.pc.createOffer({ iceRestart: true })
+                    .then(offer => peerInfo.pc.setLocalDescription(offer))
+                    .then(() => {
+                        if (window.WebRTCSignaling && typeof window.WebRTCSignaling.sendWebRTCOffer === 'function') {
+                            window.WebRTCSignaling.sendWebRTCOffer(
+                                peerId, 
+                                peerInfo.pc.localDescription, 
+                                { isIceRestart: true, isReconnect: true, relayOnly: true }
+                            );
+                            logInfo(`Sent relay-only ICE restart offer to peer ${peerId}`);
+                        }
+                    })
+                    .catch(err => {
+                        logError(`Error creating relay-only offer: ${err.message}`);
+                    });
+            } else {
+                logError(`setConfiguration not supported, cannot use relay-only fallback`);
+            }
+        } catch (e) {
+            logError(`Error applying relay-only configuration: ${e.message}`);
+        }
+    } else {
+        logWarning(`Peer ${peerId} already using relay-only configuration`);
+    }
+}
+
+/**
+ * Advanced connection recovery with progressive backoff
+ * This function attempts to restore lost connections with increased delay between attempts
+ */
+function recoverConnection() {
+    console.log('[Connection Monitor] Starting advanced connection recovery');
+    window.WebRTCUI.addLogEntry('Starting connection recovery process...', 'system');
+    
+    // Check for socket health
+    if (!window.socket || !window.socket.connected) {
+        console.log('[Connection Monitor] Socket connection lost, attempting recovery');
+        window.WebRTCUI.updateConnectionStatus('connecting', 'Attempting to recover connection...');
+        
+        // Try reconnection with progressive backoff
+        let attempts = 0;
+        const maxAttempts = 5;
+        const baseDelay = 1000;
+        
+        const attemptReconnect = () => {
+            if (attempts >= maxAttempts) {
+                console.error('[Connection Monitor] Failed to recover connection after maximum attempts');
+                window.WebRTCUI.updateConnectionStatus('disconnected', 'Connection recovery failed');
+                window.WebRTCUI.addLogEntry('Connection recovery failed after multiple attempts. Please refresh the page.', 'error');
+                return;
+            }
+            
+            attempts++;
+            const delay = baseDelay * Math.pow(1.5, attempts - 1);
+            console.log(`[Connection Monitor] Reconnection attempt ${attempts}/${maxAttempts} in ${delay}ms`);
+            window.WebRTCUI.addLogEntry(`Reconnection attempt ${attempts}/${maxAttempts}...`, 'socket');
+            
+            setTimeout(() => {
+                // Try to reconnect using WebRTCSignaling if available
+                if (window.WebRTCSignaling && typeof window.WebRTCSignaling.reconnect === 'function') {
+                    window.WebRTCSignaling.reconnect(
+                        window.VIDEO_CHAT_ROOM || 'global-video-chat',
+                        window.userName || 'User_' + Math.floor(Math.random() * 10000)
+                    );
+                    
+                    // Check if reconnect was successful
+                    setTimeout(() => {
+                        if (window.socket && window.socket.connected) {
+                            console.log('[Connection Monitor] Reconnection successful');
+                            window.WebRTCUI.addLogEntry('Connection restored successfully!', 'success');
+                            window.WebRTCUI.updateConnectionStatus('connected', 'Connection restored');
+                        } else {
+                            console.log('[Connection Monitor] Reconnection attempt failed');
+                            window.WebRTCUI.addLogEntry(`Connection attempt ${attempts} failed`, 'warn');
+                            attemptReconnect();
+                        }
+                    }, 2000);
+                } else {
+                    // Fallback to direct socket reconnection
+                    if (window.socket) {
+                        try {
+                            window.socket.connect();
+                            
+                            // Check if reconnect was successful
+                            setTimeout(() => {
+                                if (window.socket && window.socket.connected) {
+                                    console.log('[Connection Monitor] Direct reconnection successful');
+                                    window.WebRTCUI.addLogEntry('Connection restored successfully!', 'success');
+                                    window.WebRTCUI.updateConnectionStatus('connected', 'Connection restored');
+                                } else {
+                                    console.log('[Connection Monitor] Direct reconnection attempt failed');
+                                    window.WebRTCUI.addLogEntry(`Connection attempt ${attempts} failed`, 'warn');
+                                    attemptReconnect();
+                                }
+                            }, 2000);
+                        } catch (e) {
+                            console.error('[Connection Monitor] Error during reconnection:', e);
+                            window.WebRTCUI.addLogEntry(`Error during reconnection: ${e.message}`, 'error');
+                            attemptReconnect();
+                        }
+                    } else {
+                        console.error('[Connection Monitor] Socket instance not available for reconnection');
+                        window.WebRTCUI.addLogEntry('Socket instance not available. Creating new connection...', 'warn');
+                        
+                        // Last resort: try to create a new connection
+                        if (window.WebRTCConfig && typeof window.io === 'function') {
+                            try {
+                                const socketUrl = window.WebRTCConfig.getSocketUrl();
+                                const socketOptions = window.WebRTCConfig.getSocketOptions();
+                                
+                                window.socket = window.io(socketUrl, socketOptions);
+                                
+                                // Check if new connection was successful
+                                setTimeout(() => {
+                                    if (window.socket && window.socket.connected) {
+                                        console.log('[Connection Monitor] New socket connection successful');
+                                        window.WebRTCUI.addLogEntry('New connection established successfully!', 'success');
+                                        window.WebRTCUI.updateConnectionStatus('connected', 'New connection established');
+                                        
+                                        // Try to rejoin the room
+                                        if (window.VIDEO_CHAT_ROOM && window.userName) {
+                                            window.socket.emit('joinVideoChat', {
+                                                userId: window.socket.id,
+                                                userName: window.userName
+                                            });
+                                            window.WebRTCUI.addLogEntry(`Rejoining room as ${window.userName}`, 'socket');
+                                        }
+                                    } else {
+                                        console.log('[Connection Monitor] New socket connection failed');
+                                        window.WebRTCUI.addLogEntry('Failed to establish new connection', 'error');
+                                        attemptReconnect();
+                                    }
+                                }, 2000);
+                            } catch (e) {
+                                console.error('[Connection Monitor] Failed to create new socket:', e);
+                                window.WebRTCUI.addLogEntry(`Failed to create new socket: ${e.message}`, 'error');
+                                attemptReconnect();
+                            }
+                        } else {
+                            window.WebRTCUI.addLogEntry('Cannot recover: Socket.IO or configuration not available', 'error');
+                        }
+                    }
+                }
+            }, delay);
+        };
+        
+        // Start the reconnection process
+        attemptReconnect();
+    } else {
+        console.log('[Connection Monitor] Socket already connected, checking peer connections');
+        window.WebRTCUI.addLogEntry('Socket connected, checking peer connections...', 'system');
+        
+        // Check peer connections health as well
+        if (typeof checkPeerConnectionsStatus === 'function') {
+            checkPeerConnectionsStatus();
+        }
+    }
+    
+    return true;
 } 

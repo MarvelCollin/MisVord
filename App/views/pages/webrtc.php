@@ -13,77 +13,61 @@ if (!function_exists('asset')) {
 $page_title = 'MiscVord - Global Video Chat';
 $body_class = 'bg-gray-900 text-white overflow-hidden';
 
-// Define the socket server URL based on environment
+// Environment Detection
 $is_production = getenv('APP_ENV') === 'production';
+$is_vps = getenv('IS_VPS') === 'true';
+$use_https = getenv('USE_HTTPS') === 'true';
+
+// Host and Protocol Detection
 $host_domain = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'localhost';
-$is_local = $host_domain === 'localhost' || strpos($host_domain, '127.0.0.1') !== false;
+$is_local = $host_domain === 'localhost' || strpos($host_domain, '127.0.0.1') !== false || strpos($host_domain, '::1') !== false;
 $is_marvel_domain = strpos($host_domain, 'marvelcollin.my.id') !== false;
 
-// Define $is_subpath first before any other code that might use it
-$is_subpath = false;
-$request_uri = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '';
-if (strpos($request_uri, '/misvord/') !== false || strpos($request_uri, '/miscvord/') !== false) {
-    $is_subpath = true;
-}
-// Marvel domains always use a subpath
-if ($is_marvel_domain) {
-    $is_subpath = true;
-}
-
-// Improved HTTPS detection - more reliable than just checking $_SERVER['HTTPS']
+// Improved HTTPS detection
 $is_https = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') || 
             (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') ||
             (isset($_SERVER['HTTP_X_FORWARDED_SSL']) && $_SERVER['HTTP_X_FORWARDED_SSL'] === 'on');
-
 $protocol = $is_https ? 'https' : 'http';
 
-// Get socket URL from environment or use appropriate default
-$socket_server_url = getenv('SOCKET_SERVER');
+// Get port from environment or use default
+$socket_port = getenv('SOCKET_PORT') ?: 1002;
+$secure_socket_port = getenv('SOCKET_SECURE_PORT') ?: 1443;
 
-// Auto-detect environment and set appropriate socket URL
-if (empty($socket_server_url)) {
-    // DOCKER ENVIRONMENT FIX - Always use direct port for WebSocket in browser
-    // When using Docker, we need to connect directly to the socket server port
-    
-    // Check if we're accessing through port 1001 (PHP app)
-    if (strpos($_SERVER['HTTP_HOST'], ':1001') !== false) {
-        // Extract hostname without port
-        $host_without_port = preg_replace('/:1001$/', '', $_SERVER['HTTP_HOST']);
-        
-        // Force connection to port 1002 for WebSockets
-        $socket_server_url = $is_https ? "https://{$host_without_port}:1002" : "http://{$host_without_port}:1002";
-        error_log("Accessing through port 1001, using socket server on port 1002: " . $socket_server_url);
-    } else {
-        // Standard connection - still use port 1002 for socket server
-    $socket_server_url = $is_https ? 'https://localhost:1002' : 'http://localhost:1002'; 
-    }
-    
-    // In production environments, we might need subpath
-    if ($is_marvel_domain) {
-        // Production on marvelcollin.my.id domain with subpath
-        // IMPORTANT: ALWAYS use HTTPS for marvelcollin.my.id domain
-        $socket_server_url = 'https://' . $host_domain . '/misvord/socket';
-    } else if (!$is_local && ($is_production || getenv('IS_VPS') === 'true')) {
-        // Other production/VPS environments
-        // Force HTTPS for WebSockets when the page is loaded over HTTPS
-        $host_domain = preg_replace('#^https?://#', '', $host_domain);
-        
-        // Check if we're in a subpath - we've already set $is_subpath flag at the top
-        $request_uri = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '';
-        if (strpos($request_uri, '/misvord/') !== false) {
-            $socket_server_url = $protocol . '://' . $host_domain . '/misvord/socket';
-        } else if (strpos($request_uri, '/miscvord/') !== false) {
-            $socket_server_url = $protocol . '://' . $host_domain . '/miscvord/socket';
-        }
-    }
+// Define path components
+$socket_base_path = getenv('SOCKET_BASE_PATH') ?: '/socket.io';
+$socket_subpath = getenv('SOCKET_SUBPATH') ?: 'misvord/socket';
+
+// Normalize paths for consistent joining
+$socket_base_path = strpos($socket_base_path, '/') === 0 ? $socket_base_path : "/{$socket_base_path}";
+$socket_subpath = trim($socket_subpath, '/'); // Remove leading/trailing slashes
+
+// Determine if we're in a subpath deployment
+$request_uri = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '';
+$is_subpath = strpos($request_uri, '/misvord/') !== false || 
+              strpos($request_uri, '/miscvord/') !== false || 
+              $is_marvel_domain || 
+              $is_vps;
+
+// Unified Socket URL and Path Construction
+if ($is_local) {
+    // Local development
+    $host_without_port = preg_replace('/:(\d+)$/', '', $host_domain);
+    $socket_server_url = ($is_https ? "https://" : "http://") . $host_without_port . ":" . $socket_port;
+    $socket_path = $socket_base_path; // For localhost, just use base path
+} else {
+    // Production/VPS environment
+    $host_without_port = preg_replace('/:(\d+)$/', '', $host_domain);
+    $socket_server_url = ($is_https ? "https://" : "http://") . $host_without_port;
+    $socket_path = "/{$socket_subpath}{$socket_base_path}"; // Join with proper slashes
 }
 
-// Ensure the socket path is properly set
-$socket_path = '/misvord/socket/socket.io';  // Using standardized path for all environments
+// Make sure paths are properly formatted (no double slashes)
+$socket_path = str_replace('//', '/', $socket_path);
+$socket_server_url = rtrim($socket_server_url, '/');
 
 // Log for debugging
 $env_type = $is_local ? 'local' : ($is_marvel_domain ? 'marvel' : 'vps');
-error_log("WebRTC socket server URL: " . $socket_server_url . ", Path: " . $socket_path . ", Protocol: " . $protocol . ", Env: " . $env_type);
+error_log("WebRTC socket configuration: URL: " . $socket_server_url . ", Path: " . $socket_path . ", Protocol: " . $protocol . ", Env: " . $env_type);
 
 $additional_head = '
 <!-- Socket server configuration -->
@@ -282,6 +266,38 @@ $additional_head = '
 <?php ob_start(); ?>
 
 
+<!-- Legacy permission UI elements for backward compatibility -->
+<div id="permissionRequest" style="display: none;">
+    <div id="permissionStatus"></div>
+    <button id="retryPermissionBtn">Retry with Camera</button>
+    <button id="audioOnlyBtn">Audio Only</button>
+</div>
+
+<!-- Initialize legacy permission buttons -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize legacy permission buttons
+    const retryBtn = document.getElementById('retryPermissionBtn');
+    const audioOnlyBtn = document.getElementById('audioOnlyBtn');
+    
+    if (retryBtn) {
+        retryBtn.addEventListener('click', function() {
+            if (window.WebRTCMedia && typeof window.WebRTCMedia.retryMediaAccess === 'function') {
+                window.WebRTCMedia.retryMediaAccess(true);
+            }
+        });
+    }
+    
+    if (audioOnlyBtn) {
+        audioOnlyBtn.addEventListener('click', function() {
+            if (window.WebRTCMedia && typeof window.WebRTCMedia.retryMediaAccess === 'function') {
+                window.WebRTCMedia.retryMediaAccess(false);
+            }
+        });
+    }
+});
+</script>
+
 <!-- NEW SIMPLIFIED PERMISSION MODAL -->
 <div id="simpleCameraModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); 
      display: flex; align-items: center; justify-content: center; z-index: 9999;">
@@ -331,294 +347,204 @@ $additional_head = '
     </div>
 </div>
 
-<!-- Preload socket.io script to ensure it's available early -->
+<!-- Define global path helper functions -->
 <script>
-// Dynamic socket.io loader with fallback to CDN
-(function() {
-    function loadSocketIO() {
-        // First, determine the correct base path for assets
-        const getBasePath = function() {
-            const hostname = window.location.hostname;
-            const currentPath = window.location.pathname;
-            
-            // Special handling for marvelcollin.my.id domain
-            if (hostname.includes('marvelcollin.my.id')) {
-                return '/misvord';
-            }
-            
-            // Check if we're in a subpath deployment (like /misvord/ or /miscvord/)
-            if (currentPath.includes('/misvord/')) {
-                return '/misvord';
-            } else if (currentPath.includes('/miscvord/')) {
-                return '/miscvord';
-            }
-            
-            return '';
-        };
-        
-        const basePath = getBasePath();
-        console.log('Using base path for socket.io:', basePath);
-        
-        // First try to load from local path with correct base path
-        const script = document.createElement('script');
-        script.src = basePath + '/js/socket.io.min.js';
-        script.onload = function() {
-            console.log('Socket.IO loaded successfully from: ' + script.src);
-            initSocketDiagnostics();
-        };
-        script.onerror = function() {
-            console.error('Failed to load Socket.IO from local path: ' + script.src + ', trying CDN...');
-            
-            // Fallback to CDN
-            const cdnScript = document.createElement('script');
-            cdnScript.src = 'https://cdn.socket.io/4.6.0/socket.io.min.js';
-            cdnScript.onload = function() {
-                console.log('Socket.IO loaded successfully from CDN');
-                initSocketDiagnostics();
-            };
-            cdnScript.onerror = function() {
-                console.error('Failed to load Socket.IO even from CDN!');
-                alert('Failed to load required libraries. Please check your internet connection and try again.');
-            };
-            document.head.appendChild(cdnScript);
-        };
-        document.head.appendChild(script);
+// Helper function to detect the base path
+window.getBasePath = function() {
+    const hostname = window.location.hostname;
+    const currentPath = window.location.pathname;
+    
+    // Special handling for marvelcollin.my.id domain
+    if (hostname.includes('marvelcollin.my.id')) {
+        return '/misvord';
     }
     
-    function initSocketDiagnostics() {
-        // Get the base path from earlier function
-        const basePath = getBasePath();
-        
-        // Load socket diagnostics after Socket.IO is loaded
-        const diagnosticsScript = document.createElement('script');
-        diagnosticsScript.src = basePath + '/js/socket-diagnostics.js';
-        diagnosticsScript.onload = function() {
-            console.log('Socket diagnostics utility loaded from: ' + diagnosticsScript.src);
-            if (window.SocketDiagnostics) {
-                window.SocketDiagnostics.init({
-                    autoApplyFixes: true,
-                    addDebugButton: true,
-                    fixDockerServiceNames: true
-                });
-            }
-        };
-        diagnosticsScript.onerror = function() {
-            console.error('Failed to load socket diagnostics from: ' + diagnosticsScript.src);
-        };
-        document.head.appendChild(diagnosticsScript);
+    // Remove the special case for /webrtc URLs that's causing the issue
+    // If someone is directly accessing through /webrtc URL, don't add any prefix
+    if (currentPath === '/webrtc' || currentPath === '/webrtc/') {
+        return '';  // Return empty string instead of '/misvord'
     }
     
-    // Helper function to detect the base path
-    function getBasePath() {
-        const hostname = window.location.hostname;
-        const currentPath = window.location.pathname;
-        
-        // Special handling for marvelcollin.my.id domain
-        if (hostname.includes('marvelcollin.my.id')) {
-            return '/misvord';
+    // Check if we're in a subpath deployment (like /misvord/ or /miscvord/)
+    if (currentPath.includes('/misvord/')) {
+        return '/misvord';
+    } else if (currentPath.includes('/miscvord/')) {
+        return '/miscvord';
+    }
+    
+    return '';
+};
+
+// Define utility functions for path manipulation
+window.joinPaths = function(base, path) {
+    if (!path) return base;
+    // Remove leading slash from path if base is not empty
+    if (base && path.startsWith('/')) {
+        path = path.substring(1);
+    }
+    // Handle case where base is empty
+    if (!base) return path;
+    // Join with a slash
+    return base + '/' + path;
+};
+
+window.logPathInfo = function(source, path) {
+    console.log(`[${source}] Path: ${path}`);
+};
+</script>
+
+<!-- Preload socket.io script to ensure it's available early -->
+<?php if (file_exists(PUBLIC_PATH . '/js/socket.io.min.js')): ?>
+<script src="<?php echo js('socket.io.min.js'); ?>"></script>
+<?php else: ?>
+<script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+<?php endif; ?>
+
+<script>
+// Socket.io path validation function - helps prevent 404 errors
+function validateSocketIoPath() {
+    // Check if Socket.IO is already loaded
+    if (typeof io === 'function') {
+        console.log('Socket.IO already loaded');
+        return true;
+    }
+    
+    // Use our local socket.io.min.js file instead of constructing paths
+    // This avoids any path construction issues
+    const script = document.createElement('script');
+    
+    // If on localhost, use direct path to socket.io.js on port 1002
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        // Use socket server on port 1002 with standard path
+        script.src = 'http://localhost:1002/socket.io/socket.io.js';
+    } else {
+        // For production, just use our local copy or CDN
+        script.src = '/js/socket.io.min.js';
+    }
+    
+    console.log(`Attempting to load Socket.IO from ${script.src}`);
+    
+    // Load error fallback to CDN
+    script.onerror = function() {
+        console.warn(`Failed to load Socket.IO from ${script.src}, falling back to CDN`);
+        const cdnScript = document.createElement('script');
+        cdnScript.src = 'https://cdn.socket.io/4.6.0/socket.io.min.js';
+        document.head.appendChild(cdnScript);
+    };
+    
+    document.head.appendChild(script);
+    return true;
+}
+
+// Try to validate Socket.IO path immediately
+validateSocketIoPath();
+
+// Initialize socket diagnostics after Socket.IO is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Load socket diagnostics utility
+    const diagnosticsScript = document.createElement('script');
+    diagnosticsScript.src = '<?php echo js('socket-diagnostics'); ?>';
+    diagnosticsScript.onload = function() {
+        console.log('Socket diagnostics utility loaded');
+        if (window.SocketDiagnostics) {
+            window.SocketDiagnostics.init({
+                autoApplyFixes: true,
+                addDebugButton: true,
+                fixDockerServiceNames: true
+            });
         }
-        
-        // Check if we're in a subpath deployment (like /misvord/ or /miscvord/)
-        if (currentPath.includes('/misvord/')) {
-            return '/misvord';
-        } else if (currentPath.includes('/miscvord/')) {
-            return '/miscvord';
-        }
-        
-        return '';
-    }
-    
-    // Start loading Socket.IO
-    loadSocketIO();
-})();
+    };
+    document.head.appendChild(diagnosticsScript);
+});
 </script>
 
 <!-- Direct camera access script - completely independent from WebRTC modules -->
 <script>
-// Create a dedicated diagnostics logger
-const MediaDiagnostics = {
-    logs: [],
-    maxLogs: 50,
+// Create audio unblocking utilities using Web Audio API instead of problematic base64 audio
+const AudioUnblocker = {
+    context: null,
+    initialized: false,
     
-    log: function(level, ...args) {
-        const timestamp = new Date().toISOString().substring(11, 23); // HH:MM:SS.mmm
-        const message = args.map(arg => {
-            if (typeof arg === 'object') {
-                try {
-                    return JSON.stringify(arg);
-                } catch (e) {
-                    return String(arg);
-                }
+    // Initialize the audio context
+    init() {
+        if (this.initialized) return true;
+        
+        try {
+            // Create audio context
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) {
+                console.warn('[SimpleCam] AudioContext not supported in this browser');
+                return false;
             }
-            return String(arg);
-        }).join(' ');
-        
-        const entry = {
-            timestamp,
-            level,
-            message
-        };
-        
-        // Add to log array (with size limit)
-        this.logs.unshift(entry);
-        if (this.logs.length > this.maxLogs) {
-            this.logs.pop();
-        }
-        
-        // Output to console with proper formatting
-        const consoleMethod = level === 'error' ? console.error : 
-                            level === 'warn' ? console.warn : 
-                            level === 'info' ? console.info : console.log;
-        
-        consoleMethod(`[MediaDiagnostics][${level}][${timestamp}]`, ...args);
-        
-        // Update UI if diagnostic panel exists
-        this.updateUI();
-        
-        return entry;
-    },
-    
-    error: function(...args) {
-        return this.log('error', ...args);
-    },
-    
-    warn: function(...args) {
-        return this.log('warn', ...args);
-    },
-    
-    info: function(...args) {
-        return this.log('info', ...args);
-    },
-    
-    debug: function(...args) {
-        return this.log('debug', ...args);
-    },
-    
-    updateUI: function() {
-        // Add logs to debug panel if exists
-        const logContainer = document.getElementById('mediaDiagnosticsLog');
-        if (logContainer) {
-            let html = '';
-            this.logs.forEach(entry => {
-                const colorClass = entry.level === 'error' ? 'text-red-500' :
-                                  entry.level === 'warn' ? 'text-yellow-500' :
-                                  entry.level === 'info' ? 'text-blue-400' : 'text-gray-400';
-                
-                html += `<div class="${colorClass} text-xs mb-1">
-                           <span class="text-gray-500">[${entry.timestamp}]</span> 
-                           <span class="font-bold">[${entry.level}]</span> 
-                           ${entry.message}
-                         </div>`;
-            });
-            logContainer.innerHTML = html;
+            
+            this.context = new AudioContext();
+            this.initialized = true;
+            console.log('[SimpleCam] Audio context created:', this.context.state);
+            return true;
+        } catch (e) {
+            console.error('[SimpleCam] Failed to create AudioContext:', e);
+            return false;
         }
     },
     
-    createDiagnosticPanel: function() {
-        // Create a diagnostics panel if not already exists
-        if (!document.getElementById('mediaDiagnosticsPanel')) {
-            const panel = document.createElement('div');
-            panel.id = 'mediaDiagnosticsPanel';
-            panel.style.cssText = 'position:fixed; bottom:10px; left:10px; width:400px; max-height:300px; background:#1a1a1a; border:1px solid #444; border-radius:4px; z-index:9999; overflow:hidden; display:none;';
+    // Try to unlock audio by playing silent sound
+    unlock() {
+        if (!this.init()) return Promise.reject(new Error('Audio context initialization failed'));
+        
+        return new Promise((resolve, reject) => {
+            // If context is already running, we're good
+            if (this.context.state === 'running') {
+                console.log('[SimpleCam] AudioContext already running');
+                return resolve(true);
+            }
             
-            panel.innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:center; padding:5px 10px; background:#333; border-bottom:1px solid #444;">
-                    <h3 style="margin:0; font-size:14px; color:#fff;">Media Diagnostics</h3>
-                    <div>
-                        <button id="clearMediaLogs" style="padding:2px 6px; background:#555; color:#fff; border:none; border-radius:2px; margin-right:5px; font-size:12px;">Clear</button>
-                        <button id="closeMediaDiagnostics" style="padding:2px 6px; background:#555; color:#fff; border:none; border-radius:2px; font-size:12px;">Close</button>
-                    </div>
-                </div>
-                <div id="mediaDiagnosticsLog" style="padding:10px; overflow-y:auto; max-height:250px; font-family:monospace;"></div>
-            `;
+            console.log('[SimpleCam] Attempting to unlock audio context...');
             
-            document.body.appendChild(panel);
+            // Create a short audio buffer of silence
+            const buffer = this.context.createBuffer(1, 1024, 22050);
+            const source = this.context.createBufferSource();
+            source.buffer = buffer;
+            source.connect(this.context.destination);
             
-            // Add event listeners
-            document.getElementById('closeMediaDiagnostics').addEventListener('click', () => {
-                panel.style.display = 'none';
-            });
-            
-            document.getElementById('clearMediaLogs').addEventListener('click', () => {
-                this.logs = [];
-                this.updateUI();
-            });
-            
-            // Add keyboard shortcut to toggle panel
-            document.addEventListener('keydown', (e) => {
-                if (e.ctrlKey && e.key === 'm') {
-                    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-                    if (panel.style.display === 'block') {
-                        this.updateUI();
-                    }
+            // Play the silent sound
+            source.start(0);
+            source.onended = () => {
+                console.log('[SimpleCam] Silent sound played, audio context state:', this.context.state);
+                if (this.context.state === 'running') {
+                    resolve(true);
+                } else {
+                    reject(new Error(`Audio context state is ${this.context.state} after unlock attempt`));
                 }
-            });
-        }
-    },
-    
-    showPanel: function() {
-        const panel = document.getElementById('mediaDiagnosticsPanel');
-        if (panel) {
-            panel.style.display = 'block';
-            this.updateUI();
-        } else {
-            this.createDiagnosticPanel();
-            this.showPanel();
-        }
+            };
+        });
     }
 };
-
-// Create the diagnostics panel
-MediaDiagnostics.createDiagnosticPanel();
-MediaDiagnostics.info('Media diagnostics system initialized');
-
-// Add button to toggle diagnostics panel to debug panel
-document.addEventListener('DOMContentLoaded', function() {
-    // Find the refresh button in the debug panel and add media diagnostics button next to it
-    setTimeout(() => {
-        const refreshBtn = document.getElementById('refreshDebugInfo');
-        if (refreshBtn && refreshBtn.parentNode) {
-            const mediaDiagBtn = document.createElement('button');
-            mediaDiagBtn.id = 'showMediaDiagnostics';
-            mediaDiagBtn.className = 'w-full bg-indigo-600 text-white text-xs py-1 px-2 rounded hover:bg-indigo-700 mt-2';
-            mediaDiagBtn.innerText = 'Show Media Diagnostics';
-            mediaDiagBtn.addEventListener('click', () => {
-                MediaDiagnostics.showPanel();
-            });
-            refreshBtn.parentNode.appendChild(mediaDiagBtn);
-        }
-    }, 1000);
-});
-
-// Create an in-memory audio element to help unblock autoplay restrictions
-const unblockAudio = document.createElement('audio');
-unblockAudio.src = 'data:audio/mpeg;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsuY29tIC8gTGFTb25vdGhlcXVlLm9yZwBURU5DAAAAHQAAA1N3aXRjaCBQbHVzIMKpIE5DSCBTb2Z0d2FyZQBUSVQyAAAABgAAAzIyMzUAVFNTRQAAAA8AAANMYXZmNTcuODMuMTAwAAAAAAAAAAAAAAD/80DEAAAAA0gAAAAATEFNRTMuMTAwVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQsRbAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQMSkAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV';
-unblockAudio.loop = false;
-unblockAudio.volume = 0.01; // Very quiet
-unblockAudio.autoplay = false;
-unblockAudio.muted = true;
 
 // Function to try unblocking autoplay restrictions
 function tryUnblockAutoplay() {
     try {
-        // Try to play the audio (will likely be blocked)
-        unblockAudio.play().then(() => {
-            console.log('[SimpleCam] Autoplay unblocking successful');
+        console.log('[SimpleCam] Attempting to unblock autoplay...');
+        
+        // Try unlocking audio with Web Audio API
+        AudioUnblocker.unlock().then(() => {
+            console.log('[SimpleCam] Audio context successfully unlocked');
         }).catch(e => {
-            console.log('[SimpleCam] Autoplay still blocked, waiting for user interaction');
+            console.warn('[SimpleCam] Audio context unlock failed:', e.message);
         });
         
-        // Create and initialize AudioContext (may help in some browsers)
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        if (AudioContext) {
-            const audioCtx = new AudioContext();
-            const source = audioCtx.createBufferSource();
-            source.connect(audioCtx.destination);
-            source.start(0);
-            source.stop(0.001);
-        }
+        // Try to unlock video playback by finding and playing all videos
+        document.querySelectorAll('video').forEach(video => {
+            if (video.paused) {
+                video.muted = true; // Must be muted for autoplay
+                video.play().then(() => {
+                    console.log('[SimpleCam] Successfully unblocked video playback for:', video.id || 'unnamed video');
+                }).catch(e => {
+                    console.warn('[SimpleCam] Failed to play video element:', e);
+                });
+            }
+        });
     } catch (e) {
-        console.warn('[SimpleCam] AudioContext unblocking failed:', e);
+        console.warn('[SimpleCam] Autoplay unblocking failed:', e);
     }
 }
 
@@ -628,19 +554,52 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Set up global interaction tracking to unblock media
     let interactionCount = 0;
+    let unlockedAutoplay = false;
     
     function handleUserInteraction(e) {
         // Only need to handle a few interactions
         interactionCount++;
+        console.log('[SimpleCam] User interaction detected, attempt:', interactionCount);
         
-        // Try to play the unblocking audio
-        tryUnblockAutoplay();
-        
-        // After a few interactions, remove the listeners
-        if (interactionCount >= 3) {
-            document.removeEventListener('click', handleUserInteraction);
-            document.removeEventListener('touchstart', handleUserInteraction);
-            document.removeEventListener('keydown', handleUserInteraction);
+        // Try to unlock audio context first
+        if (!unlockedAutoplay) {
+            AudioUnblocker.unlock().then(() => {
+                console.log('[SimpleCam] Autoplay successfully unlocked by user interaction');
+                unlockedAutoplay = true;
+                
+                // Try playing any video elements after user interaction
+                document.querySelectorAll('video').forEach(video => {
+                    // First try with muted
+                    video.muted = true;
+                    video.play().then(() => {
+                        // If successful, attempt to unmute after a short delay
+                        setTimeout(() => {
+                            video.muted = false;
+                            console.log('[SimpleCam] Successfully unmuted video:', video.id || 'unnamed video');
+                        }, 500);
+                    }).catch(e => {
+                        console.warn('[SimpleCam] Failed to play video even after user interaction:', e);
+                    });
+                });
+                
+                // Call the full unblock function to handle any other elements
+                tryUnblockAutoplay();
+                
+                // After successful unlock, remove listeners
+                document.removeEventListener('click', handleUserInteraction);
+                document.removeEventListener('touchstart', handleUserInteraction);
+                document.removeEventListener('keydown', handleUserInteraction);
+            }).catch(e => {
+                console.warn('[SimpleCam] Failed to unlock autoplay despite user interaction:', e);
+                
+                // Keep trying with future interactions
+                if (interactionCount >= 5) {
+                    console.warn('[SimpleCam] Multiple unlock attempts failed, removing listeners');
+                    document.removeEventListener('click', handleUserInteraction);
+                    document.removeEventListener('touchstart', handleUserInteraction);
+                    document.removeEventListener('keydown', handleUserInteraction);
+                }
+            });
         }
     }
     
@@ -693,11 +652,34 @@ document.addEventListener('DOMContentLoaded', function() {
     // Function to detect browser for specific fixes
     function detectBrowser() {
         const userAgent = navigator.userAgent.toLowerCase();
-        if (userAgent.indexOf('chrome') > -1) return 'chrome';
-        if (userAgent.indexOf('firefox') > -1) return 'firefox';
-        if (userAgent.indexOf('safari') > -1) return 'safari';
-        if (userAgent.indexOf('edge') > -1) return 'edge';
-        return 'unknown';
+        
+        // More accurate browser detection
+        if (userAgent.indexOf('firefox') > -1) {
+            return {
+                name: 'firefox',
+                version: parseInt((userAgent.match(/firefox\/(\d+)/) || [])[1] || '0', 10)
+            };
+        } else if (userAgent.indexOf('edg') > -1 || userAgent.indexOf('edge') > -1) {
+            return {
+                name: 'edge',
+                version: parseInt((userAgent.match(/edge\/(\d+)/) || userAgent.match(/edg\/(\d+)/) || [])[1] || '0', 10)
+            };
+        } else if (userAgent.indexOf('chrome') > -1) {
+            return {
+                name: 'chrome',
+                version: parseInt((userAgent.match(/chrome\/(\d+)/) || [])[1] || '0', 10)
+            };
+        } else if (userAgent.indexOf('safari') > -1) {
+            return {
+                name: 'safari',
+                version: parseInt((userAgent.match(/version\/(\d+)/) || [])[1] || '0', 10)
+            };
+        }
+        
+        return {
+            name: 'unknown',
+            version: 0
+        };
     }
     
     // Function to safely play a video element with multiple fallbacks
@@ -711,6 +693,14 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Ensure video is visible (some browsers won't play invisible videos)
         videoElement.style.display = 'block';
+        
+        // First unlock audio context to improve chances of video autoplay
+        try {
+            await AudioUnblocker.unlock();
+        } catch (e) {
+            console.warn('[SimpleCam] Audio context unlock failed:', e);
+            // Continue anyway - video might still work
+        }
         
         // Set the stream
         try {
@@ -730,44 +720,64 @@ document.addEventListener('DOMContentLoaded', function() {
             // First play attempt with await
             await videoElement.play();
             console.log('[SimpleCam] Video playing successfully (muted)');
+            
+            // After successful play while muted, try to unmute after user interaction
+            const unmuter = () => {
+                videoElement.muted = false;
+                console.log('[SimpleCam] Video unmuted after user interaction');
+                document.removeEventListener('click', unmuter);
+                document.removeEventListener('touchstart', unmuter);
+            };
+            
+            document.addEventListener('click', unmuter, { once: true });
+            document.addEventListener('touchstart', unmuter, { once: true });
+            
             return true;
         } catch (e) {
             console.warn('[SimpleCam] Initial play attempt failed:', e.name);
             
-            // Try without awaiting (works in some browsers)
-            try {
-                const playPromise = videoElement.play();
-                if (playPromise === undefined) {
-                    // Play started synchronously (old browsers)
-                    console.log('[SimpleCam] Video playing started synchronously');
-                    return true;
-                } else {
-                    // Modern browsers return a promise, but we won't await it
-                    // Instead we'll set up handling for when it resolves/rejects
-                    playPromise.then(() => {
-                        console.log('[SimpleCam] Deferred play successful');
-                    }).catch(err => {
-                        console.warn('[SimpleCam] Deferred play failed:', err);
-                        
-                        // Try one more special case for iOS
-                        videoElement.controls = true; // Show controls can help on iOS
-                        setTimeout(() => {
-                            videoElement.play().catch(() => {
-                                console.warn('[SimpleCam] iOS-specific play attempt failed');
-                            });
-                        }, 100);
-                    });
-                    
-                    // Continuing regardless, as stream is set and UI can proceed
+            // Create a more robust retry mechanism
+            let attempts = 0;
+            const maxAttempts = 3;
+            
+            const retryPlay = async () => {
+                if (attempts >= maxAttempts) {
+                    console.error('[SimpleCam] Failed to play video after', attempts, 'attempts');
                     return false;
                 }
-            } catch (e2) {
-                console.error('[SimpleCam] Secondary play attempt failed:', e2);
+                
+                attempts++;
+                console.log(`[SimpleCam] Retry attempt ${attempts}/${maxAttempts}`);
+                
+                // Make sure video is muted for retry
+                videoElement.muted = true;
+                
+                try {
+                    // Wait a bit longer with each retry
+                    await new Promise(resolve => setTimeout(resolve, 300 * attempts));
+                    await videoElement.play();
+                    console.log('[SimpleCam] Retry successful on attempt', attempts);
+                    return true;
+                } catch (retryError) {
+                    console.warn(`[SimpleCam] Retry ${attempts} failed:`, retryError.name);
+                    return retryPlay(); // Recursive retry
+                }
+            };
+            
+            // Start retry process
+            retryPlay().catch(error => {
+                console.error('[SimpleCam] All retry attempts failed:', error);
                 
                 // Setup user-interaction-triggered play as last resort
                 const playHandler = () => {
+                    videoElement.muted = true; // Ensure muted for first play
                     videoElement.play().then(() => {
                         console.log('[SimpleCam] Video playing after user interaction');
+                        // Try to unmute after a delay
+                        setTimeout(() => {
+                            videoElement.muted = false;
+                            console.log('[SimpleCam] Video unmuted after successful play');
+                        }, 1000);
                     }).catch(err => {
                         console.error('[SimpleCam] Play failed even after user interaction:', err);
                     });
@@ -776,13 +786,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Add temporary listeners for a single attempt
                 document.addEventListener('click', playHandler, { once: true });
                 document.addEventListener('touchstart', playHandler, { once: true });
-                
-                return false;
-            }
+            });
+            
+            return false;
         }
     }
     
-    // Request camera & mic access
+    // Request camera & mic access with browser-specific handling
     async function requestCameraAccess(videoEnabled = true) {
         try {
             updateStatus(videoEnabled ? 'Requesting camera & microphone...' : 'Requesting microphone only...', 'warning');
@@ -796,11 +806,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 localStream = null;
             }
             
-            // Fix for Safari which requires user gesture to access getUserMedia
+            // First try to unlock audio context
+            try {
+                await AudioUnblocker.unlock();
+            } catch (e) {
+                console.log('[SimpleCam] Audio context unlock attempted before camera access');
+                // Continue anyway
+            }
+            
+            // Browser detection for specific handling
             const browser = detectBrowser();
-            if (browser === 'safari') {
+            console.log(`[SimpleCam] Detected browser: ${browser.name} ${browser.version}`);
+            
+            // Browser-specific fixes
+            if (browser.name === 'firefox') {
+                console.log('[SimpleCam] Firefox-specific handling activated');
+                // Firefox needs special handling for getUserMedia permissions
+                updateStatus('Firefox detected - click "Allow" when prompted', 'warning');
+            } else if (browser.name === 'safari') {
                 updateStatus('Safari detected - click again to grant permissions', 'warning');
-                return; // In Safari, we'll rely on the second click
+                if (browser.version < 14) {
+                    return; // In older Safari, rely on the second click
+                }
             }
             
             // Simple constraints with reasonable defaults for different devices
@@ -860,22 +887,51 @@ document.addEventListener('DOMContentLoaded', function() {
             // Make stream available globally AND to the WebRTC modules
             window.localStream = localStream;
             
-            // If Modal Adapter exists, use it to integrate with WebRTC system
-            if (window.ModalAdapter && typeof window.ModalAdapter.setLocalStream === 'function') {
-                window.ModalAdapter.setLocalStream(localStream);
-            }
-            
-            // Also try to update WebRTCMedia directly
+            // If WebRTCMedia exists, leverage this stream in the WebRTC system
             if (window.WebRTCMedia) {
+                // If WebRTCMedia has already been initialized
                 if (typeof window.WebRTCMedia.setLocalStreamFromAdapter === 'function') {
                     window.WebRTCMedia.setLocalStreamFromAdapter(localStream);
                 } else {
-                    window.WebRTCMedia.localStream = localStream;
-                }
-                
-                // Update WebRTCMedia state to match new stream
-                if (videoEnabled && typeof window.WebRTCMedia.updateMediaToggleButtons === 'function') {
-                    window.WebRTCMedia.updateMediaToggleButtons();
+                    // Create a bridge to initialize WebRTCMedia with this stream when it loads
+                    window.localStreamFromSimpleUI = localStream;
+                    
+                    // Override the WebRTCMedia.initLocalStream function when it becomes available
+                    const originalInitLocalStream = window.WebRTCMedia ? window.WebRTCMedia.initLocalStream : null;
+                    
+                    Object.defineProperty(window, 'WebRTCMedia', {
+                        get: function() {
+                            return this._webRTCMedia;
+                        },
+                        set: function(newWebRTCMedia) {
+                            // Store the new value
+                            this._webRTCMedia = newWebRTCMedia;
+                            
+                            // If localStream is already set from SimpleUI, use it
+                            if (window.localStreamFromSimpleUI && newWebRTCMedia) {
+                                console.log('[SimpleCam] Bridging stream to WebRTCMedia');
+                                const originalInit = newWebRTCMedia.initLocalStream;
+                                
+                                // Override initLocalStream to use existing stream
+                                if (originalInit) {
+                                    newWebRTCMedia.initLocalStream = function(audio, video, onSuccess) {
+                                        console.log('[SimpleCam] Using existing stream in WebRTCMedia');
+                                        if (onSuccess) onSuccess(window.localStreamFromSimpleUI);
+                                        return Promise.resolve(true);
+                                    };
+                                    
+                                    // Create a helper method to explicitly set the stream
+                                    newWebRTCMedia.setLocalStreamFromAdapter = function(stream) {
+                                        window.localStream = stream;
+                                        newWebRTCMedia.localStream = stream;
+                                        if (originalInit) newWebRTCMedia.initLocalStream = originalInit;
+                                        return stream;
+                                    };
+                                }
+                            }
+                        },
+                        configurable: true
+                    });
                 }
             }
             
@@ -902,7 +958,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 updateStatus('Camera or microphone is already in use by another app.', 'error');
             } else if (error.name === 'AbortError') {
                 updateStatus('Permission request was aborted. Please try again.', 'error');
-            } else if (error.name === 'TypeError' && browser === 'safari') {
+            } else if (error.name === 'TypeError' && browser.name === 'safari') {
                 // Safari sometimes throws TypeError if not triggered by user gesture
                 updateStatus('Safari requires you to click the button to allow camera access', 'warning');
             } else {
@@ -1060,9 +1116,36 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 </div>
 
+<!-- WebRTC Script Loading - Using PHP helper -->
+<?php 
+// Socket.IO is already loaded separately
+$webrtcModules = [
+    'webrtc-modules/webrtc-config',  // Added as first module to ensure it loads before others
+    'webrtc-modules/browser-compatibility',
+    'webrtc-modules/media-control',
+    'webrtc-modules/ui-manager',
+    'webrtc-modules/signaling',
+    'webrtc-modules/peer-connection',
+    'webrtc-modules/diagnostics',
+    'webrtc-modules/ping-system',
+    'webrtc-modules/video-handling',
+    'webrtc-modules/video-player',
+    'webrtc-modules/video-debug',
+    'webrtc-modules/connection-monitor',
+    'webrtc-modules/webrtc-controller',
+    'webrtc-modules/modal-adapter',
+    'webrtc' // Main controller script
+];
+
+// Load each module using the js() helper function
+foreach ($webrtcModules as $module) {
+    echo '<script src="' . js($module) . '"></script>' . PHP_EOL;
+}
+?>
+
 <!-- Socket.io path checking utility -->
 <script>
-// Utility to help diagnose socket.io loading issues
+// Improved socket path checking utility
 window.checkSocketIoPath = function() {
     console.group('Socket.IO Path Diagnostics');
     
@@ -1073,23 +1156,31 @@ window.checkSocketIoPath = function() {
     const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     
     // Get the base path - this is crucial for correct path checking
-    const basePath = getBasePath();
+    const basePath = window.getBasePath(); // Use the global function
     console.log('Base path detected:', basePath || '/' + ' (empty means root)');
     
     // Always using the standardized path - removing other options to avoid confusion
-    const standardPath = '/misvord/socket/socket.io';
-    console.log('Using standardized socket.io path:', standardPath);
+    // BUT: Actually use the standard Socket.IO path on localhost
+    const socketPath = isLocalhost ? '/socket.io' : '/misvord/socket/socket.io';
+    console.log('Using socket path:', socketPath);
     
-    // Only check the standardized path
-    const paths = [
-        (basePath + standardPath + '/socket.io.js') // Standardized path with socket.io.js
-    ];
+    // Get current URL origin (no /webrtc path)
+    let originUrl = window.location.origin;
     
-    // Add direct socket server path for localhost
+    // Create paths to check based on environment
+    const paths = [];
+    
+    // Standard path check
     if (isLocalhost) {
-        // This is on port 1002 - direct access to socket server with standardized path
-        paths.push('http://localhost:1002' + standardPath + '/socket.io.js');
+        // For localhost, check socket.io.js on port 1002 with standard path
+        paths.push(`http://localhost:1002/socket.io/socket.io.js`);
+    } else {
+        // For production, check standard path
+        paths.push(`${originUrl}/js/socket.io.min.js`);
     }
+    
+    // Also check local copy in all cases
+    paths.push(`${originUrl}/js/socket.io.min.js`);
     
     // Check meta tag configuration
     const socketServerMeta = document.querySelector('meta[name="socket-server"]');
@@ -1099,141 +1190,64 @@ window.checkSocketIoPath = function() {
     console.log('Meta tag - socket-path:', socketPathMeta ? socketPathMeta.content : 'Not found');
     
     // Check each path with a test request
-    console.log('Testing standardized path:');
+    console.log('Testing paths:');
     paths.forEach(path => {
-        // Handle both relative and absolute URLs
-        const fullUrl = path.startsWith('http') ? path : window.location.origin + path;
-        console.log(`- Checking ${fullUrl}`);
-        
-        fetch(fullUrl, { method: 'HEAD' })
+        fetch(path, { method: 'HEAD' })
             .then(response => {
-                console.log(`  ${path}: ${response.ok ? 'Found ✓' : 'Not found ✗'} (${response.status})`);
+                console.log(`${path}: ${response.ok ? 'Found ✓' : 'Not found ✗'} (${response.status})`);
             })
             .catch(error => {
-                console.log(`  ${path}: Error (${error.message})`);
+                console.error(`${path}: Error - ${error.message}`);
             });
     });
     
-    // Log WebSocket URLs for clarity
-    console.log('Expected WebSocket connection should be to: ws://localhost:1002/misvord/socket/socket.io/');
-    console.log('Standardized socket path: /misvord/socket/socket.io');
-    
     console.groupEnd();
-    
-    return 'Socket.IO path diagnostics initiated';
-};
+}
 
 // Auto-run on page load with a delay
 setTimeout(window.checkSocketIoPath, 2000);
 </script>
 
-<!-- Replace script tags with dynamic loading script -->
-<script>
-    // Get correct asset path based on current domain
-    (function() {
-        // Check if shared joinPaths function exists, otherwise create it
-        if (typeof window.joinPaths !== 'function') {
-            window.joinPaths = function(base, path) {
-                if (!path) return base;
-                // Remove leading slash from path if base is not empty
-                if (base && path.startsWith('/')) {
-                    path = path.substring(1);
-                }
-                // Handle case where base is empty
-                if (!base) return path;
-                // Join with a slash
-                return base + '/' + path;
-            };
-        }
-        
-        // Check if shared logPathInfo function exists, otherwise create it
-        if (typeof window.logPathInfo !== 'function') {
-            window.logPathInfo = function(source, path) {
-                console.log(`[${source}] Path: ${path}`);
-            };
-        }
-        
-        function getScriptBasePath() {
-            const hostname = window.location.hostname;
-            
-            // Special handling for marvelcollin.my.id domain
-            if (hostname.includes('marvelcollin.my.id')) {
-                return '/misvord/js';
-                }
-            
-            // Default path for other environments
-            const currentPath = window.location.pathname;
-            if (currentPath.includes('/misvord/')) {
-                return '/misvord/js';
-            } else if (currentPath.includes('/miscvord/')) {
-                return '/miscvord/js';
-    } else {
-                return '/js';
-            }
-        }
-        
-        // Load scripts with proper base path
-        const basePath = getScriptBasePath();
-        console.log("Loading scripts from base path:", basePath);
-        
-        // Function to create and append script with error handling
-        function loadScript(path) {
-            const fullPath = joinPaths(basePath, path);
-            logPathInfo('WebRTC Module', fullPath);
-            
-            const script = document.createElement('script');
-            script.src = fullPath;
-            script.async = false; // Keep script execution order
-            
-            // Add load/error events for debugging
-            script.onload = function() {
-                console.log(`✓ Successfully loaded: ${fullPath}`);
-            };
-            script.onerror = function() {
-                console.error(`✗ Failed to load script: ${fullPath}`, script.src);
-                
-                // Try CDN fallback for socket.io if that's what failed
-                if (path.includes('socket.io.min.js')) {
-                    console.log('Attempting Socket.IO CDN fallback after local load failed');
-                    const cdnScript = document.createElement('script');
-                    cdnScript.src = 'https://cdn.socket.io/4.6.0/socket.io.min.js';
-                    document.head.appendChild(cdnScript);
-                }
-            };
-            
-            document.head.appendChild(script);
-        }
-        
-        // Load all required scripts in the correct order
-        // Skip Socket.IO since we already loaded it at the top
-        // loadScript('socket.io.min.js');
-        loadScript('webrtc-modules/browser-compatibility.js');
-        loadScript('webrtc-modules/media-control.js');
-        loadScript('webrtc-modules/ui-manager.js');
-        loadScript('webrtc-modules/signaling.js');
-        loadScript('webrtc-modules/peer-connection.js');
-        loadScript('webrtc-modules/diagnostics.js');
-        loadScript('webrtc-modules/ping-system.js');
-        loadScript('webrtc-modules/video-handling.js');
-        loadScript('webrtc-modules/video-player.js');
-        loadScript('webrtc-modules/video-debug.js');
-        loadScript('webrtc-modules/connection-monitor.js');
-        loadScript('webrtc-modules/webrtc-controller.js');
-        loadScript('webrtc-modules/modal-adapter.js');
-        loadScript('webrtc.js');
-    })();
-</script>
-
 <!-- WebRTC Debugging Script -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Fix for previous permission modal code - update to work with our new simplified modal
+    // Fix for compatibility between the old permission UI and the new simplified modal
+    // Connect the old and new UI elements
+    
+    // Connect the new buttons to trigger the old buttons for backward compatibility
+    const startCameraBtn = document.getElementById('startCameraBtn');
+    const startAudioBtn = document.getElementById('startAudioBtn');
+    const retryPermissionBtn = document.getElementById('retryPermissionBtn');
+    const audioOnlyBtn = document.getElementById('audioOnlyBtn');
+    
+    if (startCameraBtn && retryPermissionBtn) {
+        startCameraBtn.addEventListener('click', function() {
+            // Also trigger legacy button click if exists
+            if (retryPermissionBtn) retryPermissionBtn.click();
+        });
+    }
+    
+    if (startAudioBtn && audioOnlyBtn) {
+        startAudioBtn.addEventListener('click', function() {
+            // Also trigger legacy button click if exists
+            if (audioOnlyBtn) audioOnlyBtn.click();
+        });
+    }
+    
+    // Replace any references to the old modal with our new implementation
     if (window.WebRTCMedia) {
-        // Replace any references to the old modal with our new implementation
+        // Create a bridge between the old and new UI
         window.WebRTCMedia.updatePermissionUI = function(status, message) {
             const modal = document.getElementById('simpleCameraModal');
             const statusEl = document.getElementById('cameraStatus');
+            const oldStatusEl = document.getElementById('permissionStatus');
+            
             if (!modal || !statusEl) return;
+            
+            // Keep old elements updated too for legacy code
+            if (oldStatusEl) {
+                oldStatusEl.innerHTML = message || status;
+            }
             
             // Update status based on the status parameter
             switch(status) {
@@ -1246,8 +1260,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 case 'hiding':
                     modal.style.display = 'none';
                     break;
+                case 'denied':
+                    statusEl.textContent = 'Permission denied. Please check browser settings.';
+                    statusEl.style.color = '#ef4444';
+                    statusEl.style.background = '#7f1d1d';
+                    break;
+                case 'notfound':
+                    statusEl.textContent = 'No camera/microphone found. Try audio only or check devices.';
+                    statusEl.style.color = '#ef4444';
+                    statusEl.style.background = '#7f1d1d';
+                    break;
+                case 'inuse':
+                    statusEl.textContent = 'Camera/mic is in use by another app. Close it and try again.';
+                    statusEl.style.color = '#ef4444';
+                    statusEl.style.background = '#7f1d1d';
+                    break;
+                case 'error':
+                    statusEl.textContent = message || 'Error accessing media devices';
+                    statusEl.style.color = '#ef4444';
+                    statusEl.style.background = '#7f1d1d';
+                    break;
                 default:
-                    // Don't change the status for other cases - our direct implementation handles this
+                    // Don't change the status for other cases
                     break;
             }
         };
@@ -1486,6 +1520,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 let socketUrl = socketServerMeta ? socketServerMeta.content : window.location.origin;
                 let socketPath = socketPathMeta ? socketPathMeta.content : '/socket.io';
                 
+                // Fix for /webrtc URL - correctly rewrite URL if necessary
+                if (!socketServerMeta && window.location.pathname.startsWith('/webrtc')) {
+                    // When we're on the /webrtc page and no explicit server URL is provided,
+                    // ensure we're using the correct socket URL without the /webrtc prefix
+                    socketUrl = window.location.origin;
+                }
+                
                 console.log(`Testing direct socket connection to ${socketUrl} with path ${socketPath}`);
                 
                 // Check if io exists
@@ -1555,6 +1596,42 @@ document.addEventListener('DOMContentLoaded', function() {
             updateDebugInfo();
         }
     });
+
+    // Add handler for retry connection button
+    const retryConnectionBtn = document.getElementById('retryConnection');
+    if (retryConnectionBtn) {
+        retryConnectionBtn.addEventListener('click', function() {
+            console.log('[WebRTC] Manual reconnection requested');
+            
+            // Use the enhanced connection recovery function if available
+            if (window.WebRTCMonitor && typeof window.WebRTCMonitor.recoverConnection === 'function') {
+                window.WebRTCMonitor.recoverConnection();
+            } 
+            // Fall back to standard reconnect if enhanced recovery not available
+            else if (window.WebRTCSignaling && typeof window.WebRTCSignaling.reconnect === 'function') {
+                window.WebRTCSignaling.reconnect();
+            } 
+            // Last resort: direct socket connection
+            else if (window.socket) {
+                try {
+                    console.log('[WebRTC] Attempting direct socket reconnection');
+                    window.socket.connect();
+                } catch (e) {
+                    console.error('[WebRTC] Error reconnecting socket:', e);
+                    // If direct reconnection fails, reload page as last resort
+                    if (confirm('Cannot reconnect to server. Would you like to reload the page?')) {
+                        window.location.reload();
+                    }
+                }
+            } else {
+                console.error('[WebRTC] No reconnection method available');
+                // Reload page as last resort
+                if (confirm('Cannot reconnect to server. Would you like to reload the page?')) {
+                    window.location.reload();
+                }
+            }
+        });
+    }
 });
 </script>
 

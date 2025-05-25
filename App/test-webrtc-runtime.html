@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebRTC Runtime Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1f2937;
+            color: white;
+        }
+        .test-section {
+            background: #374151;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #10b981;
+        }
+        .test-section.error {
+            border-left-color: #ef4444;
+        }
+        .test-section.warning {
+            border-left-color: #f59e0b;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        video {
+            width: 300px;
+            height: 200px;
+            background: #000;
+            border-radius: 5px;
+            margin: 10px;
+        }
+        .controls {
+            margin: 10px 0;
+        }
+        .log {
+            background: #111827;
+            padding: 10px;
+            border-radius: 5px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .status {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status.pass { background: #10b981; }
+        .status.fail { background: #ef4444; }
+        .status.warn { background: #f59e0b; }
+    </style>
+</head>
+<body>
+    <h1>WebRTC Runtime Test</h1>
+    
+    <div class="test-section">
+        <h2>Environment Check</h2>
+        <div id="environmentInfo"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>WebRTC Browser Support</h2>
+        <div id="webrtcSupport"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Media Access Test</h2>
+        <div class="controls">
+            <button onclick="testCameraAccess()">Test Camera</button>
+            <button onclick="testMicrophoneAccess()">Test Microphone</button>
+            <button onclick="testScreenSharing()">Test Screen Share</button>
+            <button onclick="stopAllMedia()">Stop All Media</button>
+        </div>
+        <div>
+            <video id="localVideo" autoplay muted></video>
+            <video id="screenVideo" autoplay muted></video>
+        </div>
+        <div id="mediaStatus"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Socket Connection Test</h2>
+        <div class="controls">
+            <button onclick="testSocketConnection()">Test Socket Connection</button>
+            <button onclick="disconnectSocket()">Disconnect</button>
+        </div>
+        <div id="socketStatus"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>WebRTC Modules Test</h2>
+        <div class="controls">
+            <button onclick="testWebRTCModules()">Test Module Loading</button>
+        </div>
+        <div id="moduleStatus"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test Log</h2>
+        <div id="testLog" class="log"></div>
+    </div>
+
+    <!-- Load Socket.IO -->
+    <script src="/js/socket.io.min.js"></script>
+    
+    <!-- Load WebRTC Modules -->
+    <script src="/js/webrtc-modules/webrtc-config.js"></script>
+    <script src="/js/webrtc-modules/media-control.js"></script>
+    <script src="/js/webrtc-modules/signaling.js"></script>
+    
+    <script>
+        let localStream = null;
+        let screenStream = null;
+        let socket = null;
+        
+        // Logging function
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('testLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}`;
+            logElement.innerHTML += `<div style="color: ${type === 'error' ? '#ef4444' : type === 'warn' ? '#f59e0b' : '#10b981'}">${logEntry}</div>`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(logEntry);
+        }
+        
+        // Status helper
+        function setStatus(elementId, message, type = 'pass') {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<span class="status ${type}">${type.toUpperCase()}</span> ${message}`;
+        }
+        
+        // Initialize tests
+        function initTests() {
+            log('Initializing WebRTC Runtime Tests');
+            
+            // Environment check
+            checkEnvironment();
+            
+            // WebRTC support check
+            checkWebRTCSupport();
+            
+            log('Runtime test interface ready');
+        }
+        
+        function checkEnvironment() {
+            const info = {
+                hostname: window.location.hostname,
+                protocol: window.location.protocol,
+                userAgent: navigator.userAgent.split(' ').slice(-2).join(' '),
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                language: navigator.language
+            };
+            
+            let html = '';
+            for (const [key, value] of Object.entries(info)) {
+                html += `<div><strong>${key}:</strong> ${value}</div>`;
+            }
+            
+            document.getElementById('environmentInfo').innerHTML = html;
+            log('Environment check completed');
+        }
+        
+        function checkWebRTCSupport() {
+            const tests = [
+                { name: 'getUserMedia', check: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) },
+                { name: 'getDisplayMedia', check: !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) },
+                { name: 'RTCPeerConnection', check: !!window.RTCPeerConnection },
+                { name: 'RTCSessionDescription', check: !!window.RTCSessionDescription },
+                { name: 'RTCIceCandidate', check: !!window.RTCIceCandidate }
+            ];
+            
+            let html = '';
+            let allSupported = true;
+            
+            tests.forEach(test => {
+                const status = test.check ? 'pass' : 'fail';
+                if (!test.check) allSupported = false;
+                html += `<div><span class="status ${status}">${status.toUpperCase()}</span> ${test.name}</div>`;
+            });
+            
+            document.getElementById('webrtcSupport').innerHTML = html;
+            
+            if (allSupported) {
+                log('WebRTC fully supported in this browser');
+            } else {
+                log('Some WebRTC features not supported', 'warn');
+            }
+        }
+        
+        async function testCameraAccess() {
+            log('Testing camera access...');
+            
+            try {
+                if (localStream) {
+                    localStream.getTracks().forEach(track => track.stop());
+                }
+                
+                localStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { width: 640, height: 480 }, 
+                    audio: true 
+                });
+                
+                const localVideo = document.getElementById('localVideo');
+                localVideo.srcObject = localStream;
+                
+                setStatus('mediaStatus', 'Camera and microphone access granted', 'pass');
+                log('Camera access successful');
+                
+                // Test video/audio track info
+                const videoTracks = localStream.getVideoTracks();
+                const audioTracks = localStream.getAudioTracks();
+                log(`Video tracks: ${videoTracks.length}, Audio tracks: ${audioTracks.length}`);
+                
+            } catch (error) {
+                setStatus('mediaStatus', `Camera access failed: ${error.message}`, 'fail');
+                log(`Camera access error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testMicrophoneAccess() {
+            log('Testing microphone access...');
+            
+            try {
+                if (localStream) {
+                    localStream.getTracks().forEach(track => track.stop());
+                }
+                
+                localStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: false, 
+                    audio: true 
+                });
+                
+                setStatus('mediaStatus', 'Microphone access granted', 'pass');
+                log('Microphone access successful');
+                
+            } catch (error) {
+                setStatus('mediaStatus', `Microphone access failed: ${error.message}`, 'fail');
+                log(`Microphone access error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testScreenSharing() {
+            log('Testing screen sharing...');
+            
+            try {
+                if (screenStream) {
+                    screenStream.getTracks().forEach(track => track.stop());
+                }
+                
+                screenStream = await navigator.mediaDevices.getDisplayMedia({
+                    video: { cursor: "always" },
+                    audio: true
+                });
+                
+                const screenVideo = document.getElementById('screenVideo');
+                screenVideo.srcObject = screenStream;
+                
+                setStatus('mediaStatus', 'Screen sharing access granted', 'pass');
+                log('Screen sharing successful');
+                
+                // Handle screen share ending
+                screenStream.getVideoTracks()[0].onended = () => {
+                    log('Screen sharing ended by user');
+                    screenStream = null;
+                    screenVideo.srcObject = null;
+                };
+                
+            } catch (error) {
+                setStatus('mediaStatus', `Screen sharing failed: ${error.message}`, 'fail');
+                log(`Screen sharing error: ${error.message}`, 'error');
+            }
+        }
+        
+        function stopAllMedia() {
+            log('Stopping all media streams...');
+            
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+                document.getElementById('localVideo').srcObject = null;
+            }
+            
+            if (screenStream) {
+                screenStream.getTracks().forEach(track => track.stop());
+                screenStream = null;
+                document.getElementById('screenVideo').srcObject = null;
+            }
+            
+            setStatus('mediaStatus', 'All media streams stopped', 'warn');
+            log('All media streams stopped');
+        }
+        
+        function testSocketConnection() {
+            log('Testing socket connection...');
+            
+            try {
+                if (socket) {
+                    socket.disconnect();
+                }
+                
+                // Try to connect to the socket server
+                const socketUrl = window.WebRTCConfig ? window.WebRTCConfig.getSocketUrl() : 'http://localhost:1002';
+                log(`Attempting to connect to: ${socketUrl}`);
+                
+                socket = io(socketUrl, {
+                    path: window.WebRTCConfig ? window.WebRTCConfig.getSocketPath() : '/socket.io',
+                    timeout: 5000
+                });
+                
+                socket.on('connect', () => {
+                    setStatus('socketStatus', `Connected to ${socketUrl}`, 'pass');
+                    log('Socket connection successful');
+                    log(`Socket ID: ${socket.id}`);
+                    
+                    // Test joining the global room
+                    socket.emit('joinVideoChat', 'test-user-' + Date.now());
+                });
+                
+                socket.on('disconnect', () => {
+                    setStatus('socketStatus', 'Disconnected from socket server', 'warn');
+                    log('Socket disconnected');
+                });
+                
+                socket.on('connect_error', (error) => {
+                    setStatus('socketStatus', `Connection failed: ${error.message}`, 'fail');
+                    log(`Socket connection error: ${error.message}`, 'error');
+                });
+                
+                socket.on('userJoined', (data) => {
+                    log(`User joined: ${data.userName} (${data.socketId})`);
+                });
+                
+            } catch (error) {
+                setStatus('socketStatus', `Socket test failed: ${error.message}`, 'fail');
+                log(`Socket test error: ${error.message}`, 'error');
+            }
+        }
+        
+        function disconnectSocket() {
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+                setStatus('socketStatus', 'Socket disconnected', 'warn');
+                log('Socket manually disconnected');
+            }
+        }
+        
+        function testWebRTCModules() {
+            log('Testing WebRTC module loading...');
+            
+            const modules = [
+                { name: 'WebRTCConfig', check: !!window.WebRTCConfig },
+                { name: 'initLocalStream', check: typeof initLocalStream === 'function' },
+                { name: 'startScreenSharing', check: typeof startScreenSharing === 'function' },
+                { name: 'stopScreenSharing', check: typeof stopScreenSharing === 'function' }
+            ];
+            
+            let html = '';
+            let allLoaded = true;
+            
+            modules.forEach(module => {
+                const status = module.check ? 'pass' : 'fail';
+                if (!module.check) allLoaded = false;
+                html += `<div><span class="status ${status}">${status.toUpperCase()}</span> ${module.name}</div>`;
+            });
+            
+            document.getElementById('moduleStatus').innerHTML = html;
+            
+            if (allLoaded) {
+                log('All WebRTC modules loaded successfully');
+            } else {
+                log('Some WebRTC modules failed to load', 'warn');
+            }
+        }
+        
+        // Initialize when page loads
+        window.addEventListener('load', initTests);
+    </script>
+</body>
+</html>

@@ -1,4 +1,12 @@
-// Global socket initialization
+// Unified WebSocket configuration
+if (typeof window.ENV_CONFIG === 'undefined') {
+    window.ENV_CONFIG = {
+        // This will be dynamically replaced by server-side values
+        IS_LOCAL: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1',
+        IS_VPS: true
+    };
+}
+
 let globalSocket = null;
 
 function getGlobalSocket() {
@@ -9,7 +17,6 @@ function setGlobalSocket(socket) {
     globalSocket = socket;
     window.socket = socket;
     
-    // Dispatch an event to notify other scripts the socket is ready
     const socketReadyEvent = new CustomEvent('socketReady', { detail: { socket } });
     document.dispatchEvent(socketReadyEvent);
     
@@ -28,7 +35,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (appContainer) {
         currentUserId = appContainer.dataset.userId;
         currentUsername = appContainer.dataset.username;
-        socketServerUrl = appContainer.dataset.socketUrl;
     }
     
     // Initialize socket connection
@@ -37,11 +43,40 @@ document.addEventListener('DOMContentLoaded', function() {
             return globalSocket;
         }
         
-        const socketServerUrl = appContainer?.dataset.socketUrl || 'http://localhost:1002';
+        // Determine environment
+        const isLocalhost = window.location.hostname === 'localhost' || 
+                            window.location.hostname === '127.0.0.1';
+        
+        // Get socket URL and path from meta tags (set by PHP)
+        const socketServerMeta = document.querySelector('meta[name="socket-server"]');
+        const socketPathMeta = document.querySelector('meta[name="socket-path"]');
+        
+        let socketServerUrl = socketServerMeta ? socketServerMeta.content : null;
+        let socketPath = socketPathMeta ? socketPathMeta.content : null;
+        
+        // Normalize paths if needed
+        if (socketPath && !socketPath.startsWith('/')) {
+            socketPath = '/' + socketPath;
+        }
+        
+        // Fallbacks if meta tags aren't available
+        if (!socketServerUrl) {
+            if (isLocalhost) {
+                socketServerUrl = window.location.protocol + '//' + window.location.hostname + ':1002';
+            } else {
+                socketServerUrl = window.location.origin;
+            }
+        }
+        
+        if (!socketPath) {
+            socketPath = isLocalhost ? '/socket.io' : '/misvord/socket/socket.io';
+        }
+        
+        console.log('[Socket] Connecting to:', socketServerUrl, 'with path:', socketPath);
         
         // Create new socket
         const newSocket = io(socketServerUrl, {
-            path: '/socket.io/',
+            path: socketPath,
             transports: ['websocket', 'polling'],
             secure: window.location.protocol === 'https:',
             reconnection: true,

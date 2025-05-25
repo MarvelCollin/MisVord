@@ -3,6 +3,32 @@
  * This file now serves as a thin wrapper around our modular WebRTC implementation
  */
 
+// ENV Configuration - Similar to .env file values
+if (typeof window.ENV_CONFIG === 'undefined') {
+    // Determine if running in a production-like environment (not localhost)
+    const isProductionEnvironment = (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1');
+
+    window.ENV_CONFIG = {
+        IS_VPS: isProductionEnvironment, // IS_VPS can be determined by hostname for client-side
+        
+        // Production (VPS) settings
+        SOCKET_BASE_URL_PROD: 'wss://marvelcollin.my.id/misvord/socket',
+        
+        // Local development settings
+        // User specified "localhost:1002", existing client code uses wss.
+        SOCKET_BASE_URL_LOCAL: 'wss://localhost:1002/misvord/socket',
+        
+        // Common Socket.IO path component
+        SOCKET_IO_PATH: '/socket.io', // The actual path part for Socket.IO connections
+        
+        // For backward compatibility or other modules that might still use older names,
+        // these can be derived if needed, but direct use of above is preferred.
+        // SOCKET_DOMAIN_PROD: 'wss://marvelcollin.my.id', // Old structure
+        // SOCKET_DOMAIN_LOCAL: 'wss://localhost:1002', // Old structure
+        // SOCKET_FULL_PATH: '/misvord/socket/socket.io', // Old structure
+    };
+}
+
 // Initialize namespaces
 window.WebRTCUI = window.WebRTCUI || {};
 window.WebRTCSignaling = window.WebRTCSignaling || {};
@@ -224,53 +250,43 @@ setTimeout(ensureSocketConnection, 100);
  * Create a direct socket connection as last resort
  */
 function createDirectSocketConnection() {
-    if (window.socket && window.socket.connected) return;
-    
+    if (window.socket && window.socket.connected) {
+        console.log('[WebRTC] Direct socket connection already established.');
+        return;
+    }
+
+    console.log('[WebRTC] Attempting direct socket connection.');
     try {
-        console.log('[WebRTC] Creating direct socket connection');
-        
-        // Get socket server configuration from meta tags
-        const socketServerMeta = document.querySelector('meta[name="socket-server"]');
-        const socketPathMeta = document.querySelector('meta[name="socket-path"]');
-        
-        let socketUrl;
-        let socketPath;
-        
-        // Check if we're on localhost
-        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        
-        // Use consistent path for all environments - standardized approach
-        if (isLocalhost) {
-            // For local development
-            socketUrl = window.location.protocol + '//' + window.location.hostname + ':1002';
-            socketPath = '/misvord/socket/socket.io'; // Use standardized path for all environments
-            
-            console.log('[WebRTC] Using localhost with standardized socket path:', socketUrl, socketPath);
-        } else if (socketServerMeta && socketPathMeta) {
-            // Use meta tag configuration for production
-            socketUrl = socketServerMeta.content;
-            socketPath = socketPathMeta.content;
-            console.log('[WebRTC] Using meta tag socket configuration:', socketUrl, socketPath);
-        } else {
-            // Default fallback (should rarely happen)
-            const domain = window.location.hostname;
-            socketUrl = window.location.protocol + '//' + domain;
-            socketPath = '/misvord/socket/socket.io';
-            console.warn('[WebRTC] Using fallback socket configuration:', socketUrl, socketPath);
+        if (typeof io === 'undefined') {
+            console.error('[WebRTC] Socket.IO client (io) not loaded. Cannot create direct connection.');
+            return;
+        }
+        if (!window.ENV_CONFIG || !window.ENV_CONFIG.SOCKET_IO_PATH || (!window.ENV_CONFIG.SOCKET_BASE_URL_PROD && !window.ENV_CONFIG.SOCKET_BASE_URL_LOCAL)) {
+            console.error('[WebRTC] ENV_CONFIG is not properly defined (missing base URLs or IO path). Cannot determine socket URL.');
+            return;
+        }
+
+        const useProdSettings = window.ENV_CONFIG.IS_VPS;
+
+        const socketBaseUrl = useProdSettings ? window.ENV_CONFIG.SOCKET_BASE_URL_PROD : window.ENV_CONFIG.SOCKET_BASE_URL_LOCAL;
+        const socketIoPath = window.ENV_CONFIG.SOCKET_IO_PATH;
+
+        if (!socketBaseUrl) {
+            console.error('[WebRTC] Socket base URL is undefined. Cannot create connection. IS_VPS:', useProdSettings);
+            return;
         }
         
-        console.log(`[WebRTC] Direct socket connection - URL: ${socketUrl}, Path: ${socketPath}`);
-        
-        // Create socket instance
-        window.socket = io(socketUrl, {
-            path: socketPath,
+        console.log(`[WebRTC] Direct Connection - Base URL: ${socketBaseUrl}, IO Path: ${socketIoPath}, IS_VPS mode: ${useProdSettings}`);
+
+        window.socket = io(socketBaseUrl, {
+            path: socketIoPath,
             transports: ['websocket', 'polling'],
             reconnectionAttempts: 5,
-            reconnectionDelay: 1000,
-            timeout: 10000
+            reconnectionDelay: 3000,
+            timeout: 20000,
+            secure: socketBaseUrl.startsWith('wss://'),
         });
         
-        // Set up socket event handlers
         window.socket.on('connect', () => {
             console.log('[WebRTC] Socket connected:', window.socket.id);
             

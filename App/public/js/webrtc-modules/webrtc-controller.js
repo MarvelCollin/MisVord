@@ -79,21 +79,23 @@ const WebRTCController = {
     testSocketConnection() {
         // Show testing message
         window.WebRTCUI.addLogEntry('Testing Socket.IO connection...', 'system');
-        
-        // Get socket server URL from meta tag
-        const socketServerMeta = document.querySelector('meta[name="socket-server"]');
-        let socketUrl = socketServerMeta ? socketServerMeta.content : null;
-        
-        // Fix Docker service names 
-        if (socketUrl && socketUrl.includes('socket-server')) {
-            const fixedUrl = socketUrl.replace('socket-server', 'localhost');
-            window.WebRTCUI.addLogEntry(`⚠️ Found Docker service name in URL. Original: ${socketUrl}, Fixed: ${fixedUrl}`, 'warning');
-            socketUrl = fixedUrl;
+
+        // Ensure ENV_CONFIG is available
+        if (!window.ENV_CONFIG) {
+            window.WebRTCUI.addLogEntry('❌ ENV_CONFIG not found. Cannot test socket connection.', 'error');
+            console.error("ENV_CONFIG not found. Could not determine socket connection parameters.");
+            return;
         }
-        
-        // Get socket path from meta tag
-        const socketPathMeta = document.querySelector('meta[name="socket-path"]');
-        let socketPath = socketPathMeta ? socketPathMeta.content : '/socket.io';
+
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const socketUrl = isLocal ? window.ENV_CONFIG.SOCKET_BASE_URL_LOCAL : window.ENV_CONFIG.SOCKET_BASE_URL_PROD;
+        const socketPath = isLocal ? '/socket.io' : '/misvord/socket/socket.io';
+
+        if (!socketUrl) {
+            window.WebRTCUI.addLogEntry('❌ Socket URL could not be determined.', 'error');
+            console.error("Socket URL could not be determined from ENV_CONFIG");
+            return;
+        }
         
         window.WebRTCUI.addLogEntry(`Socket.IO settings - URL: ${socketUrl}, Path: ${socketPath}`, 'info');
         
@@ -821,4 +823,4 @@ window.WebRTCController = WebRTCController;
 // If the module is loaded in a Node.js environment, export it
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = WebRTCController;
-} 
+}

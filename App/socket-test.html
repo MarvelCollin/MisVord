@@ -111,6 +111,7 @@
                 <button id="useStandardPath">Use Standard Path (/socket.io)</button>
                 <button id="useStandardizedPath">Use Standardized Path (/misvord/socket/socket.io)</button>
                 <button id="useDockerSettings">Use Docker Settings</button>
+                <button id="useEnvSettings">Load from ENV</button>
             </div>
         </div>
         
@@ -128,8 +129,20 @@
         <div class="log" id="log">Connection log will appear here...</div>
     </div>
     
-    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <script src="js/socket.io.min.js"></script>
     <script>
+        // ENV Configuration - This simulates reading from .env file
+        // In a real app, these would be loaded from the server
+        if (typeof window.ENV_CONFIG === 'undefined') {
+            window.ENV_CONFIG = {
+                SOCKET_SERVER: 'https://marvelcollin.my.id',
+                SOCKET_SERVER_LOCAL: 'http://localhost:1002',
+                SOCKET_PATH: '/misvord/socket/socket.io',
+                SOCKET_PATH_LOCAL: '/socket.io',
+                IS_VPS: true
+            };
+        }
+        
         let socket;
         
         // DOM elements
@@ -140,6 +153,7 @@
         const useStandardPathBtn = document.getElementById('useStandardPath');
         const useStandardizedPathBtn = document.getElementById('useStandardizedPath');
         const useDockerSettingsBtn = document.getElementById('useDockerSettings');
+        const useEnvSettingsBtn = document.getElementById('useEnvSettings');
         const connectionStatus = document.getElementById('connectionStatus');
         const logElement = document.getElementById('log');
         const serverUrlInput = document.getElementById('serverUrl');
@@ -176,6 +190,18 @@
                     connectionStatus.textContent = state;
             }
         }
+        
+        // Load settings from ENV
+        useEnvSettingsBtn.addEventListener('click', () => {
+            const isLocal = window.location.hostname === 'localhost' || 
+                           window.location.hostname === '127.0.0.1';
+            
+            // Choose the appropriate socket server URL based on environment
+            serverUrlInput.value = isLocal ? window.ENV_CONFIG.SOCKET_SERVER_LOCAL : window.ENV_CONFIG.SOCKET_SERVER;
+            socketPathInput.value = isLocal ? window.ENV_CONFIG.SOCKET_PATH_LOCAL : window.ENV_CONFIG.SOCKET_PATH;
+            
+            log(`Loaded settings from ENV: ${serverUrlInput.value}, path: ${socketPathInput.value}`, 'info');
+        });
         
         // Connect to socket.io server
         connectBtn.addEventListener('click', () => {

@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebRTC Environment Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            color: #333;
+        }
+        
+        h1 {
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .env-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 4px;
+            color: white;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .env-local {
+            background-color: #4caf50;
+        }
+        
+        .env-production {
+            background-color: #2196f3;
+        }
+        
+        .env-staging {
+            background-color: #ff9800;
+        }
+        
+        .env-unknown {
+            background-color: #9e9e9e;
+        }
+        
+        .container {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+        
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        table th, table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        
+        table th {
+            background-color: #f2f2f2;
+        }
+        
+        .section {
+            margin: 20px 0;
+        }
+        
+        .error {
+            color: #f44336;
+        }
+        
+        .success {
+            color: #4caf50;
+        }
+
+        .warning {
+            color: #ff9800;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0,0,0,0.1);
+            border-radius: 50%;
+            border-top-color: #2196f3;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <h1>WebRTC Environment Test</h1>
+    
+    <div id="environment-display">
+        <h2>Current Environment</h2>
+        <div id="env-badge" class="env-badge env-unknown">Loading...</div>
+        <p id="hostname">Hostname: Loading...</p>
+        <div id="loading-status"></div>
+    </div>
+    
+    <div class="grid">
+        <div class="container">
+            <h3>Socket.IO Configuration</h3>
+            <table>
+                <tr>
+                    <th>Setting</th>
+                    <th>Value</th>
+                </tr>
+                <tr>
+                    <td>Socket URL</td>
+                    <td id="socket-url">Loading...</td>
+                </tr>
+                <tr>
+                    <td>Socket Path</td>
+                    <td id="socket-path">Loading...</td>
+                </tr>
+                <tr>
+                    <td>Base Path</td>
+                    <td id="base-path">Loading...</td>
+                </tr>
+                <tr>
+                    <td>Transports</td>
+                    <td id="socket-transports">Loading...</td>
+                </tr>
+                <tr>
+                    <td>Reconnection Attempts</td>
+                    <td id="socket-reconnect">Loading...</td>
+                </tr>
+                <tr>
+                    <td>Secure Context</td>
+                    <td id="secure-context">Loading...</td>
+                </tr>
+            </table>
+        </div>
+        
+        <div class="container">
+            <h3>WebRTC Configuration</h3>
+            <table>
+                <tr>
+                    <th>Setting</th>
+                    <th>Value</th>
+                </tr>
+                <tr>
+                    <td>ICE Servers</td>
+                    <td id="ice-servers">Loading...</td>
+                </tr>
+                <tr>
+                    <td>WebRTC Support</td>
+                    <td id="webrtc-support">Loading...</td>
+                </tr>
+                <tr>
+                    <td>Media Devices</td>
+                    <td id="media-devices">Loading...</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    
+    <div class="container">
+        <h3>Browser Compatibility</h3>
+        <table>
+            <tr>
+                <th>Setting</th>
+                <th>Value</th>
+            </tr>
+            <tr>
+                <td>Browser</td>
+                <td id="browser-name">Loading...</td>
+            </tr>
+            <tr>
+                <td>Version</td>
+                <td id="browser-version">Loading...</td>
+            </tr>
+            <tr>
+                <td>OS</td>
+                <td id="browser-os">Loading...</td>
+            </tr>
+            <tr>
+                <td>Mobile Device</td>
+                <td id="browser-mobile">Loading...</td>
+            </tr>
+            <tr>
+                <td>Compatibility Warnings</td>
+                <td id="browser-warnings">Loading...</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <h3>Environment Details</h3>
+        <pre id="environment-json">Loading...</pre>
+        
+        <button id="test-connection">Test Socket Connection</button>
+        <div id="connection-result" class="container" style="display:none;"></div>
+    </div>
+
+    <script>
+        // Load the module loader script first
+        (function() {
+            const loadingStatus = document.getElementById('loading-status');
+            loadingStatus.innerHTML = '<div class="loading"></div> Loading WebRTC modules...';
+            
+            // Get base path based on current environment
+            const basePath = getBasePath();
+            document.getElementById('base-path').textContent = basePath;
+            
+            // Create and load module loader script
+            const loaderScript = document.createElement('script');
+            loaderScript.src = `${basePath}js/webrtc-modules/module-loader.js`;
+            loaderScript.onload = function() {
+                loadingStatus.innerHTML += '<br><span class="success">Module loader loaded ✓</span>';
+                
+                // Initialize modules using the loader
+                if (window.WebRTCLoader) {
+                    loadingStatus.innerHTML += '<br>Loading WebRTC modules using module loader...';
+                    window.WebRTCLoader.loadModules({
+                        // Use the detected base path
+                        basePath: `${basePath}js/webrtc-modules/`,
+                        onComplete: function(status) {
+                            if (status.success) {
+                                loadingStatus.innerHTML += `<br><span class="success">All ${status.loaded} modules loaded successfully ✓</span>`;
+                                initTest();
+                            } else {
+                                loadingStatus.innerHTML += `<br><span class="warning">Loaded ${status.loaded} modules, ${status.failed} failed ⚠</span>`;
+                                if (status.allModulesReady) {
+                                    loadingStatus.innerHTML += '<br>Essential modules loaded, continuing...';
+                                    initTest();
+                                } else {
+                                    loadingStatus.innerHTML += '<br><span class="error">Critical modules missing, trying fallback...</span>';
+                                    loadModulesManually();
+                                }
+                            }
+                        },
+                        onError: function(error) {
+                            loadingStatus.innerHTML += `<br><span class="error">Error: ${error} ✗</span>`;
+                            loadingStatus.innerHTML += '<br>Trying fallback loading method...';
+                            loadModulesManually();
+                        }
+                    });
+                } else {
+                    loadingStatus.innerHTML += '<br><span class="error">Module loader not available ✗</span>';
+                    loadingStatus.innerHTML += '<br>Falling back to manual loading...';
+                    loadModulesManually();
+                }
+            };
+            loaderScript.onerror = function() {
+                loadingStatus.innerHTML += '<br><span class="error">Failed to load module loader ✗</span>';
+                loadingStatus.innerHTML += '<br>Falling back to manual loading...';
+                loadModulesManually();
+            };
+            document.head.appendChild(loaderScript);
+        })();
+        
+        // Get base path - handles /misvord/ in production
+        function getBasePath() {
+            // Start by checking for <base> tag
+            const baseTag = document.querySelector('base[href]');
+            if (baseTag) {
+                const baseHref = baseTag.getAttribute('href');
+                return baseHref.endsWith('/') ? baseHref : baseHref + '/';
+            }
+            
+            // Check if we're under a subpath like /misvord/
+            const pathParts = window.location.pathname.split('/');
+            
+            // Check for specific domains
+            if (window.location.hostname.includes('marvelcollin.my.id') || 
+                window.location.hostname.includes('misvord')) {
+                return '/misvord/';
+            }
+            
+            // For other environments, detect from path
+            if (pathParts.length > 1 && pathParts[1]) {
+                const path = '/' + pathParts[1] + '/';
+                // Only return if it's a real sub-path, not just a file
+                if (path !== '/webrtc-env-test/' && path !== '/socket-test/') {
+                    return path;
+                }
+            }
+            
+            return '/'; // Default path
+        }
+        
+        // Legacy manual loading as fallback
+        function loadModulesManually() {
+            const loadingStatus = document.getElementById('loading-status');
+            loadingStatus.innerHTML += '<br>Starting manual module loading...';
+            
+            const basePath = getBasePath();
+            
+            // Need to load config first
+            loadScript(`${basePath}js/webrtc-modules/webrtc-config.js`, function() {
+                loadingStatus.innerHTML += '<br><span class="success">Config loaded ✓</span>';
+                
+                // Then load browser compatibility
+                loadScript(`${basePath}js/webrtc-modules/browser-compatibility.js`, function() {
+                    loadingStatus.innerHTML += '<br><span class="success">Browser compatibility loaded ✓</span>';
+                    
+                    // Then media manager
+                    loadScript(`${basePath}js/webrtc-modules/media-manager.js`, function() {
+                        loadingStatus.innerHTML += '<br><span class="success">Media manager loaded ✓</span>';
+                        
+                        // Finally load signaling
+                        loadScript(`${basePath}js/webrtc-modules/signaling.js`, function() {
+                            loadingStatus.innerHTML += '<br><span class="success">Signaling loaded ✓</span>';
+                            
+                            // Initialize all modules manually if needed
+                            if (window.WebRTCConfig && typeof window.WebRTCConfig.enforceHttps === 'function') {
+                                window.WebRTCConfig.enforceHttps();
+                            }
+                            
+                            if (window.WebRTCCompatibility && typeof window.WebRTCCompatibility.applyBrowserFixes === 'function') {
+                                window.WebRTCCompatibility.applyBrowserFixes();
+                            }
+                            
+                            if (window.WebRTCMediaManager && typeof window.WebRTCMediaManager.initialize === 'function') {
+                                window.WebRTCMediaManager.initialize();
+                            }
+                            
+                            if (window.WebRTCSignaling && typeof window.WebRTCSignaling.initialize === 'function') {
+                                window.WebRTCSignaling.initialize();
+                            }
+                            
+                            initTest();
+                        });
+                    });
+                });
+            });
+        }
+        
+        // Load a script with proper error handling
+        function loadScript(src, callback) {
+            const loadingStatus = document.getElementById('loading-status');
+            loadingStatus.innerHTML += `<br>Loading ${src.split('/').pop()}...`;
+                
+            const script = document.createElement('script');
+            script.src = src;
+            
+            // Set a timeout for script loading
+            const timeoutId = setTimeout(() => {
+                loadingStatus.innerHTML += `<br><span class="error">Timeout loading ${src} ✗</span>`;
+                script.onload = script.onerror = null;
+                callback(); // Continue anyway
+            }, 10000); // 10 second timeout
+            
+            script.onload = function() {
+                clearTimeout(timeoutId);
+                loadingStatus.innerHTML += `<br><span class="success">${src.split('/').pop()} loaded ✓</span>`;
+                callback();
+            };
+            
+            script.onerror = function(error) {
+                clearTimeout(timeoutId);
+                loadingStatus.innerHTML += `<br><span class="error">Failed to load ${src} ✗</span>`;
+                callback(); // Continue anyway
+            };
+            
+            document.head.appendChild(script);
+        }
+        
+        // Initialize the test
+        function initTest() {
+            if (!window.WebRTCConfig) {
+                document.getElementById('environment-json').textContent = 'Error: WebRTCConfig not found';
+                return;
+            }
+            
+            // Get environment info
+            const envInfo = window.WebRTCConfig.getEnvironmentInfo();
+            
+            // Display environment badge
+            const envBadge = document.getElementById('env-badge');
+            envBadge.textContent = envInfo.environment;
+            envBadge.className = `env-badge env-${envInfo.environment.toLowerCase()}`;
+            
+            // Display hostname
+            document.getElementById('hostname').textContent = 
+                `Hostname: ${envInfo.hostname}${envInfo.port ? ':'+envInfo.port : ''}`;
+            
+            // Display Socket.IO config
+            document.getElementById('socket-url').textContent = envInfo.socketUrl || 'Not configured';
+            document.getElementById('socket-path').textContent = envInfo.socketPath || 'Default';
+            
+            // Display socket options if available
+            try {
+                const socketOptions = window.WebRTCConfig.getSocketOptions();
+                document.getElementById('socket-transports').textContent = 
+                    socketOptions.transports ? socketOptions.transports.join(', ') : 'Default';
+                document.getElementById('socket-reconnect').textContent = 
+                    socketOptions.reconnectionAttempts !== undefined ? 
+                    socketOptions.reconnectionAttempts : 'Default';
+            } catch (e) {
+                document.getElementById('socket-transports').textContent = 'Error';
+                document.getElementById('socket-reconnect').textContent = 'Error';
+            }
+            
+            // Display secure context status
+            try {
+                const isSecure = window.WebRTCConfig.isSecureContext();
+                document.getElementById('secure-context').innerHTML = 
+                    isSecure ? 
+                    '<span class="success">Yes ✓</span>' : 
+                    '<span class="error">No ✗</span>';
+            } catch (e) {
+                document.getElementById('secure-context').innerHTML = 
+                    '<span class="error">Error checking secure context</span>';
+            }
+            
+            // Display WebRTC config
+            try {
+                const iceServers = window.WebRTCConfig.getIceServers();
+                const iceServerDisplay = document.getElementById('ice-servers');
+                
+                // Create a more detailed display of ICE servers
+                if (iceServers && iceServers.length > 0) {
+                    let iceServerInfo = `<span class="success">${iceServers.length} servers configured</span><br>`;
+                    
+                    // Count server types
+                    const stunCount = iceServers.filter(server => 
+                        (Array.isArray(server.urls) ? 
+                        server.urls.some(url => url.toLowerCase().includes('stun:')) : 
+                        server.urls.toString().toLowerCase().includes('stun:'))).length;
+                        
+                    const turnCount = iceServers.filter(server => 
+                        (Array.isArray(server.urls) ? 
+                        server.urls.some(url => url.toLowerCase().includes('turn:')) : 
+                        server.urls.toString().toLowerCase().includes('turn:'))).length;
+                    
+                    iceServerInfo += `<small>${stunCount} STUN, ${turnCount} TURN</small><br>`;
+                    
+                    // Show names (but not credentials)
+                    const serverList = iceServers.map(server => {
+                        const url = Array.isArray(server.urls) ? server.urls[0] : server.urls;
+                        const urlStr = url.toString();
+                        // Extract just the protocol and domain
+                        const matches = urlStr.match(/^(stun|turn):([^:@]+)/i);
+                        return matches ? matches[1].toUpperCase() + ' ' + matches[2] : urlStr;
+                    }).join(', ');
+                    
+                    iceServerInfo += `<small title="${serverList}">${serverList.substring(0, 30)}${serverList.length > 30 ? '...' : ''}</small>`;
+                    
+                    iceServerDisplay.innerHTML = iceServerInfo;
+                } else {
+                    iceServerDisplay.innerHTML = '<span class="error">No ICE servers configured!</span>';
+                }
+            } catch (e) {
+                document.getElementById('ice-servers').innerHTML = 
+                    `<span class="error">Error checking ICE servers: ${e.message}</span>`;
+            }
+            
+            // Check WebRTC support
+            try {
+                const hasWebRTC = window.WebRTCConfig.isWebRTCSupported();
+                document.getElementById('webrtc-support').innerHTML = 
+                    hasWebRTC ? 
+                    '<span class="success">Supported ✓</span>' : 
+                    '<span class="error">Not Supported ✗</span>';
+            } catch (e) {
+                document.getElementById('webrtc-support').innerHTML = 
+                    `<span class="error">Error checking WebRTC support: ${e.message}</span>`;
+            }
+            
+            // Check media devices
+            if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+                navigator.mediaDevices.enumerateDevices()
+                    .then(devices => {
+                        const videoCameras = devices.filter(d => d.kind === 'videoinput').length;
+                        const microphones = devices.filter(d => d.kind === 'audioinput').length;
+                        const speakers = devices.filter(d => d.kind === 'audiooutput').length;
+                        
+                        document.getElementById('media-devices').innerHTML = 
+                            `<span class="success">${devices.length} devices found</span><br>` +
+                            `<small>${videoCameras} cameras, ${microphones} microphones, ${speakers} speakers</small>`;
+                    })
+                    .catch(err => {
+                        document.getElementById('media-devices').innerHTML = 
+                            `<span class="error">Error: ${err.message}</span>`;
+                    });
+            } else {
+                document.getElementById('media-devices').innerHTML = 
+                    '<span class="error">Media devices API not available</span>';
+            }
+            
+            // Display full environment JSON
+            document.getElementById('environment-json').textContent = 
+                JSON.stringify(envInfo, null, 2);
+            
+            // Display browser compatibility information
+            if (window.WebRTCCompatibility) {
+                try {
+                    const support = window.WebRTCCompatibility.checkSupport();
+                    document.getElementById('browser-name').textContent = support.browser.name || 'Unknown';
+                    document.getElementById('browser-version').textContent = support.browser.version || 'Unknown';
+                    document.getElementById('browser-os').textContent = support.browser.os || 'Unknown';
+                    document.getElementById('browser-mobile').textContent = support.browser.isMobile ? 'Yes' : 'No';
+                    
+                    const warningsEl = document.getElementById('browser-warnings');
+                    if (support.warnings && support.warnings.length > 0) {
+                        warningsEl.innerHTML = '<ul class="error" style="margin: 0; padding-left: 20px;">' + 
+                            support.warnings.map(warning => `<li>${warning}</li>`).join('') + 
+                            '</ul>';
+                    } else {
+                        warningsEl.innerHTML = '<span class="success">No warnings ✓</span>';
+                    }
+                } catch (e) {
+                    document.getElementById('browser-name').textContent = 'Error checking browser compatibility';
+                    document.getElementById('browser-warnings').innerHTML = 
+                        `<span class="error">Error: ${e.message}</span>`;
+                }
+            } else {
+                document.getElementById('browser-name').textContent = 'Compatibility module not loaded';
+            }
+            
+            // Add socket connection test
+            document.getElementById('test-connection').addEventListener('click', function() {
+                testSocketConnection();
+            });
+        }
+        
+        // Test socket connection
+        function testSocketConnection() {
+            const resultDiv = document.getElementById('connection-result');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<p>Testing connection to socket server...</p>';
+            
+            if (!window.WebRTCSignaling) {
+                resultDiv.innerHTML += '<p class="error">Error: WebRTCSignaling not found</p>';
+                return;
+            }
+            
+            // Initialize signaling if available
+            if (typeof window.WebRTCSignaling.initialize === 'function') {
+                window.WebRTCSignaling.initialize();
+            }
+            
+            // Set a timeout for connection
+            const timeoutId = setTimeout(() => {
+                resultDiv.innerHTML += `
+                    <p class="error">
+                        ✗ Connection timed out after 10 seconds
+                    </p>
+                    <p>
+                        The socket server did not respond. Check that it's running and accessible.
+                    </p>
+                `;
+            }, 10000); // 10 second timeout
+            
+            // Try to connect to socket server
+            window.WebRTCSignaling.connectToSignalingServer(
+                'env-test-room',
+                'TestUser_' + Math.floor(Math.random() * 10000),
+                function onConnected(users) {
+                    clearTimeout(timeoutId);
+                    resultDiv.innerHTML += `
+                        <p class="success">
+                            ✓ Connected successfully to socket server!<br>
+                            Socket ID: ${window.WebRTCSignaling.getSocketId() || 'Unknown'}<br>
+                            Users in room: ${users ? users.length : 0}
+                        </p>
+                        <p>
+                            <strong>Event names used:</strong><br>
+                            <code>${JSON.stringify(window.WebRTCSignaling.getEventNames ? 
+                                window.WebRTCSignaling.getEventNames() : 
+                                {note: 'getEventNames() not available'})}</code>
+                        </p>
+                    `;
+                },
+                function onError(error) {
+                    clearTimeout(timeoutId);
+                    resultDiv.innerHTML += `
+                        <p class="error">
+                            ✗ Connection failed: ${error}
+                        </p>
+                        <p>
+                            Check that the socket server is running and accessible.
+                        </p>
+                    `;
+                }
+            );
+        }
+    </script>
+</body>
+</html> 

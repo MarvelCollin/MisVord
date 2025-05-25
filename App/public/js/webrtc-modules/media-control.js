@@ -200,8 +200,21 @@ function updatePermissionUI(status, message = '') {
     const retryBtn = document.getElementById('retryPermissionBtn');
     const audioOnlyBtn = document.getElementById('audioOnlyBtn');
     
-    if (!permissionRequest || !permissionStatus || !retryBtn || !audioOnlyBtn) {
-        console.warn('Permission UI elements (retry, audioOnly) not found. Cannot update UI.');
+    // Handle case where UI elements may not be found - use simplified camera modal instead
+    const simpleCameraModal = document.getElementById('simpleCameraModal');
+    const cameraStatus = document.getElementById('cameraStatus');
+    const useSimplifiedUI = simpleCameraModal && cameraStatus && (!permissionRequest || !permissionStatus);
+    
+    // Early exit - we'll let the simplified UI handle this through its own flow
+    if (useSimplifiedUI && window.WebRTCMedia && typeof window.WebRTCMedia.updatePermissionUI === 'function') {
+        // Delegate to the simplified UI handler
+        window.WebRTCMedia.updatePermissionUI(status, message);
+        return;
+    }
+    
+    // Legacy UI path - only proceed if we have the required elements
+    if (!permissionRequest || !permissionStatus) {
+        console.warn('Legacy permission UI elements not found. Cannot update UI.');
         return;
     }
     
@@ -209,8 +222,9 @@ function updatePermissionUI(status, message = '') {
         permissionRequest.style.display = 'flex';
     }
 
-    retryBtn.style.display = 'none';
-    audioOnlyBtn.style.display = 'none';
+    // Only update the button display if they exist
+    if (retryBtn) retryBtn.style.display = 'none';
+    if (audioOnlyBtn) audioOnlyBtn.style.display = 'none';
     
     switch (status) {
         case 'requesting':
@@ -448,7 +462,37 @@ function retryMediaAccess(videoEnabled = true) {
     
     console.log("Retrying media access, video:", videoEnabled);
     
-    // Show the permission dialog if it's hidden
+    // Check if we're using the simplified UI
+    const simpleCameraModal = document.getElementById('simpleCameraModal');
+    if (simpleCameraModal) {
+        // Show the simplified camera modal
+        simpleCameraModal.style.display = 'flex';
+        
+        // Update the status message
+        const statusEl = document.getElementById('cameraStatus');
+        if (statusEl) {
+            statusEl.textContent = 'Waiting for permission...';
+            statusEl.style.color = '#ffc107';
+            statusEl.style.background = '#374151';
+        }
+        
+        // Click the appropriate button based on video preference
+        if (videoEnabled) {
+            const startCameraBtn = document.getElementById('startCameraBtn');
+            if (startCameraBtn) {
+                setTimeout(() => startCameraBtn.click(), 100);
+                return true;
+            }
+        } else {
+            const startAudioBtn = document.getElementById('startAudioBtn');
+            if (startAudioBtn) {
+                setTimeout(() => startAudioBtn.click(), 100);
+                return true;
+            }
+        }
+    }
+    
+    // Fall back to legacy UI if simplified UI is not available or buttons not found
     const permissionRequest = document.getElementById('permissionRequest');
     if (permissionRequest) {
         permissionRequest.style.display = 'flex';

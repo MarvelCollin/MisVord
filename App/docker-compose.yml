@@ -37,14 +37,16 @@ services:
       - DB_USER=${DB_USER:-root}
       - DB_PASS=${DB_PASS:-password} # Use .env file for this!
       - DB_CHARSET=${DB_CHARSET:-utf8mb4}
-      # Ensure this reflects how Nginx will proxy to the socket server
-      - SOCKET_SERVER=${SOCKET_SERVER:-wss://marvelcollin.my.id/misvord/socket} # Adjusted for VPS with SSL and subpath
-      - SOCKET_SERVER_LOCAL=${SOCKET_SERVER_LOCAL:-http://socket-server:1002} # Internal communication
-      - SOCKET_PATH=/misvord/socket/socket.io  
+      # Unified Socket Configuration
+      # SOCKET_BASE_PATH should have leading slash
+      - SOCKET_BASE_PATH=${SOCKET_BASE_PATH:-/socket.io}
+      # SOCKET_SUBPATH should not have leading or trailing slashes
+      - SOCKET_SUBPATH=${SOCKET_SUBPATH:-misvord/socket}
       - SOCKET_API_KEY=${SOCKET_API_KEY:-kolin123} # Use .env file for this!
+      # Environment Detection
       - IS_VPS=${IS_VPS:-true} # Set to true for VPS
+      - USE_HTTPS=${USE_HTTPS:-true} # Set to true for VPS
       - DOMAIN=${DOMAIN:-marvelcollin.my.id} # Set to your domain
-      - SUBPATH=${SUBPATH:-misvord} # Keep or remove based on preference
       - PORT=1001 # Internal port for PHP service
     security_opt:
       - no-new-privileges:true
@@ -73,27 +75,27 @@ services:
       - NODE_ENV=${APP_ENV:-production} # Set to production for VPS
       - PORT=${SOCKET_PORT:-1002} # Internal port for Node service
       # - SECURE_PORT=${SOCKET_SECURE_PORT:-1443} # Not needed if Nginx handles SSL
+      # Unified Socket Configuration
+      # SOCKET_BASE_PATH should have leading slash
+      - SOCKET_BASE_PATH=${SOCKET_BASE_PATH:-/socket.io}
+      # SOCKET_SUBPATH should not have leading or trailing slashes
+      - SOCKET_SUBPATH=${SOCKET_SUBPATH:-misvord/socket}
       - SOCKET_API_KEY=${SOCKET_API_KEY:-kolin123} # Use .env file for this!
+      # Database Configuration
       - DB_HOST=db
       - DB_PORT=${DB_PORT:-1003}
       - DB_NAME=${DB_NAME:-misvord}
       - DB_USER=${DB_USER:-root}
       - DB_PASS=${DB_PASS:-password} # Use .env file for this!
-      # This is the path Nginx will proxy to.
-      - SOCKET_URL=${SOCKET_SERVER:-wss://marvelcollin.my.id/misvord/socket} # Corrected to match .env-example
-      - SOCKET_PATH=/misvord/socket/socket.io # Fixed path for both dev and prod
-      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-https://marvelcollin.my.id} # Specific for your domain
+      # Environment Detection
+      - IS_VPS=${IS_VPS:-true} # Always true to ensure consistent socket path
       - USE_HTTPS=${USE_HTTPS:-true} # Nginx handles actual SSL, but app might need to know
-      - IS_VPS=true # Always true to ensure consistent socket path
       - DOMAIN=${DOMAIN:-marvelcollin.my.id} # Set to your domain
-      - SUBPATH=${SUBPATH:-misvord} # Keep or remove
+      # Additional Configuration
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-https://marvelcollin.my.id} # Specific for your domain
       - DISABLE_DOTENV=true # Prevent .env file from overriding these settings
-      - DEBUG_USERS=false # Fix for crashing error
-      - DEBUG=false # Debug mode off by default
-      - DEBUG_CONNECT=false # Debug connection off by default
-      - DEBUG_CONNECTION=false # Debug connection details off by default  
+      - DEBUG=${DEBUG:-false} # Debug mode off by default
       - VIDEO_CHAT_ROOM=global-video-chat # Default room name
-      - ALWAYS_USE_STANDARD_PATH=true # Enforce using the standardized path
     security_opt:
       - no-new-privileges:true
     ulimits:
