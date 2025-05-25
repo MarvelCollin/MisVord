@@ -1,66 +1,110 @@
 /**
  * WebRTC Application Main Entry Point
- * This file now serves as a thin wrapper around our modular WebRTC implementation
+ * Simplified version using consolidated modules
+ * 
+ * This file coordinates the WebRTC-Core and WebRTC-UI modules
+ * to provide a clean, reliable video calling experience.
  */
 
-// ENV Configuration - Similar to .env file values
-if (typeof window.ENV_CONFIG === 'undefined') {
-    // Determine if running in a production-like environment (not localhost)
-    const isProductionEnvironment = (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1');
+// Global application state
+let isInitialized = false;
+let localStream = null;
+const peers = new Map();
 
-    window.ENV_CONFIG = {
-        IS_VPS: isProductionEnvironment, // IS_VPS can be determined by hostname for client-side
-        
-        // Production (VPS) settings
-        SOCKET_BASE_URL_PROD: 'wss://marvelcollin.my.id/misvord/socket',
-        
-        // Local development settings
-        // User specified "localhost:1002", existing client code uses wss.
-        SOCKET_BASE_URL_LOCAL: 'wss://localhost:1002/misvord/socket',
-        
-        // Common Socket.IO path component
-        SOCKET_IO_PATH: '/socket.io', // The actual path part for Socket.IO connections
-        
-        // For backward compatibility or other modules that might still use older names,
-        // these can be derived if needed, but direct use of above is preferred.
-        // SOCKET_DOMAIN_PROD: 'wss://marvelcollin.my.id', // Old structure
-        // SOCKET_DOMAIN_LOCAL: 'wss://localhost:1002', // Old structure
-        // SOCKET_FULL_PATH: '/misvord/socket/socket.io', // Old structure
-    };
+console.log('[WebRTC] Simplified WebRTC system loading...');
+
+// Logging function
+function log(message, type = 'info') {
+    const timestamp = new Date().toLocaleTimeString();
+    console.log(`[WebRTC ${type.toUpperCase()}] ${timestamp}: ${message}`);
 }
 
-// Initialize namespaces
-window.WebRTCUI = window.WebRTCUI || {};
-window.WebRTCSignaling = window.WebRTCSignaling || {};
-window.WebRTCMedia = window.WebRTCMedia || {};
-window.WebRTCPeerConnection = window.WebRTCPeerConnection || {};
-window.WebRTCDiagnostics = window.WebRTCDiagnostics || {};
-window.WebRTCPingSystem = window.WebRTCPingSystem || {};
-window.WebRTCVideoHandler = window.WebRTCVideoHandler || {};
-window.WebRTCMonitor = window.WebRTCMonitor || {};
-window.VideoDebug = window.VideoDebug || {};
+// Update UI status
+function updateStatus(message, type = 'info') {
+    const permissionStatus = document.getElementById('permissionStatus');
+    if (permissionStatus) {
+        permissionStatus.innerHTML = message;
+    }
+    
+    const statusElements = document.querySelectorAll('.connection-status');
+    statusElements.forEach(el => {
+        el.textContent = message;
+        el.className = `connection-status ${type}`;
+    });
+}
 
-// Set application-level debug mode
-window.appDebugMode = window.appDebugMode ?? true;
+// Initialize socket connection
+function initializeSocket() {
+    const config = window.ENV_CONFIG.getCurrentConfig();
+    
+    log(`Connecting to ${config.url} with path ${config.path}`);
+    updateStatus('Connecting to server...', 'connecting');
+    
+    try {
+        window.socket = io(config.url, {
+            path: config.path,
+            transports: ['websocket', 'polling'],
+            timeout: 10000,
+            forceNew: true
+        });
 
-// Track module loading status
-let modulesLoaded = false;
+        window.socket.on('connect', () => {
+            log('Socket connected successfully', 'success');
+            updateStatus('Connected to server', 'success');
+        });
+
+        window.socket.on('disconnect', () => {
+            log('Socket disconnected', 'warning');
+            updateStatus('Disconnected from server', 'error');
+        });
+
+        window.socket.on('connect_error', (error) => {
+            log(`Connection error: ${error.message}`, 'error');
+            updateStatus(`Connection Error: ${error.message}`, 'error');
+        });
+
+    } catch (error) {
+        log(`Error initializing socket: ${error.message}`, 'error');
+        updateStatus(`Error: ${error.message}`, 'error');
+    }
+}
+
+// Camera and microphone permissions
+async function requestCameraPermissions() {
+    try {
+        log('Requesting camera and microphone permissions');
+        updateStatus('Requesting camera permissions...', 'requesting');
+        
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: true, 
+            audio: true 
+        });
+        
+        log('Camera and microphone permissions granted', 'success');
+        updateStatus('Ready for video calls', 'success');
+        
+        // Display local video
+        const localVideo = document.getElementById('localVideo');
+        if (localVideo) {
+            localVideo.srcObject = stream;
+            localVideo.muted = true; // Prevent audio feedback
+        }
+        
+        return stream;
+        
+    } catch (error) {
+        log(`Permission error: ${error.message}`, 'error');
+        updateStatus(`Permission denied: ${error.message}`, 'error');
+        throw error;
+    }
+}
 
 // Initialize the application when the document is ready
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('[WebRTC] DOM fully loaded - initializing webcam permissions UI');
+    log('Initializing WebRTC system');
     
-    // Make sure the permission request is initially visible
-    const permissionRequest = document.getElementById('permissionRequest');
-    if (permissionRequest) {
-        permissionRequest.style.display = 'flex';
-        
-        // Set the initial status message
-        const permissionStatus = document.getElementById('permissionStatus');
-        if (permissionStatus) {
-            permissionStatus.innerHTML = 'Waiting for module initialization...';
-        }
-    }
+    // Show initial status
+    updateStatus('Initializing...', 'info');
     
     // Add handler for retry connection button
     const retryConnectionBtn = document.getElementById('retryConnection');
@@ -261,30 +305,19 @@ function createDirectSocketConnection() {
             console.error('[WebRTC] Socket.IO client (io) not loaded. Cannot create direct connection.');
             return;
         }
-        if (!window.ENV_CONFIG || !window.ENV_CONFIG.SOCKET_IO_PATH || (!window.ENV_CONFIG.SOCKET_BASE_URL_PROD && !window.ENV_CONFIG.SOCKET_BASE_URL_LOCAL)) {
-            console.error('[WebRTC] ENV_CONFIG is not properly defined (missing base URLs or IO path). Cannot determine socket URL.');
-            return;
-        }
 
-        const useProdSettings = window.ENV_CONFIG.IS_VPS;
+        // Use the ENV_CONFIG to get the correct configuration
+        const config = window.ENV_CONFIG.getCurrentConfig();
+        console.log(`[WebRTC] Direct Connection Config:`, config);
 
-        const socketBaseUrl = useProdSettings ? window.ENV_CONFIG.SOCKET_BASE_URL_PROD : window.ENV_CONFIG.SOCKET_BASE_URL_LOCAL;
-        const socketIoPath = window.ENV_CONFIG.SOCKET_IO_PATH;
-
-        if (!socketBaseUrl) {
-            console.error('[WebRTC] Socket base URL is undefined. Cannot create connection. IS_VPS:', useProdSettings);
-            return;
-        }
-        
-        console.log(`[WebRTC] Direct Connection - Base URL: ${socketBaseUrl}, IO Path: ${socketIoPath}, IS_VPS mode: ${useProdSettings}`);
-
-        window.socket = io(socketBaseUrl, {
-            path: socketIoPath,
+        window.socket = io(config.url, {
+            path: config.path,
             transports: ['websocket', 'polling'],
             reconnectionAttempts: 5,
             reconnectionDelay: 3000,
             timeout: 20000,
-            secure: socketBaseUrl.startsWith('wss://'),
+            secure: config.secure,
+            forceNew: true
         });
         
         window.socket.on('connect', () => {
@@ -308,6 +341,14 @@ function createDirectSocketConnection() {
         
         window.socket.on('disconnect', (reason) => {
             console.warn('[WebRTC] Socket disconnected:', reason);
+        });
+
+        window.socket.on('roomUsers', (users) => {
+            console.log('[WebRTC] Room users received:', users);
+        });
+
+        window.socket.on('joinedRoom', (data) => {
+            console.log('[WebRTC] Successfully joined room:', data);
         });
         
         // Set a global reference

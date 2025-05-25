@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebRTC Connection Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #2a2a2a;
+            border-radius: 10px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .status.success { background: #4CAF50; }
+        .status.error { background: #f44336; }
+        .status.info { background: #2196F3; }
+        .button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:hover {
+            background: #0056b3;
+        }
+        .log {
+            background: #000;
+            color: #0f0;
+            padding: 15px;
+            border-radius: 5px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 MiscVord WebRTC Connection Test</h1>
+        
+        <div id="connectionStatus" class="status info">Initializing...</div>
+        
+        <div>
+            <button class="button" onclick="testConnection()">🔍 Test Socket Connection</button>
+            <button class="button" onclick="requestPermissions()">📹 Request Camera/Mic</button>
+            <button class="button" onclick="clearLog()">🗑️ Clear Log</button>
+        </div>
+        
+        <div id="logOutput" class="log">
+            [INIT] WebRTC Connection Test loaded
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <h3>Instructions:</h3>
+            <ol>
+                <li>Start the socket server: <code>start-local.bat</code></li>
+                <li>Click "Test Socket Connection" to verify server is running</li>
+                <li>Click "Request Camera/Mic" to test WebRTC permissions</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Load Socket.IO -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    
+    <script>
+        let socket = null;
+        
+        function log(message, type = 'INFO') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logElement = document.getElementById('logOutput');
+            logElement.innerHTML += `[${timestamp}] [${type}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(`[${type}] ${message}`);
+        }
+        
+        function updateStatus(message, type) {
+            const statusElement = document.getElementById('connectionStatus');
+            statusElement.textContent = message;
+            statusElement.className = `status ${type}`;
+        }
+        
+        function testConnection() {
+            log('Starting socket connection test...', 'TEST');
+            updateStatus('Testing connection...', 'info');
+            
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+            }
+            
+            try {
+                socket = io('http://localhost:1002', {
+                    path: '/socket.io',
+                    transports: ['websocket', 'polling'],
+                    timeout: 10000,
+                    forceNew: true
+                });
+                
+                socket.on('connect', () => {
+                    log('✅ Socket connected successfully!', 'SUCCESS');
+                    log(`Socket ID: ${socket.id}`, 'INFO');
+                    updateStatus('Connected to socket server', 'success');
+                    
+                    // Test sending a message
+                    socket.emit('test-message', { 
+                        message: 'Hello from test client!',
+                        timestamp: new Date().toISOString()
+                    });
+                    log('📤 Sent test message to server', 'INFO');
+                });
+                
+                socket.on('disconnect', (reason) => {
+                    log(`❌ Disconnected: ${reason}`, 'WARNING');
+                    updateStatus('Disconnected', 'error');
+                });
+                
+                socket.on('connect_error', (error) => {
+                    log(`❌ Connection failed: ${error.message}`, 'ERROR');
+                    log('💡 Make sure socket server is running on port 1002', 'INFO');
+                    updateStatus('Connection failed - Is server running?', 'error');
+                });
+                
+                socket.on('test-response', (data) => {
+                    log(`📥 Server response: ${JSON.stringify(data)}`, 'SUCCESS');
+                });
+                
+                // Connection timeout
+                setTimeout(() => {
+                    if (socket && !socket.connected) {
+                        log('⏱️ Connection timeout', 'ERROR');
+                        updateStatus('Connection timeout', 'error');
+                    }
+                }, 15000);
+                
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'ERROR');
+                updateStatus('Connection error', 'error');
+            }
+        }
+        
+        async function requestPermissions() {
+            log('Requesting camera and microphone permissions...', 'TEST');
+            updateStatus('Requesting permissions...', 'info');
+            
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: true
+                });
+                
+                log('✅ Camera and microphone permissions granted!', 'SUCCESS');
+                log(`Video tracks: ${stream.getVideoTracks().length}`, 'INFO');
+                log(`Audio tracks: ${stream.getAudioTracks().length}`, 'INFO');
+                updateStatus('Permissions granted - WebRTC ready', 'success');
+                
+                // Stop the stream (just for testing)
+                stream.getTracks().forEach(track => track.stop());
+                
+            } catch (error) {
+                log(`❌ Permission error: ${error.message}`, 'ERROR');
+                updateStatus('Permission denied', 'error');
+                
+                if (error.name === 'NotAllowedError') {
+                    log('💡 Please allow camera/microphone access in your browser', 'INFO');
+                } else if (error.name === 'NotFoundError') {
+                    log('💡 No camera or microphone found', 'INFO');
+                }
+            }
+        }
+        
+        function clearLog() {
+            document.getElementById('logOutput').innerHTML = '[INIT] Log cleared\n';
+        }
+        
+        // Auto-test on load (optional)
+        window.addEventListener('load', () => {
+            log('WebRTC Connection Test initialized', 'INIT');
+            log('Ready to test socket connection and WebRTC permissions', 'INFO');
+        });
+    </script>
+</body>
+</html>

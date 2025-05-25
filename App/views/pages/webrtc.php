@@ -12,6 +12,7 @@ if (!function_exists('asset')) {
 
 $page_title = 'MiscVord - Global Video Chat';
 $body_class = 'bg-gray-900 text-white overflow-hidden';
+$page_js = 'webrtc';
 
 // Environment Detection
 $is_production = getenv('APP_ENV') === 'production';
@@ -418,7 +419,7 @@ function validateSocketIoPath() {
         // Use socket server on port 1002 with standard path
         script.src = 'http://localhost:1002/socket.io/socket.io.js';
     } else {
-        // For production, just use our local copy or CDN
+        // For production, just use our local copy
         script.src = '/js/socket.io.min.js';
     }
     
@@ -1116,28 +1117,16 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 </div>
 
-<!-- WebRTC Script Loading - Using PHP helper -->
+<!-- WebRTC Script Loading - Using consolidated modules -->
 <?php 
-// Socket.IO is already loaded separately
+// Using consolidated WebRTC modules instead of individual files
 $webrtcModules = [
-    'webrtc-modules/webrtc-config',  // Added as first module to ensure it loads before others
-    'webrtc-modules/browser-compatibility',
-    'webrtc-modules/media-control',
-    'webrtc-modules/ui-manager',
-    'webrtc-modules/signaling',
-    'webrtc-modules/peer-connection',
-    'webrtc-modules/diagnostics',
-    'webrtc-modules/ping-system',
-    'webrtc-modules/video-handling',
-    'webrtc-modules/video-player',
-    'webrtc-modules/video-debug',
-    'webrtc-modules/connection-monitor',
-    'webrtc-modules/webrtc-controller',
-    'webrtc-modules/modal-adapter',
-    'webrtc' // Main controller script
+    'webrtc-core',    // Core functionality (config, signaling, peer connections, media control)
+    'webrtc-ui',      // UI management and utilities
+    'webrtc'          // Main application entry point
 ];
 
-// Load each module using the js() helper function
+// Load each consolidated module using the js() helper function
 foreach ($webrtcModules as $module) {
     echo '<script src="' . js($module) . '"></script>' . PHP_EOL;
 }

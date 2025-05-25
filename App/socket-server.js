@@ -1,292 +1,388 @@
+/**
+ * MiscVord Socket Server
+ * WebRTC Signaling Server for Video Chat with Docker Support
+ */
+
+require('dotenv').config();
 const express = require('express');
-const http = require('http');
-const https = require('https');
-const fs = require('fs');
-const socketIo = require('socket.io');
+const { createServer } = require('http');
+const { Server } = require('socket.io');
 const cors = require('cors');
 
-// Only load dotenv if not explicitly disabled
-if (process.env.DISABLE_DOTENV !== 'true') {
-  console.log('Loading environment from .env file');
-  require('dotenv').config();
-} else {
-  console.log('Bypassing .env file, using provided environment variables');
-}
+// =====================================
+// ENVIRONMENT CONFIGURATION
+// =====================================
 
-// Environment variables and configuration
-const DEBUG_MODE = process.env.DEBUG === 'true' || false;
+const PORT = process.env.PORT || 1002;
+const SECURE_PORT = process.env.SECURE_PORT || 1443;
+const NODE_ENV = process.env.NODE_ENV || 'development';
+const IS_VPS = process.env.IS_VPS === 'true';
+const SOCKET_BASE_PATH = process.env.SOCKET_BASE_PATH || '/socket.io';
+const SOCKET_SUBPATH = process.env.SOCKET_SUBPATH || 'misvord/socket';
+const DEBUG_MODE = process.env.DEBUG === 'true';
+const VIDEO_CHAT_ROOM = process.env.VIDEO_CHAT_ROOM || 'global-video-chat';
 
-// Unified Socket Configuration
-const isVpsEnvironment = process.env.IS_VPS === 'true';
-const useHttps = process.env.USE_HTTPS === 'true';
-const domain = process.env.DOMAIN || 'localhost';
-const socketPort = process.env.PORT || process.env.SOCKET_PORT || 1002;
-const socketSecurePort = process.env.SOCKET_SECURE_PORT || 1443;
-
-// Simplified path construction
-const socketPath = isVpsEnvironment 
-  ? '/misvord/socket/socket.io'  // Production path
-  : '/socket.io';               // Development path
-
-// Log configuration
-console.log('===== SOCKET SERVER CONFIGURATION =====');
-console.log('Environment:', isVpsEnvironment ? 'Production/VPS' : 'Development');
-console.log('Domain:', domain);
-console.log('Socket Path:', socketPath);
-console.log('Using HTTPS:', useHttps);
-console.log('Socket Port:', socketPort);
-console.log('Socket Secure Port:', socketSecurePort);
-console.log('=====================================');
-
-const app = express();
+// Construct full socket path
+const SOCKET_PATH = IS_VPS ? `/${SOCKET_SUBPATH}/socket.io` : SOCKET_BASE_PATH;
 
 // CORS configuration
-const corsAllowedOrigins = process.env.CORS_ALLOWED_ORIGINS || '*';
-app.use(cors({ origin: corsAllowedOrigins }));
-console.log('CORS configured with origin:', corsAllowedOrigins);
+const CORS_ALLOWED_ORIGINS = process.env.CORS_ALLOWED_ORIGINS 
+    ? process.env.CORS_ALLOWED_ORIGINS.split(',')
+    : ['http://localhost:1001', 'https://marvelcollin.my.id', 'http://localhost:3000'];
 
-const httpServer = http.createServer(app);
-let httpsServer = null;
-let server = httpServer;
+console.log('🚀 Starting MiscVord Socket Server');
+console.log('📊 Configuration:');
+console.log(`   • Port: ${PORT}`);
+console.log(`   • Environment: ${NODE_ENV}`);
+console.log(`   • VPS Mode: ${IS_VPS}`);
+console.log(`   • Socket Path: ${SOCKET_PATH}`);
+console.log(`   • CORS Origins: ${CORS_ALLOWED_ORIGINS.join(', ')}`);
 
-// SSL configuration if needed
-const certKeyPath = './docker/certs/server.key';
-const certCrtPath = './docker/certs/server.crt';
+// =====================================
+// EXPRESS SERVER SETUP
+// =====================================
 
-try {
-  if (useHttps && fs.existsSync(certKeyPath) && fs.existsSync(certCrtPath)) {
-    console.log('🔒 SSL certificates found! Enabling secure WebSockets (WSS).');
-    const options = {
-      key: fs.readFileSync(certKeyPath),
-      cert: fs.readFileSync(certCrtPath)
-    };
-    httpsServer = https.createServer(options, app);
-    server = httpsServer;
-    console.log('🔒 HTTPS/WSS server created successfully.');
-  } else if (useHttps) {
-    console.log(`⚠️ SSL certificates not found but HTTPS was requested. Using HTTP fallback.`);
-    server = httpServer;
-  } else {
-    console.log(`ℹ️ Using HTTP/WS as configured.`);
-    server = httpServer;
-  }
-} catch (err) {
-  console.error('⚠️ Error setting up HTTPS server:', err.message);
-  server = httpServer; // Fallback to HTTP
-}
+const app = express();
+const server = createServer(app);
 
-// Safeguard against potential multiple server.handleUpgrade calls
-process.on('uncaughtException', (err) => {
-  if (err.message && err.message.includes('server.handleUpgrade() was called more than once with the same socket')) {
-    console.warn('⚠️ Caught WebSocket upgrade conflict. This is expected during restart: ', err.message);
-  } else {
-    console.error('Uncaught exception:', err);
-  }
-});
+// Middleware
+app.use(cors({
+    origin: CORS_ALLOWED_ORIGINS,
+    credentials: true
+}));
+app.use(express.json());
 
-const io = socketIo(server, {
-  cors: {
-    origin: corsAllowedOrigins,
-    methods: ["GET", "POST", "OPTIONS"],
-    credentials: true,
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
-  },
-  transports: ['websocket', 'polling'],
-  path: socketPath,
-  allowEIO3: true,
-  pingTimeout: 60000,
-  pingInterval: 25000,
-  connectTimeout: 30000
-});
-
-// Enhanced debugging function
-function debugLog(...args) {
-  if (DEBUG_MODE) {
-    console.log(`[DEBUG ${new Date().toISOString()}]`, ...args);
-  }
-}
-
-// Log active connections every minute
-let activeConnections = 0;
-setInterval(() => {
-  const roomCount = io.sockets.adapter.rooms ? io.sockets.adapter.rooms.size : 0;
-  const clientCount = io.engine ? io.engine.clientsCount : 0;
-  console.log(`Server status: ${clientCount} clients connected, ${Object.keys(videoChatUsers).length} video users, ${roomCount} active rooms`);
-}, 60000);
-
-const VIDEO_CHAT_ROOM = 'global-video-chat';
-const videoChatUsers = {}; // Store users in the video chat { socketId: { userId, userName, socketId } }
-
-// Endpoint to get current video chat users
-app.get('/video-users', (req, res) => {
-  res.json({
-    users: Object.values(videoChatUsers),
-    count: Object.keys(videoChatUsers).length,
-    timestamp: new Date().toISOString()
-  });
-});
-
-// Basic health check
+// Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({
-    status: 'healthy',
-    uptime: process.uptime(),
-    videoChatUserCount: Object.keys(videoChatUsers).length,
-    port: server === httpsServer ? socketSecurePort : socketPort,
-    socketPath: socketPath,
-    timestamp: new Date().toISOString(),
-    env: {
-      NODE_ENV: process.env.NODE_ENV || 'development',
-      domain: domain,
-      isVps: isVpsEnvironment,
-      corsAllowedOrigins: corsAllowedOrigins
-    }
-  });
+    res.json({
+        status: 'OK',
+        uptime: process.uptime(),
+        timestamp: new Date().toISOString(),
+        environment: NODE_ENV,
+        isVPS: IS_VPS,
+        socketPath: SOCKET_PATH,
+        videoChatUserCount: getVideoUserCount(),
+        rooms: Object.keys(videoRooms).length
+    });
 });
 
-// Add a test endpoint for the socket path
-app.get('/socket-test', (req, res) => {
-  res.json({
-    message: "Socket server path test endpoint reached successfully",
-    serverTime: new Date().toISOString(),
-    socketPath: socketPath,
-    activeUsers: Object.keys(videoChatUsers).length,
-    clientInfo: {
-      ip: req.ip,
-      headers: req.headers
-    }
-  });
-});
-
-// Rest of your existing socket server code...
-// ... existing code ...
-
-function getRoomMembers(roomName) {
-  if (!io.sockets.adapter.rooms.get(roomName)) {
-    return [];
-  }
-  
-  return Array.from(io.sockets.adapter.rooms.get(roomName) || []);
+// Socket.IO static files (for development)
+if (!IS_VPS) {
+    app.get('/socket.io/socket.io.js', (req, res) => {
+        res.sendFile(require.resolve('socket.io/client-dist/socket.io.js'));
+    });
 }
+
+// Root endpoint
+app.get('/', (req, res) => {
+    res.json({
+        message: 'MiscVord Socket Server',
+        version: '1.0.0',
+        socketPath: SOCKET_PATH,
+        status: 'running'
+    });
+});
+
+// =====================================
+// SOCKET.IO SERVER SETUP
+// =====================================
+
+const io = new Server(server, {
+    path: SOCKET_PATH,
+    cors: {
+        origin: CORS_ALLOWED_ORIGINS,
+        methods: ['GET', 'POST'],
+        credentials: true
+    },
+    transports: ['websocket', 'polling'],
+    allowEIO3: true,
+    pingTimeout: 60000,
+    pingInterval: 25000
+});
+
+// =====================================
+// VIDEO CHAT MANAGEMENT
+// =====================================
+
+// Data structures for managing users and rooms
+const videoRooms = new Map();
+const userSocketMap = new Map(); // socketId -> userInfo
+const socketUserMap = new Map(); // userId -> socketId
+
+// Room management functions
+function createRoom(roomId) {
+    if (!videoRooms.has(roomId)) {
+        videoRooms.set(roomId, {
+            id: roomId,
+            users: new Map(),
+            created: new Date(),
+            lastActivity: new Date()
+        });
+        console.log(`📹 Created video room: ${roomId}`);
+    }
+    return videoRooms.get(roomId);
+}
+
+function joinRoom(socket, roomId, userInfo) {
+    const room = createRoom(roomId);
+    
+    // Store user information
+    const user = {
+        socketId: socket.id,
+        userId: userInfo.userId,
+        username: userInfo.username || userInfo.userName,
+        joinedAt: new Date()
+    };
+    
+    // Add to room and maps
+    room.users.set(socket.id, user);
+    userSocketMap.set(socket.id, user);
+    if (user.userId) {
+        socketUserMap.set(user.userId, socket.id);
+    }
+    
+    // Join socket room
+    socket.join(roomId);
+    
+    room.lastActivity = new Date();
+    
+    console.log(`👤 User ${user.username} (${socket.id}) joined room ${roomId}`);
+    
+    // Notify others in the room
+    socket.to(roomId).emit('userJoined', {
+        socketId: socket.id,
+        userId: user.userId,
+        userName: user.username
+    });
+    
+    // Send current room users to the new user
+    const currentUsers = Array.from(room.users.values())
+        .filter(u => u.socketId !== socket.id)
+        .map(u => ({
+            socketId: u.socketId,
+            userId: u.userId,
+            userName: u.username
+        }));
+    
+    socket.emit('roomUsers', currentUsers);
+    
+    return room;
+}
+
+function leaveRoom(socket, roomId) {
+    const room = videoRooms.get(roomId);
+    if (!room) return;
+    
+    const user = room.users.get(socket.id);
+    if (!user) return;
+    
+    // Remove from data structures
+    room.users.delete(socket.id);
+    userSocketMap.delete(socket.id);
+    if (user.userId) {
+        socketUserMap.delete(user.userId);
+    }
+    
+    // Leave socket room
+    socket.leave(roomId);
+    
+    room.lastActivity = new Date();
+    
+    console.log(`👤 User ${user.username} (${socket.id}) left room ${roomId}`);
+    
+    // Notify others in the room
+    socket.to(roomId).emit('userLeft', {
+        socketId: socket.id,
+        userId: user.userId,
+        userName: user.username
+    });
+    
+    // Clean up empty rooms
+    if (room.users.size === 0) {
+        videoRooms.delete(roomId);
+        console.log(`🗑️ Removed empty room: ${roomId}`);
+    }
+}
+
+function getVideoUserCount() {
+    return Array.from(videoRooms.values())
+        .reduce((total, room) => total + room.users.size, 0);
+}
+
+// =====================================
+// SOCKET.IO EVENT HANDLERS
+// =====================================
 
 io.on('connection', (socket) => {
-  debugLog(`New socket connected: ${socket.id}`);
-  activeConnections++;
-  
-  // User join handler
-  socket.on('join', (data) => {
-    // Handle user joining
-    socket.userId = data.userId;
-    socket.userName = data.username;
-    debugLog(`User joined: ${socket.userName || 'Anonymous'} (${socket.userId || 'unknown'})`);
-  });
-
-  // Diagnostic tools support
-  socket.on('ping-test', (data) => {
-    debugLog(`Received ping-test from ${socket.id}`);
-    // Respond with the original timestamp and server timestamp for round-trip calculation
-    socket.emit('ping-test-response', {
-      clientTimestamp: data.timestamp || Date.now(),
-      serverTimestamp: Date.now(),
-      socketId: socket.id,
-      path: socketPath
-    });
-  });
-  
-  // Video chat specific handlers
-  socket.on('joinVideoChat', (data) => {
-    socket.join(VIDEO_CHAT_ROOM);
-    
-    // Store user data
-    videoChatUsers[socket.id] = {
-      socketId: socket.id,
-      userId: data.userId || socket.id,
-      userName: data.userName || 'Anonymous'
-    };
-    
-    // Let everyone know about the new user
-    socket.to(VIDEO_CHAT_ROOM).emit('userJoined', {
-      socketId: socket.id,
-      userId: data.userId || socket.id,
-      userName: data.userName || 'Anonymous'
-    });
-    
-    // Send current users to the new user
-    socket.emit('currentUsers', Object.values(videoChatUsers));
-    
-    debugLog(`User joined video chat: ${data.userName || 'Anonymous'}`);
-  });
-  
-  // WebRTC signaling
-  socket.on('signal', (data) => {
-    debugLog(`Signal from ${socket.id} to ${data.to}`);
-    
-    // Forward the WebRTC signal to the intended recipient
-    if (data.to && io.sockets.sockets.get(data.to)) {
-      socket.to(data.to).emit('signal', {
-        from: socket.id,
-        signal: data.signal,
-        userId: videoChatUsers[socket.id]?.userId,
-        userName: videoChatUsers[socket.id]?.userName
-      });
+    if (DEBUG_MODE) {
+        console.log(`🔌 Client connected: ${socket.id}`);
     }
-  });
-  
-  // Handle user disconnection
-  socket.on('disconnect', () => {
-    handleUserLeaveVideoRoom(socket);
-    activeConnections--;
-    debugLog(`Socket disconnected: ${socket.id}`);
-  });
-  
-  // Explicit leave video chat
-  socket.on('leaveVideoChat', () => {
-    handleUserLeaveVideoRoom(socket);
-  });
+    
+    // Handle joining video chat room
+    socket.on('joinRoom', (data) => {
+        try {
+            const { roomId = VIDEO_CHAT_ROOM, userId, username, userName } = data;
+            const userInfo = {
+                userId: userId || `user_${Date.now()}`,
+                username: username || userName || `User_${Math.floor(Math.random() * 10000)}`
+            };
+            
+            console.log(`🎯 Join room request: ${roomId} by ${userInfo.username}`);
+            joinRoom(socket, roomId, userInfo);
+            
+            socket.emit('joinedRoom', {
+                roomId,
+                userId: userInfo.userId,
+                userName: userInfo.username
+            });
+            
+        } catch (error) {
+            console.error('❌ Error joining room:', error);
+            socket.emit('error', { message: 'Failed to join room' });
+        }
+    });
+    
+    // Handle legacy join event
+    socket.on('join', (data) => {
+        socket.emit('joinRoom', {
+            roomId: VIDEO_CHAT_ROOM,
+            ...data
+        });
+    });
+    
+    // WebRTC Signaling Events
+    socket.on('offer', (data) => {
+        if (DEBUG_MODE) {
+            console.log(`📤 Relaying offer: ${socket.id} -> ${data.to}`);
+        }
+        socket.to(data.to).emit('offer', {
+            from: socket.id,
+            offer: data.offer,
+            userName: userSocketMap.get(socket.id)?.username
+        });
+    });
+    
+    socket.on('answer', (data) => {
+        if (DEBUG_MODE) {
+            console.log(`📤 Relaying answer: ${socket.id} -> ${data.to}`);
+        }
+        socket.to(data.to).emit('answer', {
+            from: socket.id,
+            answer: data.answer
+        });
+    });
+    
+    socket.on('ice-candidate', (data) => {
+        if (DEBUG_MODE) {
+            console.log(`📤 Relaying ICE candidate: ${socket.id} -> ${data.to}`);
+        }
+        socket.to(data.to).emit('ice-candidate', {
+            from: socket.id,
+            candidate: data.candidate
+        });
+    });
+    
+    // Chat message handling
+    socket.on('message', (data) => {
+        const user = userSocketMap.get(socket.id);
+        if (user) {
+            const message = {
+                user: {
+                    userId: user.userId,
+                    username: user.username
+                },
+                content: data.content || data.message,
+                sent_at: new Date().toISOString()
+            };
+            
+            // Broadcast to room
+            socket.broadcast.emit('message', message);
+        }
+    });
+    
+    // Typing indicator
+    socket.on('typing', (data) => {
+        const user = userSocketMap.get(socket.id);
+        if (user) {
+            socket.broadcast.emit('user_typing', {
+                user: {
+                    userId: user.userId,
+                    username: user.username
+                }
+            });
+        }
+    });
+    
+    // Test events for diagnostics
+    socket.on('test-message', (data) => {
+        console.log('🧪 Test message received:', data);
+        socket.emit('test-response', {
+            message: 'Test successful',
+            timestamp: new Date().toISOString(),
+            originalData: data
+        });
+    });
+    
+    socket.on('ping-test', (data) => {
+        socket.emit('pong-test', {
+            clientTimestamp: data.timestamp,
+            serverTimestamp: Date.now()
+        });
+    });
+    
+    // Handle disconnection
+    socket.on('disconnect', (reason) => {
+        if (DEBUG_MODE) {
+            console.log(`🔌 Client disconnected: ${socket.id} (${reason})`);
+        }
+        
+        // Remove from all rooms
+        const user = userSocketMap.get(socket.id);
+        if (user) {
+            // Find rooms this socket was in and clean up
+            for (const [roomId, room] of videoRooms.entries()) {
+                if (room.users.has(socket.id)) {
+                    leaveRoom(socket, roomId);
+                }
+            }
+        }
+    });
+    
+    // Error handling
+    socket.on('error', (error) => {
+        console.error(`❌ Socket error for ${socket.id}:`, error);
+    });
 });
 
-function handleUserLeaveVideoRoom(socketInstance) {
-  if (videoChatUsers[socketInstance.id]) {
-    // Remove user from video chat users
-    const userData = videoChatUsers[socketInstance.id];
-    delete videoChatUsers[socketInstance.id];
-    
-    // Notify other users
-    socketInstance.to(VIDEO_CHAT_ROOM).emit('userLeft', {
-      socketId: socketInstance.id,
-      userId: userData.userId
+// =====================================
+// SERVER STARTUP
+// =====================================
+
+// Graceful shutdown handling
+process.on('SIGTERM', () => {
+    console.log('🛑 SIGTERM received, shutting down gracefully');
+    server.close(() => {
+        console.log('✅ Server closed');
+        process.exit(0);
     });
-    
-    debugLog(`User left video chat: ${userData.userName || 'Anonymous'}`);
-  }
-  
-  // Leave room regardless
-  socketInstance.leave(VIDEO_CHAT_ROOM);
-}
+});
 
-// Start the server
-const activeServer = server === httpsServer ? 
-  httpsServer.listen(socketSecurePort, () => {
-    console.log(`🚀 HTTPS Socket server running on port ${socketSecurePort} with path ${socketPath}`);
-  }) : 
-  httpServer.listen(socketPort, () => {
-    console.log(`🚀 HTTP Socket server running on port ${socketPort} with path ${socketPath}`);
-  });
+process.on('SIGINT', () => {
+    console.log('🛑 SIGINT received, shutting down gracefully');
+    server.close(() => {
+        console.log('✅ Server closed');
+        process.exit(0);
+    });
+});
 
-// Provide a clean shutdown
-process.on('SIGTERM', shutdown);
-process.on('SIGINT', shutdown);
+// Start server
+server.listen(PORT, '0.0.0.0', () => {
+    console.log('🎉 MiscVord Socket Server started successfully!');
+    console.log(`🌐 HTTP Server listening on port ${PORT}`);
+    console.log(`🔌 Socket.IO server ready on path: ${SOCKET_PATH}`);
+    console.log(`📹 Default video chat room: ${VIDEO_CHAT_ROOM}`);
+    console.log('✅ Server is ready to handle WebRTC connections\n');
+});
 
-function shutdown() {
-  console.log('🛑 Shutting down socket server...');
-  activeServer.close(() => {
-    console.log('✅ Server closed');
-    process.exit(0);
-  });
-  
-  // Force close if graceful shutdown fails
-  setTimeout(() => {
-    console.error('⚠️ Could not close connections in time, forcefully shutting down');
-    process.exit(1);
-  }, 10000);
-}
+// Export for testing
+module.exports = { app, server, io };

@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebRTC Connection Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #1a1a1a;
+            color: white;
+        }
+        .test-section {
+            background-color: #2d2d2d;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border: 1px solid #444;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .status.success { background-color: #2d5a2d; }
+        .status.error { background-color: #5a2d2d; }
+        .status.info { background-color: #2d4a5a; }
+        .status.warning { background-color: #5a5a2d; }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #45a049; }
+        button:disabled { background-color: #666; cursor: not-allowed; }
+        #logs {
+            background-color: #000;
+            color: #0f0;
+            padding: 10px;
+            height: 200px;
+            overflow-y: auto;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>WebRTC Docker Connection Test</h1>
+    
+    <div class="test-section">
+        <h3>Environment Detection</h3>
+        <div id="env-info"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Socket Connection Test</h3>
+        <button onclick="testSocketConnection()">Test Socket Connection</button>
+        <div id="socket-status"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Media Permissions Test</h3>
+        <button onclick="testMediaPermissions()">Test Camera & Microphone</button>
+        <div id="media-status"></div>
+        <video id="localVideo" autoplay muted style="width: 200px; display: none;"></video>
+    </div>
+    
+    <div class="test-section">
+        <h3>WebRTC Test</h3>
+        <button onclick="testWebRTC()">Test WebRTC Capabilities</button>
+        <div id="webrtc-status"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Live Test Logs</h3>
+        <div id="logs"></div>
+        <button onclick="clearLogs()">Clear Logs</button>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        let socket = null;
+        let localStream = null;
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logs = document.getElementById('logs');
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `<span style="color: #666">[${timestamp}]</span> <span style="color: ${getLogColor(type)}">[${type.toUpperCase()}]</span> ${message}`;
+            logs.appendChild(logEntry);
+            logs.scrollTop = logs.scrollHeight;
+        }
+        
+        function getLogColor(type) {
+            switch(type) {
+                case 'error': return '#f44';
+                case 'success': return '#4f4';
+                case 'warning': return '#ff4';
+                default: return '#4af';
+            }
+        }
+        
+        function updateStatus(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+        
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+        }
+        
+        // Environment Detection
+        function detectEnvironment() {
+            const hostname = window.location.hostname;
+            const port = window.location.port;
+            const protocol = window.location.protocol;
+            
+            const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+            const isDockerLocal = port === '1001';
+            const isProduction = hostname.includes('marvelcollin.my.id');
+            
+            const envInfo = `
+                <strong>Current Environment:</strong><br>
+                Hostname: ${hostname}<br>
+                Port: ${port}<br>
+                Protocol: ${protocol}<br>
+                Environment Type: ${isProduction ? 'PRODUCTION' : (isDockerLocal ? 'DOCKER LOCAL' : 'LOCAL')}<br>
+                Socket URL: ${isDockerLocal ? 'http://localhost:1002' : (isProduction ? 'https://marvelcollin.my.id' : 'http://localhost:1002')}<br>
+                Socket Path: ${isProduction ? '/misvord/socket/socket.io' : '/socket.io'}
+            `;
+            
+            document.getElementById('env-info').innerHTML = envInfo;
+            log('Environment detected successfully', 'success');
+        }
+        
+        // Socket Connection Test
+        function testSocketConnection() {
+            updateStatus('socket-status', 'Testing socket connection...', 'info');
+            log('Starting socket connection test');
+            
+            const isDockerLocal = window.location.port === '1001';
+            const isProduction = window.location.hostname.includes('marvelcollin.my.id');
+            
+            const socketUrl = isDockerLocal ? 'http://localhost:1002' : 
+                             (isProduction ? 'https://marvelcollin.my.id' : 'http://localhost:1002');
+            const socketPath = isProduction ? '/misvord/socket/socket.io' : '/socket.io';
+            
+            log(`Connecting to: ${socketUrl} with path: ${socketPath}`);
+            
+            try {
+                socket = io(socketUrl, {
+                    path: socketPath,
+                    transports: ['websocket', 'polling'],
+                    timeout: 10000,
+                    forceNew: true
+                });
+                
+                socket.on('connect', () => {
+                    updateStatus('socket-status', `✅ Socket connected successfully! ID: ${socket.id}`, 'success');
+                    log(`Socket connected with ID: ${socket.id}`, 'success');
+                });
+                
+                socket.on('connect_error', (error) => {
+                    updateStatus('socket-status', `❌ Socket connection failed: ${error.message}`, 'error');
+                    log(`Socket connection error: ${error.message}`, 'error');
+                });
+                
+                socket.on('disconnect', (reason) => {
+                    updateStatus('socket-status', `⚠️ Socket disconnected: ${reason}`, 'warning');
+                    log(`Socket disconnected: ${reason}`, 'warning');
+                });
+                
+            } catch (error) {
+                updateStatus('socket-status', `❌ Socket initialization failed: ${error.message}`, 'error');
+                log(`Socket initialization error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Media Permissions Test
+        async function testMediaPermissions() {
+            updateStatus('media-status', 'Testing media permissions...', 'info');
+            log('Starting media permissions test');
+            
+            try {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    throw new Error('getUserMedia is not supported');
+                }
+                
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: true
+                });
+                
+                const localVideo = document.getElementById('localVideo');
+                localVideo.srcObject = localStream;
+                localVideo.style.display = 'block';
+                
+                updateStatus('media-status', '✅ Camera and microphone access granted!', 'success');
+                log('Media permissions granted successfully', 'success');
+                
+            } catch (error) {
+                updateStatus('media-status', `❌ Media access failed: ${error.message}`, 'error');
+                log(`Media access error: ${error.message}`, 'error');
+            }
+        }
+        
+        // WebRTC Test
+        function testWebRTC() {
+            updateStatus('webrtc-status', 'Testing WebRTC capabilities...', 'info');
+            log('Starting WebRTC capabilities test');
+            
+            const capabilities = [];
+            
+            // Test RTCPeerConnection
+            if (window.RTCPeerConnection) {
+                capabilities.push('✅ RTCPeerConnection supported');
+                log('RTCPeerConnection is supported', 'success');
+            } else {
+                capabilities.push('❌ RTCPeerConnection not supported');
+                log('RTCPeerConnection is NOT supported', 'error');
+            }
+            
+            // Test getUserMedia
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                capabilities.push('✅ getUserMedia supported');
+                log('getUserMedia is supported', 'success');
+            } else {
+                capabilities.push('❌ getUserMedia not supported');
+                log('getUserMedia is NOT supported', 'error');
+            }
+            
+            // Test secure context
+            if (window.isSecureContext) {
+                capabilities.push('✅ Secure context (required for WebRTC)');
+                log('Running in secure context', 'success');
+            } else {
+                capabilities.push('⚠️ Not in secure context (may limit WebRTC features)');
+                log('NOT running in secure context', 'warning');
+            }
+            
+            // Test Screen Sharing
+            if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
+                capabilities.push('✅ Screen sharing supported');
+                log('Screen sharing is supported', 'success');
+            } else {
+                capabilities.push('❌ Screen sharing not supported');
+                log('Screen sharing is NOT supported', 'error');
+            }
+            
+            updateStatus('webrtc-status', capabilities.join('<br>'), 'info');
+        }
+        
+        // Initialize on page load
+        window.addEventListener('load', () => {
+            log('Connection test page loaded', 'info');
+            detectEnvironment();
+        });
+    </script>
+</body>
+</html>

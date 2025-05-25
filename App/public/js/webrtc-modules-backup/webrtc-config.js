@@ -171,13 +171,6 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = window.WebRTCConfig;
 }
 
-// Log configuration status
-console.log('[WebRTC Config] Environment:', isLocalhost ? 'Development/Local' : 'Production');
-console.log('[WebRTC Config] Socket URL:', window.WebRTCConfig.getSocketUrl());
-console.log('[WebRTC Config] Socket Path:', window.WebRTCConfig.getSocketOptions().path);
-console.log('[WebRTC Config] WebRTC Supported:', window.WebRTCConfig.isWebRTCSupported());
-console.log('[WebRTC Config] Secure Context:', window.WebRTCConfig.isSecureContext());
-
 /**
  * Check if WebRTC is supported in the current browser
  * @return {boolean} True if WebRTC is supported
@@ -196,6 +189,13 @@ window.WebRTCConfig.isWebRTCSupported = function() {
 window.WebRTCConfig.isSecureContext = function() {
     return ENVIRONMENT.LOCAL || window.location.protocol === 'https:';
 };
+
+// Log configuration status
+console.log('[WebRTC Config] Environment:', isLocalhost ? 'Development/Local' : 'Production');
+console.log('[WebRTC Config] Socket URL:', window.WebRTCConfig.getSocketUrl());
+console.log('[WebRTC Config] Socket Path:', window.WebRTCConfig.getSocketOptions().path);
+console.log('[WebRTC Config] WebRTC Supported:', window.WebRTCConfig.isWebRTCSupported());
+console.log('[WebRTC Config] Secure Context:', window.WebRTCConfig.isSecureContext());
 
 /**
  * Enforce HTTPS for WebRTC in production environments

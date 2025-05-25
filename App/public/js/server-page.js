@@ -58,11 +58,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (socketPath && !socketPath.startsWith('/')) {
             socketPath = '/' + socketPath;
         }
-        
-        // Fallbacks if meta tags aren't available
+          // Fallbacks if meta tags aren't available
         if (!socketServerUrl) {
             if (isLocalhost) {
-                socketServerUrl = window.location.protocol + '//' + window.location.hostname + ':1002';
+                socketServerUrl = 'http://localhost:1002';
             } else {
                 socketServerUrl = window.location.origin;
             }
