@@ -407,8 +407,99 @@ ob_start();
     </div>
 </div>
 
-<!-- VideoSDK Script -->
-<script src="https://sdk.videosdk.live/js-sdk/0.1.6/videosdk.js"></script>
+<!-- VideoSDK Script - Latest Version with Aggressive Cache Busting -->
+<script>
+// CRITICAL: Completely clear any old VideoSDK versions and force latest
+(function() {
+    // Clear any existing VideoSDK from global scope
+    if (window.VideoSDK) {
+        console.warn('⚠️ Clearing existing VideoSDK instance');
+        delete window.VideoSDK;
+    }
+    
+    // Remove any existing VideoSDK scripts
+    const existingScripts = document.querySelectorAll('script[src*="videosdk"]');
+    existingScripts.forEach(script => {
+        console.warn('⚠️ Removing existing VideoSDK script:', script.src);
+        script.remove();
+    });
+    
+    // Force browser cache refresh with multiple cache-busting parameters
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substring(7);
+    const version = '0.2.7';
+    
+    // Create new script with aggressive cache busting
+    const script = document.createElement('script');
+    script.type = 'text/javascript';
+    script.async = false; // Load synchronously to ensure order
+    script.src = `https://sdk.videosdk.live/js-sdk/${version}/videosdk.js?v=${timestamp}&r=${random}&bust=${Date.now()}&force=true&nocache=1`;
+    
+    script.onload = function() {
+        console.log('✅ VideoSDK v' + version + ' loaded successfully from primary CDN');
+        console.log('📦 VideoSDK object:', window.VideoSDK);
+        if (window.VideoSDK) {
+            console.log('🔍 VideoSDK version check:', window.VideoSDK.version || 'version property not available');
+            console.log('🔧 Available methods:', Object.getOwnPropertyNames(window.VideoSDK).filter(prop => typeof window.VideoSDK[prop] === 'function'));
+            
+            // Verify this is the correct version by checking for v2 API methods
+            if (typeof window.VideoSDK.config === 'function' && typeof window.VideoSDK.initMeeting === 'function') {
+                console.log('✅ VideoSDK v2 API methods confirmed');
+            } else {
+                console.error('❌ VideoSDK v2 API methods missing - wrong version loaded');
+            }
+        }
+    };
+    
+    script.onerror = function(error) {
+        console.error('❌ Failed to load VideoSDK from primary CDN:', error);
+        console.log('🔄 Trying alternative CDN...');
+        
+        // Try alternative CDN sources
+        const fallbackSources = [
+            `https://cdn.jsdelivr.net/npm/@videosdk.live/js-sdk@${version}/dist/videosdk.min.js?v=${timestamp}&r=${random}`,
+            `https://unpkg.com/@videosdk.live/js-sdk@${version}/dist/videosdk.min.js?v=${timestamp}&r=${random}`,
+            `https://sdk.videosdk.live/js-sdk/${version}/videosdk.min.js?v=${timestamp}&r=${random}`
+        ];
+        
+        let currentFallback = 0;
+        
+        function tryFallback() {
+            if (currentFallback >= fallbackSources.length) {
+                console.error('❌ All VideoSDK sources failed');
+                const errorMsg = 'Failed to load VideoSDK from all sources. Please check your internet connection and try again.';
+                document.getElementById('loading-state').innerHTML = `<div class="join-form"><h2>❌ Loading Error</h2><p>${errorMsg}</p><button onclick="location.reload()">🔄 Retry</button></div>`;
+                return;
+            }
+            
+            const fallbackScript = document.createElement('script');
+            fallbackScript.type = 'text/javascript';
+            fallbackScript.src = fallbackSources[currentFallback];
+            
+            fallbackScript.onload = function() {
+                console.log(`✅ VideoSDK loaded from fallback CDN #${currentFallback + 1}`);
+                if (window.VideoSDK) {
+                    console.log('📦 VideoSDK object from fallback:', window.VideoSDK);
+                }
+            };
+            
+            fallbackScript.onerror = function() {
+                console.warn(`⚠️ Fallback CDN #${currentFallback + 1} failed`);
+                currentFallback++;
+                setTimeout(tryFallback, 500); // Brief delay before next attempt
+            };
+            
+            document.head.appendChild(fallbackScript);
+        }
+        
+        tryFallback();
+    };
+    
+    // Add to head and start loading
+    console.log('🚀 Loading VideoSDK v' + version + ' with cache-busting...');
+    document.head.appendChild(script);
+})();
+</script>
 
 <script>
 /**
@@ -443,15 +534,109 @@ class MiscVordVideoCall {
             this.showError('VideoSDK Token not found. Please check your .env file contains VIDEOSDK_SECRET_KEY.');
             return;
         }
-        
-        this.init();
+          this.init();
     }
     
     init() {
         console.log('🚀 Initializing MiscVord VideoCall');
         
+        // Wait for VideoSDK to be available (in case it's still loading)
+        const waitForVideoSDK = () => {
+            if (typeof window.VideoSDK !== 'undefined') {
+                this.initializeVideoSDK();
+            } else {
+                console.log('⏳ Waiting for VideoSDK to load...');
+                setTimeout(waitForVideoSDK, 100);
+            }
+        };
+        
+        waitForVideoSDK();
+    }
+      initializeVideoSDK() {
+        console.log('🔍 Starting VideoSDK initialization...');
+        
+        // Extensive debugging of VideoSDK state
+        console.log('🔍 VideoSDK Debug Information:');
+        console.log('- VideoSDK available:', typeof window.VideoSDK !== 'undefined');
+        console.log('- VideoSDK object:', window.VideoSDK);
+        console.log('- Window location:', window.location.href);
+        
+        if (window.VideoSDK) {
+            console.log('- VideoSDK constructor type:', typeof window.VideoSDK);
+            console.log('- VideoSDK properties:', Object.getOwnPropertyNames(window.VideoSDK));
+            console.log('- VideoSDK methods:', Object.getOwnPropertyNames(window.VideoSDK).filter(prop => typeof window.VideoSDK[prop] === 'function'));
+            
+            // Try to get version info
+            if (window.VideoSDK.version) {
+                console.log('- VideoSDK version:', window.VideoSDK.version);
+            } else if (window.VideoSDK.VERSION) {
+                console.log('- VideoSDK VERSION:', window.VideoSDK.VERSION);
+            } else {
+                console.log('- VideoSDK version: Not available');
+            }
+        }
+        
+        // Ensure VideoSDK is available
+        if (!window.VideoSDK) {
+            const errorMsg = 'VideoSDK library not loaded. This could be due to network issues or browser blocking the script.';
+            console.error('❌ ' + errorMsg);
+            this.showError(errorMsg + ' Please check your internet connection and try refreshing the page.');
+            return;
+        }
+        
+        // Check for required v2 API methods
+        const requiredMethods = ['config', 'initMeeting'];
+        const availableMethods = requiredMethods.filter(method => typeof window.VideoSDK[method] === 'function');
+        const missingMethods = requiredMethods.filter(method => typeof window.VideoSDK[method] !== 'function');
+        
+        console.log('✅ Available VideoSDK methods:', availableMethods);
+        if (missingMethods.length > 0) {
+            console.error('❌ Missing VideoSDK methods:', missingMethods);
+        }
+        
+        // Check if this looks like the old v1 API that uses the deprecated endpoint
+        if (typeof window.VideoSDK.config !== 'function') {
+            const errorMsg = 'VideoSDK v1 API detected! This version uses deprecated endpoints. The latest v2 API is required.';
+            console.error('❌ ' + errorMsg);
+            console.log('🔧 Attempting to force reload latest VideoSDK...');
+            
+            // Force reload the page to clear any cached scripts
+            if (confirm('VideoSDK v1 detected (uses deprecated endpoints). Force reload to get latest version?')) {
+                window.location.reload(true);
+            }
+            
+            this.showError(errorMsg + ' Please clear your browser cache completely and refresh the page.');
+            return;
+        }
+        
+        // Additional validation - check if config method exists and is callable
+        try {
+            if (typeof window.VideoSDK.config === 'function') {
+                console.log('✅ VideoSDK.config method is available and callable');
+            } else {
+                throw new Error('VideoSDK.config is not a function');
+            }
+        } catch (validationError) {
+            console.error('❌ VideoSDK method validation failed:', validationError);
+            this.showError('VideoSDK API validation failed: ' + validationError.message);
+            return;
+        }
+        
         // Configure VideoSDK with token
-        VideoSDK.config(this.token);
+        try {
+            console.log('🔧 Configuring VideoSDK with token...');
+            console.log('🎫 Token (first 20 chars):', this.token.substring(0, 20) + '...');
+            
+            window.VideoSDK.config(this.token);
+            
+            console.log('✅ VideoSDK configured successfully');
+            console.log('🎯 VideoSDK should now use v2 API endpoints (e.g., /v2/rooms)');
+            
+        } catch (configError) {
+            console.error('❌ VideoSDK configuration error:', configError);
+            this.showError('Failed to configure VideoSDK: ' + configError.message);
+            return;
+        }
         
         // Hide loading and show join form
         document.getElementById('loading-state').style.display = 'none';
@@ -459,6 +644,8 @@ class MiscVordVideoCall {
         
         // Setup event listeners
         this.setupEventListeners();
+        
+        console.log('🎉 VideoSDK initialization completed successfully');
     }
     
     setupEventListeners() {
@@ -487,10 +674,22 @@ class MiscVordVideoCall {
             }
             
             this.participantName = participantNameInput;
-            
-            // Show joining state
+              // Show joining state
             document.getElementById('join-btn').textContent = 'Joining...';
             document.getElementById('join-btn').disabled = true;
+            
+            // Request media permissions first
+            console.log('🎥 Requesting camera and microphone permissions...');
+            try {
+                await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                console.log('✅ Media permissions granted');
+            } catch (permError) {
+                console.warn('⚠️ Media permission denied:', permError);
+                // Continue with meeting join but disable media initially
+                this.localMicOn = false;
+                this.localWebcamOn = false;
+                this.showError('Media permissions denied. You can enable them later in the call.');
+            }
             
             // Create or join meeting
             if (meetingIdInput) {
@@ -500,19 +699,33 @@ class MiscVordVideoCall {
                 // Create new meeting
                 this.meetingId = await this.createMeeting();
             }
-            
-            // Initialize meeting
-            this.meeting = VideoSDK.initMeeting({
+              // Initialize meeting
+            console.log('🔧 Initializing VideoSDK meeting...');
+            console.log('📝 Meeting config:', {
                 meetingId: this.meetingId,
                 name: this.participantName,
                 micEnabled: this.localMicOn,
                 webcamEnabled: this.localWebcamOn
             });
             
+            this.meeting = window.VideoSDK.initMeeting({
+                meetingId: this.meetingId,
+                name: this.participantName,
+                micEnabled: this.localMicOn,
+                webcamEnabled: this.localWebcamOn
+            });
+            
+            if (!this.meeting) {
+                throw new Error('Failed to initialize VideoSDK meeting');
+            }
+            
+            console.log('✅ Meeting initialized successfully');
+            
             // Setup meeting event listeners
             this.setupMeetingEventListeners();
             
             // Join the meeting
+            console.log('🚪 Joining meeting...');
             this.meeting.join();
             
         } catch (error) {
@@ -521,79 +734,261 @@ class MiscVordVideoCall {
             document.getElementById('join-btn').textContent = '📹 Start Video Call';
             document.getElementById('join-btn').disabled = false;
         }
-    }
-    
-    async createMeeting() {
+    }    async createMeeting() {
         try {
+            console.log('🔑 Creating new meeting room...');
+            console.log('🎫 Using token:', this.token.substring(0, 20) + '...');
+            
             const response = await fetch('https://api.videosdk.live/v2/rooms', {
                 method: 'POST',
                 headers: {
                     'Authorization': this.token,
                     'Content-Type': 'application/json'
-                }
+                },
+                body: JSON.stringify({
+                    // Optional: Set region for better performance
+                    region: 'sg001', // Singapore region for better latency in Asia
+                    // Optional: Set custom meeting options
+                    customRoomId: null, // Let VideoSDK generate unique ID
+                })
             });
             
+            console.log('📡 Create meeting API response status:', response.status);
+            
             if (!response.ok) {
-                throw new Error(`Failed to create meeting: ${response.statusText}`);
+                const errorText = await response.text();
+                console.error('❌ API Error Response:', errorText);
+                
+                // Handle specific API errors
+                if (response.status === 401) {
+                    throw new Error('Authentication failed. Please check your VideoSDK credentials.');
+                } else if (response.status === 429) {
+                    throw new Error('Rate limit exceeded. Please try again in a moment.');
+                } else {
+                    throw new Error(`Failed to create meeting: ${response.status} ${response.statusText} - ${errorText}`);
+                }
             }
             
             const data = await response.json();
-            console.log('✅ Meeting created:', data.roomId);
+            console.log('✅ Meeting room created successfully:', data);
+            console.log('🎯 Room ID:', data.roomId);
+            console.log('🌐 Meeting will use v2 API endpoints');
+            
             return data.roomId;
             
         } catch (error) {
-            console.error('❌ Error creating meeting:', error);
-            throw error;
+            console.error('❌ Error creating meeting room:', error);
+            
+            // Provide user-friendly error messages
+            if (error.message.includes('fetch')) {
+                throw new Error('Network error. Please check your internet connection and try again.');
+            } else if (error.message.includes('Authentication')) {
+                throw new Error('VideoSDK authentication failed. Please contact support.');
+            } else {
+                throw error;
+            }
         }
-    }
-    
-    setupMeetingEventListeners() {
-        // Meeting joined
+    }    setupMeetingEventListeners() {
+        console.log('🔗 Setting up meeting event listeners for real-time functionality...');
+        
+        // Meeting joined successfully
         this.meeting.on('meeting-joined', () => {
-            console.log('✅ Meeting joined successfully');
+            console.log('✅ Successfully joined meeting');
             this.onMeetingJoined();
         });
         
-        // Participant joined
+        // New participant joined (real-time)
         this.meeting.on('participant-joined', (participant) => {
-            console.log('👥 Participant joined:', participant.displayName);
+            console.log('👥 New participant joined:', participant.displayName, participant.id);
             this.onParticipantJoined(participant);
         });
         
-        // Participant left
+        // Participant left (real-time)
         this.meeting.on('participant-left', (participant) => {
-            console.log('👋 Participant left:', participant.displayName);
+            console.log('👋 Participant left:', participant.displayName, participant.id);
             this.onParticipantLeft(participant);
         });
-        
-        // Stream events
+
+        // Stream events for real-time media updates
         this.meeting.on('stream-enabled', (stream) => {
-            console.log('📹 Stream enabled:', stream.kind);
+            console.log('📹 Stream enabled in real-time:', stream.kind, 'from participant:', stream.participantId);
             this.onStreamEnabled(stream);
         });
-        
+
         this.meeting.on('stream-disabled', (stream) => {
-            console.log('📹 Stream disabled:', stream.kind);
+            console.log('📹 Stream disabled in real-time:', stream.kind, 'from participant:', stream.participantId);
             this.onStreamDisabled(stream);
         });
-        
-        // Error handling
+
+        // Meeting left
+        this.meeting.on('meeting-left', () => {
+            console.log('👋 Left meeting successfully');
+            this.onMeetingLeft();
+        });
+
+        // Meeting state changes for better debugging
+        this.meeting.on('meeting-state-changed', (data) => {
+            console.log('🔄 Meeting state changed:', data.state);
+            if (data.state === 'CONNECTED') {
+                console.log('🌐 Meeting connection established - ready for real-time communication');
+            }
+        });
+
+        // Screen sharing events (real-time)
+        this.meeting.on('presenter-changed', (activePresenterId) => {
+            console.log('📺 Screen share presenter changed:', activePresenterId);
+            if (activePresenterId) {
+                console.log('🖥️ Screen sharing started by participant:', activePresenterId);
+            } else {
+                console.log('🛑 Screen sharing stopped');
+                this.removeScreenShare('all'); // Remove any active screen shares
+            }
+        });
+
+        // Webcam state changes (real-time)
+        this.meeting.on('webcam-state-changed', (data) => {
+            console.log('📷 Webcam state changed:', data.participantId, data.status);
+            this.updateCameraStatus(data.participantId, data.status === 'WEBCAM_ENABLED');
+        });
+
+        // Microphone state changes (real-time)
+        this.meeting.on('mic-state-changed', (data) => {
+            console.log('🎤 Microphone state changed:', data.participantId, data.status);
+            this.updateMicStatus(data.participantId, data.status === 'MIC_ENABLED');
+        });
+
+        // Error handling for real-time issues
         this.meeting.on('error', (error) => {
-            console.error('❌ Meeting error:', error);
+            console.error('❌ Real-time meeting error:', error);
             this.showError('Meeting error: ' + error.message);
         });
+
+        // Connection quality events
+        this.meeting.on('connection-change', (data) => {
+            console.log('🌐 Connection quality changed:', data.status);
+            if (data.status === 'POOR' || data.status === 'VERY_POOR') {
+                this.showWarning('Poor connection detected. Video quality may be reduced.');
+            }
+        });
+
+        // Recording events (if you plan to add recording)
+        this.meeting.on('recording-state-changed', (data) => {
+            console.log('🔴 Recording state changed:', data.status);
+        });
+
+        console.log('✅ All real-time event listeners configured');
     }
-    
-    onMeetingJoined() {
+      onMeetingJoined() {
+        console.log('🎉 Meeting joined successfully - setting up real-time interface...');
+        
         // Hide join form and show video interface
         document.getElementById('join-form').style.display = 'none';
         document.getElementById('video-interface').style.display = 'block';
         
-        // Add local participant
+        // Add local participant first
         this.addVideoTile('local', this.participantName, true);
         
-        // Setup local video stream
+        // Setup local video stream if webcam is enabled
         this.setupLocalVideo();
+        
+        // Add existing participants (in case we joined a meeting in progress)
+        const existingParticipants = this.meeting.participants;
+        if (existingParticipants && existingParticipants.size > 0) {
+            console.log('👥 Found', existingParticipants.size, 'existing participants in meeting');
+            existingParticipants.forEach((participant, participantId) => {
+                console.log('➕ Adding existing participant:', participant.displayName, participantId);
+                this.onParticipantJoined(participant);
+            });
+        }
+        
+        // Display meeting info for users
+        this.showMeetingInfo();
+        
+        console.log('✅ Real-time video interface ready');
+    }
+
+    showMeetingInfo() {
+        // Show meeting ID so others can join
+        const meetingInfo = document.createElement('div');
+        meetingInfo.id = 'meeting-info';
+        meetingInfo.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            font-family: monospace;
+            z-index: 100;
+            max-width: 300px;
+        `;
+        meetingInfo.innerHTML = `
+            <div style="font-weight: bold; margin-bottom: 10px;">📋 Meeting Info</div>
+            <div><strong>Meeting ID:</strong> ${this.meetingId}</div>
+            <div><strong>Participants:</strong> <span id="participant-count">${this.participants.size + 1}</span></div>
+            <div style="margin-top: 10px; font-size: 12px; opacity: 0.8;">
+                Share this Meeting ID with others to join
+            </div>
+            <button onclick="this.parentElement.style.display='none'" style="
+                position: absolute;
+                top: 5px;
+                right: 5px;
+                background: none;
+                border: none;
+                color: white;
+                cursor: pointer;
+                font-size: 16px;
+            ">×</button>
+        `;
+        
+        // Remove existing info if present
+        const existingInfo = document.getElementById('meeting-info');
+        if (existingInfo) {
+            existingInfo.remove();
+        }
+        
+        document.body.appendChild(meetingInfo);
+        
+        // Auto-hide after 10 seconds
+        setTimeout(() => {
+            if (meetingInfo.parentElement) {
+                meetingInfo.style.opacity = '0.5';
+            }
+        }, 10000);
+    }
+
+    updateParticipantCount() {
+        const countElement = document.getElementById('participant-count');
+        if (countElement) {
+            countElement.textContent = this.participants.size + 1; // +1 for local participant
+        }
+    }
+    
+    onMeetingLeft() {
+        console.log('👋 Meeting left, cleaning up...');
+        
+        // Reset local state
+        this.meeting = null;
+        this.participants.clear();
+        this.localMicOn = true;
+        this.localWebcamOn = true;
+        this.isScreenSharing = false;
+        
+        // Clear video grid
+        document.getElementById('video-grid').innerHTML = '';
+        
+        // Show join form again
+        document.getElementById('video-interface').style.display = 'none';
+        document.getElementById('join-form').style.display = 'flex';
+        
+        // Reset form
+        document.getElementById('join-btn').textContent = '📹 Start Video Call';
+        document.getElementById('join-btn').disabled = false;
+        document.getElementById('meeting-id').value = '';
+        document.getElementById('participant-name').value = '';
+        
+        console.log('✅ Cleanup completed');
     }
     
     onParticipantJoined(participant) {
@@ -607,6 +1002,48 @@ class MiscVordVideoCall {
     onParticipantLeft(participant) {
         this.participants.delete(participant.id);
         this.removeVideoTile(participant.id);
+    }
+    
+    onStreamEnabled(stream) {
+        console.log('📹 Stream enabled:', stream.kind, 'from participant:', stream.participantId);
+        
+        if (stream.kind === 'video') {
+            this.displayVideo(stream.participantId, stream.stream);
+        } else if (stream.kind === 'audio') {
+            this.displayAudio(stream.participantId, stream.stream);
+        } else if (stream.kind === 'share') {
+            console.log('🖥️ Screen share enabled');
+            this.displayScreenShare(stream.participantId, stream.stream);
+        }
+    }
+    
+    onStreamDisabled(stream) {
+        console.log('📹 Stream disabled:', stream.kind, 'from participant:', stream.participantId);
+        
+        if (stream.kind === 'video') {
+            this.removeVideo(stream.participantId);
+        } else if (stream.kind === 'audio') {
+            this.removeAudio(stream.participantId);
+        } else if (stream.kind === 'share') {
+            console.log('🖥️ Screen share disabled');
+            this.removeScreenShare(stream.participantId);
+        }
+    }
+    
+    findParticipantByStream(stream) {
+        // Check if it's a local stream
+        if (stream.producerId === this.meeting?.localParticipant?.id) {
+            return { id: 'local', displayName: this.participantName };
+        }
+        
+        // Search through remote participants
+        for (const [participantId, participant] of this.participants) {
+            if (participant.id === stream.producerId) {
+                return participant;
+            }
+        }
+        
+        return null;
     }
     
     addVideoTile(participantId, displayName, isLocal = false) {
@@ -657,8 +1094,7 @@ class MiscVordVideoCall {
             this.displayVideo('local', this.meeting.localWebcam.stream);
         }
     }
-    
-    setupParticipantStreams(participant) {
+      setupParticipantStreams(participant) {
         // Video stream
         if (participant.webcamOn && participant.webcamStream) {
             this.displayVideo(participant.id, participant.webcamStream);
@@ -668,6 +1104,22 @@ class MiscVordVideoCall {
         if (participant.micOn && participant.micStream) {
             this.displayAudio(participant.id, participant.micStream);
         }
+        
+        // Screen share stream
+        if (participant.screenShareOn && participant.screenShareStream) {
+            this.displayScreenShare(participant.id, participant.screenShareStream);
+        }
+        
+        // Setup participant event listeners for real-time updates
+        participant.on('stream-enabled', (stream) => {
+            console.log(`📹 ${participant.displayName} enabled ${stream.kind} stream`);
+            this.onStreamEnabled(stream);
+        });
+        
+        participant.on('stream-disabled', (stream) => {
+            console.log(`📹 ${participant.displayName} disabled ${stream.kind} stream`);
+            this.onStreamDisabled(stream);
+        });
         
         // Update status indicators
         this.updateParticipantStatus(participant.id, participant.micOn, participant.webcamOn);
@@ -711,35 +1163,30 @@ class MiscVordVideoCall {
     }
     
     updateMicStatus(participantId, micOn) {
-        const micIndicator = document.getElementById(`mic-${participantId}`);
-        if (micIndicator) {
-            micIndicator.className = `status-indicator ${micOn ? 'mic-on' : 'mic-off'}`;
+        const videoTile = document.getElementById(`video-${participantId}`);
+        if (!videoTile) return;
+        
+        const micIcon = videoTile.querySelector('.mic-status');
+        if (micIcon) {
+            micIcon.className = `mic-status fas ${micOn ? 'fa-microphone text-green-500' : 'fa-microphone-slash text-red-500'}`;
         }
     }
     
     updateCameraStatus(participantId, webcamOn) {
-        const camIndicator = document.getElementById(`cam-${participantId}`);
-        if (camIndicator) {
-            camIndicator.className = `status-indicator ${webcamOn ? 'cam-on' : 'cam-off'}`;
+        const videoTile = document.getElementById(`video-${participantId}`);
+        if (!videoTile) return;
+        
+        const camIcon = videoTile.querySelector('.cam-status');
+        if (camIcon) {
+            camIcon.className = `cam-status fas ${webcamOn ? 'fa-video text-green-500' : 'fa-video-slash text-red-500'}`;
+        }
+          // Also update video visibility
+        if (!webcamOn) {
+            this.removeVideo(participantId);
         }
     }
-    
-    onStreamEnabled(stream) {
-        if (stream.kind === 'video') {
-            this.displayVideo(stream.participantId, stream.stream);
-        } else if (stream.kind === 'audio') {
-            this.displayAudio(stream.participantId, stream.stream);
-        }
-    }
-    
-    onStreamDisabled(stream) {
-        if (stream.kind === 'video') {
-            this.removeVideo(stream.participantId);
-        } else if (stream.kind === 'audio') {
-            this.removeAudio(stream.participantId);
-        }
-    }
-    
+
+    // Audio and video removal methods
     removeVideo(participantId) {
         const videoTile = document.getElementById(`video-${participantId}`);
         if (!videoTile) return;
@@ -764,64 +1211,173 @@ class MiscVordVideoCall {
         // Update camera status
         this.updateCameraStatus(participantId, false);
     }
-    
+
     removeAudio(participantId) {
         const audioElement = document.getElementById(`audio-${participantId}`);
         if (audioElement) {
             audioElement.remove();
         }
     }
-    
+
+    displayScreenShare(participantId, stream) {
+        console.log('🖥️ Displaying screen share from:', participantId);
+        
+        // Create or update screen share element
+        let screenShareContainer = document.getElementById('screen-share-container');
+        if (!screenShareContainer) {
+            screenShareContainer = document.createElement('div');
+            screenShareContainer.id = 'screen-share-container';
+            screenShareContainer.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.9);
+                z-index: 1000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            `;
+            document.body.appendChild(screenShareContainer);
+        }
+        
+        // Remove existing screen share video
+        const existingVideo = screenShareContainer.querySelector('video');
+        if (existingVideo) {
+            existingVideo.remove();
+        }
+        
+        // Add new screen share video
+        const screenVideo = document.createElement('video');
+        screenVideo.srcObject = stream;
+        screenVideo.autoplay = true;
+        screenVideo.style.cssText = 'max-width: 90%; max-height: 90%; border-radius: 10px;';
+        
+        screenShareContainer.appendChild(screenVideo);
+        
+        // Add close button
+        if (!screenShareContainer.querySelector('.close-btn')) {
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'close-btn';
+            closeBtn.innerHTML = '✕';
+            closeBtn.style.cssText = `
+                position: absolute;
+                top: 20px;
+                right: 20px;
+                background: rgba(0, 0, 0, 0.7);
+                color: white;
+                border: none;
+                border-radius: 50%;
+                width: 40px;
+                height: 40px;
+                cursor: pointer;
+                font-size: 18px;
+            `;
+            closeBtn.onclick = () => this.removeScreenShare(participantId);
+            screenShareContainer.appendChild(closeBtn);
+        }
+    }
+
+    removeScreenShare(participantId) {
+        console.log('🖥️ Removing screen share from:', participantId);
+        const screenShareContainer = document.getElementById('screen-share-container');
+        if (screenShareContainer) {
+            screenShareContainer.remove();
+        }
+    }
+
+    // Control methods - these were missing!
     toggleMic() {
+        console.log('🎤 Toggling microphone...');
+        if (!this.meeting) {
+            console.error('❌ Meeting not initialized');
+            return;
+        }
+
         if (this.localMicOn) {
             this.meeting.muteMic();
             this.localMicOn = false;
             document.getElementById('mic-btn').className = 'control-btn mic-off';
+            document.getElementById('mic-btn').innerHTML = '🎤';
+            console.log('🔇 Microphone muted');
         } else {
             this.meeting.unmuteMic();
             this.localMicOn = true;
             document.getElementById('mic-btn').className = 'control-btn mic-on';
+            document.getElementById('mic-btn').innerHTML = '🎤';
+            console.log('🎤 Microphone unmuted');
         }
         
         this.updateMicStatus('local', this.localMicOn);
     }
-    
+
     toggleWebcam() {
+        console.log('📹 Toggling webcam...');
+        if (!this.meeting) {
+            console.error('❌ Meeting not initialized');
+            return;
+        }
+
         if (this.localWebcamOn) {
             this.meeting.disableWebcam();
             this.localWebcamOn = false;
             document.getElementById('cam-btn').className = 'control-btn cam-off';
+            document.getElementById('cam-btn').innerHTML = '📹';
             this.removeVideo('local');
+            console.log('📷 Webcam disabled');
         } else {
             this.meeting.enableWebcam();
             this.localWebcamOn = true;
             document.getElementById('cam-btn').className = 'control-btn cam-on';
+            document.getElementById('cam-btn').innerHTML = '📹';
+            console.log('📹 Webcam enabled');
         }
         
         this.updateCameraStatus('local', this.localWebcamOn);
     }
-    
+
     toggleScreenShare() {
+        console.log('🖥️ Toggling screen share...');
+        if (!this.meeting) {
+            console.error('❌ Meeting not initialized');
+            return;
+        }
+
         if (this.isScreenSharing) {
             this.meeting.disableScreenShare();
             this.isScreenSharing = false;
             document.getElementById('screen-btn').className = 'control-btn screen-share';
+            document.getElementById('screen-btn').innerHTML = '📺';
+            this.removeScreenShare('local');
+            console.log('🛑 Screen sharing stopped');
         } else {
             this.meeting.enableScreenShare();
             this.isScreenSharing = true;
             document.getElementById('screen-btn').className = 'control-btn screen-share active';
+            document.getElementById('screen-btn').innerHTML = '📺';
+            console.log('📺 Screen sharing started');
         }
     }
-    
+
     leaveMeeting() {
-        if (this.meeting) {
-            this.meeting.leave();
+        console.log('👋 Leaving meeting...');
+        if (!this.meeting) {
+            console.warn('⚠️ No meeting to leave');
+            return;
         }
-        
-        // Redirect to home or show leave message
-        window.location.href = '/';
+
+        try {
+            this.meeting.leave();
+            console.log('✅ Successfully left meeting');
+        } catch (error) {
+            console.error('❌ Error leaving meeting:', error);
+        }
+
+        // Clean up UI immediately
+        this.onMeetingLeft();
     }
-    
+
     showError(message) {
         const errorContainer = document.getElementById('error-container');
         if (errorContainer) {
