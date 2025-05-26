@@ -22,7 +22,6 @@ services:
       - ./index.php:/var/www/html/index.php:ro
       - ./.htaccess:/var/www/html/.htaccess:ro
     depends_on:
-      - socket-server
       - db
     networks:
       - miscvord_network
@@ -37,17 +36,14 @@ services:
       - DB_USER=${DB_USER:-root}
       - DB_PASS=${DB_PASS:-password} # Use .env file for this!
       - DB_CHARSET=${DB_CHARSET:-utf8mb4}
-      # Unified Socket Configuration
-      # SOCKET_BASE_PATH should have leading slash
-      - SOCKET_BASE_PATH=${SOCKET_BASE_PATH:-/socket.io}
-      # SOCKET_SUBPATH should not have leading or trailing slashes
-      - SOCKET_SUBPATH=${SOCKET_SUBPATH:-misvord/socket}
-      - SOCKET_API_KEY=${SOCKET_API_KEY:-kolin123} # Use .env file for this!
       # Environment Detection
       - IS_VPS=${IS_VPS:-true} # Set to true for VPS
       - USE_HTTPS=${USE_HTTPS:-true} # Set to true for VPS
       - DOMAIN=${DOMAIN:-marvelcollin.my.id} # Set to your domain
       - PORT=1001 # Internal port for PHP service
+      # VideoSDK Configuration
+      - VIDEOSDK_API_KEY=${VIDEOSDK_API_KEY}
+      - VIDEOSDK_SECRET_KEY=${VIDEOSDK_SECRET_KEY}
     security_opt:
       - no-new-privileges:true
     healthcheck:
@@ -56,60 +52,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
-
-  # Unified Socket.io Server
-  socket-server:
-    build:
-      context: .
-      dockerfile: Dockerfile.node
-    container_name: miscvord_socket
-    restart: unless-stopped
-    depends_on:
-      - db
-    networks:
-      - miscvord_network
-    ports: # Ports exposed to the host
-      - "${SOCKET_PORT:-1002}:1002"
-    #  - "${SOCKET_SECURE_PORT:-1443}:1443" # Not needed if Nginx on host handles SSL
-    environment:
-      - NODE_ENV=${APP_ENV:-production} # Set to production for VPS
-      - PORT=${SOCKET_PORT:-1002} # Internal port for Node service
-      # - SECURE_PORT=${SOCKET_SECURE_PORT:-1443} # Not needed if Nginx handles SSL
-      # Unified Socket Configuration
-      # SOCKET_BASE_PATH should have leading slash
-      - SOCKET_BASE_PATH=${SOCKET_BASE_PATH:-/socket.io}
-      # SOCKET_SUBPATH should not have leading or trailing slashes
-      - SOCKET_SUBPATH=${SOCKET_SUBPATH:-misvord/socket}
-      - SOCKET_API_KEY=${SOCKET_API_KEY:-kolin123} # Use .env file for this!
-      # Database Configuration
-      - DB_HOST=db
-      - DB_PORT=${DB_PORT:-1003}
-      - DB_NAME=${DB_NAME:-misvord}
-      - DB_USER=${DB_USER:-root}
-      - DB_PASS=${DB_PASS:-password} # Use .env file for this!
-      # Environment Detection
-      - IS_VPS=${IS_VPS:-true} # Always true to ensure consistent socket path
-      - USE_HTTPS=${USE_HTTPS:-true} # Nginx handles actual SSL, but app might need to know
-      - DOMAIN=${DOMAIN:-marvelcollin.my.id} # Set to your domain
-      # Additional Configuration
-      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-https://marvelcollin.my.id} # Specific for your domain
-      - DISABLE_DOTENV=true # Prevent .env file from overriding these settings
-      - DEBUG=${DEBUG:-false} # Debug mode off by default
-      - VIDEO_CHAT_ROOM=global-video-chat # Default room name
-    security_opt:
-      - no-new-privileges:true
-    ulimits:
-      nofile:
-        soft: 1024
-        hard: 2048
-    healthcheck:
-      # Using curl for healthcheck, simpler and often more available
-      test: ["CMD-SHELL", "curl -f http://localhost:1002/health || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
   # MySQL Database
   db:
     image: mysql:8.0

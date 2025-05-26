@@ -27,9 +27,8 @@ function asset($path) {
     // Special override for marvelcollin.my.id domain to ensure paths are correct
     $host = $_SERVER['HTTP_HOST'] ?? '';
     $isMarvelDomain = strpos($host, 'marvelcollin.my.id') !== false;
-    
-    // Route to the appropriate directory based on file extension
-    if ($extension === 'js' || strpos($path, 'webrtc-modules/') !== false) {
+      // Route to the appropriate directory based on file extension
+    if ($extension === 'js') {
         // JavaScript files go to /js/ directory
         if ($isMarvelDomain && strpos($baseUrl, '/misvord') === false) {
             // Force /misvord prefix for marvelcollin domain

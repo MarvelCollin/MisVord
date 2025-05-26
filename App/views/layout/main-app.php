@@ -15,7 +15,7 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
                    ($_SERVER['SERVER_NAME'] === 'localhost' || $_SERVER['SERVER_NAME'] === '127.0.0.1'));
     
     // Enhanced debugging for socket server configuration
-    error_log("--- WebRTC Socket Server Configuration ---");
+    error_log("--- Socket Server Configuration ---");
     error_log("SOCKET_SERVER env: " . ($socketServer ?: 'not set'));
     error_log("SOCKET_SERVER_LOCAL env: " . ($socketServerLocal ?: 'not set'));
     error_log("SERVER_NAME: " . (isset($_SERVER['SERVER_NAME']) ? $_SERVER['SERVER_NAME'] : 'not set'));
@@ -118,24 +118,7 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- Dynamic adapter script loading with fallback -->
-    <script>
-        (function() {
-            // Try to load WebRTC adapter from CDN
-            const adapterScript = document.createElement('script');
-            adapterScript.src = 'https://webrtc.github.io/adapter/adapter-latest.js';
-            
-            adapterScript.onload = function() {
-                console.log("WebRTC adapter loaded successfully from CDN");
-            };
-            
-            adapterScript.onerror = function() {
-                console.error("Failed to load WebRTC adapter from CDN, check network connection");
-                // No local fallback for adapter as it's a standard library
-            };
-            
-            document.head.appendChild(adapterScript);
-        })();
-    </script>
+
     
     <!-- Dynamic script loading for Socket.io -->
     <script>
@@ -350,13 +333,11 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
 </head>
 <body class="<?php echo isset($body_class) ? $body_class : 'overflow-x-hidden text-white landing-bg'; ?>">
     <?php 
-    // Check if this is the landing page or WebRTC page
+    // Check if this is the landing page
     $isLandingPage = (isset($page_css) && $page_css === 'landing-page');
-    $isWebRTCPage = (isset($page_title) && strpos($page_title, 'WebRTC') !== false) || 
-                   (isset($page_title) && strpos($page_title, 'Video Chat') !== false);
     
-    // Only show debug toggle if not on landing page or WebRTC page
-    if (!$isLandingPage && !$isWebRTCPage): 
+    // Only show debug toggle if not on landing page
+    if (!$isLandingPage):  
     ?>
     <!-- Developer Debug Toggle Button -->
     <button id="devDebugToggle" title="Toggle Debug Panel">D</button>
@@ -450,7 +431,7 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
         <?php endif; ?>
     </div>
     
-    <?php if (!$isLandingPage && !$isWebRTCPage): ?>
+    <?php if (!$isLandingPage): ?>
     <!-- Hidden debug panel - only shown with "kowlin" keyword -->
     <div id="debugPanel" class="fixed bottom-0 right-0 p-4 bg-gray-900/90 text-white rounded-tl-lg border border-gray-700 transform translate-y-full transition-transform duration-300 ease-in-out z-50 max-w-md max-h-96 overflow-auto opacity-0 invisible" style="box-shadow: 0 -5px 15px rgba(0,0,0,0.3);">
         <h3 class="text-lg font-bold mb-2 flex justify-between items-center">
@@ -468,7 +449,7 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
     <!-- Simple keyboard detection for "kowlin" -->
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        <?php if (!$isLandingPage && !$isWebRTCPage): ?>
+        <?php if (!$isLandingPage): ?>
         // Original kowlin debug panel code
         const keySequence = [];
         const debugPanel = document.getElementById('debugPanel');

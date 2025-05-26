@@ -23,10 +23,10 @@ return [
     '/login' => 'pages/authentication-page.php',
     '/register' => 'pages/authentication-page.php',
     '/forgot-password' => 'pages/authentication-page.php',
-    
-    // Application routes
+      // Application routes
     '/app' => 'pages/server-page.php', 
     '/server' => 'pages/server-page.php',
+    '/call' => 'pages/call.php',
     '/server/{id}' => function($params) {
         error_log("Server route matched with ID: " . $params['id']);
         $controller = new ServerController();
@@ -36,11 +36,7 @@ return [
     '/server/{serverId}/channel/{channelId}' => function($params) {
         $controller = new ServerController();
         $controller->showChannel($params['serverId'], $params['channelId']);
-    },
-    '/voice' => 'server/voice-channel.php',
-    
-    // WebRTC route
-    '/webrtc' => 'pages/webrtc.php',
+    },    '/voice' => 'server/voice-channel.php',
     
     // Server API routes
     'POST:/api/servers' => function() {

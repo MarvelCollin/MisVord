@@ -72,10 +72,7 @@ if (preg_match('/\\.(?:css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|webp|map)$
 // Log important request information
 error_log("[" . date("Y-m-d H:i:s") . "] " . $_SERVER['REQUEST_METHOD'] . " request to " . $_SERVER['REQUEST_URI']);
 
-// Debug for the /webrtc route specifically
-if ($_SERVER['REQUEST_URI'] === '/webrtc' || $_SERVER['REQUEST_URI'] === '/webrtc/') {
-    error_log("WebRTC route detected - loading routes from config.");
-}
+
 
 // Route handling via web.php
 if (file_exists(__DIR__ . '/config/web.php')) {
