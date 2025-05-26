@@ -147,4 +147,59 @@ class VideoSDKConfig {
             'domain' => getenv('DOMAIN') ?: 'localhost'
         ];
     }
+    
+    /**
+     * Create a new meeting room
+     */
+    public static function createMeeting() {
+        $url = 'https://api.videosdk.live/v2/rooms';
+        $token = self::generateToken();
+        
+        $headers = [
+            'Authorization: ' . $token,
+            'Content-Type: application/json'
+        ];
+        
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        if ($httpCode === 200) {
+            return json_decode($response, true);
+        }
+        
+        throw new Exception('Failed to create meeting: ' . $response);
+    }
+    
+    /**
+     * Validate meeting room
+     */
+    public static function validateMeeting($meetingId) {
+        $url = 'https://api.videosdk.live/v2/rooms/validate/' . $meetingId;
+        $token = self::generateToken();
+        
+        $headers = [
+            'Authorization: ' . $token,
+            'Content-Type: application/json'
+        ];
+        
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        return $httpCode === 200;
+    }
 }
