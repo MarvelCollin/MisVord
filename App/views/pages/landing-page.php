@@ -1,276 +1,323 @@
 <?php
-
 require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
 
-
-$page_title = 'MiscVord - Your Place to Talk and Hang Out';
+$page_title = 'MiscVord - Where Communities Thrive';
 $page_css = 'landing-page';
 $page_js = 'landing-page';
-$body_class = 'overflow-x-hidden text-white landing-bg';
-
-// Pass the background image URL to JavaScript for use in animations
-$additional_head = '
-<script>
-    // Store background image URL for JavaScript use
-    window.backgroundImageUrl = "' . asset('landing-page/background.png') . '";
-</script>';
+$body_class = 'modern-landing';
 
 ob_start();
 ?>
 
-<header class="relative min-h-screen flex flex-col">
-    
-    <nav class="fixed w-full z-50 px-6 md:px-10 py-4">
-        <div class="max-w-7xl mx-auto glass-nav rounded-full px-6 py-3 flex justify-between items-center">
-            <img src="<?php echo asset('/landing-page/main-logo.png'); ?>" alt="MiscVord Logo" class="h-8 md:h-10 animate-glow">
-            
-            
-            <div class="hidden md:flex items-center space-x-8">
-                <a href="#" class="text-white hover:text-discord-blue transition-all duration-300">Download</a>
-                <a href="#" class="text-white hover:text-discord-blue transition-all duration-300">Nitro</a>
-                <a href="#" class="text-white hover:text-discord-blue transition-all duration-300">Discover</a>
-                <a href="#" class="text-white hover:text-discord-blue transition-all duration-300">Safety</a>
-                <a href="#" class="text-white hover:text-discord-blue transition-all duration-300">Support</a>
-            </div>
-            
-            
-            <button class="md:hidden text-white">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+<!-- Animated Background -->
+<div class="landing-background"></div>
+
+<!-- Modern Discord Navigation -->
+<nav class="discord-nav" id="mainNav">
+    <div class="nav-container">
+        <a href="/" class="nav-logo">
+            <img src="<?php echo asset('/landing-page/main-logo.png'); ?>" alt="MiscVord">
+        </a>
+        
+        <ul class="nav-links">
+            <li><a href="#features" class="nav-link">Features</a></li>
+            <li><a href="#community" class="nav-link">Community</a></li>
+            <li><a href="#download" class="nav-link">Download</a></li>
+            <li><a href="#support" class="nav-link">Support</a></li>
+        </ul>
+        
+        <div class="nav-actions">
+            <a href="/login" class="nav-cta">Open MiscVord</a>
+            <button class="nav-toggle" id="navToggle">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
                 </svg>
             </button>
-            
-            
-            <a href="/login" class="hidden md:block bg-white bg-opacity-10 backdrop-blur-sm text-white font-medium px-6 py-2 rounded-full hover:bg-opacity-20 transition-all duration-300 transform hover:-translate-y-1">Login</a>
-        </div>
-    </nav>
-    
-    
-    <div class="flex-1 flex items-center justify-center px-6 md:px-10 py-24">
-        <!-- Hero container with no border -->
-        <div class="max-w-5xl p-10 md:p-16 text-center mt-16 relative overflow-hidden scroll-parallax-container" id="heroContainer">
-            <!-- Parallax elements with zoom effects -->
-            <div class="absolute inset-0 pointer-events-none parallax-elements">
-                <!-- Shapes with zoom data attributes -->
-                <div class="parallax-shape blob-purple gsap-parallax" data-zoom-factor="1.2" data-zoom-direction="in"></div>
-                <div class="parallax-shape blob-blue gsap-parallax" data-zoom-factor="1.3" data-zoom-direction="out"></div>
-                <div class="parallax-shape blob-green gsap-parallax" data-zoom-factor="1.1" data-zoom-direction="in"></div>
-                
-                <!-- Optimized assets with zoom attributes -->
-                <img src="<?php echo asset('/landing-page/discord-logo.webp'); ?>" alt="Discord Logo" 
-                    class="parallax-icon discord-icon gsap-float" data-zoom-factor="0.8" data-zoom-direction="in">
-                <img src="<?php echo asset('/landing-page/flying-cat.webp'); ?>" alt="Flying Cat" 
-                    class="parallax-icon cat-icon gsap-float" data-zoom-factor="1.2" data-zoom-direction="out">
-                <img src="<?php echo asset('/landing-page/leaf.webp'); ?>" alt="Leaf" 
-                    class="parallax-icon leaf-icon gsap-float" data-zoom-factor="0.9" data-zoom-direction="in">
-            </div>
-            
-            <div class="hero-text-content relative z-10" id="heroTextContent">
-                <!-- GSAP-powered scramble text effect -->
-                <h1 class="text-4xl md:text-6xl lg:text-7xl font-extrabold mb-6 tracking-wide hero-title neon-text" id="heroTitle">IMAGINE A PLACE</h1>
-                
-                <!-- GSAP-optimized subtitle -->
-                <div class="relative mt-12" id="heroSubtitleContainer">
-                    <!-- Decorative line with gradient for GSAP animation -->
-                    <div class="flex justify-center mb-8">
-                        <div class="h-1 w-0 bg-gradient-to-r from-[#5865F2] to-[#57F287] rounded-full" id="heroDecorativeLine"></div>
-                    </div>
-                    
-                    <!-- Subtitle text prepared for GSAP SplitText -->
-                    <p class="text-lg md:text-xl max-w-3xl mx-auto text-gray-200 leading-relaxed opacity-0" id="heroSubtitle">
-                        ...where you can belong to a school club, a gaming group, or a worldwide art community. 
-                        Where just you and a handful of friends can spend time together. A place that makes it easy 
-                        to talk every day and hang out more often.
-                    </p>
-                </div>
-                
-                <!-- Scroll indicator prepared for GSAP animation -->
-                <div class="mt-16 flex justify-center">
-                    <div class="scroll-indicator opacity-0" id="scrollIndicator">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white">
-                            <path d="M12 5v14"></path>
-                            <path d="M19 12l-7 7-7-7"></path>
-                        </svg>
-                        <span class="text-sm mt-2 block">Scroll to explore</span>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
+</nav>
+
+<!-- Hero Section - Completely Redesigned -->
+<section class="hero-section">
+    <!-- Enhanced floating decorative elements -->
+    <div class="floating-element floating-1"></div>
+    <div class="floating-element floating-2"></div>
+    <div class="floating-element floating-3"></div>
+    <div class="floating-element floating-4"></div>
     
-    
-    <div class="absolute inset-0 overflow-hidden pointer-events-none" id="gsapFloatingLayer">
-        <!-- Reduced set of elements optimized for GSAP animations -->
-        <img src="<?php echo asset('/landing-page/robot.webp'); ?>" alt="Robot" 
-             class="absolute right-[15%] bottom-[25%] w-28 md:w-36 gsap-element" 
-             data-zoom-factor="1.1" data-zoom-direction="in" id="floatingRobot">
+    <div class="hero-container">
+        <div class="hero-title-section">
+            <h1 class="hero-title scramble-text" data-text="IMAGINE A PLACE...">
+                IMAGINE A PLACE...
+            </h1>
+        </div>
         
-        <img src="<?php echo asset('/landing-page/box.webp'); ?>" alt="Box" 
-             class="absolute right-[25%] top-[30%] w-20 md:w-24 gsap-element" 
-             data-zoom-factor="0.9" data-zoom-direction="out" id="floatingBox">
-        
-        <img src="<?php echo asset('/landing-page/green-egg.webp'); ?>" alt="Green Egg" 
-             class="absolute left-[45%] top-[60%] w-16 md:w-20 gsap-element" 
-             data-zoom-factor="1.2" data-zoom-direction="in" id="floatingEgg">
-        
-        <img src="<?php echo asset('/landing-page/thropy.webp'); ?>" alt="Trophy" 
-             class="absolute left-[60%] top-[40%] w-14 md:w-18 gsap-element" 
-             data-zoom-factor="0.8" data-zoom-direction="out" id="floatingTrophy">
-    </div>
-</header>
-
-
-<main class="container mx-auto px-4 py-16 space-y-32">
-    
-    <?php include_once dirname(__DIR__) . '/components/landing-sections/feature-carousel.php'; ?>
-
-    
-    <?php include_once dirname(__DIR__) . '/components/landing-sections/section-1.php'; ?>
-    <?php include_once dirname(__DIR__) . '/components/landing-sections/section-3.php'; ?>
-    <?php include_once dirname(__DIR__) . '/components/landing-sections/section-2.php'; ?>
-
-    
-    <section class="flex flex-col-reverse md:flex-row items-center gap-8 md:gap-16 feature-section">
-        <div class="w-full md:w-1/2 feature-content">
-            <div class="content-card p-8 md:p-10 rounded-3xl">
-                <h2 class="text-3xl md:text-5xl font-bold mb-6 section-title">Reliable tech for staying close</h2>
-                <p class="text-lg md:text-xl text-gray-200">
-                    Low-latency voice and video feels like you're in the same room. Wave hello over video, 
-                    watch friends stream their games, or gather up and have a drawing session with screen share.
+        <div class="hero-content-wrapper">
+            <div class="hero-content">
+                <p class="hero-description">
+                    ...where you can belong to a school club, a gaming group, or a worldwide art community. 
+                    Where just you and a handful of friends can spend time together. A place that makes it 
+                    easy to talk every day and hang out more often.
                 </p>
             </div>
-        </div>
-        <div class="w-full md:w-1/2 feature-image">
-            <div class="modern-image">
-                <img src="<?php echo asset('/landing-page/computer.webp'); ?>" alt="Screen share" class="w-full h-auto">
+            
+            <div class="hero-visual">
+                <div class="discord-mockup">
+                    <div class="mockup-header">
+                        <div class="mockup-avatar">M</div>
+                        <div class="mockup-info">
+                            <h4>MiscVord Community</h4>
+                            <p class="online-status">🟢 <span class="member-count">15,847</span> members online</p>
+                        </div>
+                    </div>
+                    <div class="mockup-content" id="chatContainer">
+                        <!-- Chat messages will be dynamically added here -->
+                    </div>
+                    <div class="chat-input-area">
+                        <div class="typing-users">
+                            <div class="typing-indicator hidden">
+                                <div class="typing-dots">
+                                    <span></span>
+                                    <span></span>
+                                    <span></span>
+                                </div>
+                                <span class="typing-text">Someone is typing...</span>
+                            </div>
+                        </div>
+                        <div class="chat-input-box">
+                            <input 
+                                type="text" 
+                                id="userMessageInput" 
+                                placeholder="Message #general" 
+                                maxlength="100" 
+                                autocomplete="off"
+                                spellcheck="false"
+                            >
+                            <button id="sendMessageBtn" type="button" aria-label="Send message">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                                    <polygon points="22,2 15,22 11,13 2,9"></polygon>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-    </section>
+    </div>
+</section>
 
+<!-- Feature Sections -->
+<main class="main-content">
+    <section class="scroll-reveal" id="features">
+        <?php include_once dirname(__DIR__) . '/components/landing-sections/feature-carousel.php'; ?>
+    </section>
     
-    <section class="py-16">
-        <div class="max-w-4xl mx-auto dark-content-card p-10 md:p-16 rounded-3xl text-center relative overflow-hidden">
-            
-            <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-5 -translate-x-full animate-[shine_3s_infinite]"></div>
-            
-            
-            <img src="<?php echo asset('/landing-page/green-egg.webp'); ?>" alt="Green Egg" 
-                 class="absolute -left-6 top-1/4 w-20 md:w-24 animate-float-enhanced floating-element floating-egg hidden md:block" data-speed="0.25" data-rotation="8" data-amplitude="30">
-            
-            <img src="<?php echo asset('/landing-page/thropy.webp'); ?>" alt="Trophy" 
-                 class="absolute -right-6 bottom-1/4 w-20 md:w-24 animate-float-enhanced floating-element floating-trophy hidden md:block" data-speed="0.3" data-rotation="-10" data-amplitude="25">
-            
-            <div class="relative z-10 journey-content">
-                <h2 class="text-3xl md:text-5xl font-bold mb-8 neon-text">Ready to start your journey?</h2>
-                
-                
-                <div class="relative inline-block animate-scale-pulse mb-10">
-                    <img src="<?php echo asset('/landing-page/wiggle.gif'); ?>" alt="Wiggle" class="w-24 h-auto mx-auto">
-                    
-                    <div class="absolute inset-0 rounded-full bg-discord-blue opacity-20 blur-xl -z-10 animate-pulse"></div>
-                </div>
-                
-                
-                <div class="mt-6">
-                    <a href="/login" class="discord-btn bg-discord-blue bg-opacity-70 hover:bg-opacity-90 backdrop-filter backdrop-blur-sm text-white px-10 py-5 rounded-full text-lg font-medium inline-block">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                        Get Started
-                    </a>
-                </div>
-            </div>
-        </div>
+    <section class="scroll-reveal">
+        <?php include_once dirname(__DIR__) . '/components/landing-sections/section-1.php'; ?>
+    </section>
+    
+    <section class="scroll-reveal">
+        <?php include_once dirname(__DIR__) . '/components/landing-sections/section-2.php'; ?>
+    </section>
+    
+    <section class="scroll-reveal">
+        <?php include_once dirname(__DIR__) . '/components/landing-sections/section-3.php'; ?>
     </section>
 </main>
 
-
-<footer class="glass-nav py-16 px-6 md:px-10 mt-20 border-t border-gray-700 border-opacity-30">
-    
-    <div class="max-w-7xl mx-auto">
-        
-        <div class="grid grid-cols-2 md:grid-cols-5 gap-10 pb-10">
-            
-            <div class="col-span-2">
-                <h3 class="text-discord-blue text-4xl font-bold mb-6 neon-text">IMAGINE A PLACE</h3>
-                
-                <div class="flex items-center mb-6 hover:text-discord-blue transition-colors duration-300 cursor-pointer">
-                    <img src="<?php echo asset('/landing-page/discord-logo.webp'); ?>" alt="US Flag" class="w-6 h-6 mr-2">
+<!-- Modern Footer -->
+<footer class="modern-footer">
+    <div class="footer-container">
+        <div class="footer-content">
+            <div class="footer-brand">
+                <h3>IMAGINE A PLACE</h3>
+                <div class="language-selector">
+                    <img src="<?php echo asset('/landing-page/discord-logo.webp'); ?>" alt="Flag" width="24" height="18">
                     <span>English, USA</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6,9 12,15 18,9"></polyline>
                     </svg>
                 </div>
-                
-                
-                <div class="flex space-x-6">
-                    <a href="#" class="text-white hover:text-discord-blue transition-colors duration-300 transform hover:scale-110">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M22,3.999c-0.78,0.463-2.345,1.094-3.265,1.276c-0.027,0.007-0.049,0.016-0.075,0.023c-0.813-0.802-1.927-1.299-3.16-1.299c-2.485,0-4.5,2.015-4.5,4.5c0,0.131-0.011,0.372,0,0.5c-3.353,0-5.905-1.756-7.735-4c-0.199,0.5-0.286,1.29-0.286,2.032c0,1.401,1.095,2.777,2.8,3.63c-0.314,0.081-0.66,0.139-1.02,0.139c-0.581,0-1.196-0.153-1.759-0.617c0,0.017,0,0.033,0,0.051c0,1.958,2.078,3.291,3.926,3.662c-0.375,0.221-1.131,0.243-1.5,0.243c-0.26,0-1.18-0.119-1.426-0.165c0.514,1.605,2.368,2.507,4.135,2.539c-1.382,1.084-2.341,1.486-5.171,1.486H2C3.788,19.145,6.065,20,8.347,20C15.777,20,20,14.337,20,8.999c0-0.086-0.002-0.266-0.005-0.447C19.995,8.534,20,8.517,20,8.499c0-0.027-0.008-0.053-0.008-0.08c-0.003-0.136-0.006-0.263-0.009-0.329c0.79-0.57,1.475-1.281,2.017-2.091c-0.725,0.322-1.503,0.538-2.32,0.636C20.514,6.135,21.699,4.943,22,3.999z"/>
+                <div class="social-links">
+                    <a href="#" class="social-link">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z"/>
                         </svg>
                     </a>
-                    <a href="#" class="text-white hover:text-discord-blue transition-colors duration-300 transform hover:scale-110">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M21.593,7.203c-0.23-0.858-0.905-1.535-1.762-1.766C18.265,5.007,12,5,12,5S5.736,4.993,4.169,5.404c-0.84,0.229-1.534,0.921-1.766,1.778c-0.413,1.566-0.417,4.814-0.417,4.814s-0.004,3.264,0.406,4.814c0.23,0.857,0.905,1.534,1.763,1.765c1.582,0.43,7.83,0.437,7.83,0.437s6.265,0.007,7.831-0.403c0.856-0.23,1.534-0.906,1.767-1.763c0.414-1.565,0.417-4.812,0.417-4.812S22.02,8.769,21.593,7.203z M9.996,15.005l0.005-6l5.207,3.005L9.996,15.005z"/>
+                    <a href="#" class="social-link">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z"/>
+                            <circle cx="4" cy="4" r="2"/>
                         </svg>
                     </a>
-                    <a href="#" class="text-white hover:text-discord-blue transition-colors duration-300 transform hover:scale-110">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12,2.163c3.204,0,3.584,0.012,4.85,0.07c3.252,0.148,4.771,1.691,4.919,4.919c0.058,1.265,0.069,1.645,0.069,4.849c0,3.205-0.012,3.584-0.069,4.849c-0.149,3.225-1.664,4.771-4.919,4.919c-1.266,0.058-1.644,0.07-4.85,0.07c-3.204,0-3.584-0.012-4.849-0.07c-3.26-0.149-4.771-1.699-4.919-4.92c-0.058-1.265-0.07-1.644-0.07-4.849c0-3.204,0.013-3.583,0.07-4.849C2.381,3.924,3.896,2.38,7.151,2.232C8.417,2.175,8.796,2.163,12,2.163z M12,4.332c-3.159,0-3.508,0.014-4.749,0.068c-2.222,0.102-3.249,1.142-3.35,3.35c-0.055,1.24-0.069,1.589-0.069,4.748c0,3.159,0.014,3.508,0.069,4.748c0.101,2.207,1.127,3.249,3.35,3.35c1.24,0.055,1.589,0.069,4.749,0.069c3.161,0,3.509-0.014,4.749-0.069c2.207-0.102,3.249-1.143,3.35-3.35c0.055-1.24,0.069-1.589,0.069-4.748c0-3.159-0.014-3.508-0.069-4.748c-0.102-2.207-1.144-3.247-3.35-3.35C15.509,4.346,15.16,4.332,12,4.332z M12,7.163c-3.204,0-5.803,2.598-5.803,5.803c0,3.204,2.598,5.803,5.803,5.803c3.204,0,5.803-2.598,5.803-5.803C17.803,9.762,15.205,7.163,12,7.163z M12,16.102c-1.733,0-3.138-1.405-3.138-3.138c0-1.733,1.405-3.138,3.138-3.138c1.733,0,3.138,1.405,3.138,3.138C15.138,14.698,13.733,16.102,12,16.102z"/>
+                    <a href="#" class="social-link">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                            <polyline points="2,17 12,12 22,17"/>
                         </svg>
                     </a>
                 </div>
             </div>
             
-            
-            <div class="footer-column">
-                <h4 class="text-discord-blue font-semibold mb-4">Product</h4>
-                <ul class="space-y-2">
-                    <li><a href="#" class="hover:text-discord-blue transition-colors duration-300">Download</a></li>
-                    <li><a href="#" class="hover:text-discord-blue transition-colors duration-300">Nitro</a></li>
-                    <li><a href="#" class="hover:text-discord-blue transition-colors duration-300">Status</a></li>
-                </ul>
-            </div>
-            
-            <div class="footer-column">
-                <h4 class="text-discord-blue font-semibold mb-4">Company</h4>
-                <ul class="space-y-2">
-                    <li><a href="#" class="hover:text-discord-blue transition-colors duration-300">About</a></li>
-                    <li><a href="#" class="hover:text-discord-blue transition-colors duration-300">Jobs</a></li>
-                    <li><a href="#" class="hover:text-discord-blue transition-colors duration-300">Brand</a></li>
-                </ul>
-            </div>
-            
-            <div class="footer-column">
-                <h4 class="text-discord-blue font-semibold mb-4">Resources</h4>
-                <ul class="space-y-2">
-                    <li><a href="#" class="hover:text-discord-blue transition-colors duration-300">College</a></li>
-                    <li><a href="#" class="hover:text-discord-blue transition-colors duration-300">Support</a></li>
-                    <li><a href="#" class="hover:text-discord-blue transition-colors duration-300">Safety</a></li>
-                    <li><a href="#" class="hover:text-discord-blue transition-colors duration-300">Blog</a></li>
-                </ul>
+            <div class="footer-links">
+                <div class="link-column">
+                    <h4>Product</h4>
+                    <a href="#">Download</a>
+                    <a href="#">Nitro</a>
+                    <a href="#">Status</a>
+                </div>
+                <div class="link-column">
+                    <h4>Company</h4>
+                    <a href="#">About</a>
+                    <a href="#">Jobs</a>
+                    <a href="#">Brand</a>
+                    <a href="#">Newsroom</a>
+                </div>
+                <div class="link-column">
+                    <h4>Resources</h4>
+                    <a href="#">College</a>
+                    <a href="#">Support</a>
+                    <a href="#">Safety</a>
+                    <a href="#">Blog</a>
+                </div>
+                <div class="link-column">
+                    <h4>Policies</h4>
+                    <a href="#">Terms</a>
+                    <a href="#">Privacy</a>
+                    <a href="#">Cookie Settings</a>
+                    <a href="#">Guidelines</a>
+                </div>
             </div>
         </div>
         
-        
-        <div class="divider my-8"></div>
-        
-        
-        <div class="flex flex-col md:flex-row justify-between items-center">
-            <div>
-                <img src="<?php echo asset('/landing-page/main-logo.png'); ?>" alt="MiscVord Logo" class="h-10 animate-glow">
-            </div>
-            <div class="mt-6 md:mt-0">
-                <a href="/register" class="discord-btn bg-discord-blue bg-opacity-70 hover:bg-opacity-100 backdrop-filter backdrop-blur-sm text-white px-8 py-3 rounded-full font-medium inline-block">
-                    Sign up
-                </a>
-            </div>
+        <div class="footer-bottom">
+            <img src="<?php echo asset('/landing-page/main-logo.png'); ?>" alt="MiscVord" height="32">
+            <a href="/register" class="footer-cta">Sign up</a>
         </div>
     </div>
 </footer>
 
+<style>
+/* Footer Styles */
+.modern-footer {
+    background: var(--discord-darker);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding: var(--space-3xl) var(--space-xl) var(--space-xl);
+    margin-top: var(--space-3xl);
+}
+
+.footer-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.footer-content {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: var(--space-3xl);
+    margin-bottom: var(--space-2xl);
+}
+
+.footer-brand h3 {
+    color: var(--discord-blue);
+    font-size: 2rem;
+    font-weight: 800;
+    margin-bottom: var(--space-xl);
+}
+
+.language-selector {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    color: var(--discord-gray);
+    margin-bottom: var(--space-xl);
+    cursor: pointer;
+}
+
+.social-links {
+    display: flex;
+    gap: var(--space-lg);
+}
+
+.social-link {
+    color: var(--discord-gray);
+    transition: color 0.3s ease;
+}
+
+.social-link:hover {
+    color: var(--discord-blue);
+}
+
+.footer-links {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-2xl);
+}
+
+.link-column h4 {
+    color: var(--discord-blue);
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: var(--space-lg);
+}
+
+.link-column a {
+    display: block;
+    color: var(--discord-gray);
+    text-decoration: none;
+    margin-bottom: var(--space-sm);
+    transition: color 0.3s ease;
+}
+
+.link-column a:hover {
+    color: var(--discord-white);
+}
+
+.footer-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: var(--space-xl);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.footer-cta {
+    background: var(--gradient-primary);
+    color: var(--discord-white);
+    padding: var(--space-md) var(--space-xl);
+    border-radius: var(--radius-full);
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.footer-cta:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-discord);
+}
+
+@media (max-width: 768px) {
+    .footer-content {
+        grid-template-columns: 1fr;
+        gap: var(--space-xl);
+    }
+    
+    .footer-links {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .footer-bottom {
+        flex-direction: column;
+        gap: var(--space-lg);
+        text-align: center;
+    }
+}
+</style>
+
 <?php
 $content = ob_get_clean();
-
 require_once dirname(__DIR__) . '/layout/main-app.php';
 ?>

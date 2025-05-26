@@ -89,7 +89,7 @@ if (!function_exists('asset')) {
                 <div class="feature-card hover-glow" data-feature="custom">
                     <div class="card-icon">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 001 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z" />
                         </svg>
                     </div>
                     <div class="card-content">
@@ -1058,46 +1058,92 @@ if (!function_exists('asset')) {
         grid-column: 1 / -1;
     }
 }
+
+/* Additional particle animation */
+@keyframes particleFloat {
+    0%, 100% {
+        transform: translateY(0px) rotate(0deg);
+        opacity: 0.6;
+    }
+    33% {
+        transform: translateY(-20px) rotate(120deg);
+        opacity: 1;
+    }
+    66% {
+        transform: translateY(20px) rotate(240deg);
+        opacity: 0.8;
+    }
+}
+
+/* Smooth animations for all interactive elements */
+.stage, .feature-card, .chart-bar {
+    transition: all 0.3s ease;
+}
+
+.feature-card:hover {
+    transform: translateY(-5px) scale(1.02);
+}
+
+/* Enhanced particle styles */
+.particle {
+    z-index: 1;
+}
+
+/* Responsive animations */
+@media (prefers-reduced-motion: reduce) {
+    .particle {
+        animation: none;
+    }
+    
+    .stage {
+        transform: none !important;
+        opacity: 1 !important;
+    }
+}
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize GSAP animations for Section 3
-    gsap.registerPlugin(ScrollTrigger);
-    
     // Create particles
     createParticles();
     
     // Typing animation for section title
     const typingText = document.querySelector('.typing-text');
     const cursor = document.querySelector('.cursor');
-    const originalText = typingText.textContent;
     
-    function startTypingAnimation() {
-        typingText.textContent = '';
-        cursor.classList.add('active');
+    if (typingText && cursor) {
+        const originalText = typingText.textContent;
         
-        let i = 0;
-        const typingInterval = setInterval(() => {
-            if (i < originalText.length) {
-                typingText.textContent += originalText.charAt(i);
-                i++;
-            } else {
-                clearInterval(typingInterval);
-                setTimeout(() => {
-                    cursor.classList.remove('active');
-                }, 1500);
-            }
-        }, 100);
+        function startTypingAnimation() {
+            typingText.textContent = '';
+            cursor.classList.add('active');
+            
+            let i = 0;
+            const typingInterval = setInterval(() => {
+                if (i < originalText.length) {
+                    typingText.textContent += originalText.charAt(i);
+                    i++;
+                } else {
+                    clearInterval(typingInterval);
+                    setTimeout(() => {
+                        cursor.classList.remove('active');
+                    }, 1500);
+                }
+            }, 100);
+        }
+        
+        // Start typing animation when section is in view
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    startTypingAnimation();
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.5 });
+        
+        observer.observe(document.querySelector('.feature-section-3'));
     }
-    
-    // Start typing animation when section is in view
-    ScrollTrigger.create({
-        trigger: '.feature-section-3',
-        start: 'top 80%',
-        onEnter: startTypingAnimation,
-        once: true
-    });
     
     // Feature card interaction
     const featureCards = document.querySelectorAll('.feature-card');
@@ -1115,7 +1161,10 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
             // Show the selected detail content
-            document.querySelector(`.feature-detail-content[data-feature="${feature}"]`).classList.remove('hidden');
+            const targetContent = document.querySelector(`.feature-detail-content[data-feature="${feature}"]`);
+            if (targetContent) {
+                targetContent.classList.remove('hidden');
+            }
             
             // Show the detail container
             featureDetail.classList.add('active');
@@ -1136,6 +1185,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Create glowing particles for the background
     function createParticles() {
         const container = document.querySelector('.particles-container');
+        if (!container) return;
+        
         const particleCount = 40;
         
         for (let i = 0; i < particleCount; i++) {
@@ -1150,20 +1201,25 @@ document.addEventListener('DOMContentLoaded', function() {
             const posY = Math.random() * 100;
             
             // Random color between blue and green
-            const hue = Math.random() * 60 + 180; // 180 (blue) to 120 (green)
+            const hue = Math.random() * 60 + 180; // 180 (blue) to 240 (green)
             
-            particle.style.width = size + 'px';
-            particle.style.height = size + 'px';
-            particle.style.left = posX + '%';
-            particle.style.top = posY + '%';
-            particle.style.background = `hsla(${hue}, 80%, 70%, 0.6)`;
-            particle.style.boxShadow = `0 0 ${size * 2}px hsla(${hue}, 80%, 70%, 0.8)`;
+            particle.style.cssText = `
+                position: absolute;
+                width: ${size}px;
+                height: ${size}px;
+                left: ${posX}%;
+                top: ${posY}%;
+                background: hsla(${hue}, 80%, 70%, 0.6);
+                border-radius: 50%;
+                box-shadow: 0 0 ${size * 2}px hsla(${hue}, 80%, 70%, 0.8);
+                pointer-events: none;
+            `;
             
             // Animation properties
             const duration = Math.random() * 15 + 10;
             const delay = Math.random() * 5;
             
-            particle.style.animation = `float ${duration}s ease-in-out infinite`;
+            particle.style.animation = `particleFloat ${duration}s ease-in-out infinite`;
             particle.style.animationDelay = `${delay}s`;
             
             container.appendChild(particle);
@@ -1179,70 +1235,70 @@ document.addEventListener('DOMContentLoaded', function() {
             const icon = stage.querySelector('.stage-icon');
             const label = stage.querySelector('.stage-label');
             
-            gsap.to(icon, {
-                scale: 1.1,
-                duration: 0.3,
-                ease: 'power2.out'
-            });
+            // Smooth scale animation
+            icon.style.transform = 'scale(1.1)';
+            icon.style.transition = 'transform 0.3s ease';
             
-            gsap.to(label, {
-                color: '#57F287',
-                fontWeight: 'bold',
-                duration: 0.3
-            });
+            label.style.color = '#57F287';
+            label.style.fontWeight = 'bold';
+            label.style.transition = 'color 0.3s ease, font-weight 0.3s ease';
         });
         
         stage.addEventListener('mouseleave', () => {
             const icon = stage.querySelector('.stage-icon');
             const label = stage.querySelector('.stage-label');
             
-            gsap.to(icon, {
-                scale: 1,
-                duration: 0.3,
-                ease: 'power2.out'
-            });
-            
-            gsap.to(label, {
-                color: 'white',
-                fontWeight: 'bold',
-                duration: 0.3
-            });
+            icon.style.transform = 'scale(1)';
+            label.style.color = 'white';
+            label.style.fontWeight = 'bold';
         });
         
         // Add scroll animation
-        ScrollTrigger.create({
-            trigger: stage,
-            start: 'top 80%',
-            onEnter: () => {
-                gsap.from(stage, {
-                    y: 30,
-                    opacity: 0,
-                    duration: 0.8,
-                    delay: index * 0.2
-                });
-            },
-            once: true
-        });
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    // Animate stage appearance
+                    stage.style.opacity = '0';
+                    stage.style.transform = 'translateY(30px)';
+                    stage.style.transition = 'all 0.8s ease';
+                    
+                    setTimeout(() => {
+                        stage.style.opacity = '1';
+                        stage.style.transform = 'translateY(0)';
+                    }, index * 200);
+                    
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.5 });
+        
+        observer.observe(stage);
     });
     
-    // Animate the detail panels dynamically
-    gsap.utils.toArray('.analytics-chart .chart-bar').forEach((bar, i) => {
-        const height = bar.style.height;
-        bar.style.height = '0%';
+    // Animate the chart bars
+    const chartBars = document.querySelectorAll('.analytics-chart .chart-bar');
+    if (chartBars.length > 0) {
+        const chartObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    chartBars.forEach((bar, i) => {
+                        const originalHeight = bar.style.height;
+                        bar.style.height = '0%';
+                        bar.style.transition = 'height 1s ease';
+                        
+                        setTimeout(() => {
+                            bar.style.height = originalHeight;
+                        }, i * 100);
+                    });
+                    chartObserver.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.5 });
         
-        ScrollTrigger.create({
-            trigger: '.analytics-dashboard',
-            start: 'top 80%',
-            onEnter: () => {
-                gsap.to(bar, {
-                    height: height,
-                    duration: 1,
-                    delay: i * 0.1,
-                    ease: 'power2.out'
-                });
-            },
-            once: true
-        });
-    });
+        const analyticsContainer = document.querySelector('.analytics-dashboard');
+        if (analyticsContainer) {
+            chartObserver.observe(analyticsContainer);
+        }
+    }
 });
 </script>
