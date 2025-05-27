@@ -1,10 +1,4 @@
 <?php
-// Include helper functions if not already included
-if (!function_exists('asset')) {
-    require_once dirname(dirname(dirname(__DIR__))) . '/config/helpers.php';
-}
-
-// Get current user and friends from database
 $currentUserId = $_SESSION['user_id'] ?? 0;
 $friends = [];
 $onlineFriends = [];
@@ -25,12 +19,10 @@ try {
     
     $pdo = new PDO($dsn, $username, $password, $options);
     
-    // Get current user
     $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
     $stmt->execute([$currentUserId]);
     $currentUser = $stmt->fetch();
     
-    // Get all friends
     $stmt = $pdo->prepare("
         SELECT u.* FROM users u 
         JOIN friend_list fl ON u.id = fl.user_id2 
@@ -43,40 +35,31 @@ try {
     $stmt->execute([$currentUserId, $currentUserId]);
     $friends = $stmt->fetchAll();
     
-    // Filter online friends
     $onlineFriends = array_filter($friends, function($friend) {
         return $friend['status'] === 'online';
     });
     
 } catch (PDOException $e) {
-    // Fallback to empty arrays if database connection fails
     $currentUser = ['id' => $currentUserId, 'username' => $_SESSION['username'] ?? 'Unknown'];
     $friends = [];
     $onlineFriends = [];
 }
 ?>
 
-<!-- Friends Content -->
-<div class="flex-1 p-4 overflow-y-auto bg-[#36393F]">
+<div class="flex-1 p-4 overflow-y-auto bg-discord-background">
     <div class="flex items-center justify-between mb-4">
         <h2 class="text-gray-400 font-bold text-xs uppercase">Online — <?php echo count($onlineFriends); ?></h2>
         <div class="relative w-60">
-            <?php 
-            // Use the search bar component
-            $placeholder = "Search";
-            $iconPosition = "right";
-            $bgColor = "bg-[#202225]";
-            include dirname(__DIR__) . '/app-sections/search-bar.php';
-            ?>
+            <input type="text" placeholder="Search" class="w-full bg-discord-dark text-white text-sm rounded px-3 py-1 pl-8 focus:outline-none focus:ring-1 focus:ring-discord-primary">
+            <i class="fas fa-search absolute left-2.5 top-1.5 text-gray-500 text-sm"></i>
         </div>
     </div>
 
-    <!-- Friend List -->
     <div class="space-y-1">
         <?php if (empty($friends)): ?>
-        <div class="p-4 bg-[#2F3136] rounded text-center">
+        <div class="p-4 bg-discord-dark rounded text-center">
             <div class="mb-2 text-gray-400">
-                <i class="fa-solid fa-user-group h-8 w-8"></i>
+                <i class="fa-solid fa-user-group text-3xl"></i>
             </div>
             <p class="text-gray-300 mb-1">No friends found</p>
             <p class="text-gray-500 text-sm">Add some friends to get started!</p>
@@ -84,42 +67,44 @@ try {
         <?php else: ?>
             <?php foreach ($friends as $friend): ?>
                 <?php 
-                // Generate status text
                 $statusText = 'Offline';
+                $statusColor = 'bg-gray-500';
+                
                 if ($friend['status'] === 'online') {
                     $statusText = 'Online';
+                    $statusColor = 'bg-discord-green';
                 } elseif ($friend['status'] === 'away') {
                     $statusText = 'Away';
+                    $statusColor = 'bg-discord-yellow';
                 } elseif ($friend['status'] === 'dnd') {
                     $statusText = 'Do Not Disturb';
+                    $statusColor = 'bg-discord-red';
                 }
                 ?>
-                <!-- Friend Item -->
-                <div class="flex justify-between items-center p-2 rounded hover:bg-[#32353B]">
+                <div class="flex justify-between items-center p-2 rounded hover:bg-discord-light group">
                     <div class="flex items-center">
-                        <?php
-                        // Use the avatar component
-                        $user = $friend;
-                        $size = 8;
-                        $showStatus = true;
-                        $customClasses = "mr-3";
-                        include dirname(__DIR__) . '/app-sections/user-avatar.php';
-                        ?>
+                        <div class="relative mr-3">
+                            <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
+                                <img src="<?php echo isset($friend['avatar']) ? htmlspecialchars($friend['avatar']) : 'https://ui-avatars.com/api/?name=' . urlencode($friend['username'] ?? 'U') . '&background=random'; ?>" 
+                                     alt="Avatar" class="w-full h-full object-cover">
+                            </div>
+                            <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-background <?php echo $statusColor; ?>"></span>
+                        </div>
                         <div>
                             <div class="font-medium text-white"><?php echo htmlspecialchars($friend['username']); ?></div>
                             <div class="text-xs text-gray-400"><?php echo htmlspecialchars($statusText); ?></div>
                         </div>
                     </div>
-                    <div class="flex space-x-2">
-                        <button class="p-2 text-gray-400 hover:text-white hover:bg-[#36393F] rounded-full">
-                            <i class="fa-solid fa-message h-5 w-5"></i>
+                    <div class="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button class="p-2 text-gray-400 hover:text-white hover:bg-discord-background rounded-full" title="Message">
+                            <i class="fa-solid fa-message"></i>
                         </button>
-                        <button class="p-2 text-gray-400 hover:text-white hover:bg-[#36393F] rounded-full">
-                            <i class="fa-solid fa-ellipsis-vertical h-5 w-5"></i>
+                        <button class="p-2 text-gray-400 hover:text-white hover:bg-discord-background rounded-full" title="More">
+                            <i class="fa-solid fa-ellipsis-vertical"></i>
                         </button>
                     </div>
                 </div>
             <?php endforeach; ?>
         <?php endif; ?>
     </div>
-</div> 
+</div>

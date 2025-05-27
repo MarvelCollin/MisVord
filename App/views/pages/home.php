@@ -13,11 +13,9 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $page_title = 'misvord - Home';
-$body_class = 'bg-gray-900 text-white overflow-hidden';
+$body_class = 'bg-discord-dark text-white overflow-hidden';
 $page_css = 'home-page';
 $page_js = 'home-page';
-
-// Configuration for the app layout
 $socketServerUrl = $_ENV['SOCKET_SERVER'] ?? 'http://localhost:1002';
 $contentType = 'home';
 ?>
@@ -28,6 +26,5 @@ $contentType = 'home';
 
 <?php 
 $content = ob_get_clean(); 
-
 include dirname(dirname(__DIR__)) . '/views/layout/main-app.php';
 ?>

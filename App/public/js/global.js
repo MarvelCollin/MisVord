@@ -1,6 +1,14 @@
 document.addEventListener('DOMContentLoaded', function() {
     initNavigation();
     initScrollReveal();
+    initTooltips();
+    initDropdowns();
+    initTextareaAutosize();
+    initSocketConnection();
+    
+    document.addEventListener('click', function(e) {
+        closeDropdowns(e);
+    });
 });
 
 function initNavigation() {
@@ -98,4 +106,136 @@ function createRippleEffect(event) {
     }
 
     button.appendChild(circle);
+}
+
+function initSocketConnection() {
+    const appContainer = document.getElementById('app-container');
+    if (!appContainer) return;
+    
+    const userId = appContainer.dataset.userId;
+    const username = appContainer.dataset.username;
+    const socketUrl = appContainer.dataset.socketUrl;
+    
+    if (!userId || !socketUrl) return;
+    
+    try {
+        const socket = io(socketUrl);
+        
+        socket.on('connect', () => {
+            console.log('Connected to WebSocket server');
+            socket.emit('user-online', { userId, username });
+        });
+        
+        socket.on('disconnect', () => {
+            console.log('Disconnected from WebSocket server');
+        });
+        
+        window.misvordSocket = socket;
+        
+        window.addEventListener('beforeunload', () => {
+            socket.emit('user-offline', { userId });
+        });
+    } catch (error) {
+        console.error('Socket connection error:', error);
+    }
+}
+
+function initTooltips() {
+    const tooltips = document.querySelectorAll('[data-tooltip]');
+    tooltips.forEach(tooltip => {
+        tooltip.addEventListener('mouseenter', showTooltip);
+        tooltip.addEventListener('mouseleave', hideTooltip);
+    });
+}
+
+function showTooltip(e) {
+    const tooltip = e.currentTarget;
+    const text = tooltip.dataset.tooltip;
+    
+    if (!text) return;
+    
+    const tooltipEl = document.createElement('div');
+    tooltipEl.className = 'absolute z-50 bg-black text-white text-xs py-1 px-2 rounded pointer-events-none';
+    tooltipEl.textContent = text;
+    
+    document.body.appendChild(tooltipEl);
+    
+    const rect = tooltip.getBoundingClientRect();
+    const tooltipRect = tooltipEl.getBoundingClientRect();
+    
+    tooltipEl.style.left = `${rect.left + (rect.width / 2) - (tooltipRect.width / 2)}px`;
+    tooltipEl.style.top = `${rect.top - tooltipRect.height - 8}px`;
+    
+    tooltip.dataset.tooltipId = Date.now();
+    tooltipEl.dataset.for = tooltip.dataset.tooltipId;
+}
+
+function hideTooltip(e) {
+    const tooltip = e.currentTarget;
+    const tooltipId = tooltip.dataset.tooltipId;
+    
+    if (!tooltipId) return;
+    
+    const tooltipEl = document.querySelector(`[data-for="${tooltipId}"]`);
+    if (tooltipEl) {
+        tooltipEl.remove();
+    }
+    
+    delete tooltip.dataset.tooltipId;
+}
+
+function initDropdowns() {
+    const dropdownTriggers = document.querySelectorAll('[data-dropdown]');
+    dropdownTriggers.forEach(trigger => {
+        trigger.addEventListener('click', toggleDropdown);
+    });
+}
+
+function toggleDropdown(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const trigger = e.currentTarget;
+    const targetId = trigger.dataset.dropdown;
+    const dropdown = document.getElementById(targetId);
+    
+    if (!dropdown) return;
+    
+    const isOpen = dropdown.classList.contains('block');
+    
+    closeAllDropdowns();
+    
+    if (!isOpen) {
+        dropdown.classList.remove('hidden');
+        dropdown.classList.add('block');
+    }
+}
+
+function closeDropdowns(e) {
+    if (e.target.closest('[data-dropdown]')) return;
+    if (e.target.closest('.dropdown-menu')) return;
+    
+    closeAllDropdowns();
+}
+
+function closeAllDropdowns() {
+    const openDropdowns = document.querySelectorAll('.dropdown-menu.block');
+    openDropdowns.forEach(dropdown => {
+        dropdown.classList.remove('block');
+        dropdown.classList.add('hidden');
+    });
+}
+
+function initTextareaAutosize() {
+    const textareas = document.querySelectorAll('textarea[data-autosize]');
+    textareas.forEach(textarea => {
+        textarea.addEventListener('input', autosizeTextarea);
+        autosizeTextarea({ target: textarea });
+    });
+}
+
+function autosizeTextarea(e) {
+    const textarea = e.target;
+    textarea.style.height = 'auto';
+    textarea.style.height = `${textarea.scrollHeight}px`;
 }

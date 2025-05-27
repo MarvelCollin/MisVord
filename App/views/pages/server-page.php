@@ -13,15 +13,11 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $page_title = 'misvord - Server';
-$body_class = 'bg-gray-900 text-white overflow-hidden';
+$body_class = 'bg-discord-dark text-white overflow-hidden';
 $page_css = 'server-page';
 $page_js = 'server-page';
-
-// Configuration for the app layout
 $socketServerUrl = $_ENV['SOCKET_SERVER'] ?? 'http://localhost:1002';
 $contentType = 'server';
-
-// Get current server from GLOBALS (set by controller)
 $currentServer = $GLOBALS['currentServer'] ?? null;
 ?>
 
@@ -31,6 +27,5 @@ $currentServer = $GLOBALS['currentServer'] ?? null;
 
 <?php 
 $content = ob_get_clean(); 
-
 include dirname(dirname(__DIR__)) . '/views/layout/main-app.php';
 ?>

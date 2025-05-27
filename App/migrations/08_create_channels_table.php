@@ -9,9 +9,10 @@ class CreateChannelsTable {
             $table->text('description', true); 
             $table->integer('server_id'); 
             $table->foreignKey('server_id', 'servers', 'id', 'CASCADE');
-            $table->integer('category_id');
-            $table->nullable(); 
+            $table->integer('category_id', false, false, true);
             $table->foreignKey('category_id', 'categories', 'id', 'SET NULL');
+            $table->integer('parent_id', false, false, true);
+            $table->foreignKey('parent_id', 'channels', 'id', 'SET NULL');
             $table->integer('position')->default(0); 
             $table->boolean('is_private')->default(false);
             $table->string('slug', 255, true); 
@@ -20,6 +21,7 @@ class CreateChannelsTable {
             
             $table->index('server_id');
             $table->index('category_id');
+            $table->index('parent_id');
             $table->index('position');
         });
     }

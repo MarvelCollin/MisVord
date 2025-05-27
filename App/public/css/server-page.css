@@ -1,116 +1,126 @@
-/* Custom scrollbar styling */
-::-webkit-scrollbar {
-    width: 8px;
+.channel-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-::-webkit-scrollbar-track {
-    background: #2e3338;
+.message-content {
+    word-break: break-word;
+    white-space: pre-wrap;
 }
 
-::-webkit-scrollbar-thumb {
-    background: #202225;
-    border-radius: 10px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: #555;
-}
-
-/* Server sidebar styles */
-.server-sidebar {
-    min-width: 4.5rem;
-}
-
-.left-18 {
-    left: 4.5rem;
+.message-input {
+    min-height: 44px;
+    max-height: 300px;
 }
 
 .server-icon {
-    position: relative;
-    display: flex;
-    justify-content: center;
-    width: 100%;
+    transition: border-radius 0.15s ease-out;
 }
 
-.server-icon.active-server > div {
-    border-radius: 1rem !important;
+.server-icon:hover {
+    border-radius: 16px;
 }
 
-.channel-sidebar {
-    border-right: 1px solid #2D3136;
+.server-active {
+    border-radius: 16px;
 }
 
-.user-profile-section {
-    border-top: 1px solid #2D3136;
-    z-index: 10;
+.server-indicator {
+    height: 8px;
+    width: 4px;
+    background-color: white;
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    border-radius: 0 4px 4px 0;
+    transition: height 0.1s ease-out;
 }
 
-/* Message area styles */
-.message-group {
-    transition: background-color 0.2s;
+.server-item:hover .server-indicator {
+    height: 20px;
+}
+
+.server-active .server-indicator {
+    height: 40px;
+}
+
+.message-actions {
+    opacity: 0;
+    transition: opacity 0.1s ease-out;
+}
+
+.message-container:hover .message-actions {
+    opacity: 1;
 }
 
 .message-group:hover {
-    background-color: #32353a;
+    background-color: rgba(4, 4, 5, 0.07);
 }
 
-/* Input area styles */
-.message-input {
-    background-color: #40444b;
-    border-radius: 0.5rem;
-    transition: background-color 0.2s;
-}
-
-.message-input:focus-within {
-    background-color: #484c52;
-}
-
-/* User status indicators */
-.status-online {
-    background-color: #3ba55d;
-}
-
-.status-idle {
-    background-color: #faa81a;
-}
-
-.status-dnd {
-    background-color: #ed4245;
-}
-
-.status-offline {
-    background-color: #747f8d;
-}
-
-/* Server hover animations */
-.server-icon:not(.active-server):hover::before {
-    content: "";
+.channel-unread::before {
+    content: '';
     position: absolute;
-    left: 0;
-    top: calc(50% - 10px);
+    left: -8px;
+    top: 50%;
+    transform: translateY(-50%);
     width: 4px;
-    height: 20px;
+    height: 4px;
     background-color: white;
-    border-radius: 0 4px 4px 0;
-    transition: all 0.2s;
+    border-radius: 50%;
 }
 
-/* Channel hover animations */
-.channel-item {
-    transition: background-color 0.2s, color 0.2s;
+#chat-messages {
+    scroll-behavior: smooth;
 }
 
-.channel-item:hover {
-    background-color: #36393f;
-    color: #dcddde;
+.emoji-picker {
+    position: absolute;
+    bottom: 100%;
+    right: 0;
+    width: 350px;
+    height: 400px;
+    background-color: #2f3136;
+    border-radius: 8px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.24);
+    z-index: 10;
 }
 
-/* User profile section animations */
-.user-profile-section button {
-    transition: color 0.2s, background-color 0.2s;
+@media (max-width: 768px) {
+    .server-text {
+        display: none;
+    }
+    
+    .member-sidebar {
+        display: none;
+    }
+    
+    .message-sidebar {
+        width: 240px;
+    }
 }
 
-.user-profile-section button:hover {
-    color: white;
-    background-color: #4f545c;
+@media (max-width: 640px) {
+    .server-sidebar {
+        width: 60px;
+    }
+    
+    .channel-sidebar {
+        width: 240px;
+        position: absolute;
+        left: 60px;
+        height: 100%;
+        z-index: 20;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+    }
+    
+    .channel-sidebar.show {
+        transform: translateX(0);
+    }
+    
+    .mobile-toggle {
+        display: flex;
+    }
 }

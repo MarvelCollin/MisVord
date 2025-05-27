@@ -1,746 +1,223 @@
 <?php
-// Get current channel info if available
-$currentServer = $GLOBALS['currentServer'] ?? null;
-$defaultChannelName = 'general';
-$welcomeMessage = 'Welcome to misvord!';
-$welcomeSubtitle = 'Select a channel to start chatting';
+if (!isset($currentServer) || empty($currentServer)) {
+    echo '<div class="flex-1 bg-discord-background flex items-center justify-center text-white text-lg">Select a server to view channels</div>';
+    return;
+}
 
-// If we have a current server, update the welcome message
-if ($currentServer) {
-    $welcomeMessage = 'Welcome to ' . htmlspecialchars($currentServer->name) . '!';
-    $welcomeSubtitle = 'Select a channel on the left to start chatting';
+$currentServerId = $currentServer['id'] ?? 0;
+$currentUserId = $_SESSION['user_id'] ?? 0;
+$activeChannelId = $_GET['channel'] ?? null;
+$messages = [];
+
+try {
+    $host = 'localhost';
+    $port = 1003;
+    $dbname = 'misvord';
+    $username = 'root';
+    $password = 'password';
+    $charset = 'utf8mb4';
     
-    // Get first text channel as default
-    $channels = $currentServer->channels();
+    $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=$charset";
+    $options = [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+    ];
+    
+    $pdo = new PDO($dsn, $username, $password, $options);
+    
+    if ($activeChannelId) {
+        $stmt = $pdo->prepare("
+            SELECT m.*, u.username, u.avatar, u.status FROM messages m
+            JOIN users u ON m.user_id = u.id
+            WHERE m.channel_id = ?
+            ORDER BY m.timestamp DESC
+            LIMIT 50
+        ");
+        $stmt->execute([$activeChannelId]);
+        $messages = array_reverse($stmt->fetchAll());
+    }
+    
+    $stmt = $pdo->prepare("
+        SELECT c.*, t.name as type_name FROM channels c
+        JOIN channel_types t ON c.type = t.id
+        WHERE c.server_id = ?
+    ");
+    $stmt->execute([$currentServerId]);
+    $channels = $stmt->fetchAll();
+    
+} catch (PDOException $e) {
+    $channels = [];
+    $messages = [];
+}
+
+if (empty($activeChannelId) && !empty($channels)) {
+    $firstTextChannel = null;
     foreach ($channels as $channel) {
-        if ($channel['type'] === 'text') {
-            $defaultChannelName = $channel['name'];
+        if ($channel['type_name'] === 'text') {
+            $firstTextChannel = $channel;
             break;
         }
     }
+    if ($firstTextChannel) {
+        $activeChannelId = $firstTextChannel['id'];
+        
+        try {
+            $stmt = $pdo->prepare("
+                SELECT m.*, u.username, u.avatar, u.status FROM messages m
+                JOIN users u ON m.user_id = u.id
+                WHERE m.channel_id = ?
+                ORDER BY m.timestamp DESC
+                LIMIT 50
+            ");
+            $stmt->execute([$activeChannelId]);
+            $messages = array_reverse($stmt->fetchAll());
+        } catch (PDOException $e) {
+            $messages = [];
+        }
+    }
+}
+
+$activeChannel = null;
+foreach ($channels as $channel) {
+    if ($channel['id'] == $activeChannelId) {
+        $activeChannel = $channel;
+        break;
+    }
 }
 ?>
-<!-- Chat Section - Main chat area with messages -->
-<div class="chat-section flex flex-col h-full">
-    <!-- Channel Header -->
-    <div class="flex items-center h-12 px-4 border-b border-[#2D3136] shadow-sm">
-        <div class="flex items-center text-gray-200">
-            <span class="text-gray-400 mr-2">#</span>
-            <h2 id="current-channel-name" class="font-semibold channel-header-name">Select a channel</h2>
+
+<div class="flex flex-col flex-1 h-screen">
+    <?php if ($activeChannel): ?>
+    <div class="h-12 border-b border-gray-800 flex items-center px-4 shadow-sm">
+        <div class="flex items-center">
+            <i class="fas fa-hashtag text-gray-400 mr-2"></i>
+            <h2 class="font-semibold text-white"><?php echo htmlspecialchars($activeChannel['name']); ?></h2>
         </div>
-        <div class="ml-2 text-sm text-gray-400 channel-header-topic">Welcome to misvord</div>
-        <div class="ml-auto flex items-center space-x-4">
+        <?php if (!empty($activeChannel['topic'])): ?>
+        <div class="border-l border-gray-600 h-6 mx-4"></div>
+        <div class="text-sm text-gray-400 truncate"><?php echo htmlspecialchars($activeChannel['topic']); ?></div>
+        <?php endif; ?>
+        <div class="flex-1"></div>
+        <div class="flex space-x-4">
             <button class="text-gray-400 hover:text-white">
-                <i class="fa-solid fa-magnifying-glass h-5 w-5"></i>
+                <i class="fas fa-bell-slash"></i>
             </button>
             <button class="text-gray-400 hover:text-white">
-                <i class="fa-solid fa-bell h-5 w-5"></i>
+                <i class="fas fa-thumbtack"></i>
             </button>
             <button class="text-gray-400 hover:text-white">
-                <i class="fa-solid fa-ellipsis-vertical h-5 w-5"></i>
+                <i class="fas fa-user-plus"></i>
+            </button>
+            <button class="text-gray-400 hover:text-white">
+                <i class="fas fa-magnifying-glass"></i>
+            </button>
+            <button class="text-gray-400 hover:text-white">
+                <i class="fas fa-inbox"></i>
+            </button>
+            <button class="text-gray-400 hover:text-white">
+                <i class="fas fa-circle-question"></i>
             </button>
         </div>
     </div>
 
-    <!-- Messages Area -->
-    <div id="message-container" class="flex-1 overflow-y-auto p-4 pb-4">
-        <!-- Messages will be loaded here -->
-        <div class="welcome-placeholder text-center text-gray-400 py-10">
-            <i class="fa-solid fa-comment-dots h-16 w-16 mx-auto mb-4 text-gray-500 text-5xl"></i>
-            <h2 class="text-xl font-semibold mb-2"><?php echo $welcomeMessage; ?></h2>
-            <p><?php echo $welcomeSubtitle; ?></p>
+    <div class="flex-1 overflow-y-auto p-4 bg-discord-background" id="chat-messages">
+        <?php if (empty($messages)): ?>
+        <div class="flex flex-col items-center justify-center h-full text-center">
+            <div class="w-16 h-16 mb-4 bg-discord-dark rounded-full flex items-center justify-center">
+                <i class="fas fa-hashtag text-discord-primary text-4xl"></i>
+            </div>
+            <h3 class="font-bold text-xl text-white mb-2">Welcome to #<?php echo htmlspecialchars($activeChannel['name']); ?>!</h3>
+            <p class="text-gray-400 max-w-md">This is the start of the #<?php echo htmlspecialchars($activeChannel['name']); ?> channel.</p>
         </div>
-        
-        <!-- Loading indicator hidden by default -->
-        <div id="loadingMessages" class="hidden flex justify-center items-center py-10">
-            <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-discord-blue"></div>
-        </div>
-        
-        <!-- Typing indicator -->
-        <div id="typing-indicator" class="hidden mt-4 flex items-center text-xs text-gray-500">
-            <span id="typingUsername" class="font-semibold mr-1">User</span> is typing
-            <div class="ml-2 flex">
-                <span class="dot mx-0.5"></span>
-                <span class="dot mx-0.5"></span>
-                <span class="dot mx-0.5"></span>
+        <?php else: ?>
+            <?php 
+            $currentDate = '';
+            $lastUserId = null;
+            foreach ($messages as $index => $message): 
+                $timestamp = strtotime($message['timestamp']);
+                $messageDate = date('Y-m-d', $timestamp);
+                $showHeader = $lastUserId !== $message['user_id'];
+                $lastUserId = $message['user_id'];
+                
+                if ($messageDate !== $currentDate) {
+                    $currentDate = $messageDate;
+                    $displayDate = date('F j, Y', $timestamp);
+                    echo '<div class="flex items-center my-3">
+                        <hr class="flex-1 border-gray-700">
+                        <span class="px-2 text-xs font-semibold text-gray-500">' . $displayDate . '</span>
+                        <hr class="flex-1 border-gray-700">
+                    </div>';
+                }
+            ?>
+                <div class="mb-4 group hover:bg-discord-dark/30 p-1 rounded -mx-1 <?php echo $showHeader ? '' : 'pl-12'; ?>">
+                    <?php if ($showHeader): ?>
+                    <div class="flex items-start">
+                        <div class="w-10 h-10 rounded-full bg-gray-700 flex-shrink-0 flex items-center justify-center overflow-hidden mr-3">
+                            <img src="<?php echo !empty($message['avatar']) ? htmlspecialchars($message['avatar']) : 'https://ui-avatars.com/api/?name=' . urlencode($message['username'] ?? 'U') . '&background=random'; ?>" 
+                                 alt="Avatar" class="w-full h-full object-cover">
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex items-center">
+                                <span class="font-medium text-white mr-2"><?php echo htmlspecialchars($message['username']); ?></span>
+                                <span class="text-xs text-gray-400"><?php echo date('g:i A', $timestamp); ?></span>
+                            </div>
+                    <?php else: ?>
+                        <div class="relative group-hover:visible invisible">
+                            <span class="text-xs text-gray-400 absolute -left-12"><?php echo date('g:i A', $timestamp); ?></span>
+                        </div>
+                    <?php endif; ?>
+                            <div class="text-gray-300 select-text break-words">
+                                <?php echo nl2br(htmlspecialchars($message['content'])); ?>
+                            </div>
+                    <?php if ($showHeader): ?>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+                    <div class="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity mt-1 ml-12">
+                        <button class="p-1 text-gray-400 hover:text-white hover:bg-discord-light rounded-sm">
+                            <i class="fas fa-face-smile text-xs"></i>
+                        </button>
+                        <button class="p-1 text-gray-400 hover:text-white hover:bg-discord-light rounded-sm">
+                            <i class="fas fa-pen-to-square text-xs"></i>
+                        </button>
+                        <button class="p-1 text-gray-400 hover:text-white hover:bg-discord-light rounded-sm">
+                            <i class="fas fa-reply text-xs"></i>
+                        </button>
+                        <button class="p-1 text-gray-400 hover:text-white hover:bg-discord-light rounded-sm">
+                            <i class="fas fa-ellipsis text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        <?php endif; ?>
+    </div>
+
+    <div class="p-4 bg-discord-background">
+        <div class="bg-discord-dark rounded-lg p-2">
+            <div class="flex items-center mb-2">
+                <button class="text-discord-primary hover:text-white mr-2">
+                    <i class="fas fa-circle-plus text-lg"></i>
+                </button>
+                <div class="flex-1"></div>
+                <button class="text-discord-primary hover:text-white mr-1">
+                    <i class="fas fa-gift text-lg"></i>
+                </button>
+                <button class="text-discord-primary hover:text-white">
+                    <i class="fas fa-image text-lg"></i>
+                </button>
+            </div>
+            <div class="relative">
+                <textarea id="message-input" 
+                          class="w-full bg-discord-dark text-white placeholder-gray-500 outline-none resize-none" 
+                          placeholder="Message #<?php echo htmlspecialchars($activeChannel['name'] ?? 'channel'); ?>"
+                          rows="1"
+                          data-channel-id="<?php echo htmlspecialchars($activeChannelId ?? ''); ?>"></textarea>
             </div>
         </div>
     </div>
-    
-    <!-- New Message Form -->
-    <form id="message-form" class="p-4 border-t border-[#2D3136]">
-        <div class="bg-[#40444b] rounded-lg flex items-center p-1">
-            <button type="button" class="p-2 text-gray-400 hover:text-white">
-                <i class="fa-solid fa-plus h-6 w-6"></i>
-            </button>
-            <input 
-                id="message-input" 
-                type="text" 
-                placeholder="Message #<?php echo htmlspecialchars($defaultChannelName); ?>" 
-                class="bg-transparent border-none flex-1 p-2 focus:outline-none text-gray-200"
-            >
-            <input type="hidden" id="currentChannelId" value="">
-            <button type="button" class="p-2 text-gray-400 hover:text-white" id="uploadAttachmentBtn">
-                <i class="fa-solid fa-paperclip h-6 w-6"></i>
-            </button>
-            <button type="button" class="p-2 text-gray-400 hover:text-white" id="emojiPickerBtn">
-                <i class="fa-regular fa-face-smile h-6 w-6"></i>
-            </button>
-            <button type="button" class="p-2 text-gray-400 hover:text-white" id="sendMessageBtn">
-                <i class="fa-solid fa-paper-plane h-6 w-6"></i>
-            </button>
+    <?php else: ?>
+        <div class="flex-1 bg-discord-background flex items-center justify-center text-white text-lg">
+            Select a channel to start chatting
         </div>
-    </form>
-
-    <!-- Connection status indicator -->
-    <div id="connectionStatus" class="fixed bottom-2 left-2 px-2 py-1 rounded text-xs hidden">
-        <span class="flex items-center">
-            <span id="connectionStatusDot" class="w-2 h-2 rounded-full mr-1"></span>
-            <span id="connectionStatusText"></span>
-        </span>
-    </div>
+    <?php endif; ?>
 </div>
-
-<style>
-.chat-section {
-    background-color: #36393f;
-    flex: 1;
-    position: relative;
-}
-
-.channel-header {
-    background-color: #36393f;
-    border-bottom-color: #202225;
-}
-
-.message-group {
-    padding: 2px 0;
-}
-
-.message-group:hover {
-    background-color: rgba(4, 4, 5, 0.07);
-}
-
-.message-input-container {
-    background-color: #36393f;
-}
-
-/* Typing indicator animation */
-.typing-animation {
-    display: flex;
-    align-items: center;
-}
-
-.dot {
-    display: inline-block;
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
-    background-color: #b9bbbe;
-    margin: 0 2px;
-    animation: pulse 1.5s infinite ease-in-out;
-}
-
-.dot:nth-child(2) {
-    animation-delay: 0.2s;
-}
-
-.dot:nth-child(3) {
-    animation-delay: 0.4s;
-}
-
-@keyframes pulse {
-    0%, 50%, 100% {
-        transform: scale(1);
-        opacity: 0.6;
-    }
-    25%, 75% {
-        transform: scale(1.5);
-        opacity: 1;
-    }
-}
-
-/* Connection status styles */
-#connectionStatus.connected #connectionStatusDot {
-    background-color: #43B581;
-}
-
-#connectionStatus.connecting #connectionStatusDot {
-    background-color: #FAA61A;
-    animation: blink 1.5s infinite;
-}
-
-#connectionStatus.disconnected #connectionStatusDot {
-    background-color: #F04747;
-}
-
-@keyframes blink {
-    0%, 100% { opacity: 0.6; }
-    50% { opacity: 1; }
-}
-
-/* Remove the bottom padding adjustment since we've moved the user profile */
-#message-container {
-    padding-bottom: 1rem;
-}
-
-#message-form {
-    position: relative;
-    z-index: 5;
-}
-</style>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // DOM elements
-    const messagesContainer = document.getElementById('message-container');
-    const messageInput = document.getElementById('message-input');
-    const messageForm = document.getElementById('message-form');
-    const sendMessageBtn = document.getElementById('sendMessageBtn');
-    const currentChannelIdInput = document.getElementById('currentChannelId');
-    const loadingMessages = document.getElementById('loadingMessages');
-    const typingIndicator = document.getElementById('typing-indicator');
-    const typingUsername = document.getElementById('typingUsername');
-    const channelHeaderName = document.querySelector('.channel-header-name');
-    const connectionStatus = document.getElementById('connectionStatus');
-    const connectionStatusText = document.getElementById('connectionStatusText');
-    
-    // State variables
-    let isLoadingMessages = false;
-    let currentChannelId = null;
-    let messagesLastFetchTime = 0;
-    let typingTimeout;
-    let socket = null;
-    
-    // Get socket either from global variable or wait for it to be initialized
-    if (window.socket) {
-        socket = window.socket;
-        setupSocketEvents(socket);
-    } else {
-        // Listen for socket ready event
-        document.addEventListener('socketReady', function(e) {
-            socket = e.detail.socket;
-            setupSocketEvents(socket);
-        });
-    }
-    
-    // Setup socket events
-    function setupSocketEvents(socket) {
-    // Track message IDs we've already displayed to prevent duplicates
-    const displayedMessageIds = new Set();
-    
-    // Socket.IO connection events
-    socket.on('connect', function() {
-        console.log('Connected to WebSocket server');
-        updateConnectionStatus('connected', 'Connected');
-        
-            // Join with user information from data attributes
-            const appContainer = document.getElementById('app-container');
-            if (appContainer) {
-        socket.emit('join', {
-                    userId: appContainer.dataset.userId,
-                    username: appContainer.dataset.username
-        });
-        
-        // If we were previously in a channel, rejoin it
-        if (currentChannelId) {
-            socket.emit('subscribe', { channelId: currentChannelId });
-                }
-        }
-    });
-    
-    socket.on('disconnect', function() {
-        console.log('Disconnected from WebSocket server');
-        updateConnectionStatus('disconnected', 'Disconnected');
-    });
-    
-    socket.on('connect_error', function(error) {
-        console.error('Connection error:', error);
-        updateConnectionStatus('disconnected', 'Connection Error');
-    });
-    
-    socket.on('joined', function(data) {
-        console.log('Joined WebSocket server:', data);
-    });
-    
-    socket.on('subscribed', function(data) {
-        console.log('Subscribed to channel:', data);
-    });
-    
-    // Message events
-    socket.on('message', function(message) {
-        console.log('Received message:', message);
-        
-        // Check if we've already displayed this message
-        if (message.id && displayedMessageIds.has(message.id)) {
-            console.log('Skipping duplicate message:', message.id);
-            return;
-        }
-        
-        // Add to displayed messages set
-        if (message.id) {
-            displayedMessageIds.add(message.id);
-        }
-        
-        handleNewMessage(message);
-    });
-    
-    socket.on('user_typing', function(data) {
-        handleUserTyping(data);
-    });
-    
-    socket.on('user_joined_channel', function(data) {
-        showNotification(`${data.user.username} joined the channel`, 'info');
-    });
-    
-    socket.on('user_left_channel', function(data) {
-        showNotification(`${data.user.username} left the channel`, 'info');
-    });
-    }
-    
-    // Function to update connection status UI
-    function updateConnectionStatus(status, text) {
-        connectionStatus.className = `fixed bottom-2 left-2 px-2 py-1 rounded text-xs bg-[#202225] ${status}`;
-        connectionStatus.classList.remove('hidden');
-        connectionStatusText.textContent = text;
-    }
-
-    // Function to load messages for a channel
-    window.loadChannel = function(channelId, channelName) {
-        // Set current channel
-        currentChannelId = channelId;
-        currentChannelIdInput.value = channelId;
-        
-        // Update UI
-        channelHeaderName.textContent = channelName;
-        messageInput.placeholder = `Message #${channelName}`;
-        messageInput.disabled = false;
-        
-        // Show loading indicator
-        messagesContainer.innerHTML = '';
-        loadingMessages.classList.remove('hidden');
-        
-        // Subscribe to this channel via WebSocket
-        socket.emit('subscribe', { channelId: channelId });
-        
-        // Fetch messages
-        fetchMessages(channelId);
-    };
-    
-    // Function to fetch messages from the server
-    function fetchMessages(channelId) {
-        if (isLoadingMessages) return;
-        
-        isLoadingMessages = true;
-        updateConnectionStatus('connecting', 'Loading messages...');
-        
-        // Get the current server ID from the URL or a hidden input
-        const serverId = getCurrentServerId();
-        
-        // Use the new API endpoint structure if server ID is available, otherwise fall back to old endpoint
-        const apiUrl = serverId ? 
-            `/api/servers/${serverId}/channels/${channelId}/messages` : 
-            `/api/channels/${channelId}/messages`;
-            
-        fetch(apiUrl)
-            .then(response => {
-                // Check if response is JSON
-                const contentType = response.headers.get('content-type');
-                if (!contentType || !contentType.includes('application/json')) {
-                    throw new Error(`Expected JSON, got ${contentType}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                isLoadingMessages = false;
-                loadingMessages.classList.add('hidden');
-                updateConnectionStatus('connected', 'Connected');
-                
-                if (data.success) {
-                    // Clear existing messages if this is initial load
-                    if (messagesLastFetchTime === 0) {
-                        messagesContainer.innerHTML = '';
-                    }
-                    
-                    // Render messages
-                    if (data.messages.length === 0) {
-                        messagesContainer.innerHTML = `
-                            <div class="text-center text-gray-400 py-10">
-                                <p>No messages here yet. Start the conversation!</p>
-                            </div>
-                        `;
-                    } else {
-                        // Sort messages in ascending order (oldest first)
-                        const sortedMessages = data.messages.sort((a, b) => 
-                            new Date(a.sent_at) - new Date(b.sent_at)
-                        );
-                        
-                        renderMessages(sortedMessages);
-                    }
-                    
-                    // Update last fetch time
-                    messagesLastFetchTime = Date.now();
-                    
-                    // Scroll to bottom
-                    scrollToBottom();
-                } else {
-                    console.error('Error fetching messages:', data.message);
-                    messagesContainer.innerHTML = `
-                        <div class="text-center text-gray-400 py-10">
-                            <p>Error loading messages: ${data.message || 'Unknown error'}</p>
-                        </div>
-                    `;
-                    updateConnectionStatus('disconnected', 'Error loading messages');
-                }
-            })
-            .catch(error => {
-                isLoadingMessages = false;
-                loadingMessages.classList.add('hidden');
-                console.error('Error fetching messages:', error);
-                messagesContainer.innerHTML = `
-                    <div class="text-center text-gray-400 py-10">
-                        <p>Error loading messages. Please try again later.</p>
-                        <p class="text-sm mt-2">${error.message}</p>
-                    </div>
-                `;
-                updateConnectionStatus('disconnected', 'Connection error');
-            });
-    }
-    
-    // Function to get current server ID
-    function getCurrentServerId() {
-        // Try to extract from URL path like /server/123
-        const path = window.location.pathname;
-        const serverMatch = path.match(/\/server\/(\d+)/);
-        
-        if (serverMatch && serverMatch[1]) {
-            return serverMatch[1];
-        }
-        
-        // Check if there's a hidden input with server ID
-        const serverIdInput = document.getElementById('currentServerId');
-        if (serverIdInput && serverIdInput.value) {
-            return serverIdInput.value;
-        }
-        
-        return null;
-    }
-    
-    // Function to render messages from API response
-    function renderMessages(messages) {
-        let lastSender = null;
-        let messageGroupDiv = null;
-        
-        messages.forEach(message => {
-            // Track this message ID to prevent duplicates
-            if (message.id) {
-                displayedMessageIds.add(message.id);
-            }
-            
-            // Check if this is a new sender
-            if (lastSender !== message.user.id) {
-                // Create new message group
-                messageGroupDiv = document.createElement('div');
-                messageGroupDiv.className = 'message-group flex mb-4';
-                messageGroupDiv.dataset.userId = message.user.id;
-                
-                // Avatar
-                const avatarUrl = message.user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(message.user.username)}&background=random`;
-                
-                messageGroupDiv.innerHTML = `
-                    <img src="${avatarUrl}" alt="${message.user.username}" class="w-10 h-10 rounded-full mr-4">
-                    <div class="message-content flex-1">
-                        <div class="message-header flex items-center">
-                            <span class="font-semibold text-white">${message.user.username}</span>
-                            <span class="text-xs text-gray-400 ml-2">${message.formatted_time}</span>
-                        </div>
-                        <div class="messages">
-                            <div class="message" data-message-id="${message.id}">
-                                <p class="text-gray-200">${formatMessageContent(message.content)}</p>
-                                ${message.attachment_url ? `<div class="mt-2"><img src="${message.attachment_url}" alt="Attachment" class="max-w-xs rounded"></div>` : ''}
-                                ${message.edited_at ? `<span class="text-xs text-gray-500 ml-1">(edited)</span>` : ''}
-                            </div>
-                        </div>
-                    </div>
-                `;
-                
-                messagesContainer.appendChild(messageGroupDiv);
-            } else {
-                // Add to existing message group
-                const messagesDiv = messageGroupDiv.querySelector('.messages');
-                const messageDiv = document.createElement('div');
-                messageDiv.className = 'message mt-1';
-                messageDiv.dataset.messageId = message.id;
-                
-                messageDiv.innerHTML = `
-                    <p class="text-gray-200">${formatMessageContent(message.content)}</p>
-                    ${message.attachment_url ? `<div class="mt-2"><img src="${message.attachment_url}" alt="Attachment" class="max-w-xs rounded"></div>` : ''}
-                    ${message.edited_at ? `<span class="text-xs text-gray-500 ml-1">(edited)</span>` : ''}
-                `;
-                
-                messagesDiv.appendChild(messageDiv);
-            }
-            
-            lastSender = message.user.id;
-        });
-    }
-    
-    // Function to format message content (handling markdown, links, etc.)
-    function formatMessageContent(content) {
-        // Basic URL linking
-        content = content.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" class="text-blue-400 hover:underline">$1</a>');
-        
-        // Basic markdown (bold, italics, etc.)
-        content = content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-        content = content.replace(/\*(.*?)\*/g, '<em>$1</em>');
-        content = content.replace(/~~(.*?)~~/g, '<del>$1</del>');
-        content = content.replace(/`([^`]+)`/g, '<code class="bg-gray-800 px-1 rounded">$1</code>');
-        
-        return content;
-    }
-    
-    // Function to send a message
-    function sendMessage() {
-        const content = messageInput.value.trim();
-        
-        if (!content || !currentChannelId) {
-            return;
-        }
-        
-        // Clear input
-        messageInput.value = '';
-        
-        // Show loading state
-        sendMessageBtn.disabled = true;
-        
-        // Get the current server ID
-        const serverId = getCurrentServerId();
-        
-        // Use the new API endpoint structure if server ID is available, otherwise fall back to old endpoint
-        const apiUrl = serverId ? 
-            `/api/servers/${serverId}/channels/${currentChannelId}/messages` : 
-            `/api/channels/${currentChannelId}/messages`;
-        
-        // Send message to server
-        fetch(apiUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify({
-                content: content
-            })
-        })
-        .then(response => {
-            // Check if response is JSON
-            const contentType = response.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) {
-                throw new Error(`Expected JSON, got ${contentType}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (!data.success) {
-                console.error('Error sending message:', data.message);
-                // Re-add the message to the input if it failed
-                messageInput.value = content;
-                showNotification('Failed to send message: ' + data.message, 'error');
-            }
-            // Remove the socket.emit call since the MessageController will broadcast the message
-            // The server will send the message back via socket.io
-        })
-        .catch(error => {
-            console.error('Error sending message:', error);
-            // Re-add the message to the input if it failed
-            messageInput.value = content;
-            showNotification('Failed to send message. Please try again.', 'error');
-        })
-        .finally(() => {
-            // Re-enable the send button
-            sendMessageBtn.disabled = false;
-        });
-    }
-    
-    // Helper function to show notifications
-    function showNotification(message, type = 'info') {
-        // Create notification element
-        const notification = document.createElement('div');
-        notification.classList.add('fixed', 'bottom-4', 'right-4', 'px-4', 'py-2', 'rounded', 'shadow-lg', 'text-white', 'z-50');
-        
-        // Set style based on type
-        if (type === 'error') {
-            notification.classList.add('bg-red-500');
-        } else if (type === 'success') {
-            notification.classList.add('bg-green-500');
-        } else {
-            notification.classList.add('bg-blue-500');
-        }
-        
-        notification.textContent = message;
-        document.body.appendChild(notification);
-        
-        // Remove after 3 seconds
-        setTimeout(() => {
-            notification.classList.add('opacity-0', 'transition-opacity', 'duration-300');
-            setTimeout(() => notification.remove(), 300);
-        }, 3000);
-    }
-    
-    // Function to handle new messages received via WebSocket
-    function handleNewMessage(message) {
-        // Check if we're looking at the right channel
-        if (message.channelId && message.channelId != currentChannelId) {
-            return;
-        }
-        
-        // Find if there's an existing message group for this user
-        const lastMessageGroup = messagesContainer.querySelector(`.message-group[data-user-id="${message.user.userId}"]`);
-        
-        if (lastMessageGroup && isRecentMessage(lastMessageGroup)) {
-            // Add to existing group
-            const messagesDiv = lastMessageGroup.querySelector('.messages');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'message mt-1';
-            messageDiv.dataset.messageId = message.id;
-            
-            messageDiv.innerHTML = `
-                <p class="text-gray-200">${formatMessageContent(message.content)}</p>
-                ${message.attachment_url ? `<div class="mt-2"><img src="${message.attachment_url}" alt="Attachment" class="max-w-xs rounded"></div>` : ''}
-            `;
-            
-            messagesDiv.appendChild(messageDiv);
-        } else {
-            // Create new message group
-            const messageGroupDiv = document.createElement('div');
-            messageGroupDiv.className = 'message-group flex mb-4';
-            messageGroupDiv.dataset.userId = message.user.userId;
-            messageGroupDiv.dataset.timestamp = new Date().getTime();
-            
-            // Avatar
-            const avatarUrl = message.user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(message.user.username)}&background=random`;
-            
-            messageGroupDiv.innerHTML = `
-                <img src="${avatarUrl}" alt="${message.user.username}" class="w-10 h-10 rounded-full mr-4">
-                <div class="message-content flex-1">
-                    <div class="message-header flex items-center">
-                        <span class="font-semibold text-white">${message.user.username}</span>
-                        <span class="text-xs text-gray-400 ml-2">${message.formatted_time || 'Just now'}</span>
-                    </div>
-                    <div class="messages">
-                        <div class="message" data-message-id="${message.id}">
-                            <p class="text-gray-200">${formatMessageContent(message.content)}</p>
-                            ${message.attachment_url ? `<div class="mt-2"><img src="${message.attachment_url}" alt="Attachment" class="max-w-xs rounded"></div>` : ''}
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            messagesContainer.appendChild(messageGroupDiv);
-        }
-        
-        // Scroll to bottom to show new message
-        scrollToBottom();
-    }
-    
-    // Function to check if a message group is recent (for grouping messages)
-    function isRecentMessage(messageGroup) {
-        if (!messageGroup.dataset.timestamp) return false;
-        const timestamp = parseInt(messageGroup.dataset.timestamp);
-        const now = new Date().getTime();
-        
-        // Group messages that are within 5 minutes of each other
-        return now - timestamp < 5 * 60 * 1000;
-    }
-    
-    // Function to handle message updates
-    function handleMessageUpdate(data) {
-        const messageElement = document.querySelector(`.message[data-message-id="${data.id}"]`);
-        if (!messageElement) return;
-        
-        const contentElement = messageElement.querySelector('p');
-        contentElement.innerHTML = formatMessageContent(data.content);
-        
-        // Add edited indicator if not already there
-        if (!messageElement.querySelector('.text-gray-500')) {
-            const editedSpan = document.createElement('span');
-            editedSpan.className = 'text-xs text-gray-500 ml-1';
-            editedSpan.textContent = '(edited)';
-            contentElement.insertAdjacentElement('afterend', editedSpan);
-        }
-    }
-    
-    // Function to handle message deletions
-    function handleMessageDelete(data) {
-        const messageElement = document.querySelector(`.message[data-message-id="${data.id}"]`);
-        if (!messageElement) return;
-        
-        // Remove the message element
-        messageElement.remove();
-        
-        // If this was the only message in the group, remove the whole group
-        const messageGroups = document.querySelectorAll('.message-group');
-        messageGroups.forEach(group => {
-            if (group.querySelector('.message') === null) {
-                group.remove();
-            }
-        });
-    }
-    
-    // Function to handle typing indicator
-    function handleUserTyping(data) {
-        // Get current user ID from app container
-        const appContainer = document.getElementById('app-container');
-        const currentUserId = appContainer?.dataset.userId;
-        
-        // Don't show typing indicator for own messages
-        if (currentUserId && data.user.userId === currentUserId) {
-            return;
-        }
-        
-        // Show typing indicator
-        typingUsername.textContent = data.user.username;
-        typingIndicator.classList.remove('hidden');
-        
-        // Hide after a few seconds
-        setTimeout(() => {
-            typingIndicator.classList.add('hidden');
-        }, 3000);
-    }
-    
-    // Adjust scroll position
-    function scrollToBottom() {
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }
-    
-    // Send message on form submit
-    messageForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        sendMessage();
-    });
-    
-    // Send message on button click
-    sendMessageBtn.addEventListener('click', function() {
-        sendMessage();
-    });
-    
-    // Send message on Enter key, but allow Shift+Enter for new line
-    messageInput.addEventListener('keydown', function(e) { 
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            sendMessage();
-        }
-    });
-    
-    // Send typing indicator when user starts typing
-    messageInput.addEventListener('input', function() {
-    // Send typing indicator when user starts typing
-        });
-        
-        // Stop "typing" after 3 seconds of inactivity
-        typingTimeout = setTimeout(() => {
-            // Could emit a "stopped typing" event if needed
-        }, 3000);
-    });
-});
-</script>

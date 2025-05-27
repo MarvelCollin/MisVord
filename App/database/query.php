@@ -323,14 +323,45 @@ class Query {
     }
 
     public function insert(array $data) {
-        $columns = implode(', ', array_keys($data));
+        if (empty($data)) {
+            return null;
+        }
+
+        $columns = implode(', ', array_map(function($column) {
+            return "`$column`";
+        }, array_keys($data)));
+
         $placeholders = implode(', ', array_fill(0, count($data), '?'));
+        $values = array_values($data);
 
-        $query = "INSERT INTO {$this->table} ($columns) VALUES ($placeholders)";
-        $stmt = $this->pdo->prepare($query);
-        $stmt->execute(array_values($data));
+        $sql = "INSERT INTO `{$this->table}` ({$columns}) VALUES ({$placeholders})";
 
-        return $this->pdo->lastInsertId();
+        try {
+            $stmt = $this->pdo->prepare($sql);
+            
+            // Bind parameters with explicit types to avoid type issues
+            foreach ($values as $index => $value) {
+                $paramType = PDO::PARAM_STR;
+                if (is_bool($value)) {
+                    $paramType = PDO::PARAM_BOOL;
+                } elseif (is_int($value)) {
+                    $paramType = PDO::PARAM_INT;
+                } elseif (is_null($value)) {
+                    $paramType = PDO::PARAM_NULL;
+                }
+                
+                // PDO parameter indices are 1-based
+                $stmt->bindValue($index + 1, $value, $paramType);
+            }
+            
+            $stmt->execute();
+            return $this->pdo->lastInsertId();
+        } catch (PDOException $e) {
+            error_log("Query Error (insert): " . $e->getMessage());
+            error_log("SQL: $sql");
+            error_log("Values: " . json_encode($values));
+            throw $e;
+        }
     }
 
     public function insertBatch(array $data) {
@@ -424,18 +455,32 @@ class Query {
 
     public function tableExists($table) {
         try {
-            $sql = "SHOW TABLES LIKE " . $this->pdo->quote($table);
-            $stmt = $this->pdo->query($sql);
-
-            if ($stmt) {
-                $exists = $stmt->rowCount() > 0;
-                $stmt->closeCursor(); 
-                return $exists;
-            }
-            return false;
+            $stmt = $this->pdo->prepare("SHOW TABLES LIKE ?");
+            $stmt->execute([$table]);
+            return $stmt->rowCount() > 0;
         } catch (PDOException $e) {
-            error_log("Error checking table existence: " . $e->getMessage());
             return false;
+        }
+    }
+
+    public function columnExists($table, $column) {
+        try {
+            $stmt = $this->pdo->prepare("SHOW COLUMNS FROM `$table` LIKE ?");
+            $stmt->execute([$column]);
+            return $stmt->rowCount() > 0;
+        } catch (PDOException $e) {
+            error_log("Error checking if column exists: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function getRawResults($sql) {
+        try {
+            $stmt = $this->pdo->query($sql);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error executing raw query: " . $e->getMessage());
+            return [];
         }
     }
 

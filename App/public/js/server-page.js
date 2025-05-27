@@ -1,348 +1,289 @@
-if (typeof window.ENV_CONFIG === 'undefined') {
-    window.ENV_CONFIG = {
-
-        IS_LOCAL: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1',
-        IS_VPS: true
-    };
-}
-
-let globalSocket = null;
-
-function getGlobalSocket() {
-    return globalSocket;
-}
-
-function setGlobalSocket(socket) {
-    globalSocket = socket;
-    window.socket = socket;
-
-    const socketReadyEvent = new CustomEvent('socketReady', { detail: { socket } });
-    document.dispatchEvent(socketReadyEvent);
-
-    return socket;
-}
-
 document.addEventListener('DOMContentLoaded', function() {
-    const serverElements = document.querySelectorAll('.server-icon');
-    let socket = null;
-    let currentChannelId = null;
-    let currentUserId = null;
-    let currentUsername = null;
-
-    const appContainer = document.getElementById('app-container');
-    if (appContainer) {
-        currentUserId = appContainer.dataset.userId;
-        currentUsername = appContainer.dataset.username;
+    initMessageInput();
+    initChannelToggle();
+    initScrollToBottom();
+    setupSocketListeners();
+    initResponseListener();
+    
+    const chatMessages = document.getElementById('chat-messages');
+    if (chatMessages) {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
     }
+});
 
-    function initializeSocket() {
-        if (globalSocket) {
-            return globalSocket;
-        }
-
-        const isLocalhost = window.location.hostname === 'localhost' || 
-                            window.location.hostname === '127.0.0.1';
-
-        const socketServerMeta = document.querySelector('meta[name="socket-server"]');
-        const socketPathMeta = document.querySelector('meta[name="socket-path"]');
-
-        let socketServerUrl = socketServerMeta ? socketServerMeta.content : null;
-        let socketPath = socketPathMeta ? socketPathMeta.content : null;
-
-        if (socketPath && !socketPath.startsWith('/')) {
-            socketPath = '/' + socketPath;
-        }
-
-        if (!socketServerUrl) {
-            if (isLocalhost) {
-                socketServerUrl = 'http://localhost:1002';
-            } else {
-                socketServerUrl = window.location.origin;
-            }
-        }
-
-        if (!socketPath) {
-            socketPath = isLocalhost ? '/socket.io' : '/misvord/socket/socket.io';
-        }
-
-        console.log('[Socket] Connecting to:', socketServerUrl, 'with path:', socketPath);
-
-        const newSocket = io(socketServerUrl, {
-            path: socketPath,
-            transports: ['websocket', 'polling'],
-            secure: window.location.protocol === 'https:',
-            reconnection: true,
-            reconnectionAttempts: 5,
-            reconnectionDelay: 1000,
-            reconnectionDelayMax: 5000,
-            timeout: 10000
-        });
-
-        socket = setGlobalSocket(newSocket);
-
-        socket.on('connect', () => {
-            console.log('Connected to socket server');
-
-            if (currentUserId && currentUsername) {
-                socket.emit('join', {
-                    userId: currentUserId,
-                    username: currentUsername
-                });
-            }
-
-            if (currentChannelId) {
-                subscribeToChannel(currentChannelId);
-            }
-        });
-
-        socket.on('message', (message) => {
-            console.log('Received message:', message);
-            addMessage({
-                userId: message.user.userId,
-                username: message.user.username,
-                content: message.content,
-                timestamp: message.sent_at || new Date()
-            });
-        });
-
-        socket.on('user_typing', (data) => {
-            showTypingIndicator(data.user.username);
-        });
-
-        socket.on('disconnect', () => {
-            console.log('Disconnected from socket server');
-        });
-    }
-
-    function subscribeToChannel(channelId) {
-        if (socket && socket.connected) {
-
-            if (currentChannelId && currentChannelId !== channelId) {
-                socket.emit('unsubscribe', { channelId: currentChannelId });
-            }
-
-            socket.emit('subscribe', { channelId: channelId });
-            currentChannelId = channelId;
-            console.log(`Subscribed to channel ${channelId}`);
-        }
-    }
-
-    function showTypingIndicator(username) {
-        const typingIndicator = document.getElementById('typing-indicator');
-        if (typingIndicator) {
-            typingIndicator.textContent = `${username} is typing...`;
-            typingIndicator.classList.remove('hidden');
-
-            clearTimeout(window.typingTimeout);
-            window.typingTimeout = setTimeout(() => {
-                typingIndicator.classList.add('hidden');
-            }, 3000);
-        }
-    }
-
-    serverElements.forEach(server => {
-        server.addEventListener('mouseenter', () => {
-            const serverName = server.getAttribute('data-server-name');
-            const tooltip = document.getElementById('server-tooltip');
-
-            tooltip.textContent = serverName;
-            tooltip.style.display = 'block';
-            tooltip.style.top = `${server.getBoundingClientRect().top + window.scrollY}px`;
-            tooltip.style.left = `${server.getBoundingClientRect().right + window.scrollX + 10}px`;
-        });
-
-        server.addEventListener('mouseleave', () => {
-            document.getElementById('server-tooltip').style.display = 'none';
-        });
-    });
-
-    const channelElements = document.querySelectorAll('.channel-item');
-
-    channelElements.forEach(channel => {
-        channel.addEventListener('click', () => {
-            document.querySelectorAll('.channel-item').forEach(ch => {
-                ch.classList.remove('bg-gray-700');
-            });
-
-            channel.classList.add('bg-gray-700');
-
-            const channelName = channel.getAttribute('data-channel-name');
-            const channelId = channel.getAttribute('data-channel-id');
-
-            document.getElementById('current-channel-name').textContent = channelName;
-
-            currentChannelId = channelId;
-            if (socket) {
-                subscribeToChannel(channelId);
-            }
-
-            loadChannelMessages(channelId);
-        });
-    });
-
-    function loadChannelMessages(channelId) {
-        const messageContainer = document.getElementById('message-container');
-        if (!messageContainer) return;
-
-        messageContainer.innerHTML = '<div class="loading-messages">Loading messages...</div>';
-
-        const serverId = getCurrentServerId();
-
-        let apiUrl = serverId ? 
-            `/api/servers/${serverId}/channels/${channelId}/messages` :
-            `/api/channels/${channelId}/messages`;
-
-        fetch(apiUrl)
-            .then(response => response.json())
-            .then(data => {
-                messageContainer.innerHTML = '';
-                if (data.success && data.messages) {
-                    if (data.messages.length === 0) {
-                        messageContainer.innerHTML = '<div class="text-center text-gray-400 my-4">No messages yet</div>';
-                    } else {
-
-                        data.messages.reverse().forEach(msg => {
-                            addMessage({
-                                userId: msg.user_id,
-                                username: msg.user.username,
-                                content: msg.content,
-                                timestamp: msg.sent_at
-                            });
-                        });
-                    }
-                }
-            })
-            .catch(error => {
-                console.error('Error fetching messages:', error);
-                messageContainer.innerHTML = '<div class="text-center text-red-500 my-4">Error loading messages</div>';
-            });
-    }
-
-    function getCurrentServerId() {
-
-        const path = window.location.pathname;
-        const serverMatch = path.match(/\/server\/(\d+)/);
-
-        if (serverMatch && serverMatch[1]) {
-            return serverMatch[1];
-        }
-
-        const serverIdInput = document.getElementById('currentServerId');
-        if (serverIdInput && serverIdInput.value) {
-            return serverIdInput.value;
-        }
-
-        return null;
-    }
-
-    const messageForm = document.getElementById('message-form');
+function initMessageInput() {
     const messageInput = document.getElementById('message-input');
-    const messageContainer = document.getElementById('message-container');
-
-    if (messageInput) {
-
-        let typingTimeout;
-        messageInput.addEventListener('input', () => {
-            clearTimeout(typingTimeout);
-
-            if (socket && currentChannelId) {
-                socket.emit('typing', { channelId: currentChannelId });
-
-                typingTimeout = setTimeout(() => {
-
-                }, 3000);
-            }
-        });
-    }
-
-    if (messageForm) {
-        messageForm.addEventListener('submit', function(e) {
+    if (!messageInput) return;
+    
+    messageInput.setAttribute('data-autosize', 'true');
+    
+    messageInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
+            sendMessage();
+        }
+    });
+}
 
-            const messageText = messageInput.value.trim();
-            if (messageText && currentChannelId) {
-
-                const serverId = getCurrentServerId();
-
-                let apiUrl = serverId ? 
-                    `/api/servers/${serverId}/channels/${currentChannelId}/messages` :
-                    `/api/channels/${currentChannelId}/messages`;
-
-                fetch(apiUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        content: messageText
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        console.log('Message sent successfully');
-
-                    } else {
-                        console.error('Failed to send message:', data.message);
-
-                        const errorElement = document.createElement('div');
-                        errorElement.className = 'text-red-500 text-sm mt-1';
-                        errorElement.textContent = 'Failed to send message';
-                        messageForm.appendChild(errorElement);
-                        setTimeout(() => errorElement.remove(), 3000);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error sending message:', error);
-                });
-
-                messageInput.value = '';
-            }
-        });
+function sendMessage() {
+    const messageInput = document.getElementById('message-input');
+    if (!messageInput) return;
+    
+    const channelId = messageInput.dataset.channelId;
+    const content = messageInput.value.trim();
+    
+    if (!channelId || !content) return;
+    
+    const socket = window.misvordSocket;
+    
+    if (socket) {
+        const message = {
+            channelId,
+            content,
+            userId: document.getElementById('app-container').dataset.userId
+        };
+        
+        socket.emit('message', message);
+        messageInput.value = '';
+        messageInput.style.height = 'auto';
+    } else {
+        console.error('Socket not available');
     }
+}
 
-    function addMessage(message) {
-        if (!messageContainer) return;
+function setupSocketListeners() {
+    const socket = window.misvordSocket;
+    if (!socket) return;
+    
+    socket.on('message', (message) => {
+        addMessageToChat(message);
+    });
+    
+    socket.on('typing', (data) => {
+        showTypingIndicator(data);
+    });
+    
+    socket.on('user-status-change', (data) => {
+        updateUserStatus(data);
+    });
+}
 
-        const isCurrentUser = message.userId == currentUserId;
-
-        const messageElement = document.createElement('div');
-        messageElement.classList.add('message', 'mb-4', 'flex');
-
-        const currentTime = new Date(message.timestamp);
-        const formattedTime = `${currentTime.getHours().toString().padStart(2, '0')}:${currentTime.getMinutes().toString().padStart(2, '0')}`;
-
-        messageElement.innerHTML = `
-            <div class="flex-shrink-0 mr-3">
-                <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-white font-bold text-lg">
-                    ${message.username.charAt(0).toUpperCase()}
-                </div>
+function addMessageToChat(message) {
+    const chatMessages = document.getElementById('chat-messages');
+    const activeChannelId = document.getElementById('message-input')?.dataset.channelId;
+    
+    if (!chatMessages || message.channelId !== activeChannelId) return;
+    
+    const wasAtBottom = isScrolledToBottom(chatMessages);
+    const lastMessage = chatMessages.querySelector('.message-container:last-child');
+    const isSameUser = lastMessage && lastMessage.dataset.userId === message.userId;
+    
+    const messageDate = new Date(message.timestamp);
+    const now = new Date();
+    const isToday = messageDate.toDateString() === now.toDateString();
+    const timeString = messageDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    
+    let html = '';
+    
+    if (isSameUser) {
+        html = `
+            <div class="relative group-hover:visible invisible">
+                <span class="text-xs text-gray-400 absolute -left-12">${timeString}</span>
             </div>
-            <div class="flex-grow">
-                <div class="flex items-baseline">
-                    <span class="font-bold text-white mr-2">${escapeHtml(message.username)}</span>
-                    <span class="text-xs text-gray-400">${formattedTime}</span>
-                </div>
-                <div class="text-gray-200 leading-relaxed">${escapeHtml(message.content)}</div>
+            <div class="text-gray-300 select-text break-words">
+                ${formatMessageContent(message.content)}
             </div>
         `;
+        
+        lastMessage.insertAdjacentHTML('beforeend', html);
+    } else {
+        html = `
+            <div class="mb-4 group hover:bg-discord-dark/30 p-1 rounded -mx-1 message-container" data-user-id="${message.userId}">
+                <div class="flex items-start">
+                    <div class="w-10 h-10 rounded-full bg-gray-700 flex-shrink-0 flex items-center justify-center overflow-hidden mr-3">
+                        <img src="${message.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(message.username)}&background=random`}" 
+                             alt="Avatar" class="w-full h-full object-cover">
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex items-center">
+                            <span class="font-medium text-white mr-2">${escapeHtml(message.username)}</span>
+                            <span class="text-xs text-gray-400">${timeString}</span>
+                        </div>
+                        <div class="text-gray-300 select-text break-words">
+                            ${formatMessageContent(message.content)}
+                        </div>
+                    </div>
+                </div>
+                <div class="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity mt-1 ml-12">
+                    <button class="p-1 text-gray-400 hover:text-white hover:bg-discord-light rounded-sm">
+                        <i class="fas fa-face-smile text-xs"></i>
+                    </button>
+                    <button class="p-1 text-gray-400 hover:text-white hover:bg-discord-light rounded-sm">
+                        <i class="fas fa-pen-to-square text-xs"></i>
+                    </button>
+                    <button class="p-1 text-gray-400 hover:text-white hover:bg-discord-light rounded-sm">
+                        <i class="fas fa-reply text-xs"></i>
+                    </button>
+                    <button class="p-1 text-gray-400 hover:text-white hover:bg-discord-light rounded-sm">
+                        <i class="fas fa-ellipsis text-xs"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        chatMessages.insertAdjacentHTML('beforeend', html);
+    }
+    
+    if (wasAtBottom) {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+}
 
-        messageContainer.appendChild(messageElement);
-        messageContainer.scrollTop = messageContainer.scrollHeight;
-
+function showTypingIndicator(data) {
+    const { username, channelId } = data;
+    const activeChannelId = document.getElementById('message-input')?.dataset.channelId;
+    
+    if (channelId !== activeChannelId) return;
+    
+    const typingIndicator = document.getElementById('typing-indicator');
+    if (!typingIndicator) {
+        const chatMessages = document.getElementById('chat-messages');
+        if (!chatMessages) return;
+        
+        const indicator = document.createElement('div');
+        indicator.id = 'typing-indicator';
+        indicator.className = 'text-xs text-gray-400 px-4 py-2';
+        indicator.textContent = `${username} is typing...`;
+        
+        chatMessages.parentNode.insertBefore(indicator, chatMessages.nextSibling);
+        
         setTimeout(() => {
-            messageElement.classList.add('message-appear');
-        }, 10);
+            indicator.remove();
+        }, 3000);
+    } else {
+        typingIndicator.textContent = `${username} is typing...`;
+        
+        clearTimeout(window.typingTimeout);
+        window.typingTimeout = setTimeout(() => {
+            typingIndicator.remove();
+        }, 3000);
     }
+}
 
-    function escapeHtml(unsafe) {
-        return unsafe
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
+function updateUserStatus(data) {
+    const { userId, status } = data;
+    const memberElements = document.querySelectorAll(`[data-user-id="${userId}"]`);
+    
+    memberElements.forEach(element => {
+        const statusIndicator = element.querySelector('.status-indicator');
+        if (statusIndicator) {
+            statusIndicator.className = `absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark bg-discord-${getStatusClass(status)}`;
+        }
+    });
+}
+
+function getStatusClass(status) {
+    switch (status) {
+        case 'online': return 'green';
+        case 'idle': case 'away': return 'yellow';
+        case 'dnd': return 'red';
+        default: return 'gray-500';
     }
+}
 
-    initializeSocket();
-});
+function initChannelToggle() {
+    const toggleButtons = document.querySelectorAll('[data-toggle="channel-list"]');
+    toggleButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const targetId = this.dataset.target;
+            const target = document.getElementById(targetId);
+            
+            if (target) {
+                target.classList.toggle('hidden');
+                
+                const icon = this.querySelector('i');
+                if (icon) {
+                    if (target.classList.contains('hidden')) {
+                        icon.classList.replace('fa-chevron-down', 'fa-chevron-right');
+                    } else {
+                        icon.classList.replace('fa-chevron-right', 'fa-chevron-down');
+                    }
+                }
+            }
+        });
+    });
+}
+
+function initScrollToBottom() {
+    const scrollButton = document.getElementById('scroll-to-bottom');
+    const chatMessages = document.getElementById('chat-messages');
+    
+    if (!scrollButton || !chatMessages) return;
+    
+    chatMessages.addEventListener('scroll', function() {
+        if (!isScrolledToBottom(chatMessages)) {
+            scrollButton.classList.remove('hidden');
+        } else {
+            scrollButton.classList.add('hidden');
+        }
+    });
+    
+    scrollButton.addEventListener('click', function() {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    });
+}
+
+function isScrolledToBottom(element) {
+    return element.scrollHeight - element.clientHeight <= element.scrollTop + 30;
+}
+
+function formatMessageContent(content) {
+    if (!content) return '';
+    
+    let formatted = escapeHtml(content);
+    
+    formatted = formatted
+        .replace(/\n/g, '<br>')
+        .replace(/```(.+?)```/gs, '<pre class="bg-discord-darker p-2 rounded my-1 text-sm overflow-x-auto"><code>$1</code></pre>')
+        .replace(/`(.+?)`/g, '<code class="bg-discord-darker px-1 rounded text-sm">$1</code>')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/~~(.+?)~~/g, '<del>$1</del>')
+        .replace(/__(.*?)__/g, '<u>$1</u>')
+        .replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" class="text-blue-400 hover:underline">$1</a>');
+    
+    return formatted;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function initResponseListener() {
+    const messageInput = document.getElementById('message-input');
+    if (!messageInput) return;
+    
+    let typingTimeout;
+    
+    messageInput.addEventListener('input', function() {
+        const channelId = messageInput.dataset.channelId;
+        const socket = window.misvordSocket;
+        
+        if (!socket || !channelId) return;
+        
+        clearTimeout(typingTimeout);
+        
+        socket.emit('typing', {
+            channelId,
+            username: document.getElementById('app-container').dataset.username
+        });
+        
+        typingTimeout = setTimeout(() => {
+            socket.emit('stop-typing', {
+                channelId
+            });
+        }, 3000);
+    });
+}

@@ -17,8 +17,12 @@ return [
     '/forgot-password' => 'pages/authentication-page.php',
 
     '/app' => 'pages/home.php', 
+    '/home' => 'pages/home.php',
     '/server' => 'pages/server-page.php',
     '/call' => 'pages/call.php',
+    '/create-server' => 'pages/create-server.php',
+    '/explore-servers' => 'pages/explore-servers.php',
+    
     '/server/{id}' => function($params) {
         error_log("Server route matched with ID: " . $params['id']);
         $controller = new ServerController();
@@ -34,6 +38,12 @@ return [
         $controller = new ServerController();
         $controller->create();
     },
+    
+    'POST:/api/servers/create' => function() {
+        $controller = new ServerController();
+        $controller->create();
+    },
+    
     'GET:/join/{invite}' => function($params) {
         $controller = new ServerController();
         $controller->join($params['invite']);

@@ -45,16 +45,61 @@ html {
 }
 
 body {
-    font-family: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     line-height: 1.6;
     color: var(--discord-white);
     background: var(--discord-darker);
-    overflow-x: hidden;
+    overflow: hidden;
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.4);
+}
+
+input, textarea, button {
+    font-family: 'Inter', sans-serif;
 }
 
 a {
     text-decoration: none;
     color: inherit;
+}
+
+textarea {
+    min-height: 40px;
+    max-height: 300px;
+    resize: none;
+}
+
+textarea:focus {
+    outline: none;
+}
+
+button {
+    cursor: pointer;
+    border: none;
+    background: transparent;
+}
+
+button:focus {
+    outline: none;
 }
 
 /* Utility classes */

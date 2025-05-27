@@ -119,23 +119,69 @@ class Channel {
             $tableExists = $query->tableExists(static::$table);
             
             if (!$tableExists) {
-                $query->raw("
-                    CREATE TABLE IF NOT EXISTS " . static::$table . " (
-                        id INT AUTO_INCREMENT PRIMARY KEY,
-                        name VARCHAR(255) NOT NULL,
-                        type VARCHAR(20) NOT NULL DEFAULT 'text',
-                        description TEXT NULL,
-                        server_id INT NOT NULL,
-                        category_id INT NULL,
-                        position INT NOT NULL DEFAULT 0,
-                        is_private TINYINT(1) NOT NULL DEFAULT 0,
-                        slug VARCHAR(255) NULL,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                        FOREIGN KEY (server_id) REFERENCES servers(id) ON DELETE CASCADE,
-                        FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
-                    )
-                ");
+                // First, check if the categories table exists
+                $categoriesExists = $query->tableExists('categories');
+                
+                if (!$categoriesExists) {
+                    // Create a basic categories table if it doesn't exist
+                    error_log("Categories table doesn't exist, creating it first");
+                    $query->raw("
+                        CREATE TABLE IF NOT EXISTS categories (
+                            id INT AUTO_INCREMENT PRIMARY KEY,
+                            name VARCHAR(255) NOT NULL,
+                            server_id INT NOT NULL,
+                            position INT NOT NULL DEFAULT 0,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                            FOREIGN KEY (server_id) REFERENCES servers(id) ON DELETE CASCADE
+                        )
+                    ");
+                }
+                
+                // Create channels table but handle the case where we need to disable foreign keys
+                try {
+                    $query->raw("
+                        CREATE TABLE IF NOT EXISTS " . static::$table . " (
+                            id INT AUTO_INCREMENT PRIMARY KEY,
+                            name VARCHAR(255) NOT NULL,
+                            type VARCHAR(20) NOT NULL DEFAULT 'text',
+                            description TEXT NULL,
+                            server_id INT NOT NULL,
+                            category_id INT NULL,
+                            position INT NOT NULL DEFAULT 0,
+                            is_private TINYINT(1) NOT NULL DEFAULT 0,
+                            slug VARCHAR(255) NULL,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                            FOREIGN KEY (server_id) REFERENCES servers(id) ON DELETE CASCADE,
+                            FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
+                        )
+                    ");
+                } catch (PDOException $e) {
+                    // If we get an error related to the category_id foreign key
+                    if (stripos($e->getMessage(), 'category_id') !== false) {
+                        error_log("Creating channels table without category_id foreign key constraint");
+                        $query->raw("
+                            CREATE TABLE IF NOT EXISTS " . static::$table . " (
+                                id INT AUTO_INCREMENT PRIMARY KEY,
+                                name VARCHAR(255) NOT NULL,
+                                type VARCHAR(20) NOT NULL DEFAULT 'text',
+                                description TEXT NULL,
+                                server_id INT NOT NULL,
+                                category_id INT NULL,
+                                position INT NOT NULL DEFAULT 0,
+                                is_private TINYINT(1) NOT NULL DEFAULT 0,
+                                slug VARCHAR(255) NULL,
+                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                                FOREIGN KEY (server_id) REFERENCES servers(id) ON DELETE CASCADE
+                            )
+                        ");
+                    } else {
+                        // Re-throw if it's not a category_id issue
+                        throw $e;
+                    }
+                }
                 
                 $tableExists = $query->tableExists(static::$table);
             }

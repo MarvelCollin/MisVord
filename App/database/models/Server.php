@@ -133,8 +133,16 @@ class Server {
     }
     
     public function generateInviteLink() {
-        $uniqueString = bin2hex(random_bytes(5)); 
-        $this->invite_link = $uniqueString;
+        // Generate random string for invite link - using alphanumeric characters only
+        // This avoids integer conversion issues
+        $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        $uniqueString = '';
+        for ($i = 0; $i < 10; $i++) {
+            $uniqueString .= $characters[rand(0, strlen($characters) - 1)];
+        }
+        
+        // Make sure it's stored and treated as a string
+        $this->invite_link = (string)$uniqueString;
         $this->save();
         
         return $this->invite_link;
@@ -216,6 +224,9 @@ class Server {
                         image_url VARCHAR(255) NULL,
                         description TEXT NULL,
                         invite_link VARCHAR(255) NULL,
+                        is_public BOOLEAN DEFAULT 0,
+                        banner_url VARCHAR(255) NULL,
+                        category VARCHAR(255) NULL,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
                     )

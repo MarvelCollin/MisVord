@@ -9,6 +9,9 @@ class CreateServersMigration {
             $table->text('description', true); 
             $table->string('invite_link', 255, true); 
             $table->integer('group_server_id', false, false, true); 
+            $table->boolean('is_public')->default(false);
+            $table->string('banner_url', 255, true);
+            $table->string('category', 255, true);
             $table->timestamps();
             
             
