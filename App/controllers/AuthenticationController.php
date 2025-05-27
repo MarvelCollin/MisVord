@@ -132,7 +132,7 @@ class AuthenticationController {
 
             error_log("User successfully registered: ID={$user->id}, Username={$user->username}");
 
-            $_SESSION['success'] = "Registration successful! Welcome to MiscVord, {$user->username}!";
+            $_SESSION['success'] = "Registration successful! Welcome to misvord, {$user->username}!";
 
             $_SESSION['user_id'] = $user->id;
             $_SESSION['username'] = $user->username;

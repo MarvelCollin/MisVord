@@ -16,7 +16,7 @@ return [
     '/register' => 'pages/authentication-page.php',
     '/forgot-password' => 'pages/authentication-page.php',
 
-    '/app' => 'pages/server-page.php', 
+    '/app' => 'pages/home.php', 
     '/server' => 'pages/server-page.php',
     '/call' => 'pages/call.php',
     '/server/{id}' => function($params) {

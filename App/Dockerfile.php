@@ -39,6 +39,12 @@ RUN composer install --optimize-autoloader --no-dev
 # Create storage directory if it doesn't exist
 RUN mkdir -p /var/www/html/storage
 
+# Make artisan executable
+RUN chmod +x /var/www/html/artisan
+
+# Set environment variables
+ENV IS_DOCKER=true
+
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html/
 RUN chmod -R 775 /var/www/html/storage

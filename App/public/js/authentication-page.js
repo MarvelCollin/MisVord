@@ -158,7 +158,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 currentForm = targetForm;
 
-                document.title = `${getFormTitle(targetForm)} - MiscVord`;
+                document.title = `${getFormTitle(targetForm)} - misvord`;
             });
         });
     }
@@ -232,7 +232,7 @@ document.addEventListener('DOMContentLoaded', function() {
             case 'login': return 'Welcome back!';
             case 'register': return 'Create an account';
             case 'forgot': return 'Reset Password';
-            default: return 'MiscVord';
+            default: return 'misvord';
         }
     }
 
@@ -251,7 +251,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 input.type = currentType === 'password' ? 'text' : 'password';
 
-                this.textContent = currentType === 'password' ? '🔒' : '👁️';
+                // Update Font Awesome icon
+                const icon = this.querySelector('i');
+                if (icon) {
+                    if (currentType === 'password') {
+                        icon.className = 'fa-solid fa-eye-slash';
+                    } else {
+                        icon.className = 'fa-solid fa-eye';
+                    }
+                }
 
                 this.classList.add('scale-effect', 'scale-in');
 
@@ -303,7 +311,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const matching = elements.regPassword.value === elements.confirmPassword.value;
 
         if (matching) {
-            elements.matchIndicator.textContent = 'Passwords match ✓';
+            elements.matchIndicator.innerHTML = 'Passwords match <i class="fa-solid fa-check"></i>';
             elements.matchIndicator.className = 'text-green-500 text-xs mt-1';
 
             elements.matchIndicator.classList.add('scale-effect', 'scale-in');
@@ -311,7 +319,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 elements.matchIndicator.classList.remove('scale-effect', 'scale-in');
             }, 300);
         } else {
-            elements.matchIndicator.textContent = 'Passwords do not match ✗';
+            elements.matchIndicator.innerHTML = 'Passwords do not match <i class="fa-solid fa-xmark"></i>';
             elements.matchIndicator.className = 'text-red-500 text-xs mt-1';
 
             elements.matchIndicator.classList.add('error-text-glitch');

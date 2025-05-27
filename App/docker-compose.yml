@@ -4,7 +4,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.php
-    container_name: miscvord_php
+    container_name: misvord_php
     restart: unless-stopped
     # For production, consider building code into the image and removing these code volumes
     # Or, if you deploy by syncing code to the VPS and then running docker-compose, these are fine.
@@ -24,7 +24,7 @@ services:
     depends_on:
       - db
     networks:
-      - miscvord_network
+      - misvord_network
     ports: # Ports exposed to the host
       - "${APP_PORT:-1001}:1001"
     environment:
@@ -55,7 +55,7 @@ services:
   # MySQL Database
   db:
     image: mysql:8.0
-    container_name: miscvord_db
+    container_name: misvord_db
     restart: unless-stopped
     environment:
       MYSQL_DATABASE: ${DB_NAME:-misvord}
@@ -63,11 +63,11 @@ services:
       MYSQL_ROOT_HOST: "%"
       MYSQL_TCP_PORT: ${DB_PORT:-1003}
     volumes:
-      - miscvord_db_data:/var/lib/mysql # Persists DB data on the host
+      - misvord_db_data:/var/lib/mysql # Persists DB data on the host
     networks:
-      - miscvord_network
-    # ports: # Usually kept internal unless direct host access is needed
-    #   - "${DB_PORT:-1003}:${DB_PORT:-1003}"
+      - misvord_network
+    ports: # Usually kept internal unless direct host access is needed
+      - "${DB_PORT:-1003}:${DB_PORT:-1003}"
     command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --port=${DB_PORT:-1003}
     security_opt:
       - seccomp:unconfined # Required by MySQL for some operations
@@ -81,11 +81,11 @@ services:
   # Enhanced PHPMyAdmin
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
-    container_name: miscvord_phpmyadmin
+    container_name: misvord_phpmyadmin
     depends_on:
       - db
     networks:
-      - miscvord_network
+      - misvord_network
     ports: # Ports exposed to the host
      - "${PMA_PORT:-1004}:80"
     environment:
@@ -101,12 +101,12 @@ services:
 
   adminer:
     image: adminer
-    container_name: miscvord_adminer
+    container_name: misvord_adminer
     restart: unless-stopped
     depends_on:
       - db
     networks:
-      - miscvord_network
+      - misvord_network
     ports: # Ports exposed to the host
      - "${ADMINER_PORT:-1005}:8080"
     environment:
@@ -116,9 +116,9 @@ services:
       - no-new-privileges:true
 
 networks:
-  miscvord_network:
+  misvord_network:
     driver: bridge
 
 volumes:
-  miscvord_db_data: # Defines the volume for MySQL data persistence
+  misvord_db_data: # Defines the volume for MySQL data persistence
     driver: local # Explicitly define as local driver

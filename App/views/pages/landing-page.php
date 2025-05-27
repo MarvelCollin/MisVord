@@ -1,7 +1,7 @@
 <?php
 require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
 
-$page_title = 'MiscVord - Where Communities Thrive';
+$page_title = 'misvord - Where Communities Thrive';
 $page_css = 'landing-page';
 $page_js = 'landing-page';
 $body_class = 'modern-landing';
@@ -16,8 +16,8 @@ ob_start();
 <nav class="discord-nav" id="mainNav">
     <div class="nav-container">
         <a href="/" class="nav-logo">
-            <img src="<?php echo asset('/images/landing-page/main-logo.png'); ?>" alt="MiscVord">
-            <span class="hidden md:inline font-bold">MiscVord</span>
+            <img src="<?php echo asset('/images/landing-page/main-logo.png'); ?>" alt="misvord">
+            <span class="hidden md:inline font-bold">misvord</span>
         </a>
 
         <ul class="nav-links" id="navLinks">
@@ -29,7 +29,7 @@ ob_start();
         </ul>
 
         <div class="nav-actions">
-            <a href="/login" class="nav-cta">Open MiscVord</a>
+            <a href="/login" class="nav-cta">Open misvord</a>
             <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation menu">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M4 6h16M4 12h16M4 18h16"></path>
@@ -68,7 +68,7 @@ ob_start();
                     <div class="mockup-header">
                         <div class="mockup-avatar">M</div>
                         <div class="mockup-info">
-                            <h4>MiscVord Community</h4>
+                            <h4>misvord Community</h4>
                             <p class="online-status">🟢 <span class="member-count">15,847</span> members online</p>
                         </div>
                     </div>
@@ -194,7 +194,7 @@ ob_start();
         </div>
 
         <div class="footer-bottom">
-            <img src="<?php echo asset('/images/landing-page/main-logo.png'); ?>" alt="MiscVord" height="32">
+            <img src="<?php echo asset('/images/landing-page/main-logo.png'); ?>" alt="misvord" height="32">
             <a href="/register" class="footer-cta">Sign up</a>
         </div>
     </div>

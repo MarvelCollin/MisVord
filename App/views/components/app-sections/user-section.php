@@ -3,98 +3,135 @@
  * User Section Component
  * Displays users/members list in the right sidebar
  */
+
+// Get server members if we have a current server
+$onlineUsers = [];
+$offlineUsers = [];
+$currentServer = $GLOBALS['currentServer'] ?? null;
+
+if ($currentServer) {
+    require_once dirname(dirname(dirname(__DIR__))) . '/database/models/User.php';
+    require_once dirname(dirname(dirname(__DIR__))) . '/database/models/UserServerMembership.php';
+    
+    $serverMembers = $currentServer->members();
+    
+    // Split members by status and role
+    $ownerData = null;
+    $adminData = [];
+    $regularOnline = [];
+    
+    foreach ($serverMembers as $member) {
+        // Add role information
+        if ($member['role'] === 'owner') {
+            $ownerData = $member;
+        } elseif ($member['role'] === 'admin' && ($member['status'] === 'online' || $member['status'] === 'away')) {
+            $adminData[] = $member;
+        } elseif ($member['status'] === 'online' || $member['status'] === 'away') {
+            $regularOnline[] = $member;
+        } else {
+            $offlineUsers[] = $member;
+        }
+    }
+    
+    // First add owner if exists and is online
+    if ($ownerData && ($ownerData['status'] === 'online' || $ownerData['status'] === 'away')) {
+        $onlineUsers[] = $ownerData;
+    }
+    
+    // Add admins
+    foreach ($adminData as $admin) {
+        $onlineUsers[] = $admin;
+    }
+    
+    // Add regular online users
+    foreach ($regularOnline as $user) {
+        $onlineUsers[] = $user;
+    }
+    
+    // If owner is offline, add to offline users
+    if ($ownerData && $ownerData['status'] !== 'online' && $ownerData['status'] !== 'away') {
+        $offlineUsers[] = $ownerData;
+    }
+}
+
+// Helper function to get user initials
+function getUserInitials($username) {
+    $words = explode(' ', $username);
+    $initials = '';
+    
+    foreach ($words as $word) {
+        if (!empty($word)) {
+            $initials .= strtoupper(substr($word, 0, 1));
+        }
+    }
+    
+    return $initials ? substr($initials, 0, 2) : 'U';
+}
 ?>
 
 <div class="user-section">
     <!-- Section Headers -->
     <div class="role-category">
-        <h3>ONLINE — 5</h3>
+        <h3>ONLINE — <?php echo count($onlineUsers); ?></h3>
         
         <!-- Online Users -->
         <div class="user-list">
-            <!-- Server Owner -->
-            <div class="user">
-                <div class="user-avatar owner">
-                    <span>OW</span>
+            <?php if (empty($onlineUsers)): ?>
+                <div class="user">
+                    <div class="user-details">
+                        <span class="username">No online users</span>
+                    </div>
                 </div>
-                <div class="user-details">
-                    <span class="username owner-name">ServerOwner</span>
-                    <span class="user-status">Playing MiscVord</span>
-                </div>
-            </div>
-            
-            <!-- Admin -->
-            <div class="user">
-                <div class="user-avatar admin">
-                    <span>AD</span>
-                </div>
-                <div class="user-details">
-                    <span class="username admin-name">Admin</span>
-                    <span class="user-status">Online</span>
-                </div>
-            </div>
-            
-            <!-- Moderator -->
-            <div class="user">
-                <div class="user-avatar mod">
-                    <span>MO</span>
-                </div>
-                <div class="user-details">
-                    <span class="username mod-name">Moderator</span>
-                    <span class="user-status">Idle</span>
-                </div>
-            </div>
-            
-            <!-- Current User -->
-            <div class="user">
-                <div class="user-avatar">
-                    <span>ME</span>
-                </div>
-                <div class="user-details">
-                    <span class="username">CurrentUser</span>
-                    <span class="user-status">Online</span>
-                </div>
-            </div>
-            
-            <!-- Regular User -->
-            <div class="user">
-                <div class="user-avatar">
-                    <span>JS</span>
-                </div>
-                <div class="user-details">
-                    <span class="username">JaneSmith</span>
-                    <span class="user-status">Streaming</span>
-                </div>
-            </div>
+            <?php else: ?>
+                <?php foreach ($onlineUsers as $user): ?>
+                    <div class="user">
+                        <div class="user-avatar <?php echo $user['role'] === 'owner' ? 'owner' : ($user['role'] === 'admin' ? 'admin' : ($user['role'] === 'moderator' ? 'mod' : '')); ?>">
+                            <span><?php echo getUserInitials($user['username']); ?></span>
+                        </div>
+                        <div class="user-details">
+                            <span class="username <?php echo $user['role'] === 'owner' ? 'owner-name' : ($user['role'] === 'admin' ? 'admin-name' : ($user['role'] === 'moderator' ? 'mod-name' : '')); ?>">
+                                <?php echo htmlspecialchars($user['username']); ?>
+                                <?php if ($user['id'] == $_SESSION['user_id']): ?> (You)<?php endif; ?>
+                            </span>
+                            <span class="user-status">
+                                <?php 
+                                    if ($user['status'] === 'away') echo 'Away';
+                                    elseif ($user['status'] === 'dnd') echo 'Do Not Disturb';
+                                    else echo 'Online'; 
+                                ?>
+                            </span>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            <?php endif; ?>
         </div>
     </div>
     
     <!-- Offline Section -->
     <div class="role-category offline">
-        <h3>OFFLINE — 3</h3>
+        <h3>OFFLINE — <?php echo count($offlineUsers); ?></h3>
         
         <!-- Offline Users -->
         <div class="user-list">
-            <div class="user offline-user">
-                <div class="user-avatar offline">
-                    <span>U1</span>
+            <?php if (empty($offlineUsers)): ?>
+                <div class="user offline-user">
+                    <div class="user-details">
+                        <span class="username offline-name">No offline users</span>
+                    </div>
                 </div>
-                <span class="username offline-name">User1</span>
-            </div>
-            
-            <div class="user offline-user">
-                <div class="user-avatar offline">
-                    <span>U2</span>
-                </div>
-                <span class="username offline-name">User2</span>
-            </div>
-            
-            <div class="user offline-user">
-                <div class="user-avatar offline">
-                    <span>U3</span>
-                </div>
-                <span class="username offline-name">User3</span>
-            </div>
+            <?php else: ?>
+                <?php foreach ($offlineUsers as $user): ?>
+                    <div class="user offline-user">
+                        <div class="user-avatar offline">
+                            <span><?php echo getUserInitials($user['username']); ?></span>
+                        </div>
+                        <span class="username offline-name">
+                            <?php echo htmlspecialchars($user['username']); ?>
+                            <?php if ($user['id'] == $_SESSION['user_id']): ?> (You)<?php endif; ?>
+                        </span>
+                    </div>
+                <?php endforeach; ?>
+            <?php endif; ?>
         </div>
     </div>
 

@@ -36,9 +36,7 @@ error_log("Current server object: " . ($currentServer ? json_encode(['id' => $cu
         <!-- Home/DM Button -->
         <div class="server-icon p-1 mb-2">
             <a href="/app" class="block w-12 h-12 rounded-2xl flex items-center justify-center bg-[#5865F2] hover:bg-[#5865F2]/90 transition">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                </svg>
+                <i class="fa-solid fa-house h-7 w-7 text-white"></i>
             </a>
             <!-- Active indicator for home (only shown when no server is selected) -->
             <?php if (empty($currentServerID)): ?>
@@ -77,9 +75,7 @@ error_log("Current server object: " . ($currentServer ? json_encode(['id' => $cu
         <!-- Add Server Button - Opens modal -->
         <div class="server-icon p-1 mt-2">
             <div id="addServerBtn" class="w-12 h-12 rounded-full bg-[#36393F] flex items-center justify-center hover:bg-green-500 hover:rounded-2xl transition-all duration-200 cursor-pointer">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-500 hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
+                <i class="fa-solid fa-plus h-6 w-6 text-green-500 hover:text-white"></i>
             </div>
         </div>
     </div>
@@ -89,77 +85,182 @@ error_log("Current server object: " . ($currentServer ? json_encode(['id' => $cu
 </div>
 
 <!-- Add Server Modal -->
-<div id="addServerModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 hidden transition-all duration-300 ease-in-out">
-    <div class="bg-[#36393F] rounded-lg p-6 w-full max-w-md transform transition-all duration-300 ease-in-out scale-95 opacity-0" id="modalContent">
-        <div class="flex justify-between items-center mb-6">
-            <h3 class="text-xl font-bold text-white">Create a New Server</h3>
-            <button id="closeModalBtn" class="text-gray-400 hover:text-white">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
+<div id="addServerModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-80 z-50 hidden transition-all duration-300 ease-in-out backdrop-blur-sm p-4">
+    <div class="bg-gradient-to-br from-[#2b2d31] to-[#36393F] rounded-xl p-4 sm:p-6 w-full max-w-md transform transition-all duration-300 ease-in-out scale-95 opacity-0 shadow-xl border border-gray-700/30 max-h-[90vh] overflow-y-auto" id="modalContent">
+        <!-- Header -->
+        <div class="flex flex-col items-center text-center mb-4 relative">
+            <button id="closeModalBtn" class="absolute right-0 top-0 text-gray-400 hover:text-white transition-colors rounded-full hover:bg-gray-700/40 p-2">
+                <i class="fa-solid fa-xmark h-5 w-5"></i>
             </button>
-        </div>
-        
-        <form id="createServerForm" action="/api/servers" method="POST" class="space-y-4" enctype="multipart/form-data">
-            <!-- Server Name -->
-            <div>
-                <label for="serverName" class="block text-sm font-medium text-gray-300 mb-1">SERVER NAME <span class="text-red-500">*</span></label>
-                <input 
-                    type="text" 
-                    id="serverName" 
-                    name="name" 
-                    class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
-                    required
-                >
-                <div class="text-xs text-gray-400 mt-1">Give your server a unique name to help members recognize it.</div>
+            
+            <div class="mb-3 bg-discord-blue/10 p-3 sm:p-4 rounded-full">
+                <i class="fa-solid fa-server text-discord-blue text-2xl sm:text-3xl"></i>
             </div>
             
-            <!-- Server Image Upload -->
-            <div>
-                <label for="serverImage" class="block text-sm font-medium text-gray-300 mb-1">SERVER IMAGE (OPTIONAL)</label>
-                <div class="flex items-center space-x-4">
-                    <div class="bg-[#202225] border border-[#40444b] rounded-full w-16 h-16 flex items-center justify-center overflow-hidden" id="imagePreview">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
+            <h3 class="text-xl sm:text-2xl font-bold text-white mb-1">Create Your Server</h3>
+            <p class="text-gray-400 text-xs sm:text-sm max-w-xs">Your server is where you and your friends hang out.</p>
+        </div>
+        
+        <!-- Progress steps -->
+        <div class="flex justify-center mb-4">
+            <div class="flex items-center space-x-1">
+                <div class="step-indicator step-active" data-step="1"></div>
+                <div class="w-8 h-0.5 bg-gray-600"></div>
+                <div class="step-indicator" data-step="2"></div>
+            </div>
+        </div>
+        
+        <!-- Server Creation Form -->
+        <form id="createServerForm" action="/api/servers" method="POST" class="space-y-4" enctype="multipart/form-data">
+            <!-- Step 1: Basic Info -->
+            <div id="step1" class="step-content">
+                <!-- Server Name -->
+                <div class="space-y-2 mb-4">
+                    <label for="serverName" class="block text-sm font-medium text-gray-300">SERVER NAME <span class="text-red-500">*</span></label>
+                    <div class="relative">
+                        <input 
+                            type="text" 
+                            id="serverName" 
+                            name="name" 
+                            class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2 pl-9 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
+                            required
+                            placeholder="My Awesome Server"
+                        >
+                        <div class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                            <i class="fa-solid fa-hashtag"></i>
+                        </div>
                     </div>
-                    <div class="flex-1">
+                    <div class="text-xs text-gray-400">Give your server a unique name.</div>
+                </div>
+                
+                <!-- Server Type Selection -->
+                <div class="space-y-2 mb-6">
+                    <label class="block text-sm font-medium text-gray-300">SERVER TYPE</label>
+                    
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="server-type-option cursor-pointer bg-[#202225] hover:bg-[#2a2c31] border border-[#40444b] rounded-md p-2 transition-colors">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 w-3 h-3 rounded-full border-2 border-gray-400 mr-2"></div>
+                                <div>
+                                    <p class="text-xs sm:text-sm font-medium text-white">Gaming</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="server-type-option cursor-pointer bg-[#202225] hover:bg-[#2a2c31] border border-[#40444b] rounded-md p-2 transition-colors">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 w-3 h-3 rounded-full border-2 border-gray-400 mr-2"></div>
+                                <div>
+                                    <p class="text-xs sm:text-sm font-medium text-white">Study Group</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="server-type-option cursor-pointer bg-[#202225] hover:bg-[#2a2c31] border border-[#40444b] rounded-md p-2 transition-colors">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 w-3 h-3 rounded-full border-2 border-gray-400 mr-2"></div>
+                                <div>
+                                    <p class="text-xs sm:text-sm font-medium text-white">Friends</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="server-type-option cursor-pointer bg-[#202225] hover:bg-[#2a2c31] border border-[#40444b] rounded-md p-2 transition-colors">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 w-3 h-3 rounded-full border-2 border-gray-400 mr-2"></div>
+                                <div>
+                                    <p class="text-xs sm:text-sm font-medium text-white">Other</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end">
+                    <button 
+                        type="button" 
+                        id="nextStepBtn"
+                        class="py-2 px-4 bg-discord-blue hover:bg-discord-blue/90 text-white font-medium rounded-md transition-all flex items-center space-x-2"
+                    >
+                        <span>Next</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Step 2: Optional Settings -->
+            <div id="step2" class="step-content hidden">
+                <!-- Server Image Upload -->
+                <div class="flex flex-col items-center mb-4">
+                    <div class="group relative mb-2">
+                        <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#202225] border-2 border-dashed border-gray-600 hover:border-discord-blue flex items-center justify-center overflow-hidden transition-all duration-200 cursor-pointer" id="imagePreview">
+                            <i class="fa-solid fa-image h-8 w-8 text-gray-400 group-hover:text-discord-blue transition-colors"></i>
+                            <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
+                                <i class="fa-solid fa-camera text-white"></i>
+                            </div>
+                        </div>
                         <input 
                             type="file" 
                             id="serverImage" 
                             name="image_file" 
                             accept="image/*" 
-                            class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all"
+                            class="hidden"
                         >
-                        <p class="text-xs text-gray-400 mt-1">Upload an image for your server (optional).</p>
+                    </div>
+                    <label for="serverImage" class="text-discord-blue text-sm font-medium cursor-pointer hover:underline">
+                        Upload an icon
+                    </label>
+                </div>
+                
+                <!-- Server Description -->
+                <div class="space-y-2 mb-6">
+                    <label for="serverDescription" class="block text-sm font-medium text-gray-300">DESCRIPTION <span class="text-gray-500">(optional)</span></label>
+                    <div class="relative">
+                        <textarea 
+                            id="serverDescription" 
+                            name="description" 
+                            rows="2" 
+                            class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2 pl-9 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all resize-none"
+                            placeholder="Tell us about your server..."
+                        ></textarea>
+                        <div class="absolute left-3 top-3 text-gray-400">
+                            <i class="fa-solid fa-comment"></i>
+                        </div>
                     </div>
                 </div>
-            </div>
-            
-            <!-- Server Description -->
-            <div>
-                <label for="serverDescription" class="block text-sm font-medium text-gray-300 mb-1">DESCRIPTION (OPTIONAL)</label>
-                <textarea 
-                    id="serverDescription" 
-                    name="description" 
-                    rows="3" 
-                    class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all resize-none"
-                    placeholder="Tell us about your server"
-                ></textarea>
-            </div>
-            
-            <div class="pt-4">
-                <button 
-                    type="submit" 
-                    class="w-full py-2.5 bg-discord-blue hover:bg-discord-blue/90 text-white font-medium rounded-md transition-all"
-                    id="createServerBtn"
-                >
-                    Create Server
-                </button>
+                
+                <div class="flex justify-between">
+                    <button 
+                        type="button" 
+                        id="prevStepBtn"
+                        class="py-2 px-4 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-md transition-all"
+                    >
+                        <i class="fa-solid fa-arrow-left mr-1"></i>
+                        <span>Back</span>
+                    </button>
+                    
+                    <button 
+                        type="submit" 
+                        class="py-2 px-4 bg-discord-blue hover:bg-discord-blue/90 text-white font-medium rounded-md transition-all flex items-center space-x-2"
+                        id="createServerBtn"
+                    >
+                        <span>Create Server</span>
+                        <i class="fa-solid fa-check"></i>
+                    </button>
+                </div>
             </div>
         </form>
     </div>
 </div>
+
+<style>
+.step-indicator {
+    @apply w-3 h-3 rounded-full bg-gray-600 transition-all duration-300;
+}
+.step-indicator.step-active {
+    @apply bg-discord-blue;
+}
+</style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -171,6 +272,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const createServerForm = document.getElementById('createServerForm');
     const imageInput = document.getElementById('serverImage');
     const imagePreview = document.getElementById('imagePreview');
+    const serverTypeOptions = document.querySelectorAll('.server-type-option');
+    
+    // Step navigation
+    const step1 = document.getElementById('step1');
+    const step2 = document.getElementById('step2');
+    const nextStepBtn = document.getElementById('nextStepBtn');
+    const prevStepBtn = document.getElementById('prevStepBtn');
+    const stepIndicators = document.querySelectorAll('.step-indicator');
     
     // Open modal function
     function openModal() {
@@ -192,7 +301,53 @@ document.addEventListener('DOMContentLoaded', function() {
         // Hide after animation completes
         setTimeout(() => {
             modal.classList.add('hidden');
+            // Reset to step 1
+            showStep(1);
         }, 300);
+    }
+    
+    // Step navigation
+    function showStep(stepNumber) {
+        if (stepNumber === 1) {
+            step1.classList.remove('hidden');
+            step2.classList.add('hidden');
+        } else if (stepNumber === 2) {
+            step1.classList.add('hidden');
+            step2.classList.remove('hidden');
+        }
+        
+        // Update step indicators
+        stepIndicators.forEach(indicator => {
+            const step = parseInt(indicator.dataset.step);
+            if (step <= stepNumber) {
+                indicator.classList.add('step-active');
+            } else {
+                indicator.classList.remove('step-active');
+            }
+        });
+    }
+    
+    if (nextStepBtn) {
+        nextStepBtn.addEventListener('click', function() {
+            // Validate first step
+            const serverNameInput = document.getElementById('serverName');
+            if (!serverNameInput.value.trim()) {
+                serverNameInput.classList.add('border-red-500');
+                serverNameInput.focus();
+                setTimeout(() => {
+                    serverNameInput.classList.remove('border-red-500');
+                }, 3000);
+                return;
+            }
+            
+            showStep(2);
+        });
+    }
+    
+    if (prevStepBtn) {
+        prevStepBtn.addEventListener('click', function() {
+            showStep(1);
+        });
     }
     
     // Only set up event listeners if elements exist
@@ -210,6 +365,53 @@ document.addEventListener('DOMContentLoaded', function() {
         // Close modal when clicking outside
         modal.addEventListener('click', function(e) {
             if (e.target === modal) closeModal();
+        });
+    }
+    
+    // Image preview functionality
+    if (imageInput && imagePreview) {
+        imagePreview.addEventListener('click', function() {
+            imageInput.click();
+        });
+        
+        imageInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    imagePreview.innerHTML = '';
+                    imagePreview.style.backgroundImage = `url('${e.target.result}')`;
+                    imagePreview.style.backgroundSize = 'cover';
+                    imagePreview.style.backgroundPosition = 'center';
+                    
+                    // Add overlay with camera icon
+                    const overlay = document.createElement('div');
+                    overlay.className = 'absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all';
+                    overlay.innerHTML = '<i class="fa-solid fa-camera text-white"></i>';
+                    imagePreview.appendChild(overlay);
+                };
+                
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+    }
+    
+    // Server type selection
+    if (serverTypeOptions && serverTypeOptions.length > 0) {
+        serverTypeOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                // Remove selected state from all options
+                serverTypeOptions.forEach(opt => {
+                    const radioIndicator = opt.querySelector('.flex-shrink-0');
+                    radioIndicator.className = 'flex-shrink-0 w-3 h-3 rounded-full border-2 border-gray-400 mr-2';
+                    opt.classList.remove('border-discord-blue');
+                });
+                
+                // Add selected state to clicked option
+                const radioIndicator = this.querySelector('.flex-shrink-0');
+                radioIndicator.className = 'flex-shrink-0 w-3 h-3 rounded-full border-2 border-discord-blue mr-2 bg-discord-blue';
+                this.classList.add('border-discord-blue');
+            });
         });
     }
     

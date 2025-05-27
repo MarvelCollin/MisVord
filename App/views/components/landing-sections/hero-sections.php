@@ -55,13 +55,11 @@ if (!function_exists('asset')) {
 
             <div class="flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-4">
                 <a href="#download" class="download-btn bg-white text-black hover:text-blue-600 hover:shadow-lg transition-all py-4 px-8 rounded-full text-lg font-medium flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
-                    </svg>
+                    <i class="fa-solid fa-download h-5 w-5 mr-2"></i>
                     Download for Windows
                 </a>
                 <a href="/login" class="open-browser-btn border border-white text-white hover:bg-white hover:bg-opacity-10 transition-all py-4 px-8 rounded-full text-lg font-medium">
-                    Open MiscVord in your browser
+                    Open misvord in your browser
                 </a>
             </div>
         </div>
@@ -183,9 +181,7 @@ if (!function_exists('asset')) {
                                             +1
                                         </div>
                                         <div class="w-full h-16 bg-blue-100 rounded-md flex items-center justify-center mb-2">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
-                                                <path d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" />
-                                            </svg>
+                                            <i class="fa-solid fa-play h-8 w-8 text-blue-500 text-3xl"></i>
                                         </div>
                                         <h5 class="font-medium text-sm">Gaming Group</h5>
                                         <p class="text-xs text-gray-500">12,543 members</p>
@@ -196,9 +192,7 @@ if (!function_exists('asset')) {
                                             +3
                                         </div>
                                         <div class="w-full h-16 bg-green-100 rounded-md flex items-center justify-center mb-2">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-green-500" viewBox="0 0 20 20" fill="currentColor">
-                                                <path fill-rule="evenodd" d="M2 5a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V5zm3 1h10v7h-2l-1 2H8l-1-2H4V6z" clip-rule="evenodd" />
-                                            </svg>
+                                            <i class="fa-solid fa-envelope h-8 w-8 text-green-500 text-3xl"></i>
                                         </div>
                                         <h5 class="font-medium text-sm">Art Community</h5>
                                         <p class="text-xs text-gray-500">8,721 members</p>
@@ -206,9 +200,7 @@ if (!function_exists('asset')) {
 
                                     <div class="community-card bg-gray-50 p-3 rounded-lg border border-gray-200">
                                         <div class="w-full h-16 bg-purple-100 rounded-md flex items-center justify-center mb-2">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-purple-500" viewBox="0 0 20 20" fill="currentColor">
-                                                <path fill-rule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z" clip-rule="evenodd" />
-                                            </svg>
+                                            <i class="fa-solid fa-fire h-8 w-8 text-purple-500 text-3xl"></i>
                                         </div>
                                         <h5 class="font-medium text-sm">Cooking Club</h5>
                                         <p class="text-xs text-gray-500">5,318 members</p>
@@ -216,9 +208,7 @@ if (!function_exists('asset')) {
 
                                     <div class="community-card bg-gray-50 p-3 rounded-lg border border-gray-200">
                                         <div class="w-full h-16 bg-yellow-100 rounded-md flex items-center justify-center mb-2">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
-                                                <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd" />
-                                            </svg>
+                                            <i class="fa-solid fa-file h-8 w-8 text-yellow-500 text-3xl"></i>
                                         </div>
                                         <h5 class="font-medium text-sm">Study Group</h5>
                                         <p class="text-xs text-gray-500">3,954 members</p>
@@ -238,14 +228,10 @@ if (!function_exists('asset')) {
 
             <div class="carousel-navigation flex justify-center mt-4 space-x-4">
                 <button class="prev-btn p-2 rounded-full bg-gray-200 disabled:opacity-50">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                    </svg>
+                    <i class="fa-solid fa-chevron-left h-6 w-6"></i>
                 </button>
                 <button class="next-btn p-2 rounded-full bg-gray-200">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                    </svg>
+                    <i class="fa-solid fa-chevron-right h-6 w-6"></i>
                 </button>
             </div>
         </div>
@@ -256,7 +242,7 @@ if (!function_exists('asset')) {
     <div class="container mx-auto px-4">
         <div class="max-w-4xl mx-auto text-center">
             <h2 class="text-4xl font-bold mb-6">Ready to start your journey?</h2>
-            <p class="text-xl mb-10">Join the millions already enjoying MiscVord today. Create your account and start connecting.</p>
+            <p class="text-xl mb-10">Join the millions already enjoying misvord today. Create your account and start connecting.</p>
 
             <a href="/register" class="bg-blue-500 hover:bg-blue-600 text-white py-4 px-8 rounded-full text-lg font-medium transition-all">
                 Get Started

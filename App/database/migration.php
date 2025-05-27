@@ -691,6 +691,121 @@ class MigrationRunner {
             return [];
         }
     }
+
+    public function getAppliedMigrations() {
+        try {
+            // Create migrations table if it doesn't exist
+            $this->migration->createMigrationTable();
+            return $this->migration->getMigrations();
+        } catch (Exception $e) {
+            echo "Error getting applied migrations: " . $e->getMessage() . "\n";
+            return [];
+        }
+    }
+    
+    public function getPendingMigrations() {
+        try {
+            // Get all migration files
+            $migrationMap = $this->loadMigrationMap();
+            $fileNames = array_keys($migrationMap);
+            
+            // Get applied migrations
+            $this->migration->createMigrationTable();
+            $appliedMigrations = $this->migration->getMigrations();
+            $appliedFiles = array_column($appliedMigrations, 'migration');
+            
+            // Find pending migrations
+            $pendingMigrations = array_diff($fileNames, $appliedFiles);
+            
+            return $pendingMigrations;
+        } catch (Exception $e) {
+            echo "Error getting pending migrations: " . $e->getMessage() . "\n";
+            return [];
+        }
+    }
+    
+    public function checkConnection() {
+        try {
+            $config = [
+                'host' => EnvLoader::get('DB_HOST'),
+                'port' => EnvLoader::get('DB_PORT'),
+                'name' => EnvLoader::get('DB_NAME'),
+                'user' => EnvLoader::get('DB_USER'),
+                'pass' => EnvLoader::get('DB_PASS'),
+            ];
+            
+            echo "Connection test with these settings:\n";
+            echo "- Host: {$config['host']}\n";
+            echo "- Port: {$config['port']}\n";
+            echo "- Database: {$config['name']}\n";
+            echo "- Username: {$config['user']}\n";
+            echo "- Password: " . (empty($config['pass']) ? "(empty)" : str_repeat('*', strlen($config['pass']))) . "\n\n";
+            
+            $dsn = "mysql:host={$config['host']};port={$config['port']}";
+            $pdo = new PDO($dsn, $config['user'], $config['pass'], [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_TIMEOUT => 3
+            ]);
+            
+            echo "\033[32m✓ Successfully connected to MySQL server.\033[0m\n";
+            
+            // Try to select the database
+            try {
+                $pdo->query("USE `{$config['name']}`");
+                echo "\033[32m✓ Successfully connected to database '{$config['name']}'.\033[0m\n";
+            } catch (PDOException $e) {
+                echo "\033[33m! Database '{$config['name']}' doesn't exist.\033[0m\n";
+                
+                // Try to create the database
+                try {
+                    $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$config['name']}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+                    echo "\033[32m✓ Successfully created database '{$config['name']}'.\033[0m\n";
+                    
+                    $pdo->query("USE `{$config['name']}`");
+                    echo "\033[32m✓ Successfully switched to database '{$config['name']}'.\033[0m\n";
+                } catch (PDOException $e) {
+                    echo "\033[31m✗ Could not create database: " . $e->getMessage() . "\033[0m\n";
+                    return false;
+                }
+            }
+            
+            // Try to create migration table to verify full database functionality
+            try {
+                $createTableSQL = "CREATE TABLE IF NOT EXISTS `migrations` (
+                    `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+                    `migration` varchar(255) NOT NULL,
+                    `batch` int(11) NOT NULL,
+                    PRIMARY KEY (`id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+                
+                $pdo->exec($createTableSQL);
+                echo "\033[32m✓ Migration table exists or was created successfully.\033[0m\n";
+            } catch (PDOException $e) {
+                echo "\033[31m✗ Could not create migration table: " . $e->getMessage() . "\033[0m\n";
+            }
+            
+            echo "\n\033[32mDatabase connection is fully working!\033[0m\n";
+            return true;
+        } catch (PDOException $e) {
+            echo "\033[31m✗ Connection failed: " . $e->getMessage() . "\033[0m\n";
+            
+            // Additional troubleshooting help
+            if (strpos($e->getMessage(), 'Connection refused') !== false) {
+                echo "\nTroubleshooting tips:\n";
+                echo "1. Make sure Docker is running with: docker ps\n";
+                echo "2. Check if MySQL container is running with: docker ps | grep mysql\n";
+                echo "3. Make sure port {$config['port']} is being exposed in docker-compose.yml\n";
+                echo "4. If outside Docker, make sure your host can connect to the container\n";
+            } elseif (strpos($e->getMessage(), 'Access denied') !== false) {
+                echo "\nTroubleshooting tips:\n";
+                echo "1. Check if the username and password are correct\n";
+                echo "2. Make sure the user has access to the database\n";
+                echo "3. Check environment variables or .env file settings\n";
+            }
+            
+            return false;
+        }
+    }
 }
 
 if (!function_exists('studly_case')) {

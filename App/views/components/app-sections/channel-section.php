@@ -28,39 +28,30 @@ if ($currentServer) {
     <!-- Server Name Header -->
     <div class="server-header h-12 shadow-md flex items-center px-4 border-b border-gray-900">
         <h2 class="text-white font-bold truncate">
-            <?php echo $currentServer ? htmlspecialchars($currentServer->name) : 'MiscVord'; ?>
+            <?php echo $currentServer ? htmlspecialchars($currentServer->name) : 'misvord'; ?>
         </h2>
         <!-- Add a hidden input to store the server ID for JavaScript -->
         <input type="hidden" id="currentServerId" value="<?php echo $currentServer ? $currentServer->id : ''; ?>">
         <?php if ($currentServer): ?>
         <div class="ml-auto relative">
             <button id="serverSettingsBtn" class="text-gray-400 hover:text-white p-1 rounded flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
+                <i class="fa-solid fa-chevron-down h-5 w-5"></i>
             </button>
             
             <!-- Server Settings Dropdown Menu -->
             <div id="serverSettingsDropdown" class="absolute right-0 top-full mt-1 w-48 bg-[#202225] rounded-md shadow-lg z-10 hidden overflow-hidden border border-gray-800">
                 <div class="py-1">
                     <button id="createChannelOption" class="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-                        </svg>
+                        <i class="fa-solid fa-message mr-2 h-4 w-4"></i>
                         Create Channel
                     </button>
                     <button id="createCategoryOption" class="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                        </svg>
+                        <i class="fa-solid fa-folder mr-2 h-4 w-4"></i>
                         Create Category
                     </button>
                     <div class="border-t border-gray-700 my-1"></div>
                     <button id="serverSettingsOption" class="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
+                        <i class="fa-solid fa-gear mr-2 h-4 w-4"></i>
                         Server Settings
                     </button>
                 </div>
@@ -79,9 +70,7 @@ if ($currentServer) {
                         <span>CHANNELS</span>
                         <?php if (isset($isAdmin) && $isAdmin): ?>
                             <button class="add-channel-btn text-gray-400 hover:text-white" data-category="">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                </svg>
+                                <i class="fa-solid fa-plus h-4 w-4"></i>
                             </button>
                         <?php endif; ?>
                     </div>
@@ -94,18 +83,14 @@ if ($currentServer) {
                             <?php if ($channel['type'] === 'text'): ?>
                                 <span class="text-gray-400 mr-2">#</span>
                             <?php else: ?>
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                                </svg>
+                                <i class="fa-solid fa-microphone mr-1 text-gray-400 h-4 w-4"></i>
                             <?php endif; ?>
                             
 
                             <span class="truncate channel-name"><?php echo htmlspecialchars($channel['name']); ?></span>
                             
                             <?php if (!empty($channel['is_private'])): ?>
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 ml-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                                </svg>
+                                <i class="fa-solid fa-lock ml-1 text-gray-400 h-3 w-3"></i>
                             <?php endif; ?>
                         </div>
                     <?php endforeach; ?>
@@ -120,15 +105,11 @@ if ($currentServer) {
                         <div class="flex items-center">
                             <?php if (isset($isAdmin) && $isAdmin): ?>
                                 <button class="add-channel-btn text-gray-400 hover:text-white mr-1" data-category="<?php echo $category['id']; ?>">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                    </svg>
+                                    <i class="fa-solid fa-plus h-3 w-3"></i>
                                 </button>
                             <?php endif; ?>
                             <button class="category-collapse-btn">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 category-arrow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                                </svg>
+                                <i class="fa-solid fa-chevron-down h-3 w-3 category-arrow"></i>
                             </button>
                         </div>
                     </div>
@@ -146,17 +127,13 @@ if ($currentServer) {
                                 <?php if ($channel['type'] === 'text'): ?>
                                     <span class="text-gray-400 mr-2">#</span>
                                 <?php else: ?>
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                                    </svg>
+                                    <i class="fa-solid fa-microphone mr-1 text-gray-400 h-4 w-4"></i>
                                 <?php endif; ?>
                                 
                                 <span class="truncate channel-name"><?php echo htmlspecialchars($channel['name']); ?></span>
                                 
                                 <?php if (!empty($channel['is_private'])): ?>
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 ml-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                                    </svg>
+                                    <i class="fa-solid fa-lock ml-1 text-gray-400 h-3 w-3"></i>
                                 <?php endif; ?>
                             </div>
                         <?php endforeach; ?>
@@ -174,29 +151,27 @@ if ($currentServer) {
     <div class="user-profile-section h-14 bg-[#292B2F] flex items-center px-2 border-t border-gray-900">
         <div class="flex items-center px-2">
             <div class="relative mr-3">
-                <img src="<?php echo asset('/landing-page/green-egg.webp'); ?>" alt="<?php echo $_SESSION['username']; ?>'s Avatar" class="w-8 h-8 rounded-full">
+                <?php
+                $avatarUrl = isset($_SESSION['avatar_url']) && !empty($_SESSION['avatar_url']) 
+                    ? $_SESSION['avatar_url'] 
+                    : asset('/images/default-avatar.png');
+                ?>
+                <img src="<?php echo htmlspecialchars($avatarUrl); ?>" alt="<?php echo htmlspecialchars($_SESSION['username']); ?>'s Avatar" class="w-8 h-8 rounded-full object-cover">
                 <div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#292B2F]"></div>
             </div>
             <div class="flex-grow">
-                <div class="text-white font-medium text-sm"><?php echo $_SESSION['username']; ?></div>
-                <div class="text-gray-400 text-xs">#<?php echo substr(md5($_SESSION['user_id']), 0, 4); ?></div>
+                <div class="text-white font-medium text-sm"><?php echo htmlspecialchars($_SESSION['username']); ?></div>
+                <div class="text-gray-400 text-xs">#<?php echo $_SESSION['user_id']; ?></div>
             </div>
             <div class="flex space-x-1">
                 <button class="text-gray-400 hover:text-white p-1 rounded">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                    </svg>
+                    <i class="fa-solid fa-microphone h-5 w-5"></i>
                 </button>
                 <button class="text-gray-400 hover:text-white p-1 rounded">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15.536a5 5 0 01.001-7.072m12.728 0a9 9 0 00-12.728 0" />
-                    </svg>
+                    <i class="fa-solid fa-headphones h-5 w-5"></i>
                 </button>
                 <button class="text-gray-400 hover:text-white p-1 rounded">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
+                    <i class="fa-solid fa-gear h-5 w-5"></i>
                 </button>
             </div>
         </div>
@@ -209,9 +184,7 @@ if ($currentServer) {
         <div class="flex justify-between items-center mb-6">
             <h3 class="text-xl font-bold text-white">Create Channel</h3>
             <button id="closeChannelModalBtn" class="text-gray-400 hover:text-white">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <i class="fa-solid fa-xmark h-6 w-6"></i>
             </button>
         </div>
         
@@ -295,9 +268,7 @@ if ($currentServer) {
         <div class="flex justify-between items-center mb-6">
             <h3 class="text-xl font-bold text-white">Create Category</h3>
             <button id="closeCategoryModalBtn" class="text-gray-400 hover:text-white">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <i class="fa-solid fa-xmark h-6 w-6"></i>
             </button>
         </div>
         
@@ -506,10 +477,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Disable button and show loading state
             submitBtn.disabled = true;
             submitBtn.innerHTML = `
-                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
+                <i class="fa-solid fa-spinner fa-spin -ml-1 mr-3 h-5 w-5 text-white inline-block"></i>
                 Creating...
             `;
 
@@ -559,10 +527,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Disable button and show loading state
             submitBtn.disabled = true;
             submitBtn.innerHTML = `
-                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
+                <i class="fa-solid fa-spinner fa-spin -ml-1 mr-3 h-5 w-5 text-white inline-block"></i>
                 Creating...
             `;
 

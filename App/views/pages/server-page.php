@@ -12,7 +12,7 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-$page_title = 'MiscVord - Server';
+$page_title = 'misvord - Server';
 $body_class = 'bg-gray-900 text-white overflow-hidden';
 $page_css = 'server-page';
 $page_js = 'server-page';

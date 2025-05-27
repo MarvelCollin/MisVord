@@ -520,11 +520,11 @@ function initLiveChatSimulation() {
         let avatar = '';
 
         if (lowerMessage.includes('hello') || lowerMessage.includes('hi') || lowerMessage.includes('hey')) {
-            response = 'Hello there! Welcome to MiscVord! 👋';
+            response = 'Hello there! Welcome to misvord! 👋';
             author = 'WelcomeBot';
             avatar = 'linear-gradient(135deg, #00D2FF, #3A7BD5)';
         } else if (lowerMessage.includes('help') || lowerMessage.includes('support')) {
-            response = 'I\'m here to help! What would you like to know about MiscVord? 🤔';
+            response = 'I\'m here to help! What would you like to know about misvord? 🤔';
             author = 'HelpBot';
             avatar = 'linear-gradient(135deg, #667eea, #764ba2)';
         } else if (lowerMessage.includes('game') || lowerMessage.includes('gaming') || lowerMessage.includes('play')) {
@@ -532,7 +532,7 @@ function initLiveChatSimulation() {
             author = 'GameBot';
             avatar = 'linear-gradient(135deg, #f093fb, #f5576c)';
         } else if (lowerMessage.includes('awesome') || lowerMessage.includes('cool') || lowerMessage.includes('nice')) {
-            response = 'Thanks! We\'re glad you\'re enjoying MiscVord! ✨';
+            response = 'Thanks! We\'re glad you\'re enjoying misvord! ✨';
             author = 'Community';
             avatar = 'linear-gradient(135deg, #4facfe, #00f2fe)';
         } else if (lowerMessage.includes('music') || lowerMessage.includes('song')) {

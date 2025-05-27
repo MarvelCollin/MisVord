@@ -28,7 +28,7 @@ $config = VideoSDKConfig::getFrontendConfig();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MiscVord - Video Call</title>
+    <title>misvord - Video Call</title>
     <style>
         * {
             margin: 0;
@@ -293,7 +293,7 @@ $config = VideoSDKConfig::getFrontendConfig();
     <?php if (!$meetingId): ?>
         <!-- Join/Create Meeting Form -->
         <div class="join-form">
-            <h2>🎥 MiscVord Call</h2>
+            <h2>🎥 misvord Call</h2>
             
             <?php if (isset($error)): ?>
                 <div class="error"><?php echo htmlspecialchars($error); ?></div>
@@ -396,8 +396,8 @@ $config = VideoSDKConfig::getFrontendConfig();
                 
                 branding: {
                     enabled: true,
-                    logoURL: "https://via.placeholder.com/150x50/667eea/ffffff?text=MiscVord",
-                    name: "MiscVord",
+                    logoURL: "<?php echo asset('/images/main-logo.png'); ?>",
+                    name: "misvord",
                     poweredBy: false
                 },
                 

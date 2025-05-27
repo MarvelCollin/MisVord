@@ -14,7 +14,7 @@ function asset($path) {
     $basePath = '';
 
     if (php_sapi_name() === 'cli' || $host === 'localhost' || strpos($host, '127.0.0.1') !== false) {
-        $basePath = '/MiscVord';
+        $basePath = '/misvord';
     }
 
     if (strpos($host, 'marvelcollin.my.id') !== false) {
