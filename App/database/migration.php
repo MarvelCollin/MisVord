@@ -15,7 +15,7 @@ class Migration {
     protected $uniqueIndexes = [];
     protected $fulltextIndexes = [];
     protected $spatialIndexes = [];
-    // Track nullable status for columns
+
     protected $lastColumn = null;
 
     public function __construct($pdo = null) {
@@ -23,15 +23,13 @@ class Migration {
             $this->pdo = $pdo;
         } else {
             try {
-                // Use the EnvLoader to get database connection
+
                 require_once __DIR__ . '/../config/env.php';
                 $this->pdo = EnvLoader::getPDOConnection();
 
-                // Set default engine and charset from config
                 $charset = EnvLoader::get('DB_CHARSET', 'utf8mb4');
                 $this->charset = $charset;
 
-                // Default collation for utf8mb4
                 if ($charset === 'utf8mb4') {
                     $this->collation = 'utf8mb4_unicode_ci';
                 }
@@ -96,7 +94,7 @@ class Migration {
         $sql = $this->buildCreateTableSQL();
         return $this->pdo->exec($sql);
     }
-    
+
     public function createTableWithoutForeignKeys($tableName, callable $callback) {
         $this->tableName = $tableName;
         $this->columns = [];
@@ -203,17 +201,12 @@ class Migration {
         return $this->pdo->exec($sql);
     }
 
-    /**
-     * Set the last column definition as nullable
-     * 
-     * @return $this
-     */
     public function nullable() {
         if ($this->lastColumn !== null) {
-            // Find the last column and add NULL to it
+
             $columnIndex = count($this->columns) - 1;
             if ($columnIndex >= 0) {
-                // Replace NOT NULL with NULL in the column definition
+
                 $column = $this->columns[$columnIndex];
                 $column = str_replace('NOT NULL', 'NULL', $column);
                 $this->columns[$columnIndex] = $column;
@@ -222,14 +215,6 @@ class Migration {
         return $this;
     }
 
-    /**
-     * Add integer column
-     * 
-     * @param string $name Column name
-     * @param bool $autoIncrement Whether to auto-increment
-     * @param bool $unsigned Whether the integer is unsigned
-     * @return $this
-     */
     public function integer($name, $autoIncrement = false, $unsigned = false) {
         $type = $unsigned ? 'INT UNSIGNED' : 'INT';
         $ai = $autoIncrement ? ' AUTO_INCREMENT' : '';
@@ -266,12 +251,12 @@ class Migration {
         $this->columns[] = "`$name` TINYINT(1) $nullable DEFAULT 0";
         return $this;
     }
-    
+
     public function default($value) {
         if (!empty($this->columns)) {
             $lastIndex = count($this->columns) - 1;
             $lastColumn = $this->columns[$lastIndex];
-            
+
             if (is_bool($value)) {
                 $formattedValue = $value ? '1' : '0';
             } elseif (is_null($value)) {
@@ -281,10 +266,10 @@ class Migration {
             } else {
                 $formattedValue = $value;
             }
-            
+
             $this->columns[$lastIndex] = $lastColumn . " DEFAULT " . $formattedValue;
         }
-        
+
         return $this;
     }
 
@@ -318,20 +303,19 @@ class Migration {
         return $this;
     }
 
- 
     public function index($columns, $name = null) {
         if (!is_array($columns)) {
             $columns = [$columns];
         }
-        
+
         if ($name === null) {
             $name = $this->tableName . '_' . implode('_', $columns) . '_idx';
         }
-        
+
         $columnStr = implode('`, `', $columns);
-        
+
         $this->indexes[] = "INDEX `$name` (`$columnStr`)";
-        
+
         return $this;
     }
 
@@ -392,9 +376,9 @@ class Migration {
                 `created_at` TIMESTAMP NULL DEFAULT NULL,
                 `updated_at` TIMESTAMP NULL DEFAULT NULL
             )";
-            
+
             $result = $this->pdo->exec($sql);
-            
+
             try {
                 $stmt = $this->pdo->prepare("SELECT 1 FROM migrations LIMIT 1");
                 $stmt->execute();
@@ -437,7 +421,6 @@ class Migration {
         }
     }
 
-    
     public function id() {
         $this->columns[] = "`id` INT AUTO_INCREMENT PRIMARY KEY";
         $this->lastColumn = 'id';
@@ -514,7 +497,7 @@ class MigrationRunner {
             $file = $info['path'];
             include_once $file;
         }
-        
+
         $this->pdo->exec("SET FOREIGN_KEY_CHECKS = 0");
         echo "Foreign key checks disabled for migration process\n";
 
@@ -549,7 +532,7 @@ class MigrationRunner {
                 echo "⨯ Class '$className' not found after loading file {$info['path']}\n";
             }
         }
-        
+
         $this->pdo->exec("SET FOREIGN_KEY_CHECKS = 1");
         echo "Foreign key checks re-enabled\n";
 
@@ -560,9 +543,9 @@ class MigrationRunner {
     public function fresh() {
         try {
             $this->dropAllTables();
-            
+
             $this->run();
-            
+
             echo "----------------------------------------\n";
             echo "Database refreshed successfully.\n";
         } catch (Exception $e) {
@@ -582,7 +565,7 @@ class MigrationRunner {
                 echo "No tables found in the database.\n";
             } else {
                 echo "Found " . count($tables) . " tables to drop.\n";
-                
+
                 foreach ($tables as $table) {
                     echo "Dropping table: $table\n";
                     $this->pdo->exec("DROP TABLE IF EXISTS `$table`");
@@ -615,25 +598,25 @@ class MigrationRunner {
 
             $batchNumbers = array_keys($batches);
             rsort($batchNumbers);
-            
+
             if ($steps > count($batchNumbers)) {
                 echo "Warning: You requested to rollback {$steps} batches, but only " . count($batchNumbers) . " exist.\n";
                 $steps = count($batchNumbers);
             }
-            
+
             $batchesToRollback = array_slice($batchNumbers, 0, $steps);
-            
+
             if (empty($batchesToRollback)) {
                 echo "No migrations to roll back.\n";
                 return;
             }
 
             $migrationMap = $this->loadMigrationMap();
-            
+
             foreach ($batchesToRollback as $batch) {
                 echo "Rolling back batch {$batch}...\n";
                 echo "----------------------------------------\n";
-                
+
                 $migrations = $batches[$batch];
                 usort($migrations, function($a, $b) {
                     return strcmp($b['migration'], $a['migration']);
@@ -641,34 +624,34 @@ class MigrationRunner {
 
                 foreach ($migrations as $migration) {
                     $migrationName = $migration['migration'];
-                    
+
                     if (!isset($migrationMap[$migrationName])) {
                         echo "⨯ Migration file for '{$migrationName}' not found. Skipping.\n";
                         continue;
                     }
-                    
+
                     $info = $migrationMap[$migrationName];
                     $className = $info['class'];
                     $file = $info['path'];
-                    
+
                     if (file_exists($file)) {
                         require_once $file;
-                        
+
                         if (class_exists($className)) {
                             $migrationObj = new $className();
                             echo "Rolling back: {$migrationName} (using class {$className})\n";
-                            
+
                             try {
                                 if (method_exists($migrationObj, 'down')) {
                                     $startTime = microtime(true);
-                                    
+
                                     $migrationObj->down($this->migration);
-                                    
+
                                     $endTime = microtime(true);
                                     $executionTime = round(($endTime - $startTime), 2);
-                                    
+
                                     $this->migration->removeMigration($migrationName);
-                                    
+
                                     echo "✓ Rolled back: {$migrationName} ({$executionTime}s)\n";
                                 } else {
                                     echo "⨯ Method 'down' not found in class {$className}\n";
@@ -692,15 +675,14 @@ class MigrationRunner {
         }
     }
 
-    
     private function loadMigrationMap() {
         $connectorFile = $this->migrationsPath . '/connector.php';
-        
+
         if (!file_exists($connectorFile)) {
             echo "Error: Migration connector file not found at {$connectorFile}\n";
             return [];
         }
-        
+
         try {
             $map = require $connectorFile;
             return is_array($map) ? $map : [];

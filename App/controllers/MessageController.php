@@ -11,46 +11,46 @@ class MessageController {
         if (session_status() == PHP_SESSION_NONE) {
             session_start();
         }
-        
+
         Message::initialize();
     }
-    
+
     public function getMessages($channelId) {
         error_log("MessageController::getMessages called with channelId=$channelId");
-        
+
         if (!isset($_SESSION['user_id'])) {
             error_log("MessageController: Unauthorized - no user_id in session");
             $this->jsonResponse(['success' => false, 'message' => 'Unauthorized'], 401);
             return;
         }
-        
+
         error_log("MessageController: User authenticated with ID=" . $_SESSION['user_id']);
-        
+
         $channel = Channel::find($channelId);
         if (!$channel) {
             error_log("MessageController: Channel not found with ID=$channelId");
             $this->jsonResponse(['success' => false, 'message' => 'Channel not found'], 404);
             return;
         }
-        
+
         $membership = UserServerMembership::findByUserAndServer($_SESSION['user_id'], $channel->server_id);
         if (!$membership && $channel->server_id != 0) {
             error_log("MessageController: User " . $_SESSION['user_id'] . " is not a member of server " . $channel->server_id);
             $this->jsonResponse(['success' => false, 'message' => 'You are not a member of this server'], 403);
             return;
         }
-        
+
         $limit = $_GET['limit'] ?? 50;
         $offset = $_GET['offset'] ?? 0;
-        
+
         try {
             $messages = Message::getForChannel($channelId, $limit, $offset);
-            
+
             $formattedMessages = [];
             foreach ($messages as $message) {
                 $formattedMessages[] = $this->formatMessage($message);
             }
-            
+
             $this->jsonResponse([
                 'success' => true,
                 'channel_id' => $channelId,
@@ -64,31 +64,31 @@ class MessageController {
             ], 500);
         }
     }
-    
+
     public function createMessage($channelId) {
         error_log("MessageController::createMessage called with channelId=$channelId");
-        
+
         if (!isset($_SESSION['user_id'])) {
             $this->jsonResponse(['success' => false, 'message' => 'Unauthorized'], 401);
             return;
         }
-        
+
         $channel = Channel::find($channelId);
         if (!$channel) {
             error_log("MessageController: Channel not found with ID=$channelId");
             $this->jsonResponse(['success' => false, 'message' => 'Channel not found'], 404);
             return;
         }
-        
+
         $membership = UserServerMembership::findByUserAndServer($_SESSION['user_id'], $channel->server_id);
         if (!$membership && $channel->server_id != 0) {
             $this->jsonResponse(['success' => false, 'message' => 'You are not a member of this server'], 403);
             return;
         }
-        
+
         $rawInput = file_get_contents('php://input');
         $data = null;
-        
+
         if (!empty($rawInput)) {
             try {
                 $data = json_decode($rawInput, true, 512, JSON_THROW_ON_ERROR);
@@ -98,21 +98,21 @@ class MessageController {
                 return;
             }
         }
-        
+
         if ($data === null) {
             $data = $_POST;
         }
-        
+
         error_log("MessageController: Received data: " . json_encode($data));
-        
+
         if (empty($data['content'])) {
             $this->jsonResponse(['success' => false, 'message' => 'Message content is required'], 400);
             return;
         }
-        
+
         try {
             Message::initialize();
-            
+
             $message = new Message();
             $message->user_id = $_SESSION['user_id'];
             $message->content = $data['content'];
@@ -120,30 +120,30 @@ class MessageController {
             $message->message_type = 'text';
             $message->attachment_url = $data['attachment_url'] ?? null;
             $message->reply_message_id = $data['reply_message_id'] ?? null;
-            
+
             if (!$message->save()) {
                 error_log("MessageController: Failed to save message");
                 $this->jsonResponse(['success' => false, 'message' => 'Failed to create message'], 500);
                 return;
             }
-            
+
             error_log("MessageController: Message saved with ID=" . $message->id);
-            
+
             if (!$message->associateWithChannel($channelId)) {
                 error_log("MessageController: Failed to associate message with channel");
                 $message->delete();
                 $this->jsonResponse(['success' => false, 'message' => 'Failed to associate message with channel'], 500);
                 return;
             }
-            
+
             $user = User::find($_SESSION['user_id']);
             if ($user) {
                 $message->username = $user->username;
                 $message->avatar_url = $user->avatar_url;
             }
-            
+
             $formattedMessage = $this->formatMessage($message);
-            
+
             try {
                 $this->broadcastToWebSocket('message', [
                     'id' => $message->id,
@@ -160,7 +160,7 @@ class MessageController {
             } catch (Exception $e) {
                 error_log("Failed to broadcast to WebSocket server: " . $e->getMessage());
             }
-            
+
             $this->jsonResponse([
                 'success' => true, 
                 'message' => 'Message sent successfully',
@@ -171,38 +171,38 @@ class MessageController {
             $this->jsonResponse(['success' => false, 'message' => 'Server error: ' . $e->getMessage()], 500);
         }
     }
-    
+
     public function updateMessage($id) {
         if (!isset($_SESSION['user_id'])) {
             $this->jsonResponse(['success' => false, 'message' => 'Unauthorized'], 401);
             return;
         }
-        
+
         $message = Message::find($id);
         if (!$message) {
             $this->jsonResponse(['success' => false, 'message' => 'Message not found'], 404);
             return;
         }
-        
+
         if ($message->user_id != $_SESSION['user_id']) {
             $this->jsonResponse(['success' => false, 'message' => 'You can only edit your own messages'], 403);
             return;
         }
-        
+
         $data = json_decode(file_get_contents('php://input'), true);
         if (!$data) {
             $this->jsonResponse(['success' => false, 'message' => 'Invalid request data'], 400);
             return;
         }
-        
+
         try {
             if (isset($data['content'])) {
                 $message->content = $data['content'];
                 $message->edited_at = date('Y-m-d H:i:s');
-                
+
                 if ($message->save()) {
                     $formattedMessage = $this->formatMessage($message);
-                    
+
                     try {
                         $this->broadcastToWebSocket('message_updated', [
                             'id' => $message->id,
@@ -216,7 +216,7 @@ class MessageController {
                     } catch (Exception $e) {
                         error_log("Failed to broadcast message update to WebSocket: " . $e->getMessage());
                     }
-                    
+
                     $this->jsonResponse([
                         'success' => true, 
                         'message' => 'Message updated successfully',
@@ -232,24 +232,24 @@ class MessageController {
             $this->jsonResponse(['success' => false, 'message' => 'Server error: ' . $e->getMessage()], 500);
         }
     }
-    
+
     public function deleteMessage($id) {
         if (!isset($_SESSION['user_id'])) {
             $this->jsonResponse(['success' => false, 'message' => 'Unauthorized'], 401);
             return;
         }
-        
+
         $message = Message::find($id);
         if (!$message) {
             $this->jsonResponse(['success' => false, 'message' => 'Message not found'], 404);
             return;
         }
-        
+
         if ($message->user_id != $_SESSION['user_id'] && !isset($_SESSION['is_admin'])) {
             $this->jsonResponse(['success' => false, 'message' => 'You can only delete your own messages'], 403);
             return;
         }
-        
+
         try {
             if ($message->delete()) {
                 try {
@@ -260,7 +260,7 @@ class MessageController {
                 } catch (Exception $e) {
                     error_log("Failed to broadcast message deletion to WebSocket: " . $e->getMessage());
                 }
-                
+
                 $this->jsonResponse([
                     'success' => true, 
                     'message' => 'Message deleted successfully'
@@ -272,7 +272,7 @@ class MessageController {
             $this->jsonResponse(['success' => false, 'message' => 'Server error: ' . $e->getMessage()], 500);
         }
     }
-    
+
     private function broadcastToWebSocket($event, $data) {
         try {
             $client = new WebSocketClient();
@@ -282,7 +282,7 @@ class MessageController {
             return false;
         }
     }
-    
+
     private function formatMessage($message) {
         if (is_array($message)) {
             $formattedMessage = [
@@ -300,15 +300,15 @@ class MessageController {
                     'avatar_url' => $message['avatar_url'] ?? null
                 ]
             ];
-            
+
             return $formattedMessage;
         }
-        
+
         $user = null;
         if (!isset($message->username)) {
             $user = $message->user();
         }
-        
+
         return [
             'id' => $message->id,
             'content' => $message->content,
@@ -325,17 +325,17 @@ class MessageController {
             ]
         ];
     }
-    
+
     private function formatTime($time) {
         if (empty($time)) {
             return 'Just now';
         }
-        
+
         $sentAt = new DateTime($time);
         $now = new DateTime();
-        
+
         $diff = $now->diff($sentAt);
-        
+
         if ($diff->days == 0) {
             return 'Today at ' . $sentAt->format('g:i A');
         } elseif ($diff->days == 1) {
@@ -346,7 +346,7 @@ class MessageController {
             return $sentAt->format('M j, Y') . ' at ' . $sentAt->format('g:i A');
         }
     }
-    
+
     private function jsonResponse($data, $status = 200) {
         http_response_code($status);
         header('Content-Type: application/json');

@@ -1,5 +1,4 @@
 <?php
-// Fallback router file for the public directory
 
 if (!defined('APP_ROOT')) {
     define('APP_ROOT', dirname(__DIR__));
@@ -12,17 +11,15 @@ if (session_status() === PHP_SESSION_NONE) {
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-// Enable detailed error logging
 error_log("Public router processing request: " . $_SERVER['REQUEST_URI']);
 error_log("Script Name: " . $_SERVER['SCRIPT_NAME']);
 error_log("Document Root: " . $_SERVER['DOCUMENT_ROOT']);
 
-// Check if this is a static file request
 if (preg_match('/\\.(?:css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|webp|map)$/', $_SERVER["REQUEST_URI"])) {
     $requestFile = parse_url($_SERVER["REQUEST_URI"], PHP_URL_PATH);
     $requestFile = ltrim($requestFile, '/');
     $extension = pathinfo($requestFile, PATHINFO_EXTENSION);
-    
+
     $contentTypes = [
         'css' => 'text/css',
         'js' => 'application/javascript',
@@ -38,47 +35,41 @@ if (preg_match('/\\.(?:css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|webp|map)$
         'webp' => 'image/webp',
         'map' => 'application/json'
     ];
-    
+
     if (isset($contentTypes[$extension])) {
         header('Content-Type: ' . $contentTypes[$extension]);
     }
 
-    // Check common static file locations
     $searchPaths = [
-        __DIR__ . '/',                  // For files in public
-        dirname(__DIR__) . '/public/',  // For main public directory
-        dirname(__DIR__) . '/',         // For direct root access
+        __DIR__ . '/',                  
+        dirname(__DIR__) . '/public/',  
+        dirname(__DIR__) . '/',         
     ];
-    
+
     error_log("Looking for file: " . $requestFile);
-    
+
     foreach ($searchPaths as $basePath) {
         $filePath = $basePath . $requestFile;
         error_log("Checking path: " . $filePath);
-        
+
         if (file_exists($filePath)) {
             error_log("Found file at: " . $filePath);
             readfile($filePath);
             exit;
         }
     }
-    
-    // If we get here, file was not found
+
     header("HTTP/1.0 404 Not Found");
     exit("Static file not found: {$requestFile}");
 }
 
-// Log important request information
 error_log("[" . date("Y-m-d H:i:s") . "] " . $_SERVER['REQUEST_METHOD'] . " request to " . $_SERVER['REQUEST_URI']);
 
-
-
-// Route handling via web.php
 $webConfigPath = dirname(__DIR__) . '/config/web.php';
 if (file_exists($webConfigPath)) {
     error_log("Loading web.php configuration from: " . $webConfigPath);
     require_once $webConfigPath;
-    exit; // This line ensures the router exits after handling the route
+    exit; 
 } else {
     error_log("Fatal error: Cannot find web.php configuration file at: " . $webConfigPath);
     http_response_code(500);
@@ -86,7 +77,5 @@ if (file_exists($webConfigPath)) {
     exit;
 }
 
-// This line should never be reached as we always exit above,
-// but just in case, return a 404
 http_response_code(404);
-echo "Page not found"; 
+echo "Page not found";

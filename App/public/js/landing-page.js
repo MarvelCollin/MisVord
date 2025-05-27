@@ -1,79 +1,79 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize all components
+
     initNavigation();
     initScrollAnimations();
     initHeroAnimations();
     initMockupAnimations();
     initLiveChatSimulation();
     initInteractiveElements();
-    
-    // Initialize scramble text after a delay to ensure elements are visible
+
     setTimeout(() => {
         initScrambleText();
-    }, 300); // Reduced from 500ms
+    }, 300); 
 });
 
-// Modern Navigation with scroll effects
 function initNavigation() {
     const nav = document.getElementById('mainNav');
     const navToggle = document.getElementById('navToggle');
-    const navLinks = document.querySelector('.nav-links');
-    
-    // Scroll effect for navigation
-    let lastScrollY = window.scrollY;
-    
-    window.addEventListener('scroll', () => {
-        const currentScrollY = window.scrollY;
-        
-        if (currentScrollY > 100) {
-            nav.classList.add('scrolled');
-        } else {
-            nav.classList.remove('scrolled');
-        }
-        
-        // Hide/show nav on scroll direction
-        if (currentScrollY > lastScrollY && currentScrollY > 500) {
-            nav.style.transform = 'translateY(-100%)';
-        } else {
-            nav.style.transform = 'translateY(0)';
-        }
-        
-        lastScrollY = currentScrollY;
-    });
-    
+    const navLinks = document.getElementById('navLinks');
+
+    // Simple scroll-based navbar styling
+    if (nav) {
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 50) {
+                nav.classList.add('scrolled');
+            } else {
+                nav.classList.remove('scrolled');
+            }
+        });
+    }
+
     // Mobile menu toggle
     if (navToggle && navLinks) {
         navToggle.addEventListener('click', () => {
             navLinks.classList.toggle('active');
-            navToggle.classList.toggle('active');
         });
     }
-    
-    // Smooth scroll for navigation links
-    document.querySelectorAll('.nav-link').forEach(link => {
-        link.addEventListener('click', (e) => {
-            const href = link.getAttribute('href');
-            if (href.startsWith('#')) {
-                e.preventDefault();
-                const target = document.querySelector(href);
-                if (target) {
-                    target.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
-                }
+
+    // Close mobile menu when clicking on links
+    const links = document.querySelectorAll('.nav-link');
+    links.forEach(link => {
+        link.addEventListener('click', () => {
+            if (navLinks.classList.contains('active')) {
+                navLinks.classList.remove('active');
+            }
+            
+            // Update active state
+            links.forEach(l => l.classList.remove('active'));
+            link.classList.add('active');
+        });
+    });
+
+    // Mark active section based on scroll position
+    window.addEventListener('scroll', () => {
+        // This is simplified and only marks the current section based on scroll position
+        const sections = document.querySelectorAll('section[id]');
+        let scrollPosition = window.scrollY + 100;
+
+        sections.forEach(section => {
+            if (section.offsetTop <= scrollPosition && 
+                (section.offsetTop + section.offsetHeight > scrollPosition)) {
+                const id = section.getAttribute('id');
+                document.querySelector(`.nav-link[href="#${id}"]`)?.classList.add('active');
+            } else {
+                const id = section.getAttribute('id');
+                document.querySelector(`.nav-link[href="#${id}"]`)?.classList.remove('active');
             }
         });
     });
 }
 
-// Scroll reveal animations
 function initScrollAnimations() {
     const observerOptions = {
         threshold: 0.1,
         rootMargin: '0px 0px -50px 0px'
     };
-    
+
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
@@ -82,29 +82,26 @@ function initScrollAnimations() {
             }
         });
     }, observerOptions);
-    
-    // Observe all elements with scroll-reveal class
+
     document.querySelectorAll('.scroll-reveal').forEach(element => {
         observer.observe(element);
     });
 }
 
-// Hero section animations
 function initHeroAnimations() {
-    // Animate floating elements
+
     const floatingElements = document.querySelectorAll('.floating-element');
-    
+
     floatingElements.forEach((element, index) => {
-        // Add random delay and different animation speeds
+
         element.style.animationDelay = `${index * 0.5}s`;
         element.style.animationDuration = `${6 + index * 2}s`;
-        
-        // Add interactive hover effects
+
         element.addEventListener('mouseenter', () => {
             element.style.transform = 'scale(1.2) translateY(-10px)';
             element.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
         });
-        
+
         element.addEventListener('mouseleave', () => {
             element.style.transform = '';
             element.style.transition = '';
@@ -112,24 +109,22 @@ function initHeroAnimations() {
     });
 }
 
-// Discord mockup animations - FIXED: Added missing function
 function initMockupAnimations() {
     const mockup = document.querySelector('.discord-mockup');
-    
+
     if (!mockup) return;
-    
-    // Add 3D tilt effect to mockup
+
     mockup.addEventListener('mousemove', (e) => {
         const rect = mockup.getBoundingClientRect();
         const centerX = rect.left + rect.width / 2;
         const centerY = rect.top + rect.height / 2;
-        
+
         const deltaX = (e.clientX - centerX) / (rect.width / 2);
         const deltaY = (e.clientY - centerY) / (rect.height / 2);
-        
-        const rotateX = deltaY * -10; // Max 10 degrees
+
+        const rotateX = deltaY * -10; 
         const rotateY = deltaX * 10;
-        
+
         mockup.style.transform = `
             perspective(1000px) 
             rotateX(${rotateX}deg) 
@@ -137,7 +132,7 @@ function initMockupAnimations() {
             translateZ(0)
         `;
     });
-    
+
     mockup.addEventListener('mouseleave', () => {
         mockup.style.transform = '';
         mockup.style.transition = 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
@@ -147,48 +142,43 @@ function initMockupAnimations() {
     });
 }
 
-// Revolutionary scramble text animation with enhanced effects - FIXED: Hidden start
 function initScrambleText() {
     const scrambleElements = document.querySelectorAll('.scramble-text');
-    
+
     scrambleElements.forEach(element => {
         const originalText = element.dataset.text || element.textContent;
         const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?▓▒░█▄▀◤◥◢◣";
-        
-        // Start completely hidden
+
         element.style.color = 'transparent';
         element.style.opacity = '0';
         element.innerHTML = '';
-        
+
         const spans = [];
-        
-        // Create character spans all starting hidden
+
         for (let i = 0; i < originalText.length; i++) {
             const span = document.createElement('span');
             span.className = 'char';
             span.style.color = 'transparent';
             span.style.opacity = '0';
             span.style.animationDelay = `${i * 0.05}s`;
-            
+
             if (originalText[i] === ' ') {
                 span.innerHTML = '&nbsp;';
                 span.classList.add('space');
-                span.style.opacity = '1'; // Spaces are always visible
+                span.style.opacity = '1'; 
             } else {
                 span.textContent = originalText[i];
                 span.dataset.finalChar = originalText[i];
                 span.dataset.charIndex = i;
             }
-            
+
             element.appendChild(span);
             spans.push(span);
         }
-        
-        // Mark as initialized and start animation
+
         element.classList.add('initialized');
         element.style.opacity = '1';
-        
-        // Start enhanced scramble animation
+
         setTimeout(() => {
             startEnhancedScrambleAnimation(spans, chars, originalText);
         }, 800);
@@ -197,55 +187,51 @@ function initScrambleText() {
 
 function startEnhancedScrambleAnimation(spans, chars, originalText) {
     let counter = 0;
-    const totalDuration = 1500; // Reduced from 2500ms for much faster appearance
-    const interval = 50; // Slightly slower for smoother effect
+    const totalDuration = 1500; 
+    const interval = 50; 
     const totalSteps = totalDuration / interval;
-    
+
     const scrambleInterval = setInterval(() => {
         counter++;
         const progress = counter / totalSteps;
         const revealCount = Math.floor(progress * spans.length);
-        
+
         spans.forEach((span, index) => {
             if (span.classList.contains('space')) return;
-            
+
             if (index < revealCount && !span.classList.contains('revealed')) {
-                // Reveal this character with simplified effect
+
                 span.textContent = span.dataset.finalChar;
                 span.classList.remove('scrambling');
                 span.classList.add('revealed');
                 span.style.color = 'var(--discord-white)';
                 span.style.opacity = '1';
                 span.style.transform = '';
-                
-                // Simplified sparkle effect - only on important characters
-                if (index % 3 === 0) { // Only every 3rd character gets sparkle
+
+                if (index % 3 === 0) { 
                     createSimpleSparkle(span);
                 }
-                
+
             } else if (index >= revealCount) {
-                // Much reduced scrambling frequency
-                if (counter % 3 === 0) { // Only scramble every 3rd frame
+
+                if (counter % 3 === 0) { 
                     const randomChar = chars[Math.floor(Math.random() * chars.length)];
                     span.textContent = randomChar;
                     span.classList.add('scrambling');
                     span.style.opacity = '1';
-                    
-                    // Simplified color shifting
+
                     const hue = (index * 30 + counter * 5) % 360;
                     span.style.color = `hsl(${hue}, 70%, 60%)`;
-                    
-                    // Minimal transform
+
                     const scale = 0.95 + Math.sin(counter * 0.3 + index) * 0.1;
                     span.style.transform = `scale(${scale})`;
                 }
             }
         });
-        
+
         if (progress >= 1) {
             clearInterval(scrambleInterval);
-            
-            // Ensure all characters are revealed and start floating
+
             spans.forEach((span, index) => {
                 if (!span.classList.contains('space')) {
                     span.textContent = span.dataset.finalChar;
@@ -254,35 +240,31 @@ function startEnhancedScrambleAnimation(spans, chars, originalText) {
                     span.style.transform = '';
                     span.classList.remove('scrambling');
                     span.classList.add('floating');
-                    
-                    // Apply floating animation with staggered delays
+
                     setTimeout(() => {
                         span.style.animation = `charFloat 6s ease-in-out infinite`;
                         span.style.animationDelay = `${index * 0.1}s`;
-                    }, index * 50); // Staggered start
+                    }, index * 50); 
                 }
             });
-            
-            // Initialize hover effects faster
+
             setTimeout(() => {
                 initAdvancedHoverEffects(spans, chars);
-            }, 500); // Reduced delay
-            
-            // Start random character scrambling much later
+            }, 500); 
+
             setTimeout(() => {
                 initRandomCharacterScrambling(spans, chars);
-            }, 3000); // Increased delay so it's less frequent
+            }, 3000); 
         }
     }, interval);
 }
 
-// Simplified sparkle function
 function createSimpleSparkle(element) {
     const sparkle = document.createElement('div');
-    const size = 1 + Math.random() * 2; // Smaller sparkles
+    const size = 1 + Math.random() * 2; 
     const colors = ['var(--discord-blue)', 'var(--discord-green)'];
     const color = colors[Math.floor(Math.random() * colors.length)];
-    
+
     sparkle.style.cssText = `
         position: absolute;
         top: ${40 + Math.random() * 20}%;
@@ -292,13 +274,13 @@ function createSimpleSparkle(element) {
         background: ${color};
         border-radius: 50%;
         pointer-events: none;
-        animation: simpleSparkleEffect 0.4s ease-out; // Much faster
+        animation: simpleSparkleEffect 0.4s ease-out; 
         z-index: 100;
     `;
-    
+
     element.style.position = 'relative';
     element.appendChild(sparkle);
-    
+
     setTimeout(() => {
         if (sparkle.parentNode) {
             sparkle.remove();
@@ -306,90 +288,87 @@ function createSimpleSparkle(element) {
     }, 400);
 }
 
-// New function for random character scrambling with reduced frequency
 function initRandomCharacterScrambling(spans, chars) {
     const nonSpaceSpans = spans.filter(span => !span.classList.contains('space'));
-    
+
     function scrambleRandomCharacter() {
         if (nonSpaceSpans.length === 0) return;
-        
+
         const randomIndex = Math.floor(Math.random() * nonSpaceSpans.length);
         const targetSpan = nonSpaceSpans[randomIndex];
-        
+
         if (targetSpan._isAnimating || targetSpan.matches(':hover')) {
             scheduleNextRandomScramble();
             return;
         }
-        
+
         const originalChar = targetSpan.dataset.finalChar;
         let scrambleCount = 0;
-        const maxScrambles = 1 + Math.floor(Math.random() * 2); // Reduced to 1-2 scrambles
-        
+        const maxScrambles = 1 + Math.floor(Math.random() * 2); 
+
         targetSpan._isAnimating = true;
         targetSpan.classList.add('random-scramble');
-        
+
         const randomScrambleInterval = setInterval(() => {
             if (scrambleCount < maxScrambles) {
                 const randomChar = chars[Math.floor(Math.random() * chars.length)];
                 targetSpan.textContent = randomChar;
-                
+
                 const colors = ['var(--discord-blue)', 'var(--discord-green)'];
                 targetSpan.style.color = colors[scrambleCount % colors.length];
-                
-                const scale = 1 + (scrambleCount / maxScrambles) * 0.1; // Much smaller scale
+
+                const scale = 1 + (scrambleCount / maxScrambles) * 0.1; 
                 targetSpan.style.transform = `scale(${scale})`;
-                
+
                 scrambleCount++;
             } else {
                 clearInterval(randomScrambleInterval);
-                
+
                 targetSpan.textContent = originalChar;
                 targetSpan.style.color = 'var(--discord-white)';
                 targetSpan.style.transform = '';
                 targetSpan.classList.remove('random-scramble');
                 targetSpan._isAnimating = false;
             }
-        }, 150); // Slower for fewer scrambles
-        
+        }, 150); 
+
         scheduleNextRandomScramble();
     }
-    
+
     function scheduleNextRandomScramble() {
-        // Much longer intervals between scrambles (5-12 seconds)
+
         const nextDelay = 5000 + Math.random() * 7000;
         setTimeout(scrambleRandomCharacter, nextDelay);
     }
-    
-    // Start the random scrambling cycle
+
     scheduleNextRandomScramble();
 }
 
-// Simplified hover effects
 function initAdvancedHoverEffects(spans, chars) {
     spans.forEach((span, index) => {
         if (span.classList.contains('space')) return;
-        
+
         span.addEventListener('mouseenter', function() {
             if (this._isAnimating) return;
             this._isAnimating = true;
-            
+
             const originalChar = this.dataset.finalChar;
             let scrambleCount = 0;
-            const maxScrambles = 2; // Reduced from 3
-            
+            const maxScrambles = 2; 
+
             this.style.animationPlayState = 'paused';
-            
+
             const hoverScramble = setInterval(() => {
                 if (scrambleCount < maxScrambles) {
                     const hoverChars = chars + '★☆';
                     this.textContent = hoverChars[Math.floor(Math.random() * hoverChars.length)];
-                    
-                    const hue = 120 + (scrambleCount / maxScrambles) * 60; // Reduced range
+
+                    const hue = 120 + (scrambleCount / maxScrambles) * 60; 
                     this.style.color = `hsl(${hue}, 80%, 60%)`;
-                    
-                    const scale = 1.05 + scrambleCount * 0.05; // Much smaller scale
+
+                    const scale = 1.05 + scrambleCount * 0.05; 
                     this.style.transform = `scale(${scale})`;
-                    
+
                     scrambleCount++;
                 } else {
                     clearInterval(hoverScramble);
@@ -399,21 +378,20 @@ function initAdvancedHoverEffects(spans, chars) {
                     this.style.animationPlayState = 'running';
                     this._isAnimating = false;
                 }
-            }, 100); // Faster hover scrambling
+            }, 100); 
         });
     });
 }
 
-// Live chat simulation
 function initLiveChatSimulation() {
     const chatContainer = document.getElementById('chatContainer');
     const typingIndicator = document.querySelector('.typing-indicator');
     const memberCount = document.querySelector('.member-count');
     const userInput = document.getElementById('userMessageInput');
     const sendBtn = document.getElementById('sendMessageBtn');
-    
+
     if (!chatContainer) return;
-    
+
     const chatMessages = [
         {
             avatar: 'linear-gradient(135deg, #5865F2, #7289DA)',
@@ -458,14 +436,13 @@ function initLiveChatSimulation() {
             reactions: [{ emoji: '😅', count: 1 }]
         }
     ];
-    
+
     let currentMessageIndex = 0;
     let isTyping = false;
     let chatCompleted = false;
     let userMessageCount = 0;
     let lastUserMessageTime = 0;
-    
-    // Enhanced typing indicator management
+
     function showTypingIndicator(username = 'Someone') {
         if (isTyping) return;
         isTyping = true;
@@ -477,25 +454,23 @@ function initLiveChatSimulation() {
             typingIndicator.classList.remove('hidden');
         }
     }
-    
+
     function hideTypingIndicator() {
         isTyping = false;
         if (typingIndicator) {
             typingIndicator.classList.add('hidden');
         }
     }
-    
-    // User message handling with enhanced spam detection
+
     function handleUserMessage() {
         if (!userInput || !sendBtn || userInput.disabled) return;
-        
+
         const message = userInput.value.trim();
         if (!message) return;
-        
+
         const now = Date.now();
         const timeSinceLastMessage = now - lastUserMessageTime;
-        
-        // Enhanced spam detection
+
         if (timeSinceLastMessage < 1500 && userMessageCount > 0) {
             userMessageCount++;
             if (userMessageCount >= 3) {
@@ -506,18 +481,17 @@ function initLiveChatSimulation() {
         } else {
             userMessageCount = 1;
         }
-        
+
         lastUserMessageTime = now;
-        
+
         addUserMessage(message);
         userInput.value = '';
-        
-        // Smart bot responses based on message content
+
         setTimeout(() => {
             addBotResponse(message);
         }, Math.random() * 2000 + 1000);
     }
-    
+
     function addUserMessage(text) {
         const messageElement = createChatMessage({
             avatar: 'linear-gradient(135deg, #FF6B6B, #4ECDC4)',
@@ -527,25 +501,24 @@ function initLiveChatSimulation() {
             reactions: [],
             isUser: true
         });
-        
+
         chatContainer.appendChild(messageElement);
         setTimeout(() => messageElement.classList.add('visible'), 100);
         chatContainer.scrollTop = chatContainer.scrollHeight;
-        
-        // Add reaction chance for user messages
+
         if (Math.random() > 0.7) {
             setTimeout(() => {
                 addReactionToMessage(messageElement);
             }, Math.random() * 3000 + 1000);
         }
     }
-    
+
     function addBotResponse(userMessage) {
         const lowerMessage = userMessage.toLowerCase();
         let response = '';
         let author = '';
         let avatar = '';
-        
+
         if (lowerMessage.includes('hello') || lowerMessage.includes('hi') || lowerMessage.includes('hey')) {
             response = 'Hello there! Welcome to MiscVord! 👋';
             author = 'WelcomeBot';
@@ -578,30 +551,28 @@ function initLiveChatSimulation() {
             author = randomResponse.author;
             avatar = randomResponse.avatar;
         }
-        
-        // Show typing indicator
+
         showTypingIndicator(author);
-        
+
         setTimeout(() => {
             hideTypingIndicator();
             addBotMessage(response, author, avatar);
         }, Math.random() * 2000 + 1000);
     }
-    
+
     function addSpamWarning() {
         addBotMessage('🛑 Stop spam! Please wait before sending another message.', 'AutoMod', 'linear-gradient(135deg, #FF416C, #FF4B2B)');
-        
-        // Temporarily disable input
+
         if (userInput && sendBtn) {
             userInput.disabled = true;
             sendBtn.disabled = true;
             userInput.placeholder = 'Rate limited... please wait';
-            
+
             let countdown = 3;
             const countdownInterval = setInterval(() => {
                 userInput.placeholder = `Rate limited... wait ${countdown}s`;
                 countdown--;
-                
+
                 if (countdown < 0) {
                     clearInterval(countdownInterval);
                     userInput.disabled = false;
@@ -612,7 +583,7 @@ function initLiveChatSimulation() {
             }, 1000);
         }
     }
-    
+
     function addBotMessage(text, authorName, avatarGradient) {
         const messageElement = createChatMessage({
             avatar: avatarGradient,
@@ -621,42 +592,41 @@ function initLiveChatSimulation() {
             text: text,
             reactions: []
         });
-        
+
         chatContainer.appendChild(messageElement);
         setTimeout(() => messageElement.classList.add('visible'), 100);
         chatContainer.scrollTop = chatContainer.scrollHeight;
     }
-    
+
     function addReactionToMessage(messageElement) {
         const reactions = ['👍', '❤️', '😄', '🎉', '👏', '🔥'];
         const randomReaction = reactions[Math.floor(Math.random() * reactions.length)];
         const count = Math.floor(Math.random() * 5) + 1;
-        
+
         const messageContent = messageElement.querySelector('.message-content');
         let reactionsContainer = messageElement.querySelector('.message-reactions');
-        
+
         if (!reactionsContainer) {
             reactionsContainer = document.createElement('div');
             reactionsContainer.className = 'message-reactions';
             messageContent.appendChild(reactionsContainer);
         }
-        
+
         const reactionElement = document.createElement('div');
         reactionElement.className = 'reaction';
         reactionElement.innerHTML = `${randomReaction} ${count}`;
         reactionElement.onclick = () => animateReaction(reactionElement);
-        
+
         reactionsContainer.appendChild(reactionElement);
-        
-        // Animate the new reaction
+
         reactionElement.style.transform = 'scale(0)';
         reactionElement.style.transition = 'transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
-        
+
         setTimeout(() => {
             reactionElement.style.transform = 'scale(1)';
         }, 100);
     }
-    
+
     function formatCurrentTime() {
         const now = new Date();
         const hours = now.getHours();
@@ -665,22 +635,21 @@ function initLiveChatSimulation() {
         const displayHours = hours % 12 || 12;
         return `Today at ${displayHours}:${minutes} ${period}`;
     }
-    
-    // Enhanced chat message creation
+
     function createChatMessage(messageData) {
         const messageDiv = document.createElement('div');
         messageDiv.className = 'chat-message';
-        
+
         if (messageData.isUser) {
             messageDiv.classList.add('user-message');
         }
-        
+
         const reactionsHTML = messageData.reactions && messageData.reactions.length > 0 
             ? `<div class="message-reactions">${messageData.reactions.map(r => 
                 `<div class="reaction" onclick="animateReaction(this)">${r.emoji} ${r.count}</div>`
               ).join('')}</div>`
             : '';
-        
+
         messageDiv.innerHTML = `
             <div class="message-avatar" style="background: ${messageData.avatar};"></div>
             <div class="message-content">
@@ -689,27 +658,25 @@ function initLiveChatSimulation() {
                 ${reactionsHTML}
             </div>
         `;
-        
+
         return messageDiv;
     }
-    
-    // Event listeners for user input
+
     if (userInput && sendBtn) {
         sendBtn.addEventListener('click', handleUserMessage);
-        
+
         userInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 handleUserMessage();
             }
         });
-        
-        // Enhanced typing indicator
+
         let typingTimeout;
         userInput.addEventListener('input', () => {
             if (userInput.value.trim() && !userInput.disabled) {
                 showTypingIndicator('You');
-                
+
                 clearTimeout(typingTimeout);
                 typingTimeout = setTimeout(() => {
                     hideTypingIndicator();
@@ -718,13 +685,12 @@ function initLiveChatSimulation() {
                 hideTypingIndicator();
             }
         });
-        
+
         userInput.addEventListener('blur', () => {
             hideTypingIndicator();
         });
     }
-    
-    // Original chat simulation that shows initial messages
+
     function addMessage() {
         if (currentMessageIndex >= chatMessages.length) {
             chatCompleted = true;
@@ -733,152 +699,139 @@ function initLiveChatSimulation() {
             }, 2000);
             return;
         }
-        
+
         const messageData = chatMessages[currentMessageIndex];
-        
+
         showTypingIndicator(messageData.author);
-        
+
         setTimeout(() => {
             hideTypingIndicator();
-            
+
             const messageElement = createChatMessage(messageData);
             chatContainer.appendChild(messageElement);
-            
+
             setTimeout(() => {
                 messageElement.classList.add('visible');
             }, 100);
-            
+
             chatContainer.scrollTop = chatContainer.scrollHeight;
             currentMessageIndex++;
-            
-            // Continue to next message if not complete
+
             if (currentMessageIndex < chatMessages.length) {
                 const nextDelay = Math.random() * 3000 + 2000;
                 setTimeout(addMessage, nextDelay);
             }
-            
+
         }, Math.random() * 2000 + 1500);
     }
-    
-    // Start the chat simulation
+
     setTimeout(addMessage, 1000);
-    
-    // Dynamic member count animation
+
     function animateMemberCount() {
         if (!memberCount) return;
-        
+
         const baseCount = 15847;
         const variation = Math.floor(Math.random() * 50) - 25;
         const newCount = baseCount + variation;
-        
+
         memberCount.textContent = newCount.toLocaleString();
-        
+
         setTimeout(animateMemberCount, Math.random() * 8000 + 5000);
     }
-    
+
     setTimeout(animateMemberCount, 3000);
 }
 
-// Global reaction animation function
 window.animateReaction = function(element) {
     if (!element) return;
-    
+
     element.style.transform = 'scale(1.3) rotate(10deg)';
     element.style.transition = 'all 0.2s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
-    
+
     setTimeout(() => {
         element.style.transform = 'scale(1.1)';
     }, 200);
-    
+
     setTimeout(() => {
         element.style.transform = '';
     }, 400);
 };
 
-// Enhanced interactive elements with parallax background effects
 function initInteractiveElements() {
-    // Parallax scrolling effect
+
     window.addEventListener('scroll', () => {
         const scrollY = window.pageYOffset;
         const background = document.querySelector('.landing-background');
-        
+
         if (background) {
-            // Different parallax speeds for different layers
-            const speed1 = scrollY * 0.5; // Main background
-            const speed2 = scrollY * 0.3; // Before pseudo-element
-            const speed3 = scrollY * 0.7; // After pseudo-element
-            
+
+            const speed1 = scrollY * 0.5; 
+            const speed2 = scrollY * 0.3; 
+            const speed3 = scrollY * 0.7; 
+
             background.style.transform = `translateY(${speed1}px)`;
-            
-            // Apply different transforms to pseudo-elements via CSS custom properties
+
             background.style.setProperty('--parallax-before', `${speed2}px`);
             background.style.setProperty('--parallax-after', `${speed3}px`);
-            
-            // Color shift based on scroll
+
             const scrollPercent = scrollY / (document.documentElement.scrollHeight - window.innerHeight);
-            const hue = scrollPercent * 20; // Reduced hue shift
+            const hue = scrollPercent * 20; 
             background.style.filter = `hue-rotate(${hue}deg) brightness(${1 + scrollPercent * 0.05})`;
         }
     });
 
-    // Enhanced parallax mouse movement
     window.addEventListener('mousemove', (e) => {
-        const mouseX = (e.clientX / window.innerWidth - 0.5) * 2; // -1 to 1
-        const mouseY = (e.clientY / window.innerHeight - 0.5) * 2; // -1 to 1
-        
-        // Parallax background based on mouse
+        const mouseX = (e.clientX / window.innerWidth - 0.5) * 2; 
+        const mouseY = (e.clientY / window.innerHeight - 0.5) * 2; 
+
         const background = document.querySelector('.landing-background');
         if (background) {
-            const moveX = mouseX * 20; // Subtle movement
+            const moveX = mouseX * 20; 
             const moveY = mouseY * 20;
-            
-            // Combine scroll and mouse parallax
+
             const scrollY = window.pageYOffset;
             const scrollTransform = `translateY(${scrollY * 0.5}px)`;
             const mouseTransform = `translate(${moveX}px, ${moveY}px)`;
-            
+
             background.style.transform = `${scrollTransform} ${mouseTransform}`;
         }
-        
-        // Enhanced floating element parallax
+
         const floatingElements = document.querySelectorAll('.floating-element');
         floatingElements.forEach((element, index) => {
-            const speed = (index + 1) * 0.3; // Reduced speed
+            const speed = (index + 1) * 0.3; 
             const x = mouseX * speed * 10;
             const y = mouseY * speed * 10;
-            
+
             element.style.transform = `translate(${x}px, ${y}px)`;
         });
     });
-    
-    // Parallax on device orientation (mobile)
+
     if (window.DeviceOrientationEvent) {
         window.addEventListener('deviceorientation', (e) => {
-            const gamma = e.gamma / 90; // -1 to 1
-            const beta = e.beta / 90; // -1 to 1
-            
+            const gamma = e.gamma / 90; 
+            const beta = e.beta / 90; 
+
             const background = document.querySelector('.landing-background');
             if (background) {
                 const moveX = gamma * 15;
                 const moveY = beta * 15;
-                
+
                 const scrollY = window.pageYOffset;
                 const scrollTransform = `translateY(${scrollY * 0.5}px)`;
                 const orientationTransform = `translate(${moveX}px, ${moveY}px)`;
-                
+
                 background.style.transform = `${scrollTransform} ${orientationTransform}`;
             }
         });
     }
 
-    // Enhanced button hover effects
     const buttons = document.querySelectorAll('.btn-primary, .btn-secondary, .nav-cta, .footer-cta');
-    
+
     buttons.forEach(button => {
         button.addEventListener('mouseenter', (e) => {
             const rect = button.getBoundingClientRect();
             const ripple = document.createElement('span');
-            
+
             ripple.style.cssText = `
                 position: absolute;
                 background: rgba(255, 255, 255, 0.3);
@@ -891,11 +844,11 @@ function initInteractiveElements() {
                 pointer-events: none;
                 z-index: 1;
             `;
-            
+
             button.style.position = 'relative';
             button.style.overflow = 'hidden';
             button.appendChild(ripple);
-            
+
             setTimeout(() => {
                 if (ripple.parentNode) {
                     ripple.remove();
@@ -903,8 +856,7 @@ function initInteractiveElements() {
             }, 600);
         });
     });
-    
-    // Add keyboard navigation support
+
     document.addEventListener('keydown', (e) => {
         if (e.ctrlKey || e.metaKey) {
             switch (e.key) {
@@ -928,10 +880,6 @@ function initInteractiveElements() {
     });
 }
 
-// Remove the duplicate mousemove listener at the bottom to prevent conflicts
-// The mousemove is now handled in initInteractiveElements
-
-// Replace the debouncedMouseMove section with a simpler version for floating elements only
 function debounce(func, wait) {
     let timeout;
     return function executedFunction(...args) {
@@ -947,25 +895,23 @@ function debounce(func, wait) {
 const debouncedFloatingMove = debounce((e) => {
     const floatingElements = document.querySelectorAll('.floating-element');
     if (floatingElements.length === 0) return;
-    
+
     const mouseX = e.clientX / window.innerWidth;
     const mouseY = e.clientY / window.innerHeight;
-    
+
     floatingElements.forEach((element, index) => {
         if (element) {
             const speed = (index + 1) * 0.5;
             const x = (mouseX - 0.5) * speed * 20;
             const y = (mouseY - 0.5) * speed * 20;
-            
-            // Only apply to floating elements if not handled by main parallax
+
             if (!element.closest('.hero-section')) {
                 element.style.transform = `translate(${x}px, ${y}px)`;
             }
         }
     });
-}, 16); // ~60fps
+}, 16); 
 
-// Updated animation styles with floating character animation
 const enhancedAnimationStyles = document.createElement('style');
 enhancedAnimationStyles.textContent = `
     @keyframes enhancedSparkleEffect {
@@ -982,7 +928,7 @@ enhancedAnimationStyles.textContent = `
             opacity: 0;
         }
     }
-    
+
     @keyframes miniSparkleEffect {
         0% {
             transform: scale(0) rotate(0deg);
@@ -1001,7 +947,7 @@ enhancedAnimationStyles.textContent = `
             opacity: 0;
         }
     }
-    
+
     @keyframes enhancedExplosionParticle {
         0% {
             transform: translate(-50%, -50%) scale(1);
@@ -1016,7 +962,7 @@ enhancedAnimationStyles.textContent = `
             opacity: 0;
         }
     }
-    
+
     @keyframes glitchFlicker {
         0%, 100% { opacity: 0; transform: translate(2px, -1px); }
         10% { opacity: 0.8; transform: translate(-1px, 2px); }
@@ -1029,7 +975,7 @@ enhancedAnimationStyles.textContent = `
         80% { opacity: 0.4; transform: translate(2px, -1px); }
         90% { opacity: 0.9; transform: translate(-1px, 1px); }
     }
-    
+
     @keyframes ripple {
         0% {
             width: 0;
@@ -1042,8 +988,7 @@ enhancedAnimationStyles.textContent = `
             opacity: 0;
         }
     }
-    
-    /* Enhanced Character Float Animation */
+
     @keyframes charFloat {
         0%, 100% {
             transform: translateY(0px) scale(1);
@@ -1062,8 +1007,7 @@ enhancedAnimationStyles.textContent = `
             text-shadow: 0 0 8px rgba(254, 231, 92, 0.3);
         }
     }
-    
-    /* Floating character specific styles */
+
     .scramble-text .char.floating {
         animation: charFloat 6s ease-in-out infinite;
         color: var(--discord-white) !important;
@@ -1071,7 +1015,7 @@ enhancedAnimationStyles.textContent = `
         transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         will-change: transform;
     }
-    
+
     .scramble-text .char.floating:hover {
         animation-play-state: paused;
         transform: translateY(-5px) scale(1.1);
@@ -1081,32 +1025,28 @@ enhancedAnimationStyles.textContent = `
         color: var(--discord-blue) !important;
         transition: all 0.2s cubic-bezier(0.68, -0.55, 0.265, 1.55);
     }
-    
-    /* Enhanced sparkle positioning */
+
     .scramble-text .char {
         position: relative;
         display: inline-block;
     }
-    
-    /* Subtle glow effect for floating characters */
+
     .scramble-text .char.floating:nth-child(odd) {
         animation-direction: alternate;
     }
-    
+
     .scramble-text .char.floating:nth-child(even) {
         animation-direction: alternate-reverse;
     }
 `;
 
-// Safely append styles
 if (document.head) {
     document.head.appendChild(enhancedAnimationStyles);
 }
 
-// Enhanced CSS for user messages with error handling
 const chatEnhancementStyles = document.createElement('style');
 chatEnhancementStyles.textContent = `
-    /* Enhanced mobile navigation styles */
+
     @media (max-width: 768px) {
         .nav-links {
             position: fixed;
@@ -1123,99 +1063,94 @@ chatEnhancementStyles.textContent = `
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             z-index: 1000;
         }
-        
+
         .nav-links.active {
             transform: translateY(0);
             opacity: 1;
             visibility: visible;
         }
-        
+
         .nav-toggle.active svg {
             transform: rotate(90deg);
         }
-        
+
         .hero-container {
             grid-template-columns: 1fr;
             text-align: center;
         }
-        
+
         .discord-mockup {
             max-width: 400px;
             margin: 0 auto;
         }
-        
+
         .chat-input-box {
             flex-direction: row;
             padding: var(--space-xs);
         }
-        
+
         .chat-input-box input {
             padding: var(--space-sm) var(--space-md);
             font-size: 0.8rem;
         }
-        
+
         .chat-input-box button {
             min-width: 40px;
             min-height: 40px;
             padding: var(--space-sm);
         }
-        
+
         .user-message {
             max-width: 95%;
         }
     }
-    
-    /* Error prevention styles */
+
     .char {
         display: inline-block;
         position: relative;
     }
-    
+
     .floating-element {
         pointer-events: none;
         will-change: transform;
     }
-    
+
     .message-avatar {
         will-change: transform;
     }
-    
-    /* Additional input styling fixes */
+
     .chat-input-box input::-webkit-input-placeholder {
         color: rgba(255, 255, 255, 0.5);
     }
-    
+
     .chat-input-box input::-moz-placeholder {
         color: rgba(255, 255, 255, 0.5);
         opacity: 1;
     }
-    
+
     .chat-input-box input:-ms-input-placeholder {
         color: rgba(255, 255, 255, 0.5);
     }
-    
+
     .chat-input-box input::placeholder {
         color: rgba(255, 255, 255, 0.5);
     }
 `;
 
-// Safely append chat enhancement styles
 if (document.head) {
     document.head.appendChild(chatEnhancementStyles);
 }
 
-// Add CSS for parallax pseudo-elements
 const parallaxStyles = document.createElement('style');
 parallaxStyles.textContent = `
     .landing-background::before {
         transform: translateY(var(--parallax-before, 0px));
     }
-    
+
     .landing-background::after {
         transform: translateY(var(--parallax-after, 0px));
     }
-    
-    /* Optimized animations for performance */
+
     .landing-background,
     .landing-background::before,
     .landing-background::after,
@@ -1230,13 +1165,12 @@ if (document.head) {
     document.head.appendChild(parallaxStyles);
 }
 
-// Enhanced error handling for loading animation
 window.addEventListener('load', () => {
     try {
         if (document.body) {
             document.body.style.opacity = '0';
             document.body.style.transition = 'opacity 0.5s ease-in-out';
-            
+
             setTimeout(() => {
                 if (document.body) {
                     document.body.style.opacity = '1';
@@ -1245,18 +1179,17 @@ window.addEventListener('load', () => {
         }
     } catch (error) {
         console.warn('Loading animation failed:', error);
-        // Ensure body is visible even if animation fails
+
         if (document.body) {
             document.body.style.opacity = '1';
         }
     }
 });
 
-// Additional error handling and cleanup
 window.addEventListener('beforeunload', () => {
-    // Clean up any running intervals or timeouts
+
     try {
-        // Clear any remaining timeouts
+
         const highestTimeoutId = setTimeout(() => {});
         for (let i = 0; i < highestTimeoutId; i++) {
             clearTimeout(i);

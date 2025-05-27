@@ -17,7 +17,6 @@ $body_class = 'bg-gray-900 text-white overflow-hidden';
 $page_css = 'server-page';
 $page_js = 'server-page';
 
-// Get socket server URL from ENV or use default
 $socketServerUrl = $_ENV['SOCKET_SERVER'] ?? 'http://localhost:1002';
 ?>
 
@@ -29,12 +28,12 @@ $socketServerUrl = $_ENV['SOCKET_SERVER'] ?? 'http://localhost:1002';
      data-socket-url="<?php echo htmlspecialchars($socketServerUrl); ?>"
      id="app-container">
     <?php include dirname(dirname(__DIR__)) . '/views/components/app-sections/server-sidebar.php'; ?>
-    
+
     <div class="flex flex-1 overflow-hidden">
         <div class="flex flex-col flex-1">
             <?php include dirname(dirname(__DIR__)) . '/views/components/app-sections/chat-section.php'; ?>
         </div>
-        
+
         <?php include dirname(dirname(__DIR__)) . '/views/components/app-sections/participant-section.php'; ?>
     </div>
 </div>

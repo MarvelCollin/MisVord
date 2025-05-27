@@ -1,12 +1,18 @@
+<?php
+
+if (!function_exists('asset')) {
+    require_once dirname(dirname(dirname(__DIR__))) . '/config/helpers.php';
+}
+?>
+
 <section class="hero-section relative overflow-hidden min-h-screen py-20 md:py-0" id="parallax-hero">
-    <!-- Tornado parallax layers -->
+
     <div class="tornado-container">
-        <!-- Base tornado layer -->
+
         <div class="parallax-layer tornado-base" data-depth="0.2">
             <div class="tornado-funnel"></div>
         </div>
-        
-        <!-- Debris layers -->
+
         <div class="parallax-layer tornado-debris" data-depth="0.4">
             <div class="debris-item" style="left:20%; top:25%; --rotate:22deg"></div>
             <div class="debris-item" style="left:65%; top:40%; --rotate:-15deg"></div>
@@ -14,27 +20,24 @@
             <div class="debris-item" style="left:50%; top:30%; --rotate:-20deg"></div>
             <div class="debris-item" style="left:80%; top:70%; --rotate:12deg"></div>
         </div>
-        
-        <!-- Cloud layers -->
+
         <div class="parallax-layer tornado-clouds" data-depth="0.1">
             <div class="tornado-cloud" style="left:10%; top:15%; --scale:1.2; --opacity:0.6"></div>
             <div class="tornado-cloud" style="left:60%; top:10%; --scale:0.8; --opacity:0.4"></div>
             <div class="tornado-cloud" style="left:30%; top:5%; --scale:1.5; --opacity:0.5"></div>
             <div class="tornado-cloud" style="left:80%; top:20%; --scale:1.1; --opacity:0.3"></div>
         </div>
-        
-        <!-- Lightning effect layer -->
+
         <div class="parallax-layer lightning-layer" data-depth="0.05">
             <div class="lightning" id="lightning1"></div>
             <div class="lightning" id="lightning2"></div>
         </div>
-        
-        <!-- Flying objects layer - data attributes are used by JS -->
+
         <div class="parallax-layer flying-objects" data-depth="0.3">
-            <img src="<?php echo asset('/landing-page/flying-cat.webp'); ?>" alt="Flying Cat" class="tornado-object" data-top="30" data-left="25" data-delay="0.5" data-duration="8">
-            <img src="<?php echo asset('/landing-page/box.webp'); ?>" alt="Box" class="tornado-object" data-top="45" data-left="70" data-delay="1.2" data-duration="6">
-            <img src="<?php echo asset('/landing-page/green-egg.webp'); ?>" alt="Green Egg" class="tornado-object" data-top="55" data-left="40" data-delay="0.8" data-duration="7">
-            <img src="<?php echo asset('/landing-page/thropy.webp'); ?>" alt="Trophy" class="tornado-object" data-top="35" data-left="60" data-delay="1.5" data-duration="9">
+            <img src="<?php echo asset('/images/landing-page/flying-cat.webp'); ?>" alt="Flying Cat" class="tornado-object" data-top="30" data-left="25" data-delay="0.5" data-duration="8">
+            <img src="<?php echo asset('/images/landing-page/box.webp'); ?>" alt="Box" class="tornado-object" data-top="45" data-left="70" data-delay="1.2" data-duration="6">
+            <img src="<?php echo asset('/images/landing-page/green-egg.webp'); ?>" alt="Green Egg" class="tornado-object" data-top="55" data-left="40" data-delay="0.8" data-duration="7">
+            <img src="<?php echo asset('/images/landing-page/thropy.webp'); ?>" alt="Trophy" class="tornado-object" data-top="35" data-left="60" data-delay="1.5" data-duration="9">
         </div>
     </div>
 
@@ -43,13 +46,13 @@
             <h1 id="heroTitle" class="text-4xl md:text-7xl font-bold text-white mb-6 leading-tight">
                 IMAGINE A PLACE...
             </h1>
-            
+
             <p class="text-xl md:text-2xl text-white mb-8 opacity-90 max-w-2xl mx-auto">
                 ...where you can belong to a school club, a gaming group, or a worldwide art community. 
                 Where just you and a handful of friends can spend time together. A place that makes it easy 
                 to talk every day and hang out more often.
             </p>
-            
+
             <div class="flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-4">
                 <a href="#download" class="download-btn bg-white text-black hover:text-blue-600 hover:shadow-lg transition-all py-4 px-8 rounded-full text-lg font-medium flex items-center">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
@@ -62,8 +65,7 @@
                 </a>
             </div>
         </div>
-        
-        <!-- Mouse scroll indicator -->
+
         <div class="absolute bottom-10 left-1/2 transform -translate-x-1/2 flex flex-col items-center animate-bounce">
             <span class="text-white text-sm mb-2">Scroll to explore</span>
             <div class="w-6 h-10 border-2 border-white rounded-full flex justify-center">
@@ -76,18 +78,18 @@
 <section class="features-section py-20 bg-white">
     <div class="container mx-auto px-4">
         <h2 class="text-3xl md:text-5xl font-bold text-center mb-16">An invite-only place with plenty of room to talk</h2>
-        
+
         <div class="carousel-section relative">
             <div class="carousel-container overflow-hidden">
                 <div class="carousel-track flex transition-transform duration-500">
-                    <!-- Feature Card: Chat -->
+
                     <div class="feature-card min-w-full md:min-w-[33.333%] px-4" data-feature="chat">
                         <div class="card-content bg-gray-100 rounded-2xl p-6 h-full">
                             <div class="card-header mb-6">
                                 <h3 class="text-2xl font-bold mb-2">Text Chat</h3>
                                 <p class="text-gray-600">Send messages, share media, and keep the conversation flowing</p>
                             </div>
-                            
+
                             <div class="chat-demo bg-white rounded-lg p-4 shadow-md">
                                 <div class="chat-message incoming mb-4">
                                     <div class="flex items-start">
@@ -98,7 +100,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 <div class="chat-message outgoing mb-4">
                                     <div class="flex items-start justify-end">
                                         <div>
@@ -108,7 +110,7 @@
                                         <div class="w-8 h-8 rounded-full bg-purple-500 ml-3 flex-shrink-0"></div>
                                     </div>
                                 </div>
-                                
+
                                 <div class="chat-message incoming">
                                     <div class="flex items-start">
                                         <div class="w-8 h-8 rounded-full bg-blue-500 mr-3 flex-shrink-0"></div>
@@ -121,20 +123,19 @@
                             </div>
                         </div>
                     </div>
-                    
-                    <!-- Feature Card: Voice -->
+
                     <div class="feature-card min-w-full md:min-w-[33.333%] px-4" data-feature="voice">
                         <div class="card-content bg-gray-100 rounded-2xl p-6 h-full">
                             <div class="card-header mb-6">
                                 <h3 class="text-2xl font-bold mb-2">Voice Channels</h3>
                                 <p class="text-gray-600">Hang out with voice chat that feels like you're in the same room</p>
                             </div>
-                            
+
                             <div class="voice-channel bg-white rounded-lg p-4 shadow-md">
                                 <div class="voice-channel-header border-b pb-2 mb-4">
                                     <h4 class="font-medium">🔊 Gaming Voice Channel</h4>
                                 </div>
-                                
+
                                 <div class="voice-users space-y-4">
                                     <div class="voice-user flex items-center speaking">
                                         <div class="w-10 h-10 rounded-full bg-green-500 mr-3 flex-shrink-0 flex items-center justify-center text-white font-bold">G</div>
@@ -149,14 +150,14 @@
                                             </div>
                                         </div>
                                     </div>
-                                    
+
                                     <div class="voice-user flex items-center">
                                         <div class="w-10 h-10 rounded-full bg-purple-500 mr-3 flex-shrink-0 flex items-center justify-center text-white font-bold">Y</div>
                                         <div>
                                             <div class="font-medium">You</div>
                                         </div>
                                     </div>
-                                    
+
                                     <div class="voice-user flex items-center">
                                         <div class="w-10 h-10 rounded-full bg-blue-500 mr-3 flex-shrink-0 flex items-center justify-center text-white font-bold">N</div>
                                         <div>
@@ -167,15 +168,14 @@
                             </div>
                         </div>
                     </div>
-                    
-                    <!-- Feature Card: Community -->
+
                     <div class="feature-card min-w-full md:min-w-[33.333%] px-4" data-feature="community">
                         <div class="card-content bg-gray-100 rounded-2xl p-6 h-full">
                             <div class="card-header mb-6">
                                 <h3 class="text-2xl font-bold mb-2">Communities</h3>
                                 <p class="text-gray-600">Join groups centered around your interests and passions</p>
                             </div>
-                            
+
                             <div class="community-showcase bg-white rounded-lg p-4 shadow-md">
                                 <div class="community-grid grid grid-cols-2 gap-4">
                                     <div class="community-card bg-gray-50 p-3 rounded-lg border border-gray-200 relative">
@@ -190,7 +190,7 @@
                                         <h5 class="font-medium text-sm">Gaming Group</h5>
                                         <p class="text-xs text-gray-500">12,543 members</p>
                                     </div>
-                                    
+
                                     <div class="community-card bg-gray-50 p-3 rounded-lg border border-gray-200 relative">
                                         <div class="community-bubble absolute -top-2 -right-2 w-6 h-6 rounded-full bg-green-500 flex items-center justify-center text-white text-xs">
                                             +3
@@ -203,7 +203,7 @@
                                         <h5 class="font-medium text-sm">Art Community</h5>
                                         <p class="text-xs text-gray-500">8,721 members</p>
                                     </div>
-                                    
+
                                     <div class="community-card bg-gray-50 p-3 rounded-lg border border-gray-200">
                                         <div class="w-full h-16 bg-purple-100 rounded-md flex items-center justify-center mb-2">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-purple-500" viewBox="0 0 20 20" fill="currentColor">
@@ -213,7 +213,7 @@
                                         <h5 class="font-medium text-sm">Cooking Club</h5>
                                         <p class="text-xs text-gray-500">5,318 members</p>
                                     </div>
-                                    
+
                                     <div class="community-card bg-gray-50 p-3 rounded-lg border border-gray-200">
                                         <div class="w-full h-16 bg-yellow-100 rounded-md flex items-center justify-center mb-2">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
@@ -229,15 +229,13 @@
                     </div>
                 </div>
             </div>
-            
-            <!-- Navigation dots -->
+
             <div class="nav-indicators flex justify-center mt-8 space-x-2">
                 <button class="indicator active w-3 h-3 rounded-full bg-blue-500" data-index="0"></button>
                 <button class="indicator w-3 h-3 rounded-full bg-gray-300" data-index="1"></button>
                 <button class="indicator w-3 h-3 rounded-full bg-gray-300" data-index="2"></button>
             </div>
-            
-            <!-- Navigation buttons -->
+
             <div class="carousel-navigation flex justify-center mt-4 space-x-4">
                 <button class="prev-btn p-2 rounded-full bg-gray-200 disabled:opacity-50">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -259,7 +257,7 @@
         <div class="max-w-4xl mx-auto text-center">
             <h2 class="text-4xl font-bold mb-6">Ready to start your journey?</h2>
             <p class="text-xl mb-10">Join the millions already enjoying MiscVord today. Create your account and start connecting.</p>
-            
+
             <a href="/register" class="bg-blue-500 hover:bg-blue-600 text-white py-4 px-8 rounded-full text-lg font-medium transition-all">
                 Get Started
             </a>
@@ -268,130 +266,3 @@
 </section>
 
 <div class="particles-container fixed inset-0 pointer-events-none z-0"></div>
-
-<style>
-    .hero-image {
-        transition: transform 0.5s ease-in-out;
-    }
-    .hero-image:hover {
-        transform: translateY(-10px);
-    }
-    
-    .message-bubble {
-        animation: float 5s ease-in-out infinite alternate;
-    }
-    
-    .download-btn:hover {
-        transform: translateY(-3px);
-    }
-    
-    @keyframes float {
-        0% {
-            transform: translateY(0px);
-        }
-        100% {
-            transform: translateY(-10px);
-        }
-    }
-    
-    .particle {
-        position: absolute;
-        border-radius: 50%;
-        background-color: rgba(255, 255, 255, 0.3);
-        animation: float-particle 15s infinite ease-in-out;
-    }
-    
-    @keyframes float-particle {
-        0%, 100% {
-            transform: translate(0, 0);
-        }
-        25% {
-            transform: translate(100px, 50px);
-        }
-        50% {
-            transform: translate(50px, 100px);
-        }
-        75% {
-            transform: translate(-50px, 50px);
-        }
-    }
-    
-    .trail-dot {
-        pointer-events: none;
-    }
-    
-    .char.scrambled {
-        animation: scramble 0.8s linear;
-    }
-    
-    @keyframes scramble {
-        0% {
-            transform: translateY(0) rotate(0);
-            opacity: 1;
-        }
-        20% {
-            transform: translateY(-10px) rotate(-3deg);
-            opacity: 0.8;
-        }
-        40% {
-            transform: translateY(5px) rotate(3deg);
-            opacity: 0.6;
-        }
-        60% {
-            transform: translateY(-5px) rotate(-2deg);
-            opacity: 0.8;
-        }
-        80% {
-            transform: translateY(2px) rotate(1deg);
-            opacity: 0.9;
-        }
-        100% {
-            transform: translateY(0) rotate(0);
-            opacity: 1;
-        }
-    }
-    
-    .audio-waves span {
-        display: inline-block;
-        height: 5px;
-        animation: wave 1s infinite ease-in-out;
-    }
-    
-    .audio-waves span:nth-child(2) {
-        animation-delay: 0.1s;
-    }
-    
-    .audio-waves span:nth-child(3) {
-        animation-delay: 0.2s;
-    }
-    
-    .audio-waves span:nth-child(4) {
-        animation-delay: 0.15s;
-    }
-    
-    .audio-waves span:nth-child(5) {
-        animation-delay: 0.25s;
-    }
-    
-    @keyframes wave {
-        0%, 100% {
-            height: 5px;
-        }
-        50% {
-            height: 15px;
-        }
-    }
-    
-    .community-bubble {
-        animation: pulse 2s infinite ease-in-out;
-    }
-    
-    @keyframes pulse {
-        0%, 100% {
-            transform: scale(1);
-        }
-        50% {
-            transform: scale(1.1);
-        }
-    }
-</style>

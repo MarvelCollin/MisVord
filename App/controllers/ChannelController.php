@@ -6,84 +6,64 @@ require_once __DIR__ . '/../database/models/Server.php';
 require_once __DIR__ . '/../database/models/UserServerMembership.php';
 
 class ChannelController {
-    /**
-     * Constructor - ensure session is started
-     */
+
     public function __construct() {
         if (session_status() == PHP_SESSION_NONE) {
             session_start();
         }
     }
-    
-    /**
-     * Get channel by ID
-     * 
-     * @param int $id
-     * @return void
-     */
+
     public function show($id) {
-        // Check if user is authenticated
+
         if (!isset($_SESSION['user_id'])) {
             $this->jsonResponse(['success' => false, 'message' => 'Unauthorized'], 401);
             return;
         }
-        
-        // Find channel
+
         $channel = Channel::find($id);
         if (!$channel) {
             $this->jsonResponse(['success' => false, 'message' => 'Channel not found'], 404);
             return;
         }
-        
-        // Check if user is a member of the server
+
         $membership = UserServerMembership::findByUserAndServer($_SESSION['user_id'], $channel->server_id);
         if (!$membership) {
             $this->jsonResponse(['success' => false, 'message' => 'You are not a member of this server'], 403);
             return;
         }
-        
-        // Get messages for this channel
+
         $messages = $channel->messages();
-        
-        // Return success response with channel and messages
+
         $this->jsonResponse([
             'success' => true,
             'channel' => $this->formatChannel($channel),
             'messages' => $messages
         ]);
     }
-    
-    /**
-     * Create a new channel
-     * 
-     * @return void
-     */
+
     public function create() {
-        // Check if user is authenticated
+
         if (!isset($_SESSION['user_id'])) {
             $this->jsonResponse(['success' => false, 'message' => 'Unauthorized'], 401);
             return;
         }
-        
-        // Validate input
+
         $serverId = $_POST['server_id'] ?? null;
         $categoryId = $_POST['category_id'] ?? null;
         $name = $_POST['name'] ?? '';
         $type = $_POST['type'] ?? 'text';
         $isPrivate = isset($_POST['is_private']);
-        
-        // Validate required fields
+
         if (!$serverId) {
             $this->jsonResponse(['success' => false, 'message' => 'Server ID is required'], 400);
             return;
         }
-        
+
         if (empty($name)) {
             $this->jsonResponse(['success' => false, 'message' => 'Channel name is required'], 400);
             return;
         }
-        
-        // Validate channel name format (only lowercase letters, numbers, and hyphens)
+
         if (!preg_match('/^[a-z0-9\-_]+$/', $name)) {
             $this->jsonResponse([
                 'success' => false, 
@@ -91,15 +71,13 @@ class ChannelController {
             ], 400);
             return;
         }
-        
-        // Check if server exists
+
         $server = Server::find($serverId);
         if (!$server) {
             $this->jsonResponse(['success' => false, 'message' => 'Server not found'], 404);
             return;
         }
-        
-        // Check if user is admin or owner of the server
+
         $membership = UserServerMembership::findByUserAndServer($_SESSION['user_id'], $serverId);
         if (!$membership || ($membership->role !== 'admin' && $membership->role !== 'owner')) {
             $this->jsonResponse([
@@ -108,8 +86,7 @@ class ChannelController {
             ], 403);
             return;
         }
-        
-        // Check if category exists if provided
+
         if ($categoryId) {
             $category = Category::find($categoryId);
             if (!$category || $category->server_id != $serverId) {
@@ -117,23 +94,22 @@ class ChannelController {
                 return;
             }
         }
-        
-        // Check if channel name already exists in this server
+
         $existingChannel = Channel::findByNameAndServer($name, $serverId);
         if ($existingChannel) {
             $this->jsonResponse(['success' => false, 'message' => 'Channel name already exists in this server'], 400);
             return;
         }
-        
+
         try {
-            // Create new channel
+
             $channel = new Channel();
             $channel->server_id = $serverId;
             $channel->category_id = $categoryId ? $categoryId : null;
             $channel->name = $name;
             $channel->type = in_array($type, ['text', 'voice']) ? $type : 'text';
             $channel->is_private = $isPrivate;
-            
+
             if ($channel->save()) {
                 $this->jsonResponse([
                     'success' => true, 
@@ -148,42 +124,36 @@ class ChannelController {
             $this->jsonResponse(['success' => false, 'message' => 'Server error: ' . $e->getMessage()], 500);
         }
     }
-    
-    /**
-     * Create a new category
-     */
+
     public function createCategory() {
-        // Check if user is logged in
+
         if (!isset($_SESSION['user_id'])) {
             echo json_encode(['success' => false, 'message' => 'Unauthorized']);
             exit;
         }
-        
-        // Get parameters
+
         $name = $_POST['name'] ?? '';
         $serverId = $_POST['server_id'] ?? 0;
-        
-        // Validate input
+
         if (empty($name) || empty($serverId)) {
             echo json_encode(['success' => false, 'message' => 'Missing required fields']);
             exit;
         }
-        
-        // Check if user has permission (is server member)
+
         $server = Server::find($serverId);
         if (!$server || !$server->isMember($_SESSION['user_id'])) {
             echo json_encode(['success' => false, 'message' => 'Permission denied']);
             exit;
         }
-        
+
         try {
-            // Create and save category
+
             require_once __DIR__ . '/../database/models/Category.php';
             $category = new Category();
-            $category->name = strtoupper($name); // Categories are usually uppercase
+            $category->name = strtoupper($name); 
             $category->server_id = $serverId;
             $category->position = $this->getNextCategoryPosition($serverId);
-            
+
             if ($category->save()) {
                 echo json_encode([
                     'success' => true, 
@@ -200,43 +170,29 @@ class ChannelController {
             error_log("Error creating category: " . $e->getMessage());
             echo json_encode(['success' => false, 'message' => 'An error occurred']);
         }
-        
+
         exit;
     }
 
-    /**
-     * Get the next position for a new category
-     * 
-     * @param int $serverId Server ID
-     * @return int Next position value
-     */
     private function getNextCategoryPosition($serverId) {
         require_once __DIR__ . '/../database/models/Category.php';
         $maxPosition = Category::getMaxPositionForServer($serverId);
         return $maxPosition + 1;
     }
-    
-    /**
-     * Update channel by ID
-     * 
-     * @param int $id
-     * @return void
-     */
+
     public function update($id) {
-        // Check if user is authenticated
+
         if (!isset($_SESSION['user_id'])) {
             $this->jsonResponse(['success' => false, 'message' => 'Unauthorized'], 401);
             return;
         }
-        
-        // Find channel
+
         $channel = Channel::find($id);
         if (!$channel) {
             $this->jsonResponse(['success' => false, 'message' => 'Channel not found'], 404);
             return;
         }
-        
-        // Check if user is admin or owner of the server
+
         $membership = UserServerMembership::findByUserAndServer($_SESSION['user_id'], $channel->server_id);
         if (!$membership || ($membership->role !== 'admin' && $membership->role !== 'owner')) {
             $this->jsonResponse([
@@ -245,13 +201,11 @@ class ChannelController {
             ], 403);
             return;
         }
-        
-        // Get request body
+
         $data = json_decode(file_get_contents('php://input'), true);
-        
-        // Update fields
+
         if (isset($data['name'])) {
-            // Validate channel name format
+
             if (!preg_match('/^[a-z0-9\-_]+$/', $data['name'])) {
                 $this->jsonResponse([
                     'success' => false, 
@@ -259,7 +213,7 @@ class ChannelController {
                 ], 400);
                 return;
             }
-            
+
             $existingChannel = Channel::findByNameAndServer($data['name'], $channel->server_id);
             if ($existingChannel && $existingChannel->id != $channel->id) {
                 $this->jsonResponse([
@@ -268,12 +222,12 @@ class ChannelController {
                 ], 400);
                 return;
             }
-            
+
             $channel->name = $data['name'];
         }
-        
+
         if (isset($data['category_id'])) {
-            // Check if category exists
+
             if ($data['category_id']) {
                 $category = Category::find($data['category_id']);
                 if (!$category || $category->server_id != $channel->server_id) {
@@ -288,15 +242,15 @@ class ChannelController {
                 $channel->category_id = null;
             }
         }
-        
+
         if (isset($data['is_private'])) {
             $channel->is_private = (bool)$data['is_private'];
         }
-        
+
         if (isset($data['type']) && in_array($data['type'], ['text', 'voice'])) {
             $channel->type = $data['type'];
         }
-        
+
         try {
             if ($channel->save()) {
                 $this->jsonResponse([
@@ -312,28 +266,20 @@ class ChannelController {
             $this->jsonResponse(['success' => false, 'message' => 'Server error: ' . $e->getMessage()], 500);
         }
     }
-    
-    /**
-     * Delete a channel
-     * 
-     * @param int $id
-     * @return void
-     */
+
     public function delete($id) {
-        // Check if user is authenticated
+
         if (!isset($_SESSION['user_id'])) {
             $this->jsonResponse(['success' => false, 'message' => 'Unauthorized'], 401);
             return;
         }
-        
-        // Find channel
+
         $channel = Channel::find($id);
         if (!$channel) {
             $this->jsonResponse(['success' => false, 'message' => 'Channel not found'], 404);
             return;
         }
-        
-        // Check if user is admin or owner of the server
+
         $membership = UserServerMembership::findByUserAndServer($_SESSION['user_id'], $channel->server_id);
         if (!$membership || ($membership->role !== 'admin' && $membership->role !== 'owner')) {
             $this->jsonResponse([
@@ -342,7 +288,7 @@ class ChannelController {
             ], 403);
             return;
         }
-        
+
         try {
             if ($channel->delete()) {
                 $this->jsonResponse(['success' => true, 'message' => 'Channel deleted successfully']);
@@ -354,13 +300,7 @@ class ChannelController {
             $this->jsonResponse(['success' => false, 'message' => 'Server error: ' . $e->getMessage()], 500);
         }
     }
-    
-    /**
-     * Format channel data for API response
-     * 
-     * @param Channel $channel
-     * @return array
-     */
+
     private function formatChannel($channel) {
         return [
             'id' => $channel->id,
@@ -373,14 +313,7 @@ class ChannelController {
             'updated_at' => $channel->updated_at
         ];
     }
-    
-    /**
-     * Send JSON response
-     * 
-     * @param array $data
-     * @param int $status
-     * @return void
-     */
+
     private function jsonResponse($data, $status = 200) {
         http_response_code($status);
         header('Content-Type: application/json');
