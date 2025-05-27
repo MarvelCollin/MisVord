@@ -34,14 +34,20 @@ error_log("Current server object: " . ($currentServer ? json_encode(['id' => $cu
     <!-- Server Sidebar - Contains server icons -->
     <div class="server-sidebar bg-[#202225] py-3 flex flex-col items-center space-y-2">
         <!-- Home/DM Button -->
-        <div class="server-icon p-1 mb-2">
-            <a href="/app" class="block w-12 h-12 rounded-2xl flex items-center justify-center bg-[#5865F2] hover:bg-[#5865F2]/90 transition">
+        <div class="server-icon p-1 mb-2 relative" title="Home">
+            <a href="/app" class="block w-12 h-12 rounded-full hover:rounded-2xl flex items-center justify-center bg-[#5865F2] hover:bg-[#5865F2]/90 transition-all duration-200 group">
                 <i class="fa-solid fa-house h-7 w-7 text-white"></i>
             </a>
             <!-- Active indicator for home (only shown when no server is selected) -->
             <?php if (empty($currentServerID)): ?>
-                <div class="absolute left-0 w-1 h-10 bg-white rounded-r-full"></div>
+                <div class="absolute left-0 top-1/2 transform -translate-y-1/2 w-1 h-10 bg-white rounded-r-full"></div>
             <?php endif; ?>
+            
+            <!-- Home tooltip -->
+            <div class="absolute left-16 bg-black text-white text-xs px-2 py-1 rounded scale-0 group-hover:scale-100 transition-all duration-200 opacity-0 group-hover:opacity-100 whitespace-nowrap z-50">
+                Home
+                <span class="absolute left-0 top-1/2 transform -translate-x-1/2 -translate-y-1/2 border-4 border-transparent border-r-black"></span>
+            </div>
         </div>
 
         <div class="w-8 h-0.5 bg-gray-700 rounded-full mx-auto"></div>
@@ -80,8 +86,17 @@ error_log("Current server object: " . ($currentServer ? json_encode(['id' => $cu
         </div>
     </div>
     
-    <!-- Channel Section - Moved to channel-section.php component -->
-    <?php include dirname(__DIR__) . '/app-sections/channel-section.php'; ?>
+    <!-- Channel Section or Direct Message Section based on current page -->
+    <?php 
+    $uri = $_SERVER['REQUEST_URI'] ?? '';
+    $isDirectMessagePage = ($uri === '/app' || $uri === '/app/');
+    
+    if ($isDirectMessagePage) {
+        include dirname(__DIR__) . '/app-sections/direct-message-section.php';
+    } else {
+        include dirname(__DIR__) . '/app-sections/channel-section.php';
+    }
+    ?>
 </div>
 
 <!-- Add Server Modal -->
@@ -417,8 +432,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Add hover effect to server icons
     document.querySelectorAll('.server-icon').forEach(icon => {
-        // Skip if this is the currently selected server (it already has the indicator)
-        if (icon.querySelector('.absolute')) return;
+        // Skip if this is the currently selected server or home button (they already have the indicator)
+        if (icon.querySelector('.absolute') || icon.querySelector('a').getAttribute('href') === '/app') return;
         
         icon.addEventListener('mouseenter', function() {
             // Create temporary hover indicator

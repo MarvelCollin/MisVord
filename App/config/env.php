@@ -10,7 +10,7 @@ class EnvLoader {
         }
 
         $env = [];
-        
+
         // Check for Docker environment
         $isDocker = getenv('IS_DOCKER') === 'true' || file_exists('/.dockerenv');
         
@@ -152,7 +152,7 @@ class EnvLoader {
                     echo "3. Firewall is blocking connections\n";
                 }
             }
-            throw $e;
+                throw $e; 
         }
     }
 }

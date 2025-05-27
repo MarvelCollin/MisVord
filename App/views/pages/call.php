@@ -29,6 +29,8 @@ $config = VideoSDKConfig::getFrontendConfig();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>misvord - Video Call</title>
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -293,7 +295,7 @@ $config = VideoSDKConfig::getFrontendConfig();
     <?php if (!$meetingId): ?>
         <!-- Join/Create Meeting Form -->
         <div class="join-form">
-            <h2>🎥 misvord Call</h2>
+            <h2><i class="fa-solid fa-video"></i> misvord Call</h2>
             
             <?php if (isset($error)): ?>
                 <div class="error"><?php echo htmlspecialchars($error); ?></div>
@@ -328,7 +330,7 @@ $config = VideoSDKConfig::getFrontendConfig();
                     <div class="participants-count" id="participantCount">Participants: 0</div>
                 </div>
                 <div>
-                    <button class="btn btn-secondary" onclick="copyMeetingId()">📋 Copy ID</button>
+                    <button class="btn btn-secondary" onclick="copyMeetingId()"><i class="fa-solid fa-clipboard"></i> Copy ID</button>
                 </div>
             </div>
             
@@ -339,10 +341,10 @@ $config = VideoSDKConfig::getFrontendConfig();
             </div>
             
             <div class="controls">
-                <button class="control-btn mic" id="micBtn" onclick="toggleMic()">🎤</button>
-                <button class="control-btn camera" id="cameraBtn" onclick="toggleCamera()">📹</button>
-                <button class="control-btn screen" id="screenBtn" onclick="toggleScreenShare()">🖥️</button>
-                <button class="control-btn leave" onclick="leaveMeeting()">📞</button>
+                <button class="control-btn mic" id="micBtn" onclick="toggleMic()"><i class="fa-solid fa-microphone"></i></button>
+                <button class="control-btn camera" id="cameraBtn" onclick="toggleCamera()"><i class="fa-solid fa-video"></i></button>
+                <button class="control-btn screen" id="screenBtn" onclick="toggleScreenShare()"><i class="fa-solid fa-desktop"></i></button>
+                <button class="control-btn leave" onclick="leaveMeeting()"><i class="fa-solid fa-phone-slash"></i></button>
             </div>
         </div>
     <?php endif; ?>
@@ -441,11 +443,11 @@ $config = VideoSDKConfig::getFrontendConfig();
                 if (isMicOn) {
                     meeting.muteMic();
                     micBtn.classList.add('muted');
-                    micBtn.innerHTML = '🎤';
+                    micBtn.innerHTML = '<i class="fa-solid fa-microphone-slash"></i>';
                 } else {
                     meeting.unmuteMic();
                     micBtn.classList.remove('muted');
-                    micBtn.innerHTML = '🎤';
+                    micBtn.innerHTML = '<i class="fa-solid fa-microphone"></i>';
                 }
                 isMicOn = !isMicOn;
             }
@@ -457,11 +459,11 @@ $config = VideoSDKConfig::getFrontendConfig();
                 if (isCameraOn) {
                     meeting.disableWebcam();
                     cameraBtn.classList.add('disabled');
-                    cameraBtn.innerHTML = '📹';
+                    cameraBtn.innerHTML = '<i class="fa-solid fa-video-slash"></i>';
                 } else {
                     meeting.enableWebcam();
                     cameraBtn.classList.remove('disabled');
-                    cameraBtn.innerHTML = '📹';
+                    cameraBtn.innerHTML = '<i class="fa-solid fa-video"></i>';
                 }
                 isCameraOn = !isCameraOn;
             }
@@ -495,7 +497,6 @@ $config = VideoSDKConfig::getFrontendConfig();
             });
         }
         
-        // Handle form submission
         document.getElementById('joinForm')?.addEventListener('submit', function(e) {
             const meetingIdInput = document.getElementById('meetingId').value;
             if (!meetingIdInput.trim()) {

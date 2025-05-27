@@ -26,7 +26,7 @@ if ($currentServer) {
 <!-- Channel Section - Server name and channels list -->
 <div class="channel-section w-60 bg-[#2F3136] flex flex-col">
     <!-- Server Name Header -->
-    <div class="server-header h-12 shadow-md flex items-center px-4 border-b border-gray-900">
+    <div class="server-header h-12 shadow-md flex items-center px-4 border-b border-[#202225]">
         <h2 class="text-white font-bold truncate">
             <?php echo $currentServer ? htmlspecialchars($currentServer->name) : 'misvord'; ?>
         </h2>
@@ -39,18 +39,18 @@ if ($currentServer) {
             </button>
             
             <!-- Server Settings Dropdown Menu -->
-            <div id="serverSettingsDropdown" class="absolute right-0 top-full mt-1 w-48 bg-[#202225] rounded-md shadow-lg z-10 hidden overflow-hidden border border-gray-800">
+            <div id="serverSettingsDropdown" class="absolute right-0 top-full mt-1 w-48 bg-[#202225] rounded-md shadow-lg z-10 hidden overflow-hidden border border-[#202225]">
                 <div class="py-1">
-                    <button id="createChannelOption" class="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 flex items-center">
+                    <button id="createChannelOption" class="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-[#32353B] hover:text-white flex items-center">
                         <i class="fa-solid fa-message mr-2 h-4 w-4"></i>
                         Create Channel
                     </button>
-                    <button id="createCategoryOption" class="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 flex items-center">
+                    <button id="createCategoryOption" class="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-[#32353B] hover:text-white flex items-center">
                         <i class="fa-solid fa-folder mr-2 h-4 w-4"></i>
                         Create Category
                     </button>
-                    <div class="border-t border-gray-700 my-1"></div>
-                    <button id="serverSettingsOption" class="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 flex items-center">
+                    <div class="border-t border-[#202225] my-1"></div>
+                    <button id="serverSettingsOption" class="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-[#32353B] hover:text-white flex items-center">
                         <i class="fa-solid fa-gear mr-2 h-4 w-4"></i>
                         Server Settings
                     </button>
@@ -76,7 +76,7 @@ if ($currentServer) {
                     </div>
                     
                     <?php foreach ($channelsByCategory[0] as $channel): ?>
-                        <div class="channel-item text-gray-400 hover:text-white hover:bg-gray-700 rounded px-2 py-1 flex items-center cursor-pointer" 
+                        <div class="channel-item text-gray-400 hover:text-white hover:bg-[#32353B] rounded px-2 py-1 flex items-center cursor-pointer" 
                              data-channel-id="<?php echo $channel['id']; ?>" 
                              data-channel-name="<?php echo htmlspecialchars($channel['name']); ?>"
                              data-channel-type="<?php echo $channel['type']; ?>">
@@ -120,7 +120,7 @@ if ($currentServer) {
                         $categoryChannels = $channelsByCategory[$category['id']] ?? [];
                         foreach ($categoryChannels as $channel): 
                         ?>
-                            <div class="channel-item text-gray-400 hover:text-white hover:bg-gray-700 rounded px-2 py-1 flex items-center cursor-pointer" 
+                            <div class="channel-item text-gray-400 hover:text-white hover:bg-[#32353B] rounded px-2 py-1 flex items-center cursor-pointer" 
                                  data-channel-id="<?php echo $channel['id']; ?>" 
                                  data-channel-name="<?php echo htmlspecialchars($channel['name']); ?>"
                                  data-channel-type="<?php echo $channel['type']; ?>">
@@ -148,34 +148,10 @@ if ($currentServer) {
     </div>
     
     <!-- User Profile Section - Bottom bar with user controls -->
-    <div class="user-profile-section h-14 bg-[#292B2F] flex items-center px-2 border-t border-gray-900">
-        <div class="flex items-center px-2">
-            <div class="relative mr-3">
-                <?php
-                $avatarUrl = isset($_SESSION['avatar_url']) && !empty($_SESSION['avatar_url']) 
-                    ? $_SESSION['avatar_url'] 
-                    : asset('/images/default-avatar.png');
-                ?>
-                <img src="<?php echo htmlspecialchars($avatarUrl); ?>" alt="<?php echo htmlspecialchars($_SESSION['username']); ?>'s Avatar" class="w-8 h-8 rounded-full object-cover">
-                <div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#292B2F]"></div>
-            </div>
-            <div class="flex-grow">
-                <div class="text-white font-medium text-sm"><?php echo htmlspecialchars($_SESSION['username']); ?></div>
-                <div class="text-gray-400 text-xs">#<?php echo $_SESSION['user_id']; ?></div>
-            </div>
-            <div class="flex space-x-1">
-                <button class="text-gray-400 hover:text-white p-1 rounded">
-                    <i class="fa-solid fa-microphone h-5 w-5"></i>
-                </button>
-                <button class="text-gray-400 hover:text-white p-1 rounded">
-                    <i class="fa-solid fa-headphones h-5 w-5"></i>
-                </button>
-                <button class="text-gray-400 hover:text-white p-1 rounded">
-                    <i class="fa-solid fa-gear h-5 w-5"></i>
-                </button>
-            </div>
-        </div>
-    </div>
+    <?php 
+    // Use the shared user profile bar component
+    include dirname(__DIR__) . '/app-sections/user-profile-bar.php';
+    ?>
 </div>
 
 <!-- Create Channel Modal -->

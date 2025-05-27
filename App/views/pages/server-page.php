@@ -17,26 +17,17 @@ $body_class = 'bg-gray-900 text-white overflow-hidden';
 $page_css = 'server-page';
 $page_js = 'server-page';
 
+// Configuration for the app layout
 $socketServerUrl = $_ENV['SOCKET_SERVER'] ?? 'http://localhost:1002';
+$contentType = 'server';
+
+// Get current server from GLOBALS (set by controller)
+$currentServer = $GLOBALS['currentServer'] ?? null;
 ?>
 
 <?php ob_start(); ?>
 
-<div class="flex h-screen" 
-     data-user-id="<?php echo htmlspecialchars($_SESSION['user_id']); ?>" 
-     data-username="<?php echo htmlspecialchars($_SESSION['username']); ?>" 
-     data-socket-url="<?php echo htmlspecialchars($socketServerUrl); ?>"
-     id="app-container">
-    <?php include dirname(dirname(__DIR__)) . '/views/components/app-sections/server-sidebar.php'; ?>
-
-    <div class="flex flex-1 overflow-hidden">
-        <div class="flex flex-col flex-1">
-            <?php include dirname(dirname(__DIR__)) . '/views/components/app-sections/chat-section.php'; ?>
-        </div>
-
-        <?php include dirname(dirname(__DIR__)) . '/views/components/app-sections/participant-section.php'; ?>
-    </div>
-</div>
+<?php include dirname(dirname(__DIR__)) . '/views/components/app-sections/app-layout.php'; ?>
 
 <?php 
 $content = ob_get_clean(); 

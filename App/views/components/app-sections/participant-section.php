@@ -25,13 +25,16 @@ if ($currentServer) {
 }
 ?>
 <!-- Participants List -->
-<div class="w-60 bg-[#2f3136] overflow-y-auto">
+<div class="w-60 bg-[#2f3136] overflow-y-auto border-l border-[#202225]">
     <!-- Search Bar -->
     <div class="p-3">
-        <div class="bg-[#202225] rounded flex items-center px-2">
-            <input type="text" placeholder="Search" class="bg-transparent border-none w-full py-1 px-1 text-sm text-gray-200 focus:outline-none">
-            <i class="fa-solid fa-magnifying-glass h-4 w-4 text-gray-400"></i>
-        </div>
+        <?php 
+        // Use the shared search bar component
+        $placeholder = "Search";
+        $iconPosition = "right";
+        $bgColor = "bg-[#202225]";
+        include dirname(__DIR__) . '/app-sections/search-bar.php';
+        ?>
     </div>
     
     <div class="p-3 pt-0">
@@ -42,17 +45,36 @@ if ($currentServer) {
             </div>
             
             <?php if (empty($onlineUsers) && isset($_SESSION['user_id'])): ?>
-                <div class="text-gray-300 flex items-center py-1 hover:bg-gray-700 rounded px-2 cursor-pointer">
-                    <div class="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
+                <div class="text-gray-300 flex items-center py-1 hover:bg-[#32353B] rounded px-2 cursor-pointer">
+                    <?php
+                    // Use shared user avatar for current user
+                    $user = [
+                        'id' => $_SESSION['user_id'],
+                        'username' => $_SESSION['username'],
+                        'avatar_url' => $_SESSION['avatar_url'] ?? '',
+                        'status' => 'online'
+                    ];
+                    $size = 2; // Smaller dot
+                    $showStatus = false;
+                    $customClasses = "mr-2";
+                    include dirname(__DIR__) . '/app-sections/user-avatar.php';
+                    ?>
                     <div class="flex-grow"><?php echo htmlspecialchars($_SESSION['username']); ?> (You)</div>
                 </div>
             <?php else: ?>
-                <?php foreach ($onlineUsers as $user): ?>
-                    <div class="text-gray-300 flex items-center py-1 hover:bg-gray-700 rounded px-2 cursor-pointer">
-                        <div class="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
+                <?php foreach ($onlineUsers as $member): ?>
+                    <div class="text-gray-300 flex items-center py-1 hover:bg-[#32353B] rounded px-2 cursor-pointer">
+                        <?php
+                        // Use shared user avatar
+                        $user = $member;
+                        $size = 2; // Smaller dot
+                        $showStatus = false;
+                        $customClasses = "mr-2";
+                        include dirname(__DIR__) . '/app-sections/user-avatar.php';
+                        ?>
                         <div class="flex-grow">
-                            <?php echo htmlspecialchars($user['username']); ?>
-                            <?php if ($user['id'] == $_SESSION['user_id']): ?> (You)<?php endif; ?>
+                            <?php echo htmlspecialchars($member['username']); ?>
+                            <?php if ($member['id'] == $_SESSION['user_id']): ?> (You)<?php endif; ?>
                         </div>
                     </div>
                 <?php endforeach; ?>
@@ -65,10 +87,17 @@ if ($currentServer) {
                 Offline — <?php echo count($offlineUsers); ?>
             </div>
             
-            <?php foreach ($offlineUsers as $user): ?>
-                <div class="text-gray-400 flex items-center py-1 hover:bg-gray-700 rounded px-2 cursor-pointer">
-                    <div class="w-2 h-2 rounded-full bg-gray-500 mr-2"></div>
-                    <div class="flex-grow"><?php echo htmlspecialchars($user['username']); ?></div>
+            <?php foreach ($offlineUsers as $member): ?>
+                <div class="text-gray-400 flex items-center py-1 hover:bg-[#32353B] rounded px-2 cursor-pointer">
+                    <?php
+                    // Use shared user avatar
+                    $user = $member;
+                    $size = 2; // Smaller dot
+                    $showStatus = false; 
+                    $customClasses = "mr-2";
+                    include dirname(__DIR__) . '/app-sections/user-avatar.php';
+                    ?>
+                    <div class="flex-grow"><?php echo htmlspecialchars($member['username']); ?></div>
                 </div>
             <?php endforeach; ?>
             

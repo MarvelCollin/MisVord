@@ -110,7 +110,7 @@ if ($currentServer) {
 
 .channel-header {
     background-color: #36393f;
-    border-bottom-color: rgba(79, 84, 92, 0.48);
+    border-bottom-color: #202225;
 }
 
 .message-group {
@@ -162,7 +162,7 @@ if ($currentServer) {
 
 /* Connection status styles */
 #connectionStatus.connected #connectionStatusDot {
-    background-color: #57F287;
+    background-color: #43B581;
 }
 
 #connectionStatus.connecting #connectionStatusDot {
@@ -171,7 +171,7 @@ if ($currentServer) {
 }
 
 #connectionStatus.disconnected #connectionStatusDot {
-    background-color: #ED4245;
+    background-color: #F04747;
 }
 
 @keyframes blink {
