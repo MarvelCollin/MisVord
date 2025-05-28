@@ -52,6 +52,11 @@ return [
         $controller->listServers();
     },
     
+    'GET:/api/servers/{id}' => function($params) {
+        $controller = new ServerController();
+        $controller->getServerDetails($params['id']);
+    },
+    
     'GET:/join/{invite}' => function($params) {
         $controller = new ServerController();
         $controller->join($params['invite']);

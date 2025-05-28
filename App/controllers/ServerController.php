@@ -538,6 +538,51 @@ class ServerController {
         }
     }
 
+    public function getServerDetails($id) {
+        if (!isset($_SESSION['user_id'])) {
+            $this->jsonResponse(['success' => false, 'message' => 'Unauthorized'], 401);
+            return;
+        }
+        
+        $server = Server::find($id);
+        
+        if (!$server) {
+            $this->jsonResponse(['success' => false, 'message' => 'Server not found'], 404);
+            return;
+        }
+        
+        // Check if user is a member of this server
+        if (!UserServerMembership::isMember($_SESSION['user_id'], $server->id)) {
+            $this->jsonResponse(['success' => false, 'message' => 'You are not a member of this server'], 403);
+            return;
+        }
+        
+        // Get server categories for channel creation
+        $categories = [];
+        $query = new Query();
+        $categoryResults = $query->table('categories')
+            ->where('server_id', $server->id)
+            ->orderBy('position')
+            ->get();
+            
+        if ($categoryResults) {
+            $categories = $categoryResults;
+        }
+        
+        $this->jsonResponse([
+            'success' => true,
+            'server' => [
+                'id' => (string)$server->id,
+                'name' => $server->name,
+                'description' => $server->description,
+                'image_url' => $server->image_url,
+                'is_public' => (bool)$server->is_public,
+                'invite_link' => $server->invite_link
+            ],
+            'categories' => $categories
+        ]);
+    }
+
     private function jsonResponse($data, $statusCode = 200) {
         // Ensure we haven't sent any output already
         if (!headers_sent()) {

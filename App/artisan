@@ -13,12 +13,30 @@ define('MIGRATIONS_PATH', __DIR__ . '/migrations');
 // Include necessary files
 require_once __DIR__ . '/config/helpers.php';
 
-// Set environment variables for database
-putenv("DB_HOST=localhost");
-putenv("DB_PORT=1003");  
-putenv("DB_USER=root");
-putenv("DB_PASS=password");
-putenv("DB_NAME=misvord");
+// Load .env file first
+if (file_exists(__DIR__ . '/.env')) {
+    $envFile = file_get_contents(__DIR__ . '/.env');
+    $lines = explode("\n", $envFile);
+    foreach ($lines as $line) {
+        if (empty(trim($line)) || strpos(trim($line), '#') === 0) {
+            continue;
+        }
+        if (strpos($line, '=') !== false) {
+            list($key, $value) = explode('=', $line, 2);
+            putenv(trim($key) . '=' . trim($value));
+        }
+    }
+}
+
+// Override with Docker settings for connecting from host to container
+// Use 127.0.0.1 for localhost connections from Windows
+putenv("DB_HOST=127.0.0.1");
+// Get the port from the environment or use default 3306
+$dbPort = getenv("DB_PORT") ?: "3306";
+putenv("DB_PORT=" . $dbPort);
+// Use empty string for no password
+$dbPass = getenv("DB_PASS");
+putenv("DB_PASS=" . $dbPass);
 
 require_once __DIR__ . '/config/env.php';
 require_once __DIR__ . '/config/db.php';

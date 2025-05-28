@@ -6,8 +6,6 @@ services:
       dockerfile: Dockerfile.php
     container_name: misvord_php
     restart: unless-stopped
-    # For production, consider building code into the image and removing these code volumes
-    # Or, if you deploy by syncing code to the VPS and then running docker-compose, these are fine.
     volumes:
       - ./public:/var/www/html/public:ro
       - ./views:/var/www/html/views:ro
@@ -31,7 +29,7 @@ services:
       - APP_ENV=${APP_ENV:-production} # Set to production for VPS
       - APP_DEBUG=${APP_DEBUG:-false}  # Set to false for VPS
       - DB_HOST=db
-      - DB_PORT=${DB_PORT:-1003}
+      - DB_PORT=${DB_PORT:-3306}
       - DB_NAME=${DB_NAME:-misvord}
       - DB_USER=${DB_USER:-root}
       - DB_PASS=${DB_PASS:-password} # Use .env file for this!
@@ -59,20 +57,21 @@ services:
     restart: unless-stopped
     environment:
       MYSQL_DATABASE: ${DB_NAME:-misvord}
-      MYSQL_ROOT_PASSWORD: ${DB_PASS:-password} # Use .env file for this!
+      MYSQL_ROOT_PASSWORD: ${DB_PASS:-password}
       MYSQL_ROOT_HOST: "%"
-      MYSQL_TCP_PORT: ${DB_PORT:-1003}
+      MYSQL_TCP_PORT: ${DB_PORT:-3306}
     volumes:
-      - misvord_db_data:/var/lib/mysql # Persists DB data on the host
+      - misvord_db_data:/var/lib/mysql
+      - ./docker/mysql-init:/docker-entrypoint-initdb.d
     networks:
       - misvord_network
-    ports: # Usually kept internal unless direct host access is needed
-      - "${DB_PORT:-1003}:${DB_PORT:-1003}"
-    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --port=${DB_PORT:-1003}
+    ports:
+      - "${DB_PORT:-3306}:${DB_PORT:-3306}"
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --port=${DB_PORT:-3306}
     security_opt:
       - seccomp:unconfined # Required by MySQL for some operations
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-P", "${DB_PORT:-1003}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-P", "${DB_PORT:-3306}"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -86,15 +85,15 @@ services:
       - db
     networks:
       - misvord_network
-    ports: # Ports exposed to the host
-     - "${PMA_PORT:-1004}:80"
+    ports:
+      - "${PMA_PORT:-1004}:80"
     environment:
       - PMA_HOST=db
-      - PMA_PORT=${DB_PORT:-1003}
+      - PMA_PORT=${DB_PORT:-3306}
       - PMA_ARBITRARY=1
       - UPLOAD_LIMIT=500M
-      - PMA_USER=${DB_USER:-root}
-      - PMA_PASSWORD=${DB_PASS:-password} # Use .env file for this!
+      - PMA_USER=root
+      - PMA_PASSWORD=password
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true

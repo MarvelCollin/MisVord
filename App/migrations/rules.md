@@ -1,0 +1,1 @@
+make sure to change the main migration instaed of adding column using new files

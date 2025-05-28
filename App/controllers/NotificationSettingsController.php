@@ -53,15 +53,7 @@ class NotificationSettingsController {
         // Update the notification_settings in the membership record
         $query = new Query();
         
-        // First, check if the notification_settings column exists
         try {
-            $hasColumn = $query->columnExists('user_server_memberships', 'notification_settings');
-            
-            if (!$hasColumn) {
-                // Add the column if it doesn't exist
-                $query->raw("ALTER TABLE user_server_memberships ADD notification_settings TEXT NULL");
-            }
-            
             $result = $query->table('user_server_memberships')
                 ->where('user_id', $userId)
                 ->where('server_id', $serverId)
@@ -98,25 +90,6 @@ class NotificationSettingsController {
         
         try {
             $query = new Query();
-            $hasColumn = $query->columnExists('user_server_memberships', 'notification_settings');
-            
-            if (!$hasColumn) {
-                // Return default settings if column doesn't exist
-                $defaultSettings = [
-                    'all_messages' => false,
-                    'mentions_only' => true,
-                    'muted' => false,
-                    'suppress_everyone' => false,
-                    'suppress_roles' => false
-                ];
-                
-                $this->jsonResponse([
-                    'success' => true, 
-                    'notification_settings' => $defaultSettings
-                ]);
-                return;
-            }
-            
             $result = $query->table('user_server_memberships')
                 ->select('notification_settings')
                 ->where('user_id', $userId)

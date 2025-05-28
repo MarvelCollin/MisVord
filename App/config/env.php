@@ -17,7 +17,7 @@ class EnvLoader {
         // Default Docker values (used in docker-compose.yml)
         $dockerDefaults = [
             'DB_HOST' => 'db',
-            'DB_PORT' => '1003',
+            'DB_PORT' => '3306',
             'DB_NAME' => 'misvord',
             'DB_USER' => 'root',
             'DB_PASS' => 'password',
@@ -26,7 +26,7 @@ class EnvLoader {
         
         // Always prioritize environment variables
         $env['DB_HOST'] = getenv('DB_HOST') ?: ($isDocker ? $dockerDefaults['DB_HOST'] : 'localhost');
-        $env['DB_PORT'] = getenv('DB_PORT') ?: ($isDocker ? $dockerDefaults['DB_PORT'] : '1003');
+        $env['DB_PORT'] = getenv('DB_PORT') ?: ($isDocker ? $dockerDefaults['DB_PORT'] : '3306');
         $env['DB_NAME'] = getenv('DB_NAME') ?: ($isDocker ? $dockerDefaults['DB_NAME'] : 'misvord');
         $env['DB_USER'] = getenv('DB_USER') ?: ($isDocker ? $dockerDefaults['DB_USER'] : 'root');
         $env['DB_PASS'] = getenv('DB_PASS') ?: ($isDocker ? $dockerDefaults['DB_PASS'] : 'password');
@@ -88,11 +88,11 @@ class EnvLoader {
             return self::$pdoInstance;
         }
 
-        $host = self::get('DB_HOST', 'db');
-        $port = self::get('DB_PORT', '1003');
+        $host = self::get('DB_HOST', '127.0.0.1');
+        $port = self::get('DB_PORT', '3306');
         $dbname = self::get('DB_NAME', 'misvord');
         $username = self::get('DB_USER', 'root');
-        $password = self::get('DB_PASS', 'password');
+        $password = self::get('DB_PASS', '');
         $charset = self::get('DB_CHARSET', 'utf8mb4');
 
         try {
@@ -103,7 +103,7 @@ class EnvLoader {
                 echo "- Port: $port\n";
                 echo "- Database: $dbname\n";
                 echo "- Username: $username\n";
-                echo "- Password: " . str_repeat('*', strlen($password)) . "\n\n";
+                echo "- Password: " . (empty($password) ? "(empty)" : str_repeat('*', strlen($password))) . "\n\n";
             }
             
             $dsn = "mysql:host=$host;port=$port;charset=$charset";
