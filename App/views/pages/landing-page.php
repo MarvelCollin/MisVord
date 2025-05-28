@@ -9,7 +9,7 @@ $body_class = 'modern-landing';
 ob_start();
 ?>
 
-<!-- Animated Background -->
+<!-- Animated Background -->no
 <div class="landing-background"></div>
 
 <!-- Modern Simplified Navbar -->
@@ -69,7 +69,7 @@ ob_start();
                         <div class="mockup-avatar">M</div>
                         <div class="mockup-info">
                             <h4>misvord Community</h4>
-                            <p class="online-status">🟢 <span class="member-count">15,847</span> members online</p>
+                            <p class="online-status">🟢 <span class="member-count-static">15,847</span> members online</p>
                         </div>
                     </div>
                     <div class="mockup-content" id="chatContainer">

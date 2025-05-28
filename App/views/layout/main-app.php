@@ -55,5 +55,10 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
     <?php if (isset($page_js)): ?>
     <script src="<?php echo asset('js/'.$page_js.'.js'); ?>"></script>
     <?php endif; ?>
+    <?php if (isset($additional_js) && is_array($additional_js)): ?>
+        <?php foreach($additional_js as $js_file): ?>
+        <script src="<?php echo asset('js/'.$js_file); ?>"></script>
+        <?php endforeach; ?>
+    <?php endif; ?>
 </body>
 </html>

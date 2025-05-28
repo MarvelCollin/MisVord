@@ -25,5 +25,19 @@ if (php_sapi_name() !== 'cli-server' &&
         session_start();
     }
 
+    // Initialize application configuration
+    require_once __DIR__ . '/config/app.php';
+
+    // Initialize database tables in the correct order
+    require_once __DIR__ . '/database/models/User.php';
+    require_once __DIR__ . '/database/models/Server.php';
+    require_once __DIR__ . '/database/models/UserServerMembership.php';
+    
+    // Initialize tables in the proper order to handle foreign key constraints
+    User::initialize();
+    Server::initialize();
+    UserServerMembership::initialize();
+
+    // Application router
     require_once __DIR__ . '/router.php';
 }

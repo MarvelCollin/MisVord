@@ -3,51 +3,13 @@ if (!isset($currentServer) || empty($currentServer)) {
     return;
 }
 
-$currentServerId = $currentServer['id'] ?? 0;
-$members = [];
-$roles = [];
-
-try {
-    $host = 'localhost';
-    $port = 1003;
-    $dbname = 'misvord';
-    $username = 'root';
-    $password = 'password';
-    $charset = 'utf8mb4';
-    
-    $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=$charset";
-    $options = [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    ];
-    
-    $pdo = new PDO($dsn, $username, $password, $options);
-    
-    $stmt = $pdo->prepare("
-        SELECT r.* FROM server_roles r
-        WHERE r.server_id = ?
-        ORDER BY r.position DESC
-    ");
-    $stmt->execute([$currentServerId]);
-    $roles = $stmt->fetchAll();
-    
-    $stmt = $pdo->prepare("
-        SELECT u.*, sm.role_id FROM users u
-        JOIN server_members sm ON u.id = sm.user_id
-        WHERE sm.server_id = ?
-        ORDER BY u.status = 'online' DESC, u.status = 'away' DESC, u.status = 'dnd' DESC, u.username ASC
-    ");
-    $stmt->execute([$currentServerId]);
-    $members = $stmt->fetchAll();
-    
-} catch (PDOException $e) {
-    $roles = [];
-    $members = [];
-}
+$currentServerId = $currentServer->id ?? 0;
+$members = $GLOBALS['serverMembers'] ?? [];
+$roles = $GLOBALS['serverRoles'] ?? [];
 
 $membersById = [];
 foreach ($members as $member) {
-    $roleId = $member['role_id'];
+    $roleId = $member['role_id'] ?? 'default';
     if (!isset($membersById[$roleId])) {
         $membersById[$roleId] = [];
     }
@@ -119,7 +81,7 @@ $onlineCount = array_reduce($members, function($count, $member) {
             if ($hasDefaultRole) {
                 $defaultMembers = array_filter($members, function($member) use ($roles) {
                     foreach ($roles as $role) {
-                        if ($role['name'] !== '@everyone' && $member['role_id'] === $role['id']) {
+                        if ($role['name'] !== '@everyone' && isset($member['role_id']) && $member['role_id'] === $role['id']) {
                             return false;
                         }
                     }

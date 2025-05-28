@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initScrollToBottom();
     setupSocketListeners();
     initResponseListener();
+    initServerDropdown();
     
     const chatMessages = document.getElementById('chat-messages');
     if (chatMessages) {
@@ -23,6 +24,26 @@ function initMessageInput() {
             sendMessage();
         }
     });
+}
+
+function initServerDropdown() {
+    const dropdownBtn = document.getElementById('server-dropdown-btn');
+    const dropdown = document.getElementById('server-dropdown');
+    
+    if (dropdownBtn && dropdown) {
+        // Toggle dropdown on button click
+        dropdownBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            dropdown.classList.toggle('show');
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (dropdown.classList.contains('show') && !dropdown.contains(e.target)) {
+                dropdown.classList.remove('show');
+            }
+        });
+    }
 }
 
 function sendMessage() {

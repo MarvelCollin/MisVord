@@ -12,6 +12,11 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
+// Load user's servers for the sidebar
+require_once dirname(dirname(__DIR__)) . '/database/models/Server.php';
+$currentUserId = $_SESSION['user_id'] ?? 0;
+$GLOBALS['userServers'] = Server::getFormattedServersForUser($currentUserId);
+
 $page_title = 'misvord - Home';
 $body_class = 'bg-discord-dark text-white overflow-hidden';
 $page_css = 'home-page';

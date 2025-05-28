@@ -4,78 +4,11 @@ if (!isset($currentServer) || empty($currentServer)) {
     return;
 }
 
-$currentServerId = $currentServer['id'] ?? 0;
+$currentServerId = $currentServer->id ?? 0;
 $currentUserId = $_SESSION['user_id'] ?? 0;
-$activeChannelId = $_GET['channel'] ?? null;
-$messages = [];
-
-try {
-    $host = 'localhost';
-    $port = 1003;
-    $dbname = 'misvord';
-    $username = 'root';
-    $password = 'password';
-    $charset = 'utf8mb4';
-    
-    $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=$charset";
-    $options = [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    ];
-    
-    $pdo = new PDO($dsn, $username, $password, $options);
-    
-    if ($activeChannelId) {
-        $stmt = $pdo->prepare("
-            SELECT m.*, u.username, u.avatar, u.status FROM messages m
-            JOIN users u ON m.user_id = u.id
-            WHERE m.channel_id = ?
-            ORDER BY m.timestamp DESC
-            LIMIT 50
-        ");
-        $stmt->execute([$activeChannelId]);
-        $messages = array_reverse($stmt->fetchAll());
-    }
-    
-    $stmt = $pdo->prepare("
-        SELECT c.*, t.name as type_name FROM channels c
-        JOIN channel_types t ON c.type = t.id
-        WHERE c.server_id = ?
-    ");
-    $stmt->execute([$currentServerId]);
-    $channels = $stmt->fetchAll();
-    
-} catch (PDOException $e) {
-    $channels = [];
-    $messages = [];
-}
-
-if (empty($activeChannelId) && !empty($channels)) {
-    $firstTextChannel = null;
-    foreach ($channels as $channel) {
-        if ($channel['type_name'] === 'text') {
-            $firstTextChannel = $channel;
-            break;
-        }
-    }
-    if ($firstTextChannel) {
-        $activeChannelId = $firstTextChannel['id'];
-        
-        try {
-            $stmt = $pdo->prepare("
-                SELECT m.*, u.username, u.avatar, u.status FROM messages m
-                JOIN users u ON m.user_id = u.id
-                WHERE m.channel_id = ?
-                ORDER BY m.timestamp DESC
-                LIMIT 50
-            ");
-            $stmt->execute([$activeChannelId]);
-            $messages = array_reverse($stmt->fetchAll());
-        } catch (PDOException $e) {
-            $messages = [];
-        }
-    }
-}
+$activeChannelId = $GLOBALS['activeChannelId'] ?? null;
+$messages = $GLOBALS['channelMessages'] ?? [];
+$channels = $GLOBALS['serverChannels'] ?? [];
 
 $activeChannel = null;
 foreach ($channels as $channel) {

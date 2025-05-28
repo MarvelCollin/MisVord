@@ -174,14 +174,35 @@ function initFormSubmission() {
         })
         .then(result => {
             if (result.ok && result.data.success) {
+                console.log('Server creation successful. Server data:', result.data.server);
+                
                 if (successMessage) {
                     successMessage.textContent = result.data.message;
                     successMessage.classList.remove('hidden');
                 }
                 
-                setTimeout(() => {
-                    window.location.href = `/server/${result.data.server.id}`;
-                }, 1000);
+                // Make sure we have a valid server ID
+                if (result.data.server && result.data.server.id) {
+                    const serverId = result.data.server.id;
+                    console.log(`Redirecting to server page with ID: ${serverId}`);
+                    
+                    // Show redirecting message
+                    if (successMessage) {
+                        successMessage.textContent = 'Server created successfully! Redirecting...';
+                    }
+                    
+                    // Redirect after a short delay
+                    setTimeout(() => {
+                        window.location.href = `/server/${serverId}`;
+                    }, 1000);
+                } else {
+                    console.error('Error: Server ID is missing from response', result.data);
+                    
+                    if (errorMessage) {
+                        errorMessage.textContent = 'Server created but could not navigate to it. Please go to Home and refresh the page.';
+                        errorMessage.classList.remove('hidden');
+                    }
+                }
             } else {
                 console.error('Server creation failed:', result);
                 

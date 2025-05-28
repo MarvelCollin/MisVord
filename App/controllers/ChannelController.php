@@ -4,6 +4,7 @@ require_once __DIR__ . '/../database/models/Channel.php';
 require_once __DIR__ . '/../database/models/Category.php';
 require_once __DIR__ . '/../database/models/Server.php';
 require_once __DIR__ . '/../database/models/UserServerMembership.php';
+require_once __DIR__ . '/../database/query.php';
 
 class ChannelController {
 
@@ -319,5 +320,60 @@ class ChannelController {
         header('Content-Type: application/json');
         echo json_encode($data);
         exit;
+    }
+
+    public function getServerChannels($serverId) {
+        $channels = [];
+        $categories = [];
+        
+        try {
+            $query = new Query();
+            $allChannels = $query->table('channels c')
+                ->select('c.*, t.name as type_name')
+                ->join('channel_types t', 'c.type', '=', 't.id')
+                ->where('c.server_id', $serverId)
+                ->orderBy('c.position')
+                ->orderBy('c.id')
+                ->get();
+            
+            foreach ($allChannels as $channel) {
+                if ($channel['parent_id'] === null && $channel['type_name'] === 'category') {
+                    $categories[] = $channel;
+                } else {
+                    $channels[] = $channel;
+                }
+            }
+            
+        } catch (Exception $e) {
+            error_log("Error fetching server channels: " . $e->getMessage());
+            $channels = [];
+            $categories = [];
+        }
+        
+        return [
+            'channels' => $channels,
+            'categories' => $categories
+        ];
+    }
+    
+    public function getChannelMessages($channelId) {
+        $messages = [];
+        
+        try {
+            $query = new Query();
+            $messages = $query->table('channel_messages cm')
+                ->select('cm.*, m.content, m.timestamp, u.username, u.avatar')
+                ->join('messages m', 'cm.message_id', '=', 'm.id')
+                ->join('users u', 'm.user_id', '=', 'u.id')
+                ->where('cm.channel_id', $channelId)
+                ->orderBy('m.timestamp', 'ASC')
+                ->get();
+                
+        } catch (Exception $e) {
+            error_log("Error fetching channel messages: " . $e->getMessage());
+            $messages = [];
+        }
+        
+        return $messages;
     }
 }

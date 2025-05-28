@@ -5,6 +5,9 @@ require_once __DIR__ . '/../controllers/ServerController.php';
 require_once __DIR__ . '/../controllers/ChannelController.php';
 require_once __DIR__ . '/../controllers/MessageController.php';
 require_once __DIR__ . '/../controllers/GoogleAuthController.php';
+require_once __DIR__ . '/../controllers/ServerSettingsController.php';
+require_once __DIR__ . '/../controllers/NotificationSettingsController.php';
+require_once __DIR__ . '/../controllers/UserProfileController.php';
 require_once __DIR__ . '/env.php';
 
 return [
@@ -44,6 +47,11 @@ return [
         $controller->create();
     },
     
+    'GET:/api/servers/list' => function() {
+        $controller = new ServerController();
+        $controller->listServers();
+    },
+    
     'GET:/join/{invite}' => function($params) {
         $controller = new ServerController();
         $controller->join($params['invite']);
@@ -51,6 +59,36 @@ return [
     'POST:/api/servers/{id}/leave' => function($params) {
         $controller = new ServerController();
         $controller->leave($params['id']);
+    },
+
+    // Server Settings Routes
+    'PUT:/api/servers/{id}/settings' => function($params) {
+        $controller = new ServerSettingsController();
+        $controller->updateServerSettings();
+    },
+    'POST:/api/servers/{id}/invite' => function($params) {
+        $controller = new ServerSettingsController();
+        $controller->generateInviteLink();
+    },
+    
+    // Notification Settings Routes
+    'GET:/api/servers/{id}/notifications' => function($params) {
+        $controller = new NotificationSettingsController();
+        $controller->getServerNotificationSettings($params['id']);
+    },
+    'PUT:/api/servers/{id}/notifications' => function($params) {
+        $controller = new NotificationSettingsController();
+        $controller->updateServerNotificationSettings();
+    },
+    
+    // User Profile Routes
+    'GET:/api/servers/{id}/profile' => function($params) {
+        $controller = new UserProfileController();
+        $controller->getPerServerProfile($params['id']);
+    },
+    'PUT:/api/servers/{id}/profile' => function($params) {
+        $controller = new UserProfileController();
+        $controller->updatePerServerProfile();
     },
 
     'POST:/register' => function() {

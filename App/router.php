@@ -11,6 +11,10 @@ if (session_status() === PHP_SESSION_NONE) {
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
+$parsedUrl = parse_url($_SERVER["REQUEST_URI"]);
+error_log("Router processing URL parts: " . json_encode($parsedUrl));
+error_log("Request method: " . $_SERVER["REQUEST_METHOD"]);
+
 error_log("Router processing request: " . $_SERVER['REQUEST_URI']);
 error_log("Script Name: " . $_SERVER['SCRIPT_NAME']);
 error_log("Document Root: " . $_SERVER['DOCUMENT_ROOT']);
@@ -59,6 +63,7 @@ if (preg_match('/\\.(?:css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|webp|map)$
         }
     }
 
+    error_log("Static file not found: {$requestFile}");
     header("HTTP/1.0 404 Not Found");
     exit("Static file not found: {$requestFile}");
 }

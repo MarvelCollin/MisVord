@@ -1,40 +1,8 @@
 <?php
-$currentUserId = $_SESSION['user_id'] ?? 0;
-$activeUsers = [];
+require_once __DIR__ . '/../../../controllers/UserActivityController.php';
 
-try {
-    $host = 'localhost';
-    $port = 1003;
-    $dbname = 'misvord';
-    $username = 'root';
-    $password = 'password';
-    $charset = 'utf8mb4';
-    
-    $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=$charset";
-    $options = [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    ];
-    
-    $pdo = new PDO($dsn, $username, $password, $options);
-    
-    $stmt = $pdo->prepare("
-        SELECT u.*, a.* FROM users u 
-        JOIN user_activities a ON u.id = a.user_id
-        JOIN friend_list fl ON (u.id = fl.user_id2 OR u.id = fl.user_id)
-        WHERE (fl.user_id = ? OR fl.user_id2 = ?) 
-        AND fl.status = 'accepted'
-        AND u.id != ?
-        AND u.status = 'online'
-        ORDER BY a.start_time DESC
-        LIMIT 5
-    ");
-    $stmt->execute([$currentUserId, $currentUserId, $currentUserId]);
-    $activeUsers = $stmt->fetchAll();
-    
-} catch (PDOException $e) {
-    $activeUsers = [];
-}
+$userActivityController = new UserActivityController();
+$activeUsers = $userActivityController->getActiveUsers();
 ?>
 
 <div class="w-60 bg-discord-dark border-l border-gray-800 flex flex-col h-full max-h-screen">

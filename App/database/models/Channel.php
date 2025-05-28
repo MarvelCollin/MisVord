@@ -201,5 +201,35 @@ class Channel {
         $query = new Query();
         return $query->table(static::$table)->get();
     }
+    
+    /**
+     * Get channels for a server
+     */
+    public static function getServerChannels($serverId) {
+        $query = new Query();
+        $channels = $query->table('channels c')
+            ->select('c.*, t.name as type_name')
+            ->join('channel_types t', 'c.type', '=', 't.id')
+            ->where('c.server_id', $serverId)
+            ->get();
+            
+        return $channels;
+    }
+    
+    /**
+     * Get messages for a channel
+     */
+    public static function getChannelMessages($channelId, $limit = 50) {
+        $query = new Query();
+        $messages = $query->table('messages m')
+            ->select('m.*, u.username, u.avatar, u.status')
+            ->join('users u', 'm.user_id', '=', 'u.id')
+            ->where('m.channel_id', $channelId)
+            ->orderBy('m.timestamp', 'DESC')
+            ->limit($limit)
+            ->get();
+            
+        return array_reverse($messages); // Return in chronological order
+    }
 }
 

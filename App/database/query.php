@@ -526,6 +526,10 @@ class Query {
         return $this->count() > 0;
     }
 
+    public function getPdo() {
+        return $this->pdo;
+    }
+
     private function buildSelectQuery() {
         $query = "SELECT " . ($this->distinct ? "DISTINCT " : "") . "{$this->select} FROM {$this->table}";
 

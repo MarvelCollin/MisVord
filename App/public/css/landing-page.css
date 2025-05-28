@@ -431,104 +431,127 @@ body {
 }
 
 .member-count {
-    font-weight: 600;
     color: var(--discord-green);
-    animation: countUpdate 3s ease-in-out infinite;
+    font-weight: 600;
+    display: inline-block;
+    animation: countUpdate 8s infinite;
+}
+
+.member-count-static {
+    color: var(--discord-green);
+    font-weight: 600;
+    display: inline-block;
 }
 
 .mockup-content {
-    padding: var(--space-lg);
+    padding: var(--space-md);
     height: 300px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: var(--space-md);
+    background-color: #36393f; /* Discord's exact chat background color */
 }
 
 .chat-message {
     display: flex;
-    gap: var(--space-md);
-    animation: slideInMessage 0.5s ease-out;
+    margin-bottom: 0.4rem; /* Discord uses very small gaps between messages */
     opacity: 0;
-    transform: translateX(-20px);
-    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: slideInMessage 0.3s ease forwards;
+    padding: 0.4rem var(--space-sm);
+    transition: background-color 0.2s ease;
 }
 
-.chat-message.visible {
-    opacity: 1;
-    transform: translateX(0);
+.chat-message:hover {
+    background-color: rgba(4, 4, 5, 0.07); /* Discord's hover color */
+    border-radius: 0; /* Discord doesn't use rounded hover background */
+}
+
+.message-author {
+    display: flex;
+    align-items: center;
+    font-weight: 500; /* Discord uses medium font weight */
+    margin-bottom: 0.2rem; /* Discord uses smaller spacing */
+    font-size: 1rem;
 }
 
 .message-avatar {
-    width: 32px;
-    height: 32px;
+    width: 2.5rem;
+    height: 2.5rem;
+    min-width: 2.5rem;
     border-radius: 50%;
-    background: var(--gradient-secondary);
-    flex-shrink: 0;
+    margin-right: var(--space-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: white;
+    font-size: 1rem;
     position: relative;
     overflow: hidden;
 }
 
-.message-avatar::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-    animation: avatarShine 3s ease-in-out infinite;
-}
-
 .message-content {
-    flex: 1;
-    min-width: 0;
-}
-
-.message-author {
-    font-weight: 600;
-    font-size: 0.875rem;
-    margin-bottom: var(--space-xs);
     display: flex;
-    align-items: center;
-    gap: var(--space-sm);
+    flex-direction: column;
+    flex: 1;
 }
 
 .message-timestamp {
+    font-weight: 400;
+    color: #72767d; /* Discord's timestamp color */
     font-size: 0.75rem;
-    color: var(--discord-gray);
-    opacity: 0.7;
+    margin-left: var(--space-xs);
 }
 
 .message-text {
-    color: var(--discord-gray);
-    font-size: 0.875rem;
-    line-height: 1.4;
-    word-wrap: break-word;
+    background: transparent;
+    color: #dcddde; /* Discord's message text color */
+    padding: 0;
+    border-radius: 0;
+    font-size: 0.9375rem; /* Discord's message font size */
+    line-height: 1.375rem; /* Discord's line height */
+    word-break: break-word;
+    display: inline-block;
+    max-width: 100%;
+}
+
+.bot-message .message-text {
+    background: transparent;
+    color: #dcddde; /* Discord's message text color */
+}
+
+.user-message .message-text {
+    background: transparent;
+    color: #dcddde; /* Discord's message text color */
+}
+
+.user-message .message-author {
+    color: var(--discord-blue);
 }
 
 .message-reactions {
     display: flex;
+    flex-wrap: wrap;
     gap: var(--space-xs);
-    margin-top: var(--space-sm);
+    margin-top: var(--space-xs);
 }
 
 .reaction {
-    background: rgba(88, 101, 242, 0.1);
-    border: 1px solid rgba(88, 101, 242, 0.3);
-    border-radius: var(--radius-sm);
-    padding: var(--space-xs) var(--space-sm);
-    font-size: 0.75rem;
+    background: rgba(79, 84, 92, 0.3); /* Discord's reaction background */
+    border: none;
+    border-radius: 0.25rem;
+    padding: 0.125rem 0.375rem;
+    font-size: 0.875rem;
     display: flex;
     align-items: center;
     gap: var(--space-xs);
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.1s ease;
 }
 
 .reaction:hover {
-    background: rgba(88, 101, 242, 0.2);
-    transform: scale(1.05);
+    background: rgba(79, 84, 92, 0.6); /* Discord's reaction hover background */
+    transform: scale(1.1);
 }
 
 /* Enhanced Chat Input Styling - FIXED */
@@ -659,59 +682,6 @@ body {
     width: 20px;
     height: 20px;
     stroke-width: 2;
-}
-
-/* User Message Specific Styles - FIXED */
-.user-message {
-    flex-direction: row;
-    margin-left: auto;
-    max-width: 85%;
-}
-
-.user-message .message-avatar {
-    order: 2;
-    margin-left: var(--space-md);
-    margin-right: 0;
-}
-
-.user-message .message-content {
-    order: 1;
-    text-align: right;
-}
-
-.user-message .message-author {
-    color: var(--discord-blue);
-    font-weight: 600;
-    justify-content: flex-end;
-}
-
-.user-message .message-text {
-    background: rgba(88, 101, 242, 0.15);
-    border: 1px solid rgba(88, 101, 242, 0.3);
-    padding: var(--space-sm) var(--space-md);
-    border-radius: var(--radius-lg);
-    display: inline-block;
-    margin-top: var(--space-xs);
-    color: var(--discord-white);
-    position: relative;
-}
-
-.user-message .message-text::before {
-    content: '';
-    position: absolute;
-    right: -8px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 0;
-    height: 0;
-    border-left: 8px solid rgba(88, 101, 242, 0.15);
-    border-top: 6px solid transparent;
-    border-bottom: 6px solid transparent;
-}
-
-.user-message .message-reactions {
-    justify-content: flex-end;
-    margin-top: var(--space-sm);
 }
 
 /* Animations */
@@ -946,4 +916,22 @@ body {
     100% {
         transform: translateX(100%) translateY(100%) rotate(45deg);
     }
+}
+
+.chat-message.visible {
+    opacity: 1;
+}
+
+.mockup-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.mockup-content::-webkit-scrollbar-thumb {
+    background-color: rgba(32, 34, 37, 0.6);
+    border-radius: 4px;
+}
+
+.mockup-content::-webkit-scrollbar-track {
+    background-color: rgba(32, 34, 37, 0.3);
+    border-radius: 4px;
 }

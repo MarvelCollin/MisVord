@@ -129,3 +129,14 @@ button:focus {
         font-size: 14px;
     }
 }
+
+/* Add tooltip styles */
+.group:hover .tooltip-text {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* Server sidebar styles */
+.group:hover .tooltip-text {
+    display: block;
+}

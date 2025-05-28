@@ -31,7 +31,7 @@ class EnvLoader {
         $env['DB_USER'] = getenv('DB_USER') ?: ($isDocker ? $dockerDefaults['DB_USER'] : 'root');
         $env['DB_PASS'] = getenv('DB_PASS') ?: ($isDocker ? $dockerDefaults['DB_PASS'] : 'password');
         $env['DB_CHARSET'] = getenv('DB_CHARSET') ?: 'utf8mb4';
-        $env['SOCKET_SERVER'] = getenv('SOCKET_SERVER') ?: 'http://socket-server:1002';
+        $env['SOCKET_SERVER'] = getenv('SOCKET_SERVER') ?: ($isDocker ? 'http://socket-server:1002' : 'http://localhost:1002');
         $env['SOCKET_API_KEY'] = getenv('SOCKET_API_KEY') ?: 'kolin123';
         $env['IS_DOCKER'] = $isDocker ? 'true' : 'false';
         

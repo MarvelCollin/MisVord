@@ -385,364 +385,157 @@ function initAdvancedHoverEffects(spans, chars) {
 
 function initLiveChatSimulation() {
     const chatContainer = document.getElementById('chatContainer');
+    const userMessageInput = document.getElementById('userMessageInput');
+    const sendMessageBtn = document.getElementById('sendMessageBtn');
     const typingIndicator = document.querySelector('.typing-indicator');
-    const memberCount = document.querySelector('.member-count');
-    const userInput = document.getElementById('userMessageInput');
-    const sendBtn = document.getElementById('sendMessageBtn');
-
-    if (!chatContainer) return;
-
-    const chatMessages = [
-        {
-            avatar: 'linear-gradient(135deg, #5865F2, #7289DA)',
-            author: 'Alex',
-            time: 'Today at 2:30 PM',
-            text: 'Hey everyone! Just finished our project presentation. Thanks for all the help! 🎉',
-            reactions: [{ emoji: '🎉', count: 3 }, { emoji: '👏', count: 5 }]
-        },
-        {
-            avatar: 'linear-gradient(135deg, #57F287, #43B581)',
-            author: 'Sarah',
-            time: 'Today at 2:32 PM',
-            text: 'Congratulations! Your hard work paid off 💪',
-            reactions: [{ emoji: '💪', count: 2 }]
-        },
-        {
-            avatar: 'linear-gradient(135deg, #FEE75C, #F1C40F)',
-            author: 'Mike',
-            time: 'Today at 2:35 PM',
-            text: 'Anyone up for a gaming session tonight? 🎮',
-            reactions: [{ emoji: '🎮', count: 4 }]
-        },
-        {
-            avatar: 'linear-gradient(135deg, #ED4245, #C73E6B)',
-            author: 'Emma',
-            time: 'Today at 2:38 PM',
-            text: 'Count me in! What game are we playing?',
-            reactions: []
-        },
-        {
-            avatar: 'linear-gradient(135deg, #9B59B6, #8E44AD)',
-            author: 'David',
-            time: 'Today at 2:40 PM',
-            text: 'How about some Valorant? I just hit Diamond! 💎',
-            reactions: [{ emoji: '💎', count: 6 }, { emoji: '🔥', count: 2 }]
-        },
-        {
-            avatar: 'linear-gradient(135deg, #3498DB, #2980B9)',
-            author: 'Lisa',
-            time: 'Today at 2:42 PM',
-            text: 'Nice! I\'m still stuck in Gold 😅 Can you help me climb?',
-            reactions: [{ emoji: '😅', count: 1 }]
-        }
+    
+    if (!chatContainer || !userMessageInput || !sendMessageBtn) return;
+    
+    // Predefined conversation flow
+    const messages = [
+        { author: 'GamingWizard', text: 'Hey everyone! Excited about the new server features?', time: '1m ago' },
+        { author: 'DesignMaster', text: 'Yeah, definitely! The new voice channels are amazing.', time: '45s ago' },
+        { author: 'CodeNinja', text: 'I\'ve been using them for my study groups. Works perfectly!', time: '20s ago' }
     ];
-
-    let currentMessageIndex = 0;
-    let isTyping = false;
-    let chatCompleted = false;
-    let userMessageCount = 0;
-    let lastUserMessageTime = 0;
-
-    function showTypingIndicator(username = 'Someone') {
-        if (isTyping) return;
-        isTyping = true;
-        if (typingIndicator) {
-            const typingText = typingIndicator.querySelector('.typing-text');
-            if (typingText) {
-                typingText.textContent = `${username} is typing...`;
-            }
-            typingIndicator.classList.remove('hidden');
-        }
-    }
-
-    function hideTypingIndicator() {
-        isTyping = false;
-        if (typingIndicator) {
-            typingIndicator.classList.add('hidden');
-        }
-    }
-
-    function handleUserMessage() {
-        if (!userInput || !sendBtn || userInput.disabled) return;
-
-        const message = userInput.value.trim();
-        if (!message) return;
-
-        const now = Date.now();
-        const timeSinceLastMessage = now - lastUserMessageTime;
-
-        if (timeSinceLastMessage < 1500 && userMessageCount > 0) {
-            userMessageCount++;
-            if (userMessageCount >= 3) {
-                addSpamWarning();
-                userInput.value = '';
-                return;
-            }
-        } else {
-            userMessageCount = 1;
-        }
-
-        lastUserMessageTime = now;
-
-        addUserMessage(message);
-        userInput.value = '';
-
+    
+    // Initialize with some messages
+    messages.forEach((msg, idx) => {
         setTimeout(() => {
-            addBotResponse(message);
-        }, Math.random() * 2000 + 1000);
-    }
-
-    function addUserMessage(text) {
-        const messageElement = createChatMessage({
-            avatar: 'linear-gradient(135deg, #FF6B6B, #4ECDC4)',
-            author: 'You',
-            time: formatCurrentTime(),
-            text: text,
-            reactions: [],
-            isUser: true
-        });
-
-        chatContainer.appendChild(messageElement);
-        setTimeout(() => messageElement.classList.add('visible'), 100);
-        chatContainer.scrollTop = chatContainer.scrollHeight;
-
-        if (Math.random() > 0.7) {
-            setTimeout(() => {
-                addReactionToMessage(messageElement);
-            }, Math.random() * 3000 + 1000);
-        }
-    }
-
-    function addBotResponse(userMessage) {
-        const lowerMessage = userMessage.toLowerCase();
-        let response = '';
-        let author = '';
-        let avatar = '';
-
-        if (lowerMessage.includes('hello') || lowerMessage.includes('hi') || lowerMessage.includes('hey')) {
-            response = 'Hello there! Welcome to misvord! 👋';
-            author = 'WelcomeBot';
-            avatar = 'linear-gradient(135deg, #00D2FF, #3A7BD5)';
-        } else if (lowerMessage.includes('help') || lowerMessage.includes('support')) {
-            response = 'I\'m here to help! What would you like to know about misvord? 🤔';
-            author = 'HelpBot';
-            avatar = 'linear-gradient(135deg, #667eea, #764ba2)';
-        } else if (lowerMessage.includes('game') || lowerMessage.includes('gaming') || lowerMessage.includes('play')) {
-            response = 'Gaming is awesome! What\'s your favorite game? 🎮';
-            author = 'GameBot';
-            avatar = 'linear-gradient(135deg, #f093fb, #f5576c)';
-        } else if (lowerMessage.includes('awesome') || lowerMessage.includes('cool') || lowerMessage.includes('nice')) {
-            response = 'Thanks! We\'re glad you\'re enjoying misvord! ✨';
-            author = 'Community';
-            avatar = 'linear-gradient(135deg, #4facfe, #00f2fe)';
-        } else if (lowerMessage.includes('music') || lowerMessage.includes('song')) {
-            response = 'Love music! Check out our music channels! 🎵';
-            author = 'MusicBot';
-            avatar = 'linear-gradient(135deg, #fa709a, #fee140)';
-        } else {
-            const responses = [
-                { text: 'That\'s really interesting! 💭', author: 'Alex', avatar: 'linear-gradient(135deg, #a8edea, #fed6e3)' },
-                { text: 'Great point! Thanks for sharing! 👍', author: 'Jordan', avatar: 'linear-gradient(135deg, #ff9a9e, #fecfef)' },
-                { text: 'I love hearing different perspectives! 🌟', author: 'Sam', avatar: 'linear-gradient(135deg, #ffecd2, #fcb69f)' },
-                { text: 'You\'ve got some great ideas there! 💡', author: 'Casey', avatar: 'linear-gradient(135deg, #a8e6cf, #dcedc8)' }
-            ];
-            const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-            response = randomResponse.text;
-            author = randomResponse.author;
-            avatar = randomResponse.avatar;
-        }
-
-        showTypingIndicator(author);
-
-        setTimeout(() => {
-            hideTypingIndicator();
-            addBotMessage(response, author, avatar);
-        }, Math.random() * 2000 + 1000);
-    }
-
-    function addSpamWarning() {
-        addBotMessage('🛑 Stop spam! Please wait before sending another message.', 'AutoMod', 'linear-gradient(135deg, #FF416C, #FF4B2B)');
-
-        if (userInput && sendBtn) {
-            userInput.disabled = true;
-            sendBtn.disabled = true;
-            userInput.placeholder = 'Rate limited... please wait';
-
-            let countdown = 3;
-            const countdownInterval = setInterval(() => {
-                userInput.placeholder = `Rate limited... wait ${countdown}s`;
-                countdown--;
-
-                if (countdown < 0) {
-                    clearInterval(countdownInterval);
-                    userInput.disabled = false;
-                    sendBtn.disabled = false;
-                    userInput.placeholder = 'Message #general';
-                    userMessageCount = 0;
-                }
-            }, 1000);
-        }
-    }
-
-    function addBotMessage(text, authorName, avatarGradient) {
-        const messageElement = createChatMessage({
-            avatar: avatarGradient,
-            author: authorName,
-            time: formatCurrentTime(),
-            text: text,
-            reactions: []
-        });
-
-        chatContainer.appendChild(messageElement);
-        setTimeout(() => messageElement.classList.add('visible'), 100);
-        chatContainer.scrollTop = chatContainer.scrollHeight;
-    }
-
-    function addReactionToMessage(messageElement) {
-        const reactions = ['👍', '❤️', '😄', '🎉', '👏', '🔥'];
-        const randomReaction = reactions[Math.floor(Math.random() * reactions.length)];
-        const count = Math.floor(Math.random() * 5) + 1;
-
-        const messageContent = messageElement.querySelector('.message-content');
-        let reactionsContainer = messageElement.querySelector('.message-reactions');
-
-        if (!reactionsContainer) {
-            reactionsContainer = document.createElement('div');
-            reactionsContainer.className = 'message-reactions';
-            messageContent.appendChild(reactionsContainer);
-        }
-
-        const reactionElement = document.createElement('div');
-        reactionElement.className = 'reaction';
-        reactionElement.innerHTML = `${randomReaction} ${count}`;
-        reactionElement.onclick = () => animateReaction(reactionElement);
-
-        reactionsContainer.appendChild(reactionElement);
-
-        reactionElement.style.transform = 'scale(0)';
-        reactionElement.style.transition = 'transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
-
-        setTimeout(() => {
-            reactionElement.style.transform = 'scale(1)';
-        }, 100);
-    }
-
-    function formatCurrentTime() {
-        const now = new Date();
-        const hours = now.getHours();
-        const minutes = now.getMinutes().toString().padStart(2, '0');
-        const period = hours >= 12 ? 'PM' : 'AM';
-        const displayHours = hours % 12 || 12;
-        return `Today at ${displayHours}:${minutes} ${period}`;
-    }
-
-    function createChatMessage(messageData) {
-        const messageDiv = document.createElement('div');
-        messageDiv.className = 'chat-message';
-
-        if (messageData.isUser) {
-            messageDiv.classList.add('user-message');
-        }
-
-        const reactionsHTML = messageData.reactions && messageData.reactions.length > 0 
-            ? `<div class="message-reactions">${messageData.reactions.map(r => 
-                `<div class="reaction" onclick="animateReaction(this)">${r.emoji} ${r.count}</div>`
-              ).join('')}</div>`
-            : '';
-
-        messageDiv.innerHTML = `
-            <div class="message-avatar" style="background: ${messageData.avatar};"></div>
-            <div class="message-content">
-                <div class="message-author">${messageData.author} <span class="message-timestamp">${messageData.time}</span></div>
-                <div class="message-text">${messageData.text}</div>
-                ${reactionsHTML}
-            </div>
-        `;
-
-        return messageDiv;
-    }
-
-    if (userInput && sendBtn) {
-        sendBtn.addEventListener('click', handleUserMessage);
-
-        userInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleUserMessage();
-            }
-        });
-
-        let typingTimeout;
-        userInput.addEventListener('input', () => {
-            if (userInput.value.trim() && !userInput.disabled) {
-                showTypingIndicator('You');
-
-                clearTimeout(typingTimeout);
-                typingTimeout = setTimeout(() => {
-                    hideTypingIndicator();
-                }, 1000);
-            } else {
-                hideTypingIndicator();
-            }
-        });
-
-        userInput.addEventListener('blur', () => {
-            hideTypingIndicator();
-        });
-    }
-
-    function addMessage() {
-        if (currentMessageIndex >= chatMessages.length) {
-            chatCompleted = true;
-            setTimeout(() => {
-                addBotMessage('Chat demo completed! Feel free to send your own messages! 💬', 'System', 'linear-gradient(135deg, #667eea, #764ba2)');
-            }, 2000);
-            return;
-        }
-
-        const messageData = chatMessages[currentMessageIndex];
-
-        showTypingIndicator(messageData.author);
-
-        setTimeout(() => {
-            hideTypingIndicator();
-
-            const messageElement = createChatMessage(messageData);
+            const messageElement = createChatMessage({
+                author: msg.author,
+                text: msg.text,
+                time: msg.time,
+                isUser: false,
+                avatarColor: getRandomHsl()
+            });
+            
             chatContainer.appendChild(messageElement);
-
-            setTimeout(() => {
-                messageElement.classList.add('visible');
-            }, 100);
-
             chatContainer.scrollTop = chatContainer.scrollHeight;
-            currentMessageIndex++;
-
-            if (currentMessageIndex < chatMessages.length) {
-                const nextDelay = Math.random() * 3000 + 2000;
-                setTimeout(addMessage, nextDelay);
+            
+            if (idx === 1) {
+                setTimeout(() => {
+                    addReactionToMessage(messageElement);
+                }, 1000);
             }
-
-        }, Math.random() * 2000 + 1500);
+        }, 800 * (idx + 1));
+    });
+    
+    // Input handling
+    userMessageInput.addEventListener('keypress', e => {
+        if (e.key === 'Enter' && userMessageInput.value.trim() !== '') {
+            handleUserMessage();
+        }
+    });
+    
+    sendMessageBtn.addEventListener('click', () => {
+        if (userMessageInput.value.trim() !== '') {
+            handleUserMessage();
+        }
+    });
+    
+    function handleUserMessage() {
+        const text = userMessageInput.value.trim();
+        if (!text) return;
+        
+        // Add user message
+        const messageElement = createChatMessage({
+            author: 'You',
+            text: text,
+            time: formatTime(),
+            isUser: true,
+            avatarColor: 'var(--gradient-primary)'
+        });
+        
+        chatContainer.appendChild(messageElement);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+        
+        // Clear input
+        userMessageInput.value = '';
+        
+        // Add bot response after delay
+        setTimeout(() => {
+            const responses = [
+                "That's interesting! Tell me more.",
+                "I see what you mean. Great point!",
+                "Thanks for sharing that with us!",
+                "I appreciate your input on this topic.",
+                "Let's discuss this further in the voice channel."
+            ];
+            
+            const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+            const botNames = ['ChatHelper', 'ModBot', 'Assistant', 'ServerGuide'];
+            const randomName = botNames[Math.floor(Math.random() * botNames.length)];
+            
+            const botMessage = createChatMessage({
+                author: randomName,
+                text: randomResponse,
+                time: formatTime(),
+                isUser: false,
+                avatarColor: getRandomHsl()
+            });
+            
+            chatContainer.appendChild(botMessage);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }, 1000);
     }
-
-    setTimeout(addMessage, 1000);
-
-    function animateMemberCount() {
-        if (!memberCount) return;
-
-        const baseCount = 15847;
-        const variation = Math.floor(Math.random() * 50) - 25;
-        const newCount = baseCount + variation;
-
-        memberCount.textContent = newCount.toLocaleString();
-
-        setTimeout(animateMemberCount, Math.random() * 8000 + 5000);
+    
+    function formatTime() {
+        const now = new Date();
+        return now.getHours() % 12 + ':' + 
+               now.getMinutes().toString().padStart(2, '0') + ' ' + 
+               (now.getHours() >= 12 ? 'PM' : 'AM');
     }
-
-    setTimeout(animateMemberCount, 3000);
+    
+    function getRandomHsl() {
+        return `hsl(${Math.random() * 360}, 70%, 60%)`;
+    }
+    
+    function addReactionToMessage(messageElement) {
+        const reactionContainer = messageElement.querySelector('.message-reactions');
+        if (!reactionContainer) return;
+        
+        const reactions = ['👍', '❤️', '😊', '🎉', '🔥', '👏'];
+        const randomReaction = reactions[Math.floor(Math.random() * reactions.length)];
+        
+        const reaction = document.createElement('div');
+        reaction.className = 'reaction';
+        reaction.innerHTML = `${randomReaction} 1`;
+        reaction.addEventListener('click', () => animateReaction(reaction));
+        
+        reactionContainer.appendChild(reaction);
+    }
 }
 
-window.animateReaction = function(element) {
+function createChatMessage(messageData) {
+    const { author, text, time, isUser, avatarColor } = messageData;
+    
+    const messageElement = document.createElement('div');
+    messageElement.className = 'chat-message';
+    
+    // Keep all chat messages with the same structure
+    messageElement.classList.add(isUser ? 'user-message' : 'bot-message');
+    
+    const avatarInitial = author.charAt(0);
+    
+    messageElement.innerHTML = `
+        <div class="message-avatar" style="background: ${avatarColor || 'var(--gradient-primary)'}">
+            ${avatarInitial}
+        </div>
+        <div class="message-content">
+            <div class="message-author">${author} <span class="message-timestamp">${time}</span></div>
+            <div class="message-text">${text}</div>
+            <div class="message-reactions"></div>
+        </div>
+    `;
+    
+    setTimeout(() => {
+        messageElement.classList.add('visible');
+    }, 100);
+    
+    return messageElement;
+}
+
+function animateReaction(element) {
     if (!element) return;
 
     element.style.transform = 'scale(1.3) rotate(10deg)';
@@ -755,7 +548,7 @@ window.animateReaction = function(element) {
     setTimeout(() => {
         element.style.transform = '';
     }, 400);
-};
+}
 
 function initInteractiveElements() {
 

@@ -12,58 +12,26 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
+require_once dirname(dirname(__DIR__)) . '/controllers/ExploreController.php';
+require_once dirname(dirname(__DIR__)) . '/database/models/Server.php';
+
+// Load user's servers for the sidebar
+$currentUserId = $_SESSION['user_id'] ?? 0;
+$GLOBALS['userServers'] = Server::getFormattedServersForUser($currentUserId);
+
 $page_title = 'misvord - Explore Servers';
 $body_class = 'bg-discord-dark text-white';
 $page_css = 'explore-servers';
 $page_js = 'explore-servers';
 
-// Get public servers
-$servers = [];
-try {
-    $host = 'localhost';
-    $port = 1003;
-    $dbname = 'misvord';
-    $username = 'root';
-    $password = 'password';
-    $charset = 'utf8mb4';
-    
-    $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=$charset";
-    $options = [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    ];
-    
-    $pdo = new PDO($dsn, $username, $password, $options);
-    
-    $stmt = $pdo->prepare("
-        SELECT s.*, COUNT(usm.id) as member_count 
-        FROM servers s
-        LEFT JOIN user_server_memberships usm ON s.id = usm.server_id
-        WHERE s.is_public = 1
-        GROUP BY s.id
-        ORDER BY member_count DESC
-    ");
-    
-    $stmt->execute();
-    $servers = $stmt->fetchAll();
-    
-    // Check which servers the user is already a member of
-    $userServerId = [];
-    $stmt = $pdo->prepare("
-        SELECT server_id FROM user_server_memberships
-        WHERE user_id = ?
-    ");
-    $stmt->execute([$_SESSION['user_id']]);
-    $userServers = $stmt->fetchAll();
-    
-    foreach ($userServers as $server) {
-        $userServerId[] = $server['server_id'];
-    }
-    
-} catch (PDOException $e) {
-    $servers = [];
-    $userServerId = [];
-}
+// Get servers data from controller
+$exploreController = new ExploreController();
+$allServersData = $exploreController->getPublicServers();
+$featuredServersData = $exploreController->getFeaturedServers(3);
+
+$servers = $allServersData['servers'];
+$userServerId = $allServersData['userServerIds'];
+$featuredServers = $featuredServersData['featuredServers'];
 
 $categories = [
     'gaming' => 'Gaming',
@@ -116,7 +84,6 @@ $categories = [
                 <h2 class="text-lg font-bold mb-4">Featured Servers</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="featured-servers">
                     <?php 
-                    $featuredServers = array_slice($servers, 0, 3);
                     foreach ($featuredServers as $server): 
                         $isMember = in_array($server['id'], $userServerId);
                     ?>

@@ -1,5 +1,4 @@
 <?php
-// Create Server Modal
 ?>
 <div id="create-server-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 hidden">
     <div class="w-full max-w-md">

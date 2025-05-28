@@ -1,51 +1,19 @@
 <?php
+require_once __DIR__ . '/../../../controllers/ChannelController.php';
+
 if (!isset($currentServer) || empty($currentServer)) {
     return;
 }
 
-$currentServerId = $currentServer['id'] ?? 0;
+$currentServerId = $currentServer->id ?? 0;
 $currentUserId = $_SESSION['user_id'] ?? 0;
 $activeChannelId = $_GET['channel'] ?? null;
-$channels = [];
-$categories = [];
 
-try {
-    $host = 'localhost';
-    $port = 1003;
-    $dbname = 'misvord';
-    $username = 'root';
-    $password = 'password';
-    $charset = 'utf8mb4';
-    
-    $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=$charset";
-    $options = [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    ];
-    
-    $pdo = new PDO($dsn, $username, $password, $options);
-    
-    $stmt = $pdo->prepare("
-        SELECT c.*, t.name as type_name FROM channels c
-        JOIN channel_types t ON c.type = t.id
-        WHERE c.server_id = ?
-        ORDER BY c.position, c.id
-    ");
-    $stmt->execute([$currentServerId]);
-    $allChannels = $stmt->fetchAll();
-    
-    foreach ($allChannels as $channel) {
-        if ($channel['parent_id'] === null && $channel['type_name'] === 'category') {
-            $categories[] = $channel;
-        } else {
-            $channels[] = $channel;
-        }
-    }
-    
-} catch (PDOException $e) {
-    $channels = [];
-    $categories = [];
-}
+$channelController = new ChannelController();
+$channelData = $channelController->getServerChannels($currentServerId);
+
+$channels = $channelData['channels'] ?? [];
+$categories = $channelData['categories'] ?? [];
 ?>
 
 <div class="space-y-4">

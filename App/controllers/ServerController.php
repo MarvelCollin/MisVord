@@ -33,10 +33,47 @@ class ServerController {
         $server = $this->getServer($id);
 
         if ($server) {
+            // Get the current user's server list for the sidebar
+            $currentUserId = $_SESSION['user_id'] ?? 0;
+            $userServers = Server::getFormattedServersForUser($currentUserId);
+            
+            // Get server members and roles
+            $serverMembers = UserServerMembership::getServerMembers($server->id);
+            $serverRoles = UserServerMembership::getServerRoles($server->id);
+            
+            // Get server channels
+            require_once __DIR__ . '/../database/models/Channel.php';
+            $serverChannels = Channel::getServerChannels($server->id);
+            
+            // Get active channel and its messages
+            $activeChannelId = $_GET['channel'] ?? null;
+            $channelMessages = [];
+            
+            if (empty($activeChannelId) && !empty($serverChannels)) {
+                // Find first text channel
+                foreach ($serverChannels as $channel) {
+                    if ($channel['type_name'] === 'text') {
+                        $activeChannelId = $channel['id'];
+                        break;
+                    }
+                }
+            }
+            
+            if ($activeChannelId) {
+                $channelMessages = Channel::getChannelMessages($activeChannelId);
+            }
+            
+            // Set global variables that will be available to views
             $GLOBALS['currentServer'] = $server;
+            $GLOBALS['userServers'] = $userServers;
+            $GLOBALS['serverMembers'] = $serverMembers;
+            $GLOBALS['serverRoles'] = $serverRoles;
+            $GLOBALS['serverChannels'] = $serverChannels;
+            $GLOBALS['activeChannelId'] = $activeChannelId;
+            $GLOBALS['channelMessages'] = $channelMessages;
+            
             require_once dirname(__DIR__) . '/views/pages/server-page.php';
         } else {
-
             http_response_code(404);
             require_once dirname(__DIR__) . '/views/pages/404.php';
         }
@@ -109,50 +146,122 @@ class ServerController {
                 $server->image_url = $imageUrl;
             }
 
-            error_log("Saving server to database");
-            if (!$server->save()) {
-                error_log("Server creation failed: Could not save server");
-                $this->jsonResponse(['success' => false, 'message' => 'Failed to create server'], 500);
-                return;
-            }
-            error_log("Server saved with ID: " . $server->id);
-
+            $query = new Query();
+            $pdo = $query->getPdo();
+            
+            // Generate an invite link
+            $server->invite_link = $this->generateUniqueInviteCode();
+            
+            // Transaction management
+            $transactionActive = false;
+            
             try {
-                error_log("Adding user as server owner");
-                UserServerMembership::addOwner($_SESSION['user_id'], $server->id);
-                error_log("User {$_SESSION['user_id']} ({$_SESSION['username']}) set as owner of server {$server->id} ({$server->name})");
+                // Check if there's already a transaction active
+                if ($pdo->inTransaction()) {
+                    error_log("Transaction already active - using existing transaction");
+                } else {
+                    error_log("Starting new transaction");
+                    $pdo->beginTransaction();
+                    $transactionActive = true;
+                }
+                
+                error_log("Saving server to database within transaction");
+                if (!$server->save()) {
+                    error_log("Server creation failed: Could not save server");
+                    if ($transactionActive) {
+                        error_log("Rolling back transaction");
+                        $pdo->rollBack();
+                        $transactionActive = false;
+                    }
+                    $this->jsonResponse(['success' => false, 'message' => 'Failed to create server'], 500);
+                    return;
+                }
+                error_log("Server saved with ID: " . $server->id);
+                
+                // Add user as server owner using direct query within the same transaction
+                error_log("Adding user as server owner (UserId: {$_SESSION['user_id']}, ServerId: {$server->id})");
+                $membershipInserted = $query->table('user_server_memberships')
+                    ->insert([
+                        'user_id' => $_SESSION['user_id'],
+                        'server_id' => $server->id,
+                        'role' => 'owner',
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]);
+                
+                if (!$membershipInserted) {
+                    error_log("Failed to create membership record, rolling back transaction");
+                    if ($transactionActive) {
+                        error_log("Rolling back transaction");
+                        $pdo->rollBack();
+                        $transactionActive = false;
+                    }
+                    $this->jsonResponse(['success' => false, 'message' => 'Failed to assign server ownership'], 500);
+                    return;
+                }
+                
+                error_log("Creating default channels for server: " . $server->id);
+                $channelsCreated = $this->createDefaultChannels($server->id);
+                error_log("Default channels created: " . ($channelsCreated ? 'Yes' : 'No'));
+                
+                if (!$channelsCreated) {
+                    error_log("Failed to create default channels, rolling back transaction");
+                    if ($transactionActive) {
+                        error_log("Rolling back transaction");
+                        $pdo->rollBack();
+                        $transactionActive = false;
+                    }
+                    $this->jsonResponse(['success' => false, 'message' => 'Failed to create default channels'], 500);
+                    return;
+                }
+                
+                // Commit the transaction if everything was successful
+                if ($transactionActive) {
+                    error_log("Committing transaction");
+                    $pdo->commit();
+                    $transactionActive = false;
+                }
+                
+                // Verify the membership was created after the transaction
+                $membership = UserServerMembership::findByUserAndServer($_SESSION['user_id'], $server->id);
+                if (!$membership) {
+                    error_log("ERROR: Membership not found after successful transaction - this should never happen");
+                }
+                
+                error_log("Server creation completed successfully");
+                $this->jsonResponse([
+                    'success' => true, 
+                    'message' => 'Server created successfully', 
+                    'server' => [
+                        'id' => (string)$server->id,
+                        'name' => $server->name,
+                        'description' => $server->description,
+                        'image_url' => $server->image_url,
+                        'is_public' => $server->is_public ? true : false,
+                        'invite_link' => $server->invite_link
+                    ]
+                ]);
+                
             } catch (Exception $e) {
-                error_log("Failed to set owner for server: " . $e->getMessage());
-                // Continue anyway, we'll create the server without explicit owner
+                // Rollback transaction on any error
+                if ($transactionActive) {
+                    error_log("Rolling back transaction due to exception");
+                    try {
+                        $pdo->rollBack();
+                    } catch (Exception $rollbackEx) {
+                        error_log("Error during rollback: " . $rollbackEx->getMessage());
+                    }
+                    $transactionActive = false;
+                }
+                error_log("Server creation error: " . $e->getMessage());
+                error_log("Error trace: " . $e->getTraceAsString());
+                $this->jsonResponse(['success' => false, 'message' => 'Server creation failed: ' . $e->getMessage()], 500);
             }
-
-            error_log("Creating default channels for server: " . $server->id);
-            $channelsCreated = $this->createDefaultChannels($server->id);
-            error_log("Default channels created: " . ($channelsCreated ? 'Yes' : 'No'));
-
-            // Always generate an invite link for the server
-            error_log("Generating invite link");
-            $inviteLink = $server->generateInviteLink();
-            error_log("Invite link generated: $inviteLink");
-
-            error_log("Server creation completed successfully");
-            $this->jsonResponse([
-                'success' => true, 
-                'message' => 'Server created successfully',
-                'server' => [
-                    'id' => $server->id,
-                    'name' => $server->name,
-                    'image_url' => $server->image_url,
-                    'description' => $server->description,
-                    'invite_link' => $inviteLink,
-                    'is_public' => $server->is_public
-                ]
-            ], 201);
             
         } catch (Exception $e) {
-            error_log("Server creation critical error: " . $e->getMessage());
+            error_log("Unexpected error during server creation: " . $e->getMessage());
             error_log("Error trace: " . $e->getTraceAsString());
-            $this->jsonResponse(['success' => false, 'message' => 'An unexpected error occurred: ' . $e->getMessage()], 500);
+            $this->jsonResponse(['success' => false, 'message' => 'An unexpected error occurred'], 500);
         } finally {
             // Restore error reporting settings
             error_reporting($oldErrorReporting);
@@ -291,6 +400,15 @@ class ServerController {
         }
     }
 
+    private function generateUniqueInviteCode() {
+        $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        $uniqueString = '';
+        for ($i = 0; $i < 10; $i++) {
+            $uniqueString .= $characters[rand(0, strlen($characters) - 1)];
+        }
+        return $uniqueString;
+    }
+
     public function join($inviteCode) {
 
         if (!isset($_SESSION['user_id'])) {
@@ -331,21 +449,26 @@ class ServerController {
         }
 
         $server = Server::find($serverId);
-
+        
         if (!$server) {
             $this->jsonResponse(['success' => false, 'message' => 'Server not found'], 404);
             return;
         }
-
-        if (UserServerMembership::isOwner($_SESSION['user_id'], $server->id)) {
-            $this->jsonResponse(['success' => false, 'message' => 'Server owners cannot leave. Transfer ownership first.'], 400);
+        
+        if (!UserServerMembership::isMember($_SESSION['user_id'], $serverId)) {
+            $this->jsonResponse(['success' => false, 'message' => 'You are not a member of this server'], 400);
             return;
         }
-
-        if (UserServerMembership::delete($_SESSION['user_id'], $server->id)) {
-            $this->jsonResponse(['success' => true, 'message' => 'Left server successfully']);
+        
+        if (UserServerMembership::isOwner($_SESSION['user_id'], $serverId)) {
+            $this->jsonResponse(['success' => false, 'message' => 'Server owners cannot leave their server. Transfer ownership first or delete the server.'], 400);
+            return;
+        }
+        
+        if (UserServerMembership::delete($_SESSION['user_id'], $serverId)) {
+            $this->jsonResponse(['success' => true, 'message' => 'You have left the server']);
         } else {
-            $this->jsonResponse(['success' => false, 'message' => 'Failed to leave server'], 500);
+            $this->jsonResponse(['success' => false, 'message' => 'Failed to leave the server'], 500);
         }
     }
 
@@ -380,6 +503,39 @@ class ServerController {
         $GLOBALS['currentChannel'] = $channel;
 
         require_once __DIR__ . '/../views/pages/server-page.php';
+    }
+
+    public function listServers() {
+        if (!isset($_SESSION['user_id'])) {
+            $this->jsonResponse(['success' => false, 'message' => 'Unauthorized'], 401);
+            return;
+        }
+        
+        try {
+            // Get the user's servers
+            $servers = Server::getForUser($_SESSION['user_id']);
+            
+            // Format the response
+            $formattedServers = [];
+            foreach ($servers as $server) {
+                $formattedServers[] = [
+                    'id' => (string)$server->id,
+                    'name' => $server->name,
+                    'image_url' => $server->image_url,
+                    'description' => $server->description,
+                    'invite_link' => $server->invite_link,
+                    'is_public' => $server->is_public
+                ];
+            }
+            
+            $this->jsonResponse([
+                'success' => true,
+                'servers' => $formattedServers
+            ]);
+        } catch (Exception $e) {
+            error_log("Error getting server list: " . $e->getMessage());
+            $this->jsonResponse(['success' => false, 'message' => 'An error occurred while fetching servers'], 500);
+        }
     }
 
     private function jsonResponse($data, $statusCode = 200) {

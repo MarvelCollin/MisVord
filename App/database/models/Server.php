@@ -96,6 +96,34 @@ class Server {
         return $servers;
     }
     
+    /**
+     * Get formatted server list for sidebar display
+     */
+    public static function getFormattedServersForUser($userId) {
+        $query = new Query();
+        
+        // Get unique servers for this user, avoid duplicates
+        $results = $query->table('servers s')
+            ->select('s.*')
+            ->join('user_server_memberships usm', 's.id', '=', 'usm.server_id')
+            ->where('usm.user_id', $userId)
+            ->groupBy('s.id')  // Ensure unique servers only
+            ->orderBy('s.name', 'ASC')  // Sort by name
+            ->get();
+        
+        $formattedServers = [];
+        foreach ($results as $server) {
+            $formattedServers[] = [
+                'id' => (string)$server['id'],  // Ensure ID is a string
+                'name' => $server['name'],
+                'image_url' => $server['image_url'],
+                'description' => $server['description']
+            ];
+        }
+        
+        return $formattedServers;
+    }
+    
     public function members() {
         $query = new Query();
         return $query->table('users u')
@@ -168,10 +196,19 @@ class Server {
             
             return $result > 0;
         } else {
-            $this->attributes['id'] = $query->table(static::$table)
-                    ->insert($this->attributes);
-            
-            return $this->attributes['id'] > 0;
+            try {
+                error_log("Inserting new server record");
+                $this->attributes['id'] = $query->table(static::$table)
+                        ->insert($this->attributes);
+                
+                // We're not going to auto-add the user as owner here anymore
+                // because that's handled by the ServerController within its transaction
+                return $this->attributes['id'] > 0;
+            } catch (Exception $e) {
+                error_log("Error saving server: " . $e->getMessage());
+                error_log("Error trace: " . $e->getTraceAsString());
+                return false;
+            }
         }
     }
     

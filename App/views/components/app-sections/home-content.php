@@ -1,49 +1,12 @@
 <?php
-$currentUserId = $_SESSION['user_id'] ?? 0;
-$friends = [];
-$onlineFriends = [];
+require_once __DIR__ . '/../../../controllers/FriendController.php';
 
-try {
-    $host = 'localhost';
-    $port = 1003;
-    $dbname = 'misvord';
-    $username = 'root';
-    $password = 'password';
-    $charset = 'utf8mb4';
-    
-    $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=$charset";
-    $options = [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    ];
-    
-    $pdo = new PDO($dsn, $username, $password, $options);
-    
-    $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
-    $stmt->execute([$currentUserId]);
-    $currentUser = $stmt->fetch();
-    
-    $stmt = $pdo->prepare("
-        SELECT u.* FROM users u 
-        JOIN friend_list fl ON u.id = fl.user_id2 
-        WHERE fl.user_id = ? AND fl.status = 'accepted'
-        UNION
-        SELECT u.* FROM users u 
-        JOIN friend_list fl ON u.id = fl.user_id 
-        WHERE fl.user_id2 = ? AND fl.status = 'accepted'
-    ");
-    $stmt->execute([$currentUserId, $currentUserId]);
-    $friends = $stmt->fetchAll();
-    
-    $onlineFriends = array_filter($friends, function($friend) {
-        return $friend['status'] === 'online';
-    });
-    
-} catch (PDOException $e) {
-    $currentUser = ['id' => $currentUserId, 'username' => $_SESSION['username'] ?? 'Unknown'];
-    $friends = [];
-    $onlineFriends = [];
-}
+$friendController = new FriendController();
+$friendData = $friendController->getUserFriends();
+
+$currentUser = $friendData['currentUser'];
+$friends = $friendData['friends'];
+$onlineFriends = $friendData['onlineFriends'];
 ?>
 
 <div class="flex-1 p-4 overflow-y-auto bg-discord-background">
