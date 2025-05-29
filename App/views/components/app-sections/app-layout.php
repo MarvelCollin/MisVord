@@ -3,17 +3,12 @@ if (!isset($contentType)) {
     $contentType = 'home';
 }
 
-if (!isset($socketServerUrl)) {
-    $socketServerUrl = $_ENV['SOCKET_SERVER'] ?? 'http://localhost:1002';
-}
-
 $currentServer = $currentServer ?? $GLOBALS['currentServer'] ?? null;
 ?>
 
 <div class="flex h-screen" 
      data-user-id="<?php echo htmlspecialchars($_SESSION['user_id']); ?>" 
-     data-username="<?php echo htmlspecialchars($_SESSION['username']); ?>" 
-     data-socket-url="<?php echo htmlspecialchars($socketServerUrl); ?>"
+     data-username="<?php echo htmlspecialchars($_SESSION['username']); ?>"
      id="app-container">
     
     <?php include dirname(__DIR__) . '/app-sections/server-sidebar.php'; ?>

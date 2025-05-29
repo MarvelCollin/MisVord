@@ -3,8 +3,8 @@
 class CreateMessageReactionsTableMigration {
     public function up($migration) {        $migration->createTable('message_reactions', function($table) {
             $table->id();
-            $table->integer('message_id'); // Changed to integer to match messages table
-            $table->integer('user_id'); // Changed to integer to match users table
+            $table->integer('message_id');
+            $table->integer('user_id');
             $table->string('emoji');
             $table->timestamps();
             

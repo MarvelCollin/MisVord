@@ -18,8 +18,7 @@ $page_title = 'misvord - Server';
 $body_class = 'bg-discord-dark text-white overflow-hidden';
 $page_css = 'server-page';
 $page_js = 'server-page';
-$additional_js = ['server-menu.js'];
-$socketServerUrl = $_ENV['SOCKET_SERVER'] ?? 'http://localhost:1002';
+$additional_js = ['server-dropdown.js'];
 $contentType = 'server';
 $currentServer = $GLOBALS['currentServer'] ?? null;
 

@@ -1,10 +1,8 @@
 document.addEventListener('DOMContentLoaded', function() {
     initNavigation();
     initScrollReveal();
-    initTooltips();
     initDropdowns();
     initTextareaAutosize();
-    initSocketConnection();
     
     document.addEventListener('click', function(e) {
         closeDropdowns(e);
@@ -109,79 +107,12 @@ function createRippleEffect(event) {
 }
 
 function initSocketConnection() {
-    const appContainer = document.getElementById('app-container');
-    if (!appContainer) return;
-    
-    const userId = appContainer.dataset.userId;
-    const username = appContainer.dataset.username;
-    const socketUrl = appContainer.dataset.socketUrl;
-    
-    if (!userId || !socketUrl) return;
-    
-    try {
-        const socket = io(socketUrl);
-        
-        socket.on('connect', () => {
-            console.log('Connected to WebSocket server');
-            socket.emit('user-online', { userId, username });
-        });
-        
-        socket.on('disconnect', () => {
-            console.log('Disconnected from WebSocket server');
-        });
-        
-        window.misvordSocket = socket;
-        
-        window.addEventListener('beforeunload', () => {
-            socket.emit('user-offline', { userId });
-        });
-    } catch (error) {
-        console.error('Socket connection error:', error);
-    }
+    // Socket connection disabled
+    console.log('Socket functionality disabled');
 }
 
-function initTooltips() {
-    const tooltips = document.querySelectorAll('[data-tooltip]');
-    tooltips.forEach(tooltip => {
-        tooltip.addEventListener('mouseenter', showTooltip);
-        tooltip.addEventListener('mouseleave', hideTooltip);
-    });
-}
-
-function showTooltip(e) {
-    const tooltip = e.currentTarget;
-    const text = tooltip.dataset.tooltip;
-    
-    if (!text) return;
-    
-    const tooltipEl = document.createElement('div');
-    tooltipEl.className = 'absolute z-50 bg-black text-white text-xs py-1 px-2 rounded pointer-events-none';
-    tooltipEl.textContent = text;
-    
-    document.body.appendChild(tooltipEl);
-    
-    const rect = tooltip.getBoundingClientRect();
-    const tooltipRect = tooltipEl.getBoundingClientRect();
-    
-    tooltipEl.style.left = `${rect.left + (rect.width / 2) - (tooltipRect.width / 2)}px`;
-    tooltipEl.style.top = `${rect.top - tooltipRect.height - 8}px`;
-    
-    tooltip.dataset.tooltipId = Date.now();
-    tooltipEl.dataset.for = tooltip.dataset.tooltipId;
-}
-
-function hideTooltip(e) {
-    const tooltip = e.currentTarget;
-    const tooltipId = tooltip.dataset.tooltipId;
-    
-    if (!tooltipId) return;
-    
-    const tooltipEl = document.querySelector(`[data-for="${tooltipId}"]`);
-    if (tooltipEl) {
-        tooltipEl.remove();
-    }
-    
-    delete tooltip.dataset.tooltipId;
+function connectSocket(socketUrl, userId, username) {
+    // This function is no longer used
 }
 
 function initDropdowns() {

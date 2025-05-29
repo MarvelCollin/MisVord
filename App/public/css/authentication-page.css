@@ -5,6 +5,7 @@
     height: 100vh;
     width: 100vw;
     overflow-x: hidden;
+    overflow-y: auto;
     will-change: transform; /* Hardware acceleration hint */
 }
 

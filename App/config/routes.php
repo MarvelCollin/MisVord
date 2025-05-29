@@ -51,10 +51,14 @@ return [
         $controller = new ServerController();
         $controller->listServers();
     },
-    
-    'GET:/api/servers/{id}' => function($params) {
+      'GET:/api/servers/{id}' => function($params) {
         $controller = new ServerController();
         $controller->getServerDetails($params['id']);
+    },
+    
+    'GET:/api/servers/{id}/channels' => function($params) {
+        $controller = new ServerController();
+        $controller->getServerChannels($params['id']);
     },
     
     'GET:/join/{invite}' => function($params) {
@@ -72,8 +76,20 @@ return [
         $controller->updateServerSettings();
     },
     'POST:/api/servers/{id}/invite' => function($params) {
-        $controller = new ServerSettingsController();
-        $controller->generateInviteLink();
+        try {
+            $controller = new ServerSettingsController();
+            $controller->generateInviteLink();
+        } catch (Exception $e) {
+            header('Content-Type: application/json');
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Server error: ' . $e->getMessage()
+            ]);
+            error_log('Error generating invite link: ' . $e->getMessage());
+            error_log('Stack trace: ' . $e->getTraceAsString());
+            exit;
+        }
     },
     
     // Notification Settings Routes

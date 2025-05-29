@@ -12,20 +12,51 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-// Load user's servers for the sidebar
+// Force load fresh server data for the current user (avoid caching issues)
 require_once dirname(dirname(__DIR__)) . '/database/models/Server.php';
 $currentUserId = $_SESSION['user_id'] ?? 0;
+error_log("HOME.PHP - Loading servers for user ID: $currentUserId");
+
+// Clear any previously loaded server data
+if (isset($GLOBALS['userServers'])) {
+    unset($GLOBALS['userServers']);
+    error_log("HOME.PHP - Cleared existing server data from GLOBALS");
+}
+
+// Get fresh server data
 $GLOBALS['userServers'] = Server::getFormattedServersForUser($currentUserId);
+error_log("HOME.PHP - Loaded " . count($GLOBALS['userServers']) . " servers for sidebar");
+
+// Direct database check (debug only)
+$query = new Query();
+$memberships = $query->table('user_server_memberships')->where('user_id', $currentUserId)->get();
+error_log("HOME.PHP - Direct query found " . count($memberships) . " memberships");
 
 $page_title = 'misvord - Home';
 $body_class = 'bg-discord-dark text-white overflow-hidden';
 $page_css = 'home-page';
 $page_js = 'home-page';
-$socketServerUrl = $_ENV['SOCKET_SERVER'] ?? 'http://localhost:1002';
+$additional_js = ['server-dropdown.js'];
 $contentType = 'home';
 ?>
 
 <?php ob_start(); ?>
+
+<!-- Debug panel to show server info -->
+<?php if (isset($_GET['debug'])): ?>
+<div style="position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 5px; z-index: 1000; color: white; max-width: 500px; overflow: auto; max-height: 80%;">
+    <h3>Debug Info</h3>
+    <p>User ID: <?php echo $currentUserId; ?></p>
+    <p>Memberships: <?php echo count($memberships); ?></p>
+    <ul>
+    <?php foreach($memberships as $m): ?>
+        <li>Server ID: <?php echo $m['server_id']; ?>, Role: <?php echo $m['role']; ?></li>
+    <?php endforeach; ?>
+    </ul>
+    <p>Servers: <?php echo count($GLOBALS['userServers']); ?></p>
+    <pre><?php print_r($GLOBALS['userServers']); ?></pre>
+</div>
+<?php endif; ?>
 
 <?php include dirname(dirname(__DIR__)) . '/views/components/app-sections/app-layout.php'; ?>
 

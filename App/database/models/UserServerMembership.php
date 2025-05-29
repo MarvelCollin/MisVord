@@ -80,9 +80,7 @@ class UserServerMembership {
         $membership = new static([
             'user_id' => $userId,
             'server_id' => $serverId,
-            'role' => $role,
-            'created_at' => date('Y-m-d H:i:s'),
-            'updated_at' => date('Y-m-d H:i:s')
+            'role' => $role
         ]);
         
         $membership->save();
@@ -106,8 +104,7 @@ class UserServerMembership {
                 $result = $query->table('user_server_memberships')
                     ->where('id', $existingMembership['id'])
                     ->update([
-                        'role' => 'owner',
-                        'updated_at' => date('Y-m-d H:i:s')
+                        'role' => 'owner'
                     ]);
                 
                 error_log("Role update result: " . ($result ? 'Success' : 'Failed'));
@@ -120,9 +117,7 @@ class UserServerMembership {
                 ->insert([
                     'user_id' => $userId,
                     'server_id' => $serverId,
-                    'role' => 'owner',
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s')
+                    'role' => 'owner'
                 ]);
             
             if ($membershipId) {
@@ -135,8 +130,8 @@ class UserServerMembership {
                     $pdo = $query->getPdo();
                     $stmt = $pdo->prepare("
                         INSERT INTO user_server_memberships 
-                        (user_id, server_id, role, created_at, updated_at) 
-                        VALUES (?, ?, 'owner', NOW(), NOW())
+                        (user_id, server_id, role) 
+                        VALUES (?, ?, 'owner')
                     ");
                     $success = $stmt->execute([$userId, $serverId]);
                     error_log("Direct PDO insert result: " . ($success ? 'Success' : 'Failed'));
@@ -163,14 +158,14 @@ class UserServerMembership {
                 
                 if ($existing) {
                     // Update existing
-                    $stmt = $pdo->prepare("UPDATE user_server_memberships SET role = 'owner', updated_at = NOW() WHERE id = ?");
+                    $stmt = $pdo->prepare("UPDATE user_server_memberships SET role = 'owner' WHERE id = ?");
                     $stmt->execute([$existing['id']]);
                 } else {
                     // Insert new
                     $stmt = $pdo->prepare("
                         INSERT INTO user_server_memberships 
-                        (user_id, server_id, role, created_at, updated_at) 
-                        VALUES (?, ?, 'owner', NOW(), NOW())
+                        (user_id, server_id, role) 
+                        VALUES (?, ?, 'owner')
                     ");
                     $stmt->execute([$userId, $serverId]);
                 }
@@ -186,14 +181,16 @@ class UserServerMembership {
     public function save() {
         $query = new Query();
         
-        if (!isset($this->attributes['created_at'])) {
-            $this->attributes['created_at'] = date('Y-m-d H:i:s');
-        }
-        $this->attributes['updated_at'] = date('Y-m-d H:i:s');
-        
         if (isset($this->attributes['id'])) {
             $id = $this->attributes['id'];
             unset($this->attributes['id']);
+            
+            if (isset($this->attributes['created_at'])) {
+                unset($this->attributes['created_at']);
+            }
+            if (isset($this->attributes['updated_at'])) {
+                unset($this->attributes['updated_at']);
+            }
             
             $result = $query->table(static::$table)
                     ->where('id', $id)
@@ -203,6 +200,13 @@ class UserServerMembership {
             
             return $result > 0;
         } else {
+            if (isset($this->attributes['created_at'])) {
+                unset($this->attributes['created_at']);
+            }
+            if (isset($this->attributes['updated_at'])) {
+                unset($this->attributes['updated_at']);
+            }
+            
             $this->attributes['id'] = $query->table(static::$table)
                     ->insert($this->attributes);
             

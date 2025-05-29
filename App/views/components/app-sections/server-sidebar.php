@@ -2,21 +2,45 @@
 $currentUserId = $_SESSION['user_id'] ?? 0;
 $servers = $GLOBALS['userServers'] ?? [];
 
+// Debug information
+error_log("SERVER-SIDEBAR.PHP - User ID: $currentUserId");
+error_log("SERVER-SIDEBAR.PHP - Servers count: " . count($servers));
+error_log("SERVER-SIDEBAR.PHP - Servers data: " . json_encode($servers));
+
+// If no servers are available, try to fetch them directly
+if (empty($servers) && $currentUserId) {
+    error_log("No servers found in GLOBALS, fetching directly from Server model");
+    require_once dirname(dirname(dirname(__DIR__))) . '/database/models/Server.php';
+    $servers = Server::getFormattedServersForUser($currentUserId);
+    error_log("Directly fetched servers count: " . count($servers));
+}
+
 $currentServerId = isset($currentServer) ? $currentServer->id : null;
 $currentPath = $_SERVER['REQUEST_URI'] ?? '';
 $isHomePage = !str_contains($currentPath, '/server/');
+
+// Include the tooltip component
+$tooltipPath = dirname(dirname(__DIR__)) . '/components/common/tooltip.php';
+if (file_exists($tooltipPath)) {
+    require_once $tooltipPath;
+}
 ?>
 
-t <div class="flex h-full">
-    <div class="w-[72px] bg-discord-darker flex flex-col items-center pt-3 pb-3 space-y-2 overflow-y-auto">
-        <a href="/home" class="group flex items-center justify-center relative">
-            <div class="w-12 h-12 rounded-2xl <?php echo $isHomePage ? 'bg-discord-primary rounded-[16px]' : 'bg-discord-dark rounded-full hover:rounded-2xl hover:bg-discord-primary'; ?> flex items-center justify-center transition-all duration-200">
-                <i class="fa-brands fa-discord text-white text-xl"></i>
-            </div>
-            <?php if ($isHomePage): ?>
-                <div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-10 bg-white rounded-r-md"></div>
-            <?php endif; ?>
-        </a>
+<div class="flex h-full">
+    <div class="w-[72px] bg-discord-darker flex flex-col items-center pt-3 pb-3 space-y-2 overflow-visible">
+        <?php
+        // Home button with tooltip
+        $homeContent = '<div class="relative">
+            <a href="/home" class="group flex items-center justify-center relative w-12 h-12">
+                <div class="w-12 h-12 rounded-2xl ' . ($isHomePage ? 'bg-discord-primary rounded-[16px]' : 'bg-discord-dark rounded-full hover:rounded-2xl hover:bg-discord-primary') . ' flex items-center justify-center transition-all duration-200">
+                    <i class="fa-brands fa-discord text-white text-xl"></i>
+                </div>
+            </a>
+            ' . ($isHomePage ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-10 bg-white rounded-r-md"></div>' : '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-0 bg-white rounded-r-md group-hover:h-5 transition-all duration-150"></div>') . '
+        </div>';
+        
+        echo tooltip($homeContent, 'Home', 'right');
+        ?>
         
         <div class="w-8 h-0.5 bg-discord-dark rounded my-1"></div>
         
@@ -27,90 +51,99 @@ t <div class="flex h-full">
             $serverImage = $server['image_url'] ?? '';
             ?>
             
-            <div class="relative server-item my-2">
-                <a href="/server/<?php echo $server['id']; ?>" class="block">
-                    <div class="w-12 h-12 overflow-hidden <?php echo $isActive ? 'rounded-2xl bg-discord-primary' : 'rounded-full hover:rounded-2xl bg-discord-dark'; ?> transition-all duration-200 flex items-center justify-center">
-                        <?php if (!empty($serverImage)): ?>
-                            <img src="<?php echo htmlspecialchars($serverImage); ?>" alt="<?php echo htmlspecialchars($server['name']); ?>" class="w-full h-full object-cover">
-                        <?php else: ?>
-                            <span class="text-white font-bold text-xl"><?php echo htmlspecialchars($serverInitials); ?></span>
-                        <?php endif; ?>
+            <?php
+            $serverContent = '<div class="relative">
+                <a href="/server/' . $server['id'] . '" class="block group">
+                    <div class="w-12 h-12 overflow-hidden ' . ($isActive ? 'rounded-2xl bg-discord-primary' : 'rounded-full hover:rounded-2xl bg-discord-dark') . ' transition-all duration-200 flex items-center justify-center">
+                        ' . (!empty($serverImage) ? 
+                            '<img src="' . htmlspecialchars($serverImage) . '" alt="' . htmlspecialchars($server['name']) . '" class="w-full h-full object-cover">' :
+                            '<span class="text-white font-bold text-xl">' . htmlspecialchars($serverInitials) . '</span>') . '
                     </div>
-                    <div class="server-tooltip"><?php echo htmlspecialchars($server['name']); ?></div>
                 </a>
-                <?php if ($isActive): ?>
-                    <div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-10 bg-white rounded-r-md"></div>
-                <?php else: ?>
-                    <div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-10 bg-white rounded-r-md scale-y-0 hover:scale-y-[0.5] transition-transform duration-150"></div>
-                <?php endif; ?>
-            </div>
+                ' . ($isActive ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-10 bg-white rounded-r-md"></div>' : '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-0 bg-white rounded-r-md group-hover:h-5 transition-all duration-150"></div>') . '
+            </div>';
+            
+            echo tooltip($serverContent, htmlspecialchars($server['name']), 'right', 'my-2');
+            ?>
         <?php endforeach; ?>
         
-        <div class="server-item mt-2 relative">
-            <button data-action="create-server" class="w-12 h-12 bg-discord-dark rounded-full flex items-center justify-center hover:bg-discord-primary transition-colors">
-                <i class="fas fa-plus text-green-500"></i>
-            </button>
-            <div class="server-tooltip">Create a Server</div>
-        </div>
+        <?php
+        // Create Server button with tooltip
+        $createServerContent = '<button data-action="create-server" class="w-12 h-12 bg-discord-dark rounded-full hover:rounded-2xl flex items-center justify-center hover:bg-discord-green transition-all duration-200 border-none cursor-pointer outline-none">
+            <i class="fas fa-plus text-green-500 hover:text-white text-xl transition-colors duration-200"></i>
+        </button>';
         
-        <div class="server-item relative">
-            <a href="/explore-servers" class="block">
-                <div class="w-12 h-12 rounded-full hover:rounded-2xl bg-discord-dark hover:bg-discord-green flex items-center justify-center transition-all duration-200">
-                    <i class="fas fa-compass text-discord-green"></i>
-                </div>
-                <div class="server-tooltip">Explore Servers</div>
-            </a>
-        </div>
+        echo tooltip($createServerContent, 'Add a Server', 'right', 'mt-2');
+        ?>
+        
+        <?php
+        // Explore button with tooltip
+        $exploreContent = '<a href="/explore-servers" class="block">
+            <div class="w-12 h-12 rounded-full hover:rounded-2xl bg-discord-dark hover:bg-discord-green flex items-center justify-center transition-all duration-200">
+                <i class="fas fa-compass text-green-500 hover:text-white text-xl transition-colors duration-200"></i>
+            </div>
+        </a>';
+        
+        echo tooltip($exploreContent, 'Explore Public Servers', 'right');
+        ?>
     </div>
     
+    <?php 
+    // DEBUG: Check variables before rendering server dropdown
+    error_log("Server sidebar debug - contentType: " . ($contentType ?? 'undefined') . 
+              ", currentServer: " . (isset($currentServer) ? 'set' : 'not set') .
+              ", currentServer type: " . (isset($currentServer) ? gettype($currentServer) : 'N/A'));
+    ?>
+    
     <?php if (isset($contentType) && $contentType === 'server' && isset($currentServer)): ?>
+    <!-- DEBUG: Server dropdown section is being rendered -->
     <div class="w-60 bg-discord-dark flex flex-col">
         <div class="h-12 border-b border-black flex items-center px-4 shadow-sm relative">
             <h2 class="font-bold text-white truncate flex-1"><?php echo htmlspecialchars($currentServer->name ?? 'Server'); ?></h2>
-            <button id="server-dropdown-btn" class="text-gray-400 hover:text-white focus:outline-none">
-                <i class="fas fa-chevron-down"></i>
+            <button id="server-dropdown-btn" class="text-gray-400 hover:text-white focus:outline-none w-5 h-5 flex items-center justify-center">
+                <i class="fas fa-chevron-down text-sm"></i>
             </button>
             
             <!-- Server Dropdown Menu -->
-            <div id="server-dropdown" class="server-dropdown">
-                <div class="server-dropdown-item">
-                    <i class="fas fa-user-plus"></i>
+            <div id="server-dropdown" class="hidden absolute right-2 top-12 w-56 bg-[#18191c] rounded-md shadow-lg z-50 py-2 text-gray-100 text-sm overflow-hidden">
+                <div class="server-dropdown-item flex items-center px-3 py-2 hover:bg-[#5865f2] cursor-pointer text-gray-300 hover:text-white">
+                    <i class="fas fa-user-plus w-5 text-center mr-2.5 text-gray-300 group-hover:text-white"></i>
                     <span>Invite People</span>
                 </div>
                 
-                <div class="server-dropdown-item">
-                    <i class="fas fa-cog"></i>
+                <div class="server-dropdown-item flex items-center px-3 py-2 hover:bg-[#5865f2] cursor-pointer text-gray-300 hover:text-white">
+                    <i class="fas fa-cog w-5 text-center mr-2.5 text-gray-300 group-hover:text-white"></i>
                     <span>Server Settings</span>
                 </div>
                 
-                <div class="server-dropdown-item">
-                    <i class="fas fa-plus-circle"></i>
+                <div class="server-dropdown-item flex items-center px-3 py-2 hover:bg-[#5865f2] cursor-pointer text-gray-300 hover:text-white">
+                    <i class="fas fa-plus-circle w-5 text-center mr-2.5 text-gray-300 group-hover:text-white"></i>
                     <span>Create Channel</span>
                 </div>
                 
-                <div class="server-dropdown-item">
-                    <i class="fas fa-folder-plus"></i>
+                <div class="server-dropdown-item flex items-center px-3 py-2 hover:bg-[#5865f2] cursor-pointer text-gray-300 hover:text-white">
+                    <i class="fas fa-folder-plus w-5 text-center mr-2.5 text-gray-300 group-hover:text-white"></i>
                     <span>Create Category</span>
                 </div>
                 
-                <div class="server-dropdown-separator"></div>
+                <div class="border-t border-gray-700 my-1"></div>
                 
-                <div class="server-dropdown-item">
-                    <i class="fas fa-bell"></i>
+                <div class="server-dropdown-item flex items-center px-3 py-2 hover:bg-[#5865f2] cursor-pointer text-gray-300 hover:text-white">
+                    <i class="fas fa-bell w-5 text-center mr-2.5 text-gray-300 group-hover:text-white"></i>
                     <span>Notification Settings</span>
                 </div>
                 
-                <div class="server-dropdown-separator"></div>
+                <div class="border-t border-gray-700 my-1"></div>
                 
-                <div class="server-dropdown-item">
-                    <i class="fas fa-edit"></i>
+                <div class="server-dropdown-item flex items-center px-3 py-2 hover:bg-[#5865f2] cursor-pointer text-gray-300 hover:text-white">
+                    <i class="fas fa-edit w-5 text-center mr-2.5 text-gray-300 group-hover:text-white"></i>
                     <span>Edit Per-server Profile</span>
                 </div>
                 
-                <div class="server-dropdown-separator"></div>
+                <div class="border-t border-gray-700 my-1"></div>
                 
-                <div class="server-dropdown-item danger-zone">
-                    <i class="fas fa-sign-out-alt"></i>
+                <div class="server-dropdown-item flex items-center px-3 py-2 hover:bg-[#5865f2] cursor-pointer text-red-400 hover:text-white">
+                    <i class="fas fa-sign-out-alt w-5 text-center mr-2.5 text-red-400 group-hover:text-white"></i>
                     <span>Leave Server</span>
                 </div>
             </div>
@@ -121,26 +154,50 @@ t <div class="flex h-full">
         </div>
         
         <div class="p-2 bg-discord-darker flex items-center">
-            <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden mr-2">
-                <img src="<?php echo isset($_SESSION['avatar']) ? htmlspecialchars($_SESSION['avatar']) : 'https://ui-avatars.com/api/?name=' . urlencode($_SESSION['username'] ?? 'U') . '&background=random'; ?>" 
+            <?php
+            // User avatar with tooltip
+            $userAvatarContent = '<div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden mr-2">
+                <img src="' . (isset($_SESSION['avatar']) ? htmlspecialchars($_SESSION['avatar']) : 'https://ui-avatars.com/api/?name=' . urlencode($_SESSION['username'] ?? 'U') . '&background=random') . '" 
                      alt="Avatar" class="w-full h-full object-cover">
-            </div>
+            </div>';
+            
+            echo tooltip($userAvatarContent, htmlspecialchars($_SESSION['username'] ?? 'User'), 'top');
+            ?>
             <div class="flex-1">
                 <div class="text-sm text-white font-medium truncate"><?php echo htmlspecialchars($_SESSION['username'] ?? 'User'); ?></div>
                 <div class="text-xs text-discord-lighter truncate">#<?php echo htmlspecialchars($_SESSION['tag'] ?? '0000'); ?></div>
             </div>
             <div class="flex space-x-1">
-                <button class="text-discord-lighter hover:text-white p-1">
+                <?php
+                // Microphone button with tooltip
+                $micContent = '<button class="text-discord-lighter hover:text-white p-1">
                     <i class="fas fa-microphone"></i>
-                </button>
-                <button class="text-discord-lighter hover:text-white p-1">
+                </button>';
+                echo tooltip($micContent, 'Mute', 'top');
+                
+                // Headphones button with tooltip
+                $headphonesContent = '<button class="text-discord-lighter hover:text-white p-1">
                     <i class="fas fa-headphones"></i>
-                </button>
-                <button class="text-discord-lighter hover:text-white p-1">
+                </button>';
+                echo tooltip($headphonesContent, 'Deafen', 'top');
+                
+                // Settings button with tooltip
+                $settingsContent = '<button class="text-discord-lighter hover:text-white p-1">
                     <i class="fas fa-cog"></i>
-                </button>
+                </button>';
+                echo tooltip($settingsContent, 'User Settings', 'top');
+                ?>
             </div>
         </div>
     </div>
+    <?php else: ?>
+    <!-- DEBUG: Not in server context -->
+    <script>
+        console.log('DEBUG: Not in server context', {
+            contentType: '<?php echo $contentType ?? 'undefined'; ?>',
+            currentServer: <?php echo isset($currentServer) ? 'true' : 'false'; ?>,
+            currentPath: '<?php echo $_SERVER['REQUEST_URI'] ?? ''; ?>'
+        });
+    </script>
     <?php endif; ?>
 </div>

@@ -620,7 +620,7 @@ class Query {
     }
 
     public function getBindings() {
-        return $this->bindings;
+        return array_merge($this->bindings, $this->havingBindings);
     }
 
     public function toSql() {

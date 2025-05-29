@@ -1,8 +1,11 @@
 <?php
 
 require_once __DIR__ . '/../database/models/Server.php';
+require_once __DIR__ . '/../database/models/ServerInvite.php';
 require_once __DIR__ . '/../database/models/UserServerMembership.php';
 require_once __DIR__ . '/../database/models/Channel.php';
+require_once __DIR__ . '/../database/models/Category.php';
+require_once __DIR__ . '/../database/query.php';
 
 class ServerController {
 
@@ -35,7 +38,11 @@ class ServerController {
         if ($server) {
             // Get the current user's server list for the sidebar
             $currentUserId = $_SESSION['user_id'] ?? 0;
+            
+            // Always force a fresh server list
+            error_log("Before getFormattedServersForUser() - User ID: $currentUserId");
             $userServers = Server::getFormattedServersForUser($currentUserId);
+            error_log("After getFormattedServersForUser() - Server count: " . count($userServers));
             
             // Get server members and roles
             $serverMembers = UserServerMembership::getServerMembers($server->id);
@@ -180,14 +187,35 @@ class ServerController {
                 
                 // Add user as server owner using direct query within the same transaction
                 error_log("Adding user as server owner (UserId: {$_SESSION['user_id']}, ServerId: {$server->id})");
-                $membershipInserted = $query->table('user_server_memberships')
-                    ->insert([
-                        'user_id' => $_SESSION['user_id'],
-                        'server_id' => $server->id,
-                        'role' => 'owner',
-                        'created_at' => date('Y-m-d H:i:s'),
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ]);
+                
+                try {
+                    // Use direct PDO instead of query builder to ensure transaction consistency
+                    $stmt = $pdo->prepare("
+                        INSERT INTO user_server_memberships 
+                        (user_id, server_id, role) 
+                        VALUES (?, ?, 'owner')
+                    ");
+                    $membershipInserted = $stmt->execute([$_SESSION['user_id'], $server->id]);
+                    
+                    if (!$membershipInserted) {
+                        throw new Exception("Direct server membership insertion failed");
+                    }
+                    
+                    error_log("Membership created with PDO directly - Success");
+                } catch (Exception $e) {
+                    error_log("Error creating membership with PDO directly: " . $e->getMessage());
+                    
+                    // Try with the query builder as fallback
+                    $membershipInserted = $query->table('user_server_memberships')
+                        ->insert([
+                            'user_id' => $_SESSION['user_id'],
+                            'server_id' => $server->id,
+                            'role' => 'owner'
+                            // Let database handle timestamps with defaults
+                        ]);
+                        
+                    error_log("Membership created with query builder - Success: " . ($membershipInserted ? 'Yes' : 'No'));
+                }
                 
                 if (!$membershipInserted) {
                     error_log("Failed to create membership record, rolling back transaction");
@@ -226,6 +254,8 @@ class ServerController {
                 $membership = UserServerMembership::findByUserAndServer($_SESSION['user_id'], $server->id);
                 if (!$membership) {
                     error_log("ERROR: Membership not found after successful transaction - this should never happen");
+                } else {
+                    error_log("SUCCESS: User membership verified with role: " . $membership->role);
                 }
                 
                 error_log("Server creation completed successfully");
@@ -401,12 +431,7 @@ class ServerController {
     }
 
     private function generateUniqueInviteCode() {
-        $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-        $uniqueString = '';
-        for ($i = 0; $i < 10; $i++) {
-            $uniqueString .= $characters[rand(0, strlen($characters) - 1)];
-        }
-        return $uniqueString;
+        return bin2hex(random_bytes(8)); // 16 character hex string
     }
 
     public function join($inviteCode) {
@@ -555,19 +580,12 @@ class ServerController {
         if (!UserServerMembership::isMember($_SESSION['user_id'], $server->id)) {
             $this->jsonResponse(['success' => false, 'message' => 'You are not a member of this server'], 403);
             return;
-        }
+        }          // Get server categories for channel creation
+        $categories = Category::getForServer($server->id);
         
-        // Get server categories for channel creation
-        $categories = [];
-        $query = new Query();
-        $categoryResults = $query->table('categories')
-            ->where('server_id', $server->id)
-            ->orderBy('position')
-            ->get();
-            
-        if ($categoryResults) {
-            $categories = $categoryResults;
-        }
+        // Get active invite link for the server
+        $activeInvite = ServerInvite::findActiveByServer($server->id);
+        $inviteLink = $activeInvite ? $activeInvite->invite_link : null;
         
         $this->jsonResponse([
             'success' => true,
@@ -577,8 +595,35 @@ class ServerController {
                 'description' => $server->description,
                 'image_url' => $server->image_url,
                 'is_public' => (bool)$server->is_public,
-                'invite_link' => $server->invite_link
+                'invite_link' => $inviteLink
             ],
+            'categories' => $categories
+        ]);
+    }
+
+    public function getServerChannels($id) {
+        if (!isset($_SESSION['user_id'])) {
+            $this->jsonResponse(['success' => false, 'message' => 'Unauthorized'], 401);
+            return;
+        }
+        
+        $server = Server::find($id);
+        
+        if (!$server) {
+            $this->jsonResponse(['success' => false, 'message' => 'Server not found'], 404);
+            return;
+        }
+        
+        // Check if user is a member of this server
+        if (!UserServerMembership::isMember($_SESSION['user_id'], $server->id)) {
+            $this->jsonResponse(['success' => false, 'message' => 'You are not a member of this server'], 403);
+            return;
+        }
+          // Get server categories for channel creation
+        $categories = Category::getForServer($server->id);
+        
+        $this->jsonResponse([
+            'success' => true,
             'categories' => $categories
         ]);
     }
@@ -646,5 +691,17 @@ class ServerController {
             // For resources, callbacks, etc.
             return (string)$data;
         }
+    }
+
+    public function isMember($userId) {
+        $query = new Query();
+        error_log("Checking membership for User ID: $userId, Server ID: {$this->id}");
+        $result = $query->table('user_server_memberships')
+            ->where('user_id', $userId)
+            ->where('server_id', $this->id)
+            ->first();
+            
+        error_log("Membership check result: " . ($result ? json_encode($result) : 'Not a member'));
+        return $result !== null;
     }
 }

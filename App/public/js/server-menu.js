@@ -1,20 +1,25 @@
-
-document.addEventListener('DOMContentLoaded', function() {
-    // Get elements
-    const serverDropdownBtn = document.getElementById('server-dropdown-btn');
-    const serverDropdown = document.getElementById('server-dropdown');
+// THIS FILE IS DEPRECATED - DO NOT USE
+// Use server-dropdown.js instead
+console.error('server-menu.js is deprecated and should not be loaded');
+    
+    // Get server ID from URL
+    const getServerId = () => {
+        const urlPath = window.location.pathname;
+        const matches = urlPath.match(/\/server\/(\d+)/);
+        return matches ? matches[1] : null;
+    };
     
     if (serverDropdownBtn && serverDropdown) {
         // Toggle dropdown when clicking the button
         serverDropdownBtn.addEventListener('click', function(e) {
             e.stopPropagation();
-            serverDropdown.classList.toggle('show');
+            serverDropdown.classList.toggle('hidden');
         });
         
         // Close dropdown when clicking outside
         document.addEventListener('click', function() {
-            if (serverDropdown.classList.contains('show')) {
-                serverDropdown.classList.remove('show');
+            if (!serverDropdown.classList.contains('hidden')) {
+                serverDropdown.classList.add('hidden');
             }
         });
         
@@ -22,13 +27,6 @@ document.addEventListener('DOMContentLoaded', function() {
         serverDropdown.addEventListener('click', function(e) {
             e.stopPropagation();
         });
-        
-        // Get server ID from URL
-        const getServerId = () => {
-            const urlPath = window.location.pathname;
-            const matches = urlPath.match(/\/server\/(\d+)/);
-            return matches ? matches[1] : null;
-        };
         
         // Handle dropdown item clicks
         setupDropdownActions();
@@ -75,7 +73,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 // Close dropdown after action
-                serverDropdown.classList.remove('show');
+                serverDropdown.classList.add('hidden');
             });
         });
     }
@@ -83,20 +81,24 @@ document.addEventListener('DOMContentLoaded', function() {
     function handleInvitePeople(serverId) {
         // Create invite link modal
         const modal = document.createElement('div');
-        modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+        modal.className = 'fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50';
         modal.innerHTML = `
-            <div class="bg-discord-dark rounded-lg p-6 max-w-md w-full">
-                <h2 class="text-xl font-bold text-white mb-4">Invite People</h2>
-                <div class="mb-4">
-                    <p class="text-discord-lighter mb-2">Share this link with others:</p>
+            <div class="bg-[#36393f] rounded-md p-6 max-w-md w-full shadow-xl">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl font-bold text-white">Invite People</h2>
+                    <button id="close-invite-modal" class="text-gray-400 hover:text-white">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="mb-6">
+                    <p class="text-gray-300 text-sm mb-2">Send this link to friends</p>
                     <div class="flex">
-                        <input type="text" id="invite-link" class="bg-discord-darker text-white p-2 rounded-l flex-1" readonly>
-                        <button id="copy-invite-link" class="bg-discord-primary text-white px-4 py-2 rounded-r">Copy</button>
+                        <input type="text" id="invite-link" class="bg-[#202225] text-white p-2.5 rounded-l flex-1 border-0 focus:ring-0 focus:outline-none text-sm" readonly>
+                        <button id="copy-invite-link" class="bg-[#5865f2] text-white px-4 py-2.5 rounded-r hover:bg-[#4752c4] transition-colors text-sm">Copy</button>
                     </div>
                 </div>
-                <div class="flex justify-end">
-                    <button id="generate-new-link" class="bg-discord-darker text-white px-4 py-2 mr-2 rounded">Generate New Link</button>
-                    <button id="close-invite-modal" class="bg-discord-primary text-white px-4 py-2 rounded">Close</button>
+                <div class="flex justify-end border-t border-[#26282c] pt-4">
+                    <button id="generate-new-link" class="bg-[#4f545c] text-white px-4 py-2 mr-2 rounded hover:bg-[#646970] transition-colors text-sm">Generate New Link</button>
                 </div>
             </div>
         `;
@@ -140,47 +142,62 @@ document.addEventListener('DOMContentLoaded', function() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ server_id: serverId })
+            }
         })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                document.getElementById('invite-link').value = data.invite_url;
+        .then(response => {
+            // Check if the response is valid JSON
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                return response.json().then(data => ({ ok: response.ok, data }));
             } else {
-                console.error('Error generating invite link:', data.message);
-                showToast('Error generating invite link', 'error');
+                // Handle non-JSON responses (likely HTML error pages)
+                return response.text().then(text => {
+                    throw new Error('Server returned non-JSON response. Likely a server error.');
+                });
+            }
+        })
+        .then(({ ok, data }) => {
+            if (ok && data.success) {
+                document.getElementById('invite-link').value = data.invite_url;
+                showToast('New invite link generated!', 'success');
+            } else {
+                console.error('Error from server:', data);
+                showToast(data.message || 'Error generating invite link', 'error');
             }
         })
         .catch(err => {
             console.error('Error generating invite link:', err);
-            showToast('Network error', 'error');
+            showToast('Network error or server issue. Please try again.', 'error');
         });
     }
     
     function handleServerSettings(serverId) {
         // Create server settings modal
         const modal = document.createElement('div');
-        modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+        modal.className = 'fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50';
         modal.innerHTML = `
-            <div class="bg-discord-dark rounded-lg p-6 max-w-md w-full">
-                <h2 class="text-xl font-bold text-white mb-4">Server Settings</h2>
-                <form id="server-settings-form" class="space-y-4">
+            <div class="bg-[#36393f] rounded-md p-6 max-w-md w-full shadow-xl">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl font-bold text-white">Server Settings</h2>
+                    <button id="close-settings-modal" class="text-gray-400 hover:text-white">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <form id="server-settings-form" class="space-y-5">
                     <div>
-                        <label class="block text-discord-lighter mb-1">Server Name</label>
-                        <input type="text" id="server-name" class="w-full bg-discord-darker text-white p-2 rounded">
+                        <label class="block text-gray-300 text-xs font-medium uppercase tracking-wide mb-2">Server Name</label>
+                        <input type="text" id="server-name" class="w-full bg-[#202225] text-white p-2.5 rounded border-0 focus:ring-1 focus:ring-[#5865f2] focus:outline-none text-sm" maxlength="100">
                     </div>
                     <div>
-                        <label class="block text-discord-lighter mb-1">Description</label>
-                        <textarea id="server-description" class="w-full bg-discord-darker text-white p-2 rounded" rows="3"></textarea>
+                        <label class="block text-gray-300 text-xs font-medium uppercase tracking-wide mb-2">Description <span class="text-gray-400 normal-case font-normal">(optional)</span></label>
+                        <textarea id="server-description" class="w-full bg-[#202225] text-white p-2.5 rounded border-0 focus:ring-1 focus:ring-[#5865f2] focus:outline-none text-sm" rows="3" maxlength="1024"></textarea>
                     </div>
                     <div class="flex items-center">
-                        <input type="checkbox" id="server-is-public" class="mr-2">
-                        <label class="text-discord-lighter">Make server public</label>
+                        <input type="checkbox" id="server-is-public" class="w-4 h-4 bg-[#202225] border-0 focus:ring-0 focus:ring-offset-0 rounded mr-2">
+                        <label class="text-gray-300 text-sm">Make server public</label>
                     </div>
-                    <div class="flex justify-end mt-4">
-                        <button type="button" id="close-settings-modal" class="bg-discord-darker text-white px-4 py-2 mr-2 rounded">Cancel</button>
-                        <button type="submit" class="bg-discord-primary text-white px-4 py-2 rounded">Save Changes</button>
+                    <div class="flex justify-end border-t border-[#26282c] pt-4">
+                        <button type="submit" class="bg-[#5865f2] text-white px-4 py-2 rounded hover:bg-[#4752c4] transition-colors text-sm">Save Changes</button>
                     </div>
                 </form>
             </div>
@@ -211,7 +228,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
-        // Close modal with cancel button
+        // Close modal with close button
         document.getElementById('close-settings-modal').addEventListener('click', function() {
             document.body.removeChild(modal);
         });
@@ -744,16 +761,36 @@ document.addEventListener('DOMContentLoaded', function() {
     function showToast(message, type = 'success') {
         const toast = document.createElement('div');
         
-        toast.className = `fixed bottom-4 right-4 p-3 rounded text-white z-50 ${
-            type === 'success' ? 'bg-green-500' : 'bg-red-500'
+        toast.className = `fixed bottom-4 right-4 p-3 rounded-md text-white z-50 flex items-center shadow-lg ${
+            type === 'success' ? 'bg-[#43b581]' : 'bg-[#f04747]'
         }`;
         
-        toast.textContent = message;
+        toast.innerHTML = `
+            <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} mr-2"></i>
+            <span>${message}</span>
+        `;
         document.body.appendChild(toast);
         
-        // Remove after 3 seconds
+        // Fade in animation
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(10px)';
+        toast.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+        
         setTimeout(() => {
-            document.body.removeChild(toast);
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateY(0)';
+        }, 10);
+        
+        // Fade out and remove
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(-10px)';
+            
+            setTimeout(() => {
+                if (document.body.contains(toast)) {
+                    document.body.removeChild(toast);
+                }
+            }, 200);
         }, 3000);
     }
 }); 

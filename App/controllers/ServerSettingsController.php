@@ -1,8 +1,10 @@
 <?php
 
 require_once __DIR__ . '/../database/models/Server.php';
+require_once __DIR__ . '/../database/models/ServerInvite.php';
 require_once __DIR__ . '/../database/models/UserServerMembership.php';
 require_once __DIR__ . '/../database/query.php';
+require_once __DIR__ . '/../config/env.php';
 
 class ServerSettingsController {
 
@@ -79,14 +81,16 @@ class ServerSettingsController {
             return;
         }
 
-        $data = json_decode(file_get_contents('php://input'), true);
+        // Extract server ID from URL path instead of JSON body
+        $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+        preg_match('/\/api\/servers\/(\d+)\/invite/', $path, $matches);
         
-        if (!$data || !isset($data['server_id'])) {
-            $this->jsonResponse(['success' => false, 'message' => 'Invalid request'], 400);
+        if (!isset($matches[1])) {
+            $this->jsonResponse(['success' => false, 'message' => 'Server ID not found in URL'], 400);
             return;
         }
 
-        $serverId = $data['server_id'];
+        $serverId = $matches[1];
         $server = Server::find($serverId);
         
         if (!$server) {
@@ -99,19 +103,38 @@ class ServerSettingsController {
         if (!$membership || ($membership->role !== 'admin' && $membership->role !== 'owner')) {
             $this->jsonResponse(['success' => false, 'message' => 'You do not have permission to generate invite links'], 403);
             return;
-        }
-        
-        $inviteLink = $server->generateInviteLink();
-        
-        if ($inviteLink) {
-            $this->jsonResponse([
-                'success' => true, 
-                'message' => 'Invite link generated successfully',
-                'invite_link' => $inviteLink,
-                'invite_url' => $_SERVER['HTTP_ORIGIN'] . '/join/' . $inviteLink
+        }        try {
+            // Generate unique invite code
+            $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            $inviteCode = '';
+            for ($i = 0; $i < 10; $i++) {
+                $inviteCode .= $characters[rand(0, strlen($characters) - 1)];
+            }
+            
+            // Delete old invites for this server (optional - keep only latest)
+            ServerInvite::deleteOldInvites($serverId);
+            
+            // Create new invite
+            $invite = ServerInvite::create([
+                'server_id' => $serverId,
+                'inviter_user_id' => $_SESSION['user_id'],
+                'invite_link' => $inviteCode
             ]);
-        } else {
-            $this->jsonResponse(['success' => false, 'message' => 'Failed to generate invite link'], 500);
+            
+            if ($invite) {
+                $this->jsonResponse([
+                    'success' => true, 
+                    'message' => 'Invite link generated successfully',
+                    'invite_code' => $inviteCode
+                ]);
+            } else {
+                error_log("Failed to create server invite for server ID: $serverId");
+                $this->jsonResponse(['success' => false, 'message' => 'Failed to generate invite link'], 500);
+            }
+        } catch (Exception $e) {
+            error_log("Error generating invite link: " . $e->getMessage());
+            error_log("Error trace: " . $e->getTraceAsString());
+            $this->jsonResponse(['success' => false, 'message' => 'Server error: ' . $e->getMessage()], 500);
         }
     }
 

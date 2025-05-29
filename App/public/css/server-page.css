@@ -46,34 +46,8 @@
     height: 40px;
 }
 
-/* Server sidebar tooltip */
-.server-item {
-    position: relative;
-}
-.server-tooltip {
-    position: absolute;
-    left: 4.5rem;
-    top: 50%;
-    transform: translateY(-50%);
-    background-color: #000;
-    color: white;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    white-space: nowrap;
-    z-index: 10000;
-    opacity: 0;
-    pointer-events: none;
-    visibility: hidden;
-    transition: opacity 0.15s, visibility 0.15s;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
-}
-.server-item:hover .server-tooltip {
-    opacity: 1;
-    visibility: visible;
-}
-
-/* Server dropdown menu styles */
+/* Server dropdown menu styles - Now using Tailwind classes for this */
+/* 
 .server-dropdown {
     position: absolute;
     top: 100%;
@@ -91,6 +65,7 @@
     display: block;
     animation: dropdown-appear 0.2s ease-out forwards;
 }
+*/
 
 .server-dropdown-item {
     display: flex;
@@ -102,7 +77,7 @@
 }
 
 .server-dropdown-item:hover {
-    background-color: #4e5058;
+    background-color: #5865f2;
     color: #ffffff;
 }
 
@@ -118,6 +93,7 @@
     color: #ffffff;
 }
 
+/* 
 .server-dropdown-separator {
     height: 1px;
     background-color: #26282c;
@@ -131,7 +107,9 @@
 .danger-zone i {
     color: #f04747;
 }
+*/
 
+/* Dropdown animation and styling */
 @keyframes dropdown-appear {
     from { 
         opacity: 0;
@@ -141,6 +119,16 @@
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+/* Animation for dropdown */
+#server-dropdown {
+    animation: dropdown-appear 0.2s ease-out forwards;
+}
+
+/* Ensuring proper hover states for dropdown items */
+.dropdown-item:hover i {
+    color: white !important;
 }
 
 .message-actions {
@@ -220,4 +208,61 @@
     .mobile-toggle {
         display: flex;
     }
+}
+
+/* Remove all the discord-tooltip complex styles and replace with simple ones */
+.tooltip-wrapper .fa-plus,
+.tooltip-wrapper .fa-compass {
+    color: #57F287;
+    transition: color 0.2s;
+}
+
+.tooltip-wrapper:hover .fa-plus,
+.tooltip-wrapper:hover .fa-compass {
+    color: white;
+}
+
+/* Remove all old tooltip styles and keep only essential server sidebar styles */
+.server-sidebar .relative {
+    position: relative;
+}
+
+.server-sidebar .absolute {
+    position: absolute;
+}
+
+/* Server indicator styles */
+.server-sidebar .w-1 {
+    width: 4px;
+    background-color: white;
+    border-radius: 0 4px 4px 0;
+    transition: all 0.15s ease-out;
+    transform-origin: center;
+}
+
+/* Server icon transitions */
+.server-sidebar .transition-all {
+    transition: all 0.15s ease-out;
+}
+
+/* Custom tooltip arrow styles for better Discord-like appearance */
+.group:hover .border-r-gray-800 {
+    border-right-color: #18191c !important;
+}
+
+.group:hover .border-l-gray-800 {
+    border-left-color: #18191c !important;
+}
+
+.group:hover .border-t-gray-800 {
+    border-top-color: #18191c !important;
+}
+
+.group:hover .border-b-gray-800 {
+    border-bottom-color: #18191c !important;
+}
+
+/* Ensure tooltips appear above other elements */
+.group:hover [class*="z-50"] {
+    z-index: 9999;
 }

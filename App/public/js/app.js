@@ -191,10 +191,16 @@ function initFormSubmission() {
                         successMessage.textContent = 'Server created successfully! Redirecting...';
                     }
                     
-                    // Redirect after a short delay
+                    // Reset hidden state of modal before redirecting
+                    if (document.getElementById('create-server-modal')) {
+                        document.getElementById('create-server-modal').classList.add('hidden');
+                    }
+                    
+                    // Force a hard reload to the server page
                     setTimeout(() => {
-                        window.location.href = `/server/${serverId}`;
-                    }, 1000);
+                        window.location.href = `/server/${serverId}?forceRefresh=${Date.now()}`;
+                        window.location.reload(true);
+                    }, 500);
                 } else {
                     console.error('Error: Server ID is missing from response', result.data);
                     

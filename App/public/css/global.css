@@ -51,7 +51,8 @@ body {
     line-height: 1.6;
     color: var(--discord-white);
     background: var(--discord-darker);
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
 }
 
 ::-webkit-scrollbar {
@@ -139,4 +140,101 @@ button:focus {
 /* Server sidebar styles */
 .group:hover .tooltip-text {
     display: block;
+}
+
+/* Simple tooltip styles */
+/* Remove the old tooltip styles and replace with new ones */
+.tooltip-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+/* Enhanced tooltip styles */
+.tooltip-content {
+    position: absolute;
+    background: #18191c;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    z-index: 99999;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.15s ease, visibility 0.15s ease;
+    pointer-events: none;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.24);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tooltip-wrapper[data-position="right"] .tooltip-content {
+    left: calc(100% + 15px);
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.tooltip-wrapper[data-position="left"] .tooltip-content {
+    right: calc(100% + 15px);
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.tooltip-wrapper[data-position="top"] .tooltip-content {
+    bottom: calc(100% + 15px);
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.tooltip-wrapper[data-position="bottom"] .tooltip-content {
+    top: calc(100% + 15px);
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.tooltip-wrapper:hover .tooltip-content {
+    opacity: 1 !important;
+    visibility: visible !important;
+    transition-delay: 0.5s;
+}
+
+/* Add arrow indicators */
+.tooltip-wrapper[data-position="right"] .tooltip-content::before {
+    content: '';
+    position: absolute;
+    right: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 5px solid transparent;
+    border-right-color: #18191c;
+}
+
+.tooltip-wrapper[data-position="left"] .tooltip-content::before {
+    content: '';
+    position: absolute;
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 5px solid transparent;
+    border-left-color: #18191c;
+}
+
+.tooltip-wrapper[data-position="top"] .tooltip-content::before {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: #18191c;
+}
+
+.tooltip-wrapper[data-position="bottom"] .tooltip-content::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-bottom-color: #18191c;
 }

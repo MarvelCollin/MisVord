@@ -29,14 +29,12 @@ class UserProfileController {
         $userId = $_SESSION['user_id'];
         $nickname = trim($data['nickname'] ?? '');
         
-        // Check if user is a member of this server
         $membership = UserServerMembership::findByUserAndServer($userId, $serverId);
         if (!$membership) {
             $this->jsonResponse(['success' => false, 'message' => 'You are not a member of this server'], 403);
             return;
         }
         
-        // Update the nickname in the membership record
         $query = new Query();
         $result = $query->table('user_server_memberships')
             ->where('user_id', $userId)

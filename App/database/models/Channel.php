@@ -73,6 +73,38 @@ class Channel {
     public function save() {
         $query = new Query();
         
+        // Handle type field conversion if it's a string value
+        if (isset($this->attributes['type']) && !is_numeric($this->attributes['type'])) {
+            $typeValue = strtolower($this->attributes['type']);
+            
+            // Default mapping if we can't query the database
+            $typeMap = [
+                'text' => 1,
+                'voice' => 2,
+                'category' => 3,
+                'announcement' => 4
+            ];
+            
+            // Try to get actual type IDs from database
+            try {
+                $types = $query->table('channel_types')->get();
+                if (!empty($types)) {
+                    foreach ($types as $type) {
+                        $typeMap[$type['name']] = $type['id'];
+                    }
+                }
+            } catch (Exception $e) {
+                error_log("Error fetching channel types: " . $e->getMessage());
+            }
+            
+            // Set the correct type ID
+            if (isset($typeMap[$typeValue])) {
+                $this->attributes['type'] = $typeMap[$typeValue];
+            } else {
+                $this->attributes['type'] = 1; // Default to text (ID 1)
+            }
+        }
+        
         if (isset($this->attributes['id'])) {
             $id = $this->attributes['id'];
             unset($this->attributes['id']);
@@ -116,6 +148,36 @@ class Channel {
         $query = new Query();
         
         try {
+            // First check if the channel_types table exists and create it if needed
+            $channelTypesExists = $query->tableExists('channel_types');
+            if (!$channelTypesExists) {
+                error_log("channel_types table doesn't exist, creating it");
+                $query->raw("
+                    CREATE TABLE IF NOT EXISTS channel_types (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        name VARCHAR(50) NOT NULL,
+                        description TEXT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                    )
+                ");
+                
+                // Insert basic channel types
+                $types = [
+                    ['name' => 'text', 'description' => 'Text channel for messages'],
+                    ['name' => 'voice', 'description' => 'Voice chat channel'],
+                    ['name' => 'category', 'description' => 'Category to group channels'],
+                    ['name' => 'announcement', 'description' => 'Announcements channel']
+                ];
+                
+                foreach ($types as $type) {
+                    $query->table('channel_types')->insert($type);
+                    error_log("Added channel type: " . $type['name']);
+                }
+                
+                error_log("channel_types table created and populated");
+            }
+            
             $tableExists = $query->tableExists(static::$table);
             
             if (!$tableExists) {
@@ -144,43 +206,43 @@ class Channel {
                         CREATE TABLE IF NOT EXISTS " . static::$table . " (
                             id INT AUTO_INCREMENT PRIMARY KEY,
                             name VARCHAR(255) NOT NULL,
-                            type VARCHAR(20) NOT NULL DEFAULT 'text',
+                            type INT NOT NULL DEFAULT 1,
                             description TEXT NULL,
                             server_id INT NOT NULL,
                             category_id INT NULL,
+                            parent_id INT NULL,
                             position INT NOT NULL DEFAULT 0,
                             is_private TINYINT(1) NOT NULL DEFAULT 0,
                             slug VARCHAR(255) NULL,
                             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                             FOREIGN KEY (server_id) REFERENCES servers(id) ON DELETE CASCADE,
-                            FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
+                            FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL,
+                            FOREIGN KEY (parent_id) REFERENCES channels(id) ON DELETE SET NULL,
+                            FOREIGN KEY (type) REFERENCES channel_types(id) ON DELETE RESTRICT
                         )
                     ");
                 } catch (PDOException $e) {
-                    // If we get an error related to the category_id foreign key
-                    if (stripos($e->getMessage(), 'category_id') !== false) {
-                        error_log("Creating channels table without category_id foreign key constraint");
-                        $query->raw("
-                            CREATE TABLE IF NOT EXISTS " . static::$table . " (
-                                id INT AUTO_INCREMENT PRIMARY KEY,
-                                name VARCHAR(255) NOT NULL,
-                                type VARCHAR(20) NOT NULL DEFAULT 'text',
-                                description TEXT NULL,
-                                server_id INT NOT NULL,
-                                category_id INT NULL,
-                                position INT NOT NULL DEFAULT 0,
-                                is_private TINYINT(1) NOT NULL DEFAULT 0,
-                                slug VARCHAR(255) NULL,
-                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                                FOREIGN KEY (server_id) REFERENCES servers(id) ON DELETE CASCADE
-                            )
-                        ");
-                    } else {
-                        // Re-throw if it's not a category_id issue
-                        throw $e;
-                    }
+                    // If we get an error related to foreign key constraints, try with less constraints
+                    error_log("Error creating channels table with all constraints: " . $e->getMessage());
+                    error_log("Creating channels table with minimal constraints");
+                    $query->raw("
+                        CREATE TABLE IF NOT EXISTS " . static::$table . " (
+                            id INT AUTO_INCREMENT PRIMARY KEY,
+                            name VARCHAR(255) NOT NULL,
+                            type INT NOT NULL DEFAULT 1,
+                            description TEXT NULL,
+                            server_id INT NOT NULL,
+                            category_id INT NULL,
+                            parent_id INT NULL,
+                            position INT NOT NULL DEFAULT 0,
+                            is_private TINYINT(1) NOT NULL DEFAULT 0,
+                            slug VARCHAR(255) NULL,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                            FOREIGN KEY (server_id) REFERENCES servers(id) ON DELETE CASCADE
+                        )
+                    ");
                 }
                 
                 $tableExists = $query->tableExists(static::$table);
@@ -207,13 +269,36 @@ class Channel {
      */
     public static function getServerChannels($serverId) {
         $query = new Query();
-        $channels = $query->table('channels c')
-            ->select('c.*, t.name as type_name')
-            ->join('channel_types t', 'c.type', '=', 't.id')
-            ->where('c.server_id', $serverId)
-            ->get();
+        error_log("Fetching channels for server ID: $serverId");
+        
+        try {
+            // First check if the channel_types table exists
+            $channel_types_exists = $query->tableExists('channel_types');
             
-        return $channels;
+            if ($channel_types_exists) {
+                // Use the join with channel_types if it exists
+                $channels = $query->table('channels c')
+                    ->select('c.*, t.name as type_name')
+                    ->join('channel_types t', 'c.type', '=', 't.id')
+                    ->where('c.server_id', $serverId)
+                    ->get();
+            } else {
+                // If channel_types doesn't exist, use the type field directly
+                $channels = $query->table('channels c')
+                    ->select('c.*, c.type as type_name')
+                    ->where('c.server_id', $serverId)
+                    ->orderBy('c.position')
+                    ->get();
+                    
+                error_log("Using direct type field instead of channel_types join");
+            }
+            
+            error_log("Found " . count($channels) . " channels for server ID: $serverId");
+            return $channels;
+        } catch (Exception $e) {
+            error_log("Error fetching channels: " . $e->getMessage());
+            return [];
+        }
     }
     
     /**

@@ -56,7 +56,7 @@
     background: linear-gradient(90deg, #5865F2 0%, #EB459E 100%);
     height: 120px;
     border-radius: 8px 8px 0 0;
-    overflow: hidden;
+    overflow: visible;
 }
 
 .server-icon {
@@ -131,4 +131,4 @@
     .filter-dropdown, .server-search {
         width: 100%;
     }
-} 
+}

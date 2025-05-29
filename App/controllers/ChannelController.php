@@ -327,22 +327,31 @@ class ChannelController {
         $categories = [];
         
         try {
-            $query = new Query();
-            $allChannels = $query->table('channels c')
-                ->select('c.*, t.name as type_name')
-                ->join('channel_types t', 'c.type', '=', 't.id')
-                ->where('c.server_id', $serverId)
-                ->orderBy('c.position')
-                ->orderBy('c.id')
-                ->get();
+            error_log("ChannelController: Getting channels for server ID $serverId");
             
-            foreach ($allChannels as $channel) {
-                if ($channel['parent_id'] === null && $channel['type_name'] === 'category') {
+            // Get channels using the Channel model
+            $channels = Channel::getServerChannels($serverId);
+            error_log("Retrieved " . count($channels) . " channels from model");
+            
+            // Categorize channels
+            foreach ($channels as $key => $channel) {
+                // If the channel has a type of 'category', add it to categories
+                if (isset($channel['type_name']) && $channel['type_name'] === 'category') {
                     $categories[] = $channel;
-                } else {
-                    $channels[] = $channel;
+                    unset($channels[$key]); // Remove from channels array
+                }
+                
+                // Also check the direct type field for backwards compatibility
+                if (isset($channel['type']) && $channel['type'] === 'category') {
+                    $categories[] = $channel;
+                    unset($channels[$key]); // Remove from channels array
                 }
             }
+            
+            // Reset array keys
+            $channels = array_values($channels);
+            
+            error_log("Processed channels: " . count($channels) . ", categories: " . count($categories));
             
         } catch (Exception $e) {
             error_log("Error fetching server channels: " . $e->getMessage());

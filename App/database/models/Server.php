@@ -102,6 +102,8 @@ class Server {
     public static function getFormattedServersForUser($userId) {
         $query = new Query();
         
+        error_log("Getting formatted servers for User ID: $userId");
+        
         // Get unique servers for this user, avoid duplicates
         $results = $query->table('servers s')
             ->select('s.*')
@@ -110,6 +112,9 @@ class Server {
             ->groupBy('s.id')  // Ensure unique servers only
             ->orderBy('s.name', 'ASC')  // Sort by name
             ->get();
+        
+        error_log("Raw SQL query: " . $query->toSql());
+        error_log("Query returned " . count($results) . " servers");
         
         $formattedServers = [];
         foreach ($results as $server) {
@@ -179,14 +184,13 @@ class Server {
     public function save() {
         $query = new Query();
         
-        if (!isset($this->attributes['created_at'])) {
-            $this->attributes['created_at'] = date('Y-m-d H:i:s');
-        }
-        $this->attributes['updated_at'] = date('Y-m-d H:i:s');
-        
         if (isset($this->attributes['id'])) {
             $id = $this->attributes['id'];
             unset($this->attributes['id']);
+            
+            if (isset($this->attributes['updated_at'])) {
+                unset($this->attributes['updated_at']);
+            }
             
             $result = $query->table(static::$table)
                     ->where('id', $id)
@@ -198,11 +202,17 @@ class Server {
         } else {
             try {
                 error_log("Inserting new server record");
+                
+                if (isset($this->attributes['created_at'])) {
+                    unset($this->attributes['created_at']);
+                }
+                if (isset($this->attributes['updated_at'])) {
+                    unset($this->attributes['updated_at']);
+                }
+                
                 $this->attributes['id'] = $query->table(static::$table)
                         ->insert($this->attributes);
                 
-                // We're not going to auto-add the user as owner here anymore
-                // because that's handled by the ServerController within its transaction
                 return $this->attributes['id'] > 0;
             } catch (Exception $e) {
                 error_log("Error saving server: " . $e->getMessage());
@@ -228,9 +238,8 @@ class Server {
                 ->insert([
                     'user_id' => $userId,
                     'server_id' => $this->id,
-                    'role' => $role,
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s')
+                    'role' => $role
+                    // Let database handle timestamps
                 ]);
         
         return $result > 0;

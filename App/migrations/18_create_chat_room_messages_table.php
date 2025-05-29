@@ -3,8 +3,8 @@
 class CreateChatRoomMessagesTableMigration {
     public function up($migration) {        $migration->createTable('chat_room_messages', function($table) {
             $table->id();
-            $table->integer('room_id'); // Changed to integer to match chat_rooms table
-            $table->integer('message_id'); // Changed to integer to match messages table
+            $table->integer('room_id');
+            $table->integer('message_id');
             $table->timestamps();
             
             $table->foreignKey('room_id', 'chat_rooms', 'id', 'CASCADE');

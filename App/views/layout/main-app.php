@@ -45,19 +45,20 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
 <body class="<?php echo $body_class ?? 'bg-discord-background text-white'; ?>">
     <?php echo $content ?? ''; ?>
     
-    <!-- Include modal component -->
+    <!-- Include modal components -->
     <?php include_once dirname(__DIR__) . '/components/app-sections/create-server-modal.php'; ?>
+    <?php include_once dirname(__DIR__) . '/components/app-sections/server-actions-modals.php'; ?>
     
     <!-- Scripts -->
-    <script src="<?php echo asset('js/socket.io.min.js'); ?>"></script>
-    <script src="<?php echo asset('js/global.js'); ?>"></script>
-    <script src="<?php echo asset('js/app.js'); ?>"></script>
+    <script src="<?php echo asset('js/socket.io.min.js'); ?>?v=<?php echo time(); ?>"></script>
+    <script src="<?php echo asset('js/global.js'); ?>?v=<?php echo time(); ?>"></script>
+    <script src="<?php echo asset('js/app.js'); ?>?v=<?php echo time(); ?>"></script>
     <?php if (isset($page_js)): ?>
-    <script src="<?php echo asset('js/'.$page_js.'.js'); ?>"></script>
+    <script src="<?php echo asset('js/'.$page_js.'.js'); ?>?v=<?php echo time(); ?>"></script>
     <?php endif; ?>
     <?php if (isset($additional_js) && is_array($additional_js)): ?>
         <?php foreach($additional_js as $js_file): ?>
-        <script src="<?php echo asset('js/'.$js_file); ?>"></script>
+        <script src="<?php echo asset('js/'.$js_file); ?>?v=<?php echo time(); ?>"></script>
         <?php endforeach; ?>
     <?php endif; ?>
 </body>

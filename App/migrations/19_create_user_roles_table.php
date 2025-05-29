@@ -3,8 +3,8 @@
 class CreateUserRolesMigration {
     public function up($migration) {        $migration->createTable('user_roles', function($table) {
             $table->id();
-            $table->integer('user_id'); // Changed to integer to match users table
-            $table->integer('role_id'); // Changed to integer to match roles table
+            $table->integer('user_id');
+            $table->integer('role_id');
             $table->timestamps();
             
             $table->foreignKey('user_id', 'users', 'id', 'CASCADE');

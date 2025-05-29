@@ -18,19 +18,19 @@ class FriendController {
         try {
             $query = new Query();
             
-            // Get current user details
+            
             $currentUser = $query->table('users')
                 ->where('id', $currentUserId)
                 ->first();
                 
-            // Get user's friends where current user is user_id
+            
             $friendsQuery = $query->table('users u')
                 ->select('u.*')
                 ->join('friend_list fl', 'u.id', '=', 'fl.user_id2')
                 ->where('fl.user_id', $currentUserId)
                 ->where('fl.status', 'accepted');
                 
-            // Get user's friends where current user is user_id2
+            
             $friendsQuery2 = $query->table('users u')
                 ->select('u.*')
                 ->join('friend_list fl', 'u.id', '=', 'fl.user_id')
@@ -61,7 +61,7 @@ class FriendController {
         try {
             $query = new Query();
             
-            // Get pending friend requests
+            
             $pendingRequests = $query->table('friend_list fl')
                 ->select('fl.*, u.username, u.avatar, u.status')
                 ->join('users u', 'fl.user_id', '=', 'u.id')
@@ -83,7 +83,7 @@ class FriendController {
         try {
             $query = new Query();
             
-            // Find user by username
+            
             $user = $query->table('users')
                 ->where('username', $username)
                 ->first();
@@ -95,7 +95,7 @@ class FriendController {
                 ];
             }
             
-            // Check if friend request already exists
+            
             $existingRequest = $query->table('friend_list')
                 ->where(function($q) use ($currentUserId, $user) {
                     $q->where('user_id', $currentUserId)
@@ -121,14 +121,12 @@ class FriendController {
                 }
             }
             
-            // Create new friend request
+            
             $query->table('friend_list')
                 ->insert([
                     'user_id' => $currentUserId,
                     'user_id2' => $user['id'],
-                    'status' => 'pending',
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s')
+                    'status' => 'pending'
                 ]);
                 
             return [
@@ -151,7 +149,7 @@ class FriendController {
         try {
             $query = new Query();
             
-            // Find friend request
+            
             $request = $query->table('friend_list')
                 ->where('id', $requestId)
                 ->where('user_id2', $currentUserId)
@@ -166,12 +164,11 @@ class FriendController {
             }
             
             if ($accept) {
-                // Accept request
+                
                 $query->table('friend_list')
                     ->where('id', $requestId)
                     ->update([
-                        'status' => 'accepted',
-                        'updated_at' => date('Y-m-d H:i:s')
+                        'status' => 'accepted'
                     ]);
                     
                 return [
@@ -179,7 +176,7 @@ class FriendController {
                     'message' => 'Friend request accepted'
                 ];
             } else {
-                // Reject request
+                
                 $query->table('friend_list')
                     ->where('id', $requestId)
                     ->delete();

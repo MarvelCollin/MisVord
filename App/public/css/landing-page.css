@@ -62,6 +62,7 @@ body {
     color: var(--discord-white);
     background: var(--discord-darker);
     overflow-x: hidden;
+    overflow-y: auto;
 }
 
 /* Background with parallax effect - ENHANCED */

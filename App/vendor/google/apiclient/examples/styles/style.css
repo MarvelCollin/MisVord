@@ -36,7 +36,7 @@ body {
 
   margin: auto;
   padding: 10px;
-  overflow: scroll;
+  overflow: auto;
 }
 
 .request {
@@ -84,7 +84,7 @@ header h1.logo {
 }
 
 .shortened {
-  overflow: scroll;
+  overflow: auto;
 }
 
 .url {
@@ -105,7 +105,7 @@ pre.code {
   border: .5em solid #E3E9FF;
   margin: 10px;
   height: 400px;
-  overflow: scroll;
+  overflow: auto;
 }
 
 .warn {
