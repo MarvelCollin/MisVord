@@ -43,7 +43,19 @@ function getChannelIcon($channelType) {
 }
 ?>
 
-<div class="space-y-4">
+<!-- Invisible meta tag with server ID for AJAX -->
+<meta name="server-id" content="<?php echo $currentServerId; ?>">
+
+<!-- Channel loading indicator -->
+<div id="channel-loading" class="py-2 px-2 text-xs text-gray-400 hidden">
+    <div class="flex items-center justify-center">
+        <i class="fas fa-circle-notch fa-spin mr-1"></i>
+        <span>Updating channels...</span>
+    </div>
+</div>
+
+<!-- Channel container for AJAX updates -->
+<div id="channel-container" class="space-y-4">
     <?php if (empty($categories)): ?>
         <div class="space-y-1">
             <?php foreach ($channels as $channel): 
@@ -52,7 +64,8 @@ function getChannelIcon($channelType) {
                 $channelIcon = getChannelIcon($channelType);
             ?>
                 <a href="/server/<?php echo $currentServerId; ?>?channel=<?php echo $channel['id']; ?>" 
-                   class="flex items-center px-2 py-1 rounded <?php echo $isActive ? 'bg-discord-light text-white' : 'text-gray-400 hover:bg-discord-light/50 hover:text-gray-300'; ?>">
+                   class="channel-item flex items-center px-2 py-1 rounded <?php echo $isActive ? 'bg-discord-light text-white active' : 'text-gray-400 hover:bg-discord-light/50 hover:text-gray-300'; ?>"
+                   data-channel-id="<?php echo $channel['id']; ?>">
                     <i class="fas fa-<?php echo $channelIcon; ?> w-5"></i>
                     <span class="ml-1 truncate"><?php echo htmlspecialchars($channel['name']); ?></span>
                 </a>
@@ -82,7 +95,8 @@ function getChannelIcon($channelType) {
                         $channelIcon = getChannelIcon($channelType);
                     ?>
                         <a href="/server/<?php echo $currentServerId; ?>?channel=<?php echo $channel['id']; ?>" 
-                           class="flex items-center px-2 py-1 ml-2 rounded group <?php echo $isActive ? 'bg-discord-light text-white' : 'text-gray-400 hover:bg-discord-light/50 hover:text-gray-300'; ?>">
+                           class="channel-item flex items-center px-2 py-1 ml-2 rounded group <?php echo $isActive ? 'bg-discord-light text-white active' : 'text-gray-400 hover:bg-discord-light/50 hover:text-gray-300'; ?>"
+                           data-channel-id="<?php echo $channel['id']; ?>">
                             <i class="fas fa-<?php echo $channelIcon; ?> w-4 text-sm"></i>
                             <span class="ml-1 truncate"><?php echo htmlspecialchars($channel['name']); ?></span>
                             <div class="ml-auto hidden group-hover:flex">
@@ -113,7 +127,8 @@ function getChannelIcon($channelType) {
                     $channelIcon = getChannelIcon($channelType);
                 ?>
                     <a href="/server/<?php echo $currentServerId; ?>?channel=<?php echo $channel['id']; ?>" 
-                       class="flex items-center px-2 py-1 rounded group <?php echo $isActive ? 'bg-discord-light text-white' : 'text-gray-400 hover:bg-discord-light/50 hover:text-gray-300'; ?>">
+                       class="channel-item flex items-center px-2 py-1 rounded group <?php echo $isActive ? 'bg-discord-light text-white active' : 'text-gray-400 hover:bg-discord-light/50 hover:text-gray-300'; ?>"
+                       data-channel-id="<?php echo $channel['id']; ?>">
                         <i class="fas fa-<?php echo $channelIcon; ?> w-4 text-sm"></i>
                         <span class="ml-1 truncate"><?php echo htmlspecialchars($channel['name']); ?></span>
                         <div class="ml-auto hidden group-hover:flex">

@@ -530,15 +530,17 @@ function createChannel(e, serverId) {
         if (data.success) {
             showToast('Channel created successfully!', 'success');
             closeModal('create-channel-modal');
-            // Refresh page to show new channel
-            setTimeout(() => window.location.reload(), 1000);
+            resetForm('create-channel-form');
+            
+            // Refresh channels list using AJAX
+            refreshChannelList(serverId);
         } else {
-            throw new Error(data.message);
+            showToast('Error: ' + (data.message || 'Something went wrong!'), 'error');
         }
     })
     .catch(error => {
-        console.error('Error creating channel:', error);
-        showToast('Failed to create channel', 'error');
+        console.error('Error:', error);
+        showToast('Error creating channel. Please try again.', 'error');
     });
 }
 
@@ -814,4 +816,33 @@ function showToast(message, type = 'info') {
             }
         }, 300);
     }, 3000);
+}
+
+// Helper function to load channels via AJAX
+// This function is used after creating a channel to refresh the list
+function refreshChannelList(serverId) {
+    // Check if the channel-loader.js has already defined a global loadChannels function
+    if (typeof window.loadChannels === 'function') {
+        window.loadChannels(serverId);
+        return;
+    }
+    
+    // Fallback implementation if the function isn't available
+    const channelContainer = document.getElementById('channel-container');
+    if (!channelContainer) return;
+    
+    fetch(`/api/servers/${serverId}/channels`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log('Channels loaded successfully');
+                // If we got here without the channel-loader.js, just reload the page
+                window.location.reload();
+            } else {
+                console.error('Error loading channels:', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching channels:', error);
+        });
 }

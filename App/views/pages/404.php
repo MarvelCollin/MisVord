@@ -4,37 +4,35 @@ if (!function_exists('asset')) {
     require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
 }
 
+// 404 Page
+$page_title = 'MiscVord - Page Not Found';
+$body_class = 'bg-discord-dark text-white flex flex-col h-screen';
 
-$page_title = '404 - Page Not Found';
-$body_class = 'bg-[#202225] error-page';
-$page_css = 'error-page.css';
+// Include header
 ?>
-
-
-<?php ob_start(); ?>
-
-<div class="min-h-screen w-full flex items-center justify-center p-4 relative overflow-hidden">
-    <div class="w-full max-w-lg p-8 rounded-xl shadow-2xl relative z-10 glass-hero transform bg-[#2f3136]/80 backdrop-filter backdrop-blur-md border border-white/10 text-center">
-        <img src="<?php echo asset('/landing-page/wumpus_sad.webp'); ?>" alt="Sad Wumpus" class="h-48 mx-auto mb-6">
-        
-        <h1 class="text-4xl font-bold mb-4 text-white">404</h1>
-        <h2 class="text-2xl font-semibold mb-6 text-discord-blue">Page Not Found</h2>
-        
-        <p class="text-gray-300 mb-8">
-            The page you're looking for doesn't exist or has been moved.
-        </p>
-        
-        <a href="/" class="px-6 py-3 bg-discord-blue hover:bg-discord-blue/90 text-white font-medium rounded-md transition-all inline-block">
-            Return to Home
-        </a>
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?= $page_title ?></title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body class="<?= $body_class ?>">
+    <div class="flex-1 flex items-center justify-center flex-col px-4">
+        <div class="bg-discord-light p-8 rounded-lg shadow-lg max-w-lg w-full text-center">
+            <h1 class="text-5xl font-bold mb-4">404</h1>
+            <h2 class="text-2xl font-bold mb-6">Page Not Found</h2>
+            <p class="mb-6 text-discord-gray-300">The page you were looking for doesn't exist or you may not have permission to view it.</p>
+            <div class="mb-6">
+                <i class="fas fa-ghost text-6xl text-discord-blurple opacity-75"></i>
+            </div>
+            <a href="/" class="inline-block bg-discord-blurple hover:bg-discord-blurple-dark text-white py-2 px-6 rounded-md transition duration-200">
+                Return to Home
+            </a>
+        </div>
     </div>
-</div>
-
-<?php 
-
-$content = ob_get_clean(); 
-
-
-include dirname(dirname(__DIR__)) . '/views/layout/main-app.php';
-?>
+</body>
+</html>
 
