@@ -18,7 +18,7 @@ $onlineFriends = $friendData['onlineFriends'];
         </div>
     </div>
 
-    <div class="space-y-1">
+    <div class="space-y-1" data-lazyload="friend-list">
         <?php if (empty($friends)): ?>
         <div class="p-4 bg-discord-dark rounded text-center">
             <div class="mb-2 text-gray-400">
@@ -71,3 +71,15 @@ $onlineFriends = $friendData['onlineFriends'];
         <?php endif; ?>
     </div>
 </div>
+
+<script>
+// Trigger content loaded event once data is available
+document.addEventListener('DOMContentLoaded', function() {
+    // Use a slight delay to simulate network request
+    setTimeout(function() {
+        if (window.LazyLoader) {
+            window.LazyLoader.triggerDataLoaded('friend-list', <?php echo empty($friends) ? 'true' : 'false'; ?>);
+        }
+    }, 750);
+});
+</script>

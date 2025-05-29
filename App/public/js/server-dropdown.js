@@ -544,6 +544,14 @@ function createChannel(e, serverId) {
     });
 }
 
+// Add the missing resetForm function
+function resetForm(formId) {
+    const form = document.getElementById(formId);
+    if (form) {
+        form.reset();
+    }
+}
+
 function createCategory(e, serverId) {
     e.preventDefault();
     

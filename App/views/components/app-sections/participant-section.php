@@ -26,7 +26,7 @@ $onlineCount = array_reduce($members, function($count, $member) {
         <input type="text" placeholder="Search" class="w-full bg-black bg-opacity-30 text-white text-sm rounded px-2 py-1 focus:outline-none">
     </div>
     
-    <div class="flex-1 overflow-y-auto p-2">
+    <div class="flex-1 overflow-y-auto p-2" data-lazyload="participant-list">
         <?php if (!empty($roles)): ?>
             <?php 
             $hasDefaultRole = false;
@@ -216,3 +216,15 @@ $onlineCount = array_reduce($members, function($count, $member) {
         <?php endif; ?>
     </div>
 </div>
+
+<script>
+// Trigger content loaded event once data is available
+document.addEventListener('DOMContentLoaded', function() {
+    // Use a slight delay to simulate network request
+    setTimeout(function() {
+        if (window.LazyLoader) {
+            window.LazyLoader.triggerDataLoaded('participant-list', <?php echo empty($members) ? 'true' : 'false'; ?>);
+        }
+    }, 700);
+});
+</script>

@@ -55,7 +55,7 @@ function getChannelIcon($channelType) {
 </div>
 
 <!-- Channel container for AJAX updates -->
-<div id="channel-container" class="space-y-4">
+<div id="channel-container" class="space-y-4" data-lazyload="channel-list">
     <?php if (empty($categories)): ?>
         <div class="space-y-1">
             <?php foreach ($channels as $channel): 
@@ -162,4 +162,14 @@ function toggleCategory(element) {
         document.cookie = `category_${categoryId}=collapsed; path=/;`;
     }
 }
+
+// Trigger content loaded event once data is available
+document.addEventListener('DOMContentLoaded', function() {
+    // Use a slight delay to simulate network request
+    setTimeout(function() {
+        if (window.LazyLoader) {
+            window.LazyLoader.triggerDataLoaded('channel-list', <?php echo empty($channels) ? 'true' : 'false'; ?>);
+        }
+    }, 600);
+});
 </script>

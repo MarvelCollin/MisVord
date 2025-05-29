@@ -11,10 +11,8 @@ class EnvLoader {
 
         $env = [];
 
-        // Check for Docker environment
         $isDocker = getenv('IS_DOCKER') === 'true' || file_exists('/.dockerenv');
         
-        // Default Docker values (used in docker-compose.yml)
         $dockerDefaults = [
             'DB_HOST' => 'db',
             'DB_PORT' => '3306',
@@ -24,7 +22,6 @@ class EnvLoader {
             'DB_CHARSET' => 'utf8mb4'
         ];
         
-        // Always prioritize environment variables
         $env['DB_HOST'] = getenv('DB_HOST') ?: ($isDocker ? $dockerDefaults['DB_HOST'] : 'localhost');
         $env['DB_PORT'] = getenv('DB_PORT') ?: ($isDocker ? $dockerDefaults['DB_PORT'] : '3306');
         $env['DB_NAME'] = getenv('DB_NAME') ?: ($isDocker ? $dockerDefaults['DB_NAME'] : 'misvord');
@@ -35,7 +32,6 @@ class EnvLoader {
         $env['SOCKET_API_KEY'] = getenv('SOCKET_API_KEY') ?: 'kolin123';
         $env['IS_DOCKER'] = $isDocker ? 'true' : 'false';
         
-        // Debug info
         if (isset($_SERVER['argv']) && (in_array('db:check', $_SERVER['argv']) || in_array('migrate:status', $_SERVER['argv']))) {
             echo "Environment variables loaded:\n";
             echo "- DB_HOST: " . getenv('DB_HOST') . " -> {$env['DB_HOST']}\n";
@@ -96,7 +92,6 @@ class EnvLoader {
         $charset = self::get('DB_CHARSET', 'utf8mb4');
 
         try {
-            // Debug info
             if (isset($_SERVER['argv']) && in_array('db:check', $_SERVER['argv'])) {
                 echo "Attempting to connect to MySQL with:\n";
                 echo "- Host: $host\n";
@@ -112,10 +107,9 @@ class EnvLoader {
                 PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => true, 
                 PDO::ATTR_EMULATE_PREPARES => false, 
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::ATTR_TIMEOUT => 5, // Set connection timeout to 5 seconds
+                PDO::ATTR_TIMEOUT => 5,
             ];
 
-            // Debug the actual connection parameters
             if (isset($_SERVER['argv']) && (in_array('db:check', $_SERVER['argv']) || in_array('migrate:status', $_SERVER['argv']))) {
                 echo "Creating PDO connection with:\n";
                 echo "- DSN: $dsn\n";
@@ -125,11 +119,10 @@ class EnvLoader {
 
             self::$pdoInstance = new PDO($dsn, $username, $password, $options);
             
-            // Now that we're connected, try to select the database
             try {
                 self::$pdoInstance->exec("USE `$dbname`");
             } catch (PDOException $e) {
-                if ($e->getCode() == 1049) { // Unknown database
+                if ($e->getCode() == 1049) {
                     self::$pdoInstance->exec("CREATE DATABASE IF NOT EXISTS `$dbname` CHARACTER SET $charset COLLATE {$charset}_unicode_ci");
                     self::$pdoInstance->exec("USE `$dbname`");
                     if (isset($_SERVER['argv']) && in_array('db:check', $_SERVER['argv'])) {

@@ -238,3 +238,37 @@ button:focus {
     border: 5px solid transparent;
     border-bottom-color: #18191c;
 }
+
+/* Add hover stability */
+.server-dropdown-item:hover,
+.channel-item:hover,
+.server-item:hover,
+button:hover,
+a:hover {
+    transform: none !important;
+    margin: 0 !important;
+    padding: inherit !important;
+    width: 100% !important;
+}
+
+/* Fix hover effects to prevent layout shifts */
+.hover-stable {
+    position: relative;
+}
+
+.hover-stable::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: transparent;
+    transition: background-color 0.2s;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.hover-stable:hover::after {
+    background-color: rgba(255, 255, 255, 0.1);
+}

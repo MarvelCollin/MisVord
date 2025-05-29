@@ -63,6 +63,18 @@ Route::get('/api/servers/([0-9]+)/channels', function($serverId) {
     ]);
 });
 
+// Add channel creation endpoint
+Route::post('/api/channels', function() {
+    $controller = new ChannelController();
+    $controller->create();
+});
+
+// Add category creation endpoint
+Route::post('/api/categories', function() {
+    $controller = new ChannelController();
+    $controller->createCategory();
+});
+
 // Add more routes as needed...
 
 // For backward compatibility, return routes in the old format

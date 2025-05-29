@@ -53,7 +53,7 @@ foreach ($channels as $channel) {
         </div>
     </div>
 
-    <div class="flex-1 overflow-y-auto p-4 bg-discord-background" id="chat-messages">
+    <div class="flex-1 overflow-y-auto p-4 bg-discord-background" id="chat-messages" data-lazyload="chat">
         <?php if (empty($messages)): ?>
         <div class="flex flex-col items-center justify-center h-full text-center">
             <div class="w-16 h-16 mb-4 bg-discord-dark rounded-full flex items-center justify-center">
@@ -154,3 +154,16 @@ foreach ($channels as $channel) {
         </div>
     <?php endif; ?>
 </div>
+
+<script>
+// Trigger content loaded event once data is available
+document.addEventListener('DOMContentLoaded', function() {
+    // Use a slight delay to simulate network request
+    setTimeout(function() {
+        if (window.LazyLoader) {
+            const hasMessages = <?php echo !empty($messages) ? 'true' : 'false'; ?>;
+            window.LazyLoader.triggerDataLoaded('chat', !hasMessages);
+        }
+    }, 1000); // Slightly longer delay for chat to make it seem like messages are loading
+});
+</script>

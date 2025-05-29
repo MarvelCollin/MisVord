@@ -10,7 +10,7 @@ $activeUsers = $userActivityController->getActiveUsers();
         <h2 class="font-semibold text-white">Active Now</h2>
     </div>
     
-    <div class="flex-1 overflow-y-auto p-4">
+    <div class="flex-1 overflow-y-auto p-4" data-lazyload="active-now">
         <?php if (empty($activeUsers)): ?>
             <div class="rounded-md bg-discord-background p-4 text-center">
                 <h3 class="font-semibold text-white mb-1">It's quiet for now...</h3>
@@ -76,3 +76,15 @@ $activeUsers = $userActivityController->getActiveUsers();
         <?php endif; ?>
     </div>
 </div>
+
+<script>
+// Trigger content loaded event once data is available
+document.addEventListener('DOMContentLoaded', function() {
+    // Use a slight delay to simulate network request
+    setTimeout(function() {
+        if (window.LazyLoader) {
+            window.LazyLoader.triggerDataLoaded('active-now', <?php echo empty($activeUsers) ? 'true' : 'false'; ?>);
+        }
+    }, 800);
+});
+</script>

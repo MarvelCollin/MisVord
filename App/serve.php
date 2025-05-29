@@ -1,14 +1,5 @@
 <?php
 
-/**
- * Development Server Script
- * 
- * This script allows testing with PHP's built-in server and
- * handles routing properly to emulate Apache's mod_rewrite behavior
- * 
- * Run with: php -S localhost:8000 serve.php
- */
-
 if (preg_match('/\.(?:png|jpg|jpeg|gif|css|js|ico|woff|woff2|svg|ttf)$/', $_SERVER["REQUEST_URI"])) {
     $basePath = __DIR__ . '/public';
     $file = $basePath . $_SERVER["REQUEST_URI"];
