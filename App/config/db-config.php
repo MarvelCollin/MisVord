@@ -1,10 +1,8 @@
 <?php
 
+// This file is deprecated. Use config/env.php instead.
+// Database configuration is now managed through environment variables.
+
 return [
-    'DB_HOST' => 'db', 
-    'DB_PORT' => 3306,
-    'DB_NAME' => 'misvord',
-    'DB_USER' => 'root',
-    'DB_PASS' => 'password', 
-    'DB_CHARSET' => 'utf8mb4',
+    'message' => 'This configuration file is deprecated. Database configuration is now handled through environment variables in .env files and config/env.php'
 ]; 

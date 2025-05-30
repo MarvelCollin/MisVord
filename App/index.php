@@ -28,15 +28,16 @@ if (php_sapi_name() !== 'cli-server' &&
     // Initialize application configuration
     require_once __DIR__ . '/config/app.php';
 
-    // Initialize database tables in the correct order
-    require_once __DIR__ . '/database/models/User.php';
-    require_once __DIR__ . '/database/models/Server.php';
-    require_once __DIR__ . '/database/models/UserServerMembership.php';
+    // Database tables are already created via migrations
+    // Table initialization has been moved to the migration system
+    // require_once __DIR__ . '/database/models/User.php';
+    // require_once __DIR__ . '/database/models/Server.php';
+    // require_once __DIR__ . '/database/models/UserServerMembership.php';
     
     // Initialize tables in the proper order to handle foreign key constraints
-    User::initialize();
-    Server::initialize();
-    UserServerMembership::initialize();
+    // User::initialize();
+    // Server::initialize();
+    // UserServerMembership::initialize();
 
     // Application router
     require_once __DIR__ . '/router.php';

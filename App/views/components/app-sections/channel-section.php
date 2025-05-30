@@ -19,17 +19,13 @@ $categories = $channelData['categories'] ?? [];
 
 error_log("channel-section.php: Retrieved " . count($channels) . " channels and " . count($categories) . " categories");
 
-// Helper function to determine channel type
 function getChannelType($channel) {
-    // Try type_name first (from join with channel_types)
     if (isset($channel['type_name'])) {
         return $channel['type_name'];
     }
-    // Fall back to direct type field 
     return $channel['type'] ?? 'text';
 }
 
-// Helper function to get channel icon based on type
 function getChannelIcon($channelType) {
     switch ($channelType) {
         case 'voice':
@@ -43,18 +39,15 @@ function getChannelIcon($channelType) {
 }
 ?>
 
-<!-- Invisible meta tag with server ID for AJAX -->
 <meta name="server-id" content="<?php echo $currentServerId; ?>">
 
-<!-- Channel loading indicator -->
 <div id="channel-loading" class="py-2 px-2 text-xs text-gray-400 hidden">
-    <div class="flex items-center justify-center">
+    <!-- <div class="flex items-center justify-center">
         <i class="fas fa-circle-notch fa-spin mr-1"></i>
         <span>Updating channels...</span>
-    </div>
+    </div> -->
 </div>
 
-<!-- Channel container for AJAX updates -->
 <div id="channel-container" class="space-y-4" data-lazyload="channel-list">
     <?php if (empty($categories)): ?>
         <div class="space-y-1">
@@ -163,9 +156,7 @@ function toggleCategory(element) {
     }
 }
 
-// Trigger content loaded event once data is available
 document.addEventListener('DOMContentLoaded', function() {
-    // Use a slight delay to simulate network request
     setTimeout(function() {
         if (window.LazyLoader) {
             window.LazyLoader.triggerDataLoaded('channel-list', <?php echo empty($channels) ? 'true' : 'false'; ?>);

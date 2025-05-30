@@ -4,13 +4,17 @@ CREATE DATABASE IF NOT EXISTS misvord CHARACTER SET utf8mb4 COLLATE utf8mb4_unic
 -- Use the database
 USE misvord;
 
--- Allow root to connect from any host with password 'password'
-CREATE USER IF NOT EXISTS 'root'@'%' IDENTIFIED BY 'password';
-GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' WITH GRANT OPTION;
+-- Set root password for all hosts
+ALTER USER 'root'@'%' IDENTIFIED WITH mysql_native_password BY 'kolin123';
+ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'kolin123';
 
--- Alternative user for phpMyAdmin in case root doesn't work
-CREATE USER IF NOT EXISTS 'phpmyadmin'@'%' IDENTIFIED BY 'password';
-GRANT ALL PRIVILEGES ON *.* TO 'phpmyadmin'@'%' WITH GRANT OPTION;
+-- Grant all privileges to root
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' WITH GRANT OPTION;
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' WITH GRANT OPTION;
+
+-- Create additional users if needed
+-- Example: CREATE USER 'myuser'@'%' IDENTIFIED WITH mysql_native_password BY 'mypassword';
+-- Example: GRANT ALL PRIVILEGES ON misvord.* TO 'myuser'@'%';
 
 -- Make changes take effect
-FLUSH PRIVILEGES; 
+FLUSH PRIVILEGES;

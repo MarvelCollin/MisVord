@@ -8,19 +8,23 @@ try {
 
     $dbConfig = [
         'host' => EnvLoader::get('DB_HOST', 'db'),
-        'port' => EnvLoader::get('DB_PORT', '1003'),
+        'port' => EnvLoader::get('DB_PORT', '3306'),
         'dbname' => EnvLoader::get('DB_NAME', 'misvord'),
         'username' => EnvLoader::get('DB_USER', 'root'),
-        'password' => EnvLoader::get('DB_PASS', 'password'),
+        'password' => EnvLoader::get('DB_PASS', 'kolin123'),
         'charset' => EnvLoader::get('DB_CHARSET', 'utf8mb4'),
     ];
 
-    $dsn = "mysql:host={$dbConfig['host']};port={$dbConfig['port']};dbname={$dbConfig['dbname']};charset={$dbConfig['charset']}";
+    $dsn = "mysql:host={$dbConfig['host']};port={$dbConfig['port']};charset={$dbConfig['charset']}";
 
     $pdoOptions = [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES => false,
+        // Force TCP connection
+        PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES {$dbConfig['charset']}",
+        // Disable persistent connections
+        PDO::ATTR_PERSISTENT => false,
     ];
 
     $pdo = new PDO($dsn, $dbConfig['username'], $dbConfig['password'], $pdoOptions);

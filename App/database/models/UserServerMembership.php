@@ -217,25 +217,24 @@ class UserServerMembership {
     public static function createTable() {
         $query = new Query();
         
-        try {
-            error_log("Checking if user_server_memberships table exists");
+        try {            // error_log("Checking if user_server_memberships table exists");
             $tableExists = $query->tableExists('user_server_memberships');
             
             if (!$tableExists) {
-                error_log("Creating user_server_memberships table");
+                // error_log("Creating user_server_memberships table");
                 
                 // First verify that the users and servers tables exist
                 $usersExists = $query->tableExists('users');
                 $serversExists = $query->tableExists('servers');
                 
                 if (!$usersExists) {
-                    error_log("Users table doesn't exist, creating it first");
+                    // error_log("Users table doesn't exist, creating it first");
                     require_once __DIR__ . '/User.php';
                     User::createTable();
                 }
                 
                 if (!$serversExists) {
-                    error_log("Servers table doesn't exist, creating it first");
+                    // error_log("Servers table doesn't exist, creating it first");
                     require_once __DIR__ . '/Server.php';
                     Server::createTable();
                 }
@@ -253,11 +252,10 @@ class UserServerMembership {
                             FOREIGN KEY (server_id) REFERENCES servers(id) ON DELETE CASCADE,
                             UNIQUE KEY unique_user_server (user_id, server_id)
                         )
-                    ");
-                } catch (PDOException $e) {
+                    ");                } catch (PDOException $e) {
                     // If we have an issue with foreign keys, try creating without them
                     if (strpos($e->getMessage(), 'foreign key constraint') !== false) {
-                        error_log("Foreign key constraint issue, creating table without foreign keys: " . $e->getMessage());
+                        // error_log("Foreign key constraint issue, creating table without foreign keys: " . $e->getMessage());
                         $query->raw("
                             CREATE TABLE IF NOT EXISTS user_server_memberships (
                                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -274,9 +272,9 @@ class UserServerMembership {
                     }
                 }
                 
-                error_log("Checking if user_server_memberships table was created successfully");
+                // error_log("Checking if user_server_memberships table was created successfully");
                 $tableExists = $query->tableExists('user_server_memberships');
-                error_log("Table exists: " . ($tableExists ? 'Yes' : 'No'));
+                // error_log("Table exists: " . ($tableExists ? 'Yes' : 'No'));
             }
             
             return $tableExists;

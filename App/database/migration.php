@@ -23,16 +23,34 @@ class Migration {
             $this->pdo = $pdo;
         } else {
             try {
-
                 require_once __DIR__ . '/../config/env.php';
-                $this->pdo = EnvLoader::getPDOConnection();
-
+                
+                // Get connection parameters
+                $host = EnvLoader::get('DB_HOST', 'db');
+                $port = EnvLoader::get('DB_PORT', '1003');
+                $username = EnvLoader::get('DB_USER', 'root');
+                $password = EnvLoader::get('DB_PASS', 'kolin123');
                 $charset = EnvLoader::get('DB_CHARSET', 'utf8mb4');
+                
+                // Force TCP/IP connection
+                $dsn = "mysql:host={$host};port={$port};charset={$charset}";
+                
+                $options = [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                    // Force TCP connection
+                    PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES {$charset}",
+                    // Disable persistent connections
+                    PDO::ATTR_PERSISTENT => false,
+                ];
+                
+                // Create PDO instance
+                $this->pdo = new PDO($dsn, $username, $password, $options);
+                
                 $this->charset = $charset;
-
-                if ($charset === 'utf8mb4') {
-                    $this->collation = 'utf8mb4_unicode_ci';
-                }
+                $this->collation = $charset === 'utf8mb4' ? 'utf8mb4_unicode_ci' : $charset . '_general_ci';
+                
+                echo "Connected to MySQL database at {$host}:{$port} as {$username}\n";
             } catch (PDOException $e) {
                 die("Database connection failed: " . $e->getMessage());
             }
@@ -450,7 +468,33 @@ class MigrationRunner {
         }
 
         if ($pdo === null) {
-            $pdo = EnvLoader::getPDOConnection();
+            // Get connection parameters
+            $host = EnvLoader::get('DB_HOST', 'db');
+            $port = EnvLoader::get('DB_PORT', '1003');
+            $username = EnvLoader::get('DB_USER', 'root');
+            $password = EnvLoader::get('DB_PASS', 'kolin123');
+            $charset = EnvLoader::get('DB_CHARSET', 'utf8mb4');
+            
+            // Force TCP/IP connection
+            $dsn = "mysql:host={$host};port={$port};charset={$charset}";
+            
+            $options = [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                // Force TCP connection
+                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES {$charset}",
+                // Disable persistent connections
+                PDO::ATTR_PERSISTENT => false,
+            ];
+            
+            try {
+                // Create PDO instance
+                $pdo = new PDO($dsn, $username, $password, $options);
+                echo "MigrationRunner: Connected to MySQL database at {$host}:{$port} as {$username}\n";
+            } catch (PDOException $e) {
+                echo "MigrationRunner: Database connection failed: " . $e->getMessage() . "\n";
+                throw $e;
+            }
         }
 
         $this->pdo = $pdo;
@@ -726,43 +770,50 @@ class MigrationRunner {
     
     public function checkConnection() {
         try {
-            $config = [
-                'host' => EnvLoader::get('DB_HOST'),
-                'port' => EnvLoader::get('DB_PORT'),
-                'name' => EnvLoader::get('DB_NAME'),
-                'user' => EnvLoader::get('DB_USER'),
-                'pass' => EnvLoader::get('DB_PASS'),
-            ];
+            $host = EnvLoader::get('DB_HOST', 'db');
+            $port = EnvLoader::get('DB_PORT', '1003');
+            $dbname = EnvLoader::get('DB_NAME', 'misvord');
+            $username = EnvLoader::get('DB_USER', 'root');
+            $password = EnvLoader::get('DB_PASS', 'kolin123');
             
             echo "Connection test with these settings:\n";
-            echo "- Host: {$config['host']}\n";
-            echo "- Port: {$config['port']}\n";
-            echo "- Database: {$config['name']}\n";
-            echo "- Username: {$config['user']}\n";
-            echo "- Password: " . (empty($config['pass']) ? "(empty)" : str_repeat('*', strlen($config['pass']))) . "\n\n";
+            echo "- Host: {$host}\n";
+            echo "- Port: {$port}\n";
+            echo "- Database: {$dbname}\n";
+            echo "- Username: {$username}\n";
+            echo "- Password: " . (empty($password) ? "(empty)" : str_repeat('*', strlen($password))) . "\n\n";
             
-            $dsn = "mysql:host={$config['host']};port={$config['port']}";
-            $pdo = new PDO($dsn, $config['user'], $config['pass'], [
+            // Force TCP/IP connection by explicitly including port
+            $dsn = "mysql:host={$host};port={$port}";
+            $options = [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_TIMEOUT => 3
-            ]);
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                // Force TCP connection
+                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4",
+                // Disable persistent connections
+                PDO::ATTR_PERSISTENT => false,
+                // Increase timeout
+                PDO::ATTR_TIMEOUT => 5,
+            ];
+            
+            $pdo = new PDO($dsn, $username, $password, $options);
             
             echo "\033[32m✓ Successfully connected to MySQL server.\033[0m\n";
             
             // Try to select the database
             try {
-                $pdo->query("USE `{$config['name']}`");
-                echo "\033[32m✓ Successfully connected to database '{$config['name']}'.\033[0m\n";
+                $pdo->query("USE `{$dbname}`");
+                echo "\033[32m✓ Successfully connected to database '{$dbname}'.\033[0m\n";
             } catch (PDOException $e) {
-                echo "\033[33m! Database '{$config['name']}' doesn't exist.\033[0m\n";
+                echo "\033[33m! Database '{$dbname}' doesn't exist.\033[0m\n";
                 
                 // Try to create the database
                 try {
-                    $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$config['name']}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
-                    echo "\033[32m✓ Successfully created database '{$config['name']}'.\033[0m\n";
+                    $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$dbname}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+                    echo "\033[32m✓ Successfully created database '{$dbname}'.\033[0m\n";
                     
-                    $pdo->query("USE `{$config['name']}`");
-                    echo "\033[32m✓ Successfully switched to database '{$config['name']}'.\033[0m\n";
+                    $pdo->query("USE `{$dbname}`");
+                    echo "\033[32m✓ Successfully switched to database '{$dbname}'.\033[0m\n";
                 } catch (PDOException $e) {
                     echo "\033[31m✗ Could not create database: " . $e->getMessage() . "\033[0m\n";
                     return false;
@@ -794,7 +845,7 @@ class MigrationRunner {
                 echo "\nTroubleshooting tips:\n";
                 echo "1. Make sure Docker is running with: docker ps\n";
                 echo "2. Check if MySQL container is running with: docker ps | grep mysql\n";
-                echo "3. Make sure port {$config['port']} is being exposed in docker-compose.yml\n";
+                echo "3. Make sure port {$port} is being exposed in docker-compose.yml\n";
                 echo "4. If outside Docker, make sure your host can connect to the container\n";
             } elseif (strpos($e->getMessage(), 'Access denied') !== false) {
                 echo "\nTroubleshooting tips:\n";

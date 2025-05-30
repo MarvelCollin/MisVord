@@ -13,34 +13,21 @@ class EnvLoader {
 
         $isDocker = getenv('IS_DOCKER') === 'true' || file_exists('/.dockerenv');
         
-        $dockerDefaults = [
-            'DB_HOST' => 'db',
-            'DB_PORT' => '3306',
-            'DB_NAME' => 'misvord',
-            'DB_USER' => 'root',
-            'DB_PASS' => 'password',
-            'DB_CHARSET' => 'utf8mb4'
-        ];
-        
-        $env['DB_HOST'] = getenv('DB_HOST') ?: ($isDocker ? $dockerDefaults['DB_HOST'] : 'localhost');
-        $env['DB_PORT'] = getenv('DB_PORT') ?: ($isDocker ? $dockerDefaults['DB_PORT'] : '3306');
-        $env['DB_NAME'] = getenv('DB_NAME') ?: ($isDocker ? $dockerDefaults['DB_NAME'] : 'misvord');
-        $env['DB_USER'] = getenv('DB_USER') ?: ($isDocker ? $dockerDefaults['DB_USER'] : 'root');
-        $env['DB_PASS'] = getenv('DB_PASS') ?: ($isDocker ? $dockerDefaults['DB_PASS'] : 'password');
+        // Database configuration - read from environment only
+        // Force DB_HOST to 'db' when running in Docker to ensure container communication
+        if ($isDocker) {
+            $env['DB_HOST'] = 'db';
+        } else {
+            $env['DB_HOST'] = getenv('DB_HOST') ?: 'localhost';
+        }
+        $env['DB_PORT'] = getenv('DB_PORT') ?: '1003';
+        $env['DB_NAME'] = getenv('DB_NAME') ?: 'misvord';
+        $env['DB_USER'] = getenv('DB_USER') ?: 'root';
+        $env['DB_PASS'] = getenv('DB_PASS') ?: 'kolin123';
         $env['DB_CHARSET'] = getenv('DB_CHARSET') ?: 'utf8mb4';
         $env['SOCKET_SERVER'] = getenv('SOCKET_SERVER') ?: ($isDocker ? 'http://socket-server:1002' : 'http://localhost:1002');
         $env['SOCKET_API_KEY'] = getenv('SOCKET_API_KEY') ?: 'kolin123';
         $env['IS_DOCKER'] = $isDocker ? 'true' : 'false';
-        
-        if (isset($_SERVER['argv']) && (in_array('db:check', $_SERVER['argv']) || in_array('migrate:status', $_SERVER['argv']))) {
-            echo "Environment variables loaded:\n";
-            echo "- DB_HOST: " . getenv('DB_HOST') . " -> {$env['DB_HOST']}\n";
-            echo "- DB_PORT: " . getenv('DB_PORT') . " -> {$env['DB_PORT']}\n";
-            echo "- DB_USER: " . getenv('DB_USER') . " -> {$env['DB_USER']}\n";
-            echo "- DB_PASS: " . (getenv('DB_PASS') ? '(set)' : '(not set)') . " -> " . ($env['DB_PASS'] ? '(set)' : '(not set)') . "\n";
-            echo "- DB_NAME: " . getenv('DB_NAME') . " -> {$env['DB_NAME']}\n";
-            echo "- IS_DOCKER: " . getenv('IS_DOCKER') . " -> {$env['IS_DOCKER']}\n\n";
-        }
 
         if ($filePath === null) {
             $filePath = __DIR__ . '/../.env';
@@ -84,11 +71,11 @@ class EnvLoader {
             return self::$pdoInstance;
         }
 
-        $host = self::get('DB_HOST', '127.0.0.1');
-        $port = self::get('DB_PORT', '3306');
+        $host = self::get('DB_HOST', 'db');
+        $port = self::get('DB_PORT', '1003');
         $dbname = self::get('DB_NAME', 'misvord');
         $username = self::get('DB_USER', 'root');
-        $password = self::get('DB_PASS', '');
+        $password = self::get('DB_PASS', 'kolin123');
         $charset = self::get('DB_CHARSET', 'utf8mb4');
 
         try {
@@ -101,6 +88,7 @@ class EnvLoader {
                 echo "- Password: " . (empty($password) ? "(empty)" : str_repeat('*', strlen($password))) . "\n\n";
             }
             
+            // Force TCP/IP connection by explicitly including port
             $dsn = "mysql:host=$host;port=$port;charset=$charset";
             $options = [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
@@ -108,6 +96,10 @@ class EnvLoader {
                 PDO::ATTR_EMULATE_PREPARES => false, 
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_TIMEOUT => 5,
+                // Force TCP connection
+                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES $charset",
+                // Disable persistent connections
+                PDO::ATTR_PERSISTENT => false,
             ];
 
             if (isset($_SERVER['argv']) && (in_array('db:check', $_SERVER['argv']) || in_array('migrate:status', $_SERVER['argv']))) {
@@ -145,7 +137,7 @@ class EnvLoader {
                     echo "3. Firewall is blocking connections\n";
                 }
             }
-                throw $e; 
+            throw $e; 
         }
     }
 }

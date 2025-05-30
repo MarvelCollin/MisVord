@@ -46,9 +46,7 @@ function css($path) {
 
     $finalUrl = preg_replace('#([^:])//+#', '$1/', $finalUrl);
 
-    if (getenv('APP_ENV') !== 'production') {
-        error_log("CSS URL for '{$path}': {$finalUrl}");
-    }
+    // CSS URL logging removed
 
     return $finalUrl;
 }
@@ -73,9 +71,7 @@ function js($path) {
 
     $finalUrl = preg_replace('#([^:])//+#', '$1/', $finalUrl);
 
-    if (getenv('APP_ENV') !== 'production') {
-        error_log("JS URL for '{$path}': {$finalUrl}");
-    }
+    // JS URL logging removed
 
     return $finalUrl;
 }
@@ -96,28 +92,20 @@ function getBaseUrl() {
     $protocol = $useHttps ? 'https' : 'http';
     $scriptDir = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? ''), '/');
 
-    if (getenv('APP_ENV') !== 'production') {
-        error_log("Host: {$host}");
-        error_log("Script Name: " . ($_SERVER['SCRIPT_NAME'] ?? 'Not Set'));
-        error_log("Script Directory: {$scriptDir}");
-    }
+    // Debug logging removed
 
     if (strpos($host, 'marvelcollin.my.id') !== false) {
 
         if (strpos($scriptDir, '/misvord') === false) {
 
             $scriptDir = '/misvord';
-            if (getenv('APP_ENV') !== 'production') {
-                error_log("Detected marvelcollin.my.id domain, forcing path to: {$scriptDir}");
-            }
+            // Debug logging removed
         }
     }
 
     $baseUrl = "{$protocol}://{$host}{$scriptDir}";
 
-    if (getenv('APP_ENV') !== 'production') {
-        error_log("Final base URL: {$baseUrl}");
-    }
+    // Debug logging removed
 
     return $baseUrl;
 }

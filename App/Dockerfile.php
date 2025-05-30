@@ -42,8 +42,24 @@ RUN mkdir -p /var/www/html/storage
 # Make artisan executable
 RUN chmod +x /var/www/html/artisan
 
+# Copy PHP debugging configuration
+COPY docker/php/php.ini /usr/local/etc/php/php.ini
+
 # Set environment variables
 ENV IS_DOCKER=true
+
+# Configure PHP for debugging
+RUN echo "log_errors = On" >> /usr/local/etc/php/conf.d/debug.ini && \
+    echo "error_log = /var/log/php_errors.log" >> /usr/local/etc/php/conf.d/debug.ini && \
+    echo "display_errors = On" >> /usr/local/etc/php/conf.d/debug.ini && \
+    echo "display_startup_errors = On" >> /usr/local/etc/php/conf.d/debug.ini && \
+    echo "error_reporting = -1" >> /usr/local/etc/php/conf.d/debug.ini && \
+    echo "memory_limit = 256M" >> /usr/local/etc/php/conf.d/debug.ini && \
+    echo "max_execution_time = 30" >> /usr/local/etc/php/conf.d/debug.ini
+
+# Create PHP error log file
+RUN touch /var/log/php_errors.log && \
+    chown www-data:www-data /var/log/php_errors.log
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html/

@@ -53,14 +53,17 @@ try {
     
     $env = EnvLoader::getEnv();
     $dbHost = EnvLoader::get('DB_HOST', 'db');
-    $dsn = "mysql:host=" . $dbHost . 
-           ";dbname=" . EnvLoader::get('DB_NAME', 'misvord');
+    $port = EnvLoader::get('DB_PORT', '3306');
+    $dbname = EnvLoader::get('DB_NAME', 'misvord');
+    $dsn = "mysql:host=" . $dbHost . ";port=" . $port . 
+           ";dbname=" . $dbname . ";charset=" . EnvLoader::get('DB_CHARSET', 'utf8mb4');
     
     
     echo '<div class="bg-blue-500 text-white p-3 rounded-md mb-6 text-left overflow-auto max-h-36">';
     echo '<strong>Database Connection Settings:</strong><br>';
     echo 'Host: ' . $dbHost . '<br>';
-    echo 'Database: ' . EnvLoader::get('DB_NAME', 'misvord') . '<br>'; 
+    echo 'Port: ' . $port . '<br>';
+    echo 'Database: ' . $dbname . '<br>'; 
     echo 'User: ' . EnvLoader::get('DB_USER', 'root') . '<br>';
     echo '</div>';
     
@@ -69,12 +72,16 @@ try {
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES => false,
-    ];
+        // Force TCP connection
+        PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4",
+        // Disable persistent connections
+        PDO::ATTR_PERSISTENT => false,
+    ];    
     
     $pdo = new PDO(
         $dsn, 
         EnvLoader::get('DB_USER', 'root'), 
-        EnvLoader::get('DB_PASS', 'misvord_secure_2023'),
+        EnvLoader::get('DB_PASS', 'kolin123'),
         $options
     );
     

@@ -1,35 +1,50 @@
-/* Global Variables */
+/* Global Variables - Updated with Discord's exact colors */
 :root {
-    /* Discord Colors */
-    --discord-blue: #5865F2;
-    --discord-blue-dark: #4752C4;
-    --discord-green: #57F287;
-    --discord-yellow: #FEE75C;
-    --discord-red: #ED4245;
-    --discord-pink: #EB459E;
-    --discord-white: #FFFFFF;
-    --discord-black: #23272A;
-    --discord-dark: #2C2F33;
-    --discord-darker: #1e2124;
-    --discord-gray: #99AAB5;
-    --discord-light-gray: #F6F6F6;
+    /* Core Discord Colors (2023 updated) */
+    --discord-primary-dark: #1e1f22; /* Sidebar background */
+    --discord-secondary-dark: #2b2d31; /* Channel list background */
+    --discord-tertiary-dark: #313338; /* Main chat area background */
+    --discord-input-dark: #383a40; /* Message input background */
+    
+    --discord-blurple: #5865f2; /* Primary blue */
+    --discord-green: #23a559; /* Online status */
+    --discord-yellow: #f0b132; /* Warning */
+    --discord-red: #f23f42; /* Error/delete */
+    --discord-fuchsia: #eb459e; /* Nitro color */
+    
+    --discord-text-normal: #f2f3f5; /* Normal text */
+    --discord-text-muted: #949ba4; /* Secondary text */
+    --discord-text-link: #00a8fc; /* Link text */
+    
+    --discord-header-primary: #f2f3f5;
+    --discord-header-secondary: #b5bac1;
+    
+    --discord-channeltextarea-background: #383a40;
+    --discord-background-modifier-hover: rgba(255, 255, 255, 0.05);
+    --discord-background-modifier-active: rgba(255, 255, 255, 0.07);
+    --discord-background-modifier-selected: rgba(255, 255, 255, 0.1);
+    
+    /* Server List Colors */
+    --discord-guild-background: #2f3136;
+    --discord-white: #ffffff;
+    --discord-black: #000000;
+    --discord-dark: #2c2f33;
+    --discord-lighter: #b5bac1;
     
     /* Spacing */
-    --space-xs: 0.25rem;
-    --space-sm: 0.5rem;
-    --space-md: 1rem;
-    --space-lg: 1.5rem;
-    --space-xl: 2rem;
-    --space-2xl: 3rem;
-    --space-3xl: 4rem;
+    --space-xs: 0.25rem; /* 4px */
+    --space-sm: 0.5rem;  /* 8px */
+    --space-md: 0.75rem; /* 12px */
+    --space-lg: 1rem;    /* 16px */
+    --space-xl: 1.25rem; /* 20px */
     
     /* Border radius */
-    --radius-sm: 0.375rem;
-    --radius-md: 0.5rem;
-    --radius-lg: 0.75rem;
-    --radius-xl: 1rem;
-    --radius-2xl: 1.5rem;
-    --radius-full: 9999px;
+    --radius-sm: 0.25rem; /* 4px */
+    --radius-md: 0.375rem; /* 6px */
+    --radius-lg: 0.5rem;  /* 8px */
+    --radius-xl: 0.75rem; /* 12px */
+    --radius-xxl: 1rem;   /* 16px */
+    --radius-server: 50%;  /* Server icons */
 }
 
 /* Reset and base styles */
@@ -37,6 +52,8 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    transition: none !important;
+    animation: none !important;
 }
 
 html {
@@ -45,48 +62,61 @@ html {
 }
 
 body {
-    font-family: 'Inter', sans-serif;
+    font-family: 'gg sans', 'Noto Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    line-height: 1.6;
-    color: var(--discord-white);
-    background: var(--discord-darker);
+    line-height: 1.375rem;
+    color: var(--discord-text-normal);
+    background: var(--discord-primary-dark);
     overflow-x: hidden;
     overflow-y: auto;
+    font-weight: 400;
 }
 
+/* Discord-Style Scrollbar */
 ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.1);
+    background: transparent;
     border-radius: 4px;
+    margin: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.3);
+    background: #1a1b1e;
     border-radius: 4px;
+    border: 2px solid var(--discord-tertiary-dark);
+    min-height: 40px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 0, 0, 0.4);
+    background: #141517;
 }
 
+/* Form elements */
 input, textarea, button {
-    font-family: 'Inter', sans-serif;
+    font-family: 'gg sans', 'Noto Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-weight: 400;
 }
 
 a {
     text-decoration: none;
-    color: inherit;
+    color: var(--discord-text-link);
 }
 
 textarea {
-    min-height: 40px;
+    min-height: 44px;
     max-height: 300px;
     resize: none;
+    border: none;
+    background: var(--discord-channeltextarea-background);
+    color: var(--discord-text-normal);
+    padding: 11px 16px;
+    border-radius: 8px;
+    font-size: 1rem;
 }
 
 textarea:focus {
@@ -97,20 +127,58 @@ button {
     cursor: pointer;
     border: none;
     background: transparent;
+    font-size: 0.875rem;
+    font-weight: 500;
 }
 
 button:focus {
     outline: none;
 }
 
+/* Discord-specific text styles */
+.channel-name {
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.25rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.channel-unread {
+    font-weight: 600;
+}
+
+/* Discord-specific icons */
+.discord-icon {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.8;
+}
+
+/* Status indicators */
+.status-online {
+    background-color: var(--discord-green);
+}
+
+.status-idle {
+    background-color: var(--discord-yellow);
+}
+
+.status-dnd {
+    background-color: var(--discord-red);
+}
+
+.status-offline {
+    background-color: var(--discord-text-muted);
+}
+
 /* Utility classes */
-.container {
-    width: 100%;
-    max-width: 1200px;
-    margin-left: auto;
-    margin-right: auto;
-    padding-left: 1rem;
-    padding-right: 1rem;
+.text-muted {
+    color: var(--discord-text-muted);
 }
 
 /* Animations */
@@ -245,30 +313,40 @@ button:focus {
 .server-item:hover,
 button:hover,
 a:hover {
+    background-color: rgba(255, 255, 255, 0.05) !important;
     transform: none !important;
     margin: 0 !important;
     padding: inherit !important;
     width: 100% !important;
+    border-radius: inherit !important;
+    height: auto !important;
+    transition: none !important;
 }
 
-/* Fix hover effects to prevent layout shifts */
+/* Override the hover effects completely */
+*:hover {
+    transform: none !important;
+    transition: none !important;
+}
+
+/* Remove the complex hover classes */
 .hover-stable {
     position: relative;
 }
 
 .hover-stable::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: transparent;
-    transition: background-color 0.2s;
-    pointer-events: none;
-    z-index: 1;
+    display: none !important;
 }
 
-.hover-stable:hover::after {
-    background-color: rgba(255, 255, 255, 0.1);
+/* Override any transition or animation classes */
+.transition,
+.transition-all,
+.transition-colors,
+.transition-opacity,
+.transition-transform,
+.animate-pulse,
+.animate-spin,
+.animate-bounce {
+    transition: none !important;
+    animation: none !important;
 }

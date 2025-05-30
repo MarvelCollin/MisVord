@@ -10,7 +10,6 @@ require_once __DIR__ . '/../controllers/NotificationSettingsController.php';
 require_once __DIR__ . '/../controllers/UserProfileController.php';
 require_once __DIR__ . '/env.php';
 
-// Simple Route class to handle route definitions
 class Route {
     private static $routes = [];
     
@@ -31,12 +30,12 @@ class Route {
     }
 }
 
-// Define routes using the Route class
-Route::get('/', 'pages/landing.php');
+Route::get('/', 'pages/landing-page.php');
 Route::get('/home', 'pages/home.php');
-Route::get('/login', 'pages/login.php');
-Route::get('/register', 'pages/register.php');
-Route::get('/explore-servers', 'pages/explore.php');
+Route::get('/login', 'pages/authentication-page.php');
+Route::get('/register', 'pages/authentication-page.php');
+Route::get('/explore-servers', 'pages/explore-servers.php');
+Route::get('/settings', 'pages/settings.php');
 Route::get('/server/([0-9]+)', function($id) {
     require_once __DIR__ . '/../controllers/ServerController.php';
     $controller = new ServerController();
@@ -49,7 +48,6 @@ Route::get('/invite/([a-zA-Z0-9]+)', function($code) {
     $controller->join($code);
 });
 
-// API endpoints
 Route::get('/api/servers/([0-9]+)/channels', function($serverId) {
     require_once __DIR__ . '/../controllers/ChannelController.php';
     $controller = new ChannelController();
@@ -63,21 +61,26 @@ Route::get('/api/servers/([0-9]+)/channels', function($serverId) {
     ]);
 });
 
-// Add channel creation endpoint
 Route::post('/api/channels', function() {
     $controller = new ChannelController();
     $controller->create();
 });
 
-// Add category creation endpoint
 Route::post('/api/categories', function() {
     $controller = new ChannelController();
     $controller->createCategory();
 });
 
-// Add more routes as needed...
+// Health check endpoint
+Route::get('/health', function() {
+    header('Content-Type: application/json');
+    echo json_encode([
+        'status' => 'OK',
+        'timestamp' => date('Y-m-d H:i:s'),
+        'server' => 'misvord-app'
+    ]);
+});
 
-// For backward compatibility, return routes in the old format
 return array_merge(Route::getRoutes(), [
     '404' => 'pages/404.php'
 ]);

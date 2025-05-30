@@ -15,31 +15,31 @@ services:
       - ./migrations:/var/www/html/migrations:ro
       - ./database:/var/www/html/database:ro
       - ./utils:/var/www/html/utils:ro
-      - ./storage:/var/www/html/storage:rw # Ensure this is writable for uploads/logs
+      - ./storage:/var/www/html/storage:rw 
       - ./router.php:/var/www/html/router.php:ro
       - ./index.php:/var/www/html/index.php:ro
       - ./.htaccess:/var/www/html/.htaccess:ro
+      - ./debug.php:/var/www/html/debug.php:ro
+      - ./simple-test.php:/var/www/html/simple-test.php:ro
     depends_on:
       - db
     networks:
       - misvord_network
-    ports: # Ports exposed to the host
+    ports: 
       - "${APP_PORT:-1001}:1001"
     environment:
-      - APP_ENV=${APP_ENV:-production} # Set to production for VPS
-      - APP_DEBUG=${APP_DEBUG:-false}  # Set to false for VPS
+      - APP_ENV=${APP_ENV:-production} 
+      - APP_DEBUG=${APP_DEBUG:-false} 
       - DB_HOST=db
-      - DB_PORT=${DB_PORT:-3306}
-      - DB_NAME=${DB_NAME:-misvord}
-      - DB_USER=${DB_USER:-root}
-      - DB_PASS=${DB_PASS:-password} # Use .env file for this!
-      - DB_CHARSET=${DB_CHARSET:-utf8mb4}
-      # Environment Detection
-      - IS_VPS=${IS_VPS:-true} # Set to true for VPS
-      - USE_HTTPS=${USE_HTTPS:-true} # Set to true for VPS
-      - DOMAIN=${DOMAIN:-marvelcollin.my.id} # Set to your domain
-      - PORT=1001 # Internal port for PHP service
-      # VideoSDK Configuration
+      - DB_PORT=1003
+      - DB_NAME=misvord
+      - DB_USER=root
+      - DB_PASS=kolin123
+      - DB_CHARSET=utf8mb4
+      - IS_VPS=${IS_VPS:-true} 
+      - USE_HTTPS=${USE_HTTPS:-true} 
+      - DOMAIN=${DOMAIN:-marvelcollin.my.id} 
+      - PORT=1001 
       - VIDEOSDK_API_KEY=${VIDEOSDK_API_KEY}
       - VIDEOSDK_SECRET_KEY=${VIDEOSDK_SECRET_KEY}
     security_opt:
@@ -50,34 +50,32 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
-  # MySQL Database
   db:
     image: mysql:8.0
     container_name: misvord_db
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: ${DB_NAME:-misvord}
-      MYSQL_ROOT_PASSWORD: ${DB_PASS:-password}
+      MYSQL_DATABASE: misvord
+      MYSQL_ROOT_PASSWORD: kolin123
       MYSQL_ROOT_HOST: "%"
-      MYSQL_TCP_PORT: ${DB_PORT:-3306}
+      MYSQL_TCP_PORT: 1003
     volumes:
       - misvord_db_data:/var/lib/mysql
       - ./docker/mysql-init:/docker-entrypoint-initdb.d
     networks:
       - misvord_network
     ports:
-      - "${DB_PORT:-3306}:${DB_PORT:-3306}"
-    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --port=${DB_PORT:-3306}
+      - "1003:1003"
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --port=1003
     security_opt:
-      - seccomp:unconfined # Required by MySQL for some operations
+      - seccomp:unconfined 
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-P", "${DB_PORT:-3306}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-P", "1003", "-u", "root", "-pkolin123"]
       interval: 10s
       timeout: 5s
       retries: 3
       start_period: 30s
 
-  # Enhanced PHPMyAdmin
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
     container_name: misvord_phpmyadmin
@@ -86,14 +84,15 @@ services:
     networks:
       - misvord_network
     ports:
-      - "${PMA_PORT:-1004}:80"
+      - "1004:80"
     environment:
-      - PMA_HOST=db
-      - PMA_PORT=${DB_PORT:-3306}
-      - PMA_ARBITRARY=1
-      - UPLOAD_LIMIT=500M
-      - PMA_USER=root
-      - PMA_PASSWORD=password
+      PMA_HOST: db
+      PMA_PORT: 1003
+      PMA_ARBITRARY: 1
+      UPLOAD_LIMIT: 500M
+      PMA_USER: root
+      PMA_PASSWORD: kolin123
+      MYSQL_ROOT_PASSWORD: kolin123
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
@@ -106,11 +105,11 @@ services:
       - db
     networks:
       - misvord_network
-    ports: # Ports exposed to the host
-     - "${ADMINER_PORT:-1005}:8080"
+    ports: 
+     - "1005:8080"
     environment:
       ADMINER_DEFAULT_SERVER: db
-      ADMINER_DESIGN: pepa-linha # Example theme
+      ADMINER_DESIGN: pepa-linha 
     security_opt:
       - no-new-privileges:true
 
@@ -119,5 +118,5 @@ networks:
     driver: bridge
 
 volumes:
-  misvord_db_data: # Defines the volume for MySQL data persistence
-    driver: local # Explicitly define as local driver
+  misvord_db_data: 
+    driver: local 
