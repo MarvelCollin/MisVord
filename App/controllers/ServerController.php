@@ -337,91 +337,20 @@ class ServerController {
             $query = new Query();
             error_log("Query object created successfully");
             
-            // Using a simplified approach without needing separate categories table
-            error_log("Creating channels without relying on categories table");
-            
-            // First, check if the channels table has a category_id column
-            error_log("Checking channels table structure");
-            $hasParentId = false;
-            
-            try {
-                $columns = $query->getRawResults("SHOW COLUMNS FROM channels");
-                foreach ($columns as $column) {
-                    if ($column['Field'] === 'category_id' || $column['Field'] === 'parent_id') {
-                        $hasParentId = true;
-                        error_log("Found parent relationship column: " . $column['Field']);
-                        break;
-                    }
-                }
-            } catch (Exception $e) {
-                error_log("Error checking channels table structure: " . $e->getMessage());
-                // Continue anyway, we'll create channels without parent relationships
-            }
-            
-            // Create the text category channel
-            error_log("Creating TEXT CHANNELS category");
-            $textCategoryId = $query->table('channels')->insert([
-                'server_id' => $serverId,
-                'name' => 'TEXT CHANNELS',
-                'type' => 'category',
-                'position' => 0
-            ]);
-            error_log("Text category created with ID: $textCategoryId");
-            
-            // Create general text channel (with or without parent relationship)
+            // Create only a single general text channel
             $generalChannelData = [
                 'server_id' => $serverId,
                 'name' => 'general',
                 'type' => 'text',
                 'description' => 'General discussion',
-                'position' => 1
+                'position' => 0
             ];
-            
-            // Add parent relationship only if the column exists
-            if ($hasParentId) {
-                if ($query->columnExists('channels', 'category_id')) {
-                    $generalChannelData['category_id'] = $textCategoryId;
-                } else if ($query->columnExists('channels', 'parent_id')) {
-                    $generalChannelData['parent_id'] = $textCategoryId;
-                }
-            }
             
             error_log("Creating general text channel");
             $generalChannelId = $query->table('channels')->insert($generalChannelData);
             error_log("General text channel created with ID: $generalChannelId");
-            
-            // Create voice category channel
-            error_log("Creating VOICE CHANNELS category");
-            $voiceCategoryId = $query->table('channels')->insert([
-                'server_id' => $serverId,
-                'name' => 'VOICE CHANNELS',
-                'type' => 'category',
-                'position' => 2
-            ]);
-            error_log("Voice category created with ID: $voiceCategoryId");
-            
-            // Create general voice channel (with or without parent relationship)
-            $voiceChannelData = [
-                'server_id' => $serverId,
-                'name' => 'General Voice',
-                'type' => 'voice',
-                'position' => 3
-            ];
-            
-            // Add parent relationship only if the column exists
-            if ($hasParentId) {
-                if ($query->columnExists('channels', 'category_id')) {
-                    $voiceChannelData['category_id'] = $voiceCategoryId;
-                } else if ($query->columnExists('channels', 'parent_id')) {
-                    $voiceChannelData['parent_id'] = $voiceCategoryId;
-                }
-            }
-            
-            error_log("Creating general voice channel");
-            $voiceChannelId = $query->table('channels')->insert($voiceChannelData);
-            error_log("General voice channel created with ID: $voiceChannelId");
 
-            error_log("All default channels created successfully");
+            error_log("Default general channel created successfully");
             return true;
         } catch (Exception $e) {
             error_log("Error creating default channels: " . $e->getMessage());

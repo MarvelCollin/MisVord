@@ -30,12 +30,41 @@ class Route {
     }
 }
 
+// Basic pages
 Route::get('/', 'pages/landing-page.php');
 Route::get('/home', 'pages/home.php');
+Route::get('/app', 'pages/home.php'); // Add route for /app -> redirect to home page
 Route::get('/login', 'pages/authentication-page.php');
 Route::get('/register', 'pages/authentication-page.php');
 Route::get('/explore-servers', 'pages/explore-servers.php');
 Route::get('/settings', 'pages/settings.php');
+Route::get('/call', 'pages/call.php');
+Route::get('/forgot-password', 'pages/authentication-page.php');
+Route::get('/404', 'pages/404.php');
+
+// Authentication POST routes
+Route::post('/login', function() {
+    $controller = new AuthenticationController();
+    $controller->login();
+});
+
+Route::post('/register', function() {
+    $controller = new AuthenticationController();
+    $controller->register();
+});
+
+Route::post('/forgot-password', function() {
+    $controller = new AuthenticationController();
+    $controller->forgotPassword();
+});
+
+// Logout route
+Route::get('/logout', function() {
+    $controller = new AuthenticationController();
+    $controller->logout();
+});
+
+// Server routes
 Route::get('/server/([0-9]+)', function($id) {
     require_once __DIR__ . '/../controllers/ServerController.php';
     $controller = new ServerController();
@@ -48,6 +77,7 @@ Route::get('/invite/([a-zA-Z0-9]+)', function($code) {
     $controller->join($code);
 });
 
+// API routes
 Route::get('/api/servers/([0-9]+)/channels', function($serverId) {
     require_once __DIR__ . '/../controllers/ChannelController.php';
     $controller = new ChannelController();
@@ -59,6 +89,12 @@ Route::get('/api/servers/([0-9]+)/channels', function($serverId) {
         'channels' => $channelData['channels'],
         'categories' => $channelData['categories']
     ]);
+});
+
+// Server creation API route
+Route::post('/api/servers/create', function() {
+    $controller = new ServerController();
+    $controller->create();
 });
 
 Route::post('/api/channels', function() {

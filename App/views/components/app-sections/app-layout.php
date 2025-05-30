@@ -14,6 +14,10 @@ $currentServer = $currentServer ?? $GLOBALS['currentServer'] ?? null;
     <?php include dirname(__DIR__) . '/app-sections/server-sidebar.php'; ?>
 
     <div class="flex flex-1 overflow-hidden">
+        <?php if ($contentType === 'home'): ?>
+            <?php include dirname(__DIR__) . '/app-sections/direct-messages-sidebar.php'; ?>
+        <?php endif; ?>
+        
         <div class="flex flex-col flex-1">
             <?php if ($contentType === 'home'): ?>
                 <div class="flex-1 bg-discord-background flex flex-col">

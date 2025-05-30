@@ -146,38 +146,7 @@ if (file_exists($tooltipPath)) {
             <?php include dirname(__DIR__) . '/app-sections/channel-section.php'; ?>
         </div>
         
-        <div class="p-2 bg-discord-darker flex items-center">
-            <?php
-            $userAvatarContent = '<div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden mr-2">
-                <img src="' . (isset($_SESSION['avatar']) ? htmlspecialchars($_SESSION['avatar']) : 'https://ui-avatars.com/api/?name=' . urlencode($_SESSION['username'] ?? 'U') . '&background=random') . '" 
-                     alt="Avatar" class="w-full h-full object-cover">
-            </div>';
-            
-            echo tooltip($userAvatarContent, htmlspecialchars($_SESSION['username'] ?? 'User'), 'top');
-            ?>
-            <div class="flex-1">
-                <div class="text-sm text-white font-medium truncate"><?php echo htmlspecialchars($_SESSION['username'] ?? 'User'); ?></div>
-                <div class="text-xs text-discord-lighter truncate">#<?php echo htmlspecialchars($_SESSION['tag'] ?? '0000'); ?></div>
-            </div>
-            <div class="flex space-x-1">
-                <?php
-                $micContent = '<button class="text-discord-lighter hover:text-white p-1">
-                    <i class="fas fa-microphone"></i>
-                </button>';
-                echo tooltip($micContent, 'Mute', 'top');
-                
-                $headphonesContent = '<button class="text-discord-lighter hover:text-white p-1">
-                    <i class="fas fa-headphones"></i>
-                </button>';
-                echo tooltip($headphonesContent, 'Deafen', 'top');
-                
-                $settingsContent = '<button class="text-discord-lighter hover:text-white p-1">
-                    <i class="fas fa-cog"></i>
-                </button>';
-                echo tooltip($settingsContent, 'User Settings', 'top');
-                ?>
-            </div>
-        </div>
+        <?php include dirname(__DIR__) . '/common/user-profile.php'; ?>
     </div>
     <?php else: ?>
     <!-- DEBUG: Not in server context -->
