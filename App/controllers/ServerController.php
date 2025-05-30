@@ -621,16 +621,4 @@ class ServerController {
             return (string)$data;
         }
     }
-
-    public function isMember($userId) {
-        $query = new Query();
-        error_log("Checking membership for User ID: $userId, Server ID: {$this->id}");
-        $result = $query->table('user_server_memberships')
-            ->where('user_id', $userId)
-            ->where('server_id', $this->id)
-            ->first();
-            
-        error_log("Membership check result: " . ($result ? json_encode($result) : 'Not a member'));
-        return $result !== null;
-    }
 }

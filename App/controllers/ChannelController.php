@@ -127,27 +127,29 @@ class ChannelController {
     }
 
     public function createCategory() {
-
-        if (!isset($_SESSION['user_id'])) {
-            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-            exit;
-        }
-
-        $name = $_POST['name'] ?? '';
-        $serverId = $_POST['server_id'] ?? 0;
-
-        if (empty($name) || empty($serverId)) {
-            echo json_encode(['success' => false, 'message' => 'Missing required fields']);
-            exit;
-        }
-
-        $server = Server::find($serverId);
-        if (!$server || !$server->isMember($_SESSION['user_id'])) {
-            echo json_encode(['success' => false, 'message' => 'Permission denied']);
-            exit;
-        }
-
+        // Set error handling to prevent PHP errors from breaking JSON response
+        $oldErrorReporting = error_reporting(E_ALL);
+        ini_set('display_errors', 0);
+        
         try {
+            if (!isset($_SESSION['user_id'])) {
+                $this->jsonResponse(['success' => false, 'message' => 'Unauthorized'], 401);
+                return;
+            }
+
+            $name = $_POST['name'] ?? '';
+            $serverId = $_POST['server_id'] ?? 0;
+
+            if (empty($name) || empty($serverId)) {
+                $this->jsonResponse(['success' => false, 'message' => 'Missing required fields'], 400);
+                return;
+            }
+
+            $server = Server::find($serverId);
+            if (!$server || !$server->isMember($_SESSION['user_id'])) {
+                $this->jsonResponse(['success' => false, 'message' => 'Permission denied'], 403);
+                return;
+            }
 
             require_once __DIR__ . '/../database/models/Category.php';
             $category = new Category();
@@ -156,7 +158,7 @@ class ChannelController {
             $category->position = $this->getNextCategoryPosition($serverId);
 
             if ($category->save()) {
-                echo json_encode([
+                $this->jsonResponse([
                     'success' => true, 
                     'message' => 'Category created successfully', 
                     'category' => [
@@ -165,14 +167,15 @@ class ChannelController {
                     ]
                 ]);
             } else {
-                echo json_encode(['success' => false, 'message' => 'Failed to create category']);
+                $this->jsonResponse(['success' => false, 'message' => 'Failed to create category'], 500);
             }
         } catch (Exception $e) {
             error_log("Error creating category: " . $e->getMessage());
-            echo json_encode(['success' => false, 'message' => 'An error occurred']);
+            $this->jsonResponse(['success' => false, 'message' => 'An error occurred: ' . $e->getMessage()], 500);
+        } finally {
+            // Restore error reporting settings
+            error_reporting($oldErrorReporting);
         }
-
-        exit;
     }
 
     private function getNextCategoryPosition($serverId) {
@@ -318,7 +321,24 @@ class ChannelController {
     private function jsonResponse($data, $status = 200) {
         http_response_code($status);
         header('Content-Type: application/json');
-        echo json_encode($data);
+        
+        // Ensure no output buffering is active
+        while (ob_get_level()) {
+            ob_end_clean();
+        }
+        
+        try {
+            // Use JSON_THROW_ON_ERROR to catch any JSON encoding issues
+            echo json_encode($data, JSON_THROW_ON_ERROR);
+        } catch (Exception $e) {
+            error_log("JSON encoding error: " . $e->getMessage());
+            // Provide a simpler fallback response
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Server error: Failed to encode response'
+            ]);
+        }
         exit;
     }
 
