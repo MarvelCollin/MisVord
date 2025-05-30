@@ -41,6 +41,12 @@ $additional_head = '<link rel="preconnect" href="https://fonts.googleapis.com">
 $page_css = 'authentication-page';
 $page_js = 'authentication-page';
 
+// Add the AJAX required scripts
+$additional_js = ['main', 'pages/authentication-page'];
+
+// Add data-page attribute to identify the page for JavaScript
+$data_page = 'auth';
+
 
 ob_start();
 try {

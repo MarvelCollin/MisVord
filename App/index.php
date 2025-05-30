@@ -41,4 +41,16 @@ if (php_sapi_name() !== 'cli-server' &&
 
     // Application router
     require_once __DIR__ . '/router.php';
+
+    // Use headers to set context in global scope
+    header('X-App-Active: true');
+
+    // Set page identifier for JavaScript
+    $data_page = 'app';
+
+    Route::add('/', function() {
+        require_once 'controllers/AppController.php';
+        $controller = new AppController();
+        $controller->index();
+    });
 }

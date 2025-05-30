@@ -1,4 +1,14 @@
+/**
+ * Main App Page JavaScript
+ * Handles UI interactions for the main application page
+ */
+
+import { MiscVordAjax } from '../core/ajax-handler.js';
+import { showToast } from '../core/toast.js';
+
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('App page initialized');
+    
     // Server creation modal functionality
     initServerCreationModal();
     
@@ -33,7 +43,7 @@ function initServerCreationModal() {
             }
         });
         
-        // Initialize form functionality from create-server.js
+        // Initialize form functionality
         initImageUpload();
         initFormSubmission();
         initDragAndDrop();
@@ -147,73 +157,42 @@ function initFormSubmission() {
             successMessage.classList.add('hidden');
         }
         
-        const formData = new FormData(this);
-        
-        fetch('/api/servers/create', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => {
-            const contentType = response.headers.get('content-type');
-            if (contentType && contentType.includes('application/json')) {
-                return response.json().then(data => {
-                    return { ok: response.ok, data: data };
-                });
-            } else {
-                return response.text().then(text => {
-                    return { 
-                        ok: false, 
-                        data: { 
-                            success: false, 
-                            message: 'Server returned an invalid response format. Please try again.'
-                        },
-                        errorDetails: text
-                    };
-                });
-            }
-        })
-        .then(result => {
-            if (result.ok && result.data.success) {
-                console.log('Server creation successful. Server data:', result.data.server);
-                
-                if (successMessage) {
-                    successMessage.textContent = result.data.message;
-                    successMessage.classList.remove('hidden');
-                }
-                
-                // Make sure we have a valid server ID
-                if (result.data.server && result.data.server.id) {
-                    const serverId = result.data.server.id;
-                    console.log(`Redirecting to server page with ID: ${serverId}`);
+        // Use MiscVordAjax instead of fetch directly
+        MiscVordAjax.submitForm(serverForm, {
+            onSuccess: function(response) {
+                if (response.success) {
+                    console.log('Server creation successful. Server data:', response.server);
                     
-                    // Show redirecting message
                     if (successMessage) {
-                        successMessage.textContent = 'Server created successfully! Redirecting...';
+                        successMessage.textContent = response.message;
+                        successMessage.classList.remove('hidden');
                     }
                     
-                    // Reset hidden state of modal before redirecting
-                    if (document.getElementById('create-server-modal')) {
-                        document.getElementById('create-server-modal').classList.add('hidden');
-                    }
-                    
-                    // Force a hard reload to the server page
-                    setTimeout(() => {
-                        window.location.href = `/server/${serverId}?forceRefresh=${Date.now()}`;
-                        window.location.reload(true);
-                    }, 500);
-                } else {
-                    console.error('Error: Server ID is missing from response', result.data);
-                    
-                    if (errorMessage) {
-                        errorMessage.textContent = 'Server created but could not navigate to it. Please go to Home and refresh the page.';
-                        errorMessage.classList.remove('hidden');
+                    // Make sure we have a valid server ID
+                    if (response.server && response.server.id) {
+                        const serverId = response.server.id;
+                        console.log(`Redirecting to server page with ID: ${serverId}`);
+                        
+                        // Show redirecting message
+                        if (successMessage) {
+                            successMessage.textContent = 'Server created successfully! Redirecting...';
+                        }
+                        
+                        // Reset hidden state of modal before redirecting
+                        if (document.getElementById('create-server-modal')) {
+                            document.getElementById('create-server-modal').classList.add('hidden');
+                        }
+                        
+                        // Redirect to the server page
+                        window.location.href = `/server/${serverId}`;
                     }
                 }
-            } else {
-                console.error('Server creation failed:', result);
+            },
+            onError: function(error) {
+                console.error('Server creation failed:', error);
                 
                 if (errorMessage) {
-                    errorMessage.textContent = result.data.message || 'An error occurred while creating the server.';
+                    errorMessage.textContent = error.data?.message || 'An error occurred while creating the server.';
                     errorMessage.classList.remove('hidden');
                     serverForm.classList.add('error-shake');
                     
@@ -226,19 +205,6 @@ function initFormSubmission() {
                     submitButton.disabled = false;
                     submitButton.innerHTML = 'Create Server';
                 }
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            
-            if (errorMessage) {
-                errorMessage.textContent = 'An unexpected error occurred. Please try again.';
-                errorMessage.classList.remove('hidden');
-            }
-            
-            if (submitButton) {
-                submitButton.disabled = false;
-                submitButton.innerHTML = 'Create Server';
             }
         });
     });

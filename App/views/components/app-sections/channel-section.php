@@ -75,7 +75,11 @@ function getChannelIcon($channelType) {
     </div> -->
 </div>
 
-<div id="channel-container" class="space-y-4" data-lazyload="channel-list">
+<div class="channel-list-container space-y-0 overflow-y-auto scrollbar-thin scrollbar-thumb-discord-light scrollbar-track-transparent">
+    <!-- This div will be populated with channels by our JS code -->
+</div>
+
+<div id="channel-container" class="space-y-0 hidden" data-lazyload="channel-list">
     <?php if (empty($categories) && (!empty($textChannels) || !empty($voiceChannels))): ?>
         <!-- Display grouped channels by type -->
         <?php if (!empty($textChannels)): ?>

@@ -1,3 +1,12 @@
+/**
+ * Authentication Page Scripts
+ * Handles all UI interactions for the authentication page
+ */
+
+// Import required modules
+import { showToast } from '../core/toast.js';
+import { MiscVordAjax } from '../core/ajax-handler.js';
+
 document.addEventListener('DOMContentLoaded', function() {
     const elements = {
         logo: document.getElementById('logo'),
@@ -346,10 +355,11 @@ document.addEventListener('DOMContentLoaded', function() {
     function setupFormSubmission() {
         document.querySelectorAll('form').forEach(form => {
             form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
                 const isValid = validateForm(this);
 
                 if (!isValid) {
-                    e.preventDefault();
                     return;
                 }
 
@@ -371,15 +381,49 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 button.classList.add('animate-pulse');
 
-                if (this.id === 'registerForm' || this.id === 'loginForm') {
-                    const formData = {};
-                    new FormData(this).forEach((value, key) => {
-                        if (!key.includes('password')) {
-                            formData[key] = value;
+                // Use the AJAX handler to submit the form
+                MiscVordAjax.submitForm(this, {
+                    onSuccess: function(response) {
+                        // Save form data for future use if needed
+                        const formData = {};
+                        new FormData(form).forEach((value, key) => {
+                            if (!key.includes('password')) {
+                                formData[key] = value;
+                            }
+                        });
+                        localStorage.setItem(`${form.id}_data`, JSON.stringify(formData));
+                        
+                        // Handle redirect if provided
+                        if (response.success && response.redirect) {
+                            window.location.href = response.redirect;
+                        } else if (response.success) {
+                            showToast(response.message || 'Success', 'success');
                         }
-                    });
-                    localStorage.setItem(`${this.id}_data`, JSON.stringify(formData));
-                }
+                    },
+                    onError: function(error) {
+                        // Reset button
+                        button.disabled = false;
+                        button.innerHTML = button.dataset.originalText;
+                        button.classList.remove('animate-pulse');
+                        
+                        // Show error message
+                        if (error.data && error.data.errors) {
+                            const errors = error.data.errors;
+                            Object.keys(errors).forEach(field => {
+                                const input = form.querySelector(`[name="${field}"]`);
+                                if (input) {
+                                    showFieldError(input, errors[field]);
+                                } else if (field === 'auth' || field === 'general') {
+                                    showToast(errors[field], 'error');
+                                }
+                            });
+                        } else if (error.data && error.data.message) {
+                            showToast(error.data.message, 'error');
+                        } else {
+                            showToast('An error occurred', 'error');
+                        }
+                    }
+                });
             });
         });
     }

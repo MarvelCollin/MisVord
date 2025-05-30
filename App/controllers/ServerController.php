@@ -6,23 +6,20 @@ require_once __DIR__ . '/../database/models/UserServerMembership.php';
 require_once __DIR__ . '/../database/models/Channel.php';
 require_once __DIR__ . '/../database/models/Category.php';
 require_once __DIR__ . '/../database/query.php';
+require_once __DIR__ . '/BaseController.php';
 
-class ServerController {
+class ServerController extends BaseController {
 
     public function __construct() {
-        if (session_status() == PHP_SESSION_NONE) {
-            session_start();
-        }
+        parent::__construct();
     }
 
     public function getServer($id) {
-
         if (!isset($_SESSION['user_id'])) {
             return null;
         }
 
         $server = Server::find($id);
-
         if (!$server) {
             error_log("Server not found with ID: $id");
             return null;
@@ -34,56 +31,71 @@ class ServerController {
 
     public function show($id) {
         $server = $this->getServer($id);
-
-        if ($server) {
-            // Get the current user's server list for the sidebar
-            $currentUserId = $_SESSION['user_id'] ?? 0;
-            
-            // Always force a fresh server list
-            error_log("Before getFormattedServersForUser() - User ID: $currentUserId");
-            $userServers = Server::getFormattedServersForUser($currentUserId);
-            error_log("After getFormattedServersForUser() - Server count: " . count($userServers));
-            
-            // Get server members and roles
-            $serverMembers = UserServerMembership::getServerMembers($server->id);
-            $serverRoles = UserServerMembership::getServerRoles($server->id);
-            
-            // Get server channels
-            require_once __DIR__ . '/../database/models/Channel.php';
-            $serverChannels = Channel::getServerChannels($server->id);
-            
-            // Get active channel and its messages
-            $activeChannelId = $_GET['channel'] ?? null;
-            $channelMessages = [];
-            
-            if (empty($activeChannelId) && !empty($serverChannels)) {
-                // Find first text channel
-                foreach ($serverChannels as $channel) {
-                    if ($channel['type_name'] === 'text') {
-                        $activeChannelId = $channel['id'];
-                        break;
-                    }
-                }
+        
+        if (!$server) {
+            if ($this->isAjaxRequest()) {
+                return $this->notFound('Server not found');
             }
             
-            if ($activeChannelId) {
-                $channelMessages = Channel::getChannelMessages($activeChannelId);
-            }
-            
-            // Set global variables that will be available to views
-            $GLOBALS['currentServer'] = $server;
-            $GLOBALS['userServers'] = $userServers;
-            $GLOBALS['serverMembers'] = $serverMembers;
-            $GLOBALS['serverRoles'] = $serverRoles;
-            $GLOBALS['serverChannels'] = $serverChannels;
-            $GLOBALS['activeChannelId'] = $activeChannelId;
-            $GLOBALS['channelMessages'] = $channelMessages;
-            
-            require_once dirname(__DIR__) . '/views/pages/server-page.php';
-        } else {
             http_response_code(404);
             require_once dirname(__DIR__) . '/views/pages/404.php';
+            return;
         }
+        
+        // Get data for the server view
+        $currentUserId = $_SESSION['user_id'] ?? 0;
+        $userServers = Server::getFormattedServersForUser($currentUserId);
+        $serverMembers = UserServerMembership::getServerMembers($server->id);
+        $serverRoles = UserServerMembership::getServerRoles($server->id);
+        $serverChannels = Channel::getServerChannels($server->id);
+        
+        // Get active channel and its messages
+        $activeChannelId = $_GET['channel'] ?? null;
+        $channelMessages = [];
+        
+        if (empty($activeChannelId) && !empty($serverChannels)) {
+            // Find first text channel
+            foreach ($serverChannels as $channel) {
+                if ($channel['type_name'] === 'text') {
+                    $activeChannelId = $channel['id'];
+                    break;
+                }
+            }
+        }
+        
+        if ($activeChannelId) {
+            $channelMessages = Channel::getChannelMessages($activeChannelId);
+        }
+        
+        // For AJAX requests, return server data as JSON
+        if ($this->isAjaxRequest()) {
+            return $this->successResponse([
+                'server' => [
+                    'id' => $server->id,
+                    'name' => $server->name,
+                    'description' => $server->description,
+                    'image_url' => $server->image_url,
+                    'is_public' => (bool)$server->is_public
+                ],
+                'userServers' => $userServers,
+                'serverMembers' => $serverMembers,
+                'serverRoles' => $serverRoles,
+                'serverChannels' => $serverChannels,
+                'activeChannelId' => $activeChannelId,
+                'channelMessages' => $channelMessages
+            ]);
+        }
+        
+        // For regular requests, set global variables and render the page
+        $GLOBALS['currentServer'] = $server;
+        $GLOBALS['userServers'] = $userServers;
+        $GLOBALS['serverMembers'] = $serverMembers;
+        $GLOBALS['serverRoles'] = $serverRoles;
+        $GLOBALS['serverChannels'] = $serverChannels;
+        $GLOBALS['activeChannelId'] = $activeChannelId;
+        $GLOBALS['channelMessages'] = $channelMessages;
+        
+        require_once dirname(__DIR__) . '/views/pages/server-page.php';
     }
 
     public function create() {
@@ -96,8 +108,7 @@ class ServerController {
             
             if (!isset($_SESSION['user_id'])) {
                 error_log("Server creation failed: User not authenticated");
-                $this->jsonResponse(['success' => false, 'message' => 'Unauthorized'], 401);
-                return;
+                return $this->unauthorized();
             }
             
             error_log("Authenticated user ID: {$_SESSION['user_id']}");
@@ -121,8 +132,7 @@ class ServerController {
 
             if (empty($name)) {
                 error_log("Server creation failed: Empty name");
-                $this->jsonResponse(['success' => false, 'message' => 'Server name is required'], 400);
-                return;
+                return $this->validationError(['name' => 'Server name is required']);
             }
 
             // Check for duplicate server name
@@ -130,8 +140,7 @@ class ServerController {
             $existingServer = Server::findByName($name);
             if ($existingServer) {
                 error_log("Server creation failed: Name already exists");
-                $this->jsonResponse(['success' => false, 'message' => 'Server with this name already exists'], 400);
-                return;
+                return $this->validationError(['name' => 'Server with this name already exists']);
             }
             
             error_log("Creating new Server object");
@@ -146,8 +155,7 @@ class ServerController {
                 $imageUrl = $this->uploadServerImage($_FILES['image_file']);
                 if ($imageUrl === false) {
                     error_log("Server creation failed: Image upload failed");
-                    $this->jsonResponse(['success' => false, 'message' => 'Failed to upload server image'], 500);
-                    return;
+                    return $this->serverError('Failed to upload server image');
                 }
                 error_log("Image uploaded successfully: $imageUrl");
                 $server->image_url = $imageUrl;
@@ -180,8 +188,7 @@ class ServerController {
                         $pdo->rollBack();
                         $transactionActive = false;
                     }
-                    $this->jsonResponse(['success' => false, 'message' => 'Failed to create server'], 500);
-                    return;
+                    return $this->serverError('Failed to create server');
                 }
                 error_log("Server saved with ID: " . $server->id);
                 
@@ -224,8 +231,7 @@ class ServerController {
                         $pdo->rollBack();
                         $transactionActive = false;
                     }
-                    $this->jsonResponse(['success' => false, 'message' => 'Failed to assign server ownership'], 500);
-                    return;
+                    return $this->serverError('Failed to assign server ownership');
                 }
                 
                 error_log("Creating default channels for server: " . $server->id);
@@ -239,8 +245,7 @@ class ServerController {
                         $pdo->rollBack();
                         $transactionActive = false;
                     }
-                    $this->jsonResponse(['success' => false, 'message' => 'Failed to create default channels'], 500);
-                    return;
+                    return $this->serverError('Failed to create default channels');
                 }
                 
                 // Commit the transaction if everything was successful
@@ -259,9 +264,7 @@ class ServerController {
                 }
                 
                 error_log("Server creation completed successfully");
-                $this->jsonResponse([
-                    'success' => true, 
-                    'message' => 'Server created successfully', 
+                return $this->successResponse([
                     'server' => [
                         'id' => (string)$server->id,
                         'name' => $server->name,
@@ -270,7 +273,7 @@ class ServerController {
                         'is_public' => $server->is_public ? true : false,
                         'invite_link' => $server->invite_link
                     ]
-                ]);
+                ], 'Server created successfully');
                 
             } catch (Exception $e) {
                 // Rollback transaction on any error
@@ -285,13 +288,13 @@ class ServerController {
                 }
                 error_log("Server creation error: " . $e->getMessage());
                 error_log("Error trace: " . $e->getTraceAsString());
-                $this->jsonResponse(['success' => false, 'message' => 'Server creation failed: ' . $e->getMessage()], 500);
+                return $this->serverError('Server creation failed: ' . $e->getMessage());
             }
             
         } catch (Exception $e) {
             error_log("Unexpected error during server creation: " . $e->getMessage());
             error_log("Error trace: " . $e->getTraceAsString());
-            $this->jsonResponse(['success' => false, 'message' => 'An unexpected error occurred'], 500);
+            return $this->serverError('An unexpected error occurred');
         } finally {
             // Restore error reporting settings
             error_reporting($oldErrorReporting);
@@ -299,7 +302,6 @@ class ServerController {
     }
 
     private function uploadServerImage($file) {
-
         $fileType = exif_imagetype($file['tmp_name']);
         if (!$fileType || !in_array($fileType, [IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_GIF, IMAGETYPE_WEBP])) {
             return false;
@@ -316,7 +318,6 @@ class ServerController {
         $filepath = $uploadDir . $filename;
 
         if (move_uploaded_file($file['tmp_name'], $filepath)) {
-
             return '/public/assets/uploads/servers/' . $filename;
         }
 
@@ -364,14 +365,23 @@ class ServerController {
     }
 
     public function join($inviteCode) {
-
         if (!isset($_SESSION['user_id'])) {
+            if ($this->isAjaxRequest()) {
+                return $this->unauthorized();
+            }
+            
             header('Location: /login');
             exit;
         }
 
         if (empty($inviteCode)) {
-            $_SESSION['error'] = 'Invalid invite link';
+            $errorMessage = 'Invalid invite link';
+            
+            if ($this->isAjaxRequest()) {
+                return $this->validationError(['invite' => $errorMessage]);
+            }
+            
+            $_SESSION['error'] = $errorMessage;
             header('Location: /app');
             exit;
         }
@@ -379,67 +389,99 @@ class ServerController {
         $server = Server::findByInviteLink($inviteCode);
 
         if (!$server) {
-            $_SESSION['error'] = 'Invalid or expired invite link';
+            $errorMessage = 'Invalid or expired invite link';
+            
+            if ($this->isAjaxRequest()) {
+                return $this->validationError(['invite' => $errorMessage]);
+            }
+            
+            $_SESSION['error'] = $errorMessage;
             header('Location: /app');
             exit;
         }
 
         if (UserServerMembership::isMember($_SESSION['user_id'], $server->id)) {
+            if ($this->isAjaxRequest()) {
+                return $this->successResponse([
+                    'server' => [
+                        'id' => $server->id,
+                        'name' => $server->name
+                    ],
+                    'redirect' => "/server/{$server->id}"
+                ], 'Already a member of this server');
+            }
+            
             header('Location: /server/' . $server->id);
             exit;
         }
 
         UserServerMembership::create($_SESSION['user_id'], $server->id, 'member');
 
+        if ($this->isAjaxRequest()) {
+            return $this->successResponse([
+                'server' => [
+                    'id' => $server->id,
+                    'name' => $server->name
+                ],
+                'redirect' => "/server/{$server->id}"
+            ], 'Successfully joined server');
+        }
+        
         header('Location: /server/' . $server->id);
         exit;
     }
 
     public function leave($serverId) {
-
         if (!isset($_SESSION['user_id'])) {
-            $this->jsonResponse(['success' => false, 'message' => 'Unauthorized'], 401);
-            return;
+            return $this->unauthorized();
         }
 
         $server = Server::find($serverId);
         
         if (!$server) {
-            $this->jsonResponse(['success' => false, 'message' => 'Server not found'], 404);
-            return;
+            return $this->notFound('Server not found');
         }
         
         if (!UserServerMembership::isMember($_SESSION['user_id'], $serverId)) {
-            $this->jsonResponse(['success' => false, 'message' => 'You are not a member of this server'], 400);
-            return;
+            return $this->validationError(['server' => 'You are not a member of this server']);
         }
         
         if (UserServerMembership::isOwner($_SESSION['user_id'], $serverId)) {
-            $this->jsonResponse(['success' => false, 'message' => 'Server owners cannot leave their server. Transfer ownership first or delete the server.'], 400);
-            return;
+            return $this->validationError(['server' => 'Server owners cannot leave their server. Transfer ownership first or delete the server.']);
         }
         
         if (UserServerMembership::delete($_SESSION['user_id'], $serverId)) {
-            $this->jsonResponse(['success' => true, 'message' => 'You have left the server']);
+            return $this->successResponse([], 'You have left the server');
         } else {
-            $this->jsonResponse(['success' => false, 'message' => 'Failed to leave the server'], 500);
+            return $this->serverError('Failed to leave the server');
         }
     }
 
     public function showChannel($serverId, $channelId) {
-
         if (!isset($_SESSION['user_id'])) {
+            if ($this->isAjaxRequest()) {
+                return $this->unauthorized();
+            }
+            
             header('Location: /login');
             exit;
         }
 
         $server = Server::find($serverId);
         if (!$server) {
+            if ($this->isAjaxRequest()) {
+                return $this->notFound('Server not found');
+            }
+            
             header('Location: /app');
             exit;
         }
 
         if (!$server->isMember($_SESSION['user_id'])) {
+            if ($this->isAjaxRequest()) {
+                return $this->forbidden('You are not a member of this server');
+            }
+            
             header('Location: /app');
             exit;
         }
@@ -448,11 +490,30 @@ class ServerController {
         $channel = Channel::find($channelId);
 
         if (!$channel || $channel->server_id != $serverId) {
-
+            if ($this->isAjaxRequest()) {
+                return $this->notFound('Channel not found in this server');
+            }
+            
             header("Location: /server/{$serverId}");
             exit;
         }
 
+        if ($this->isAjaxRequest()) {
+            $messages = $channel->messages();
+            return $this->successResponse([
+                'server' => [
+                    'id' => $server->id,
+                    'name' => $server->name
+                ],
+                'channel' => [
+                    'id' => $channel->id,
+                    'name' => $channel->name,
+                    'type' => $channel->type
+                ],
+                'messages' => $messages
+            ]);
+        }
+        
         $GLOBALS['currentServer'] = $server;
         $GLOBALS['currentChannel'] = $channel;
 
@@ -461,8 +522,7 @@ class ServerController {
 
     public function listServers() {
         if (!isset($_SESSION['user_id'])) {
-            $this->jsonResponse(['success' => false, 'message' => 'Unauthorized'], 401);
-            return;
+            return $this->unauthorized();
         }
         
         try {
@@ -482,42 +542,37 @@ class ServerController {
                 ];
             }
             
-            $this->jsonResponse([
-                'success' => true,
-                'servers' => $formattedServers
-            ]);
+            return $this->successResponse(['servers' => $formattedServers]);
         } catch (Exception $e) {
             error_log("Error getting server list: " . $e->getMessage());
-            $this->jsonResponse(['success' => false, 'message' => 'An error occurred while fetching servers'], 500);
+            return $this->serverError('An error occurred while fetching servers');
         }
     }
 
     public function getServerDetails($id) {
         if (!isset($_SESSION['user_id'])) {
-            $this->jsonResponse(['success' => false, 'message' => 'Unauthorized'], 401);
-            return;
+            return $this->unauthorized();
         }
         
         $server = Server::find($id);
         
         if (!$server) {
-            $this->jsonResponse(['success' => false, 'message' => 'Server not found'], 404);
-            return;
+            return $this->notFound('Server not found');
         }
         
         // Check if user is a member of this server
         if (!UserServerMembership::isMember($_SESSION['user_id'], $server->id)) {
-            $this->jsonResponse(['success' => false, 'message' => 'You are not a member of this server'], 403);
-            return;
-        }          // Get server categories for channel creation
+            return $this->forbidden('You are not a member of this server');
+        }
+        
+        // Get server categories for channel creation
         $categories = Category::getForServer($server->id);
         
         // Get active invite link for the server
         $activeInvite = ServerInvite::findActiveByServer($server->id);
         $inviteLink = $activeInvite ? $activeInvite->invite_link : null;
         
-        $this->jsonResponse([
-            'success' => true,
+        return $this->successResponse([
             'server' => [
                 'id' => (string)$server->id,
                 'name' => $server->name,
@@ -532,93 +587,61 @@ class ServerController {
 
     public function getServerChannels($id) {
         if (!isset($_SESSION['user_id'])) {
-            $this->jsonResponse(['success' => false, 'message' => 'Unauthorized'], 401);
-            return;
+            return $this->unauthorized();
         }
         
         $server = Server::find($id);
         
         if (!$server) {
-            $this->jsonResponse(['success' => false, 'message' => 'Server not found'], 404);
-            return;
+            return $this->notFound('Server not found');
         }
         
         // Check if user is a member of this server
         if (!UserServerMembership::isMember($_SESSION['user_id'], $server->id)) {
-            $this->jsonResponse(['success' => false, 'message' => 'You are not a member of this server'], 403);
-            return;
+            return $this->forbidden('You are not a member of this server');
         }
-          // Get server categories for channel creation
-        $categories = Category::getForServer($server->id);
         
-        $this->jsonResponse([
-            'success' => true,
-            'categories' => $categories
+        // Get server categories with channels
+        $categories = [];
+        $rawCategories = Category::getForServer($server->id);
+        
+        // Load the Channel model
+        require_once __DIR__ . '/../database/models/Channel.php';
+        
+        // Get channels without a category
+        $uncategorizedChannels = [];
+        $allChannels = Channel::getServerChannels($server->id);
+        
+        foreach ($allChannels as $channel) {
+            if (empty($channel['category_id'])) {
+                // Channel has no category
+                $uncategorizedChannels[] = $channel;
+            }
+        }
+        
+        // Process categories with their channels
+        foreach ($rawCategories as $category) {
+            $categoryChannels = Channel::getForCategory($category['id']);
+            $categories[] = [
+                'id' => $category['id'],
+                'name' => $category['name'],
+                'server_id' => $category['server_id'],
+                'position' => $category['position'],
+                'channels' => $categoryChannels
+            ];
+        }
+        
+        return $this->successResponse([
+            'categories' => $categories,
+            'uncategorizedChannels' => $uncategorizedChannels
         ]);
     }
 
-    private function jsonResponse($data, $statusCode = 200) {
-        // Ensure we haven't sent any output already
-        if (!headers_sent()) {
-            http_response_code($statusCode);
-            header('Content-Type: application/json');
-        }
-        
-        // Sanitize data to ensure proper JSON encoding
-        $sanitizedData = $this->sanitizeDataForJson($data);
-        
-        // Ensure we're sending valid JSON
-        try {
-            // Use a safer approach with all handling options enabled
-            echo json_encode($sanitizedData, JSON_THROW_ON_ERROR | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
-        } catch (Exception $e) {
-            error_log("Error encoding JSON response: " . $e->getMessage());
-            
-            // Make a last attempt with a much simpler response
-            try {
-                echo json_encode([
-                    'success' => false, 
-                    'message' => 'Server error: Invalid response format',
-                    'error_type' => 'json_encoding_failure'
-                ], JSON_THROW_ON_ERROR);
-            } catch (Exception $e2) {
-                // If all else fails, send a plain text error
-                header('Content-Type: text/plain');
-                echo 'Server error: JSON encoding failed';
-            }
-        }
-        
-        // End execution to prevent any additional output
-        exit;
-    }
-    
     /**
-     * Recursively sanitize data to ensure it can be JSON encoded
+     * Check if the current request is an AJAX request
      */
-    private function sanitizeDataForJson($data) {
-        if (is_array($data)) {
-            $sanitized = [];
-            foreach ($data as $key => $value) {
-                $sanitized[$key] = $this->sanitizeDataForJson($value);
-            }
-            return $sanitized;
-        } elseif (is_object($data)) {
-            if (method_exists($data, 'toArray')) {
-                return $this->sanitizeDataForJson($data->toArray());
-            } else {
-                $sanitized = [];
-                foreach (get_object_vars($data) as $key => $value) {
-                    $sanitized[$key] = $this->sanitizeDataForJson($value);
-                }
-                return $sanitized;
-            }
-        } elseif (is_null($data)) {
-            return null;
-        } elseif (is_scalar($data)) {
-            return $data;
-        } else {
-            // For resources, callbacks, etc.
-            return (string)$data;
-        }
+    private function isAjaxRequest() {
+        return !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
+               strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
     }
 }

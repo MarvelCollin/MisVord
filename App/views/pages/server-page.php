@@ -22,10 +22,12 @@ $additional_js = [
     'server-dropdown.js',
     'server-sidebar.js',
     'channel-loader.js',
-    'message-handler.js'
+    'message-handler.js',
+    'components/channel-manager.js'
 ];
 $contentType = 'server';
 $currentServer = $GLOBALS['currentServer'] ?? null;
+$data_page = 'server';
 
 if (isset($GLOBALS['currentServer'])) {
     error_log("Current server data: " . json_encode([

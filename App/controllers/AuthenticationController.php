@@ -1,23 +1,37 @@
 <?php
 
 require_once __DIR__ . '/../database/models/User.php';
+require_once __DIR__ . '/BaseController.php';
 
-class AuthenticationController {
+class AuthenticationController extends BaseController {
     public function __construct() {
-        if (session_status() == PHP_SESSION_NONE) {
-            session_start();
-        }
-
+        parent::__construct();
         User::initialize();
     }
 
     public function showLogin() {
         if (isset($_SESSION['user_id'])) {
-            header('Location: /');
-            exit;
+            // For regular page requests, redirect to app
+            if (!$this->isAjaxRequest()) {
+                header('Location: /');
+                exit;
+            }
+            
+            // For AJAX requests, return redirect instruction
+            return $this->redirectResponse('/app');
         }
 
-        require_once __DIR__ . '/../views/pages/authentication-page.php';
+        // For regular requests, render the page
+        if (!$this->isAjaxRequest()) {
+            require_once __DIR__ . '/../views/pages/authentication-page.php';
+            return;
+        }
+        
+        // For AJAX, return data needed to render login page
+        return $this->successResponse([
+            'view' => 'login',
+            'csrf_token' => $_SESSION['csrf_token'] ?? ''
+        ]);
     }
 
     public function login() {
@@ -34,6 +48,10 @@ class AuthenticationController {
         }
 
         if (!empty($errors)) {
+            if ($this->isAjaxRequest()) {
+                return $this->validationError($errors);
+            }
+            
             $_SESSION['errors'] = $errors;
             $_SESSION['old_input'] = ['email' => $email];
             header('Location: /login');
@@ -43,7 +61,13 @@ class AuthenticationController {
         $user = User::findByEmail($email);
 
         if (!$user || !$user->verifyPassword($password)) {
-            $_SESSION['errors'] = ['auth' => 'Invalid email or password'];
+            $loginError = ['auth' => 'Invalid email or password'];
+            
+            if ($this->isAjaxRequest()) {
+                return $this->validationError($loginError);
+            }
+            
+            $_SESSION['errors'] = $loginError;
             $_SESSION['old_input'] = ['email' => $email];
             header('Location: /login');
             exit;
@@ -56,17 +80,42 @@ class AuthenticationController {
         $user->status = 'online';
         $user->save();
 
+        if ($this->isAjaxRequest()) {
+            return $this->successResponse([
+                'user' => [
+                    'id' => $user->id,
+                    'username' => $user->username,
+                    'avatar_url' => $user->avatar_url
+                ],
+                'redirect' => '/app'
+            ], 'Login successful');
+        }
+        
         header('Location: /app');
         exit;
     }
 
     public function showRegister() {
         if (isset($_SESSION['user_id'])) {
-            header('Location: /');
-            exit;
+            if (!$this->isAjaxRequest()) {
+                header('Location: /');
+                exit;
+            }
+            
+            return $this->redirectResponse('/app');
         }
 
-        require_once __DIR__ . '/../views/pages/authentication-page.php';
+        // For regular requests, render the page
+        if (!$this->isAjaxRequest()) {
+            require_once __DIR__ . '/../views/pages/authentication-page.php';
+            return;
+        }
+        
+        // For AJAX, return data needed to render register page
+        return $this->successResponse([
+            'view' => 'register',
+            'csrf_token' => $_SESSION['csrf_token'] ?? ''
+        ]);
     }
 
     public function register() {
@@ -103,6 +152,10 @@ class AuthenticationController {
         }
 
         if (!empty($errors)) {
+            if ($this->isAjaxRequest()) {
+                return $this->validationError($errors);
+            }
+            
             $_SESSION['errors'] = $errors;
             $_SESSION['old_input'] = [
                 'username' => $username,
@@ -131,20 +184,34 @@ class AuthenticationController {
             }
 
             error_log("User successfully registered: ID={$user->id}, Username={$user->username}");
-
             $_SESSION['success'] = "Registration successful! Welcome to misvord, {$user->username}!";
-
             $_SESSION['user_id'] = $user->id;
             $_SESSION['username'] = $user->username;
 
+            if ($this->isAjaxRequest()) {
+                return $this->successResponse([
+                    'user' => [
+                        'id' => $user->id,
+                        'username' => $user->username
+                    ],
+                    'redirect' => '/app'
+                ], 'Registration successful');
+            }
+            
             header('Location: /app');
             exit;
         } catch (Exception $e) {
             error_log('Registration error: ' . $e->getMessage());
             error_log('Error details: ' . $e->getTraceAsString());
 
+            $errorMessage = 'Registration failed: ' . $e->getMessage();
+            
+            if ($this->isAjaxRequest()) {
+                return $this->serverError($errorMessage);
+            }
+            
             $_SESSION['errors'] = [
-                'auth' => 'Registration failed: ' . $e->getMessage(),
+                'auth' => $errorMessage,
                 'debug_info' => 'See server logs for more details'
             ];
             $_SESSION['old_input'] = [
@@ -167,17 +234,36 @@ class AuthenticationController {
 
         session_unset();
         session_destroy();
+        
+        if ($this->isAjaxRequest()) {
+            return $this->successResponse(['redirect' => '/'], 'Logged out successfully');
+        }
+        
         header('Location: /');
         exit;
     }
 
     public function showForgotPassword() {
         if (isset($_SESSION['user_id'])) {
-            header('Location: /');
-            exit;
+            if (!$this->isAjaxRequest()) {
+                header('Location: /');
+                exit;
+            }
+            
+            return $this->redirectResponse('/app');
         }
 
-        require_once __DIR__ . '/../views/pages/authentication-page.php';
+        // For regular requests, render the page
+        if (!$this->isAjaxRequest()) {
+            require_once __DIR__ . '/../views/pages/authentication-page.php';
+            return;
+        }
+        
+        // For AJAX, return data needed to render forgot password page
+        return $this->successResponse([
+            'view' => 'forgot-password',
+            'csrf_token' => $_SESSION['csrf_token'] ?? ''
+        ]);
     }
 
     public function forgotPassword() {
@@ -193,13 +279,23 @@ class AuthenticationController {
         }
 
         if (!empty($errors)) {
+            if ($this->isAjaxRequest()) {
+                return $this->validationError($errors);
+            }
+            
             $_SESSION['errors'] = $errors;
             $_SESSION['old_input'] = ['email' => $email];
             header('Location: /forgot-password');
             exit;
         }
 
-        $_SESSION['success'] = 'If an account exists with that email, you will receive password reset instructions.';
+        $message = 'If an account exists with that email, you will receive password reset instructions.';
+        
+        if ($this->isAjaxRequest()) {
+            return $this->successResponse(['redirect' => '/login'], $message);
+        }
+        
+        $_SESSION['success'] = $message;
         header('Location: /login');
         exit;
     }
@@ -211,7 +307,13 @@ class AuthenticationController {
         $avatar = $googleData['picture'] ?? null;
 
         if (!$googleId || !$email) {
-            $_SESSION['errors'] = ['auth' => 'Unable to authenticate with Google'];
+            $errorMessage = 'Unable to authenticate with Google';
+            
+            if ($this->isAjaxRequest()) {
+                return $this->validationError(['auth' => $errorMessage]);
+            }
+            
+            $_SESSION['errors'] = ['auth' => $errorMessage];
             header('Location: /login');
             exit;
         }
@@ -248,7 +350,26 @@ class AuthenticationController {
         $user->status = 'online';
         $user->save();
 
+        if ($this->isAjaxRequest()) {
+            return $this->successResponse([
+                'user' => [
+                    'id' => $user->id,
+                    'username' => $user->username,
+                    'avatar_url' => $user->avatar_url
+                ],
+                'redirect' => '/app'
+            ], 'Google authentication successful');
+        }
+        
         header('Location: /app');
         exit;
+    }
+    
+    /**
+     * Check if the current request is an AJAX request
+     */
+    private function isAjaxRequest() {
+        return !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
+               strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
     }
 }
