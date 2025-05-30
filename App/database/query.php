@@ -21,9 +21,27 @@ class Query {
             $this->pdo = $pdo;
         } else {
             try {
-
                 require_once __DIR__ . '/../config/env.php';
-                $this->pdo = EnvLoader::getPDOConnection();
+                
+                // Replace the call to the undefined method with direct PDO connection creation
+                $dbHost = EnvLoader::get('DB_HOST', 'db');
+                $port = EnvLoader::get('DB_PORT', '3306');
+                $dbname = EnvLoader::get('DB_NAME', 'misvord');
+                $username = EnvLoader::get('DB_USER', 'root');
+                $password = EnvLoader::get('DB_PASS', 'kolin123');
+                $charset = EnvLoader::get('DB_CHARSET', 'utf8mb4');
+                
+                $dsn = "mysql:host={$dbHost};port={$port};dbname={$dbname};charset={$charset}";
+                
+                $options = [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                    PDO::ATTR_EMULATE_PREPARES => false,
+                    PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES {$charset}",
+                    PDO::ATTR_PERSISTENT => false,
+                ];
+                
+                $this->pdo = new PDO($dsn, $username, $password, $options);
             } catch (PDOException $e) {
                 die("Database connection failed: " . $e->getMessage());
             }

@@ -51,7 +51,6 @@ try {
     require_once dirname(dirname(__DIR__)) . '/config/env.php';
     
     
-    $env = EnvLoader::getEnv();
     $dbHost = EnvLoader::get('DB_HOST', 'db');
     $port = EnvLoader::get('DB_PORT', '3306');
     $dbname = EnvLoader::get('DB_NAME', 'misvord');

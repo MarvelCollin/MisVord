@@ -6,13 +6,10 @@ if (!defined('PUBLIC_PATH')) define('PUBLIC_PATH', ROOT_PATH . '/public');
 if (!defined('MIGRATIONS_PATH')) define('MIGRATIONS_PATH', ROOT_PATH . '/migrations');
 
 function asset($path) {
-
     $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https://" : "http://";
-
     $host = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'localhost';
 
     $basePath = '';
-
     if (php_sapi_name() === 'cli' || $host === 'localhost' || strpos($host, '127.0.0.1') !== false) {
         $basePath = '/misvord';
     }
@@ -20,10 +17,24 @@ function asset($path) {
     if (strpos($host, 'marvelcollin.my.id') !== false) {
         $basePath = '/misvord';
     }
+    
+    // Always ensure there's a /public in the base path
+    if (strpos($basePath, '/public') === false) {
+        $basePath = $basePath . '/public';
+    }
 
     $path = '/' . ltrim($path, '/');
+    
+    // If path starts with 'css/' or 'js/', don't add 'assets/'
+    if (strpos($path, '/css/') === 0 || strpos($path, '/js/') === 0) {
+        // Do nothing - keep the path as is
+    } 
+    // Otherwise, if it doesn't already include 'assets/', add it
+    else if (strpos($path, '/assets/') !== 0) {
+        $path = '/assets' . $path;
+    }
 
-    return $protocol . $host . $basePath . '/public' . $path;
+    return $protocol . $host . $basePath . $path;
 }
 
 function css($path) {
@@ -38,15 +49,12 @@ function css($path) {
     $isMarvelDomain = strpos($host, 'marvelcollin.my.id') !== false;
 
     if ($isMarvelDomain && strpos($baseUrl, '/misvord') === false) {
-
         $finalUrl = str_replace("://{$host}", "://{$host}/misvord", $baseUrl) . "/css/{$path}";
     } else {
         $finalUrl = "{$baseUrl}/css/{$path}";
     }
 
     $finalUrl = preg_replace('#([^:])//+#', '$1/', $finalUrl);
-
-    // CSS URL logging removed
 
     return $finalUrl;
 }
@@ -63,7 +71,6 @@ function js($path) {
     $isMarvelDomain = strpos($host, 'marvelcollin.my.id') !== false;
 
     if ($isMarvelDomain && strpos($baseUrl, '/misvord') === false) {
-
         $finalUrl = str_replace("://{$host}", "://{$host}/misvord", $baseUrl) . "/js/{$path}";
     } else {
         $finalUrl = "{$baseUrl}/js/{$path}";
@@ -71,14 +78,12 @@ function js($path) {
 
     $finalUrl = preg_replace('#([^:])//+#', '$1/', $finalUrl);
 
-    // JS URL logging removed
-
     return $finalUrl;
 }
 
 function getBaseUrl() {
     if (php_sapi_name() === 'cli') {
-        return 'http://localhost:1001';
+        return 'http://localhost:1001/public';
     }
 
     $host = $_SERVER['HTTP_HOST'] ?? 'localhost:1001';
@@ -92,20 +97,18 @@ function getBaseUrl() {
     $protocol = $useHttps ? 'https' : 'http';
     $scriptDir = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? ''), '/');
 
-    // Debug logging removed
-
     if (strpos($host, 'marvelcollin.my.id') !== false) {
-
         if (strpos($scriptDir, '/misvord') === false) {
-
             $scriptDir = '/misvord';
-            // Debug logging removed
         }
+    }
+    
+    // Always include '/public' in the base URL
+    if (strpos($scriptDir, '/public') === false) {
+        $scriptDir = $scriptDir . '/public';
     }
 
     $baseUrl = "{$protocol}://{$host}{$scriptDir}";
-
-    // Debug logging removed
 
     return $baseUrl;
 }

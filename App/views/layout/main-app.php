@@ -8,9 +8,9 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $page_title ?? 'misvord'; ?></title>
-    <link rel="stylesheet" href="<?php echo asset('css/global.css'); ?>">
+    <link rel="stylesheet" href="<?php echo css('global'); ?>">
     <?php if (isset($page_css)): ?>
-    <link rel="stylesheet" href="<?php echo asset('css/'.$page_css.'.css'); ?>">
+    <link rel="stylesheet" href="<?php echo css($page_css); ?>">
     <?php endif; ?>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -50,15 +50,15 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
     <?php include_once dirname(__DIR__) . '/components/app-sections/server-actions-modals.php'; ?>
     
     <!-- Scripts -->
-    <script src="<?php echo asset('js/socket.io.min.js'); ?>?v=<?php echo time(); ?>"></script>
-    <script src="<?php echo asset('js/global.js'); ?>?v=<?php echo time(); ?>"></script>
-    <script src="<?php echo asset('js/app.js'); ?>?v=<?php echo time(); ?>"></script>
+    <script src="<?php echo js('socket.io.min'); ?>?v=<?php echo time(); ?>"></script>
+    <script src="<?php echo js('global'); ?>?v=<?php echo time(); ?>"></script>
+    <script src="<?php echo js('app'); ?>?v=<?php echo time(); ?>"></script>
     <?php if (isset($page_js)): ?>
-    <script src="<?php echo asset('js/'.$page_js.'.js'); ?>?v=<?php echo time(); ?>"></script>
+    <script src="<?php echo js($page_js); ?>?v=<?php echo time(); ?>"></script>
     <?php endif; ?>
     <?php if (isset($additional_js) && is_array($additional_js)): ?>
         <?php foreach($additional_js as $js_file): ?>
-        <script src="<?php echo asset('js/'.$js_file); ?>?v=<?php echo time(); ?>"></script>
+        <script src="<?php echo js(rtrim($js_file, '.js')); ?>?v=<?php echo time(); ?>"></script>
         <?php endforeach; ?>
     <?php endif; ?>
 </body>
