@@ -26,10 +26,38 @@ function initServerSidebar() {
                     tooltip.classList.remove('opacity-100');
                 });
             }
+            
+            // Add server click handler
+            icon.addEventListener('click', (e) => {
+                // Don't handle if it's already the active server
+                if (icon.classList.contains('active')) return;
+                
+                // Get server ID
+                const serverId = icon.getAttribute('data-server-id');
+                if (!serverId) return;
+                
+                // Prevent default link behavior
+                e.preventDefault();
+                
+                // Handle server click
+                handleServerClick(serverId);
+            });
         }
     });
     
     // Handle active server highlighting
+    updateActiveServer();
+}
+
+/**
+ * Update the active server indicator based on current URL
+ */
+function updateActiveServer() {
+    // Remove active class from all server icons
+    document.querySelectorAll('.server-icon.active').forEach(icon => {
+        icon.classList.remove('active');
+    });
+    
     const currentPath = window.location.pathname;
     if (currentPath.includes('/server/')) {
         const serverId = currentPath.split('/server/')[1].split('/')[0];
@@ -39,4 +67,23 @@ function initServerSidebar() {
             activeIcon.classList.add('active');
         }
     }
-} 
+}
+
+/**
+ * Handle server click - load server content and update UI
+ * @param {string} serverId - The server ID
+ */
+function handleServerClick(serverId) {
+    // Show loading state
+    document.body.classList.add('content-loading');
+    
+    // Redirect to server page
+    window.location.href = `/server/${serverId}`;
+}
+
+// Make functions available globally
+window.ServerSidebar = {
+    initServerSidebar,
+    updateActiveServer,
+    handleServerClick
+}; 

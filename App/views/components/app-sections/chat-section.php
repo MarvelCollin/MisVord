@@ -53,7 +53,9 @@ foreach ($channels as $channel) {
         </div>
     </div>
 
+    <!-- Chat messages container with lazy loading -->
     <div class="flex-1 overflow-y-auto p-4 bg-discord-background" id="chat-messages" data-lazyload="chat">
+        <!-- Content will be replaced by skeleton loader during loading -->
         <?php if (empty($messages)): ?>
         <div class="flex flex-col items-center justify-center h-full text-center">
             <div class="w-16 h-16 mb-4 bg-discord-dark rounded-full flex items-center justify-center">
@@ -126,27 +128,27 @@ foreach ($channels as $channel) {
     </div>
 
     <div class="p-4 bg-discord-background">
-        <div class="bg-discord-dark rounded-lg p-2">
+        <form id="message-form" class="bg-discord-dark rounded-lg p-2">
             <div class="flex items-center mb-2">
-                <button class="text-discord-primary hover:text-white mr-2">
+                <button type="button" class="text-discord-primary hover:text-white mr-2">
                     <i class="fas fa-circle-plus text-lg"></i>
                 </button>
                 <div class="flex-1"></div>
-                <button class="text-discord-primary hover:text-white mr-1">
+                <button type="button" class="text-discord-primary hover:text-white mr-1">
                     <i class="fas fa-gift text-lg"></i>
                 </button>
-                <button class="text-discord-primary hover:text-white">
+                <button type="button" class="text-discord-primary hover:text-white">
                     <i class="fas fa-image text-lg"></i>
                 </button>
             </div>
             <div class="relative">
                 <textarea id="message-input" 
-                          class="w-full bg-discord-dark text-white placeholder-gray-500 outline-none resize-none" 
+                          class="message-input w-full bg-discord-dark text-white placeholder-gray-500 outline-none resize-none" 
                           placeholder="Message #<?php echo htmlspecialchars($activeChannel['name'] ?? 'channel'); ?>"
                           rows="1"
                           data-channel-id="<?php echo htmlspecialchars($activeChannelId ?? ''); ?>"></textarea>
             </div>
-        </div>
+        </form>
     </div>
     <?php else: ?>
         <div class="flex-1 bg-discord-background flex items-center justify-center text-white text-lg">
@@ -158,12 +160,81 @@ foreach ($channels as $channel) {
 <script>
 // Trigger content loaded event once data is available
 document.addEventListener('DOMContentLoaded', function() {
-    // Use a slight delay to simulate network request
-    setTimeout(function() {
-        if (window.LazyLoader) {
-            const hasMessages = <?php echo !empty($messages) ? 'true' : 'false'; ?>;
-            window.LazyLoader.triggerDataLoaded('chat', !hasMessages);
+    // Set up message form submission
+    const messageForm = document.getElementById('message-form');
+    if (messageForm) {
+        messageForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const messageInput = this.querySelector('.message-input');
+            if (!messageInput || !messageInput.value.trim()) return;
+            
+            const channelId = messageInput.dataset.channelId || getActiveChannelId();
+            const content = messageInput.value.trim();
+            
+            // Clear input immediately for better UX
+            messageInput.value = '';
+            
+            // Send message via fetch API
+            fetch(`/api/channels/${channelId}/messages`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ content })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('Message sent successfully');
+                    // Messages will be refreshed by auto-refresh
+                } else {
+                    console.error('Error sending message:', data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error sending message:', error);
+            });
+        });
+        
+        // Support Ctrl+Enter to submit
+        const messageInput = messageForm.querySelector('.message-input');
+        if (messageInput) {
+            messageInput.addEventListener('keydown', function(e) {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    messageForm.dispatchEvent(new Event('submit'));
+                }
+            });
+            
+            // Auto-resize textarea
+            messageInput.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = (this.scrollHeight) + 'px';
+            });
         }
-    }, 1000); // Slightly longer delay for chat to make it seem like messages are loading
+    }
+    
+    // Handle lazy loading of chat messages
+    const chatMessagesContainer = document.getElementById('chat-messages');
+    if (chatMessagesContainer) {
+        // Simulate network request with a random delay between 800-1200ms
+        const loadDelay = Math.floor(Math.random() * 400) + 800;
+        
+        setTimeout(function() {
+            if (window.LazyLoader) {
+                const hasMessages = <?php echo !empty($messages) ? 'true' : 'false'; ?>;
+                window.LazyLoader.triggerDataLoaded('chat', !hasMessages);
+                console.log('Chat messages loaded after ' + loadDelay + 'ms');
+            }
+        }, loadDelay);
+    }
 });
+
+// Helper function to get active channel ID
+function getActiveChannelId() {
+    const activeChannel = document.querySelector('.channel-item.active');
+    return activeChannel ? activeChannel.dataset.channelId : null;
+}
 </script>

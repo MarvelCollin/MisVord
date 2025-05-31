@@ -25,5 +25,25 @@ $core_scripts = ['core/toast', 'core/ajax-handler'];
     document.addEventListener('DOMContentLoaded', function() {
         // Make body visible when everything is loaded
         document.body.classList.add('page-loaded');
+        
+        // Debug lazy loading
+        console.log('DOMContentLoaded event fired - checking LazyLoader status');
+        setTimeout(function() {
+            if (window.LazyLoader) {
+                console.log('✅ LazyLoader is available globally');
+                
+                // Log all lazy-loaded elements
+                const lazyElements = document.querySelectorAll('[data-lazyload]');
+                console.log(`Found ${lazyElements.length} elements with data-lazyload attribute:`, 
+                    Array.from(lazyElements).map(el => ({
+                        type: el.getAttribute('data-lazyload'),
+                        hasSkeletonChild: !!el.querySelector('.skeleton-loader'),
+                        isLoading: el.classList.contains('content-loading')
+                    }))
+                );
+            } else {
+                console.error('❌ LazyLoader is NOT available globally - skeleton loading will not work');
+            }
+        }, 500);
     });
 </script> 

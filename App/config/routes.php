@@ -94,6 +94,28 @@ Route::post('/api/channels/category', function() {
     $controller->createCategory();
 });
 
+Route::get('/api/channels/([0-9]+)/messages', function($channelId) {
+    $controller = new MessageController();
+    $controller->getMessages($channelId);
+});
+
+Route::post('/api/channels/([0-9]+)/messages', function($channelId) {
+    $controller = new MessageController();
+    $controller->createMessage($channelId);
+});
+
+// Get channel details
+Route::get('/api/channels/([0-9]+)', function($channelId) {
+    $controller = new ChannelController();
+    $controller->show($channelId);
+});
+
+// Add new route for channel participants
+Route::get('/api/channels/([0-9]+)/participants', function($channelId) {
+    $controller = new ChannelController();
+    $controller->getChannelParticipants($channelId);
+});
+
 Route::get('/health', function() {
     header('Content-Type: application/json');
     echo json_encode([

@@ -326,20 +326,87 @@ class ChannelController extends BaseController {
                 return $this->forbidden('You are not a member of this server');
             }
             
+            // Get pagination parameters
+            $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 50;
+            $offset = isset($_GET['offset']) ? intval($_GET['offset']) : 0;
+            
+            // Limit to reasonable values
+            $limit = min(max($limit, 10), 100); // Between 10 and 100
+            
             $query = new Query();
             $messages = $query->table('channel_messages cm')
-                ->select('cm.*, m.content, m.timestamp, u.username, u.avatar')
+                ->select('cm.*, m.content, m.timestamp, u.username, u.avatar, m.user_id')
                 ->join('messages m', 'cm.message_id', '=', 'm.id')
                 ->join('users u', 'm.user_id', '=', 'u.id')
                 ->where('cm.channel_id', $channelId)
-                ->orderBy('m.timestamp', 'ASC')
+                ->orderBy('m.timestamp', 'DESC')
+                ->limit($limit)
+                ->offset($offset)
                 ->get();
                 
-            return $this->successResponse(['messages' => $messages]);
+            // Reverse to get oldest messages first
+            $messages = array_reverse($messages);
+            
+            // Get total message count for pagination
+            $totalCount = $query->table('channel_messages')
+                ->where('channel_id', $channelId)
+                ->count();
+                
+            return $this->successResponse([
+                'messages' => $messages,
+                'channel' => $this->formatChannel($channel),
+                'pagination' => [
+                    'total' => $totalCount,
+                    'limit' => $limit,
+                    'offset' => $offset,
+                    'hasMore' => ($offset + $limit) < $totalCount
+                ]
+            ]);
             
         } catch (Exception $e) {
             error_log("Error fetching channel messages: " . $e->getMessage());
             return $this->serverError('Failed to fetch channel messages');
+        }
+    }
+
+    /**
+     * Get participants for a specific channel
+     * 
+     * @param int $channelId The channel ID
+     * @return void
+     */
+    public function getChannelParticipants($channelId) {
+        if (!isset($_SESSION['user_id'])) {
+            return $this->unauthorized();
+        }
+
+        $channel = Channel::find($channelId);
+        if (!$channel) {
+            return $this->notFound('Channel not found');
+        }
+
+        $membership = UserServerMembership::findByUserAndServer($_SESSION['user_id'], $channel->server_id);
+        if (!$membership && $channel->server_id != 0) {
+            return $this->forbidden('You are not a member of this server');
+        }
+
+        try {
+            // Get server members
+            $serverMembers = UserServerMembership::getServerMembers($channel->server_id);
+            $serverRoles = UserServerMembership::getServerRoles($channel->server_id);
+            
+            // In a real app with channel-specific participants, you'd filter members by channel access
+            // For now, we'll just return all server members since that's what the current app supports
+            
+            return $this->successResponse([
+                'participants' => $serverMembers,
+                'roles' => $serverRoles,
+                'channel' => $this->formatChannel($channel)
+            ]);
+            
+        } catch (Exception $e) {
+            error_log("Error fetching channel participants: " . $e->getMessage());
+            return $this->serverError('Failed to fetch channel participants');
         }
     }
 }

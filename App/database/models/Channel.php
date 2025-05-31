@@ -293,6 +293,14 @@ class Channel {
                 error_log("Using direct type field instead of channel_types join");
             }
             
+            // Process the channels to ensure type is always an integer
+            foreach ($channels as &$channel) {
+                if (isset($channel['type'])) {
+                    // Force type to be an integer
+                    $channel['type'] = intval($channel['type']);
+                }
+            }
+            
             error_log("Found " . count($channels) . " channels for server ID: $serverId");
             return $channels;
         } catch (Exception $e) {
@@ -315,6 +323,27 @@ class Channel {
             ->get();
             
         return array_reverse($messages); // Return in chronological order
+    }
+    
+    /**
+     * Get minimal channel data for a server (faster, with less data)
+     * 
+     * @param int $serverId The server ID
+     * @return array Array of minimal channel data
+     */
+    public static function getServerChannelsMinimal($serverId) {
+        $query = new Query();
+        try {
+            // Only select essential fields for channel listing
+            return $query->table(self::$table)
+                ->select('id, name, type, category_id, is_private, server_id')
+                ->where('server_id', $serverId)
+                ->orderBy('name', 'ASC')
+                ->get();
+        } catch (Exception $e) {
+            error_log("Error getting minimal channels for server: " . $e->getMessage());
+            return [];
+        }
     }
 }
 

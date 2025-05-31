@@ -49,6 +49,8 @@
     width: 100%;
     animation: fadeIn 0.3s ease;
     overflow: hidden;
+    animation-fill-mode: forwards;
+    transition: opacity 0.3s ease-out;
 }
 
 /* Specific skeleton styles */
@@ -171,4 +173,112 @@
     );
     animation: shimmer 2s infinite;
     content: '';
+}
+
+/* Enhanced pulse animation with higher contrast */
+@keyframes enhanced-pulse {
+    0%, 100% { 
+        opacity: 0.8; 
+        background-color: #4d5159;
+    }
+    50% { 
+        opacity: 0.4; 
+        background-color: #36393f;
+    }
+}
+
+.skeleton-loader .animate-pulse {
+    animation: enhanced-pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Higher contrast for skeleton items in dark mode */
+.skeleton-loader .bg-gray-600 {
+    background-color: #4d5159 !important;
+}
+
+.skeleton-loader .bg-gray-700 {
+    background-color: #36393f !important;
+}
+
+/* Make sure skeletons are shown with proper z-index */
+[data-lazyload] {
+    position: relative;
+}
+
+[data-lazyload].content-loading > .original-content {
+    display: none !important;
+}
+
+/* Make the skeleton loading more obvious */
+.skeleton-loader {
+    width: 100%;
+    position: relative;
+    z-index: 1;
+    padding: 8px;
+    border-radius: 4px;
+}
+
+/* Channel list skeleton specific styles */
+.channel-list-skeleton .w-3 {
+    width: 0.75rem;
+}
+
+.channel-list-skeleton .w-4 {
+    width: 1rem;
+}
+
+.channel-list-skeleton .h-3 {
+    height: 0.75rem;
+}
+
+.channel-list-skeleton .h-4 {
+    height: 1rem;
+}
+
+/* Chat skeleton specific styles */
+.chat-skeleton .w-10 {
+    width: 2.5rem;
+}
+
+.chat-skeleton .h-10 {
+    height: 2.5rem;
+}
+
+/* Participant list skeleton specific styles */
+.participant-list-skeleton .w-8 {
+    width: 2rem;
+}
+
+.participant-list-skeleton .h-8 {
+    height: 2rem;
+}
+
+.participant-list-skeleton .w-3 {
+    width: 0.75rem;
+}
+
+.participant-list-skeleton .h-3 {
+    height: 0.75rem;
+}
+
+/* Make sure the border is visible in dark mode */
+.participant-list-skeleton .border-discord-dark {
+    border-color: #202225;
+}
+
+/* Animation delay to create a wave effect */
+.skeleton-loader > div:nth-child(2) .animate-pulse {
+    animation-delay: 0.1s;
+}
+
+.skeleton-loader > div:nth-child(3) .animate-pulse {
+    animation-delay: 0.2s;
+}
+
+.skeleton-loader > div:nth-child(4) .animate-pulse {
+    animation-delay: 0.3s;
+}
+
+.skeleton-loader > div:nth-child(5) .animate-pulse {
+    animation-delay: 0.4s;
 } 

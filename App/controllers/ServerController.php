@@ -586,55 +586,121 @@ class ServerController extends BaseController {
     }
 
     public function getServerChannels($id) {
+        error_log("getServerChannels called for server ID: $id");
+        
         if (!isset($_SESSION['user_id'])) {
-            return $this->unauthorized();
+            if ($this->isAjaxRequest()) {
+                return $this->unauthorized();
+            }
+            
+            header('Location: /login');
+            exit;
         }
         
-        $server = Server::find($id);
+        $serverId = is_numeric($id) ? intval($id) : 0;
+        if (!$serverId) {
+            error_log("Invalid server ID provided: $id");
+            return $this->validationError(['server' => 'Invalid server ID']);
+        }
         
+        $server = Server::find($serverId);
         if (!$server) {
+            error_log("Server not found with ID: $id");
             return $this->notFound('Server not found');
         }
         
-        // Check if user is a member of this server
-        if (!UserServerMembership::isMember($_SESSION['user_id'], $server->id)) {
+        if (!UserServerMembership::isMember($_SESSION['user_id'], $serverId)) {
+            error_log("User ID {$_SESSION['user_id']} is not a member of server ID: $id");
             return $this->forbidden('You are not a member of this server');
         }
         
-        // Get server categories with channels
-        $categories = [];
-        $rawCategories = Category::getForServer($server->id);
-        
-        // Load the Channel model
-        require_once __DIR__ . '/../database/models/Channel.php';
-        
-        // Get channels without a category
-        $uncategorizedChannels = [];
-        $allChannels = Channel::getServerChannels($server->id);
-        
-        foreach ($allChannels as $channel) {
-            if (empty($channel['category_id'])) {
-                // Channel has no category
-                $uncategorizedChannels[] = $channel;
+        // Get all channels for this server
+        try {
+            $query = new Query();
+            
+            // Get channels
+            $channels = $query->table('channels')
+                ->where('server_id', $serverId)
+                ->orderBy('position')
+                ->get();
+            
+            // Get categories
+            $categories = $query->table('categories')
+                ->where('server_id', $serverId)
+                ->orderBy('position')
+                ->get();
+            
+            // Ensure channels have full data
+            if (!empty($channels)) {
+                foreach ($channels as $key => $channel) {
+                    // Convert all numeric values to strings to avoid type issues
+                    foreach ($channel as $field => $value) {
+                        if (is_numeric($value)) {
+                            $channels[$key][$field] = (string)$value;
+                        }
+                    }
+                    
+                    // Make sure is_private is properly set (convert to boolean for display)
+                    if (isset($channel['is_private'])) {
+                        // Convert to boolean for display purposes
+                        $channels[$key]['is_private'] = (bool)$channel['is_private'];
+                    } else {
+                        // Default to false if not set
+                        $channels[$key]['is_private'] = false;
+                    }
+                    
+                    // Set type_name if missing
+                    if (!isset($channel['type_name'])) {
+                        $type = $channel['type'] ?? '1';
+                        if ($type === '1' || $type === 1) {
+                            $channels[$key]['type_name'] = 'text';
+                        } else if ($type === '2' || $type === 2) {
+                            $channels[$key]['type_name'] = 'voice';
+                        } else {
+                            $channels[$key]['type_name'] = 'text';
+                        }
+                    }
+                }
+            }
+            
+            // Format response based on request
+            if ($this->isAjaxRequest()) {
+                $responseData = [
+                    'categories' => $categories,
+                    'uncategorizedChannels' => array_filter($channels, function($channel) {
+                        return !isset($channel['category_id']) || empty($channel['category_id']);
+                    })
+                ];
+                
+                // Include categorized channels
+                foreach ($categories as $key => $category) {
+                    $categoryId = $category['id'];
+                    $categoryChannels = array_filter($channels, function($channel) use ($categoryId) {
+                        return isset($channel['category_id']) && $channel['category_id'] == $categoryId;
+                    });
+                    
+                    $responseData['categories'][$key]['channels'] = array_values($categoryChannels);
+                }
+                
+                return $this->successResponse($responseData);
+            } else {
+                return [
+                    'channels' => $channels,
+                    'categories' => $categories
+                ];
+            }
+        } catch (Exception $e) {
+            error_log("Error fetching channels for server ID $id: " . $e->getMessage());
+            
+            if ($this->isAjaxRequest()) {
+                return $this->serverError('Failed to load channels');
+            } else {
+                return [
+                    'channels' => [],
+                    'categories' => []
+                ];
             }
         }
-        
-        // Process categories with their channels
-        foreach ($rawCategories as $category) {
-            $categoryChannels = Channel::getForCategory($category['id']);
-            $categories[] = [
-                'id' => $category['id'],
-                'name' => $category['name'],
-                'server_id' => $category['server_id'],
-                'position' => $category['position'],
-                'channels' => $categoryChannels
-            ];
-        }
-        
-        return $this->successResponse([
-            'categories' => $categories,
-            'uncategorizedChannels' => $uncategorizedChannels
-        ]);
     }
 
     /**

@@ -301,7 +301,15 @@ function createChannelElement(channel) {
     channelEl.id = `channel-${channel.id}`;
     channelEl.dataset.channelId = channel.id;
     
-    const isTextChannel = channel.type === 'text' || channel.type === 1;
+    // Determine if it's a text channel (type 1) or voice channel (type 2)
+    let isTextChannel = true; // Default to text channel
+    
+    // Handle type as both string and number
+    if (channel.type === 2 || channel.type === '2' || 
+        (channel.type_name && (channel.type_name === 'voice' || channel.type_name === '2'))) {
+        isTextChannel = false;
+    }
+    
     const iconClass = isTextChannel ? 'fa-hashtag' : 'fa-volume-up';
     
     channelEl.innerHTML = `

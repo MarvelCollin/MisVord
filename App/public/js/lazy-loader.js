@@ -111,6 +111,31 @@ const LazyLoader = {
     showContent(element, isEmpty = false) {
         if (!element || element.classList.contains('lazy-loaded')) return;
         
+        // Special handling for channel list to prevent disappearing content
+        const isChannelList = element.getAttribute('data-lazyload') === 'channel-list' || 
+                              element.classList.contains('channel-list-container');
+                              
+        if (isChannelList) {
+            console.log('LazyLoader: Special handling for channel list');
+            // For channel list, just mark as loaded but don't manipulate DOM
+            element.classList.add('lazy-loaded');
+            element.setAttribute('aria-busy', 'false');
+            element.classList.add('channels-loaded');
+            
+            // Ensure channel items stay visible
+            setTimeout(() => {
+                const channelItems = document.querySelectorAll('.channel-item');
+                channelItems.forEach(item => {
+                    item.style.cssText = 'display: flex !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important;';
+                });
+            }, 50);
+            
+            // Dispatch event to notify that content is loaded
+            element.dispatchEvent(new CustomEvent('content-loaded'));
+            return;
+        }
+        
+        // Regular handling for other elements
         const originalContent = element.querySelector('.original-content');
         const skeletonEl = element.querySelector('.skeleton-loader');
         
@@ -162,36 +187,96 @@ const LazyLoader = {
      */
     createChannelListSkeleton() {
         const skeleton = document.createElement('div');
-        skeleton.className = 'skeleton-loader channel-list-skeleton space-y-4 px-2 py-3';
+        skeleton.className = 'skeleton-loader channel-list-skeleton flex flex-col space-y-4 px-2 py-3';
         
-        // Category
-        const category = document.createElement('div');
-        category.className = 'flex items-center px-1 py-1';
+        // Server header section
+        const serverHeader = document.createElement('div');
+        serverHeader.className = 'flex items-center px-2 py-2';
+        
+        const serverIcon = document.createElement('div');
+        serverIcon.className = 'w-5 h-5 rounded-sm bg-gray-600 animate-pulse mr-2';
+        
+        const serverName = document.createElement('div');
+        serverName.className = 'h-4 w-32 bg-gray-600 rounded animate-pulse';
+        
+        serverHeader.appendChild(serverIcon);
+        serverHeader.appendChild(serverName);
+        skeleton.appendChild(serverHeader);
+        
+        // Category header
+        const categoryHeader = document.createElement('div');
+        categoryHeader.className = 'flex items-center justify-between mt-4 px-2 py-1';
+        
+        const categoryLeftSection = document.createElement('div');
+        categoryLeftSection.className = 'flex items-center';
         
         const categoryIcon = document.createElement('div');
-        categoryIcon.className = 'w-3 h-3 bg-gray-600 rounded-sm animate-pulse';
+        categoryIcon.className = 'w-3 h-3 bg-gray-600 rounded-sm animate-pulse mr-2';
         
         const categoryText = document.createElement('div');
-        categoryText.className = 'ml-1 h-4 w-24 bg-gray-600 rounded animate-pulse';
+        categoryText.className = 'h-3 w-24 bg-gray-600 rounded animate-pulse';
         
-        category.appendChild(categoryIcon);
-        category.appendChild(categoryText);
-        skeleton.appendChild(category);
+        categoryLeftSection.appendChild(categoryIcon);
+        categoryLeftSection.appendChild(categoryText);
         
-        // Channels
-        for (let i = 0; i < 5; i++) {
+        const categoryAction = document.createElement('div');
+        categoryAction.className = 'w-4 h-4 bg-gray-600 rounded animate-pulse';
+        
+        categoryHeader.appendChild(categoryLeftSection);
+        categoryHeader.appendChild(categoryAction);
+        skeleton.appendChild(categoryHeader);
+        
+        // Text Channels
+        for (let i = 0; i < 4; i++) {
             const channel = document.createElement('div');
-            channel.className = 'flex items-center ml-2 py-1';
+            channel.className = 'flex items-center px-2 py-1.5 ml-2';
             
             const channelIcon = document.createElement('div');
-            channelIcon.className = 'w-4 h-4 bg-gray-600 rounded animate-pulse';
+            channelIcon.className = 'w-4 h-4 bg-gray-600 rounded-sm animate-pulse mr-2';
             
             const channelText = document.createElement('div');
-            channelText.className = 'ml-1 h-4 w-32 bg-gray-600 rounded animate-pulse';
+            channelText.className = 'h-4 flex-grow bg-gray-600 rounded animate-pulse';
+            channelText.style.width = (Math.floor(Math.random() * 20) + 60) + '%';
             
             channel.appendChild(channelIcon);
             channel.appendChild(channelText);
             skeleton.appendChild(channel);
+        }
+        
+        // Voice category header
+        const voiceCategoryHeader = document.createElement('div');
+        voiceCategoryHeader.className = 'flex items-center justify-between mt-4 px-2 py-1';
+        
+        const voiceCategoryLeftSection = document.createElement('div');
+        voiceCategoryLeftSection.className = 'flex items-center';
+        
+        const voiceCategoryIcon = document.createElement('div');
+        voiceCategoryIcon.className = 'w-3 h-3 bg-gray-600 rounded-sm animate-pulse mr-2';
+        
+        const voiceCategoryText = document.createElement('div');
+        voiceCategoryText.className = 'h-3 w-28 bg-gray-600 rounded animate-pulse';
+        
+        voiceCategoryLeftSection.appendChild(voiceCategoryIcon);
+        voiceCategoryLeftSection.appendChild(voiceCategoryText);
+        
+        voiceCategoryHeader.appendChild(voiceCategoryLeftSection);
+        skeleton.appendChild(voiceCategoryHeader);
+        
+        // Voice Channels
+        for (let i = 0; i < 2; i++) {
+            const voiceChannel = document.createElement('div');
+            voiceChannel.className = 'flex items-center px-2 py-1.5 ml-2';
+            
+            const voiceChannelIcon = document.createElement('div');
+            voiceChannelIcon.className = 'w-4 h-4 bg-gray-600 rounded-sm animate-pulse mr-2';
+            
+            const voiceChannelText = document.createElement('div');
+            voiceChannelText.className = 'h-4 bg-gray-600 rounded animate-pulse';
+            voiceChannelText.style.width = (Math.floor(Math.random() * 20) + 40) + '%';
+            
+            voiceChannel.appendChild(voiceChannelIcon);
+            voiceChannel.appendChild(voiceChannelText);
+            skeleton.appendChild(voiceChannel);
         }
         
         return skeleton;
@@ -556,16 +641,49 @@ const LazyLoader = {
      * @param {boolean} isEmpty - Whether the data is empty
      */
     triggerDataLoaded(target, isEmpty = false) {
+        console.log(`LazyLoader: Triggering data loaded for ${target}`);
+        
+        // Handle channel list specially
+        if (target === 'channel-list') {
+            const channelElements = document.querySelectorAll('[data-lazyload="channel-list"], .channel-list-container');
+            channelElements.forEach(element => {
+                // Mark as loaded
+                element.classList.add('lazy-loaded');
+                element.setAttribute('aria-busy', 'false');
+                element.classList.add('channels-loaded');
+                
+                // Ensure visibility of channel items
+                const channelItems = document.querySelectorAll('.channel-item');
+                channelItems.forEach(item => {
+                    item.style.cssText = 'display: flex !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important;';
+                });
+                
+                // Dispatch event
+                element.dispatchEvent(new CustomEvent('content-loaded', {
+                    detail: { isEmpty: isEmpty }
+                }));
+            });
+        }
+        
+        // Still dispatch global event
         document.dispatchEvent(new CustomEvent('data-loaded', {
             detail: { target, isEmpty }
         }));
     }
 };
 
-// Initialize on document ready
-document.addEventListener('DOMContentLoaded', () => {
-    LazyLoader.init();
+// Auto-initialize when the document is ready
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof LazyLoader !== 'undefined') {
+        console.log('🔄 Auto-initializing LazyLoader');
+        LazyLoader.init();
+    } else {
+        console.error('❌ LazyLoader not defined - skeleton loading will not work');
+    }
 });
 
 // Make LazyLoader available globally
-window.LazyLoader = LazyLoader; 
+window.LazyLoader = LazyLoader;
+
+// Also export as a module
+export default LazyLoader; 

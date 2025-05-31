@@ -9,6 +9,7 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $page_title ?? 'misvord'; ?></title>
     <link rel="stylesheet" href="<?php echo css('global'); ?>">
+    <link rel="stylesheet" href="<?php echo css('lazy-loading'); ?>">
     <?php if (isset($page_css)): ?>
     <link rel="stylesheet" href="<?php echo css($page_css); ?>">
     <?php endif; ?>

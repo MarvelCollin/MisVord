@@ -11,7 +11,6 @@ if (session_status() === PHP_SESSION_NONE) {
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-// Debug logging removed
 
 if (preg_match('/\\.(?:css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|webp|map)$/', $_SERVER["REQUEST_URI"])) {
     $requestFile = parse_url($_SERVER["REQUEST_URI"], PHP_URL_PATH);

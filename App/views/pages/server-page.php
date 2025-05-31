@@ -21,9 +21,9 @@ $page_js = 'server-page';
 $additional_js = [
     'server-dropdown.js',
     'server-sidebar.js',
-    'channel-loader.js',
     'message-handler.js',
-    'components/channel-manager.js'
+    'components/channel-manager.js',
+    'lazy-loader.js'
 ];
 $contentType = 'server';
 $currentServer = $GLOBALS['currentServer'] ?? null;
