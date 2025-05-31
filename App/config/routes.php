@@ -80,8 +80,16 @@ Route::get('/api/servers/([0-9]+)/channels', function($serverId) {
 });
 
 Route::post('/api/servers/create', function() {
+    require_once __DIR__ . '/../controllers/api/ServerController.php';
     $controller = new ServerController();
-    $controller->create();
+    return $controller->create();
+});
+
+// Add fallback route for incorrect endpoint
+Route::post('/servers/create', function() {
+    require_once __DIR__ . '/../controllers/api/ServerController.php';
+    $controller = new ServerController();
+    return $controller->create();
 });
 
 Route::post('/api/channels', function() {

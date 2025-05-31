@@ -54,5 +54,8 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
     
     <!-- Scripts -->
     <?php include_once __DIR__ . '/scripts.php'; ?>
+    
+    <!-- Load server manager before other scripts -->
+    <script type="module" src="<?php echo js('components/server-manager'); ?>"></script>
 </body>
 </html>

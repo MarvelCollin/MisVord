@@ -265,6 +265,8 @@ class ServerController extends BaseController {
                 
                 error_log("Server creation completed successfully");
                 return $this->successResponse([
+                    'success' => true,
+                    'server_id' => (string)$server->id,
                     'server' => [
                         'id' => (string)$server->id,
                         'name' => $server->name,
@@ -706,7 +708,7 @@ class ServerController extends BaseController {
     /**
      * Check if the current request is an AJAX request
      */
-    private function isAjaxRequest() {
+    protected function isAjaxRequest() {
         return !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
                strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
     }

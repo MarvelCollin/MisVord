@@ -60,6 +60,47 @@ $contentType = 'home';
 
 <?php include dirname(dirname(__DIR__)) . '/views/components/app-sections/app-layout.php'; ?>
 
+<?php include dirname(dirname(__DIR__)) . '/views/components/app-sections/create-server-modal.php'; ?>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle create server button click ONLY
+    const createServerBtn = document.querySelector('[data-action="create-server"]');
+    const modal = document.getElementById('create-server-modal');
+    const closeBtn = document.getElementById('close-server-modal');
+    
+    if (createServerBtn && modal) {
+        createServerBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            modal.classList.remove('hidden');
+        });
+    }
+    
+    if (closeBtn && modal) {
+        closeBtn.addEventListener('click', function() {
+            modal.classList.add('hidden');
+        });
+    }
+    
+    // Close modal when clicking outside
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                modal.classList.add('hidden');
+            }
+        });
+        
+        // Prevent closing when clicking inside modal content
+        const modalContent = modal.querySelector('.bg-discord-background');
+        if (modalContent) {
+            modalContent.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
+        }
+    }
+});
+</script>
+
 <?php 
 $content = ob_get_clean(); 
 include dirname(dirname(__DIR__)) . '/views/layout/main-app.php';

@@ -15,7 +15,7 @@
                     <p class="text-gray-400">Your server is where you and your friends hang out. Make yours and start talking.</p>
                 </div>
                 
-                <form id="server-form" class="space-y-4" enctype="multipart/form-data">
+                <form id="server-form" action="/api/servers/create" method="POST" class="space-y-4" enctype="multipart/form-data">
                     <div class="flex flex-col items-center mb-6">
                         <div id="server-image-preview" class="w-24 h-24 rounded-full bg-discord-dark flex items-center justify-center cursor-pointer overflow-hidden mb-2">
                             <i class="fas fa-camera text-discord-lighter text-xl"></i>
@@ -56,4 +56,118 @@
             </div>
         </div>
     </div>
-</div> 
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadBtn = document.getElementById('upload-image-btn');
+    const imageInput = document.getElementById('server-image');
+    const imagePreview = document.getElementById('server-image-preview');
+    const serverForm = document.getElementById('server-form');
+    
+    // Handle image upload
+    if (uploadBtn && imageInput) {
+        uploadBtn.addEventListener('click', function() {
+            imageInput.click();
+        });
+        
+        imageInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imagePreview.innerHTML = `<img src="${e.target.result}" alt="Server Image" class="w-full h-full object-cover">`;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+      // Handle form submission
+    if (serverForm) {
+        serverForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            e.stopPropagation(); // Prevent other handlers
+            
+            const formData = new FormData(this);
+            const errorDiv = document.getElementById('error-message');
+            const successDiv = document.getElementById('success-message');
+            const submitBtn = document.getElementById('create-server-btn');
+            
+            // Prevent double submission
+            if (submitBtn.disabled) {
+                return;
+            }
+            
+            // Reset messages
+            errorDiv.classList.add('hidden');
+            successDiv.classList.add('hidden');
+            
+            // Disable submit button
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Creating...';
+            
+            fetch('/api/servers/create', {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                console.log('Response status:', response.status);
+                console.log('Response content type:', response.headers.get('content-type'));
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    return response.text().then(text => {
+                        console.error('Expected JSON but got:', text);
+                        throw new Error(`Expected JSON but got: ${text.substring(0, 100)}`);
+                    });
+                }
+                
+                return response.json();
+            })
+            .then(data => {
+                console.log('Server creation response:', data);
+                
+                if (data.success) {
+                    successDiv.textContent = data.message || 'Server created successfully!';
+                    successDiv.classList.remove('hidden');
+                    
+                    // Reset form
+                    serverForm.reset();
+                    imagePreview.innerHTML = '<i class="fas fa-camera text-discord-lighter text-xl"></i>';
+                    
+                    // Close modal and redirect
+                    setTimeout(() => {
+                        document.getElementById('create-server-modal').classList.add('hidden');
+                        const serverId = data.data?.server_id || data.server_id;
+                        if (serverId) {
+                            window.location.href = `/server/${serverId}`;
+                        } else {
+                            window.location.href = '/app';
+                        }
+                    }, 1500);
+                } else {
+                    errorDiv.textContent = data.message || 'Failed to create server';
+                    errorDiv.classList.remove('hidden');
+                }
+            })
+            .catch(error => {
+                console.error('Server creation error:', error);
+                errorDiv.textContent = error.message || 'An error occurred while creating the server';
+                errorDiv.classList.remove('hidden');
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Create Server';
+            });
+        });
+    }
+});
+</script>

@@ -11,26 +11,14 @@ export class AuthManager {
         document.addEventListener('DOMContentLoaded', () => {
             this.initAuthForms();
         });
-    }
-
-    initAuthForms() {
-
-        const loginForm = document.getElementById('login-form');
-        if (loginForm) {
-            loginForm.addEventListener('submit', this.handleLogin.bind(this));
-        }
-
-        const registerForm = document.getElementById('register-form');
-        if (registerForm) {
-            registerForm.addEventListener('submit', this.handleRegister.bind(this));
-        }
-
-        const forgotPasswordForm = document.getElementById('forgot-password-form');
-        if (forgotPasswordForm) {
-            forgotPasswordForm.addEventListener('submit', this.handleForgotPassword.bind(this));
-        }
-
+    }    initAuthForms() {
+        // Disable AJAX form handlers - use traditional form submission for reliable redirects
+        console.log('🔄 Auth forms will use traditional submission (no AJAX)');
+        
+        // Keep form switching functionality only
         this.initFormSwitchLinks();
+        
+        // Note: Forms will submit normally to server, which handles redirects properly
     }
 
     initFormSwitchLinks() {
@@ -62,22 +50,27 @@ export class AuthManager {
                 firstInput.focus();
             }
         }
-    }
-
-    handleLogin(e) {
+    }    handleLogin(e) {
         e.preventDefault();
 
         const form = e.target;
-        this.clearFormErrors(form);
-
-        MiscVordAjax.submitForm(form, {
+        this.clearFormErrors(form);        MiscVordAjax.submitForm(form, {
             onSuccess: (response) => {
-                if (response.success) {
+                console.log('🎉 Login response received:', response);
+                  if (response.success) {
                     showToast('Login successful. Redirecting...', 'success');
 
-                    if (!response.redirect) {
-                        window.location.href = '/app';
-                    }
+                    // Redirect to the specified URL or default to /app
+                    const redirectUrl = response.redirect || '/app';
+                    console.log('🔄 Redirecting to:', redirectUrl);
+                    
+                    // Force redirect after a small delay to ensure toast shows
+                    setTimeout(() => {
+                        console.log('🚀 Executing redirect...');
+                        window.location.replace(redirectUrl);
+                    }, 500);
+                } else {
+                    console.log('❌ Login response success was false');
                 }
             },
             onError: (error) => {
@@ -89,9 +82,7 @@ export class AuthManager {
                 }
             }
         });
-    }
-
-    handleRegister(e) {
+    }    handleRegister(e) {
         e.preventDefault();
 
         const form = e.target;
@@ -105,16 +96,23 @@ export class AuthManager {
                 password_confirm: 'Passwords do not match'
             });
             return;
-        }
-
-        MiscVordAjax.submitForm(form, {
+        }        MiscVordAjax.submitForm(form, {
             onSuccess: (response) => {
-                if (response.success) {
+                console.log('🎉 Register response received:', response);
+                  if (response.success) {
                     showToast('Registration successful. Redirecting...', 'success');
 
-                    if (!response.redirect) {
-                        window.location.href = '/app';
-                    }
+                    // Redirect to the specified URL or default to /app
+                    const redirectUrl = response.redirect || '/app';
+                    console.log('🔄 Redirecting to:', redirectUrl);
+                    
+                    // Force redirect after a small delay to ensure toast shows
+                    setTimeout(() => {
+                        console.log('🚀 Executing redirect...');
+                        window.location.replace(redirectUrl);
+                    }, 500);
+                } else {
+                    console.log('❌ Register response success was false');
                 }
             },
             onError: (error) => {
@@ -125,8 +123,7 @@ export class AuthManager {
                     showToast(error.data.message, 'error');
                 }
             }
-        });
-    }
+        });    }
 
     handleForgotPassword(e) {
         e.preventDefault();

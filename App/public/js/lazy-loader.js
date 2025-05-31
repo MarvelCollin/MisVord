@@ -672,18 +672,20 @@ const LazyLoader = {
     }
 };
 
-// Auto-initialize when the document is ready
-document.addEventListener('DOMContentLoaded', function() {
-    if (typeof LazyLoader !== 'undefined') {
-        console.log('🔄 Auto-initializing LazyLoader');
-        LazyLoader.init();
+// Ensure LazyLoader is available globally immediately
+if (typeof window !== 'undefined') {
+    window.LazyLoader = LazyLoader;
+    console.log('🔄 LazyLoader assigned to window object');
+    
+    // Signal that LazyLoader is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            window.dispatchEvent(new CustomEvent('LazyLoaderReady', { detail: LazyLoader }));
+        });
     } else {
-        console.error('❌ LazyLoader not defined - skeleton loading will not work');
+        window.dispatchEvent(new CustomEvent('LazyLoaderReady', { detail: LazyLoader }));
     }
-});
-
-// Make LazyLoader available globally
-window.LazyLoader = LazyLoader;
+}
 
 // Also export as a module
-export default LazyLoader; 
+export default LazyLoader;

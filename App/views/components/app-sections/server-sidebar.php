@@ -38,9 +38,12 @@ if (file_exists($tooltipPath)) {
         echo tooltip($homeContent, 'Home', 'right');
         ?>
         
+        <!-- Only show separator if there are servers -->
+        <?php if (!empty($servers)): ?>
         <div class="w-8 h-0.5 bg-discord-dark rounded my-1"></div>
+        <?php endif; ?>
         
-        <div data-lazyload="server-list" class="flex flex-col items-center space-y-2 w-full">
+        <?php if (!empty($servers)): ?>
             <?php foreach ($servers as $server): ?>
                 <?php 
                 $isActive = (string)$currentServerId === (string)$server['id'];
@@ -60,17 +63,16 @@ if (file_exists($tooltipPath)) {
                     ' . ($isActive ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-10 bg-white rounded-r-md"></div>' : '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-0 bg-white rounded-r-md group-hover:h-5 transition-all duration-150"></div>') . '
                 </div>';
                 
-                echo tooltip($serverContent, htmlspecialchars($server['name']), 'right', 'my-2');
-                ?>
-            <?php endforeach; ?>
-        </div>
+                echo tooltip($serverContent, htmlspecialchars($server['name']), 'right', 'mb-2');
+            endforeach; ?>
+        <?php endif; ?>
         
         <?php
         $createServerContent = '<button data-action="create-server" class="w-12 h-12 bg-discord-dark rounded-full hover:rounded-2xl flex items-center justify-center hover:bg-discord-green transition-all duration-200 border-none cursor-pointer outline-none">
             <i class="fas fa-plus text-green-500 hover:text-white text-xl transition-colors duration-200"></i>
         </button>';
         
-        echo tooltip($createServerContent, 'Add a Server', 'right', 'mt-2');
+        echo tooltip($createServerContent, 'Add a Server', 'right', 'mb-2');
         ?>
         
         <?php
@@ -161,13 +163,10 @@ if (file_exists($tooltipPath)) {
 </div>
 
 <script>
-// Trigger content loaded event once data is available
+// Enhanced debugging and better data loading
 document.addEventListener('DOMContentLoaded', function() {
-    // Use a slight delay to simulate network request
-    setTimeout(function() {
-        if (window.LazyLoader) {
-            window.LazyLoader.triggerDataLoaded('server-list', <?php echo empty($servers) ? 'true' : 'false'; ?>);
-        }
-    }, 500);
+    console.log('Server sidebar loaded with servers:', <?php echo json_encode($servers); ?>);
+    console.log('Current user ID:', <?php echo $currentUserId; ?>);
+    console.log('Is home page:', <?php echo $isHomePage ? 'true' : 'false'; ?>);
 });
 </script>

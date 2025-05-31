@@ -31,57 +31,29 @@ function initServerManager() {
  * Initialize server creation form
  */
 function initCreateServerForm() {
-    const createServerForm = document.getElementById('create-server-form');
+    // Note: Server creation form is now handled by inline JavaScript in create-server-modal.php
+    // to avoid conflicts. This function is kept for potential future use.
     
-    if (createServerForm) {
-        createServerForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const formData = new FormData(createServerForm);
-            
-            MiscVordAjax.submitForm(createServerForm, {
-                onSuccess: function(response) {
-                    if (response.success) {
-                        showToast('Server created successfully', 'success');
-                        
-                        // Close modal if exists
-                        const modal = document.getElementById('create-server-modal');
-                        if (modal && typeof closeModal === 'function') {
-                            closeModal(modal);
-                        }
-                        
-                        // Reset form
-                        createServerForm.reset();
-                        
-                        // Redirect to new server or refresh server list
-                        if (response.data && response.data.server && response.data.server.id) {
-                            window.location.href = `/server/${response.data.server.id}`;
-                        } else {
-                            refreshServerList();
-                        }
-                    }
-                }
-            });
-        });
-    }
-    
-    // Image preview for server creation
+    // Image preview for server creation (keep this as it doesn't conflict)
     const serverImageInput = document.getElementById('server-image');
     const imagePreview = document.getElementById('server-image-preview');
     
     if (serverImageInput && imagePreview) {
-        serverImageInput.addEventListener('change', function() {
-            if (this.files && this.files[0]) {
-                const reader = new FileReader();
-                
-                reader.onload = function(e) {
-                    imagePreview.src = e.target.result;
-                    imagePreview.classList.remove('hidden');
+        // Only add listener if it doesn't already exist
+        if (!serverImageInput.hasAttribute('data-listener-added')) {
+            serverImageInput.addEventListener('change', function() {
+                if (this.files && this.files[0]) {
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(e) {
+                        imagePreview.innerHTML = `<img src="${e.target.result}" alt="Server Image" class="w-full h-full object-cover">`;
+                    }
+                    
+                    reader.readAsDataURL(this.files[0]);
                 }
-                
-                reader.readAsDataURL(this.files[0]);
-            }
-        });
+            });
+            serverImageInput.setAttribute('data-listener-added', 'true');
+        }
     }
 }
 
@@ -256,4 +228,4 @@ function updateServerUI(server) {
     }
     
     // Update other UI elements as needed
-} 
+}

@@ -45,8 +45,8 @@ function initServerCreationModal() {
         
         // Initialize form functionality
         initImageUpload();
-        initFormSubmission();
         initDragAndDrop();
+        // Remove initFormSubmission() call since it's handled in server-manager.js
     }
 }
 
@@ -130,82 +130,3 @@ function initDragAndDrop() {
         }
     }
 }
-
-// Form submission for server creation
-function initFormSubmission() {
-    const serverForm = document.getElementById('server-form');
-    
-    if (!serverForm) return;
-    
-    serverForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const submitButton = document.getElementById('create-server-btn');
-        const errorMessage = document.getElementById('error-message');
-        const successMessage = document.getElementById('success-message');
-        
-        if (submitButton) {
-            submitButton.disabled = true;
-            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Creating...';
-        }
-        
-        if (errorMessage) {
-            errorMessage.classList.add('hidden');
-        }
-        
-        if (successMessage) {
-            successMessage.classList.add('hidden');
-        }
-        
-        // Use MiscVordAjax instead of fetch directly
-        MiscVordAjax.submitForm(serverForm, {
-            onSuccess: function(response) {
-                if (response.success) {
-                    console.log('Server creation successful. Server data:', response.server);
-                    
-                    if (successMessage) {
-                        successMessage.textContent = response.message;
-                        successMessage.classList.remove('hidden');
-                    }
-                    
-                    // Make sure we have a valid server ID
-                    if (response.server && response.server.id) {
-                        const serverId = response.server.id;
-                        console.log(`Redirecting to server page with ID: ${serverId}`);
-                        
-                        // Show redirecting message
-                        if (successMessage) {
-                            successMessage.textContent = 'Server created successfully! Redirecting...';
-                        }
-                        
-                        // Reset hidden state of modal before redirecting
-                        if (document.getElementById('create-server-modal')) {
-                            document.getElementById('create-server-modal').classList.add('hidden');
-                        }
-                        
-                        // Redirect to the server page
-                        window.location.href = `/server/${serverId}`;
-                    }
-                }
-            },
-            onError: function(error) {
-                console.error('Server creation failed:', error);
-                
-                if (errorMessage) {
-                    errorMessage.textContent = error.data?.message || 'An error occurred while creating the server.';
-                    errorMessage.classList.remove('hidden');
-                    serverForm.classList.add('error-shake');
-                    
-                    setTimeout(() => {
-                        serverForm.classList.remove('error-shake');
-                    }, 500);
-                }
-                
-                if (submitButton) {
-                    submitButton.disabled = false;
-                    submitButton.innerHTML = 'Create Server';
-                }
-            }
-        });
-    });
-} 

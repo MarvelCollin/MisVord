@@ -350,85 +350,26 @@ document.addEventListener('DOMContentLoaded', function() {
         if (/[^A-Za-z0-9]/.test(password)) score += 20;
 
         return Math.min(score, 100);
-    }
-
-    function setupFormSubmission() {
+    }    function setupFormSubmission() {
+        // Allow normal form submission - no AJAX interference
+        console.log('🔄 Forms will use traditional submission for reliable redirects');
+        
+        // Only add validation, but allow normal submission
         document.querySelectorAll('form').forEach(form => {
             form.addEventListener('submit', function(e) {
-                e.preventDefault();
-                
                 const isValid = validateForm(this);
-
+                
                 if (!isValid) {
-                    return;
+                    e.preventDefault(); // Only prevent if validation fails
+                    return false;
                 }
-
-                const button = this.querySelector('button[type="submit"]');
-                if (!button) return;
-
-                if (!button.dataset.originalText) {
-                    button.dataset.originalText = button.innerHTML;
-                }
-
-                button.disabled = true;
-
-                button.innerHTML = `
-                    <div class="flex items-center justify-center">
-                        <div class="dot-loader mr-3"><div></div></div>
-                        <span>Processing</span>
-                    </div>
-                `;
-
-                button.classList.add('animate-pulse');
-
-                // Use the AJAX handler to submit the form
-                MiscVordAjax.submitForm(this, {
-                    onSuccess: function(response) {
-                        // Save form data for future use if needed
-                        const formData = {};
-                        new FormData(form).forEach((value, key) => {
-                            if (!key.includes('password')) {
-                                formData[key] = value;
-                            }
-                        });
-                        localStorage.setItem(`${form.id}_data`, JSON.stringify(formData));
-                        
-                        // Handle redirect if provided
-                        if (response.success && response.redirect) {
-                            window.location.href = response.redirect;
-                        } else if (response.success) {
-                            showToast(response.message || 'Success', 'success');
-                        }
-                    },
-                    onError: function(error) {
-                        // Reset button
-                        button.disabled = false;
-                        button.innerHTML = button.dataset.originalText;
-                        button.classList.remove('animate-pulse');
-                        
-                        // Show error message
-                        if (error.data && error.data.errors) {
-                            const errors = error.data.errors;
-                            Object.keys(errors).forEach(field => {
-                                const input = form.querySelector(`[name="${field}"]`);
-                                if (input) {
-                                    showFieldError(input, errors[field]);
-                                } else if (field === 'auth' || field === 'general') {
-                                    showToast(errors[field], 'error');
-                                }
-                            });
-                        } else if (error.data && error.data.message) {
-                            showToast(error.data.message, 'error');
-                        } else {
-                            showToast('An error occurred', 'error');
-                        }
-                    }
-                });
+                
+                // If validation passes, allow normal form submission
+                console.log('✅ Form validation passed, allowing normal submission');
+                return true;
             });
         });
-    }
-
-    function validateForm(form) {
+    }    function validateForm(form) {
         let isValid = true;
         const formId = form.id;
 

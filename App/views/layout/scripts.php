@@ -26,24 +26,41 @@ $core_scripts = ['core/toast', 'core/ajax-handler'];
         // Make body visible when everything is loaded
         document.body.classList.add('page-loaded');
         
-        // Debug lazy loading
-        console.log('DOMContentLoaded event fired - checking LazyLoader status');
-        setTimeout(function() {
-            if (window.LazyLoader) {
-                console.log('✅ LazyLoader is available globally');
-                
-                // Log all lazy-loaded elements
-                const lazyElements = document.querySelectorAll('[data-lazyload]');
-                console.log(`Found ${lazyElements.length} elements with data-lazyload attribute:`, 
-                    Array.from(lazyElements).map(el => ({
-                        type: el.getAttribute('data-lazyload'),
-                        hasSkeletonChild: !!el.querySelector('.skeleton-loader'),
-                        isLoading: el.classList.contains('content-loading')
-                    }))
-                );
-            } else {
-                console.error('❌ LazyLoader is NOT available globally - skeleton loading will not work');
-            }
-        }, 500);
+        // Listen for LazyLoader ready event
+        function handleLazyLoaderReady() {
+            console.log('✅ LazyLoader is available globally');
+            
+            // Log all lazy-loaded elements
+            const lazyElements = document.querySelectorAll('[data-lazyload]');
+            console.log(`Found ${lazyElements.length} elements with data-lazyload attribute:`, 
+                Array.from(lazyElements).map(el => ({
+                    type: el.getAttribute('data-lazyload'),
+                    hasSkeletonChild: !!el.querySelector('.skeleton-loader'),
+                    isLoading: el.classList.contains('content-loading')
+                }))
+            );
+        }
+        
+        // Check if LazyLoader is already available
+        if (window.LazyLoader) {
+            handleLazyLoaderReady();
+        } else {
+            // Listen for the LazyLoader ready event
+            window.addEventListener('MainModulesReady', function(event) {
+                console.log('MainModulesReady event received');
+                handleLazyLoaderReady();
+            });
+            
+            // Fallback timeout in case events don't fire
+            setTimeout(function() {
+                if (window.LazyLoader) {
+                    console.log('✅ LazyLoader is available globally (fallback check)');
+                    handleLazyLoaderReady();
+                } else {
+                    console.error('❌ LazyLoader is NOT available globally - skeleton loading will not work');
+                    console.log('Available global objects:', Object.keys(window).filter(key => key.includes('Lazy') || key.includes('Ajax')));
+                }
+            }, 2000); // Increased timeout as final fallback
+        }
     });
-</script> 
+</script>

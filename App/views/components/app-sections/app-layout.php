@@ -50,3 +50,36 @@ $currentServer = $currentServer ?? $GLOBALS['currentServer'] ?? null;
         <?php endif; ?>
     </div>
 </div>
+
+<?php include dirname(__DIR__) . '/app-sections/create-server-modal.php'; ?>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle create server button click
+    const createServerBtn = document.querySelector('[data-action="create-server"]');
+    const modal = document.getElementById('create-server-modal');
+    const closeBtn = document.getElementById('close-server-modal');
+    
+    if (createServerBtn && modal) {
+        createServerBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            modal.classList.remove('hidden');
+        });
+    }
+    
+    if (closeBtn && modal) {
+        closeBtn.addEventListener('click', function() {
+            modal.classList.add('hidden');
+        });
+    }
+    
+    // Close modal when clicking outside
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                modal.classList.add('hidden');
+            }
+        });
+    }
+});
+</script>

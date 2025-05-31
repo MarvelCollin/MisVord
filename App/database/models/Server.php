@@ -96,13 +96,22 @@ class Server {
         return $servers;
     }
     
-    /**
-     * Get formatted server list for sidebar display
-     */
     public static function getFormattedServersForUser($userId) {
         $query = new Query();
         
         error_log("Getting formatted servers for User ID: $userId");
+        
+        // First check if user has any memberships at all
+        $membershipCount = $query->table('user_server_memberships')
+            ->where('user_id', $userId)
+            ->count();
+        
+        error_log("User has $membershipCount total memberships");
+        
+        if ($membershipCount === 0) {
+            error_log("No memberships found for user $userId");
+            return [];
+        }
         
         // Get unique servers for this user, avoid duplicates
         $results = $query->table('servers s')
@@ -116,17 +125,15 @@ class Server {
         error_log("Raw SQL query: " . $query->toSql());
         error_log("Query returned " . count($results) . " servers");
         
-        $formattedServers = [];
-        foreach ($results as $server) {
-            $formattedServers[] = [
-                'id' => (string)$server['id'],  // Ensure ID is a string
-                'name' => $server['name'],
-                'image_url' => $server['image_url'],
-                'description' => $server['description']
-            ];
+        if (empty($results)) {
+            error_log("Query returned empty results - checking raw membership data");
+            $rawMemberships = $query->table('user_server_memberships')
+                ->where('user_id', $userId)
+                ->get();
+            error_log("Raw memberships: " . json_encode($rawMemberships));
         }
         
-        return $formattedServers;
+        return $results;
     }
     
     public function members() {
@@ -184,41 +191,29 @@ class Server {
     public function save() {
         $query = new Query();
         
-        if (isset($this->attributes['id'])) {
-            $id = $this->attributes['id'];
-            unset($this->attributes['id']);
+        if (isset($this->attributes['id']) && !empty($this->attributes['id'])) {
+            // Update existing server
+            $data = $this->attributes;
+            unset($data['id']);
             
-            if (isset($this->attributes['updated_at'])) {
-                unset($this->attributes['updated_at']);
-            }
-            
-            $result = $query->table(static::$table)
-                    ->where('id', $id)
-                    ->update($this->attributes);
-            
-            $this->attributes['id'] = $id;
-            
-            return $result > 0;
+            $updated = $query->table(static::$table)
+                ->where('id', $this->attributes['id'])
+                ->update($data);
+                
+            return $updated;
         } else {
-            try {
-                error_log("Inserting new server record");
-                
-                if (isset($this->attributes['created_at'])) {
-                    unset($this->attributes['created_at']);
-                }
-                if (isset($this->attributes['updated_at'])) {
-                    unset($this->attributes['updated_at']);
-                }
-                
-                $this->attributes['id'] = $query->table(static::$table)
-                        ->insert($this->attributes);
-                
-                return $this->attributes['id'] > 0;
-            } catch (Exception $e) {
-                error_log("Error saving server: " . $e->getMessage());
-                error_log("Error trace: " . $e->getTraceAsString());
-                return false;
+            // Insert new server
+            $data = $this->attributes;
+            unset($data['id']); // Remove id if it exists
+            
+            $insertId = $query->table(static::$table)->insert($data);
+            
+            if ($insertId) {
+                $this->attributes['id'] = $insertId;
+                return true;
             }
+            
+            return false;
         }
     }
     

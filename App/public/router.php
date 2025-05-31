@@ -8,8 +8,15 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+// Only enable error reporting for non-API requests
+$requestUri = $_SERVER['REQUEST_URI'];
+if (strpos($requestUri, '/api/') !== false) {
+    error_reporting(0);
+    ini_set('display_errors', 0);
+} else {
+    error_reporting(E_ALL);
+    ini_set('display_errors', 1);
+}
 
 
 if (preg_match('/\\.(?:css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|webp|map)$/', $_SERVER["REQUEST_URI"])) {
