@@ -1,4 +1,3 @@
-/* Base Auth Page Styles - Optimized for performance */
 .authentication-page {
     background-color: #202225;
     color: white;
@@ -6,10 +5,9 @@
     width: 100vw;
     overflow-x: hidden;
     overflow-y: auto;
-    will-change: transform; /* Hardware acceleration hint */
+    will-change: transform; 
 }
 
-/* More efficient animated background */
 @keyframes float {
     0%, 100% { transform: translate3d(0, 0, 0); }
     50% { transform: translate3d(0, -20px, 0); }

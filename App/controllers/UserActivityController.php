@@ -3,21 +3,20 @@
 require_once __DIR__ . '/../database/query.php';
 
 class UserActivityController {
-    
+
     public function __construct() {
         if (session_status() == PHP_SESSION_NONE) {
             session_start();
         }
     }
-    
+
     public function getActiveUsers() {
         $currentUserId = $_SESSION['user_id'] ?? 0;
         $activeUsers = [];
-        
+
         try {
             $query = new Query();
-            
-            // Use raw SQL with GROUP BY to avoid duplicates
+
             $sql = "
                 SELECT DISTINCT u.id, u.username, u.avatar, u.status, a.type, a.name, a.image_url, a.start_time
                 FROM users u
@@ -31,19 +30,19 @@ class UserActivityController {
                 ORDER BY a.start_time DESC
                 LIMIT 5
             ";
-            
+
             $activeUsers = $query->rawQuery($sql, [
                 $currentUserId,
                 $currentUserId,
                 $currentUserId
             ]);
-            
+
         } catch (Exception $e) {
             error_log("Error fetching active users: " . $e->getMessage());
             error_log("Error trace: " . $e->getTraceAsString());
             $activeUsers = [];
         }
-        
+
         return $activeUsers;
     }
-} 
+}
