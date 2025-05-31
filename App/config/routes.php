@@ -124,6 +124,17 @@ Route::get('/api/channels/([0-9]+)/participants', function($channelId) {
     $controller->getChannelParticipants($channelId);
 });
 
+// Routes for drag and drop functionality
+Route::post('/api/channels/position', function() {
+    $controller = new ChannelController();
+    $controller->updateChannelPosition();
+});
+
+Route::post('/api/categories/position', function() {
+    $controller = new ChannelController();
+    $controller->updateCategoryPosition();
+});
+
 Route::get('/health', function() {
     header('Content-Type: application/json');
     echo json_encode([

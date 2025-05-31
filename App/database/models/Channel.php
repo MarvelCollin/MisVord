@@ -73,54 +73,77 @@ class Channel {
     public function save() {
         $query = new Query();
         
-        // Handle type field conversion if it's a string value
-        if (isset($this->attributes['type']) && !is_numeric($this->attributes['type'])) {
-            $typeValue = strtolower($this->attributes['type']);
+        try {
+            error_log("Channel save() called with attributes: " . json_encode($this->attributes));
             
-            // Default mapping if we can't query the database
-            $typeMap = [
-                'text' => 1,
-                'voice' => 2,
-                'category' => 3,
-                'announcement' => 4
-            ];
-            
-            // Try to get actual type IDs from database
-            try {
-                $types = $query->table('channel_types')->get();
-                if (!empty($types)) {
-                    foreach ($types as $type) {
-                        $typeMap[$type['name']] = $type['id'];
+            // Handle type field conversion if it's a string value
+            if (isset($this->attributes['type']) && !is_numeric($this->attributes['type'])) {
+                $typeValue = strtolower($this->attributes['type']);
+                
+                // Default mapping if we can't query the database
+                $typeMap = [
+                    'text' => 1,
+                    'voice' => 2,
+                    'category' => 3,
+                    'announcement' => 4
+                ];
+                
+                // Try to get actual type IDs from database
+                try {
+                    $types = $query->table('channel_types')->get();
+                    if (!empty($types)) {
+                        foreach ($types as $type) {
+                            $typeMap[$type['name']] = $type['id'];
+                        }
                     }
+                } catch (Exception $e) {
+                    error_log("Error fetching channel types: " . $e->getMessage());
                 }
-            } catch (Exception $e) {
-                error_log("Error fetching channel types: " . $e->getMessage());
+                
+                // Set the correct type ID
+                if (isset($typeMap[$typeValue])) {
+                    $this->attributes['type'] = $typeMap[$typeValue];
+                } else {
+                    $this->attributes['type'] = 1; // Default to text (ID 1)
+                }
             }
             
-            // Set the correct type ID
-            if (isset($typeMap[$typeValue])) {
-                $this->attributes['type'] = $typeMap[$typeValue];
+            // Make sure position is an integer
+            if (isset($this->attributes['position'])) {
+                $this->attributes['position'] = intval($this->attributes['position']);
+            }
+            
+            if (isset($this->attributes['id'])) {
+                $id = $this->attributes['id'];
+                unset($this->attributes['id']);
+                
+                // Log the update query
+                error_log("Updating channel with ID: $id and attributes: " . json_encode($this->attributes));
+                
+                $result = $query->table(static::$table)
+                        ->where('id', $id)
+                        ->update($this->attributes);
+                
+                $this->attributes['id'] = $id;
+                
+                error_log("Update result: $result rows affected");
+                
+                return $result >= 0; // Success even if no rows were updated (no changes)
             } else {
-                $this->attributes['type'] = 1; // Default to text (ID 1)
+                // Log the insert query
+                error_log("Inserting new channel with attributes: " . json_encode($this->attributes));
+                
+                $this->attributes['id'] = $query->table(static::$table)
+                        ->insert($this->attributes);
+                
+                error_log("Insert result: New ID = {$this->attributes['id']}");
+                
+                return $this->attributes['id'] > 0;
             }
-        }
-        
-        if (isset($this->attributes['id'])) {
-            $id = $this->attributes['id'];
-            unset($this->attributes['id']);
-            
-            $result = $query->table(static::$table)
-                    ->where('id', $id)
-                    ->update($this->attributes);
-            
-            $this->attributes['id'] = $id;
-            
-            return $result > 0;
-        } else {
-            $this->attributes['id'] = $query->table(static::$table)
-                    ->insert($this->attributes);
-            
-            return $this->attributes['id'] > 0;
+        } catch (Exception $e) {
+            error_log("Error in Channel::save(): " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
+            return false;
         }
     }
     
@@ -343,6 +366,42 @@ class Channel {
         } catch (Exception $e) {
             error_log("Error getting minimal channels for server: " . $e->getMessage());
             return [];
+        }
+    }
+    
+    /**
+     * Get participants for this channel
+     * 
+     * @return array Array of channel participants
+     */
+    public function participants() {
+        // For now, we'll just return server members since that's all we need
+        // In a real app, you would filter by channel access permissions
+        try {
+            $query = new Query();
+            $serverId = $this->server_id;
+            
+            $members = $query->table('server_members sm')
+                ->select('sm.*, u.username, u.avatar, u.status')
+                ->join('users u', 'sm.user_id', '=', 'u.id')
+                ->where('sm.server_id', $serverId)
+                ->get();
+                
+            // Get roles for each member
+            $roles = $query->table('server_roles')
+                ->where('server_id', $serverId)
+                ->get();
+                
+            return [
+                'members' => $members,
+                'roles' => $roles
+            ];
+        } catch (Exception $e) {
+            error_log("Error getting channel participants: " . $e->getMessage());
+            return [
+                'members' => [],
+                'roles' => []
+            ];
         }
     }
 }

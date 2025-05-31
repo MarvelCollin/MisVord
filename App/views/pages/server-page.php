@@ -23,6 +23,7 @@ $additional_js = [
     'server-sidebar.js',
     'message-handler.js',
     'components/channel-manager.js',
+    'components/channel-drag.js',
     'lazy-loader.js'
 ];
 $contentType = 'server';
@@ -50,6 +51,7 @@ if (isset($GLOBALS['currentServer'])) {
 
 <?php include dirname(dirname(__DIR__)) . '/views/components/app-sections/create-server-modal.php'; ?>
 
+<!-- Preload important scripts -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Handle create server button click

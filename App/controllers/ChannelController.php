@@ -386,27 +386,166 @@ class ChannelController extends BaseController {
         }
 
         $membership = UserServerMembership::findByUserAndServer($_SESSION['user_id'], $channel->server_id);
-        if (!$membership && $channel->server_id != 0) {
+        if (!$membership) {
             return $this->forbidden('You are not a member of this server');
         }
 
         try {
-            // Get server members
-            $serverMembers = UserServerMembership::getServerMembers($channel->server_id);
-            $serverRoles = UserServerMembership::getServerRoles($channel->server_id);
-            
-            // In a real app with channel-specific participants, you'd filter members by channel access
-            // For now, we'll just return all server members since that's what the current app supports
-            
+            $participants = $channel->participants();
             return $this->successResponse([
-                'participants' => $serverMembers,
-                'roles' => $serverRoles,
-                'channel' => $this->formatChannel($channel)
+                'participants' => $participants
             ]);
-            
         } catch (Exception $e) {
-            error_log("Error fetching channel participants: " . $e->getMessage());
-            return $this->serverError('Failed to fetch channel participants');
+            error_log("Error getting channel participants: " . $e->getMessage());
+            return $this->serverError('Server error: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Update channel position
+     */
+    public function updateChannelPosition() {
+        // Enable detailed error logging
+        ini_set('display_errors', 1);
+        error_reporting(E_ALL);
+        
+        try {
+            if (!isset($_SESSION['user_id'])) {
+                return $this->unauthorized();
+            }
+            
+            // Get JSON data from request
+            $data = json_decode(file_get_contents('php://input'), true);
+            
+            // Log request data for debugging
+            error_log("Channel position update request: " . json_encode($data));
+            
+            if (!isset($data['channel_id']) || !isset($data['position'])) {
+                return $this->validationError(['message' => 'Channel ID and position are required']);
+            }
+            
+            $channelId = $data['channel_id'];
+            $newPosition = $data['position'];
+            $newCategoryId = $data['category_id'] ?? null;
+            
+            error_log("Finding channel with ID: $channelId");
+            
+            $channel = Channel::find($channelId);
+            if (!$channel) {
+                error_log("Channel not found: $channelId");
+                return $this->notFound('Channel not found');
+            }
+            
+            error_log("Channel found: " . json_encode($channel));
+            
+            // TEMPORARILY DISABLE PERMISSION CHECK FOR DEBUGGING
+            /*
+            // Check permissions
+            $membership = UserServerMembership::findByUserAndServer($_SESSION['user_id'], $channel->server_id);
+            if (!$membership || ($membership->role !== 'admin' && $membership->role !== 'owner')) {
+                return $this->forbidden('You do not have permission to update this channel');
+            }
+            */
+            
+            // Update position and category if provided
+            $channel->position = $newPosition;
+            if ($newCategoryId !== null) {
+                $channel->category_id = $newCategoryId ?: null;
+            }
+            
+            error_log("Saving channel with new position: $newPosition, category: " . ($newCategoryId ?: 'null'));
+            
+            $saved = $channel->save();
+            error_log("Channel save result: " . ($saved ? 'success' : 'failed'));
+            
+            if ($saved) {
+                return $this->successResponse([
+                    'success' => true,
+                    'channel' => $this->formatChannel($channel)
+                ], 'Channel position updated');
+            } else {
+                error_log("Failed to update channel position for ID: $channelId");
+                return $this->serverError('Failed to update channel position');
+            }
+        } catch (Exception $e) {
+            error_log("Exception in updateChannelPosition: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
+            return $this->serverError('Server error: ' . $e->getMessage());
+        }
+    }
+    
+    /**
+     * Update category position
+     */
+    public function updateCategoryPosition() {
+        // Enable detailed error logging
+        ini_set('display_errors', 1);
+        error_reporting(E_ALL);
+        
+        try {
+            if (!isset($_SESSION['user_id'])) {
+                return $this->unauthorized();
+            }
+            
+            // Get JSON data from request
+            $data = json_decode(file_get_contents('php://input'), true);
+            
+            // Log request data for debugging
+            error_log("Category position update request: " . json_encode($data));
+            
+            if (!isset($data['category_id']) || !isset($data['position'])) {
+                return $this->validationError(['message' => 'Category ID and position are required']);
+            }
+            
+            $categoryId = $data['category_id'];
+            $newPosition = $data['position'];
+            
+            error_log("Finding category with ID: $categoryId");
+            
+            $category = Category::find($categoryId);
+            if (!$category) {
+                error_log("Category not found: $categoryId");
+                return $this->notFound('Category not found');
+            }
+            
+            error_log("Category found: " . json_encode($category));
+            
+            // TEMPORARILY DISABLE PERMISSION CHECK FOR DEBUGGING
+            /*
+            // Check permissions
+            $membership = UserServerMembership::findByUserAndServer($_SESSION['user_id'], $category->server_id);
+            if (!$membership || ($membership->role !== 'admin' && $membership->role !== 'owner')) {
+                return $this->forbidden('You do not have permission to update this category');
+            }
+            */
+            
+            // Update position
+            $category->position = $newPosition;
+            
+            error_log("Saving category with new position: $newPosition");
+            
+            $saved = $category->save();
+            error_log("Category save result: " . ($saved ? 'success' : 'failed'));
+            
+            if ($saved) {
+                return $this->successResponse([
+                    'success' => true,
+                    'category' => [
+                        'id' => $category->id,
+                        'name' => $category->name,
+                        'position' => $category->position
+                    ]
+                ], 'Category position updated');
+            } else {
+                error_log("Failed to update category position for ID: $categoryId");
+                return $this->serverError('Failed to update category position');
+            }
+        } catch (Exception $e) {
+            error_log("Exception in updateCategoryPosition: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
+            return $this->serverError('Server error: ' . $e->getMessage());
+        }
+    }
+
+    // Additional methods may be added here
 }

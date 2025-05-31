@@ -11,6 +11,8 @@ $additional_js = $additional_js ?? [];
 $core_scripts = ['core/toast', 'core/ajax-handler'];
 ?>
 
+<!-- Vendor JS -->
+
 <!-- Core scripts -->
 <script src="<?php echo js('main'); ?>?v=<?php echo time(); ?>" type="module"></script>
 
