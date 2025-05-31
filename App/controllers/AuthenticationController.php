@@ -11,14 +11,20 @@ class AuthenticationController extends BaseController {
 
     public function showLogin() {
         if (isset($_SESSION['user_id'])) {
-            // For regular page requests, redirect to app
+            // If user is already logged in
             if (!$this->isAjaxRequest()) {
-                header('Location: /');
+                // Check for redirect parameter
+                $redirect = $_GET['redirect'] ?? '/app';
+                header('Location: ' . $redirect);
                 exit;
             }
             
-            // For AJAX requests, return redirect instruction
             return $this->redirectResponse('/app');
+        }
+
+        // Save redirect URL from query string if present
+        if (isset($_GET['redirect'])) {
+            $_SESSION['login_redirect'] = $_GET['redirect'];
         }
 
         // For regular requests, render the page
@@ -79,6 +85,20 @@ class AuthenticationController extends BaseController {
 
         $user->status = 'online';
         $user->save();
+        
+        // Determine where to redirect the user
+        $redirect = '/app';
+        
+        // Check if there's a pending invite or a redirect URL
+        if (isset($_SESSION['pending_invite'])) {
+            // Redirect to the invitation page
+            $redirect = '/join/' . $_SESSION['pending_invite'];
+            unset($_SESSION['pending_invite']);
+        } elseif (isset($_SESSION['login_redirect'])) {
+            // Use the stored redirect URL
+            $redirect = $_SESSION['login_redirect'];
+            unset($_SESSION['login_redirect']);
+        }
 
         if ($this->isAjaxRequest()) {
             return $this->successResponse([
@@ -87,11 +107,11 @@ class AuthenticationController extends BaseController {
                     'username' => $user->username,
                     'avatar_url' => $user->avatar_url
                 ],
-                'redirect' => '/app'
+                'redirect' => $redirect
             ], 'Login successful');
         }
         
-        header('Location: /app');
+        header('Location: ' . $redirect);
         exit;
     }
 
@@ -103,6 +123,11 @@ class AuthenticationController extends BaseController {
             }
             
             return $this->redirectResponse('/app');
+        }
+
+        // Save redirect URL from query string if present
+        if (isset($_GET['redirect'])) {
+            $_SESSION['login_redirect'] = $_GET['redirect'];
         }
 
         // For regular requests, render the page
@@ -188,17 +213,31 @@ class AuthenticationController extends BaseController {
             $_SESSION['user_id'] = $user->id;
             $_SESSION['username'] = $user->username;
 
+            // Determine where to redirect the user
+            $redirect = '/app';
+            
+            // Check if there's a pending invite or a redirect URL
+            if (isset($_SESSION['pending_invite'])) {
+                // Redirect to the invitation page
+                $redirect = '/join/' . $_SESSION['pending_invite'];
+                unset($_SESSION['pending_invite']);
+            } elseif (isset($_SESSION['login_redirect'])) {
+                // Use the stored redirect URL
+                $redirect = $_SESSION['login_redirect'];
+                unset($_SESSION['login_redirect']);
+            }
+
             if ($this->isAjaxRequest()) {
                 return $this->successResponse([
                     'user' => [
                         'id' => $user->id,
                         'username' => $user->username
                     ],
-                    'redirect' => '/app'
+                    'redirect' => $redirect
                 ], 'Registration successful');
             }
             
-            header('Location: /app');
+            header('Location: ' . $redirect);
             exit;
         } catch (Exception $e) {
             error_log('Registration error: ' . $e->getMessage());

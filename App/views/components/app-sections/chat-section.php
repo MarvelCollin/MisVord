@@ -31,6 +31,10 @@ foreach ($channels as $channel) {
         <div class="text-sm text-gray-400 truncate"><?php echo htmlspecialchars($activeChannel['topic']); ?></div>
         <?php endif; ?>
         <div class="flex-1"></div>
+        <!-- Socket status indicator -->
+        <div class="socket-status hidden text-sm mr-4 flex items-center">
+            <span class="text-gray-500">•</span> <span class="ml-1">Connecting...</span>
+        </div>
         <div class="flex space-x-4">
             <button class="text-gray-400 hover:text-white">
                 <i class="fas fa-bell-slash"></i>
@@ -84,7 +88,7 @@ foreach ($channels as $channel) {
                     </div>';
                 }
             ?>
-                <div class="mb-4 group hover:bg-discord-dark/30 p-1 rounded -mx-1 <?php echo $showHeader ? '' : 'pl-12'; ?>">
+                <div class="mb-4 group hover:bg-discord-dark/30 p-1 rounded -mx-1 <?php echo $showHeader ? '' : 'pl-12'; ?>" data-user-id="<?php echo htmlspecialchars($message['user_id']); ?>">
                     <?php if ($showHeader): ?>
                     <div class="flex items-start">
                         <div class="w-10 h-10 rounded-full bg-gray-700 flex-shrink-0 flex items-center justify-center overflow-hidden mr-3">
@@ -127,6 +131,16 @@ foreach ($channels as $channel) {
         <?php endif; ?>
     </div>
 
+    <!-- Add a container for typing indicator -->
+    <div id="typing-indicator" class="text-xs text-gray-400 pb-1 pl-5 flex items-center hidden">
+        <div class="typing-animation mr-2">
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+        </div>
+        <span>Someone is typing...</span>
+    </div>
+
     <div class="p-4 bg-discord-background">
         <form id="message-form" class="bg-discord-dark rounded-lg p-2">
             <div class="flex items-center mb-2">
@@ -148,6 +162,8 @@ foreach ($channels as $channel) {
                           rows="1"
                           data-channel-id="<?php echo htmlspecialchars($activeChannelId ?? ''); ?>"></textarea>
             </div>
+            <input type="hidden" data-user-id="<?php echo htmlspecialchars($currentUserId); ?>" />
+            <input type="hidden" data-username="<?php echo htmlspecialchars($_SESSION['username'] ?? ''); ?>" />
         </form>
     </div>
     <?php else: ?>
@@ -160,60 +176,13 @@ foreach ($channels as $channel) {
 <script>
 // Trigger content loaded event once data is available
 document.addEventListener('DOMContentLoaded', function() {
-    // Set up message form submission
-    const messageForm = document.getElementById('message-form');
-    if (messageForm) {
-        messageForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const messageInput = this.querySelector('.message-input');
-            if (!messageInput || !messageInput.value.trim()) return;
-            
-            const channelId = messageInput.dataset.channelId || getActiveChannelId();
-            const content = messageInput.value.trim();
-            
-            // Clear input immediately for better UX
-            messageInput.value = '';
-            
-            // Send message via fetch API
-            fetch(`/api/channels/${channelId}/messages`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: JSON.stringify({ content })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    console.log('Message sent successfully');
-                    // Messages will be refreshed by auto-refresh
-                } else {
-                    console.error('Error sending message:', data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error sending message:', error);
-            });
+    // Set up message form auto-resize
+    const messageInput = document.getElementById('message-input');
+    if (messageInput) {
+        messageInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
         });
-        
-        // Support Ctrl+Enter to submit
-        const messageInput = messageForm.querySelector('.message-input');
-        if (messageInput) {
-            messageInput.addEventListener('keydown', function(e) {
-                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-                    e.preventDefault();
-                    messageForm.dispatchEvent(new Event('submit'));
-                }
-            });
-            
-            // Auto-resize textarea
-            messageInput.addEventListener('input', function() {
-                this.style.height = 'auto';
-                this.style.height = (this.scrollHeight) + 'px';
-            });
-        }
     }
     
     // Handle lazy loading of chat messages
@@ -227,14 +196,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 const hasMessages = <?php echo !empty($messages) ? 'true' : 'false'; ?>;
                 window.LazyLoader.triggerDataLoaded('chat', !hasMessages);
                 console.log('Chat messages loaded after ' + loadDelay + 'ms');
+                
+                // Scroll to bottom of messages after loading
+                if (chatMessagesContainer) {
+                    chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+                }
             }
         }, loadDelay);
     }
 });
-
-// Helper function to get active channel ID
-function getActiveChannelId() {
-    const activeChannel = document.querySelector('.channel-item.active');
-    return activeChannel ? activeChannel.dataset.channelId : null;
-}
 </script>

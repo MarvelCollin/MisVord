@@ -340,9 +340,20 @@ function showLeaveServerConfirmation() {
 
 // API Functions
 function loadInviteLink(serverId) {
+    // Show loading state
+    const inviteLinkInput = document.getElementById('invite-link');
+    if (inviteLinkInput) {
+        inviteLinkInput.value = "Loading...";
+        inviteLinkInput.disabled = true;
+    }
+    
     // Load existing invite link
     fetch(`/api/servers/${serverId}`)
         .then(response => {
+            if (!response.ok) {
+                throw new Error(`Server returned status ${response.status}`);
+            }
+            
             const contentType = response.headers.get('content-type');
             if (contentType && contentType.includes('application/json')) {
                 return response.json();
@@ -354,14 +365,32 @@ function loadInviteLink(serverId) {
             }
         })
         .then(data => {
-            if (data.success && data.server.invite_link) {
-                const fullInviteLink = `${window.location.origin}/join/${data.server.invite_link}`;
-                document.getElementById('invite-link').value = fullInviteLink;
+            console.log('Server data received:', data);
+            
+            if (inviteLinkInput) {
+                inviteLinkInput.disabled = false;
+                
+                if (data.success && data.server && data.server.invite_link) {
+                    const fullInviteLink = `${window.location.origin}/join/${data.server.invite_link}`;
+                    inviteLinkInput.value = fullInviteLink;
+                    inviteLinkInput.select();
+                } else {
+                    // If no invite link exists, show empty input ready for generation
+                    inviteLinkInput.value = "";
+                    inviteLinkInput.placeholder = "Click 'Generate New Link' to create an invite";
+                }
             }
         })
         .catch(error => {
             console.error('Error loading invite link:', error);
-            showToast('Failed to load invite link', 'error');
+            
+            if (inviteLinkInput) {
+                inviteLinkInput.disabled = false;
+                inviteLinkInput.value = "";
+                inviteLinkInput.placeholder = "Error loading invite link";
+            }
+            
+            showToast(`Failed to load invite link: ${error.message}`, 'error');
         });
 }
 
@@ -374,6 +403,13 @@ function copyInviteLink() {
 
 function generateNewInvite(serverId) {
     console.log('generateNewInvite called from server-dropdown.js with serverId:', serverId);
+    
+    // Show loading state
+    const generateBtn = document.getElementById('generate-new-invite');
+    const originalText = generateBtn.textContent;
+    generateBtn.textContent = 'Generating...';
+    generateBtn.disabled = true;
+    
     fetch(`/api/servers/${serverId}/invite`, {
         method: 'POST',
         headers: {
@@ -381,6 +417,11 @@ function generateNewInvite(serverId) {
         }
     })
     .then(response => {
+        // First check if the response is successful
+        if (!response.ok) {
+            throw new Error(`Server returned status ${response.status}`);
+        }
+        
         const contentType = response.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
             return response.json();
@@ -392,17 +433,40 @@ function generateNewInvite(serverId) {
         }
     })
     .then(data => {
+        console.log('Invite generation response:', data);
         if (data.success) {
-            const fullInviteLink = `${window.location.origin}/join/${data.invite_code}`;
-            document.getElementById('invite-link').value = fullInviteLink;
-            showToast('New invite link generated!', 'success');
+            let inviteCode = null;
+            
+            // Handle different response formats
+            if (data.invite_code) {
+                inviteCode = data.invite_code;
+            } else if (data.data && data.data.invite_code) {
+                inviteCode = data.data.invite_code;
+            }
+            
+            if (inviteCode) {
+                const fullInviteLink = `${window.location.origin}/join/${inviteCode}`;
+                const inviteLinkInput = document.getElementById('invite-link');
+                
+                inviteLinkInput.value = fullInviteLink;
+                inviteLinkInput.select(); // Select the text for easy copy
+                
+                showToast('New invite link generated!', 'success');
+            } else {
+                throw new Error('Invalid response format: invite code not found');
+            }
         } else {
-            throw new Error(data.message);
+            throw new Error(data.message || 'Failed to generate invite link');
         }
     })
     .catch(error => {
         console.error('Error generating invite:', error);
-        showToast('Failed to generate new invite link', 'error');
+        showToast(`Failed to generate new invite link: ${error.message}`, 'error');
+    })
+    .finally(() => {
+        // Reset button state
+        generateBtn.textContent = originalText;
+        generateBtn.disabled = false;
     });
 }
 

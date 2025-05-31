@@ -19,6 +19,7 @@ $body_class = 'bg-discord-dark text-white overflow-hidden';
 $page_css = 'server-page';
 $page_js = 'server-page';
 $additional_js = [
+    'socket.io.min.js',
     'server-dropdown.js',
     'components/server-sidebar.js',
     'components/messaging.js',

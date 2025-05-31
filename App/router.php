@@ -38,6 +38,38 @@ if (strpos($path, '/api/') === 0) {
         exit;
     }
     
+    // Add test endpoint for debugging invite link generation
+    if ($path === '/api/debug/invite' && $_SERVER['REQUEST_METHOD'] === 'GET') {
+        header('Content-Type: text/plain');
+        error_reporting(E_ALL);
+        ini_set('display_errors', 1);
+        
+        require_once __DIR__ . '/controllers/ServerController.php';
+        require_once __DIR__ . '/database/models/Server.php';
+        require_once __DIR__ . '/database/models/UserServerMembership.php';
+        
+        echo "Debug invite link generation\n\n";
+        
+        // Set up test session if not already started
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        
+        $_SESSION['user_id'] = 1;
+        
+        try {
+            $serverId = 1;
+            $controller = new ServerController();
+            
+            // Try multiple approaches using our debug method
+            $controller->debugInviteLink($serverId);
+        } catch (Exception $e) {
+            echo "ERROR: " . $e->getMessage() . "\n";
+            echo "Stack trace: " . $e->getTraceAsString() . "\n";
+        }
+        exit;
+    }
+    
     // Category routes
     if ($path === '/api/categories' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         require_once __DIR__ . '/controllers/ChannelController.php';

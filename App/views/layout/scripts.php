@@ -7,11 +7,18 @@
 // Check if additional_js is defined
 $additional_js = $additional_js ?? [];
 
+// Filter out socket.io.min.js from additional_js if it's there, as we'll load it separately
+$additional_js = array_filter($additional_js, function($script) {
+    return $script !== 'socket.io.min.js';
+});
+
 // Define base/core scripts that should be loaded on every page
 $core_scripts = ['core/toast', 'core/ajax-handler'];
 ?>
 
 <!-- Vendor JS -->
+<!-- Load Socket.IO first as non-module script to ensure it's available globally -->
+<script src="<?php echo js('socket.io.min'); ?>?v=<?php echo time(); ?>"></script>
 
 <!-- Core scripts -->
 <script src="<?php echo js('main'); ?>?v=<?php echo time(); ?>" type="module"></script>

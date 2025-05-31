@@ -67,7 +67,19 @@ Route::get('/server/([0-9]+)', function($id) {
     $controller->show($id);
 });
 
-Route::get('/invite/([a-zA-Z0-9]+)', function($code) {
+Route::get('/join/([a-zA-Z0-9]+)', function($code) {
+    require_once __DIR__ . '/../controllers/ServerController.php';
+    $controller = new ServerController();
+    $controller->showInvite($code);
+});
+
+Route::get('/api/servers/join/([a-zA-Z0-9]+)', function($code) {
+    require_once __DIR__ . '/../controllers/ServerController.php';
+    $controller = new ServerController();
+    $controller->join($code);
+});
+
+Route::post('/api/servers/join/([a-zA-Z0-9]+)', function($code) {
     require_once __DIR__ . '/../controllers/ServerController.php';
     $controller = new ServerController();
     $controller->join($code);
@@ -124,6 +136,18 @@ Route::get('/api/channels/([0-9]+)/participants', function($channelId) {
     $controller->getChannelParticipants($channelId);
 });
 
+// Add missing route for getting server details
+Route::get('/api/servers/([0-9]+)', function($serverId) {
+    $controller = new ServerController();
+    $controller->getServerDetails($serverId);
+});
+
+// Add missing route for server invite link generation
+Route::post('/api/servers/([0-9]+)/invite', function($serverId) {
+    $controller = new ServerController();
+    $controller->generateInviteLink($serverId);
+});
+
 // Routes for drag and drop functionality
 Route::post('/api/channels/position', function() {
     $controller = new ChannelController();
@@ -139,6 +163,13 @@ Route::post('/api/categories/position', function() {
 Route::post('/api/positions/batch', function() {
     $controller = new ChannelController();
     $controller->batchUpdatePositions();
+});
+
+// Add debug endpoints
+Route::get('/debug/invite', function() {
+    // Simple debug page for invite link generation
+    include_once __DIR__ . '/../debug-invite.php';
+    exit;
 });
 
 Route::get('/health', function() {

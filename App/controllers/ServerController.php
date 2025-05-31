@@ -396,17 +396,68 @@ class ServerController extends BaseController {
         return bin2hex(random_bytes(8)); // 16 character hex string
     }
 
+    /**
+     * Show invite page with server details
+     */
+    public function showInvite($inviteCode) {
+        error_log("showInvite called with code: $inviteCode");
+        
+        // Find the server by invite link
+        $server = Server::findByInviteLink($inviteCode);
+        
+        if (!$server) {
+            error_log("Invalid invite link: $inviteCode");
+            // Still show the invite page, but it will show "invalid invite"
+            $GLOBALS['inviteServer'] = null;
+            $GLOBALS['inviteCode'] = $inviteCode;
+            require_once __DIR__ . '/../views/pages/accept-invite.php';
+            return;
+        }
+        
+        error_log("Found server for invite: " . $server->name);
+        
+        // Check if user is already logged in
+        if (isset($_SESSION['user_id'])) {
+            // If already a member, redirect directly to the server
+            if (UserServerMembership::isMember($_SESSION['user_id'], $server->id)) {
+                header("Location: /server/{$server->id}");
+                exit;
+            }
+        }
+        
+        // Pass server data to the view
+        $GLOBALS['inviteServer'] = $server;
+        $GLOBALS['inviteCode'] = $inviteCode;
+        require_once __DIR__ . '/../views/pages/accept-invite.php';
+    }
+
     public function join($inviteCode) {
+        error_log("join method called with code: $inviteCode");
+        error_log("Session data: " . json_encode([
+            'user_id' => $_SESSION['user_id'] ?? 'not set',
+            'pending_invite' => $_SESSION['pending_invite'] ?? 'not set',
+            'login_redirect' => $_SESSION['login_redirect'] ?? 'not set'
+        ]));
+        
+        // Check if user is logged in
         if (!isset($_SESSION['user_id'])) {
+            error_log("User not logged in - redirecting to login with return URL");
+            // Save invite code to session so we can redirect back after login
+            $_SESSION['pending_invite'] = $inviteCode;
+            
             if ($this->isAjaxRequest()) {
-                return $this->unauthorized();
+                return $this->unauthorized('Please log in to accept this invitation');
             }
             
-            header('Location: /login');
+            // Redirect to login with redirect parameter
+            header('Location: /login?redirect=/join/' . urlencode($inviteCode));
             exit;
         }
 
+        error_log("User is logged in, processing invite $inviteCode for user_id: {$_SESSION['user_id']}");
+
         if (empty($inviteCode)) {
+            error_log("Empty invite code provided");
             $errorMessage = 'Invalid invite link';
             
             if ($this->isAjaxRequest()) {
@@ -421,6 +472,7 @@ class ServerController extends BaseController {
         $server = Server::findByInviteLink($inviteCode);
 
         if (!$server) {
+            error_log("Server not found for invite code: $inviteCode");
             $errorMessage = 'Invalid or expired invite link';
             
             if ($this->isAjaxRequest()) {
@@ -432,7 +484,13 @@ class ServerController extends BaseController {
             exit;
         }
 
+        error_log("Found server for invite: " . json_encode([
+            'server_id' => $server->id,
+            'server_name' => $server->name
+        ]));
+
         if (UserServerMembership::isMember($_SESSION['user_id'], $server->id)) {
+            error_log("User is already a member of this server");
             if ($this->isAjaxRequest()) {
                 return $this->successResponse([
                     'server' => [
@@ -447,7 +505,29 @@ class ServerController extends BaseController {
             exit;
         }
 
-        UserServerMembership::create($_SESSION['user_id'], $server->id, 'member');
+        // Join the server
+        error_log("Attempting to join server {$server->id} for user {$_SESSION['user_id']}");
+        $joined = UserServerMembership::create($_SESSION['user_id'], $server->id, 'member');
+        
+        if (!$joined) {
+            error_log("Failed to join server: user_id={$_SESSION['user_id']}, server_id={$server->id}");
+            
+            if ($this->isAjaxRequest()) {
+                return $this->serverError('Failed to join the server. Please try again.');
+            }
+            
+            $_SESSION['error'] = 'Failed to join server. Please try again.';
+            header('Location: /app');
+            exit;
+        }
+        
+        error_log("Successfully joined server {$server->id}");
+        
+        // Clear the pending invite from session if it exists
+        if (isset($_SESSION['pending_invite'])) {
+            error_log("Clearing pending_invite from session");
+            unset($_SESSION['pending_invite']);
+        }
 
         if ($this->isAjaxRequest()) {
             return $this->successResponse([
@@ -459,6 +539,9 @@ class ServerController extends BaseController {
             ], 'Successfully joined server');
         }
         
+        // Set a success message
+        $_SESSION['success'] = "You've successfully joined " . $server->name;
+        error_log("Redirecting to server page: /server/{$server->id}");
         header('Location: /server/' . $server->id);
         exit;
     }
@@ -600,9 +683,11 @@ class ServerController extends BaseController {
         // Get server categories for channel creation
         $categories = Category::getForServer($server->id);
         
-        // Get active invite link for the server
-        $activeInvite = ServerInvite::findActiveByServer($server->id);
-        $inviteLink = $activeInvite ? $activeInvite->invite_link : null;
+        // Use the invite_link directly from the server object
+        $inviteLink = $server->invite_link;
+        
+        // Log what we found for debugging
+        error_log("Server ID: {$server->id}, Invite Link: " . ($inviteLink ?? 'null'));
         
         return $this->successResponse([
             'server' => [
@@ -733,6 +818,185 @@ class ServerController extends BaseController {
                 ];
             }
         }
+    }
+
+    public function generateInviteLink($serverId) {
+        // Set error reporting to maximum for debugging
+        error_reporting(E_ALL);
+        ini_set('display_errors', 1);
+
+        error_log("generateInviteLink called for server ID: $serverId");
+        
+        try {
+            if (!isset($_SESSION['user_id'])) {
+                error_log("Authentication failed: user_id not set in session");
+                return $this->unauthorized();
+            }
+            
+            error_log("User ID: {$_SESSION['user_id']} attempting to generate invite for server: $serverId");
+            
+            $server = Server::find($serverId);
+            if (!$server) {
+                error_log("Server not found with ID: $serverId");
+                return $this->notFound('Server not found');
+            }
+            
+            error_log("Server found: {$server->name} (ID: {$server->id})");
+            
+            // Check if user has permission to generate invite link
+            if (!UserServerMembership::isMember($_SESSION['user_id'], $serverId)) {
+                error_log("Permission denied: User {$_SESSION['user_id']} is not a member of server $serverId");
+                return $this->forbidden('You do not have permission to generate invite links for this server');
+            }
+            
+            error_log("User has permission to generate invite link");
+            
+            // Generate a new invite code
+            try {
+                $newInviteCode = $this->generateUniqueInviteCode();
+                error_log("Generated new invite code: $newInviteCode");
+            } catch (Exception $e) {
+                error_log("Error generating invite code: " . $e->getMessage());
+                throw $e;
+            }
+            
+            try {
+                // Use direct PDO query which is more reliable
+                $query = new Query();
+                $pdo = $query->getPdo();
+                
+                $stmt = $pdo->prepare("UPDATE servers SET invite_link = ? WHERE id = ?");
+                $pdoResult = $stmt->execute([$newInviteCode, $serverId]);
+                
+                error_log("Direct PDO update result: " . ($pdoResult ? "Success" : "Failed"));
+                
+                if (!$pdoResult) {
+                    error_log("PDO Error Info: " . print_r($stmt->errorInfo(), true));
+                    return $this->serverError('Failed to update invite link - Database error');
+                }
+                
+                // Double-check the update worked
+                $checkServer = Server::find($serverId);
+                error_log("Verification - Server invite_link after update: " . ($checkServer->invite_link ?? 'null'));
+                
+                $baseUrl = $this->getBaseUrl();
+                error_log("Base URL: $baseUrl");
+                
+                return $this->successResponse([
+                    'invite_code' => $newInviteCode,
+                    'full_url' => $baseUrl . "/join/" . $newInviteCode
+                ], 'New invite link generated');
+            } catch (Exception $e) {
+                error_log("Database error updating invite link: " . $e->getMessage());
+                error_log("SQL State: " . $e->getCode());
+                error_log("Stack trace: " . $e->getTraceAsString());
+                throw $e;
+            }
+        } catch (Exception $e) {
+            error_log("Unhandled exception in generateInviteLink: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
+            
+            // Return detailed error message in development
+            $errorMessage = 'An error occurred while generating the invite link: ' . $e->getMessage();
+            return $this->serverError($errorMessage);
+        }
+    }
+    
+    private function getBaseUrl() {
+        $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http';
+        $host = $_SERVER['HTTP_HOST'];
+        return $protocol . '://' . $host;
+    }
+
+    /**
+     * Debug method that tries multiple approaches to update the invite link
+     * Only used for debugging purposes
+     */
+    public function debugInviteLink($serverId) {
+        if (!isset($_SESSION['user_id'])) {
+            echo "Auth needed\n";
+            return false;
+        }
+        
+        $server = Server::find($serverId);
+        if (!$server) {
+            echo "Server not found\n";
+            return false;
+        }
+        
+        echo "Server found: {$server->name} (ID: {$server->id})\n";
+        
+        if (!UserServerMembership::isMember($_SESSION['user_id'], $serverId)) {
+            echo "Not a member\n";
+            return false;
+        }
+        
+        echo "User is a member\n";
+        
+        // Generate a new invite code
+        $newInviteCode = $this->generateUniqueInviteCode();
+        echo "Generated new invite code: $newInviteCode\n";
+        
+        // Approach 1: Using the model's save method
+        try {
+            echo "\nApproach 1: Using model's save method\n";
+            $server->invite_link = $newInviteCode;
+            $saveResult = $server->save();
+            echo "Save result: " . ($saveResult ? "Success" : "Failed") . "\n";
+        } catch (Exception $e) {
+            echo "Error with approach 1: " . $e->getMessage() . "\n";
+        }
+        
+        // Approach 2: Using Query class
+        try {
+            echo "\nApproach 2: Using Query class\n";
+            $query = new Query();
+            $updateResult = $query->table('servers')
+                ->where('id', $serverId)
+                ->update(['invite_link' => $newInviteCode.'_2']);
+            echo "Update result: " . ($updateResult ? "Success" : "Failed") . "\n";
+        } catch (Exception $e) {
+            echo "Error with approach 2: " . $e->getMessage() . "\n";
+        }
+        
+        // Approach 3: Using direct PDO
+        try {
+            echo "\nApproach 3: Using direct PDO\n";
+            $query = new Query();
+            $pdo = $query->getPdo();
+            $stmt = $pdo->prepare("UPDATE servers SET invite_link = ? WHERE id = ?");
+            $pdoResult = $stmt->execute([$newInviteCode.'_3', $serverId]);
+            echo "PDO update result: " . ($pdoResult ? "Success" : "Failed") . "\n";
+            
+            if (!$pdoResult) {
+                echo "PDO Error Info: " . print_r($stmt->errorInfo(), true) . "\n";
+            }
+        } catch (Exception $e) {
+            echo "Error with approach 3: " . $e->getMessage() . "\n";
+        }
+        
+        // Approach 4: Using direct SQL query
+        try {
+            echo "\nApproach 4: Using direct SQL query\n";
+            $query = new Query();
+            $pdo = $query->getPdo();
+            $sql = "UPDATE servers SET invite_link = '{$newInviteCode}_4' WHERE id = {$serverId}";
+            $rawResult = $pdo->exec($sql);
+            echo "Raw SQL result: " . ($rawResult !== false ? "Success ($rawResult rows)" : "Failed") . "\n";
+            
+            if ($rawResult === false) {
+                echo "PDO Error Info: " . print_r($pdo->errorInfo(), true) . "\n";
+            }
+        } catch (Exception $e) {
+            echo "Error with approach 4: " . $e->getMessage() . "\n";
+        }
+        
+        // Check which approach worked
+        $updatedServer = Server::find($serverId);
+        echo "\nVerification\n";
+        echo "Final invite_link: " . ($updatedServer->invite_link ?? 'null') . "\n";
+        
+        return true;
     }
 
     /**
