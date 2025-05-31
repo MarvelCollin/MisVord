@@ -188,16 +188,10 @@ function showCreateChannelModal() {
     if (modal) {
         modal.classList.remove('hidden');
         
-        // Add event listeners if not already added
-        const form = document.getElementById('create-channel-form');
+        // Only attach listeners for close buttons, not form submission
         const closeBtn = document.getElementById('close-create-channel-modal');
         const cancelBtn = document.getElementById('cancel-create-channel');
         const nameInput = document.getElementById('channel-name');
-        
-        if (form && !form.hasAttribute('data-listener')) {
-            form.addEventListener('submit', (e) => createChannel(e, serverId));
-            form.setAttribute('data-listener', 'true');
-        }
         
         if (closeBtn && !closeBtn.hasAttribute('data-listener')) {
             closeBtn.addEventListener('click', () => closeModal('create-channel-modal'));
@@ -226,15 +220,9 @@ function showCreateCategoryModal() {
     if (modal) {
         modal.classList.remove('hidden');
         
-        // Add event listeners if not already added
-        const form = document.getElementById('create-category-form');
+        // Only attach listeners for close buttons, not form submission
         const closeBtn = document.getElementById('close-create-category-modal');
         const cancelBtn = document.getElementById('cancel-create-category');
-        
-        if (form && !form.hasAttribute('data-listener')) {
-            form.addEventListener('submit', (e) => createCategory(e, serverId));
-            form.setAttribute('data-listener', 'true');
-        }
         
         if (closeBtn && !closeBtn.hasAttribute('data-listener')) {
             closeBtn.addEventListener('click', () => closeModal('create-category-modal'));

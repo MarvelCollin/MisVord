@@ -9,9 +9,9 @@ function initChannelManager() {
     // Load channels on page load
     loadServerChannels();
 
-    initCreateChannelForm();
-
-    initCreateCategoryForm();
+    // These functions are no longer needed as forms submit directly
+    // initCreateChannelForm();
+    // initCreateCategoryForm();
 
     initUpdateChannelForms();
 
@@ -42,75 +42,6 @@ function loadServerChannels() {
             if (loadingEl) loadingEl.classList.add('hidden');
         }
     });
-}
-
-function initCreateChannelForm() {
-    const createChannelForm = document.getElementById('create-channel-form');
-
-    if (createChannelForm) {
-        createChannelForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-
-            MiscVordAjax.submitForm(createChannelForm, {
-                onSuccess: function(response) {
-                    if (response.success) {
-                        showToast('Channel created successfully', 'success');
-
-                        const modal = document.getElementById('create-channel-modal');
-                        if (modal && typeof closeModal === 'function') {
-                            closeModal(modal);
-                        }
-
-                        createChannelForm.reset();
-
-                        if (response.data && response.data.channel && response.data.channel.id) {
-                            const serverId = response.data.channel.server_id;
-                            const channelId = response.data.channel.id;
-                            window.location.href = `/server/${serverId}?channel=${channelId}`;
-                        } else {
-                            refreshChannelList();
-                        }
-                    }
-                }
-            });
-        });
-    }
-}
-
-function initCreateCategoryForm() {
-    const createCategoryForm = document.getElementById('create-category-form');
-
-    if (createCategoryForm) {
-        createCategoryForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-
-            const formData = new FormData(createCategoryForm);
-            const serverId = formData.get('server_id');
-            const categoryName = formData.get('name');
-
-            if (!categoryName) {
-                showToast('Category name is required', 'error');
-                return;
-            }
-
-            MiscVordAjax.post('/api/channels/category', formData, {
-                onSuccess: function(response) {
-                    if (response.success) {
-                        showToast('Category created successfully', 'success');
-
-                        const modal = document.getElementById('create-category-modal');
-                        if (modal && typeof closeModal === 'function') {
-                            closeModal(modal);
-                        }
-
-                        createCategoryForm.reset();
-
-                        refreshChannelList();
-                    }
-                }
-            });
-        });
-    }
 }
 
 function initUpdateChannelForms() {

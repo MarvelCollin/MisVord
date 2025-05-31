@@ -4,7 +4,7 @@ class BaseController {
     
     public function __construct() {
         // Set JSON header for API responses
-        if ($this->isAjaxRequest()) {
+        if ($this->isApiRoute() || $this->isAjaxRequest()) {
             header('Content-Type: application/json');
         }
     }
@@ -16,7 +16,7 @@ class BaseController {
             'data' => $data
         ];
         
-        if ($this->isAjaxRequest()) {
+        if ($this->isAjaxRequest() || $this->isApiRoute()) {
             echo json_encode($response);
             exit;
         }
@@ -33,7 +33,7 @@ class BaseController {
             'errors' => $errors
         ];
         
-        if ($this->isAjaxRequest()) {
+        if ($this->isAjaxRequest() || $this->isApiRoute()) {
             echo json_encode($response);
             exit;
         }
@@ -49,7 +49,7 @@ class BaseController {
             'message' => $message
         ];
         
-        if ($this->isAjaxRequest()) {
+        if ($this->isAjaxRequest() || $this->isApiRoute()) {
             echo json_encode($response);
             exit;
         }
@@ -65,7 +65,7 @@ class BaseController {
             'message' => $message
         ];
         
-        if ($this->isAjaxRequest()) {
+        if ($this->isAjaxRequest() || $this->isApiRoute()) {
             echo json_encode($response);
             exit;
         }
@@ -81,7 +81,7 @@ class BaseController {
             'message' => $message
         ];
         
-        if ($this->isAjaxRequest()) {
+        if ($this->isAjaxRequest() || $this->isApiRoute()) {
             echo json_encode($response);
             exit;
         }
@@ -97,7 +97,7 @@ class BaseController {
             'message' => $message
         ];
         
-        if ($this->isAjaxRequest()) {
+        if ($this->isAjaxRequest() || $this->isApiRoute()) {
             echo json_encode($response);
             exit;
         }
@@ -108,5 +108,10 @@ class BaseController {
     protected function isAjaxRequest() {
         return !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
                strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
+    }
+    
+    protected function isApiRoute() {
+        $uri = $_SERVER['REQUEST_URI'] ?? '';
+        return strpos($uri, '/api/') === 0 || strpos($uri, '/api/') !== false;
     }
 }

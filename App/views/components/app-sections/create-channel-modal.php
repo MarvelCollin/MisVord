@@ -19,7 +19,7 @@ $categories = Category::getForServer($serverId);
             </div>
             
             <div class="modal-body">
-                <form id="create-channel-form">
+                <form id="create-channel-form" method="POST" onsubmit="submitChannelForm(event)">
                     <input type="hidden" name="server_id" value="<?php echo $serverId; ?>">
                     
                     <div class="mb-4">
@@ -117,6 +117,70 @@ $categories = Category::getForServer($serverId);
         // Global function to close modal
         window.closeCreateChannelModal = function() {
             closeCreateChannelModal();
+        };
+        
+        // AJAX form submission
+        window.submitChannelForm = function(event) {
+            event.preventDefault();
+            const form = document.getElementById('create-channel-form');
+            const formData = new FormData(form);
+            
+            fetch('/api/channels', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                // Check if response is JSON before trying to parse it
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    return response.json().catch(error => {
+                        console.error('JSON parse error:', error);
+                        throw new Error('Invalid JSON response from server');
+                    });
+                } else {
+                    // Handle non-JSON responses
+                    return response.text().then(text => {
+                        console.error('Server returned non-JSON response:', text);
+                        throw new Error('Server returned HTML instead of JSON');
+                    });
+                }
+            })
+            .then(data => {
+                if (data.success) {
+                    closeCreateChannelModal();
+                    form.reset();
+                    
+                    // Show success message
+                    if (typeof showToast === 'function') {
+                        showToast('Channel created successfully', 'success');
+                    } else {
+                        alert('Channel created successfully');
+                    }
+                    
+                    // Reload the page to show the new channel
+                    setTimeout(function() {
+                        window.location.reload();
+                    }, 500);
+                } else {
+                    // Show error message
+                    if (typeof showToast === 'function') {
+                        showToast(data.message || 'Error creating channel', 'error');
+                    } else {
+                        alert(data.message || 'Error creating channel');
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                if (typeof showToast === 'function') {
+                    showToast('Error creating channel. Please try again.', 'error');
+                } else {
+                    alert('Error creating channel. Please try again.');
+                }
+            });
         };
     });
 </script> 

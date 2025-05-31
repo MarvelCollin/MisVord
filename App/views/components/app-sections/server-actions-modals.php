@@ -106,7 +106,8 @@
                     </button>
                 </div>
                 
-                <form id="create-channel-form" class="space-y-4">
+                <form id="create-channel-form" method="POST" onsubmit="submitChannelForm(event)" class="space-y-4">
+                    <input type="hidden" name="server_id" value="<?php echo isset($GLOBALS['currentServer']) ? $GLOBALS['currentServer']->id : 0; ?>">
                     <div>
                         <label class="block text-sm font-medium text-gray-300 mb-2">CHANNEL TYPE</label>
                         <div class="space-y-2">
@@ -182,7 +183,8 @@
                     </button>
                 </div>
                 
-                <form id="create-category-form" class="space-y-4">
+                <form id="create-category-form" method="POST" onsubmit="submitCategoryForm(event)" class="space-y-4">
+                    <input type="hidden" name="server_id" value="<?php echo isset($GLOBALS['currentServer']) ? $GLOBALS['currentServer']->id : 0; ?>">
                     <div>
                         <label for="category-name" class="block text-sm font-medium text-gray-300 mb-1">
                             CATEGORY NAME <span class="text-discord-red">*</span>

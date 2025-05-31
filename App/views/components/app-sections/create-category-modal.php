@@ -15,7 +15,7 @@ $serverId = isset($GLOBALS['currentServer']) ? $GLOBALS['currentServer']->id : 0
             </div>
             
             <div class="modal-body">
-                <form id="create-category-form">
+                <form id="create-category-form" method="POST" onsubmit="submitCategoryForm(event)">
                     <input type="hidden" name="server_id" value="<?php echo $serverId; ?>">
                     
                     <div class="mb-4">
@@ -75,6 +75,70 @@ $serverId = isset($GLOBALS['currentServer']) ? $GLOBALS['currentServer']->id : 0
         // Global function to close modal
         window.closeCreateCategoryModal = function() {
             closeCreateCategoryModal();
+        };
+        
+        // AJAX form submission
+        window.submitCategoryForm = function(event) {
+            event.preventDefault();
+            const form = document.getElementById('create-category-form');
+            const formData = new FormData(form);
+            
+            fetch('/api/channels/category', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                // Check if response is JSON before trying to parse it
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    return response.json().catch(error => {
+                        console.error('JSON parse error:', error);
+                        throw new Error('Invalid JSON response from server');
+                    });
+                } else {
+                    // Handle non-JSON responses
+                    return response.text().then(text => {
+                        console.error('Server returned non-JSON response:', text);
+                        throw new Error('Server returned HTML instead of JSON');
+                    });
+                }
+            })
+            .then(data => {
+                if (data.success) {
+                    closeCreateCategoryModal();
+                    form.reset();
+                    
+                    // Show success message
+                    if (typeof showToast === 'function') {
+                        showToast('Category created successfully', 'success');
+                    } else {
+                        alert('Category created successfully');
+                    }
+                    
+                    // Reload the page to show the new category
+                    setTimeout(function() {
+                        window.location.reload();
+                    }, 500);
+                } else {
+                    // Show error message
+                    if (typeof showToast === 'function') {
+                        showToast(data.message || 'Error creating category', 'error');
+                    } else {
+                        alert(data.message || 'Error creating category');
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                if (typeof showToast === 'function') {
+                    showToast('Error creating category. Please try again.', 'error');
+                } else {
+                    alert('Error creating category. Please try again.');
+                }
+            });
         };
     });
 </script> 
