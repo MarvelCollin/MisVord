@@ -1,6 +1,5 @@
 document.addEventListener('DOMContentLoaded', function() {
-
-    initNavigation();
+    // Remove initNavigation() call since navbar is removed
     initScrollAnimations();
     initHeroAnimations();
     initMockupAnimations();
@@ -11,62 +10,6 @@ document.addEventListener('DOMContentLoaded', function() {
         initScrambleText();
     }, 300); 
 });
-
-function initNavigation() {
-    const nav = document.getElementById('mainNav');
-    const navToggle = document.getElementById('navToggle');
-    const navLinks = document.getElementById('navLinks');
-
-    // Simple scroll-based navbar styling
-    if (nav) {
-        window.addEventListener('scroll', () => {
-            if (window.scrollY > 50) {
-                nav.classList.add('scrolled');
-            } else {
-                nav.classList.remove('scrolled');
-            }
-        });
-    }
-
-    // Mobile menu toggle
-    if (navToggle && navLinks) {
-        navToggle.addEventListener('click', () => {
-            navLinks.classList.toggle('active');
-        });
-    }
-
-    // Close mobile menu when clicking on links
-    const links = document.querySelectorAll('.nav-link');
-    links.forEach(link => {
-        link.addEventListener('click', () => {
-            if (navLinks.classList.contains('active')) {
-                navLinks.classList.remove('active');
-            }
-            
-            // Update active state
-            links.forEach(l => l.classList.remove('active'));
-            link.classList.add('active');
-        });
-    });
-
-    // Mark active section based on scroll position
-    window.addEventListener('scroll', () => {
-        // This is simplified and only marks the current section based on scroll position
-        const sections = document.querySelectorAll('section[id]');
-        let scrollPosition = window.scrollY + 100;
-
-        sections.forEach(section => {
-            if (section.offsetTop <= scrollPosition && 
-                (section.offsetTop + section.offsetHeight > scrollPosition)) {
-                const id = section.getAttribute('id');
-                document.querySelector(`.nav-link[href="#${id}"]`)?.classList.add('active');
-            } else {
-                const id = section.getAttribute('id');
-                document.querySelector(`.nav-link[href="#${id}"]`)?.classList.remove('active');
-            }
-        });
-    });
-}
 
 function initScrollAnimations() {
     const observerOptions = {

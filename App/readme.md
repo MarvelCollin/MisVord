@@ -1,7 +1,7 @@
-# MiscVord Application
+# MisVord Application
 
 ## Project Overview
-MiscVord is a communication platform that allows users to create servers, channels, and exchange messages. The application provides features similar to Discord with user authentication, server management, and real-time messaging capabilities.
+MisVord is a communication platform that allows users to create servers, channels, and exchange messages. The application provides features similar to Discord with user authentication, server management, and real-time messaging capabilities.
 
 ## Directory Structure
 

@@ -1,11 +1,18 @@
-// Server Sidebar Functionality
-console.log('server-sidebar.js loaded');
+/**
+ * Server Sidebar Component for MiscVord
+ * Handles the server list sidebar with tooltips and navigation
+ */
+
+import { MisVordAjax } from '../core/ajax-handler.js';
 
 document.addEventListener('DOMContentLoaded', function() {
     initServerSidebar();
 });
 
-function initServerSidebar() {
+/**
+ * Initialize server sidebar functionality
+ */
+export function initServerSidebar() {
     const serverIcons = document.querySelectorAll('.server-icon');
     
     serverIcons.forEach(icon => {
@@ -52,7 +59,7 @@ function initServerSidebar() {
 /**
  * Update the active server indicator based on current URL
  */
-function updateActiveServer() {
+export function updateActiveServer() {
     // Remove active class from all server icons
     document.querySelectorAll('.server-icon.active').forEach(icon => {
         icon.classList.remove('active');
@@ -73,7 +80,7 @@ function updateActiveServer() {
  * Handle server click - load server content and update UI
  * @param {string} serverId - The server ID
  */
-function handleServerClick(serverId) {
+export function handleServerClick(serverId) {
     // Show loading state
     document.body.classList.add('content-loading');
     
@@ -81,8 +88,8 @@ function handleServerClick(serverId) {
     window.location.href = `/server/${serverId}`;
 }
 
-// Make functions available globally
-window.ServerSidebar = {
+// Export the functionality
+export const ServerSidebar = {
     initServerSidebar,
     updateActiveServer,
     handleServerClick

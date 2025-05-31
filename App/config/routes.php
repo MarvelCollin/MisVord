@@ -135,6 +135,12 @@ Route::post('/api/categories/position', function() {
     $controller->updateCategoryPosition();
 });
 
+// Add position management routes
+Route::post('/api/positions/batch', function() {
+    $controller = new ChannelController();
+    $controller->batchUpdatePositions();
+});
+
 Route::get('/health', function() {
     header('Content-Type: application/json');
     echo json_encode([

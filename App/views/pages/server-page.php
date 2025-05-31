@@ -14,14 +14,14 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-$page_title = 'misvord - Server';
+$page_title = 'MisVord - Server';
 $body_class = 'bg-discord-dark text-white overflow-hidden';
 $page_css = 'server-page';
 $page_js = 'server-page';
 $additional_js = [
     'server-dropdown.js',
-    'server-sidebar.js',
-    'message-handler.js',
+    'components/server-sidebar.js',
+    'components/messaging.js',
     'components/channel-manager.js',
     'components/channel-drag.js',
     'lazy-loader.js'

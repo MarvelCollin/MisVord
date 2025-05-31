@@ -3,7 +3,7 @@
  * Handles server operations like create, join, leave, etc.
  */
 
-import { MiscVordAjax } from '../core/ajax-handler.js';
+import { MisVordAjax } from '../core/ajax-handler.js';
 import { showToast } from '../core/toast.js';
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -74,7 +74,7 @@ function initJoinServerForm() {
                 return;
             }
             
-            MiscVordAjax.post(`/join/${inviteCode}`, null, {
+            MisVordAjax.post(`/join/${inviteCode}`, null, {
                 onSuccess: function(response) {
                     if (response.success) {
                         showToast('Joined server successfully', 'success');
@@ -125,7 +125,7 @@ function initLeaveServerButtons() {
  * @param {string} serverId - ID of the server to leave
  */
 function leaveServer(serverId) {
-    MiscVordAjax.post(`/api/servers/${serverId}/leave`, null, {
+    MisVordAjax.post(`/api/servers/${serverId}/leave`, null, {
         onSuccess: function(response) {
             if (response.success) {
                 showToast('Left server successfully', 'success');
@@ -150,7 +150,7 @@ function initServerSettingsForm() {
             const formData = new FormData(serverSettingsForm);
             const serverId = formData.get('server_id');
             
-            MiscVordAjax.submitForm(serverSettingsForm, {
+            MisVordAjax.submitForm(serverSettingsForm, {
                 onSuccess: function(response) {
                     if (response.success) {
                         showToast('Server settings updated successfully', 'success');
@@ -176,7 +176,7 @@ function initServerSettingsForm() {
  * Refresh server list in UI
  */
 function refreshServerList() {
-    MiscVordAjax.get('/api/servers', {
+    MisVordAjax.get('/api/servers', {
         onSuccess: function(response) {
             if (response.success && response.data && response.data.servers) {
                 updateServerListUI(response.data.servers);

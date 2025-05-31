@@ -1,4 +1,4 @@
-import { MiscVordAjax } from '../core/ajax-handler.js';
+import { MisVordAjax } from '../core/ajax-handler.js';
 import { showToast } from '../core/toast.js';
 
 export class AuthManager {
@@ -54,7 +54,7 @@ export class AuthManager {
         e.preventDefault();
 
         const form = e.target;
-        this.clearFormErrors(form);        MiscVordAjax.submitForm(form, {
+        this.clearFormErrors(form);        MisVordAjax.submitForm(form, {
             onSuccess: (response) => {
                 console.log('🎉 Login response received:', response);
                   if (response.success) {
@@ -96,7 +96,7 @@ export class AuthManager {
                 password_confirm: 'Passwords do not match'
             });
             return;
-        }        MiscVordAjax.submitForm(form, {
+        }        MisVordAjax.submitForm(form, {
             onSuccess: (response) => {
                 console.log('🎉 Register response received:', response);
                   if (response.success) {
@@ -131,7 +131,7 @@ export class AuthManager {
         const form = e.target;
         this.clearFormErrors(form);
 
-        MiscVordAjax.submitForm(form, {
+        MisVordAjax.submitForm(form, {
             onSuccess: (response) => {
                 if (response.success) {
                     showToast(response.message || 'Password reset instructions have been sent.', 'success');

@@ -1,9 +1,9 @@
 /**
- * AJAX Handler for MiscVord
+ * AJAX Handler for MisVord
  * Provides utility functions for making AJAX requests and handling responses
  */
 
-export const MiscVordAjax = {
+const AjaxHandler = {
     /**
      * Make a GET request
      * @param {string} url - URL to fetch
@@ -213,4 +213,8 @@ export const MiscVordAjax = {
         
         return this.request(url, method, formData, options);
     }
-}; 
+};
+
+// Export with both names for backward compatibility
+export const MisVordAjax = AjaxHandler;
+export const MiscVordAjax = AjaxHandler; // Kept for backwards compatibility 

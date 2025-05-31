@@ -42,6 +42,11 @@ class BaseController {
     }
     
     protected function serverError($message = 'Internal server error') {
+        // Ensure we have a clean response
+        if (ob_get_level()) ob_end_clean();
+        
+        // Set proper headers
+        header('Content-Type: application/json');
         http_response_code(500);
         
         $response = [

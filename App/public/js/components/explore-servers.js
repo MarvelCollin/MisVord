@@ -1,8 +1,20 @@
+/**
+ * Server Explorer functionality for MisVord
+ * Handles server search, filtering and display in the explore servers section
+ */
+
+import { MisVordAjax } from '../core/ajax-handler.js';
+import { showToast } from '../core/toast.js';
+
 document.addEventListener('DOMContentLoaded', function() {
+    initExploreServers();
+});
+
+export function initExploreServers() {
     initServerSearch();
     initCategoryFilter();
     initServerSort();
-});
+}
 
 function initServerSearch() {
     const searchInput = document.getElementById('server-search');
@@ -129,4 +141,11 @@ function checkContainer(container, message, icon) {
     } else if (visibleCards.length > 0 && existingEmptyMessage) {
         existingEmptyMessage.remove();
     }
-} 
+}
+
+export const ServerExplorer = {
+    initExploreServers,
+    initServerSearch,
+    initCategoryFilter,
+    initServerSort
+}; 

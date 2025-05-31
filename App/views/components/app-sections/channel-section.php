@@ -70,97 +70,41 @@ if (empty($categories)) {
 }
 
 function getChannelType($channel) {
-    // Debug output to help troubleshoot
+    // If debug mode is enabled, show channel data
     if (isset($_GET['debug_channel']) && $_GET['debug_channel'] == 'true') {
         echo '<pre style="background:#111;color:#0f0;padding:5px;position:fixed;top:50px;right:10px;z-index:9999;max-width:400px;font-size:10px;">';
         echo "Channel data for '{$channel['name']}':<br>";
         echo "type: " . (isset($channel['type']) ? $channel['type'] : 'undefined') . "<br>";
-        echo "type_name: " . (isset($channel['type_name']) ? $channel['type_name'] : 'undefined') . "<br>";
         echo '</pre>';
     }
     
-    // First check if it's a numeric type directly
-    if (isset($channel['type']) && is_numeric($channel['type'])) {
-        $numericType = intval($channel['type']);
-        
-        // Direct mapping for numeric types
-        switch($numericType) {
-            case 1: return 'text';
-            case 2: return 'voice';
-            case 3: return 'category';
-            case 4: return 'announcement';
-            // Default to text for unknown values
-            default: return 'text';
-        }
-    }
-    
-    // Next check for explicit type_name field
-    if (isset($channel['type_name'])) {
-        $typeName = strtolower($channel['type_name']);
-        // Direct mapping for type_name
-        if ($typeName === 'voice') return 'voice';
-        if ($typeName === 'text') return 'text';
-        if ($typeName === 'announcement') return 'announcement';
-        if ($typeName === 'forum') return 'forum';
-    }
-    
-    // Then check for type field as string
+    // Simple direct string check (database stores types as strings)
     if (isset($channel['type'])) {
-        // Force string comparison for consistency
-        $type = strval($channel['type']);
+        $type = strtolower(trim(strval($channel['type'])));
         
-        // Explicit check for text channels (type 1)
-        if ($type === '1') {
-            return 'text';
-        }
-        
-        // Handle other types
-        if ($type === '2') {
-            return 'voice';
-        }
-        if ($type === '4') {
-            return 'announcement';
-        }
-        if ($type === '15') {
-            return 'forum';
-        }
+        // Direct string matching for common channel types
+        if ($type === 'voice') return 'voice';
+        if ($type === 'text') return 'text';
+        if ($type === 'category') return 'category';
+        if ($type === 'announcement') return 'announcement';
+        if ($type === 'forum') return 'forum';
     }
     
-    // Default to text channel if nothing else matches
+    // Default to text channel if type is missing or unrecognized
     return 'text';
 }
 
 function getChannelIcon($channelType) {
-    // First check if it's a numeric value
-    if (is_numeric($channelType) || (is_string($channelType) && is_numeric(trim($channelType)))) {
-        $numericType = intval($channelType);
-        // Direct mapping for numeric types - BE VERY EXPLICIT HERE
-        if ($numericType === 1) return 'hashtag'; // Text channel
-        if ($numericType === 2) return 'volume-high'; // Voice channel
-        if ($numericType === 3) return 'folder'; // Category
-        if ($numericType === 4) return 'bullhorn'; // Announcement
-        
-        // Default to text channel
-        return 'hashtag';
-    }
-    
-    // Convert to lowercase string for consistent comparison if not numeric
+    // Simple mapping from channel type (string) to icon
     $channelType = strtolower(strval($channelType));
     
-    // Explicit mapping for all types
-    if ($channelType === 'voice' || $channelType === '2') {
-        return 'volume-high';
-    }
+    // Map each type to its appropriate icon
+    if ($channelType === 'voice') return 'volume-high';
+    if ($channelType === 'announcement') return 'bullhorn';
+    if ($channelType === 'forum') return 'users';
+    if ($channelType === 'category') return 'folder';
     
-    if ($channelType === 'announcement' || $channelType === '4') {
-        return 'bullhorn';
-    }
-    
-    if ($channelType === 'forum' || $channelType === '15') {
-        return 'users';
-    }
-    
-    // Default to text channel for any other value including 'text' or '1'
+    // Default to text channel icon (hashtag)
     return 'hashtag';
 }
 ?>
@@ -219,16 +163,13 @@ function getChannelIcon($channelType) {
             <div class="category-item my-4" data-category-id="<?php echo $category['id']; ?>">
                 <div class="category-header flex items-center justify-between text-gray-400 hover:text-gray-300 mb-1 px-1 py-1 rounded cursor-pointer">
                     <div class="flex items-center">
-                        <span class="drag-handle hidden"><span class="drag-icon"></span></span>
+                        <span class="drag-handle mr-1 opacity-40 hover:opacity-100"><i class="fas fa-grip-lines fa-xs"></i></span>
                         <i class="fas fa-chevron-down text-xs mr-1"></i>
                         <span class="font-semibold uppercase text-xs"><?php echo htmlspecialchars($category['name']); ?></span>
                     </div>
                     <div class="flex items-center space-x-1 text-gray-500">
                         <button class="hover:text-gray-300 text-xs" onclick="showAddChannelToCategory(<?php echo $category['id']; ?>)">
                             <i class="fas fa-plus"></i>
-                        </button>
-                        <button class="hover:text-gray-300 text-xs edit-category" data-category-id="<?php echo $category['id']; ?>">
-                            <i class="fas fa-cog"></i>
                         </button>
                     </div>
                 </div>
@@ -247,6 +188,7 @@ function getChannelIcon($channelType) {
                     <div class="channel-item flex items-center justify-between py-1 px-2 rounded text-gray-400 hover:text-gray-300 hover:bg-discord-lighten <?php echo $isActive ? 'bg-discord-lighten text-white' : ''; ?>" 
                          data-channel-id="<?php echo $channel['id']; ?>">
                         <div class="flex items-center w-full">
+                            <span class="drag-handle mr-1 opacity-0 hover:opacity-50"><i class="fas fa-grip-lines fa-xs"></i></span>
                             <?php if ($channelIcon === 'hashtag'): ?>
                                 <span class="channel-hash mr-1">#</span>
                             <?php else: ?>
@@ -287,6 +229,7 @@ function getChannelIcon($channelType) {
                 <div class="channel-item flex items-center justify-between py-1 px-2 rounded text-gray-400 hover:text-gray-300 hover:bg-discord-lighten <?php echo $isActive ? 'bg-discord-lighten text-white' : ''; ?>" 
                      data-channel-id="<?php echo $channel['id']; ?>">
                     <div class="flex items-center w-full">
+                        <span class="drag-handle mr-1 opacity-0 hover:opacity-50"><i class="fas fa-grip-lines fa-xs"></i></span>
                         <?php if ($channelIcon === 'hashtag'): ?>
                             <span class="channel-hash mr-1">#</span>
                         <?php else: ?>
@@ -306,9 +249,6 @@ function getChannelIcon($channelType) {
         <div class="my-4">
             <div class="text-gray-400 flex items-center justify-between mb-1 px-1">
                 <div class="font-semibold uppercase text-xs">Text Channels</div>
-                <button class="text-xs hover:text-gray-300" onclick="openCreateChannelModal()">
-                    <i class="fas fa-plus"></i>
-                </button>
             </div>
             
             <div class="uncategorized-channels pl-2">
@@ -320,6 +260,7 @@ function getChannelIcon($channelType) {
                 <div class="channel-item flex items-center justify-between py-1 px-2 rounded text-gray-400 hover:text-gray-300 hover:bg-discord-lighten <?php echo $isActive ? 'bg-discord-lighten text-white' : ''; ?>" 
                      data-channel-id="<?php echo $channel['id']; ?>">
                     <div class="flex items-center w-full">
+                        <span class="drag-handle mr-1 opacity-40 hover:opacity-100"><i class="fas fa-grip-lines fa-xs"></i></span>
                         <?php if ($channelIcon === 'hashtag'): ?>
                             <span class="channel-hash mr-1">#</span>
                         <?php else: ?>
@@ -353,6 +294,7 @@ function getChannelIcon($channelType) {
                 <div class="channel-item flex items-center justify-between py-1 px-2 rounded text-gray-400 hover:text-gray-300 hover:bg-discord-lighten <?php echo $isActive ? 'bg-discord-lighten text-white' : ''; ?>" 
                      data-channel-id="<?php echo $channel['id']; ?>">
                     <div class="flex items-center w-full">
+                        <span class="drag-handle mr-1 opacity-0 hover:opacity-50"><i class="fas fa-grip-lines fa-xs"></i></span>
                         <?php if ($channelIcon === 'hashtag'): ?>
                             <span class="channel-hash mr-1">#</span>
                         <?php else: ?>

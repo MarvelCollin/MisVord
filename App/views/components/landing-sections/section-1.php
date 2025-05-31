@@ -8,7 +8,7 @@ if (!function_exists('asset')) {
 <section class="flex flex-col md:flex-row items-center gap-8 md:gap-16 feature-section">
     <div class="w-full md:w-1/2 feature-image">
         <div class="modern-image">
-            <img src="<?php echo asset('/images/landing-page/actor.webp'); ?>" alt="Study Group" class="w-full h-auto">
+            <img src="<?php echo asset('/assets/landing-page/actor.webp'); ?>" alt="Study Group" class="w-full h-auto">
         </div>
     </div>
     <div class="w-full md:w-1/2 feature-content">

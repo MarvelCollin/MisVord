@@ -34,8 +34,8 @@ function addDragDropStyles() {
     const style = document.createElement('style');
     style.textContent = `
         .draggable {
-            cursor: default;
-            transition: background-color 0.1s ease, box-shadow 0.1s ease, transform 0.1s ease;
+            cursor: grab;
+            transition: background-color 0.1s ease, box-shadow 0.1s ease;
         }
         
         .dragging {
@@ -44,19 +44,30 @@ function addDragDropStyles() {
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
             transform: scale(1.01);
             z-index: 1000;
+            cursor: grabbing !important;
         }
         
-        .dragging .drag-handle,
-        .dragging .drag-icon {
-            display: none !important;
-            opacity: 0 !important;
-            visibility: hidden !important;
+        .drag-handle {
+            display: flex !important;
+            opacity: 0.4 !important;
+            visibility: visible !important;
+            width: 8px !important;
+            height: 8px !important;
+            margin-right: 4px !important;
+            cursor: grab;
+            transition: opacity 0.2s;
+        }
+        
+        .channel-item:hover .drag-handle,
+        .category-header:hover .drag-handle {
+            opacity: 0.9 !important;
         }
         
         .drag-over {
             position: relative;
             border-radius: 4px;
-            background-color: rgba(88, 101, 242, 0.1) !important;
+            background-color: rgba(88, 101, 242, 0.2) !important;
+            box-shadow: 0 0 5px rgba(88, 101, 242, 0.5);
         }
         
         .drag-over::after {
@@ -64,64 +75,67 @@ function addDragDropStyles() {
             position: absolute;
             left: 0;
             top: 0;
-            width: 2px;
+            width: 3px;
             height: 100%;
             background-color: #5865f2;
             border-radius: 4px 0 0 4px;
         }
         
-        .drag-handle,
-        .drag-icon {
-            display: none !important;
-            opacity: 0 !important;
-            visibility: hidden !important;
-            width: 0 !important;
-            height: 0 !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            overflow: hidden !important;
-            pointer-events: none !important;
+        /* Add drop preview indication */
+        .drop-preview {
+            height: 2px;
+            background-color: #5865f2;
+            margin: 2px 0;
+            animation: pulse-drop 1.5s infinite;
         }
         
-        /* Remove hover states too - ensure they never appear */
-        .channel-item:hover .drag-handle,
-        .category-header:hover .drag-handle {
-            display: none !important;
-            opacity: 0 !important;
-            visibility: hidden !important;
+        @keyframes pulse-drop {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
         }
         
-        /* Hide text labels */
-        .channel-type-label {
-            display: none !important;
+        /* Enhance drop indicators */
+        .drop-target-above::before,
+        .drop-target-below::after {
+            content: '';
+            display: block;
+            height: 3px;
+            background-color: #5865f2;
+            position: absolute;
+            left: 0;
+            right: 0;
+            z-index: 10;
         }
         
-        /* Simplify channel names */
-        .channel-item .channel-name {
-            font-weight: normal !important;
-            color: #8e9297 !important;
+        .drop-target-above::before {
+            top: 0;
         }
         
-        .channel-item:hover .channel-name {
-            color: #dcddde !important;
+        .drop-target-below::after {
+            bottom: 0;
         }
         
-        /* Clean up hash symbols */
-        .channel-item .channel-hash {
-            color: #8e9297 !important;
-            margin-right: 5px !important;
+        .updating {
+            opacity: 0.7;
+            pointer-events: none;
         }
         
-        /* Hide all category headers and channel type headers */
-        .font-semibold.uppercase.text-xs:contains("Text Channels"),
-        .font-semibold.uppercase.text-xs:contains("Voice Channels"),
-        .font-semibold.uppercase.text-xs:contains("Channels") {
-            display: none !important;
+        .update-success {
+            animation: pulse-success 1s ease;
         }
         
-        /* Hide the header containers */
-        .text-gray-400.flex.items-center.justify-between.mb-1.px-1 {
-            display: none !important;
+        .update-error {
+            animation: pulse-error 1s ease;
+        }
+        
+        @keyframes pulse-success {
+            0%, 100% { background-color: transparent; }
+            50% { background-color: rgba(59, 165, 93, 0.2); }
+        }
+        
+        @keyframes pulse-error {
+            0%, 100% { background-color: transparent; }
+            50% { background-color: rgba(237, 66, 69, 0.2); }
         }
     `;
     document.head.appendChild(style);
@@ -140,7 +154,7 @@ function initCategories() {
             if (!categoryHeader.querySelector('.drag-handle')) {
                 const dragHandle = document.createElement('span');
                 dragHandle.className = 'drag-handle';
-                dragHandle.innerHTML = '<span class="drag-icon"></span>';
+                dragHandle.innerHTML = '<i class="fas fa-grip-lines fa-xs"></i>';
                 categoryHeader.querySelector('div').prepend(dragHandle);
             }
             
@@ -196,7 +210,7 @@ function setupChannelContainer(container, categoryId) {
         if (firstDiv && !channel.querySelector('.drag-handle')) {
             const dragHandle = document.createElement('span');
             dragHandle.className = 'drag-handle';
-            dragHandle.innerHTML = '<span class="drag-icon"></span>';
+            dragHandle.innerHTML = '<i class="fas fa-grip-lines fa-xs"></i>';
             firstDiv.prepend(dragHandle);
         }
         
@@ -277,21 +291,116 @@ function handleCategoryDrop(event) {
     
     if (!draggedCategory) return;
     
-    const dropTarget = findDropTarget(event.clientY, categories);
-    if (!dropTarget || dropTarget === draggedCategory) return;
+    // Get drop target - could be either the container or a category
+    let dropTarget;
     
-    // Get the index of the drop target
-    const newIndex = categories.indexOf(dropTarget);
-    
-    // Reorder in the DOM
-    if (event.clientY < dropTarget.getBoundingClientRect().top + dropTarget.offsetHeight / 2) {
-        categoryList.insertBefore(draggedCategory, dropTarget);
-    } else {
-        categoryList.insertBefore(draggedCategory, dropTarget.nextElementSibling);
+    // If we're dropping directly on a category item
+    if (event.target.classList.contains('category-item')) {
+        dropTarget = event.target;
+    } 
+    // If we're dropping on a child element of a category item
+    else if (event.target.closest('.category-item')) {
+        dropTarget = event.target.closest('.category-item');
+    }
+    // Otherwise, we're dropping on the container
+    else {
+        dropTarget = categoryList;
     }
     
-    // Update positions on the server
-    updateCategoryPosition(categoryId, newIndex);
+    // Calculate the best position
+    let targetIndex = categories.length;
+    let targetElement = null;
+    
+    // If dropping on a specific category
+    if (dropTarget.classList && dropTarget.classList.contains('category-item') && dropTarget !== draggedCategory) {
+        // Get position based on where in the item we're dropping
+        const rect = dropTarget.getBoundingClientRect();
+        const isInUpperHalf = event.clientY - rect.top < rect.height / 2;
+        
+        // Find the index of the drop target
+        const dropTargetIndex = categories.indexOf(dropTarget);
+        
+        if (isInUpperHalf) {
+            // Insert before the drop target
+            targetElement = dropTarget;
+            targetIndex = dropTargetIndex;
+        } else {
+            // Insert after the drop target
+            targetIndex = dropTargetIndex + 1;
+            targetElement = categories[dropTargetIndex + 1] || null;
+        }
+    } 
+    // If dropping directly on the container, find the nearest category
+    else {
+        // Find the closest category based on Y position
+        const mouseY = event.clientY;
+        let closestDistance = Infinity;
+        let closestIndex = -1;
+        
+        categories.forEach((category, index) => {
+            if (category === draggedCategory) return;
+            
+            const rect = category.getBoundingClientRect();
+            const categoryMiddle = rect.top + rect.height / 2;
+            const distance = Math.abs(mouseY - categoryMiddle);
+            
+            if (distance < closestDistance) {
+                closestDistance = distance;
+                closestIndex = index;
+                
+                // Determine if we should insert before or after this category
+                if (mouseY < categoryMiddle) {
+                    targetElement = category;
+                    targetIndex = index;
+                } else {
+                    targetIndex = index + 1;
+                    targetElement = categories[index + 1] || null;
+                }
+            }
+        });
+        
+        // If container is empty or mouseY is below all categories
+        if (closestIndex === -1 || targetIndex >= categories.length) {
+            targetIndex = categories.length;
+            targetElement = null;
+        }
+    }
+    
+    // Update DOM position
+    if (targetElement) {
+        categoryList.insertBefore(draggedCategory, targetElement);
+    } else {
+        categoryList.appendChild(draggedCategory);
+    }
+    
+    // Remove any drop target indicators
+    document.querySelectorAll('.drag-over, .drop-target-above, .drop-target-below').forEach(el => {
+        el.classList.remove('drag-over', 'drop-target-above', 'drop-target-below');
+    });
+    
+    // Visual feedback
+    draggedCategory.classList.add('updating');
+    
+    // Update server position
+    updateCategoryPosition(categoryId, targetIndex)
+        .then(() => {
+            draggedCategory.classList.remove('updating');
+            draggedCategory.classList.add('update-success');
+            setTimeout(() => {
+                draggedCategory.classList.remove('update-success');
+            }, 1000);
+            
+            // Remove any drop previews
+            document.querySelectorAll('.drop-preview').forEach(el => el.remove());
+        })
+        .catch((error) => {
+            console.error('Error updating category position:', error);
+            draggedCategory.classList.remove('updating');
+            draggedCategory.classList.add('update-error');
+            setTimeout(() => {
+                draggedCategory.classList.remove('update-error');
+            }, 1000);
+        });
 }
 
 // Channel drag handlers
@@ -344,33 +453,126 @@ function handleChannelDrop(event, categoryId) {
     
     if (!draggedChannel) return;
     
-    const dropTarget = findDropTarget(event.clientY, channels);
+    // Get drop target - could be either the container or a channel
+    let dropTarget;
     
-    // Get the new position index
-    let newIndex = 0;
-    
-    if (dropTarget) {
-        if (event.clientY < dropTarget.getBoundingClientRect().top + dropTarget.offsetHeight / 2) {
-            container.insertBefore(draggedChannel, dropTarget);
-            newIndex = channels.indexOf(dropTarget);
-        } else {
-            container.insertBefore(draggedChannel, dropTarget.nextElementSibling);
-            newIndex = channels.indexOf(dropTarget) + 1;
-        }
-    } else {
-        container.appendChild(draggedChannel);
-        newIndex = channels.length;
+    // If we're dropping directly on a channel item
+    if (event.target.classList.contains('channel-item')) {
+        dropTarget = event.target;
+    } 
+    // If we're dropping on a child element of a channel item
+    else if (event.target.closest('.channel-item')) {
+        dropTarget = event.target.closest('.channel-item');
+    }
+    // Otherwise, we're dropping on the container
+    else {
+        dropTarget = container;
     }
     
-    // Update position on the server
-    updateChannelPosition(channelId, newIndex, categoryId);
+    // Calculate the best position
+    let newPosition = 0;
+    let targetItem = null;
+    
+    // If dropping on a specific channel
+    if (dropTarget.classList && dropTarget.classList.contains('channel-item') && dropTarget !== draggedChannel) {
+        // Get position based on where in the item we're dropping
+        const rect = dropTarget.getBoundingClientRect();
+        const isInUpperHalf = event.clientY - rect.top < rect.height / 2;
+        
+        // Find the index of the drop target
+        const dropTargetIndex = channels.indexOf(dropTarget);
+        
+        if (isInUpperHalf) {
+            // Insert before the drop target
+            targetItem = dropTarget;
+            newPosition = dropTargetIndex;
+        } else {
+            // Insert after the drop target
+            newPosition = dropTargetIndex + 1;
+            targetItem = channels[dropTargetIndex + 1] || null;
+        }
+    } 
+    // If dropping directly on the container (or another element), find the nearest channel
+    else {
+        // Find the closest channel based on Y position
+        const mouseY = event.clientY;
+        let closestDistance = Infinity;
+        let closestIndex = -1;
+        
+        channels.forEach((channel, index) => {
+            if (channel === draggedChannel) return;
+            
+            const rect = channel.getBoundingClientRect();
+            const channelMiddle = rect.top + rect.height / 2;
+            const distance = Math.abs(mouseY - channelMiddle);
+            
+            if (distance < closestDistance) {
+                closestDistance = distance;
+                closestIndex = index;
+                
+                // Determine if we should insert before or after this channel
+                if (mouseY < channelMiddle) {
+                    targetItem = channel;
+                    newPosition = index;
+                } else {
+                    newPosition = index + 1;
+                    targetItem = channels[index + 1] || null;
+                }
+            }
+        });
+        
+        // If container is empty or mouseY is below all channels
+        if (closestIndex === -1 || newPosition >= channels.length) {
+            newPosition = channels.length;
+            targetItem = null;
+        }
+    }
+    
+    // Insert at calculated position
+    if (targetItem) {
+        container.insertBefore(draggedChannel, targetItem);
+    } else {
+        container.appendChild(draggedChannel);
+    }
+    
+    // Remove any drop target indicators
+    document.querySelectorAll('.drag-over, .drop-target-above, .drop-target-below').forEach(el => {
+        el.classList.remove('drag-over', 'drop-target-above', 'drop-target-below');
+    });
+    
+    // Visual feedback during update
+    draggedChannel.classList.add('updating');
+    
+    // Update positions on the server
+    updateChannelPosition(channelId, newPosition, categoryId)
+        .then(() => {
+            draggedChannel.classList.remove('updating');
+            // Add success indicator briefly
+            draggedChannel.classList.add('update-success');
+            setTimeout(() => {
+                draggedChannel.classList.remove('update-success');
+            }, 1000);
+            
+            // Remove any drop previews
+            document.querySelectorAll('.drop-preview').forEach(el => el.remove());
+        })
+        .catch((error) => {
+            console.error('Error updating channel position:', error);
+            draggedChannel.classList.remove('updating');
+            draggedChannel.classList.add('update-error');
+            setTimeout(() => {
+                draggedChannel.classList.remove('update-error');
+            }, 1000);
+        });
 }
 
 // Helper functions
 function findDropTarget(clientY, elements) {
     for (const element of elements) {
         const rect = element.getBoundingClientRect();
-        if (clientY >= rect.top && clientY <= rect.bottom) {
+        const elementMiddle = rect.top + rect.height / 2;
+        
+        if (clientY < elementMiddle) {
             return element;
         }
     }
@@ -379,29 +581,59 @@ function findDropTarget(clientY, elements) {
 
 function handleDragEnter(event) {
     // Clear any existing drag-over indicators first
-    document.querySelectorAll('.drag-over').forEach(el => {
-        el.classList.remove('drag-over');
+    document.querySelectorAll('.drag-over, .drop-target-above, .drop-target-below').forEach(el => {
+        el.classList.remove('drag-over', 'drop-target-above', 'drop-target-below');
     });
     
-    // Only add the drag-over class to the immediate target
-    const validTarget = event.target.classList.contains('channel-item') || 
-                        event.target.classList.contains('category-item');
+    // Check if target can receive drop
+    const isChannelOrCategory = event.target.classList.contains('channel-item') || 
+                                event.target.classList.contains('category-item') ||
+                                event.target.closest('.channel-item') ||
+                                event.target.closest('.category-item');
     
-    if (validTarget) {
-        event.target.classList.add('drag-over');
+    if (!isChannelOrCategory) return;
+    
+    // Get the actual item element
+    const targetItem = event.target.classList.contains('channel-item') || event.target.classList.contains('category-item') 
+        ? event.target 
+        : (event.target.closest('.channel-item') || event.target.closest('.category-item'));
+    
+    if (!targetItem) return;
+    
+    // Add drag-over class
+    targetItem.classList.add('drag-over');
+    
+    // Determine if we're on the top or bottom half of the target
+    const rect = targetItem.getBoundingClientRect();
+    const isInUpperHalf = event.clientY - rect.top < rect.height / 2;
+    
+    // Add appropriate class based on position
+    if (isInUpperHalf) {
+        targetItem.classList.add('drop-target-above');
+    } else {
+        targetItem.classList.add('drop-target-below');
     }
 }
 
 function handleDragLeave(event) {
-    // Only remove the class from the specific element
+    // Only remove classes if we're actually leaving the element
+    // and not just moving between its children
+    const relatedTarget = event.relatedTarget;
+    if (relatedTarget && event.target.contains(relatedTarget)) {
+        return;
+    }
+    
+    // Only remove from the specific element being left
     if (event.target.classList.contains('drag-over')) {
-        event.target.classList.remove('drag-over');
+        event.target.classList.remove('drag-over', 'drop-target-above', 'drop-target-below');
     }
 }
 
 // API functions
 function updateCategoryPosition(categoryId, position) {
-    fetch('/api/categories/position', {
+    console.log(`Updating category ${categoryId} to position ${position}`);
+    
+    return fetch('/api/categories/position', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -421,14 +653,13 @@ function updateCategoryPosition(categoryId, position) {
             });
         }
         return response.json();
-    })
-    .catch(error => {
-        console.error('Error updating category position:', error);
     });
 }
 
 function updateChannelPosition(channelId, position, categoryId) {
-    fetch('/api/channels/position', {
+    console.log(`Updating channel ${channelId} to position ${position} in category ${categoryId}`);
+    
+    return fetch('/api/channels/position', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -449,9 +680,6 @@ function updateChannelPosition(channelId, position, categoryId) {
             });
         }
         return response.json();
-    })
-    .catch(error => {
-        console.error('Error updating channel position:', error);
     });
 }
 
@@ -474,4 +702,382 @@ setInterval(function() {
             initDragDrop();
         }
     }
-}, 2000); 
+}, 2000);
+
+// Add a new function to create a channel at a specific position when dropped
+function handleNewChannelDrop(event, categoryId, position) {
+    // Prevent default browser handling
+    event.preventDefault();
+    
+    // Get the server ID
+    const serverIdElement = document.querySelector('#current-server-id') || document.querySelector('meta[name="server-id"]');
+    if (!serverIdElement) {
+        console.error('Server ID not found');
+        return;
+    }
+    
+    const serverId = serverIdElement.value || serverIdElement.getAttribute('content');
+    
+    // Show modal to create channel at position
+    if (typeof openCreateChannelModal === 'function') {
+        // If the modal function exists, use it with position data
+        openCreateChannelModal(categoryId, position);
+    } else {
+        // Add modal HTML dynamically if not present
+        showCreateChannelModal(serverId, categoryId, position);
+    }
+}
+
+// Create a simple modal if one doesn't exist
+function showCreateChannelModal(serverId, categoryId, position) {
+    // Remove any existing modals
+    const existingModal = document.getElementById('quick-create-channel-modal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Create modal HTML
+    const modal = document.createElement('div');
+    modal.id = 'quick-create-channel-modal';
+    modal.className = 'fixed inset-0 flex items-center justify-center z-50';
+    modal.innerHTML = `
+        <div class="fixed inset-0 bg-black bg-opacity-50"></div>
+        <div class="bg-discord-dark rounded-lg p-6 relative z-10 max-w-md w-full">
+            <h3 class="text-xl font-bold mb-4 text-white">Create New Channel</h3>
+            <form id="quick-create-channel-form">
+                <div class="mb-4">
+                    <label class="block text-gray-300 mb-1">Channel Name</label>
+                    <input type="text" name="name" class="w-full bg-discord-light text-white rounded p-2" 
+                           placeholder="new-channel" pattern="[a-z0-9\\-_]+" required>
+                    <p class="text-xs text-gray-400 mt-1">
+                        Lowercase letters, numbers, hyphens, and underscores only
+                    </p>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-300 mb-1">Channel Type</label>
+                    <select name="type" class="w-full bg-discord-light text-white rounded p-2">
+                        <option value="text">Text Channel</option>
+                        <option value="voice">Voice Channel</option>
+                    </select>
+                </div>
+                <input type="hidden" name="server_id" value="${serverId}">
+                <input type="hidden" name="category_id" value="${categoryId || ''}">
+                <input type="hidden" name="position" value="${position}">
+                <div class="flex justify-end space-x-2 mt-6">
+                    <button type="button" id="cancel-quick-channel" class="px-4 py-2 text-white">
+                        Cancel
+                    </button>
+                    <button type="submit" class="bg-discord-blue px-4 py-2 rounded text-white">
+                        Create Channel
+                    </button>
+                </div>
+            </form>
+        </div>
+    `;
+    
+    // Add to document
+    document.body.appendChild(modal);
+    
+    // Add event listeners
+    document.getElementById('cancel-quick-channel').addEventListener('click', () => {
+        modal.remove();
+    });
+    
+    document.getElementById('quick-create-channel-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const form = e.target;
+        const name = form.name.value.trim();
+        const type = form.type.value;
+        const serverId = form.server_id.value;
+        const categoryId = form.category_id.value || null;
+        const position = parseInt(form.position.value, 10);
+        
+        if (typeof createChannelAtPosition === 'function') {
+            createChannelAtPosition(name, type, serverId, categoryId, position)
+                .then(() => {
+                    modal.remove();
+                })
+                .catch(error => {
+                    console.error('Error creating channel:', error);
+                });
+        } else {
+            // Fallback if function doesn't exist
+            const formData = new FormData(form);
+            
+            fetch('/api/channels', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('Channel created at position:', position);
+                    modal.remove();
+                    window.location.reload(); // Reload to see changes
+                } else {
+                    alert(data.message || 'Failed to create channel');
+                }
+            })
+            .catch(error => {
+                console.error('Error creating channel:', error);
+                alert('An error occurred');
+            });
+        }
+    });
+    
+    // Focus the input
+    setTimeout(() => {
+        modal.querySelector('input[name="name"]').focus();
+    }, 100);
+}
+
+// Add a context menu for more options
+function showChannelContextMenu(event, channelId) {
+    event.preventDefault();
+    
+    // Remove any existing context menus
+    removeContextMenus();
+    
+    // Create context menu
+    const contextMenu = document.createElement('div');
+    contextMenu.className = 'channel-context-menu fixed bg-discord-dark rounded shadow-lg py-1 z-50';
+    contextMenu.style.left = `${event.clientX}px`;
+    contextMenu.style.top = `${event.clientY}px`;
+    
+    contextMenu.innerHTML = `
+        <div class="px-3 py-1 text-xs text-gray-400">Channel Options</div>
+        <button class="w-full text-left px-3 py-1 hover:bg-discord-light text-white text-sm">Edit Channel</button>
+        <button class="w-full text-left px-3 py-1 hover:bg-discord-light text-white text-sm">Delete Channel</button>
+        <button class="w-full text-left px-3 py-1 hover:bg-discord-light text-white text-sm">Add to Category</button>
+    `;
+    
+    document.body.appendChild(contextMenu);
+    
+    // Close menu when clicking elsewhere
+    document.addEventListener('click', removeContextMenus);
+    
+    function removeContextMenus() {
+        const menus = document.querySelectorAll('.channel-context-menu');
+        menus.forEach(menu => menu.remove());
+        document.removeEventListener('click', removeContextMenus);
+    }
+}
+
+// Add batch update function
+function batchUpdatePositions(updates, serverId) {
+    console.log('Batch updating positions:', updates);
+    
+    return fetch('/api/positions/batch', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({
+            updates: updates,
+            server_id: serverId
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.text().then(text => {
+                console.error(`Server returned error ${response.status}: ${text}`);
+                throw new Error(`Server returned ${response.status}: ${text}`);
+            });
+        }
+        return response.json();
+    });
+}
+
+// Collect all channel positions for batch update
+function collectChannelPositions() {
+    const serverId = document.querySelector('#current-server-id')?.value || 
+                    document.querySelector('meta[name="server-id"]')?.getAttribute('content');
+    
+    if (!serverId) {
+        console.error('Server ID not found');
+        return null;
+    }
+    
+    const updates = [];
+    
+    // Get all categories
+    document.querySelectorAll('.category-item').forEach((category, categoryIndex) => {
+        const categoryId = category.getAttribute('data-category-id');
+        
+        updates.push({
+            id: categoryId,
+            type: 'category',
+            position: categoryIndex,
+            server_id: serverId
+        });
+        
+        // Get channels in this category
+        const channels = category.querySelectorAll('.channel-item');
+        channels.forEach((channel, channelIndex) => {
+            const channelId = channel.getAttribute('data-channel-id');
+            
+            updates.push({
+                id: channelId,
+                type: 'channel',
+                position: channelIndex,
+                category_id: categoryId,
+                server_id: serverId
+            });
+        });
+    });
+    
+    // Get uncategorized channels
+    const uncategorizedContainer = document.querySelector('.uncategorized-channels');
+    if (uncategorizedContainer) {
+        const channels = uncategorizedContainer.querySelectorAll('.channel-item');
+        channels.forEach((channel, channelIndex) => {
+            const channelId = channel.getAttribute('data-channel-id');
+            
+            updates.push({
+                id: channelId,
+                type: 'channel',
+                position: channelIndex,
+                category_id: null,
+                server_id: serverId
+            });
+        });
+    }
+    
+    return {
+        updates: updates,
+        server_id: serverId
+    };
+}
+
+// Add function to sync all positions with server
+function syncAllPositions() {
+    const positionData = collectChannelPositions();
+    if (!positionData) return Promise.reject('Could not collect positions');
+    
+    return batchUpdatePositions(positionData.updates, positionData.server_id)
+        .then(response => {
+            console.log('Positions synced successfully:', response);
+            return response;
+        })
+        .catch(error => {
+            console.error('Error syncing positions:', error);
+            throw error;
+        });
+}
+
+// Add a new function to create a category at a specific position when dropped
+function handleNewCategoryDrop(event, position) {
+    // Prevent default browser handling
+    event.preventDefault();
+    
+    // Get the server ID
+    const serverIdElement = document.querySelector('#current-server-id') || document.querySelector('meta[name="server-id"]');
+    if (!serverIdElement) {
+        console.error('Server ID not found');
+        return;
+    }
+    
+    const serverId = serverIdElement.value || serverIdElement.getAttribute('content');
+    
+    // Show modal to create category at position
+    if (typeof openCreateCategoryModal === 'function') {
+        // If the modal function exists, use it with position data
+        openCreateCategoryModal(position);
+    } else {
+        // Add modal HTML dynamically if not present
+        showCreateCategoryModal(serverId, position);
+    }
+}
+
+// Create a simple category modal if one doesn't exist
+function showCreateCategoryModal(serverId, position) {
+    // Remove any existing modals
+    const existingModal = document.getElementById('quick-create-category-modal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Create modal HTML
+    const modal = document.createElement('div');
+    modal.id = 'quick-create-category-modal';
+    modal.className = 'fixed inset-0 flex items-center justify-center z-50';
+    modal.innerHTML = `
+        <div class="fixed inset-0 bg-black bg-opacity-50"></div>
+        <div class="bg-discord-dark rounded-lg p-6 relative z-10 max-w-md w-full">
+            <h3 class="text-xl font-bold mb-4 text-white">Create New Category</h3>
+            <form id="quick-create-category-form">
+                <div class="mb-4">
+                    <label class="block text-gray-300 mb-1">Category Name</label>
+                    <input type="text" name="name" class="w-full bg-discord-light text-white rounded p-2" 
+                           placeholder="CATEGORY NAME" required>
+                </div>
+                <input type="hidden" name="server_id" value="${serverId}">
+                <input type="hidden" name="position" value="${position}">
+                <div class="flex justify-end space-x-2 mt-6">
+                    <button type="button" id="cancel-quick-category" class="px-4 py-2 text-white">
+                        Cancel
+                    </button>
+                    <button type="submit" class="bg-discord-blue px-4 py-2 rounded text-white">
+                        Create Category
+                    </button>
+                </div>
+            </form>
+        </div>
+    `;
+    
+    // Add to document
+    document.body.appendChild(modal);
+    
+    // Add event listeners
+    document.getElementById('cancel-quick-category').addEventListener('click', () => {
+        modal.remove();
+    });
+    
+    document.getElementById('quick-create-category-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const form = e.target;
+        const name = form.name.value.trim();
+        const serverId = form.server_id.value;
+        const position = parseInt(form.position.value, 10);
+        
+        if (typeof createCategoryAtPosition === 'function') {
+            createCategoryAtPosition(name, serverId, position)
+                .then(() => {
+                    modal.remove();
+                })
+                .catch(error => {
+                    console.error('Error creating category:', error);
+                });
+        } else {
+            // Fallback if function doesn't exist
+            const formData = new FormData(form);
+            
+            fetch('/api/channels/category', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('Category created at position:', position);
+                    modal.remove();
+                    window.location.reload(); // Reload to see changes
+                } else {
+                    alert(data.message || 'Failed to create category');
+                }
+            })
+            .catch(error => {
+                console.error('Error creating category:', error);
+                alert('An error occurred');
+            });
+        }
+    });
+    
+    // Focus the input
+    setTimeout(() => {
+        modal.querySelector('input[name="name"]').focus();
+    }, 100);
+} 

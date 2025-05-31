@@ -46,7 +46,7 @@ if (!function_exists('asset')) {
 
                     <div class="md:w-1/2 pl-0 md:pl-16 mt-6 md:mt-0 timeline-visual animated-slide-in-right">
                         <div class="glass-panel p-2 rounded-xl overflow-hidden hover-float">
-                            <img src="<?php echo asset('/images/landing-page/actor-sit.webp'); ?>" alt="Voice channels" class="w-full h-auto rounded-lg">
+                            <img src="<?php echo asset('/assets/landing-page/actor-sit.webp'); ?>" alt="Voice channels" class="w-full h-auto rounded-lg">
 
                             <div class="audio-wave-overlay">
                                 <div class="audio-wave flex items-center justify-center h-8 px-4">
@@ -75,7 +75,7 @@ if (!function_exists('asset')) {
 
                     <div class="md:w-1/2 pr-0 md:pr-16 mt-6 md:mt-0 timeline-visual animated-slide-in-left">
                         <div class="glass-panel p-2 rounded-xl overflow-hidden hover-float">
-                            <img src="<?php echo asset('/images/landing-page/computer.webp'); ?>" alt="Screen share" class="w-full h-auto rounded-lg">
+                            <img src="<?php echo asset('/assets/landing-page/computer.webp'); ?>" alt="Screen share" class="w-full h-auto rounded-lg">
 
                             <div class="screen-overlay">
                                 <div class="screen-controls flex justify-center space-x-3 p-2">
@@ -102,7 +102,7 @@ if (!function_exists('asset')) {
 
                     <div class="md:w-1/2 pl-0 md:pl-16 mt-6 md:mt-0 timeline-visual animated-slide-in-right">
                         <div class="glass-panel p-2 rounded-xl overflow-hidden hover-float">
-                            <img src="<?php echo asset('/images/landing-page/wumpus_happy.webp'); ?>" alt="Video chat" class="w-full h-auto rounded-lg">
+                            <img src="<?php echo asset('/assets/landing-page/wumpus_happy.webp'); ?>" alt="Video chat" class="w-full h-auto rounded-lg">
 
                             <div class="video-chat-overlay">
                                 <div class="video-frame absolute inset-0 border-4 border-discord-green rounded-lg opacity-0 transition-opacity duration-300"></div>

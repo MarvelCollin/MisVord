@@ -9,37 +9,10 @@ $body_class = 'modern-landing';
 ob_start();
 ?>
 
-<!-- Animated Background -->no
+<!-- Animated Background -->
 <div class="landing-background"></div>
 
-<!-- Modern Simplified Navbar -->
-<nav class="discord-nav" id="mainNav">
-    <div class="nav-container">
-        <a href="/" class="nav-logo">
-            <img src="<?php echo asset('/images/landing-page/main-logo.png'); ?>" alt="misvord">
-            <span class="hidden md:inline font-bold">misvord</span>
-        </a>
-
-        <ul class="nav-links" id="navLinks">
-            <li><a href="#features" class="nav-link">Features</a></li>
-            <li><a href="#safety" class="nav-link">Safety</a></li>
-            <li><a href="#community" class="nav-link">Community</a></li>
-            <li><a href="#support" class="nav-link">Support</a></li>
-            <li><a href="#blog" class="nav-link">Blog</a></li>
-        </ul>
-
-        <div class="nav-actions">
-            <a href="/login" class="nav-cta">Open misvord</a>
-            <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation menu">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M4 6h16M4 12h16M4 18h16"></path>
-                </svg>
-            </button>
-        </div>
-    </div>
-</nav>
-
-<!-- Hero Section - Completely Redesigned -->
+<!-- Hero Section - Full height without navbar -->
 <section class="hero-section">
     <!-- Enhanced floating decorative elements -->
     <div class="floating-element floating-1"></div>
@@ -61,6 +34,19 @@ ob_start();
                     Where just you and a handful of friends can spend time together. A place that makes it 
                     easy to talk every day and hang out more often.
                 </p>
+                
+                <!-- Add CTA buttons in hero section since navbar is removed -->
+                <div class="hero-actions mt-8 flex flex-col sm:flex-row gap-4">
+                    <a href="/login" class="inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-lg hover:from-blue-600 hover:to-purple-700 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path>
+                        </svg>
+                        Open misvord
+                    </a>
+                    <a href="/register" class="inline-flex items-center justify-center px-8 py-4 border-2 border-white/20 text-white font-medium rounded-lg hover:bg-white/10 hover:border-white/30 transition-all duration-200">
+                        Get Started
+                    </a>
+                </div>
             </div>
 
             <div class="hero-visual">
@@ -194,7 +180,7 @@ ob_start();
         </div>
 
         <div class="footer-bottom">
-            <img src="<?php echo asset('/images/landing-page/main-logo.png'); ?>" alt="misvord" height="32">
+            <img src="<?php echo asset('/assets/landing-page/main-logo.svg'); ?>" alt="misvord" height="32">
             <a href="/register" class="footer-cta">Sign up</a>
         </div>
     </div>

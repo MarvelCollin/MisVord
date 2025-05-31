@@ -7,7 +7,7 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $page_title ?? 'misvord'; ?></title>
+    <title><?php echo $page_title ?? 'MisVord'; ?></title>
     <link rel="stylesheet" href="<?php echo css('global'); ?>">
     <link rel="stylesheet" href="<?php echo css('lazy-loading'); ?>">
     <?php if (isset($page_css)): ?>
@@ -49,8 +49,7 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
     <!-- Include modal components -->
     <?php include_once dirname(__DIR__) . '/components/app-sections/create-server-modal.php'; ?>
     <?php include_once dirname(__DIR__) . '/components/app-sections/server-actions-modals.php'; ?>
-    <?php include_once dirname(__DIR__) . '/components/app-sections/create-category-modal.php'; ?>
-    <?php include_once dirname(__DIR__) . '/components/app-sections/create-channel-modal.php'; ?>
+    <!-- Server action modals now include channel and category creation -->
     
     <!-- Scripts -->
     <?php include_once __DIR__ . '/scripts.php'; ?>

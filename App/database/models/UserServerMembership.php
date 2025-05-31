@@ -61,12 +61,20 @@ class UserServerMembership {
      */
     public static function getServerRoles($serverId) {
         $query = new Query();
-        $roles = $query->table('server_roles')
-            ->where('server_id', $serverId)
-            ->orderBy('position', 'DESC')
-            ->get();
+        
+        // Check if server_roles table exists before trying to query it
+        if ($query->tableExists('server_roles')) {
+            $roles = $query->table('server_roles')
+                ->where('server_id', $serverId)
+                ->orderBy('position', 'DESC')
+                ->get();
             
-        return $roles;
+            return $roles;
+        } else {
+            // Table doesn't exist, return empty array
+            error_log("Warning: server_roles table doesn't exist, returning empty array");
+            return [];
+        }
     }
     
     public static function getMemberCount($serverId) {

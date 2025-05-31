@@ -3,7 +3,7 @@
  * Handles message operations like send, edit, delete, etc.
  */
 
-import { MiscVordAjax } from '../core/ajax-handler.js';
+import { MisVordAjax } from '../core/ajax-handler.js';
 import { showToast } from '../core/toast.js';
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -135,7 +135,7 @@ function scrollToBottom(element) {
  * @param {string} content - Message content
  */
 function sendMessage(channelId, content) {
-    MiscVordAjax.post(`/api/channels/${channelId}/messages`, {
+    MisVordAjax.post(`/api/channels/${channelId}/messages`, {
         content: content
     }, {
         onSuccess: function(response) {
@@ -208,7 +208,7 @@ function startEditingMessage(messageElement) {
  * @param {string} content - New content
  */
 function updateMessage(messageId, content) {
-    MiscVordAjax.put(`/api/messages/${messageId}`, {
+    MisVordAjax.put(`/api/messages/${messageId}`, {
         content: content
     }, {
         onSuccess: function(response) {
@@ -225,7 +225,7 @@ function updateMessage(messageId, content) {
  * @param {string} messageId - Message ID
  */
 function deleteMessage(messageId) {
-    MiscVordAjax.delete(`/api/messages/${messageId}`, {
+    MisVordAjax.delete(`/api/messages/${messageId}`, {
         onSuccess: function(response) {
             if (response.success) {
                 // Remove message from UI (if not already removed by WebSocket)

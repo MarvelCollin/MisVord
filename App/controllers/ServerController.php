@@ -45,9 +45,28 @@ class ServerController extends BaseController {
         // Get data for the server view
         $currentUserId = $_SESSION['user_id'] ?? 0;
         $userServers = Server::getFormattedServersForUser($currentUserId);
-        $serverMembers = UserServerMembership::getServerMembers($server->id);
-        $serverRoles = UserServerMembership::getServerRoles($server->id);
-        $serverChannels = Channel::getServerChannels($server->id);
+        
+        // Use try/catch for each data fetch to ensure we can continue even if one fails
+        try {
+            $serverMembers = UserServerMembership::getServerMembers($server->id);
+        } catch (Exception $e) {
+            error_log("Error fetching server members: " . $e->getMessage());
+            $serverMembers = [];
+        }
+        
+        try {
+            $serverRoles = UserServerMembership::getServerRoles($server->id);
+        } catch (Exception $e) {
+            error_log("Error fetching server roles: " . $e->getMessage());
+            $serverRoles = [];
+        }
+        
+        try {
+            $serverChannels = Channel::getServerChannels($server->id);
+        } catch (Exception $e) {
+            error_log("Error fetching server channels: " . $e->getMessage());
+            $serverChannels = [];
+        }
         
         // Get active channel and its messages
         $activeChannelId = $_GET['channel'] ?? null;
@@ -56,7 +75,13 @@ class ServerController extends BaseController {
         if (empty($activeChannelId) && !empty($serverChannels)) {
             // Find first text channel
             foreach ($serverChannels as $channel) {
-                if ($channel['type_name'] === 'text') {
+                if (isset($channel['type_name']) && $channel['type_name'] === 'text') {
+                    $activeChannelId = $channel['id'];
+                    break;
+                }
+                
+                // Fallback to using type directly if type_name is not set
+                if (!isset($channel['type_name']) && isset($channel['type']) && ($channel['type'] === 'text' || $channel['type'] === 1)) {
                     $activeChannelId = $channel['id'];
                     break;
                 }
@@ -64,7 +89,12 @@ class ServerController extends BaseController {
         }
         
         if ($activeChannelId) {
-            $channelMessages = Channel::getChannelMessages($activeChannelId);
+            try {
+                $channelMessages = Channel::getChannelMessages($activeChannelId);
+            } catch (Exception $e) {
+                error_log("Error fetching channel messages: " . $e->getMessage());
+                $channelMessages = [];
+            }
         }
         
         // For AJAX requests, return server data as JSON
@@ -77,23 +107,23 @@ class ServerController extends BaseController {
                     'image_url' => $server->image_url,
                     'is_public' => (bool)$server->is_public
                 ],
-                'userServers' => $userServers,
-                'serverMembers' => $serverMembers,
-                'serverRoles' => $serverRoles,
-                'serverChannels' => $serverChannels,
+                'userServers' => $userServers ?? [],
+                'serverMembers' => $serverMembers ?? [],
+                'serverRoles' => $serverRoles ?? [],
+                'serverChannels' => $serverChannels ?? [],
                 'activeChannelId' => $activeChannelId,
-                'channelMessages' => $channelMessages
+                'channelMessages' => $channelMessages ?? []
             ]);
         }
         
         // For regular requests, set global variables and render the page
         $GLOBALS['currentServer'] = $server;
-        $GLOBALS['userServers'] = $userServers;
-        $GLOBALS['serverMembers'] = $serverMembers;
-        $GLOBALS['serverRoles'] = $serverRoles;
-        $GLOBALS['serverChannels'] = $serverChannels;
+        $GLOBALS['userServers'] = $userServers ?? [];
+        $GLOBALS['serverMembers'] = $serverMembers ?? [];
+        $GLOBALS['serverRoles'] = $serverRoles ?? [];
+        $GLOBALS['serverChannels'] = $serverChannels ?? [];
         $GLOBALS['activeChannelId'] = $activeChannelId;
-        $GLOBALS['channelMessages'] = $channelMessages;
+        $GLOBALS['channelMessages'] = $channelMessages ?? [];
         
         require_once dirname(__DIR__) . '/views/pages/server-page.php';
     }

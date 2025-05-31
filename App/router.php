@@ -29,6 +29,46 @@ if (strpos($path, '/api/') === 0) {
         $controller->create();
         exit;
     }
+    
+    // Channels API routes
+    if ($path === '/api/channels' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        require_once __DIR__ . '/controllers/ChannelController.php';
+        $controller = new ChannelController();
+        $controller->create();
+        exit;
+    }
+    
+    // Category routes
+    if ($path === '/api/categories' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        require_once __DIR__ . '/controllers/ChannelController.php';
+        $controller = new ChannelController();
+        $controller->createCategory();
+        exit;
+    }
+
+    // Position management routes
+    if ($path === '/api/positions/batch' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        require_once __DIR__ . '/controllers/ChannelController.php';
+        $controller = new ChannelController();
+        $controller->batchUpdatePositions();
+        exit;
+    }
+    
+    // Channel position route
+    if ($path === '/api/channels/position' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        require_once __DIR__ . '/controllers/ChannelController.php';
+        $controller = new ChannelController();
+        $controller->updateChannelPosition();
+        exit;
+    }
+    
+    // Category position route
+    if ($path === '/api/categories/position' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        require_once __DIR__ . '/controllers/ChannelController.php';
+        $controller = new ChannelController();
+        $controller->updateCategoryPosition();
+        exit;
+    }
 }
 
 // Delegate to public router for other requests

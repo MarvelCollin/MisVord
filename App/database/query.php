@@ -287,99 +287,100 @@ class Query {
     }
 
     public function get() {
-        try {
-            $query = $this->buildSelectQuery();
-            $stmt = $this->pdo->prepare($query);
-            $stmt->execute($this->bindings);
-            $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            $stmt->closeCursor(); 
-            return $result;
-        } catch (PDOException $e) {
-            error_log("Database error in get(): " . $e->getMessage());
-            return [];
-        }
+        $query = $this->buildSelectQuery();
+        $stmt = $this->pdo->prepare($query);
+        $this->execute($stmt, $this->bindings);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function first() {
         $this->limit(1);
-        $result = $this->get();
-        return count($result) > 0 ? $result[0] : null;
+        $query = $this->buildSelectQuery();
+        $stmt = $this->pdo->prepare($query);
+        $this->execute($stmt, $this->bindings);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
     public function find($id) {
         return $this->where('id', $id)->first();
     }
 
-    public function count() {
-        $this->select('COUNT(*) as count');
-        $result = $this->get();
-        return isset($result[0]['count']) ? (int) $result[0]['count'] : 0;
+    public function count($column = '*') {
+        $query = "SELECT COUNT({$column}) AS count FROM {$this->table}";
+
+        if (!empty($this->where)) {
+            $query .= ' ' . $this->buildWhereClause();
+        }
+
+        $stmt = $this->pdo->prepare($query);
+        $this->execute($stmt, $this->bindings);
+        return (int) $stmt->fetchColumn();
     }
 
     public function sum($column) {
-        $this->select("SUM($column) as sum");
-        $result = $this->get();
-        return isset($result[0]['sum']) ? (float) $result[0]['sum'] : 0;
+        $query = "SELECT SUM({$column}) AS sum FROM {$this->table}";
+
+        if (!empty($this->where)) {
+            $query .= ' ' . $this->buildWhereClause();
+        }
+
+        $stmt = $this->pdo->prepare($query);
+        $this->execute($stmt, $this->bindings);
+        return (float) $stmt->fetchColumn();
     }
 
     public function avg($column) {
-        $this->select("AVG($column) as avg");
-        $result = $this->get();
-        return isset($result[0]['avg']) ? (float) $result[0]['avg'] : 0;
+        $query = "SELECT AVG({$column}) AS avg FROM {$this->table}";
+
+        if (!empty($this->where)) {
+            $query .= ' ' . $this->buildWhereClause();
+        }
+
+        $stmt = $this->pdo->prepare($query);
+        $this->execute($stmt, $this->bindings);
+        return (float) $stmt->fetchColumn();
     }
 
     public function min($column) {
-        $this->select("MIN($column) as min");
-        $result = $this->get();
-        return isset($result[0]['min']) ? $result[0]['min'] : null;
+        $query = "SELECT MIN({$column}) AS min FROM {$this->table}";
+
+        if (!empty($this->where)) {
+            $query .= ' ' . $this->buildWhereClause();
+        }
+
+        $stmt = $this->pdo->prepare($query);
+        $this->execute($stmt, $this->bindings);
+        return $stmt->fetchColumn();
     }
 
     public function max($column) {
-        $this->select("MAX($column) as max");
-        $result = $this->get();
-        return isset($result[0]['max']) ? $result[0]['max'] : null;
+        $query = "SELECT MAX({$column}) AS max FROM {$this->table}";
+
+        if (!empty($this->where)) {
+            $query .= ' ' . $this->buildWhereClause();
+        }
+
+        $stmt = $this->pdo->prepare($query);
+        $this->execute($stmt, $this->bindings);
+        return $stmt->fetchColumn();
     }
 
     public function insert(array $data) {
-        if (empty($data)) {
-            return null;
-        }
-
-        $columns = implode(', ', array_map(function($column) {
-            return "`$column`";
-        }, array_keys($data)));
-
-        $placeholders = implode(', ', array_fill(0, count($data), '?'));
+        $columns = array_keys($data);
         $values = array_values($data);
+        $columnsList = '`' . implode('`, `', $columns) . '`';
+        $placeholders = implode(', ', array_fill(0, count($columns), '?'));
 
-        $sql = "INSERT INTO `{$this->table}` ({$columns}) VALUES ({$placeholders})";
+        $query = "INSERT INTO {$this->table} ($columnsList) VALUES ($placeholders)";
 
-        try {
-            $stmt = $this->pdo->prepare($sql);
-            
-            // Bind parameters with explicit types to avoid type issues
-            foreach ($values as $index => $value) {
-                $paramType = PDO::PARAM_STR;
-                if (is_bool($value)) {
-                    $paramType = PDO::PARAM_BOOL;
-                } elseif (is_int($value)) {
-                    $paramType = PDO::PARAM_INT;
-                } elseif (is_null($value)) {
-                    $paramType = PDO::PARAM_NULL;
-                }
-                
-                // PDO parameter indices are 1-based
-                $stmt->bindValue($index + 1, $value, $paramType);
-            }
-            
-            $stmt->execute();
+        $stmt = $this->pdo->prepare($query);
+        $this->execute($stmt, $values);
+
+        if ($stmt->rowCount() > 0) {
             return $this->pdo->lastInsertId();
-        } catch (PDOException $e) {
-            error_log("Query Error (insert): " . $e->getMessage());
-            error_log("SQL: $sql");
-            error_log("Values: " . json_encode($values));
-            throw $e;
         }
+
+        return false;
     }
 
     public function insertBatch(array $data) {
@@ -387,16 +388,14 @@ class Query {
             return 0;
         }
 
-        $columns = array_keys($data[0]);
-        $columnsList = implode(', ', $columns);
-
+        $columns = array_keys(reset($data));
+        $columnsList = '`' . implode('`, `', $columns) . '`';
         $placeholders = [];
         $values = [];
 
         foreach ($data as $row) {
-            $rowPlaceholders = [];
+            $rowPlaceholders = array_fill(0, count($columns), '?');
             foreach ($columns as $column) {
-                $rowPlaceholders[] = '?';
                 $values[] = $row[$column] ?? null;
             }
             $placeholders[] = '(' . implode(', ', $rowPlaceholders) . ')';
@@ -406,7 +405,7 @@ class Query {
         $query = "INSERT INTO {$this->table} ($columnsList) VALUES $placeholdersList";
 
         $stmt = $this->pdo->prepare($query);
-        $stmt->execute($values);
+        $this->execute($stmt, $values);
 
         return $stmt->rowCount();
     }
@@ -427,7 +426,7 @@ class Query {
         }
 
         $stmt = $this->pdo->prepare($query);
-        $stmt->execute($this->bindings);
+        $this->execute($stmt, $this->bindings);
 
         return $stmt->rowCount();
     }
@@ -461,7 +460,7 @@ class Query {
         }
 
         $stmt = $this->pdo->prepare($query);
-        $stmt->execute($this->bindings);
+        $this->execute($stmt, $this->bindings);
 
         return $stmt->rowCount();
     }
@@ -474,7 +473,7 @@ class Query {
     public function tableExists($table) {
         try {
             $stmt = $this->pdo->prepare("SHOW TABLES LIKE ?");
-            $stmt->execute([$table]);
+            $this->execute($stmt, [$table]);
             return $stmt->rowCount() > 0;
         } catch (PDOException $e) {
             return false;
@@ -484,7 +483,7 @@ class Query {
     public function columnExists($table, $column) {
         try {
             $stmt = $this->pdo->prepare("SHOW COLUMNS FROM `$table` LIKE ?");
-            $stmt->execute([$column]);
+            $this->execute($stmt, [$column]);
             return $stmt->rowCount() > 0;
         } catch (PDOException $e) {
             error_log("Error checking if column exists: " . $e->getMessage());
@@ -674,5 +673,22 @@ class Query {
         }
 
         return $env;
+    }
+
+    public function execute($statement, $params = []) {
+        // Process parameters to ensure they're all scalar values
+        foreach ($params as $key => $value) {
+            if (is_object($value)) {
+                // Convert objects to string representation
+                if (method_exists($value, '__toString')) {
+                    $params[$key] = (string)$value;
+                } else {
+                    // For Query objects or other objects, convert to string or null
+                    $params[$key] = null;
+                }
+            }
+        }
+        
+        return $statement->execute($params);
     }
 }

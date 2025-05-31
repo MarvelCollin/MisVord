@@ -1,4 +1,6 @@
 // Server Dropdown Functionality - UPDATED VERSION
+import { showToast } from './core/toast.js';
+
 console.log('server-dropdown.js loaded successfully - UPDATED VERSION');
 window.SERVER_DROPDOWN_VERSION = '2.0';
 document.addEventListener('DOMContentLoaded', function() {
@@ -186,30 +188,37 @@ function showCreateChannelModal() {
     const modal = document.getElementById('create-channel-modal');
     
     if (modal) {
-        modal.classList.remove('hidden');
-        
-        // Only attach listeners for close buttons, not form submission
-        const closeBtn = document.getElementById('close-create-channel-modal');
-        const cancelBtn = document.getElementById('cancel-create-channel');
-        const nameInput = document.getElementById('channel-name');
-        
-        if (closeBtn && !closeBtn.hasAttribute('data-listener')) {
-            closeBtn.addEventListener('click', () => closeModal('create-channel-modal'));
-            closeBtn.setAttribute('data-listener', 'true');
+        // Use the window.openCreateChannelModal function from server-actions-modals.php if available
+        if (typeof window.openCreateChannelModal === 'function') {
+            window.openCreateChannelModal();
+        } else {
+            modal.classList.remove('hidden');
+            
+            // Only attach listeners for close buttons if not already set up
+            const closeBtn = document.getElementById('close-create-channel-modal');
+            const cancelBtn = document.getElementById('cancel-create-channel');
+            const nameInput = document.getElementById('channel-name');
+            
+            if (closeBtn && !closeBtn.hasAttribute('data-listener')) {
+                closeBtn.addEventListener('click', () => closeModal('create-channel-modal'));
+                closeBtn.setAttribute('data-listener', 'true');
+            }
+            
+            if (cancelBtn && !cancelBtn.hasAttribute('data-listener')) {
+                cancelBtn.addEventListener('click', () => closeModal('create-channel-modal'));
+                cancelBtn.setAttribute('data-listener', 'true');
+            }
+            
+            // Add name validation
+            if (nameInput && !nameInput.hasAttribute('data-listener')) {
+                nameInput.addEventListener('input', function() {
+                    this.value = this.value.toLowerCase().replace(/[^a-z0-9\-_]/g, '');
+                });
+                nameInput.setAttribute('data-listener', 'true');
+            }
         }
-        
-        if (cancelBtn && !cancelBtn.hasAttribute('data-listener')) {
-            cancelBtn.addEventListener('click', () => closeModal('create-channel-modal'));
-            cancelBtn.setAttribute('data-listener', 'true');
-        }
-        
-        // Add name validation
-        if (nameInput && !nameInput.hasAttribute('data-listener')) {
-            nameInput.addEventListener('input', function() {
-                this.value = this.value.toLowerCase().replace(/[^a-z0-9\-_]/g, '');
-            });
-            nameInput.setAttribute('data-listener', 'true');
-        }
+    } else {
+        console.error('Create channel modal not found');
     }
 }
 
@@ -218,21 +227,28 @@ function showCreateCategoryModal() {
     const modal = document.getElementById('create-category-modal');
     
     if (modal) {
-        modal.classList.remove('hidden');
-        
-        // Only attach listeners for close buttons, not form submission
-        const closeBtn = document.getElementById('close-create-category-modal');
-        const cancelBtn = document.getElementById('cancel-create-category');
-        
-        if (closeBtn && !closeBtn.hasAttribute('data-listener')) {
-            closeBtn.addEventListener('click', () => closeModal('create-category-modal'));
-            closeBtn.setAttribute('data-listener', 'true');
+        // Use the window.openCreateCategoryModal function from server-actions-modals.php if available
+        if (typeof window.openCreateCategoryModal === 'function') {
+            window.openCreateCategoryModal();
+        } else {
+            modal.classList.remove('hidden');
+            
+            // Only attach listeners for close buttons if not already set up
+            const closeBtn = document.getElementById('close-create-category-modal');
+            const cancelBtn = document.getElementById('cancel-create-category');
+            
+            if (closeBtn && !closeBtn.hasAttribute('data-listener')) {
+                closeBtn.addEventListener('click', () => closeModal('create-category-modal'));
+                closeBtn.setAttribute('data-listener', 'true');
+            }
+            
+            if (cancelBtn && !cancelBtn.hasAttribute('data-listener')) {
+                cancelBtn.addEventListener('click', () => closeModal('create-category-modal'));
+                cancelBtn.setAttribute('data-listener', 'true');
+            }
         }
-        
-        if (cancelBtn && !cancelBtn.hasAttribute('data-listener')) {
-            cancelBtn.addEventListener('click', () => closeModal('create-category-modal'));
-            cancelBtn.setAttribute('data-listener', 'true');
-        }
+    } else {
+        console.error('Create category modal not found');
     }
 }
 
@@ -775,43 +791,6 @@ function closeModal(modalId) {
     if (modal) {
         modal.classList.add('hidden');
     }
-}
-
-function showToast(message, type = 'info') {
-    // Get or create toast container
-    let toastContainer = document.getElementById('toast-container');
-    if (!toastContainer) {
-        toastContainer = document.createElement('div');
-        toastContainer.id = 'toast-container';
-        toastContainer.className = 'fixed top-4 right-4 z-50 space-y-2';
-        document.body.appendChild(toastContainer);
-    }
-    
-    // Create toast notification
-    const toast = document.createElement('div');
-    toast.className = `px-6 py-3 rounded-lg text-white transform transition-all duration-300 translate-x-full opacity-0 ${
-        type === 'success' ? 'bg-green-600' : 
-        type === 'error' ? 'bg-red-600' : 
-        'bg-blue-600'
-    }`;
-    toast.textContent = message;
-    
-    toastContainer.appendChild(toast);
-    
-    // Animate in
-    setTimeout(() => {
-        toast.classList.remove('translate-x-full', 'opacity-0');
-    }, 10);
-    
-    // Remove toast after 3 seconds
-    setTimeout(() => {
-        toast.classList.add('translate-x-full', 'opacity-0');
-        setTimeout(() => {
-            if (toast.parentNode) {
-                toast.remove();
-            }
-        }, 300);
-    }, 3000);
 }
 
 // Helper function to load channels via AJAX

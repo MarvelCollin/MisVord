@@ -1,65 +1,138 @@
 /**
- * Main JavaScript entry point for MiscVord application
- * This file imports all core utilities and components
+ * MisVord - Main Entry Point
+ * This file imports and initializes all application components
  */
 
 // Import core utilities
-import './core/toast.js';
-import { MiscVordAjax } from './core/ajax-handler.js';
-import LazyLoader from './lazy-loader.js';
+import { showToast } from './core/toast.js';
+import { MisVordAjax } from './core/ajax-handler.js';
 
-// Ensure LazyLoader is available globally before anything else
-if (!window.LazyLoader) {
-    window.LazyLoader = LazyLoader;
+// Import components
+import * as Components from './components/index.js';
+
+// Global initialization
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('MisVord application initialized');
+    
+    // Only initialize global UI elements that are always present
+    initGlobalUI();
+    
+    // Conditionally initialize page-specific components
+    initPageSpecificComponents();
+});
+
+/**
+ * Initialize global UI elements
+ */
+function initGlobalUI() {
+    // Initialize tooltips, dropdowns, etc.
+    const dropdownTriggers = document.querySelectorAll('[data-dropdown]');
+    if (dropdownTriggers.length) {
+        dropdownTriggers.forEach(trigger => {
+            trigger.addEventListener('click', toggleDropdown);
+        });
+    }
+    
+    // Initialize auto-sizing textareas
+    const textareas = document.querySelectorAll('textarea[data-autosize]');
+    if (textareas.length) {
+        textareas.forEach(textarea => {
+            textarea.addEventListener('input', autosizeTextarea);
+            // Initialize height on page load
+            autosizeTextarea({ target: textarea });
+        });
+    }
 }
 
-// Make utilities available globally
-window.MiscVordAjax = MiscVordAjax;
-
-// Signal that main modules are loaded
-console.log('🔄 Main.js loaded - LazyLoader available globally');
-window.dispatchEvent(new CustomEvent('MainModulesReady', { 
-    detail: { 
-        LazyLoader, 
-        MiscVordAjax 
-    } 
-}));
-
-// Initialize components when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('MiscVord application initialized');
+/**
+ * Initialize components based on current page context
+ */
+function initPageSpecificComponents() {
+    const path = window.location.pathname;
     
-    // Initialize LazyLoader first
-    console.log('🔄 Initializing LazyLoader from main.js');
-    LazyLoader.init();
-    
-    // Import components as needed based on page
-    const currentPage = document.body.dataset.page;
-      // Load appropriate components based on the current page
-    switch(currentPage) {
-        case 'auth':
-            import('./components/auth.js').then(module => {
-                console.log('Authentication components loaded');
-                // The authManager is automatically instantiated when imported
-                if (module.authManager) {
-                    console.log('✅ AuthManager initialized for authentication page');
-                }
-            });
-            break;
-        case 'server':
-            import('./components/server-manager.js').then(module => {
-                console.log('Server management components loaded');
-            });
-            break;
-        case 'channel':
-            import('./components/channel-manager.js').then(module => {
-                console.log('Channel management components loaded');
-            });
-            break;
-        case 'messaging':
-            import('./components/messaging.js').then(module => {
-                console.log('Messaging components loaded');
-            });
-            break;
+    // Auth pages
+    if (path === '/login' || path === '/register' || path === '/forgot-password') {
+        // Auth components handled via inline scripts
     }
-}); 
+    
+    // App home page
+    else if (path === '/app' || path === '/home') {
+        // Home page components
+    }
+    
+    // Server page
+    else if (path.includes('/server/')) {
+        // Server page needs channel management and messaging
+    }
+    
+    // Explore servers page
+    else if (path === '/explore') {
+        // Initialize server explorer
+    }
+}
+
+/**
+ * Toggle dropdown visibility
+ */
+function toggleDropdown(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const trigger = e.currentTarget;
+    const targetId = trigger.dataset.dropdown;
+    const dropdown = document.getElementById(targetId);
+    
+    if (!dropdown) return;
+    
+    const isOpen = dropdown.classList.contains('block');
+    
+    // Close all other dropdowns
+    document.querySelectorAll('.dropdown-menu.block').forEach(menu => {
+        if (menu.id !== targetId) {
+            menu.classList.remove('block');
+            menu.classList.add('hidden');
+        }
+    });
+    
+    // Toggle current dropdown
+    if (!isOpen) {
+        dropdown.classList.remove('hidden');
+        dropdown.classList.add('block');
+    } else {
+        dropdown.classList.remove('block');
+        dropdown.classList.add('hidden');
+    }
+}
+
+/**
+ * Auto-resize textarea height based on content
+ */
+function autosizeTextarea(e) {
+    const textarea = e.target;
+    textarea.style.height = 'auto';
+    textarea.style.height = `${textarea.scrollHeight}px`;
+}
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('[data-dropdown]') && !e.target.closest('.dropdown-menu')) {
+        document.querySelectorAll('.dropdown-menu.block').forEach(dropdown => {
+            dropdown.classList.remove('block');
+            dropdown.classList.add('hidden');
+        });
+    }
+});
+
+// Make common functions available globally
+window.misvord = {
+    showToast,
+    toggleDropdown,
+    autosizeTextarea
+};
+
+// Export for module usage
+export {
+    showToast,
+    toggleDropdown,
+    autosizeTextarea
+}; 

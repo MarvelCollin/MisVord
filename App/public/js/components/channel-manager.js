@@ -1,4 +1,4 @@
-import { MiscVordAjax } from '../core/ajax-handler.js';
+import { MisVordAjax } from '../core/ajax-handler.js';
 import { showToast } from '../core/toast.js';
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -29,7 +29,7 @@ function loadServerChannels() {
     const loadingEl = document.getElementById('channel-loading');
     if (loadingEl) loadingEl.classList.remove('hidden');
     
-    MiscVordAjax.get(`/api/servers/${serverId}/channels`, {
+    MisVordAjax.get(`/api/servers/${serverId}/channels`, {
         onSuccess: function(response) {
             if (response.success) {
                 renderChannelList(response.data);
@@ -59,7 +59,7 @@ function initUpdateChannelForms() {
                 data[key] = value;
             }
 
-            MiscVordAjax.put(`/api/channels/${channelId}`, data, {
+            MisVordAjax.put(`/api/channels/${channelId}`, data, {
                 onSuccess: function(response) {
                     if (response.success) {
                         showToast('Channel updated successfully', 'success');
@@ -99,7 +99,7 @@ function initDeleteChannelButtons() {
 }
 
 function deleteChannel(channelId) {
-    MiscVordAjax.delete(`/api/channels/${channelId}`, {
+    MisVordAjax.delete(`/api/channels/${channelId}`, {
         onSuccess: function(response) {
             if (response.success) {
                 showToast('Channel deleted successfully', 'success');
@@ -116,7 +116,7 @@ function refreshChannelList() {
     const serverId = urlParts[urlParts.indexOf('server') + 1];
     
     if (serverId) {
-        MiscVordAjax.get(`/api/servers/${serverId}/channels`, {
+        MisVordAjax.get(`/api/servers/${serverId}/channels`, {
             onSuccess: function(response) {
                 if (response.success) {
                     // Update the categories and channels in the UI
@@ -379,4 +379,83 @@ function updateChannelInUI(channel) {
     } else {
         refreshChannelList();
     }
+}
+
+// Find or add function for position-aware channel creation
+function createChannelAtPosition(name, type, serverId, categoryId = null, position = null) {
+    // Create form data with position parameter
+    const formData = new FormData();
+    formData.append('name', name);
+    formData.append('type', type);
+    formData.append('server_id', serverId);
+    
+    if (categoryId) {
+        formData.append('category_id', categoryId);
+    }
+    
+    if (position !== null) {
+        formData.append('position', position);
+    }
+    
+    // Send request to create channel
+    return new Promise((resolve, reject) => {
+        fetch('/api/channels', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log('Channel created at position:', position);
+                resolve(data);
+                showToast('Channel created successfully', 'success');
+                refreshChannelList();
+            } else {
+                reject(data);
+                showToast(data.message || 'Failed to create channel', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error creating channel:', error);
+            reject(error);
+            showToast('An error occurred', 'error');
+        });
+    });
+}
+
+// Find or add function for position-aware category creation
+function createCategoryAtPosition(name, serverId, position = null) {
+    // Create form data with position parameter
+    const formData = new FormData();
+    formData.append('name', name);
+    formData.append('server_id', serverId);
+    
+    if (position !== null) {
+        formData.append('position', position);
+    }
+    
+    // Send request to create category
+    return new Promise((resolve, reject) => {
+        fetch('/api/categories', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log('Category created at position:', position);
+                resolve(data);
+                showToast('Category created successfully', 'success');
+                refreshChannelList();
+            } else {
+                reject(data);
+                showToast(data.message || 'Failed to create category', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error creating category:', error);
+            reject(error);
+            showToast('An error occurred', 'error');
+        });
+    });
 }
