@@ -3,26 +3,23 @@
 require_once __DIR__ . '/../database/models/UserServerMembership.php';
 require_once __DIR__ . '/../database/models/Server.php';
 require_once __DIR__ . '/../database/query.php';
+require_once __DIR__ . '/BaseController.php';
 
-class NotificationSettingsController {
+class NotificationSettingsController extends BaseController {
 
     public function __construct() {
-        if (session_status() == PHP_SESSION_NONE) {
-            session_start();
-        }
+        parent::__construct();
     }
     
     public function updateServerNotificationSettings() {
         if (!isset($_SESSION['user_id'])) {
-            $this->jsonResponse(['success' => false, 'message' => 'Unauthorized'], 401);
-            return;
+            return $this->unauthorized();
         }
 
         $data = json_decode(file_get_contents('php://input'), true);
         
         if (!$data || !isset($data['server_id'])) {
-            $this->jsonResponse(['success' => false, 'message' => 'Invalid request'], 400);
-            return;
+            return $this->validationError(['message' => 'Invalid request']);
         }
 
         $serverId = $data['server_id'];
@@ -31,8 +28,7 @@ class NotificationSettingsController {
         // Check if user is a member of this server
         $membership = UserServerMembership::findByUserAndServer($userId, $serverId);
         if (!$membership) {
-            $this->jsonResponse(['success' => false, 'message' => 'You are not a member of this server'], 403);
-            return;
+            return $this->forbidden('You are not a member of this server');
         }
         
         // Get notification settings
@@ -60,23 +56,20 @@ class NotificationSettingsController {
                 ->update(['notification_settings' => json_encode($notificationSettings)]);
             
             if ($result) {
-                $this->jsonResponse([
-                    'success' => true, 
-                    'message' => 'Notification settings updated successfully',
+                return $this->successResponse([
                     'notification_settings' => $notificationSettings
-                ]);
+                ], 'Notification settings updated successfully');
             } else {
-                $this->jsonResponse(['success' => false, 'message' => 'Failed to update notification settings'], 500);
+                return $this->serverError('Failed to update notification settings');
             }
         } catch (Exception $e) {
-            $this->jsonResponse(['success' => false, 'message' => 'Error updating notification settings: ' . $e->getMessage()], 500);
+            return $this->serverError('Error updating notification settings: ' . $e->getMessage());
         }
     }
     
     public function getServerNotificationSettings($serverId) {
         if (!isset($_SESSION['user_id'])) {
-            $this->jsonResponse(['success' => false, 'message' => 'Unauthorized'], 401);
-            return;
+            return $this->unauthorized();
         }
         
         $userId = $_SESSION['user_id'];
@@ -84,8 +77,7 @@ class NotificationSettingsController {
         // Check if user is a member of this server
         $membership = UserServerMembership::findByUserAndServer($userId, $serverId);
         if (!$membership) {
-            $this->jsonResponse(['success' => false, 'message' => 'You are not a member of this server'], 403);
-            return;
+            return $this->forbidden('You are not a member of this server');
         }
         
         try {
@@ -98,8 +90,7 @@ class NotificationSettingsController {
                 
             if ($result && !empty($result['notification_settings'])) {
                 $settings = json_decode($result['notification_settings'], true);
-                $this->jsonResponse([
-                    'success' => true, 
+                return $this->successResponse([
                     'notification_settings' => $settings
                 ]);
             } else {
@@ -112,20 +103,12 @@ class NotificationSettingsController {
                     'suppress_roles' => false
                 ];
                 
-                $this->jsonResponse([
-                    'success' => true, 
+                return $this->successResponse([
                     'notification_settings' => $defaultSettings
                 ]);
             }
         } catch (Exception $e) {
-            $this->jsonResponse(['success' => false, 'message' => 'Error retrieving notification settings: ' . $e->getMessage()], 500);
+            return $this->serverError('Error retrieving notification settings: ' . $e->getMessage());
         }
-    }
-    
-    private function jsonResponse($data, $statusCode = 200) {
-        http_response_code($statusCode);
-        header('Content-Type: application/json');
-        echo json_encode($data);
-        exit;
     }
 } 

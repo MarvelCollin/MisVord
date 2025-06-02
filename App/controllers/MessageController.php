@@ -56,104 +56,6 @@ class MessageController extends BaseController {
         }
     }
 
-    public function createMessage($channelId) {
-        error_log("MessageController::createMessage called with channelId=$channelId");
-
-        if (!isset($_SESSION['user_id'])) {
-            return $this->unauthorized();
-        }
-
-        $channel = Channel::find($channelId);
-        if (!$channel) {
-            error_log("MessageController: Channel not found with ID=$channelId");
-            return $this->notFound('Channel not found');
-        }
-
-        $membership = UserServerMembership::findByUserAndServer($_SESSION['user_id'], $channel->server_id);
-        if (!$membership && $channel->server_id != 0) {
-            return $this->forbidden('You are not a member of this server');
-        }
-
-        $rawInput = file_get_contents('php://input');
-        $data = null;
-
-        if (!empty($rawInput)) {
-            try {
-                $data = json_decode($rawInput, true, 512, JSON_THROW_ON_ERROR);
-            } catch (Exception $e) {
-                error_log("JSON parse error: " . $e->getMessage() . " - Raw input: " . substr($rawInput, 0, 100));
-                return $this->validationError(['content' => 'Invalid JSON data']);
-            }
-        }
-
-        if ($data === null) {
-            $data = $_POST;
-        }
-
-        error_log("MessageController: Received data: " . json_encode($data));
-
-        if (empty($data['content'])) {
-            return $this->validationError(['content' => 'Message content is required']);
-        }
-
-        try {
-            Message::initialize();
-
-            $message = new Message();
-            $message->user_id = $_SESSION['user_id'];
-            $message->content = $data['content'];
-            $message->sent_at = date('Y-m-d H:i:s');
-            $message->message_type = 'text';
-            $message->attachment_url = $data['attachment_url'] ?? null;
-            $message->reply_message_id = $data['reply_message_id'] ?? null;
-
-            if (!$message->save()) {
-                error_log("MessageController: Failed to save message");
-                return $this->serverError('Failed to create message');
-            }
-
-            error_log("MessageController: Message saved with ID=" . $message->id);
-
-            if (!$message->associateWithChannel($channelId)) {
-                error_log("MessageController: Failed to associate message with channel");
-                $message->delete();
-                return $this->serverError('Failed to associate message with channel');
-            }
-
-            $user = User::find($_SESSION['user_id']);
-            if ($user) {
-                $message->username = $user->username;
-                $message->avatar_url = $user->avatar_url;
-            }
-
-            $formattedMessage = $this->formatMessage($message);
-
-            try {
-                $this->broadcastToWebSocket('message', [
-                    'id' => $message->id,
-                    'channelId' => $channelId,
-                    'content' => $message->content,
-                    'sent_at' => $message->sent_at,
-                    'formatted_time' => $formattedMessage['formatted_time'],
-                    'user' => [
-                        'userId' => $message->user_id,
-                        'username' => $formattedMessage['user']['username'],
-                        'avatar_url' => $formattedMessage['user']['avatar_url']
-                    ]
-                ]);
-            } catch (Exception $e) {
-                error_log("Failed to broadcast to WebSocket server: " . $e->getMessage());
-            }
-
-            return $this->successResponse([
-                'message' => $formattedMessage
-            ], 'Message sent successfully');
-        } catch (Exception $e) {
-            error_log("Error creating message: " . $e->getMessage() . "\n" . $e->getTraceAsString());
-            return $this->serverError('Server error: ' . $e->getMessage());
-        }
-    }
-
     public function updateMessage($id) {
         if (!isset($_SESSION['user_id'])) {
             return $this->unauthorized();
@@ -296,24 +198,90 @@ class MessageController extends BaseController {
         ];
     }
 
-    private function formatTime($time) {
-        if (empty($time)) {
-            return 'Just now';
-        }
+    /**
+     * Debug endpoint to test database connectivity and message storage
+     */
+    public function debugMessageStorage() {
+        error_log("MessageController::debugMessageStorage called");
 
-        $sentAt = new DateTime($time);
-        $now = new DateTime();
-
-        $diff = $now->diff($sentAt);
-
-        if ($diff->days == 0) {
-            return 'Today at ' . $sentAt->format('g:i A');
-        } elseif ($diff->days == 1) {
-            return 'Yesterday at ' . $sentAt->format('g:i A');
-        } elseif ($diff->days < 7) {
-            return $sentAt->format('l') . ' at ' . $sentAt->format('g:i A');
-        } else {
-            return $sentAt->format('M j, Y') . ' at ' . $sentAt->format('g:i A');
+        try {
+            $results = [];
+            
+            // Test database connection
+            $query = new Query();
+            $dbConnected = $query->testConnection();
+            $results['db_connection'] = $dbConnected ? 'successful' : 'failed';
+            
+            if ($dbConnected) {
+                // Check if tables exist
+                $messagesTableExists = $query->tableExists('messages');
+                $channelMessagesTableExists = $query->tableExists('channel_messages');
+                
+                $results['tables'] = [
+                    'messages_table' => $messagesTableExists ? 'exists' : 'missing',
+                    'channel_messages_table' => $channelMessagesTableExists ? 'exists' : 'missing'
+                ];
+                
+                // Get recent messages
+                if ($messagesTableExists) {
+                    $recentMessages = $query->table('messages')
+                        ->orderBy('id', 'DESC')
+                        ->limit(5)
+                        ->get();
+                    
+                    $results['recent_messages'] = $recentMessages;
+                    $results['total_messages'] = $query->table('messages')->count();
+                }
+                
+                // Test WebSocket client
+                try {
+                    $wsClient = new WebSocketClient();
+                    $wsTestResult = $wsClient->testConnection();
+                    $results['websocket_connection'] = $wsTestResult ? 'successful' : 'failed';
+                } catch (Exception $e) {
+                    $results['websocket_connection'] = 'failed: ' . $e->getMessage();
+                }
+                
+                // Try inserting a test message
+                if ($messagesTableExists && $channelMessagesTableExists) {
+                    $userId = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 1;
+                    $channelId = isset($_GET['channel_id']) ? $_GET['channel_id'] : 11;
+                    
+                    // Create message
+                    $message = new Message();
+                    $message->user_id = $userId;
+                    $message->content = "Debug test message at " . date('Y-m-d H:i:s');
+                    $message->sent_at = date('Y-m-d H:i:s');
+                    $message->message_type = 'text';
+                    
+                    $saveResult = $message->save();
+                    $results['test_message_save'] = $saveResult ? 'successful' : 'failed';
+                    
+                    if ($saveResult) {
+                        // Associate with channel
+                        $associateResult = $message->associateWithChannel($channelId);
+                        $results['test_associate_channel'] = $associateResult ? 'successful' : 'failed';
+                        $results['test_message_id'] = $message->id;
+                        
+                        // Test WebSocket broadcast
+                        try {
+                            $wsClient = new WebSocketClient();
+                            $broadcastResult = $wsClient->sendMessage($channelId, $message->content, [
+                                'userId' => $userId,
+                                'username' => 'Debug User'
+                            ]);
+                            $results['test_websocket_broadcast'] = $broadcastResult ? 'successful' : 'failed';
+                        } catch (Exception $e) {
+                            $results['test_websocket_broadcast'] = 'failed: ' . $e->getMessage();
+                        }
+                    }
+                }
+            }
+            
+            return $this->successResponse($results);
+        } catch (Exception $e) {
+            error_log("Error in debugMessageStorage: " . $e->getMessage());
+            return $this->serverError('Server error: ' . $e->getMessage());
         }
     }
 }

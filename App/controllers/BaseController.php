@@ -3,130 +3,139 @@
 class BaseController {
     
     public function __construct() {
+        // Start session if not already started
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        
         // Set JSON header for API responses
         if ($this->isApiRoute() || $this->isAjaxRequest()) {
             header('Content-Type: application/json');
         }
     }
     
+    protected function view($viewPath, $data = []) {
+        // Extract data to variables
+        extract($data);
+        
+        // Include the view file
+        $fullPath = __DIR__ . '/../views/' . $viewPath . '.php';
+        
+        if (file_exists($fullPath)) {
+            include $fullPath;
+        } else {
+            // View not found, show 404
+            http_response_code(404);
+            include __DIR__ . '/../views/pages/404.php';
+        }
+    }
+    
+    protected function redirect($url) {
+        header("Location: $url");
+        exit;
+    }
+    
+    protected function redirectToLogin() {
+        $this->redirect('/login');
+    }
+    
+    protected function json($data, $statusCode = 200) {
+        http_response_code($statusCode);
+        header('Content-Type: application/json');
+        echo json_encode($data);
+        exit;
+    }
+    
     protected function successResponse($data = [], $message = 'Success') {
-        $response = [
+        return $this->json([
             'success' => true,
             'message' => $message,
             'data' => $data
-        ];
-        
-        if ($this->isAjaxRequest() || $this->isApiRoute()) {
-            echo json_encode($response);
-            exit;
-        }
-        
-        return $response;
+        ]);
     }
     
-    protected function validationError($errors, $message = 'Validation failed') {
-        http_response_code(400);
-        
-        $response = [
-            'success' => false,
-            'message' => $message,
-            'errors' => $errors
-        ];
-        
-        if ($this->isAjaxRequest() || $this->isApiRoute()) {
-            echo json_encode($response);
-            exit;
-        }
-        
-        return $response;
-    }
-    
-    protected function serverError($message = 'Internal server error') {
-        // Ensure we have a clean response
-        if (ob_get_level()) ob_end_clean();
-        
-        // Log the error for debugging
-        error_log("Server Error: $message");
-        
-        // Set proper headers
-        header('Content-Type: application/json');
-        http_response_code(500);
-        
-        // In development environment, include more details
-        $isDevelopment = true; // Set this based on your environment
-        
-        $response = [
+    protected function errorResponse($message = 'Error', $statusCode = 400) {
+        return $this->json([
             'success' => false,
             'message' => $message
-        ];
-        
-        if ($isDevelopment) {
-            // Add backtrace for debugging in development
-            $backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3);
-            $caller = isset($backtrace[1]) ? $backtrace[1] : [];
-            
-            $response['debug'] = [
-                'file' => $caller['file'] ?? 'unknown',
-                'line' => $caller['line'] ?? 'unknown',
-                'function' => $caller['function'] ?? 'unknown',
-                'time' => date('Y-m-d H:i:s')
-            ];
-        }
-        
-        if ($this->isAjaxRequest() || $this->isApiRoute()) {
-            echo json_encode($response);
-            exit;
-        }
-        
-        return $response;
+        ], $statusCode);
+    }
+    
+    protected function validationError($errors) {
+        return $this->json([
+            'success' => false,
+            'message' => 'Validation failed',
+            'errors' => $errors
+        ], 422);
     }
     
     protected function unauthorized($message = 'Unauthorized') {
-        http_response_code(401);
-        
-        $response = [
-            'success' => false,
-            'message' => $message
-        ];
-        
-        if ($this->isAjaxRequest() || $this->isApiRoute()) {
-            echo json_encode($response);
-            exit;
-        }
-        
-        return $response;
-    }
-    
-    protected function notFound($message = 'Not found') {
-        http_response_code(404);
-        
-        $response = [
-            'success' => false,
-            'message' => $message
-        ];
-        
-        if ($this->isAjaxRequest() || $this->isApiRoute()) {
-            echo json_encode($response);
-            exit;
-        }
-        
-        return $response;
+        return $this->errorResponse($message, 401);
     }
     
     protected function forbidden($message = 'Forbidden') {
-        http_response_code(403);
-        
-        $response = [
+        return $this->errorResponse($message, 403);
+    }
+    
+    protected function notFound($message = 'Not found') {
+        return $this->errorResponse($message, 404);
+    }
+    
+    protected function serverError($message = 'Internal server error') {
+        return $this->errorResponse($message, 500);
+    }
+
+    protected function partialContent($data = [], $message = 'Partial Content') {
+        return $this->json([
             'success' => false,
-            'message' => $message
-        ];
+            'message' => $message,
+            'data' => $data
+        ], 206);
+    }
+    
+    protected function redirectResponse($url, $message = 'Redirecting') {
+        return $this->json([
+            'success' => true,
+            'message' => $message,
+            'redirect' => $url
+        ]);
+    }
+    
+    protected function validateRequired($data, $fields) {
+        $errors = [];
         
-        if ($this->isAjaxRequest() || $this->isApiRoute()) {
-            echo json_encode($response);
-            exit;
+        foreach ($fields as $field) {
+            if (!isset($data[$field]) || empty($data[$field])) {
+                $errors[$field] = ucfirst($field) . ' is required';
+            }
         }
         
-        return $response;
+        return $errors;
+    }
+    
+    protected function validateEmail($email) {
+        return filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
+    }
+    
+    protected function sanitizeInput($input) {
+        if (is_array($input)) {
+            return array_map([$this, 'sanitizeInput'], $input);
+        }
+        
+        return htmlspecialchars(strip_tags(trim($input)), ENT_QUOTES, 'UTF-8');
+    }
+    
+    protected function isAuthenticated() {
+        return isset($_SESSION['user_id']) && !empty($_SESSION['user_id']);
+    }
+    
+    protected function getCurrentUser() {
+        if (!$this->isAuthenticated()) {
+            return null;
+        }
+        
+        require_once __DIR__ . '/../database/models/User.php';
+        return User::find($_SESSION['user_id']);
     }
     
     protected function isAjaxRequest() {
@@ -137,5 +146,56 @@ class BaseController {
     protected function isApiRoute() {
         $uri = $_SERVER['REQUEST_URI'] ?? '';
         return strpos($uri, '/api/') === 0 || strpos($uri, '/api/') !== false;
+    }
+
+    protected function jsonResponse($data, $statusCode = 200) {
+        http_response_code($statusCode);
+        header('Content-Type: application/json');
+        echo json_encode($data);
+        exit;
+    }
+
+    protected function formatTime($time) {
+        if (empty($time)) {
+            return 'Just now';
+        }
+
+        $sentAt = new DateTime($time);
+        $now = new DateTime();
+
+        $diff = $now->diff($sentAt);
+
+        if ($diff->days == 0) {
+            return 'Today at ' . $sentAt->format('g:i A');
+        } elseif ($diff->days == 1) {
+            return 'Yesterday at ' . $sentAt->format('g:i A');
+        } elseif ($diff->days < 7) {
+            return $sentAt->format('l') . ' at ' . $sentAt->format('g:i A');
+        } else {
+            return $sentAt->format('M j, Y') . ' at ' . $sentAt->format('g:i A');
+        }
+    }
+
+    protected function uploadImage($file, $directory = 'uploads') {
+        $fileType = exif_imagetype($file['tmp_name']);
+        if (!$fileType || !in_array($fileType, [IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_GIF, IMAGETYPE_WEBP])) {
+            return false;
+        }
+
+        $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
+        $filename = basename($directory) . '_' . time() . '_' . bin2hex(random_bytes(8)) . '.' . $extension;
+
+        $uploadDir = __DIR__ . '/../public/assets/uploads/' . $directory . '/';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+
+        $filepath = $uploadDir . $filename;
+
+        if (move_uploaded_file($file['tmp_name'], $filepath)) {
+            return '/public/assets/uploads/' . $directory . '/' . $filename;
+        }
+
+        return false;
     }
 }

@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   # PHP Application
   app:
@@ -74,6 +76,7 @@ services:
       - SOCKET_PORT=1002
       - SOCKET_BASE_PATH=/socket.io
       - SOCKET_SUBPATH=
+      - SOCKET_API_KEY=kolin123
       - CORS_ALLOWED_ORIGINS=http://localhost:1001,http://127.0.0.1:1001
     volumes:
       - ./socket-server:/app
@@ -154,4 +157,4 @@ networks:
 
 volumes:
   misvord_db_data: 
-    driver: local 
+    driver: local

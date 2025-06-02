@@ -1,13 +1,12 @@
 <?php
 
 require_once __DIR__ . '/../database/query.php';
+require_once __DIR__ . '/BaseController.php';
 
-class UserActivityController {
+class UserActivityController extends BaseController {
 
     public function __construct() {
-        if (session_status() == PHP_SESSION_NONE) {
-            session_start();
-        }
+        parent::__construct();
     }
 
     public function getActiveUsers() {

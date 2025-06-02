@@ -3,62 +3,93 @@
 class WebSocketClient {
     
     private $serverUrl;
-    private $apiKey;
+    private $socketPort;
+    private $debug;
     
-    public function __construct($serverUrl = null, $apiKey = null) {
-        // Use SOCKET_SERVER_LOCAL for backend-to-backend communication
-        $this->serverUrl = $serverUrl ?: (getenv('SOCKET_SERVER_LOCAL') ?: 'http://socket-server:1002');
-        $this->apiKey = $apiKey ?: (getenv('SOCKET_API_KEY') ?: 'kolin123');
+    public function __construct() {
+        $this->socketPort = $_ENV['SOCKET_PORT'] ?? 1002;
+        $this->serverUrl = "http://localhost:{$this->socketPort}";
+        $this->debug = $_ENV['DEBUG'] ?? false;
     }
     
+    /**
+     * Send a message to a channel via WebSocket
+     */
+    public function sendMessage($channelId, $content, $userInfo = []) {
+        try {
+            $data = [
+                'event' => 'new-channel-message',
+                'data' => [
+                    'channelId' => $channelId,
+                    'content' => $content,
+                    'user_id' => $userInfo['userId'] ?? null,
+                    'username' => $userInfo['username'] ?? 'Unknown',
+                    'avatar_url' => $userInfo['avatar_url'] ?? null,
+                    'timestamp' => date('Y-m-d H:i:s'),
+                    'sent_at' => date('Y-m-d H:i:s'),
+                    'message_type' => 'text'
+                ]
+            ];
+            
+            return $this->broadcast($data['event'], $data['data']);
+        } catch (Exception $e) {
+            error_log("WebSocketClient::sendMessage error: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Broadcast an event to WebSocket server
+     */
     public function broadcast($event, $data) {
-        $ch = curl_init($this->serverUrl . '/broadcast');
-        
-        if (!$ch) {
-            throw new Exception('Failed to initialize cURL');
-        }
-        
-        curl_setopt($ch, CURLOPT_POST, 1);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
-            'event' => $event,
-            'data' => $data
-        ]));
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Content-Type: application/json',
-            'X-Api-Key: ' . $this->apiKey
-        ]);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 3); 
-        
-        $response = curl_exec($ch);
-        
-        if ($response === false) {
-            $error = curl_error($ch);
+        try {
+            $postData = json_encode([
+                'event' => $event,
+                'data' => $data
+            ]);
+            
+            $ch = curl_init($this->serverUrl . '/broadcast');
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Content-Type: application/json',
+                'Content-Length: ' . strlen($postData)
+            ]);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+            
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             curl_close($ch);
-            throw new Exception('cURL error: ' . $error);
+            
+            if ($this->debug) {
+                error_log("WebSocket broadcast response: $response (HTTP $httpCode)");
+            }
+            
+            return $httpCode === 200;
+        } catch (Exception $e) {
+            error_log("WebSocket broadcast error: " . $e->getMessage());
+            return false;
         }
-        
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-        
-        error_log("WebSocket broadcast response ($httpCode): " . substr($response, 0, 100));
-        
-        return $httpCode >= 200 && $httpCode < 300;
     }
     
-    public function sendMessage($channelId, $content, $user) {
-        return $this->broadcast('message', [
-            'channelId' => $channelId,
-            'content' => $content,
-            'sent_at' => date('Y-m-d H:i:s'),
-            'user' => $user
-        ]);
-    }
-    
-    public function sendTypingIndicator($channelId, $user) {
-        return $this->broadcast('user_typing', [
-            'channelId' => $channelId,
-            'user' => $user
-        ]);
+    /**
+     * Test WebSocket connection
+     */
+    public function testConnection() {
+        try {
+            $ch = curl_init($this->serverUrl . '/health');
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 3);
+            
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            
+            return $httpCode === 200;
+        } catch (Exception $e) {
+            error_log("WebSocket test connection error: " . $e->getMessage());
+            return false;
+        }
     }
 }

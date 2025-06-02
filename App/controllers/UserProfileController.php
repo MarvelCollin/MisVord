@@ -3,26 +3,23 @@
 require_once __DIR__ . '/../database/models/UserServerMembership.php';
 require_once __DIR__ . '/../database/models/Server.php';
 require_once __DIR__ . '/../database/query.php';
+require_once __DIR__ . '/BaseController.php';
 
-class UserProfileController {
+class UserProfileController extends BaseController {
 
     public function __construct() {
-        if (session_status() == PHP_SESSION_NONE) {
-            session_start();
-        }
+        parent::__construct();
     }
 
     public function updatePerServerProfile() {
         if (!isset($_SESSION['user_id'])) {
-            $this->jsonResponse(['success' => false, 'message' => 'Unauthorized'], 401);
-            return;
+            return $this->unauthorized();
         }
 
         $data = json_decode(file_get_contents('php://input'), true);
 
         if (!$data || !isset($data['server_id'])) {
-            $this->jsonResponse(['success' => false, 'message' => 'Invalid request'], 400);
-            return;
+            return $this->validationError(['message' => 'Invalid request']);
         }
 
         $serverId = $data['server_id'];
@@ -31,8 +28,7 @@ class UserProfileController {
 
         $membership = UserServerMembership::findByUserAndServer($userId, $serverId);
         if (!$membership) {
-            $this->jsonResponse(['success' => false, 'message' => 'You are not a member of this server'], 403);
-            return;
+            return $this->forbidden('You are not a member of this server');
         }
 
         $query = new Query();
@@ -42,43 +38,31 @@ class UserProfileController {
             ->update(['nickname' => $nickname]);
 
         if ($result) {
-            $this->jsonResponse([
-                'success' => true, 
-                'message' => 'Server profile updated successfully',
+            return $this->successResponse([
                 'nickname' => $nickname
-            ]);
+            ], 'Server profile updated successfully');
         } else {
-            $this->jsonResponse(['success' => false, 'message' => 'Failed to update server profile'], 500);
+            return $this->serverError('Failed to update server profile');
         }
     }
 
     public function getPerServerProfile($serverId) {
         if (!isset($_SESSION['user_id'])) {
-            $this->jsonResponse(['success' => false, 'message' => 'Unauthorized'], 401);
-            return;
+            return $this->unauthorized();
         }
 
         $userId = $_SESSION['user_id'];
 
         $membership = UserServerMembership::findByUserAndServer($userId, $serverId);
         if (!$membership) {
-            $this->jsonResponse(['success' => false, 'message' => 'You are not a member of this server'], 403);
-            return;
+            return $this->forbidden('You are not a member of this server');
         }
 
-        $this->jsonResponse([
-            'success' => true, 
+        return $this->successResponse([
             'profile' => [
                 'nickname' => $membership->nickname,
                 'role' => $membership->role
             ]
         ]);
-    }
-
-    private function jsonResponse($data, $statusCode = 200) {
-        http_response_code($statusCode);
-        header('Content-Type: application/json');
-        echo json_encode($data);
-        exit;
     }
 }

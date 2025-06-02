@@ -119,11 +119,6 @@ Route::get('/api/channels/([0-9]+)/messages', function($channelId) {
     $controller->getMessages($channelId);
 });
 
-Route::post('/api/channels/([0-9]+)/messages', function($channelId) {
-    $controller = new MessageController();
-    $controller->createMessage($channelId);
-});
-
 // Get channel details
 Route::get('/api/channels/([0-9]+)', function($channelId) {
     $controller = new ChannelController();
@@ -169,6 +164,17 @@ Route::post('/api/positions/batch', function() {
 Route::get('/debug/invite', function() {
     // Simple debug page for invite link generation
     include_once __DIR__ . '/../debug-invite.php';
+    exit;
+});
+
+Route::get('/debug/messages', function() {
+    $controller = new MessageController();
+    $controller->debugMessageStorage();
+});
+
+// Add new database debug route
+Route::get('/debug/database', function() {
+    include_once __DIR__ . '/../debug-db.php';
     exit;
 });
 

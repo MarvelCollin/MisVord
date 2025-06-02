@@ -23,14 +23,14 @@ class Query {
             try {
                 require_once __DIR__ . '/../config/env.php';
                 
-                // Replace the call to the undefined method with direct PDO connection creation
-                $dbHost = EnvLoader::get('DB_HOST', 'db');
+                $dbHost = EnvLoader::get('DB_HOST', 'localhost');
                 $port = EnvLoader::get('DB_PORT', '1003');
                 $dbname = EnvLoader::get('DB_NAME', 'misvord');
                 $username = EnvLoader::get('DB_USER', 'root');
                 $password = EnvLoader::get('DB_PASS', 'kolin123');
                 $charset = EnvLoader::get('DB_CHARSET', 'utf8mb4');
                 
+                // Force explicit database connection
                 $dsn = "mysql:host={$dbHost};port={$port};dbname={$dbname};charset={$charset}";
                 
                 $options = [
@@ -42,7 +42,18 @@ class Query {
                 ];
                 
                 $this->pdo = new PDO($dsn, $username, $password, $options);
+                
+                // Verify database connection
+                $stmt = $this->pdo->query('SELECT DATABASE() as current_db');
+                $result = $stmt->fetch();
+                
+                if ($result['current_db'] !== $dbname) {
+                    throw new PDOException("Connected to wrong database: {$result['current_db']}, expected: $dbname");
+                }
+                
             } catch (PDOException $e) {
+                error_log("Database connection failed: " . $e->getMessage());
+                error_log("Connection details: host=$dbHost, port=$port, dbname=$dbname, user=$username");
                 die("Database connection failed: " . $e->getMessage());
             }
         }
@@ -506,13 +517,21 @@ class Query {
     }
 
     public function transaction(callable $callback) {
+        $pdo = $this->pdo;
+        if ($pdo->inTransaction()) {
+            return $callback($this);
+        }
+        
         try {
-            $this->pdo->beginTransaction();
+            $pdo->beginTransaction();
             $result = $callback($this);
-            $this->pdo->commit();
+            $pdo->commit();
             return $result;
         } catch (Exception $e) {
-            $this->pdo->rollBack();
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            error_log("Transaction error: " . $e->getMessage());
             throw $e;
         }
     }
@@ -644,51 +663,27 @@ class Query {
         return $this->buildSelectQuery();
     }
 
-    private static function parseEnvFile($filePath) {
-        if (!file_exists($filePath)) {
-            return [];
-        }
-
-        $env = [];
-        $lines = file($filePath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-
-        foreach ($lines as $line) {
-            if (strpos(trim($line), '//') === 0) {
-                continue;
-            }
-
-            if (strpos($line, '=') !== false) {
-                list($key, $value) = explode('=', $line, 2);
-                $key = trim($key);
-                $value = trim($value);
-
-                if (preg_match('/^"(.*)"$/', $value, $matches)) {
-                    $value = $matches[1];
-                } elseif (preg_match("/^'(.*)'$/", $value, $matches)) {
-                    $value = $matches[1];
-                }
-
-                $env[$key] = $value;
-            }
-        }
-
-        return $env;
-    }
-
     public function execute($statement, $params = []) {
-        // Process parameters to ensure they're all scalar values
         foreach ($params as $key => $value) {
             if (is_object($value)) {
-                // Convert objects to string representation
                 if (method_exists($value, '__toString')) {
                     $params[$key] = (string)$value;
                 } else {
-                    // For Query objects or other objects, convert to string or null
                     $params[$key] = null;
                 }
             }
         }
         
         return $statement->execute($params);
+    }
+
+    public function testConnection() {
+        try {
+            $this->getPdo();
+            return true;
+        } catch (PDOException $e) {
+            error_log("Database connection test failed: " . $e->getMessage());
+            return false;
+        }
     }
 }

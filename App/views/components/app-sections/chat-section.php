@@ -32,8 +32,8 @@ foreach ($channels as $channel) {
         <?php endif; ?>
         <div class="flex-1"></div>
         <!-- Socket status indicator -->
-        <div class="socket-status hidden text-sm mr-4 flex items-center">
-            <span class="text-gray-500">•</span> <span class="ml-1">Connecting...</span>
+        <div class="socket-status text-sm mr-4 flex items-center opacity-75">
+            <span class="text-yellow-500">•</span> <span class="ml-1">Connecting...</span>
         </div>
         <div class="flex space-x-4">
             <button class="text-gray-400 hover:text-white">
@@ -61,7 +61,7 @@ foreach ($channels as $channel) {
     <div class="flex-1 overflow-y-auto p-4 bg-discord-background" id="chat-messages" data-lazyload="chat">
         <!-- Content will be replaced by skeleton loader during loading -->
         <?php if (empty($messages)): ?>
-        <div class="flex flex-col items-center justify-center h-full text-center">
+        <div class="flex flex-col items-center justify-center h-full text-center" id="welcome-message">
             <div class="w-16 h-16 mb-4 bg-discord-dark rounded-full flex items-center justify-center">
                 <i class="fas fa-hashtag text-discord-primary text-4xl"></i>
             </div>
@@ -73,7 +73,7 @@ foreach ($channels as $channel) {
             $currentDate = '';
             $lastUserId = null;
             foreach ($messages as $index => $message): 
-                $timestamp = strtotime($message['timestamp']);
+                $timestamp = strtotime($message['sent_at'] ?? $message['timestamp']);
                 $messageDate = date('Y-m-d', $timestamp);
                 $showHeader = $lastUserId !== $message['user_id'];
                 $lastUserId = $message['user_id'];
@@ -88,11 +88,13 @@ foreach ($channels as $channel) {
                     </div>';
                 }
             ?>
-                <div class="mb-4 group hover:bg-discord-dark/30 p-1 rounded -mx-1 <?php echo $showHeader ? '' : 'pl-12'; ?>" data-user-id="<?php echo htmlspecialchars($message['user_id']); ?>">
+                <div class="mb-4 group hover:bg-discord-dark/30 p-1 rounded -mx-1 <?php echo $showHeader ? '' : 'pl-12'; ?>" 
+                     id="msg-<?php echo htmlspecialchars($message['id']); ?>"
+                     data-user-id="<?php echo htmlspecialchars($message['user_id']); ?>">
                     <?php if ($showHeader): ?>
                     <div class="flex items-start">
                         <div class="w-10 h-10 rounded-full bg-gray-700 flex-shrink-0 flex items-center justify-center overflow-hidden mr-3">
-                            <img src="<?php echo !empty($message['avatar']) ? htmlspecialchars($message['avatar']) : 'https://ui-avatars.com/api/?name=' . urlencode($message['username'] ?? 'U') . '&background=random'; ?>" 
+                            <img src="<?php echo !empty($message['avatar_url']) ? htmlspecialchars($message['avatar_url']) : 'https://ui-avatars.com/api/?name=' . urlencode($message['username'] ?? 'U') . '&background=random'; ?>" 
                                  alt="Avatar" class="w-full h-full object-cover">
                         </div>
                         <div class="flex-1">
@@ -142,7 +144,7 @@ foreach ($channels as $channel) {
     </div>
 
     <div class="p-4 bg-discord-background">
-        <form id="message-form" class="bg-discord-dark rounded-lg p-2">
+        <form id="message-form" class="bg-discord-dark rounded-lg p-2" onsubmit="return false;">
             <div class="flex items-center mb-2">
                 <button type="button" class="text-discord-primary hover:text-white mr-2">
                     <i class="fas fa-circle-plus text-lg"></i>
@@ -157,13 +159,33 @@ foreach ($channels as $channel) {
             </div>
             <div class="relative">
                 <textarea id="message-input" 
-                          class="message-input w-full bg-discord-dark text-white placeholder-gray-500 outline-none resize-none" 
+                          name="content"
+                          class="message-input w-full bg-discord-dark text-white placeholder-gray-500 outline-none resize-none border-none" 
                           placeholder="Message #<?php echo htmlspecialchars($activeChannel['name'] ?? 'channel'); ?>"
                           rows="1"
-                          data-channel-id="<?php echo htmlspecialchars($activeChannelId ?? ''); ?>"></textarea>
+                          maxlength="2000"
+                          data-channel-id="<?php echo htmlspecialchars($activeChannelId ?? ''); ?>"
+                          autocomplete="off"
+                          spellcheck="true"></textarea>
             </div>
+            
+            <!-- Hidden inputs for user data -->
+            <input type="hidden" name="channel_id" value="<?php echo htmlspecialchars($activeChannelId ?? ''); ?>" />
             <input type="hidden" data-user-id="<?php echo htmlspecialchars($currentUserId); ?>" />
             <input type="hidden" data-username="<?php echo htmlspecialchars($_SESSION['username'] ?? ''); ?>" />
+            
+            <!-- Send button and status -->
+            <div class="flex justify-between items-center mt-2">
+                <div class="flex items-center text-xs text-gray-400">
+                    <div class="socket-status mr-4 flex items-center">
+                        <span class="text-yellow-500">•</span> <span class="ml-1">Connecting...</span>
+                    </div>
+                    <span class="character-count hidden">0/2000</span>
+                </div>
+                <button type="button" id="send-button" class="bg-discord-primary text-white px-3 py-1 rounded hover:bg-discord-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    Send <i class="fas fa-paper-plane ml-1"></i>
+                </button>
+            </div>
         </form>
     </div>
     <?php else: ?>
@@ -174,35 +196,203 @@ foreach ($channels as $channel) {
 </div>
 
 <script>
-// Trigger content loaded event once data is available
 document.addEventListener('DOMContentLoaded', function() {
-    // Set up message form auto-resize
+    console.log('🚀 Chat section initializing...');
+    
+    // Create global debug object early
+    window.MisVordDebug = {
+        initialized: false,
+        messagingAvailable: false,
+        errors: [],
+        logs: [],
+        
+        log: function(message, data) {
+            const logEntry = {
+                timestamp: new Date().toISOString(),
+                message: message,
+                data: data || {}
+            };
+            this.logs.push(logEntry);
+            console.log(`[MisVordDebug] ${message}`, data);
+            if (this.logs.length > 50) this.logs.shift();
+        },
+        
+        error: function(message, error) {
+            const errorEntry = {
+                timestamp: new Date().toISOString(),
+                message: message,
+                error: error ? error.toString() : 'Unknown error',
+                stack: error ? error.stack : 'No stack trace'
+            };
+            this.errors.push(errorEntry);
+            console.error(`[MisVordDebug] ${message}`, error);
+            if (this.errors.length > 20) this.errors.shift();
+        },
+        
+        getDebugInfo: function() {
+            return {
+                initialized: this.initialized,
+                messagingAvailable: this.messagingAvailable,
+                socketAvailable: typeof io !== 'undefined',
+                recentErrors: this.errors.slice(-5),
+                recentLogs: this.logs.slice(-10),
+                messaging: window.MisVordMessaging ? {
+                    connected: window.MisVordMessaging.connected,
+                    authenticated: window.MisVordMessaging.authenticated,
+                    activeChannel: window.MisVordMessaging.activeChannel,
+                    userId: window.MisVordMessaging.userId
+                } : null
+            };
+        }
+    };
+    
     const messageInput = document.getElementById('message-input');
-    if (messageInput) {
-        messageInput.addEventListener('input', function() {
+    const characterCount = document.querySelector('.character-count');
+    const sendButton = document.getElementById('send-button');
+    
+    window.MisVordDebug.log('Chat elements check', {
+        messageInput: !!messageInput,
+        characterCount: !!characterCount,
+        sendButton: !!sendButton,
+        messageForm: !!document.getElementById('message-form'),
+        chatMessages: !!document.getElementById('chat-messages')
+    });
+    
+    if (messageInput && sendButton) {
+        window.MisVordDebug.log('Message input and send button found');
+        
+        // Remove the duplicate send button click event handler since MisVordMessaging already handles it
+        // We'll only keep this code to set button state and focus
+        messageInput.addEventListener('input', function(e) {
             this.style.height = 'auto';
             this.style.height = (this.scrollHeight) + 'px';
+            
+            if (characterCount) {
+                const length = this.value.length;
+                characterCount.textContent = `${length}/2000`;
+                characterCount.classList.toggle('hidden', length === 0);
+                characterCount.classList.toggle('text-red-400', length > 1900);
+            }
+            
+            const hasContent = this.value.trim().length > 0;
+            sendButton.disabled = !hasContent;
+        });
+        
+        sendButton.disabled = true;
+        setTimeout(() => {
+            messageInput.focus();
+            window.MisVordDebug.log('Message input focused');
+        }, 500);
+    } else {
+        window.MisVordDebug.error('Critical elements missing', {
+            messageInput: !!messageInput,
+            sendButton: !!sendButton
+        });
+    }
+
+    // Set up socket connection data
+    const channelId = '<?php echo htmlspecialchars($activeChannelId ?? ""); ?>';
+    const userId = '<?php echo htmlspecialchars($currentUserId ?? ""); ?>';
+    const username = '<?php echo htmlspecialchars($_SESSION['username'] ?? ""); ?>';
+    
+    window.MisVordDebug.log('Socket connection data', { channelId, userId, username });
+    
+    // Create socket data element
+    const socketData = document.createElement('div');
+    socketData.id = 'socket-data';
+    socketData.setAttribute('data-channel-id', channelId);
+    socketData.setAttribute('data-user-id', userId);
+    socketData.setAttribute('data-username', username);
+    socketData.style.display = 'none';
+    document.body.appendChild(socketData);
+    window.MisVordDebug.log('Socket data element created and added to DOM');
+    
+    if (typeof io !== 'undefined') {
+        window.MisVordDebug.log('Socket.IO is available');
+        
+        // Wait for messaging system with manual initialization fallback
+        let attempts = 0;
+        const maxAttempts = 10;
+        
+        const checkMessaging = setInterval(() => {
+            attempts++;
+            
+            if (window.MisVordMessaging) {
+                window.MisVordDebug.log('MisVordMessaging is available', { attempts });
+                window.MisVordDebug.messagingAvailable = true;
+                clearInterval(checkMessaging);
+                
+                // Ensure it's initialized
+                if (typeof window.MisVordMessaging.init === 'function') {
+                    try {
+                        window.MisVordMessaging.init();
+                        window.MisVordDebug.initialized = true;
+                        window.MisVordDebug.log('MisVordMessaging initialized successfully');
+                    } catch (error) {
+                        window.MisVordDebug.error('Failed to initialize MisVordMessaging', error);
+                    }
+                }
+            } else if (attempts >= maxAttempts) {
+                window.MisVordDebug.error('MisVordMessaging was never initialized after ' + maxAttempts + ' attempts');
+                clearInterval(checkMessaging);
+                
+                // Try to create it manually if the class exists
+                if (typeof MisVordMessaging !== 'undefined') {
+                    try {
+                        window.MisVordMessaging = new MisVordMessaging();
+                        window.MisVordMessaging.init();
+                        window.MisVordDebug.log('MisVordMessaging manually created and initialized');
+                        window.MisVordDebug.messagingAvailable = true;
+                        window.MisVordDebug.initialized = true;
+                    } catch (error) {
+                        window.MisVordDebug.error('Failed to manually initialize MisVordMessaging', error);
+                    }
+                }
+            } else {
+                window.MisVordDebug.log('Waiting for MisVordMessaging... attempt ' + attempts + '/' + maxAttempts);
+            }
+        }, 1000);
+        
+    } else {
+        window.MisVordDebug.error('Socket.IO not available - messaging disabled');
+        
+        const socketStatus = document.querySelector('.socket-status');
+        if (socketStatus) {
+            socketStatus.innerHTML = '<span class="text-red-500">•</span> <span class="ml-1">WebSocket required - please refresh</span>';
+        }
+        
+        if (messageInput) {
+            messageInput.disabled = true;
+            messageInput.placeholder = 'WebSocket connection required for messaging';
+        }
+    }
+    
+    // Auto-scroll to bottom on page load if there are messages
+    const messagesContainer = document.getElementById('chat-messages');
+    if (messagesContainer) {
+        const hasMessages = messagesContainer.querySelector('[id^="msg-"]');
+        if (hasMessages) {
+            setTimeout(() => {
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                window.MisVordDebug.log('Auto-scrolled to bottom on page load');
+            }, 100);
+        }
+        
+        // Watch for new messages and auto-scroll
+        const observer = new MutationObserver(() => {
+            // Only auto-scroll if user is at the bottom
+            const isAtBottom = messagesContainer.scrollTop + messagesContainer.clientHeight >= messagesContainer.scrollHeight - 50;
+            if (isAtBottom) {
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+        });
+        
+        observer.observe(messagesContainer, {
+            childList: true,
+            subtree: true
         });
     }
     
-    // Handle lazy loading of chat messages
-    const chatMessagesContainer = document.getElementById('chat-messages');
-    if (chatMessagesContainer) {
-        // Simulate network request with a random delay between 800-1200ms
-        const loadDelay = Math.floor(Math.random() * 400) + 800;
-        
-        setTimeout(function() {
-            if (window.LazyLoader) {
-                const hasMessages = <?php echo !empty($messages) ? 'true' : 'false'; ?>;
-                window.LazyLoader.triggerDataLoaded('chat', !hasMessages);
-                console.log('Chat messages loaded after ' + loadDelay + 'ms');
-                
-                // Scroll to bottom of messages after loading
-                if (chatMessagesContainer) {
-                    chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
-                }
-            }
-        }, loadDelay);
-    }
+    window.MisVordDebug.log('Chat section initialization complete');
 });
 </script>

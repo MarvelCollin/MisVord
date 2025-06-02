@@ -1,47 +1,56 @@
 <?php
 
-function get_db_connection() {
-    require_once __DIR__ . '/env.php';    $host = EnvLoader::get('DB_HOST', 'db');
-    $port = EnvLoader::get('DB_PORT', 1003);
-    $user = EnvLoader::get('DB_USER', 'root');
-    $pass = EnvLoader::get('DB_PASS', 'kolin123');
-    $dbname = EnvLoader::get('DB_NAME', 'misvord');
-    $charset = EnvLoader::get('DB_CHARSET', 'utf8mb4');
+class Database {
+    private static $instance = null;
+    private $pdo;
     
-    try {
-        // Force TCP/IP connection by explicitly including port
-        $dsn = "mysql:host=$host;port=$port;charset=$charset";
-        $options = [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_TIMEOUT => 5,
-            // Force TCP connection
-            PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES $charset",
-            // Disable persistent connections
-            PDO::ATTR_PERSISTENT => false,
-        ];
-        
-        $pdo = new PDO($dsn, $user, $pass, $options);
-        
+    private function __construct() {
         try {
-            $pdo->exec("USE `$dbname`");
+            // Load environment variables
+            require_once __DIR__ . '/env.php';
+            
+            $host = $_ENV['DB_HOST'] ?? 'localhost';
+            $port = $_ENV['DB_PORT'] ?? '1003';
+            $dbname = $_ENV['DB_NAME'] ?? 'misvord';
+            $username = $_ENV['DB_USER'] ?? 'root';
+            $password = $_ENV['DB_PASS'] ?? 'kolin123';
+            $charset = $_ENV['DB_CHARSET'] ?? 'utf8mb4';
+            
+            $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=$charset";
+            
+            $options = [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_EMULATE_PREPARES => false,
+                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES $charset"
+            ];
+            
+            $this->pdo = new PDO($dsn, $username, $password, $options);
+            
         } catch (PDOException $e) {
-            if ($e->getCode() == 1049) {
-                $pdo->exec("CREATE DATABASE IF NOT EXISTS `$dbname` CHARACTER SET $charset COLLATE {$charset}_unicode_ci");
-                $pdo->exec("USE `$dbname`");
-            } else {
-                throw $e;
-            }
-        }
-        
-        return $pdo;
-    } catch (PDOException $e) {
-        error_log("Database connection error: " . $e->getMessage());
-        
-        if (getenv('APP_ENV') === 'production') {
-            die("Database connection error. Please try again later.");
-        } else {
-            die("Database connection error: " . $e->getMessage());
+            error_log("Database connection failed: " . $e->getMessage());
+            throw new Exception("Database connection failed");
         }
     }
-} 
+    
+    public static function getInstance() {
+        if (self::$instance === null) {
+            self::$instance = new self();
+        }
+        return self::$instance;
+    }
+    
+    public function getConnection() {
+        return $this->pdo;
+    }
+    
+    public function testConnection() {
+        try {
+            $this->pdo->query('SELECT 1');
+            return true;
+        } catch (PDOException $e) {
+            error_log("Database test failed: " . $e->getMessage());
+            return false;
+        }
+    }
+}

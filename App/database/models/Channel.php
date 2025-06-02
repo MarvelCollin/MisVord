@@ -40,6 +40,22 @@ class Channel {
         return new static($result);
     }
     
+    // FIXED: Add missing getByServerId method
+    public static function getByServerId($serverId) {
+        $query = new Query();
+        
+        try {
+            return $query->table(static::$table)
+                ->where('server_id', $serverId)
+                ->orderBy('position', 'ASC')
+                ->orderBy('id', 'ASC')
+                ->get();
+        } catch (Exception $e) {
+            error_log("Channel::getByServerId error: " . $e->getMessage());
+            return [];
+        }
+    }
+    
     public static function findByNameAndServer($name, $serverId) {
         $query = new Query();
         $result = $query->table(static::$table)
@@ -447,4 +463,4 @@ class Channel {
             ];
         }
     }
-} 
+}

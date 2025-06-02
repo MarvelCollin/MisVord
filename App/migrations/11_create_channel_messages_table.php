@@ -5,14 +5,18 @@ class CreateChannelMessagesTableMigration {
         
         $migration->createTable('channel_messages', function($table) {
             $table->id();
-            $table->integer('channel_id');
-            $table->integer('message_id');
+            $table->integer('channel_id')->notNull();
+            $table->integer('message_id')->notNull();
             $table->timestamps();
+            $table->unique(['channel_id', 'message_id'], 'unique_channel_message');
         });
         
         
         $migration->alterTable('channel_messages', function($table) {
             $table->foreignKey('channel_id', 'channels', 'id', 'CASCADE');
+        });
+        
+        $migration->alterTable('channel_messages', function($table) {
             $table->foreignKey('message_id', 'messages', 'id', 'CASCADE');
         });
     }
@@ -32,6 +36,6 @@ class CreateChannelMessagesTableMigration {
         }
         
         
-        $migration->dropTable('channel_messages');
+        $migration->dropTable('channel_messages', true);
     }
 }

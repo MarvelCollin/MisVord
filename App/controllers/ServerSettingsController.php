@@ -5,40 +5,35 @@ require_once __DIR__ . '/../database/models/ServerInvite.php';
 require_once __DIR__ . '/../database/models/UserServerMembership.php';
 require_once __DIR__ . '/../database/query.php';
 require_once __DIR__ . '/../config/env.php';
+require_once __DIR__ . '/BaseController.php';
 
-class ServerSettingsController {
+class ServerSettingsController extends BaseController {
 
     public function __construct() {
-        if (session_status() == PHP_SESSION_NONE) {
-            session_start();
-        }
+        parent::__construct();
     }
 
     public function updateServerSettings() {
         if (!isset($_SESSION['user_id'])) {
-            $this->jsonResponse(['success' => false, 'message' => 'Unauthorized'], 401);
-            return;
+            return $this->unauthorized();
         }
 
         $data = json_decode(file_get_contents('php://input'), true);
         
         if (!$data || !isset($data['server_id'])) {
-            $this->jsonResponse(['success' => false, 'message' => 'Invalid request'], 400);
-            return;
+            return $this->validationError(['message' => 'Invalid request']);
         }
 
         $serverId = $data['server_id'];
         $server = Server::find($serverId);
         
         if (!$server) {
-            $this->jsonResponse(['success' => false, 'message' => 'Server not found'], 404);
-            return;
+            return $this->notFound('Server not found');
         }
         
         // Check if user has permission to update server settings
         if (!UserServerMembership::isOwner($_SESSION['user_id'], $serverId)) {
-            $this->jsonResponse(['success' => false, 'message' => 'You do not have permission to update server settings'], 403);
-            return;
+            return $this->forbidden('You do not have permission to update server settings');
         }
         
         // Update server properties
@@ -56,29 +51,30 @@ class ServerSettingsController {
         
         // Handle server image update if provided
         if (isset($_FILES['image_file']) && $_FILES['image_file']['error'] === UPLOAD_ERR_OK) {
-            $imageUrl = $this->uploadServerImage($_FILES['image_file']);
+            $imageUrl = $this->uploadImage($_FILES['image_file'], 'servers');
             if ($imageUrl !== false) {
                 $server->image_url = $imageUrl;
             }
         }
         
         if ($server->save()) {
-            $this->jsonResponse(['success' => true, 'message' => 'Server settings updated successfully', 'server' => [
-                'id' => $server->id,
-                'name' => $server->name,
-                'description' => $server->description,
-                'image_url' => $server->image_url,
-                'is_public' => $server->is_public
-            ]]);
+            return $this->successResponse([
+                'server' => [
+                    'id' => $server->id,
+                    'name' => $server->name,
+                    'description' => $server->description,
+                    'image_url' => $server->image_url,
+                    'is_public' => $server->is_public
+                ]
+            ], 'Server settings updated successfully');
         } else {
-            $this->jsonResponse(['success' => false, 'message' => 'Failed to update server settings'], 500);
+            return $this->serverError('Failed to update server settings');
         }
     }
 
     public function generateInviteLink() {
         if (!isset($_SESSION['user_id'])) {
-            $this->jsonResponse(['success' => false, 'message' => 'Unauthorized'], 401);
-            return;
+            return $this->unauthorized();
         }
 
         // Extract server ID from URL path instead of JSON body
@@ -86,24 +82,23 @@ class ServerSettingsController {
         preg_match('/\/api\/servers\/(\d+)\/invite/', $path, $matches);
         
         if (!isset($matches[1])) {
-            $this->jsonResponse(['success' => false, 'message' => 'Server ID not found in URL'], 400);
-            return;
+            return $this->validationError(['message' => 'Server ID not found in URL']);
         }
 
         $serverId = $matches[1];
         $server = Server::find($serverId);
         
         if (!$server) {
-            $this->jsonResponse(['success' => false, 'message' => 'Server not found'], 404);
-            return;
+            return $this->notFound('Server not found');
         }
         
         // Check if user has permission to generate invite link
         $membership = UserServerMembership::findByUserAndServer($_SESSION['user_id'], $serverId);
         if (!$membership || ($membership->role !== 'admin' && $membership->role !== 'owner')) {
-            $this->jsonResponse(['success' => false, 'message' => 'You do not have permission to generate invite links'], 403);
-            return;
-        }        try {
+            return $this->forbidden('You do not have permission to generate invite links');
+        }
+        
+        try {
             // Generate unique invite code
             $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
             $inviteCode = '';
@@ -122,49 +117,17 @@ class ServerSettingsController {
             ]);
             
             if ($invite) {
-                $this->jsonResponse([
-                    'success' => true, 
-                    'message' => 'Invite link generated successfully',
+                return $this->successResponse([
                     'invite_code' => $inviteCode
-                ]);
+                ], 'Invite link generated successfully');
             } else {
                 error_log("Failed to create server invite for server ID: $serverId");
-                $this->jsonResponse(['success' => false, 'message' => 'Failed to generate invite link'], 500);
+                return $this->serverError('Failed to generate invite link');
             }
         } catch (Exception $e) {
             error_log("Error generating invite link: " . $e->getMessage());
             error_log("Error trace: " . $e->getTraceAsString());
-            $this->jsonResponse(['success' => false, 'message' => 'Server error: ' . $e->getMessage()], 500);
+            return $this->serverError('Server error: ' . $e->getMessage());
         }
-    }
-
-    private function uploadServerImage($file) {
-        $fileType = exif_imagetype($file['tmp_name']);
-        if (!$fileType || !in_array($fileType, [IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_GIF, IMAGETYPE_WEBP])) {
-            return false;
-        }
-
-        $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
-        $filename = 'server_' . time() . '_' . bin2hex(random_bytes(8)) . '.' . $extension;
-
-        $uploadDir = __DIR__ . '/../public/assets/uploads/servers/';
-        if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0755, true);
-        }
-
-        $filepath = $uploadDir . $filename;
-
-        if (move_uploaded_file($file['tmp_name'], $filepath)) {
-            return '/public/assets/uploads/servers/' . $filename;
-        }
-
-        return false;
-    }
-    
-    private function jsonResponse($data, $statusCode = 200) {
-        http_response_code($statusCode);
-        header('Content-Type: application/json');
-        echo json_encode($data);
-        exit;
     }
 } 

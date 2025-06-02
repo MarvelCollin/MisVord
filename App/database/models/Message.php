@@ -43,22 +43,56 @@ class Message {
     public function save() {
         $query = new Query();
         
-        if (isset($this->attributes['id'])) {
-            $id = $this->attributes['id'];
-            unset($this->attributes['id']);
+        try {
+            // Ensure table exists
+            if (!$query->tableExists(static::$table)) {
+                error_log("Message::save - Table does not exist: " . static::$table);
+                return self::createTable() && $this->save();
+            }
             
-            $result = $query->table(static::$table)
-                    ->where('id', $id)
-                    ->update($this->attributes);
+            // Set required timestamps
+            if (!isset($this->attributes['sent_at'])) {
+                $this->attributes['sent_at'] = date('Y-m-d H:i:s');
+            }
             
-            $this->attributes['id'] = $id;
+            if (!isset($this->attributes['created_at'])) {
+                $this->attributes['created_at'] = date('Y-m-d H:i:s');
+            }
             
-            return $result > 0;
-        } else {
-            $this->attributes['id'] = $query->table(static::$table)
-                    ->insert($this->attributes);
+            if (!isset($this->attributes['updated_at'])) {
+                $this->attributes['updated_at'] = date('Y-m-d H:i:s');
+            }
             
-            return $this->attributes['id'] > 0;
+            // Check if this is an update or insert
+            if (isset($this->attributes['id'])) {
+                $id = $this->attributes['id'];
+                $updateData = $this->attributes;
+                unset($updateData['id']);
+                $updateData['updated_at'] = date('Y-m-d H:i:s');
+                
+                $result = $query->table(static::$table)
+                        ->where('id', $id)
+                        ->update($updateData);
+                
+                return $result > 0;
+            } else {
+                // Insert new message
+                error_log("Message::save - Inserting: " . json_encode($this->attributes));
+                
+                $this->attributes['id'] = $query->table(static::$table)
+                        ->insert($this->attributes);
+                
+                if (!$this->attributes['id'] || $this->attributes['id'] <= 0) {
+                    error_log("Message::save - Failed to insert message");
+                    return false;
+                }
+                
+                error_log("Message::save - Successfully inserted with id: " . $this->attributes['id']);
+                return true;
+            }
+        } catch (Exception $e) {
+            error_log("Message::save - Error: " . $e->getMessage());
+            return false;
         }
     }
     
@@ -72,23 +106,17 @@ class Message {
     public static function getForChannel($channelId, $limit = 50, $offset = 0) {
         $query = new Query();
         
-        $tableExists = $query->tableExists('channel_messages');
-        if (!$tableExists) {
+        // Ensure channel_messages table exists
+        if (!$query->tableExists('channel_messages')) {
             self::createChannelMessagesTable();
         }
         
-        $tableExists = $query->tableExists('channel_messages');
-        if (!$tableExists) {
-            error_log("Failed to create channel_messages table");
-            return [];
-        }
-        
         return $query->table('messages m')
-                ->select('m.*, u.username, u.avatar_url')
+                ->select('m.*, u.username, u.avatar_url, m.sent_at as timestamp') // Use sent_at as timestamp
                 ->join('channel_messages cm', 'm.id', '=', 'cm.message_id')
                 ->join('users u', 'm.user_id', '=', 'u.id')
                 ->where('cm.channel_id', $channelId)
-                ->orderBy('m.sent_at', 'DESC')
+                ->orderBy('m.sent_at', 'ASC') // Changed to ASC for chronological order
                 ->limit($limit)
                 ->offset($offset)
                 ->get();
@@ -101,24 +129,30 @@ class Message {
         
         $query = new Query();
         
-        $tableExists = $query->tableExists('channel_messages');
-        if (!$tableExists) {
+        // Ensure table exists
+        if (!$query->tableExists('channel_messages')) {
             self::createChannelMessagesTable();
-            
-            $tableExists = $query->tableExists('channel_messages');
-            if (!$tableExists) {
-                error_log("Failed to create channel_messages table");
-                return false;
-            }
         }
         
-        $result = $query->table('channel_messages')
-                ->insert([
-                    'channel_id' => $channelId,
-                    'message_id' => $this->id
-                ]);
-        
-        return $result > 0;
+        try {
+            $result = $query->table('channel_messages')
+                    ->insert([
+                        'channel_id' => $channelId,
+                        'message_id' => $this->id,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]);
+            
+            return $result > 0;
+        } catch (Exception $e) {
+            // Handle duplicate entries gracefully
+            if (strpos($e->getMessage(), 'Duplicate entry') !== false) {
+                error_log("Message already associated with channel - ignoring duplicate");
+                return true;
+            }
+            error_log("Error associating message with channel: " . $e->getMessage());
+            return false;
+        }
     }
     
     public static function createChannelMessagesTable() {
@@ -131,6 +165,7 @@ class Message {
                     channel_id INT NOT NULL,
                     message_id INT NOT NULL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                     UNIQUE KEY unique_channel_message (channel_id, message_id),
                     FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE,
                     FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE
@@ -178,9 +213,7 @@ class Message {
         $query = new Query();
         
         try {
-            $tableExists = $query->tableExists(static::$table);
-            
-            if (!$tableExists) {
+            if (!$query->tableExists(static::$table)) {
                 $query->raw("
                     CREATE TABLE IF NOT EXISTS " . static::$table . " (
                         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -197,11 +230,9 @@ class Message {
                         FOREIGN KEY (reply_message_id) REFERENCES messages(id) ON DELETE SET NULL
                     )
                 ");
-                
-                $tableExists = $query->tableExists(static::$table);
             }
             
-            return $tableExists;
+            return $query->tableExists(static::$table);
         } catch (PDOException $e) {
             error_log("Error creating messages table: " . $e->getMessage());
             return false;
@@ -209,18 +240,17 @@ class Message {
     }
     
     public static function initialize() {
-        $created = self::createTable();
-        
-        if ($created) {
-            return self::createChannelMessagesTable();
+        try {
+            $created = self::createTable();
+            if ($created) {
+                $channelMessagesCreated = self::createChannelMessagesTable();
+                return $channelMessagesCreated;
+            }
+            return $created;
+        } catch (Exception $e) {
+            error_log("Message::initialize - Error: " . $e->getMessage());
+            return false;
         }
-        
-        return $created;
-    }
-    
-    public static function all() {
-        $query = new Query();
-        return $query->table(static::$table)->get();
     }
 }
 

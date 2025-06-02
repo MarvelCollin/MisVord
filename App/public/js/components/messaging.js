@@ -1,605 +1,899 @@
 /**
- * Messaging functionality for MiscVord
- * Handles message operations like send, edit, delete, etc.
+ * MisVord Messaging System
+ * WebSocket-only chat system - Real-time Discord-like chat
  */
 
-import { MisVordAjax } from '../core/ajax-handler.js';
 import { showToast } from '../core/toast.js';
 
-document.addEventListener('DOMContentLoaded', function() {
-    initMessagingSystem();
-});
-
-/**
- * Initialize messaging system functionality
- */
-function initMessagingSystem() {
-    // Message input form
-    initMessageForm();
-    
-    // Message edit buttons
-    initMessageEditButtons();
-    
-    // Message delete buttons
-    initMessageDeleteButtons();
-    
-    // Scrolling behavior for message containers
-    initMessageScrolling();
-}
-
-/**
- * Initialize message form
- */
-function initMessageForm() {
-    const messageForm = document.getElementById('message-form');
-    
-    if (messageForm) {
-        messageForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const textarea = this.querySelector('textarea');
-            const message = textarea.value.trim();
-            const channelId = this.getAttribute('data-channel-id');
-            
-            if (!message) {
-                return;
-            }
-            
-            sendMessage(channelId, message);
-            textarea.value = '';
-        });
-        
-        // Handle Shift+Enter for new line
-        const textarea = messageForm.querySelector('textarea');
-        if (textarea) {
-            textarea.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    const event = new Event('submit', { cancelable: true });
-                    messageForm.dispatchEvent(event);
-                }
-            });
-        }
-    }
-}
-
-/**
- * Initialize message edit buttons
- */
-function initMessageEditButtons() {
-    document.addEventListener('click', function(e) {
-        if (e.target.closest('.edit-message-btn')) {
-            const button = e.target.closest('.edit-message-btn');
-            const messageId = button.getAttribute('data-message-id');
-            const messageElement = document.getElementById(`message-${messageId}`);
-            
-            if (messageElement) {
-                startEditingMessage(messageElement);
-            }
-        }
-    });
-}
-
-/**
- * Initialize message delete buttons
- */
-function initMessageDeleteButtons() {
-    document.addEventListener('click', function(e) {
-        if (e.target.closest('.delete-message-btn')) {
-            const button = e.target.closest('.delete-message-btn');
-            const messageId = button.getAttribute('data-message-id');
-            
-            if (confirm('Are you sure you want to delete this message?')) {
-                deleteMessage(messageId);
-            }
-        }
-    });
-}
-
-/**
- * Initialize message container scrolling behavior
- */
-function initMessageScrolling() {
-    const messageContainer = document.querySelector('.message-container');
-    
-    if (messageContainer) {
-        // Scroll to bottom on load
-        scrollToBottom(messageContainer);
-        
-        // Auto-scroll on new messages only if near bottom
-        messageContainer.addEventListener('DOMNodeInserted', function(e) {
-            // Check if the inserted node is a message
-            if (e.target.classList && e.target.classList.contains('message')) {
-                // Only auto-scroll if already near the bottom
-                const isNearBottom = messageContainer.scrollHeight - messageContainer.scrollTop - messageContainer.clientHeight < 100;
-                
-                if (isNearBottom) {
-                    scrollToBottom(messageContainer);
-                }
-            }
-        });
-    }
-}
-
-/**
- * Scroll element to bottom
- * @param {HTMLElement} element - Element to scroll
- */
-function scrollToBottom(element) {
-    element.scrollTop = element.scrollHeight;
-}
-
-/**
- * Send a message
- * @param {string} channelId - Channel ID
- * @param {string} content - Message content
- */
-function sendMessage(channelId, content) {
-    MisVordAjax.post(`/api/channels/${channelId}/messages`, {
-        content: content
-    }, {
-        onSuccess: function(response) {
-            if (response.success) {
-                // Message will be added by WebSocket
-                // But we could add it directly for quicker feedback
-                if (response.data && response.data.message) {
-                    addMessageToUI(response.data.message);
-                }
-            }
-        },
-        // Don't show toast for successful message sending
-        showToast: false
-    });
-}
-
-/**
- * Start editing a message
- * @param {HTMLElement} messageElement - Message element
- */
-function startEditingMessage(messageElement) {
-    // Get message content
-    const contentContainer = messageElement.querySelector('.message-content');
-    if (!contentContainer) return;
-    
-    const originalContent = contentContainer.textContent;
-    const messageId = messageElement.getAttribute('data-message-id');
-    
-    // Create edit form
-    const editForm = document.createElement('form');
-    editForm.className = 'edit-message-form';
-    editForm.innerHTML = `
-        <textarea class="message-edit-textarea w-full bg-discord-dark border border-gray-600 rounded-md p-2 text-white">${originalContent}</textarea>
-        <div class="flex justify-end mt-2">
-            <button type="button" class="cancel-edit-btn text-gray-400 mr-2">Cancel</button>
-            <button type="submit" class="bg-discord-blue text-white px-3 py-1 rounded-md">Save</button>
-        </div>
-    `;
-    
-    // Replace content with edit form
-    contentContainer.innerHTML = '';
-    contentContainer.appendChild(editForm);
-    
-    // Focus textarea
-    const textarea = editForm.querySelector('textarea');
-    textarea.focus();
-    textarea.setSelectionRange(textarea.value.length, textarea.value.length);
-    
-    // Handle cancel
-    editForm.querySelector('.cancel-edit-btn').addEventListener('click', function() {
-        contentContainer.innerHTML = originalContent;
-    });
-    
-    // Handle submit
-    editForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        const newContent = textarea.value.trim();
-        
-        if (newContent && newContent !== originalContent) {
-            updateMessage(messageId, newContent);
-        } else {
-            contentContainer.innerHTML = originalContent;
-        }
-    });
-}
-
-/**
- * Update a message
- * @param {string} messageId - Message ID
- * @param {string} content - New content
- */
-function updateMessage(messageId, content) {
-    MisVordAjax.put(`/api/messages/${messageId}`, {
-        content: content
-    }, {
-        onSuccess: function(response) {
-            if (response.success && response.data.message) {
-                // Update the message in UI
-                updateMessageInUI(response.data.message);
-            }
-        }
-    });
-}
-
-/**
- * Delete a message
- * @param {string} messageId - Message ID
- */
-function deleteMessage(messageId) {
-    MisVordAjax.delete(`/api/messages/${messageId}`, {
-        onSuccess: function(response) {
-            if (response.success) {
-                // Remove message from UI (if not already removed by WebSocket)
-                const messageElement = document.getElementById(`message-${messageId}`);
-                if (messageElement) {
-                    messageElement.remove();
-                }
-            }
-        }
-    });
-}
-
-/**
- * Add a message to the UI
- * @param {Object} message - Message object
- */
-function addMessageToUI(message) {
-    const messageContainer = document.querySelector('.message-container');
-    if (!messageContainer) return;
-    
-    const messageElement = createMessageElement(message);
-    messageContainer.appendChild(messageElement);
-    
-    // Scroll to bottom if already near bottom
-    const isNearBottom = messageContainer.scrollHeight - messageContainer.scrollTop - messageContainer.clientHeight < 100;
-    if (isNearBottom) {
-        scrollToBottom(messageContainer);
-    }
-}
-
-/**
- * Update a message in the UI
- * @param {Object} message - Message object
- */
-function updateMessageInUI(message) {
-    const messageElement = document.getElementById(`message-${message.id}`);
-    if (!messageElement) return;
-    
-    const contentContainer = messageElement.querySelector('.message-content');
-    if (contentContainer) {
-        contentContainer.textContent = message.content;
-    }
-    
-    // Add edited indicator if not already present
-    if (message.edited_at) {
-        const editedIndicator = messageElement.querySelector('.edited-indicator');
-        if (!editedIndicator) {
-            const timeElement = messageElement.querySelector('.message-time');
-            if (timeElement) {
-                const editedSpan = document.createElement('span');
-                editedSpan.className = 'edited-indicator text-gray-500 text-xs ml-1';
-                editedSpan.textContent = '(edited)';
-                timeElement.appendChild(editedSpan);
-            }
-        }
-    }
-}
-
-/**
- * Create a message element
- * @param {Object} message - Message object
- * @returns {HTMLElement} - Message element
- */
-function createMessageElement(message) {
-    const div = document.createElement('div');
-    div.className = 'message flex p-2 hover:bg-discord-light/10 transition-colors group';
-    div.id = `message-${message.id}`;
-    div.setAttribute('data-message-id', message.id);
-    div.setAttribute('data-user-id', message.user.id);
-    
-    const currentUserId = document.body.getAttribute('data-user-id');
-    const isOwnMessage = currentUserId && currentUserId === message.user.id;
-    
-    div.innerHTML = `
-        <div class="flex-shrink-0 mr-3">
-            <img src="${message.user.avatar_url || '/public/assets/default-avatar.png'}" alt="${message.user.username}" class="w-10 h-10 rounded-full">
-        </div>
-        <div class="flex-grow">
-            <div class="flex items-center">
-                <span class="font-medium text-white">${message.user.username}</span>
-                <span class="message-time text-gray-400 text-xs ml-2">${message.formatted_time}</span>
-            </div>
-            <div class="message-content text-gray-200 break-words whitespace-pre-wrap">${message.content}</div>
-        </div>
-        ${isOwnMessage ? `
-        <div class="message-actions opacity-0 group-hover:opacity-100 transition-opacity flex items-center">
-            <button class="edit-message-btn text-gray-400 hover:text-white mr-2" data-message-id="${message.id}">
-                <i class="fas fa-edit"></i>
-            </button>
-            <button class="delete-message-btn text-gray-400 hover:text-red-500" data-message-id="${message.id}">
-                <i class="fas fa-trash"></i>
-            </button>
-        </div>
-        ` : ''}
-    `;
-    
-    return div;
-}
-
-// Socket.io chat functionality for MisVord
-class MisVordChat {
+class MisVordMessaging {
     constructor() {
+        this.config = {
+            socketPort: 1002,
+            socketPath: '/socket.io',
+            reconnectAttempts: 5,
+            reconnectDelay: 1000,
+            heartbeatInterval: 20000,
+            debug: true
+        };
+        
         this.socket = null;
         this.connected = false;
-        this.activeChannel = null;
-        this.typingTimeout = null;
-        this.typingUsers = new Map();
+        this.authenticated = false;
+        this.reconnectAttempts = 0;
+        this.isSubmitting = false;
+        this.initialized = false;
+        this.lastSubmitTime = 0;
         
-        this.init();
+        this.activeChannel = null;
+        this.userId = null;
+        this.username = null;
+        
+        this.typingUsers = new Map();
+        this.typingTimeout = null;
+        
+        this.debug = this.config.debug;
+        
+        // Add comprehensive error tracking
+        this.errors = [];
+        this.connectionHistory = [];
+        this.messageHistory = [];
+        
+        // Add global registration for debugging
+        window.MisVordMessaging = this;
+        this.log('✅ MisVordMessaging instance created and registered globally');
+    }
+    
+    // FIXED: Add proper log method
+    log(...args) {
+        if (this.debug) {
+            console.log('[MisVordMessaging]', ...args);
+        }
+    }
+    
+    // FIXED: Add proper error method
+    error(...args) {
+        console.error('[MisVordMessaging]', ...args);
     }
     
     init() {
-        this.setupSocketConnection();
-        this.setupDOMListeners();
-    }
-    
-    setupSocketConnection() {
-        const socketPort = 1002; // Should match the SOCKET_PORT in your .env
-        const socketPath = '/socket.io';
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const host = window.location.hostname;
-        
-        // Create socket connection
-        const tryConnection = () => {
-            try {
-                // Check if Socket.IO is loaded
-                if (typeof io === 'undefined') {
-                    console.warn('Socket.IO client not loaded yet. Will retry in 500ms.');
-                    setTimeout(tryConnection, 500);
-                    return;
-                }
-                
-                console.log('Socket.IO found, establishing connection...');
-                this.socket = io(`${protocol}//${host}:${socketPort}`, {
-                    transports: ['websocket', 'polling'],
-                    path: socketPath,
-                    reconnection: true,
-                    reconnectionDelay: 1000,
-                    reconnectionDelayMax: 5000,
-                    reconnectionAttempts: Infinity
-                });
-                
-                // Store socket globally for other components to access
-                window.misvordSocket = this.socket;
-                
-                // Socket connection events
-                this.socket.on('connect', () => this.handleSocketConnect());
-                this.socket.on('disconnect', () => this.handleSocketDisconnect());
-                this.socket.on('reconnect', () => this.handleSocketReconnect());
-                this.socket.on('connect_error', (error) => this.handleSocketError(error));
-                
-                // Chat-specific events
-                this.socket.on('new-channel-message', (data) => this.handleNewMessage(data));
-                this.socket.on('user-typing', (data) => this.handleUserTyping(data));
-                this.socket.on('user-stop-typing', (data) => this.handleUserStopTyping(data));
-                
-            } catch (error) {
-                console.error('Error initializing Socket.IO:', error);
-            }
-        };
-        
-        // Try to connect immediately, but will retry if Socket.IO isn't loaded
-        tryConnection();
-    }
-    
-    handleSocketConnect() {
-        console.log('Socket.IO connected!');
-        this.connected = true;
-        
-        // Authenticate with the socket server
-        const userId = this.getCurrentUserId();
-        const username = this.getCurrentUsername();
-        
-        if (userId) {
-            this.socket.emit('authenticate', {
-                userId: userId,
-                username: username
-            });
-            
-            // Join current channel if any
-            this.joinCurrentChannel();
-        }
-    }
-    
-    handleSocketDisconnect() {
-        console.log('Socket.IO disconnected');
-        this.connected = false;
-        
-        // Show disconnected state in UI
-        this.showSocketStatus('disconnected');
-    }
-    
-    handleSocketReconnect() {
-        console.log('Socket.IO reconnected');
-        this.connected = true;
-        
-        // Show connected state in UI
-        this.showSocketStatus('connected');
-        
-        // Re-authenticate after reconnection
-        const userId = this.getCurrentUserId();
-        const username = this.getCurrentUsername();
-        
-        if (userId) {
-            this.socket.emit('authenticate', {
-                userId: userId,
-                username: username
-            });
-            
-            // Re-join current channel
-            this.joinCurrentChannel();
-        }
-    }
-    
-    handleSocketError(error) {
-        console.error('Socket connection error:', error);
-        this.showSocketStatus('error');
-    }
-    
-    setupDOMListeners() {
-        document.addEventListener('DOMContentLoaded', () => {
-            // Message form
-            const messageForm = document.getElementById('message-form');
-            if (messageForm) {
-                messageForm.addEventListener('submit', (e) => this.handleFormSubmit(e));
-            }
-            
-            // Message input
-            const messageInput = document.querySelector('.message-input');
-            if (messageInput) {
-                messageInput.addEventListener('input', () => this.handleInput());
-                messageInput.addEventListener('blur', () => this.handleStopTyping());
-            }
-            
-            // Listen for channel selection
-            const channelItems = document.querySelectorAll('.channel-item');
-            channelItems.forEach(channel => {
-                channel.addEventListener('click', (e) => this.handleChannelSelect(e));
-            });
-            
-            // Join current channel if already on a channel page
-            this.joinCurrentChannel();
-        });
-    }
-    
-    handleFormSubmit(e) {
-        e.preventDefault();
-        
-        const messageInput = document.querySelector('.message-input');
-        if (!messageInput || !messageInput.value.trim()) return;
-        
-        const channelId = messageInput.dataset.channelId || this.getActiveChannelId();
-        const content = messageInput.value.trim();
-        
-        // Clear input immediately for better UX
-        messageInput.value = '';
-        messageInput.style.height = 'auto';
-        
-        if (!this.connected) {
-            // Fall back to standard HTTP request if socket isn't connected
-            this.sendMessageViaHTTP(channelId, content);
+        // Skip if already initialized
+        if (this.initialized) {
+            this.log('🔄 Already initialized, skipping duplicate initialization');
             return;
         }
         
-        // Send via socket
-        this.socket.emit('channel-message', {
-            channelId: channelId,
-            content: content,
+        this.log('🚀 Initializing WebSocket-only messaging system...');
+        this.logSystemInfo();
+        
+        try {
+            this.initSocket();
+            this.initMessageForm();
+            this.initMessageContainer();
+            
+            setInterval(() => this.sendHeartbeat(), this.config.heartbeatInterval);
+            
+            this.log('✅ Messaging system initialized successfully');
+            
+            // Mark as initialized
+            this.initialized = true;
+            
+            // Notify that we're ready
+            this.dispatchEvent('misVordReady', { messaging: this });
+            
+        } catch (error) {
+            this.error('❌ Failed to initialize messaging system:', error);
+            this.trackError('INIT_FAILED', error);
+        }
+    }
+    
+    dispatchEvent(eventName, detail = {}) {
+        try {
+            const event = new CustomEvent(eventName, { detail });
+            window.dispatchEvent(event);
+            this.log(`📡 Dispatched event: ${eventName}`, detail);
+        } catch (error) {
+            this.error('Failed to dispatch event:', error);
+        }
+    }
+    
+    logSystemInfo() {
+        this.log('📊 System Information:', {
+            userAgent: navigator.userAgent,
+            location: window.location.href,
+            socketIOAvailable: typeof io !== 'undefined',
+            userId: this.getUserId(),
+            username: this.getUsername(),
+            activeChannel: this.getActiveChannelId(),
             timestamp: new Date().toISOString()
         });
-        
-        // Stop typing indicator
-        this.handleStopTyping();
     }
     
-    sendMessageViaHTTP(channelId, content) {
-        // Legacy HTTP fallback
-        fetch(`/api/channels/${channelId}/messages`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: JSON.stringify({ content })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                console.log('Message sent successfully via HTTP');
-            }
-        })
-        .catch(error => {
-            console.error('Error sending message via HTTP:', error);
-        });
+    trackError(type, error) {
+        const errorInfo = {
+            type: type,
+            message: error.message || error,
+            stack: error.stack || 'No stack trace',
+            timestamp: new Date().toISOString(),
+            connected: this.connected,
+            authenticated: this.authenticated,
+            activeChannel: this.activeChannel,
+            userId: this.userId
+        };
+        
+        this.errors.push(errorInfo);
+        this.error('🔴 Error tracked:', errorInfo);
+        
+        // Keep only last 20 errors
+        if (this.errors.length > 20) {
+            this.errors.shift();
+        }
     }
     
-    handleNewMessage(messageData) {
-        const { channelId, user_id, username, avatar, content, timestamp } = messageData;
+    trackConnection(event, data = {}) {
+        const connectionInfo = {
+            event: event,
+            timestamp: new Date().toISOString(),
+            socketId: this.socket?.id || 'none',
+            connected: this.connected,
+            authenticated: this.authenticated,
+            data: data
+        };
         
-        // Only process messages for the current channel
-        if (channelId != this.getActiveChannelId()) return;
+        this.connectionHistory.push(connectionInfo);
+        this.log('🔗 Connection event:', connectionInfo);
         
-        // Create message element
-        this.appendMessageToChat(messageData);
-        
-        // Remove user from typing list if they just sent a message
-        this.removeUserFromTyping(user_id);
+        // Keep only last 50 connection events
+        if (this.connectionHistory.length > 50) {
+            this.connectionHistory.shift();
+        }
     }
     
-    appendMessageToChat(messageData) {
-        const messagesContainer = document.getElementById('chat-messages');
-        if (!messagesContainer) return;
+    trackMessage(event, data = {}) {
+        const messageInfo = {
+            event: event,
+            timestamp: new Date().toISOString(),
+            channelId: data.channelId || this.activeChannel,
+            messageId: data.id || data.messageId,
+            tempId: data.tempId,
+            content: data.content ? data.content.substring(0, 50) + '...' : 'no content'
+        };
         
-        const { user_id, username, avatar, content, timestamp } = messageData;
+        this.messageHistory.push(messageInfo);
+        this.log('💬 Message event:', messageInfo);
         
-        // Format timestamp
-        const messageDate = new Date(timestamp);
-        const formattedTime = messageDate.toLocaleTimeString('en-US', {
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true
-        });
+        // Keep only last 30 message events
+        if (this.messageHistory.length > 30) {
+            this.messageHistory.shift();
+        }
+    }
+    
+    // FIXED: Implement proper authentication method
+    authenticate() {
+        this.log('🔐 Authenticating user...');
         
-        // Check if this is from the same user as the last message
-        const lastMessage = messagesContainer.querySelector('.mb-4:last-child');
-        const showHeader = !lastMessage || lastMessage.dataset.userId != user_id;
-        const userId = this.getCurrentUserId();
-        const isOwnMessage = user_id == userId;
+        const userId = this.getUserId();
+        const username = this.getUsername();
         
-        // Create message HTML
-        const messageElement = document.createElement('div');
-        messageElement.className = `mb-4 group hover:bg-discord-dark/30 p-1 rounded -mx-1 ${showHeader ? '' : 'pl-12'}`;
-        messageElement.dataset.userId = user_id;
-        
-        if (showHeader) {
-            messageElement.innerHTML = `
-                <div class="flex items-start">
-                    <div class="w-10 h-10 rounded-full bg-gray-700 flex-shrink-0 flex items-center justify-center overflow-hidden mr-3">
-                        <img src="${avatar || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(username || 'U') + '&background=random'}" 
-                             alt="Avatar" class="w-full h-full object-cover">
-                    </div>
-                    <div class="flex-1">
-                        <div class="flex items-center">
-                            <span class="font-medium text-white mr-2">${this.escapeHTML(username)}</span>
-                            <span class="text-xs text-gray-400">${formattedTime}</span>
-                        </div>
-                        <div class="text-gray-300 select-text break-words">
-                            ${this.formatMessageContent(content)}
-                        </div>
-                    </div>
-                </div>
-            `;
-        } else {
-            messageElement.innerHTML = `
-                <div class="relative group-hover:visible invisible">
-                    <span class="text-xs text-gray-400 absolute -left-12">${formattedTime}</span>
-                </div>
-                <div class="text-gray-300 select-text break-words">
-                    ${this.formatMessageContent(content)}
-                </div>
-            `;
+        if (!userId || !username) {
+            this.error('❌ Cannot authenticate: missing user data', { userId, username });
+            return;
         }
         
-        // Add message actions
-        messageElement.innerHTML += `
+        const authData = {
+            userId: userId,
+            username: username
+        };
+        
+        this.log('📤 Sending authentication data:', authData);
+        this.socket.emit('authenticate', authData);
+    }
+    
+    // FIXED: Implement proper channel joining
+    joinActiveChannel() {
+        this.log('🏠 Joining active channel...');
+        
+        const channelId = this.getActiveChannelId();
+        if (channelId && this.socket && this.connected) {
+            this.socket.emit('join-channel', channelId);
+            this.activeChannel = channelId;
+            this.log('🏠 Joined channel:', channelId);
+        }
+    }
+    
+    // FIXED: Remove duplicate sendMessage method and implement properly
+    sendMessage(channelId, content) {
+        this.log('📤 Attempting to send message...');
+        this.log('📊 Send conditions check:', {
+            channelId: !!channelId,
+            content: !!content,
+            connected: this.connected,
+            socket: !!this.socket,
+            userId: this.getUserId(),
+            authenticated: this.authenticated
+        });
+        
+        if (!channelId || !content) {
+            const error = new Error('Missing required data: channelId=' + !!channelId + ', content=' + !!content);
+            this.trackError('SEND_MISSING_DATA', error);
+            return false;
+        }
+        
+        if (!this.connected || !this.socket) {
+            const error = new Error('Cannot send message: WebSocket not connected');
+            this.trackError('SEND_NOT_CONNECTED', error);
+            this.showToast('Not connected to chat server. Please wait or refresh the page.', 'error');
+            return false;
+        }
+        
+        const userId = this.getUserId();
+        if (!userId) {
+            const error = new Error('Cannot send message: No user ID');
+            this.trackError('SEND_NO_USER_ID', error);
+            this.showToast('Error: Not authenticated', 'error');
+            return false;
+        }
+        
+        const tempId = 'temp_' + Date.now();
+        const messageData = {
+            channelId,
+            content,
+            message_type: 'text',
+            timestamp: new Date().toISOString(),
+            tempId
+        };
+        
+        this.log('📤 Sending message data:', messageData);
+        this.trackMessage('MESSAGE_SENDING', messageData);
+        
+        // Ensure we've joined the channel
+        if (this.activeChannel !== channelId) {
+            this.log('🏠 Joining channel before sending');
+            this.socket.emit('join-channel', channelId);
+            this.activeChannel = channelId;
+        }
+        
+        // Add optimistic UI update
+        const tempMessage = this.createTempMessage(content, tempId);
+        this.appendMessage(tempMessage);
+        
+        try {
+            // Send via socket
+            this.socket.emit('channel-message', messageData);
+            this.log('✅ Message sent via WebSocket');
+            
+            // Set timeout to remove temp message if no confirmation received
+            setTimeout(() => {
+                const tempEl = document.getElementById('msg-' + tempId);
+                if (tempEl && tempEl.classList.contains('temp-message')) {
+                    this.error('Message send timeout - removing temp message');
+                    tempEl.remove();
+                    this.showToast('Message failed to send - please try again', 'error');
+                }
+            }, 10000); // 10 second timeout
+            
+            return true;
+        } catch (error) {
+            this.trackError('SEND_SOCKET_ERROR', error);
+            this.error('Failed to send message via socket:', error);
+            return false;
+        }
+    }
+    
+    initSocket() {
+        this.log('🔌 Setting up WebSocket connection...');
+        
+        try {
+            if (typeof io === 'undefined') {
+                const error = new Error('Socket.IO not available - messaging disabled');
+                this.trackError('SOCKET_IO_UNAVAILABLE', error);
+                this.updateStatus('error', 'WebSocket required but not available');
+                this.showToast('Real-time messaging unavailable. Please refresh the page.', 'error');
+                return;
+            }
+            
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const host = window.location.hostname;
+            const socketUrl = `${protocol}//${host}:${this.config.socketPort}`;
+            
+            this.log('🔗 Connecting to:', socketUrl, 'with path:', this.config.socketPath);
+            
+            this.socket = io(socketUrl, {
+                path: this.config.socketPath,
+                transports: ['websocket', 'polling'],
+                reconnection: true,
+                reconnectionDelay: this.config.reconnectDelay,
+                reconnectionAttempts: this.config.reconnectAttempts,
+                timeout: 20000,
+                forceNew: true
+            });
+            
+            this.registerSocketEvents();
+            this.trackConnection('SOCKET_CREATED', { url: socketUrl });
+            window.misVordSocket = this.socket;
+            this.updateStatus('connecting');
+        } catch (error) {
+            this.trackError('SOCKET_INIT_FAILED', error);
+            this.updateStatus('error', error.message);
+            this.showToast('Failed to connect to chat server', 'error');
+        }
+    }
+    
+    registerSocketEvents() {
+        if (!this.socket) {
+            this.error('❌ Cannot register socket events - no socket available');
+            return;
+        }
+        
+        this.log('📡 Registering socket events...');
+        
+        // Connection events
+        this.socket.on('connect', () => this.onSocketConnect());
+        this.socket.on('disconnect', (reason) => this.onSocketDisconnect(reason));
+        this.socket.on('connect_error', error => this.onSocketError(error));
+        this.socket.on('reconnect', (attemptNumber) => this.onSocketReconnect(attemptNumber));
+        this.socket.on('reconnect_error', error => this.onSocketReconnectError(error));
+        this.socket.on('reconnect_failed', () => this.onSocketReconnectFailed());
+        
+        // Message events
+        this.socket.on('new-channel-message', data => this.onNewMessage(data));
+        this.socket.on('message_error', data => this.onMessageError(data));
+        this.socket.on('message-sent-confirmation', data => this.onMessageSentConfirmation(data));
+        
+        // Auth events
+        this.socket.on('auth_success', data => this.onAuthSuccess(data));
+        this.socket.on('auth_error', data => this.onAuthError(data));
+        this.socket.on('connection_established', data => this.onConnectionEstablished(data));
+        
+        // Channel events
+        this.socket.on('channel-joined', data => this.onChannelJoined(data));
+        this.socket.on('channel-left', data => this.onChannelLeft(data));
+        
+        // Status and utility events
+        this.socket.on('user-status-change', data => this.onUserStatusChange(data));
+        this.socket.on('user-typing', data => this.onUserTyping(data));
+        this.socket.on('user-stop-typing', data => this.onUserStopTyping(data));
+        this.socket.on('heartbeat-response', () => this.onHeartbeatResponse());
+        
+        this.log('✅ Socket events registered successfully');
+    }
+    
+    // FIXED: Implement ALL missing socket event handlers
+    onUserStatusChange(data) { 
+        this.log('👤 User status change:', data);
+        
+        // Update user status in UI if needed
+        if (data.userId && data.status) {
+            const userElements = document.querySelectorAll(`[data-user-id="${data.userId}"]`);
+            userElements.forEach(element => {
+                // Add status indicator or update existing one
+                const statusIndicator = element.querySelector('.user-status') || document.createElement('div');
+                statusIndicator.className = 'user-status';
+                statusIndicator.textContent = data.status;
+                
+                // Update color based on status
+                statusIndicator.classList.remove('text-green-500', 'text-yellow-500', 'text-gray-500', 'text-red-500');
+                switch (data.status) {
+                    case 'online':
+                        statusIndicator.classList.add('text-green-500');
+                        break;
+                    case 'away':
+                        statusIndicator.classList.add('text-yellow-500');
+                        break;
+                    case 'dnd':
+                        statusIndicator.classList.add('text-red-500');
+                        break;
+                    case 'offline':
+                        statusIndicator.classList.add('text-gray-500');
+                        break;
+                }
+                
+                if (!element.querySelector('.user-status')) {
+                    element.appendChild(statusIndicator);
+                }
+            });
+        }
+    }
+    
+    onUserTyping(data) { 
+        this.log('⌨️ User typing:', data);
+        
+        const { userId, username, channelId } = data;
+        
+        // Only show typing indicator for current channel
+        if (channelId === this.getActiveChannelId() && userId !== this.getUserId()) {
+            this.typingUsers.set(userId, {
+                username: username || `User ${userId}`,
+                timestamp: Date.now()
+            });
+            
+            this.updateTypingIndicator();
+        }
+    }
+    
+    onUserStopTyping(data) { 
+        this.log('⌨️ User stop typing:', data);
+        
+        const { userId, channelId } = data;
+        
+        // Only update if it's for current channel
+        if (channelId === this.getActiveChannelId()) {
+            this.typingUsers.delete(userId);
+            this.updateTypingIndicator();
+        }
+    }
+    
+    onHeartbeatResponse() { 
+        this.log('💓 Heartbeat response received');
+        // Can be used to track connection latency or update last seen
+    }
+    
+    // FIXED: Add proper typing indicator management
+    updateTypingIndicator() {
+        const typingIndicator = document.getElementById('typing-indicator');
+        if (!typingIndicator) return;
+        
+        // Clean up old typing users (older than 5 seconds)
+        const now = Date.now();
+        for (const [userId, userData] of this.typingUsers.entries()) {
+            if (now - userData.timestamp > 5000) {
+                this.typingUsers.delete(userId);
+            }
+        }
+        
+        const typingCount = this.typingUsers.size;
+        
+        if (typingCount === 0) {
+            typingIndicator.classList.add('hidden');
+        } else {
+            const typingText = this.formatTypingText();
+            const textElement = typingIndicator.querySelector('span:last-child');
+            if (textElement) {
+                textElement.textContent = typingText;
+            }
+            typingIndicator.classList.remove('hidden');
+        }
+    }
+    
+    formatTypingText() {
+        const typingArray = Array.from(this.typingUsers.values());
+        const count = typingArray.length;
+        
+        if (count === 1) {
+            return `${typingArray[0].username} is typing...`;
+        } else if (count === 2) {
+            return `${typingArray[0].username} and ${typingArray[1].username} are typing...`;
+        } else if (count === 3) {
+            return `${typingArray[0].username}, ${typingArray[1].username}, and ${typingArray[2].username} are typing...`;
+        } else {
+            return `${typingArray[0].username} and ${count - 1} others are typing...`;
+        }
+    }
+    
+    // FIXED: Implement proper socket event handlers
+    onSocketConnect() {
+        this.log('🟢 WebSocket connected with ID:', this.socket.id);
+        this.connected = true;
+        this.reconnectAttempts = 0;
+        this.trackConnection('CONNECTED', { socketId: this.socket.id });
+        this.updateStatus('connected');
+        this.authenticate();
+    }
+    
+    onSocketDisconnect(reason) {
+        this.log('🔴 WebSocket disconnected. Reason:', reason);
+        this.connected = false;
+        this.authenticated = false;
+        this.trackConnection('DISCONNECTED', { reason });
+        this.updateStatus('disconnected');
+        
+        // Clear typing indicators on disconnect
+        this.typingUsers.clear();
+        this.updateTypingIndicator();
+    }
+    
+    onSocketError(error) {
+        this.error('💥 WebSocket connection error:', error);
+        this.trackError('SOCKET_ERROR', error);
+        this.updateStatus('error', error.message);
+        
+        if (++this.reconnectAttempts >= this.config.reconnectAttempts) {
+            this.error('❌ Max reconnection attempts reached');
+            this.trackError('MAX_RECONNECT_REACHED', { attempts: this.reconnectAttempts });
+            this.updateStatus('error', 'Connection failed - please refresh');
+            this.showToast('Unable to connect to chat server. Please refresh the page.', 'error');
+        }
+    }
+    
+    onSocketReconnect(attemptNumber) {
+        this.log('🔄 WebSocket reconnected after', attemptNumber, 'attempts');
+        this.trackConnection('RECONNECTED', { attemptNumber });
+    }
+    
+    onSocketReconnectError(error) {
+        this.error('🔄❌ WebSocket reconnection error:', error);
+        this.trackError('RECONNECT_ERROR', error);
+    }
+    
+    onSocketReconnectFailed() {
+        this.error('❌ WebSocket reconnection failed completely');
+        this.trackError('RECONNECT_FAILED', { attempts: this.reconnectAttempts });
+    }
+    
+    onAuthSuccess(data) {
+        this.log('✅ Authentication successful:', data);
+        this.authenticated = true;
+        this.trackConnection('AUTHENTICATED', data);
+        this.joinActiveChannel();
+    }
+    
+    onAuthError(data) {
+        this.error('❌ Authentication failed:', data);
+        this.trackError('AUTH_FAILED', data);
+        this.showToast('Failed to authenticate: ' + (data.message || 'Unknown error'), 'error');
+    }
+    
+    onConnectionEstablished(data) {
+        this.log('🤝 Connection established, socket ID:', data.socketId);
+        this.trackConnection('CONNECTION_ESTABLISHED', data);
+        this.authenticate();
+    }
+    
+    onChannelJoined(data) {
+        this.log('🏠 Joined channel:', data.channelId);
+        this.activeChannel = data.channelId;
+        this.trackConnection('CHANNEL_JOINED', data);
+        this.updateStatus('joined', 'Connected to chat');
+    }
+    
+    onChannelLeft(data) {
+        this.log('👋 Left channel:', data.channelId);
+        this.trackConnection('CHANNEL_LEFT', data);
+    }
+    
+    onNewMessage(data) {
+        this.log('📨 Received new message:', data);
+        this.trackMessage('MESSAGE_RECEIVED', data);
+        
+        // Only handle messages for current channel
+        if (!this.isCurrentChannel(data.channelId)) {
+            this.log('⚠️ Ignoring message for different channel:', data.channelId, 'vs current:', this.getActiveChannelId());
+            return;
+        }
+        
+        // Skip if we already have this message in the UI (avoid duplicates)
+        if (data.id && document.getElementById('msg-' + data.id)) {
+            this.log('⚠️ Message already displayed, ignoring duplicate:', data.id);
+            return;
+        }
+        
+        // Remove any temporary messages from the same user to avoid having both temp and real messages
+        if (data.user_id) {
+            this.removeTempMessagesByUserId(data.user_id);
+        }
+        
+        // Add message to UI
+        this.appendMessage(data);
+        
+        // Remove user from typing list if they just sent a message
+        if (data.user_id) {
+            this.removeUserFromTyping(data.user_id);
+        }
+    }
+    
+    onMessageError(data) {
+        this.error('❌ Message error:', data);
+        this.trackError('MESSAGE_ERROR', data);
+        this.showToast('Error sending message: ' + (data.message || 'Unknown error'), 'error');
+        this.removeTempMessages();
+    }
+    
+    onMessageSentConfirmation(data) {
+        this.log('✅ Message sent confirmation received:', data);
+        this.trackMessage('MESSAGE_CONFIRMED', data);
+        
+        // Handle duplicate message notification
+        if (data.isDuplicate) {
+            this.log('⚠️ Server detected a duplicate message:', data);
+            // Still remove the temp message since we won't get a real message
+            if (data.tempId) {
+                const tempMsg = document.getElementById('msg-' + data.tempId);
+                if (tempMsg) {
+                    this.log('🗑️ Removing temp message that was flagged as duplicate:', data.tempId);
+                    tempMsg.remove();
+                }
+            }
+            return;
+        }
+        
+        // We only need to remove the temp message with the matching tempId
+        // The real message will come via the broadcast in onNewMessage
+        if (data.tempId) {
+            const tempMsg = document.getElementById('msg-' + data.tempId);
+            if (tempMsg) {
+                this.log('🗑️ Removing temp message with ID:', data.tempId);
+                tempMsg.remove();
+            }
+        }
+    }
+    
+    // Helper method to remove temporary messages for a specific user
+    removeTempMessagesByUserId(userId) {
+        const tempUserMessages = document.querySelectorAll(`.temp-message[data-user-id="${userId}"]`);
+        if (tempUserMessages.length > 0) {
+            this.log(`🗑️ Removing ${tempUserMessages.length} temporary messages for user ${userId}`);
+            tempUserMessages.forEach(msg => msg.remove());
+        }
+    }
+    
+    initMessageForm() {
+        const form = document.getElementById('message-form');
+        if (!form) {
+            this.error('Message form not found in DOM');
+            return;
+        }
+        
+        // Prevent default form submission
+        form.addEventListener('submit', e => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.handleSubmit(form);
+            return false;
+        });
+        
+        const textarea = document.getElementById('message-input');
+        if (textarea) {
+            // Auto-resize on input
+            textarea.addEventListener('input', (e) => {
+                e.target.style.height = 'auto';
+                e.target.style.height = e.target.scrollHeight + 'px';
+                this.handleTyping();
+            });
+            
+            // Submit on Enter (not Shift+Enter)
+            textarea.addEventListener('keydown', e => {
+                if (e.key === 'Enter') {
+                    if (e.shiftKey) {
+                        // Allow shift+enter for new lines
+                        return;
+                    } else {
+                        // Prevent default and submit
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        // Only submit if there's content
+                        const content = e.target.value.trim();
+                        if (content) {
+                            this.handleSubmit(form);
+                        }
+                        return false;
+                    }
+                }
+            });
+            
+            textarea.addEventListener('blur', () => this.stopTyping());
+            setTimeout(() => textarea.focus(), 100);
+        } else {
+            this.error('Message textarea not found');
+        }
+        
+        this.log('Message form initialized');
+    }
+
+    handleSubmit(form) {
+        this.log('📝 handleSubmit called', { isSubmitting: this.isSubmitting });
+        
+        // Prevent multiple submissions
+        if (this.isSubmitting) {
+            this.log('Already submitting, ignoring duplicate submission');
+            return;
+        }
+        
+        this.isSubmitting = true;
+        
+        // Store the current timestamp to prevent handling the same submission twice in quick succession
+        const currentTime = Date.now();
+        if (this.lastSubmitTime && (currentTime - this.lastSubmitTime < 500)) {
+            this.log('Duplicate submission detected (too soon after previous submit), ignoring');
+            setTimeout(() => { this.isSubmitting = false; }, 500);
+            return;
+        }
+        this.lastSubmitTime = currentTime;
+        
+        try {
+            const textarea = document.getElementById('message-input');
+            if (!textarea) {
+                this.error('Cannot submit: Message textarea not found');
+                return;
+            }
+
+            const rawContent = textarea.value;
+            const content = rawContent.trim();
+            
+            this.log(`Raw textarea value: "${rawContent}"`);
+            this.log(`Trimmed content: "${content}"`);
+
+            if (!content) {
+                this.log('Empty message after trim, not sending');
+                return;
+            }
+            
+            const channelId = textarea.getAttribute('data-channel-id') || this.getActiveChannelId();
+            if (!channelId) {
+                this.error('Cannot submit: No channel ID found');
+                this.showToast('Error: No channel selected', 'error');
+                return;
+            }
+            
+            this.log('Sending message to channel', channelId, 'Content:', content);
+            
+            const success = this.sendMessage(channelId, content);
+            
+            if (success) {
+                // Clear textarea immediately after sending
+                textarea.value = '';
+                textarea.style.height = 'auto';
+                this.stopTyping();
+                
+                // Focus back to textarea for better UX
+                setTimeout(() => textarea.focus(), 50);
+            }
+            
+        } catch (error) {
+            this.error('Error in handleSubmit:', error);
+            this.trackError('SUBMIT_ERROR', error);
+        } finally {
+            // Reset submission flag after a brief delay
+            setTimeout(() => {
+                this.isSubmitting = false;
+            }, 500);
+        }
+    }
+    
+    // Add helper methods that are referenced in the code
+    getUserId() {
+        const socketData = document.getElementById('socket-data');
+        return socketData?.getAttribute('data-user-id') || this.userId;
+    }
+    
+    getUsername() {
+        const socketData = document.getElementById('socket-data');
+        return socketData?.getAttribute('data-username') || this.username;
+    }
+    
+    getActiveChannelId() {
+        const socketData = document.getElementById('socket-data');
+        return socketData?.getAttribute('data-channel-id') || this.activeChannel;
+    }
+    
+    isCurrentChannel(channelId) {
+        return channelId == this.getActiveChannelId();
+    }
+    
+    updateStatus(status, message = null) {
+        this.log('📊 Status update:', status, message);
+        const statusElements = document.querySelectorAll('.socket-status');
+        statusElements.forEach(el => {
+            let statusText = '';
+            let statusClass = '';
+            
+            switch(status) {
+                case 'connecting':
+                    statusText = '• Connecting...';
+                    statusClass = 'text-yellow-500';
+                    break;
+                case 'connected':
+                    statusText = '• Connected';
+                    statusClass = 'text-green-500';
+                    break;
+                case 'disconnected':
+                    statusText = '• Disconnected';
+                    statusClass = 'text-red-500';
+                    break;
+                case 'error':
+                    statusText = '• Error';
+                    statusClass = 'text-red-500';
+                    break;
+                case 'joined':
+                    statusText = '• Connected to chat';
+                    statusClass = 'text-green-500';
+                    break;
+            }
+            
+            el.innerHTML = `<span class="${statusClass}">${statusText}</span>`;
+        });
+    }
+    
+    // FIXED: Add proper placeholder methods with actual implementations
+    initMessageContainer() {
+        this.log('💬 Initializing message container...');
+        const container = document.getElementById('chat-messages');
+        if (container) {
+            this.log('✅ Message container found');
+        } else {
+            this.error('❌ Message container not found');
+        }
+    }
+    
+    sendHeartbeat() {
+        if (this.socket && this.connected) {
+            this.socket.emit('heartbeat');
+        }
+    }
+    
+    appendMessage(messageData) {
+        this.log('📨 Appending message to UI:', messageData);
+        
+        const messagesContainer = document.getElementById('chat-messages');
+        if (!messagesContainer) {
+            this.error('Messages container not found');
+            return;
+        }
+        
+        // Create message element
+        const messageElement = this.createMessageElement(messageData);
+        
+        // Remove any existing temp messages for this user
+        if (messageData.temp) {
+            const existingTemp = document.getElementById('msg-' + messageData.tempId);
+            if (existingTemp) {
+                existingTemp.remove();
+            }
+        }
+        
+        // Check if we should show the welcome message or not
+        const welcomeMessage = messagesContainer.querySelector('.flex.flex-col.items-center.justify-center');
+        if (welcomeMessage) {
+            welcomeMessage.remove();
+        }
+        
+        // Append to container
+        messagesContainer.appendChild(messageElement);
+        
+        // Scroll to bottom
+        this.scrollToBottom();
+        
+        this.log('✅ Message appended to UI successfully');
+    }
+    
+    createMessageElement(messageData) {
+        const messageDiv = document.createElement('div');
+        const messageId = messageData.id || messageData.tempId;
+        messageDiv.id = 'msg-' + messageId;
+        messageDiv.className = `mb-4 group hover:bg-discord-dark/30 p-1 rounded -mx-1 ${messageData.temp ? 'temp-message opacity-75' : ''}`;
+        messageDiv.setAttribute('data-user-id', messageData.user_id);
+        
+        // Get user info
+        const username = messageData.username || messageData.user?.username || 'Unknown User';
+        const avatarUrl = messageData.avatar || messageData.user?.avatar_url || 
+                         `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=random`;
+        
+        // Format timestamp
+        const timestamp = this.formatMessageTime(messageData.timestamp || messageData.sent_at);
+        
+        // Always show header for now (can be optimized later for consecutive messages)
+        messageDiv.innerHTML = `
+            <div class="flex items-start">
+                <div class="w-10 h-10 rounded-full bg-gray-700 flex-shrink-0 flex items-center justify-center overflow-hidden mr-3">
+                    <img src="${avatarUrl}" alt="Avatar" class="w-full h-full object-cover">
+                </div>
+                <div class="flex-1">
+                    <div class="flex items-center">
+                        <span class="font-medium text-white mr-2">${this.escapeHtml(username)}</span>
+                        <span class="text-xs text-gray-400">${timestamp}</span>
+                        ${messageData.temp ? '<span class="text-xs text-yellow-400 ml-2">Sending...</span>' : ''}
+                    </div>
+                    <div class="text-gray-300 select-text break-words">
+                        ${this.formatMessageContent(messageData.content)}
+                    </div>
+                </div>
+            </div>
             <div class="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity mt-1 ml-12">
                 <button class="p-1 text-gray-400 hover:text-white hover:bg-discord-light rounded-sm">
                     <i class="fas fa-face-smile text-xs"></i>
                 </button>
-                ${isOwnMessage ? `
                 <button class="p-1 text-gray-400 hover:text-white hover:bg-discord-light rounded-sm">
                     <i class="fas fa-pen-to-square text-xs"></i>
                 </button>
-                ` : ''}
                 <button class="p-1 text-gray-400 hover:text-white hover:bg-discord-light rounded-sm">
                     <i class="fas fa-reply text-xs"></i>
                 </button>
@@ -609,80 +903,100 @@ class MisVordChat {
             </div>
         `;
         
-        // Append the message to container
-        messagesContainer.appendChild(messageElement);
+        return messageDiv;
+    }
+    
+    // FIXED: Add missing createTempMessage method
+    createTempMessage(content, tempId) {
+        return { 
+            content, 
+            tempId, 
+            temp: true,
+            user_id: this.getUserId(),
+            username: this.getUsername(),
+            timestamp: new Date().toISOString(),
+            sent_at: new Date().toISOString()
+        };
+    }
+    
+    formatMessageTime(timestamp) {
+        if (!timestamp) return 'Just now';
         
-        // Scroll to bottom
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        const messageDate = new Date(timestamp);
+        const now = new Date();
+        
+        // If message is from today, just show time
+        if (messageDate.toDateString() === now.toDateString()) {
+            return messageDate.toLocaleTimeString('en-US', { 
+                hour: 'numeric', 
+                minute: '2-digit',
+                hour12: true 
+            });
+        }
+        
+        // If message is from yesterday
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+        if (messageDate.toDateString() === yesterday.toDateString()) {
+            return 'Yesterday at ' + messageDate.toLocaleTimeString('en-US', { 
+                hour: 'numeric', 
+                minute: '2-digit',
+                hour12: true 
+            });
+        }
+        
+        // If message is from this week
+        const weekAgo = new Date(now);
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        if (messageDate > weekAgo) {
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            return days[messageDate.getDay()] + ' at ' + messageDate.toLocaleTimeString('en-US', { 
+                hour: 'numeric', 
+                minute: '2-digit',
+                hour12: true 
+            });
+        }
+        
+        // Older messages - show full date
+        return messageDate.toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric', 
+            year: 'numeric' 
+        }) + ' at ' + messageDate.toLocaleTimeString('en-US', { 
+            hour: 'numeric', 
+            minute: '2-digit',
+            hour12: true 
+        });
     }
     
     formatMessageContent(content) {
         if (!content) return '';
         
-        // Escape HTML
-        let formattedContent = this.escapeHTML(content);
-        
-        // Convert line breaks to <br>
-        formattedContent = formattedContent.replace(/\n/g, '<br>');
-        
-        return formattedContent;
+        // Escape HTML and convert newlines to <br>
+        return this.escapeHtml(content).replace(/\n/g, '<br>');
     }
     
-    handleInput() {
-        // Clear existing timeout if any
-        if (this.typingTimeout) {
-            clearTimeout(this.typingTimeout);
-        }
-        
-        // Send typing indication
-        const channelId = this.getActiveChannelId();
-        if (channelId && this.connected) {
-            this.socket.emit('typing', { channelId });
-            
-            // Set a timeout to emit 'stop-typing' after 3 seconds of inactivity
-            this.typingTimeout = setTimeout(() => {
-                this.handleStopTyping();
-            }, 3000);
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    scrollToBottom() {
+        const messagesContainer = document.getElementById('chat-messages');
+        if (messagesContainer) {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
     }
     
-    handleStopTyping() {
-        if (this.typingTimeout) {
-            clearTimeout(this.typingTimeout);
-            this.typingTimeout = null;
-        }
-        
-        const channelId = this.getActiveChannelId();
-        if (channelId && this.connected) {
-            this.socket.emit('stop-typing', { channelId });
-        }
+    removeTempMessages() {
+        const tempMessages = document.querySelectorAll('.temp-message');
+        tempMessages.forEach(msg => {
+            msg.remove();
+            this.log('🗑️ Removed temp message:', msg.id);
+        });
     }
-    
-    handleUserTyping(data) {
-        const { userId, username, channelId } = data;
-        
-        // Only show typing indicators for the current channel
-        if (channelId != this.getActiveChannelId()) return;
-        
-        // Don't show typing indicator for our own messages
-        if (userId == this.getCurrentUserId()) return;
-        
-        // Add to typing users
-        this.typingUsers.set(userId, username);
-        
-        // Update typing indicator
-        this.updateTypingIndicator();
-    }
-    
-    handleUserStopTyping(data) {
-        const { userId, channelId } = data;
-        
-        // Only process for the current channel
-        if (channelId != this.getActiveChannelId()) return;
-        
-        this.removeUserFromTyping(userId);
-    }
-    
+
     removeUserFromTyping(userId) {
         if (this.typingUsers.has(userId)) {
             this.typingUsers.delete(userId);
@@ -690,194 +1004,100 @@ class MisVordChat {
         }
     }
     
-    updateTypingIndicator() {
-        const container = document.getElementById('typing-indicator');
-        
-        // Create container if it doesn't exist
-        if (!container && this.typingUsers.size > 0) {
-            const messageForm = document.getElementById('message-form');
+    handleTyping() {
+        const channelId = this.getActiveChannelId();
+        if (this.socket && this.connected && channelId) {
+            this.socket.emit('typing', { channelId });
             
-            if (messageForm) {
-                const indicatorContainer = document.createElement('div');
-                indicatorContainer.id = 'typing-indicator';
-                indicatorContainer.className = 'text-xs text-gray-400 pb-1 pl-1 flex items-center';
-                messageForm.parentNode.insertBefore(indicatorContainer, messageForm);
+            // Clear existing timeout
+            if (this.typingTimeout) {
+                clearTimeout(this.typingTimeout);
             }
+            
+            // Set new timeout to stop typing after 3 seconds
+            this.typingTimeout = setTimeout(() => {
+                this.stopTyping();
+            }, 3000);
+        }
+    }
+    
+    stopTyping() {
+        if (this.typingTimeout) {
+            clearTimeout(this.typingTimeout);
+            this.typingTimeout = null;
         }
         
-        const typingContainer = document.getElementById('typing-indicator');
-        
-        if (typingContainer) {
-            if (this.typingUsers.size === 0) {
-                typingContainer.innerHTML = '';
-                typingContainer.style.display = 'none';
+        const channelId = this.getActiveChannelId();
+        if (this.socket && this.connected && channelId) {
+            this.socket.emit('stop-typing', { channelId });
+        }
+    }
+    
+    // FIXED: Import showToast properly and add fallback
+    showToast(message, type = 'info') {
+        try {
+            // Try imported showToast first
+            if (typeof showToast === 'function') {
+                showToast(message, type);
                 return;
             }
             
-            let text = '';
-            const users = Array.from(this.typingUsers.values());
-            
-            if (users.length === 1) {
-                text = `${users[0]} is typing...`;
-            } else if (users.length === 2) {
-                text = `${users[0]} and ${users[1]} are typing...`;
-            } else if (users.length === 3) {
-                text = `${users[0]}, ${users[1]}, and ${users[2]} are typing...`;
-            } else {
-                text = 'Several people are typing...';
+            // Try global showToast
+            if (typeof window.showToast === 'function') {
+                window.showToast(message, type);
+                return;
             }
             
-            typingContainer.innerHTML = `
-                <div class="typing-animation mr-2">
-                    <span class="dot"></span>
-                    <span class="dot"></span>
-                    <span class="dot"></span>
-                </div>
-                <span>${text}</span>
-            `;
-            typingContainer.style.display = 'flex';
+            // Fallback to console
+            console.log(`[Toast ${type.toUpperCase()}] ${message}`);
+        } catch (error) {
+            console.log(`[Toast ${type.toUpperCase()}] ${message}`);
         }
     }
     
-    handleChannelSelect(e) {
-        const channelItem = e.currentTarget;
-        const channelId = channelItem.dataset.channelId;
-        
-        if (channelId) {
-            // Leave current channel
-            if (this.activeChannel && this.connected) {
-                this.socket.emit('leave-channel', this.activeChannel);
-            }
-            
-            // Join new channel
-            this.activeChannel = channelId;
-            
-            if (this.connected) {
-                this.socket.emit('join-channel', channelId);
-            }
-            
-            // Clear typing users for the previous channel
-            this.typingUsers.clear();
-            this.updateTypingIndicator();
-        }
-    }
-    
-    joinCurrentChannel() {
-        const channelId = this.getActiveChannelId();
-        
-        if (channelId && this.connected) {
-            this.activeChannel = channelId;
-            this.socket.emit('join-channel', channelId);
-        }
-    }
-    
-    getActiveChannelId() {
-        // Try to get from active channel element
-        const activeChannel = document.querySelector('.channel-item.active');
-        if (activeChannel && activeChannel.dataset.channelId) {
-            return activeChannel.dataset.channelId;
-        }
-        
-        // Try to get from message input if available
-        const messageInput = document.querySelector('.message-input');
-        if (messageInput && messageInput.dataset.channelId) {
-            return messageInput.dataset.channelId;
-        }
-        
-        // Return stored active channel as fallback
-        return this.activeChannel;
-    }
-    
-    getCurrentUserId() {
-        // Look for user ID in data attributes or session storage
-        const userElement = document.querySelector('[data-user-id]');
-        if (userElement && userElement.dataset.userId) {
-            return userElement.dataset.userId;
-        }
-        
-        // Try to get from sessionStorage
-        return sessionStorage.getItem('user_id');
-    }
-    
-    getCurrentUsername() {
-        // Look for username in data attributes or session storage
-        const userElement = document.querySelector('[data-username]');
-        if (userElement && userElement.dataset.username) {
-            return userElement.dataset.username;
-        }
-        
-        // Try to get from sessionStorage
-        return sessionStorage.getItem('username');
-    }
-    
-    showSocketStatus(status) {
-        // Add socket status indicator to UI if needed
-        const container = document.querySelector('.socket-status');
-        if (!container) return;
-        
-        switch (status) {
-            case 'connected':
-                container.innerHTML = '<span class="text-green-500">●</span> Connected';
-                container.classList.remove('hidden');
-                setTimeout(() => container.classList.add('hidden'), 3000);
-                break;
-            case 'disconnected':
-                container.innerHTML = '<span class="text-red-500">●</span> Disconnected';
-                container.classList.remove('hidden');
-                break;
-            case 'error':
-                container.innerHTML = '<span class="text-amber-500">●</span> Connection error';
-                container.classList.remove('hidden');
-                break;
-        }
-    }
-    
-    escapeHTML(str) {
-        return str.replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
-    }
+    // ...existing tracking and helper methods...
 }
 
-// Initialize the chat system
+// ENSURE GLOBAL INITIALIZATION - FIXED: Only one instance
 document.addEventListener('DOMContentLoaded', () => {
-    window.misVordChat = new MisVordChat();
+    console.log('🚀 Document ready - initializing MisVord messaging...');
     
-    // Add CSS for typing animation
-    const style = document.createElement('style');
-    style.textContent = `
-        .typing-animation {
-            display: flex;
-            align-items: center;
-        }
-        
-        .typing-animation .dot {
-            width: 4px;
-            height: 4px;
-            background-color: #999;
-            border-radius: 50%;
-            margin: 0 2px;
-            animation: pulse 1.5s infinite ease-in-out;
-        }
-        
-        .typing-animation .dot:nth-child(2) {
-            animation-delay: 0.2s;
-        }
-        
-        .typing-animation .dot:nth-child(3) {
-            animation-delay: 0.4s;
-        }
-        
-        @keyframes pulse {
-            0%, 50%, 100% {
-                transform: translateY(0);
+    try {
+        // Check for existing instance and ensure we don't initialize twice
+        if (!window.MisVordMessaging || !window.MisVordMessaging.initialized) {
+            console.log('Creating new MisVordMessaging instance or initializing existing one');
+            if (!window.MisVordMessaging) {
+                window.MisVordMessaging = new MisVordMessaging();
             }
-            25% {
-                transform: translateY(-3px);
+            window.MisVordMessaging.init();
+            window.MisVordMessaging.initialized = true;
+            console.log('✅ MisVordMessaging initialized');
+        } else {
+            console.log('✅ MisVordMessaging already initialized - skipping');
+        }
+    } catch (error) {
+        console.error('❌ Failed to initialize MisVordMessaging:', error);
+    }
+});
+
+// Immediate initialization is simplified to avoid duplication
+if (document.readyState !== 'loading') {
+    console.log('📄 Document already ready, checking immediate initialization');
+    setTimeout(() => {
+        if (!window.MisVordMessaging || !window.MisVordMessaging.initialized) {
+            try {
+                console.log('Immediate initialization required');
+                if (!window.MisVordMessaging) {
+                    window.MisVordMessaging = new MisVordMessaging();
+                }
+                window.MisVordMessaging.init();
+                window.MisVordMessaging.initialized = true;
+                console.log('✅ MisVordMessaging initialized immediately');
+            } catch (error) {
+                console.error('❌ Failed immediate initialization:', error);
             }
         }
-    `;
-    document.head.appendChild(style);
-}); 
+    }, 100);
+}
+
+export { MisVordMessaging };

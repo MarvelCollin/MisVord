@@ -70,6 +70,35 @@ if (strpos($path, '/api/') === 0) {
         exit;
     }
     
+    // Add debug endpoint for testing message storage
+    if ($path === '/api/debug/message-storage' && $_SERVER['REQUEST_METHOD'] === 'GET') {
+        header('Content-Type: application/json');
+        error_reporting(E_ALL);
+        ini_set('display_errors', 1);
+        
+        require_once __DIR__ . '/controllers/MessageController.php';
+        require_once __DIR__ . '/database/models/Message.php';
+        
+        // Set up test session if not already started
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        
+        $_SESSION['user_id'] = $_GET['user_id'] ?? 1;
+        
+        try {
+            $controller = new MessageController();
+            $controller->debugMessageStorage();
+        } catch (Exception $e) {
+            echo json_encode([
+                'success' => false,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
+        exit;
+    }
+    
     // Category routes
     if ($path === '/api/categories' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         require_once __DIR__ . '/controllers/ChannelController.php';

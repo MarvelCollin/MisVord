@@ -1,13 +1,12 @@
 <?php
 
 require_once __DIR__ . '/../database/query.php';
+require_once __DIR__ . '/BaseController.php';
 
-class FriendController {
+class FriendController extends BaseController {
     
     public function __construct() {
-        if (session_status() == PHP_SESSION_NONE) {
-            session_start();
-        }
+        parent::__construct();
     }
     
     public function getUserFriends() {
@@ -80,6 +79,10 @@ class FriendController {
     public function sendFriendRequest($username) {
         $currentUserId = $_SESSION['user_id'] ?? 0;
         
+        if (!$currentUserId) {
+            return $this->unauthorized('You must be logged in to send friend requests');
+        }
+        
         try {
             $query = new Query();
             
@@ -89,10 +92,7 @@ class FriendController {
                 ->first();
                 
             if (!$user) {
-                return [
-                    'success' => false,
-                    'message' => 'User not found'
-                ];
+                return $this->notFound('User not found');
             }
             
             
@@ -109,15 +109,9 @@ class FriendController {
                 
             if ($existingRequest) {
                 if ($existingRequest['status'] === 'accepted') {
-                    return [
-                        'success' => false,
-                        'message' => 'Already friends'
-                    ];
+                    return $this->validationError(['error' => 'Already friends']);
                 } elseif ($existingRequest['status'] === 'pending') {
-                    return [
-                        'success' => false,
-                        'message' => 'Friend request already sent'
-                    ];
+                    return $this->validationError(['error' => 'Friend request already sent']);
                 }
             }
             
@@ -129,22 +123,20 @@ class FriendController {
                     'status' => 'pending'
                 ]);
                 
-            return [
-                'success' => true,
-                'message' => 'Friend request sent'
-            ];
+            return $this->successResponse([], 'Friend request sent');
             
         } catch (Exception $e) {
             error_log("Error sending friend request: " . $e->getMessage());
-            return [
-                'success' => false,
-                'message' => 'Failed to send friend request'
-            ];
+            return $this->serverError('Failed to send friend request');
         }
     }
     
     public function respondToFriendRequest($requestId, $accept = true) {
         $currentUserId = $_SESSION['user_id'] ?? 0;
+        
+        if (!$currentUserId) {
+            return $this->unauthorized('You must be logged in to respond to friend requests');
+        }
         
         try {
             $query = new Query();
@@ -157,10 +149,7 @@ class FriendController {
                 ->first();
                 
             if (!$request) {
-                return [
-                    'success' => false,
-                    'message' => 'Friend request not found'
-                ];
+                return $this->notFound('Friend request not found');
             }
             
             if ($accept) {
@@ -171,28 +160,19 @@ class FriendController {
                         'status' => 'accepted'
                     ]);
                     
-                return [
-                    'success' => true,
-                    'message' => 'Friend request accepted'
-                ];
+                return $this->successResponse([], 'Friend request accepted');
             } else {
                 
                 $query->table('friend_list')
                     ->where('id', $requestId)
                     ->delete();
                     
-                return [
-                    'success' => true,
-                    'message' => 'Friend request rejected'
-                ];
+                return $this->successResponse([], 'Friend request rejected');
             }
             
         } catch (Exception $e) {
             error_log("Error responding to friend request: " . $e->getMessage());
-            return [
-                'success' => false,
-                'message' => 'Failed to process friend request'
-            ];
+            return $this->serverError('Failed to process friend request');
         }
     }
 } 

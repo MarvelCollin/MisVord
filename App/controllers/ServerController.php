@@ -1,131 +1,65 @@
 <?php
 
 require_once __DIR__ . '/../database/models/Server.php';
-require_once __DIR__ . '/../database/models/ServerInvite.php';
-require_once __DIR__ . '/../database/models/UserServerMembership.php';
 require_once __DIR__ . '/../database/models/Channel.php';
-require_once __DIR__ . '/../database/models/Category.php';
-require_once __DIR__ . '/../database/query.php';
+require_once __DIR__ . '/../database/models/Message.php';
+require_once __DIR__ . '/../database/models/UserServerMembership.php';
 require_once __DIR__ . '/BaseController.php';
 
 class ServerController extends BaseController {
-
-    public function __construct() {
-        parent::__construct();
-    }
-
-    public function getServer($id) {
+    
+    public function show($id) {
         if (!isset($_SESSION['user_id'])) {
-            return null;
+            $this->redirectToLogin();
+            return;
         }
 
         $server = Server::find($id);
         if (!$server) {
-            error_log("Server not found with ID: $id");
-            return null;
-        }
-
-        error_log("Successfully found server: " . $server->name);
-        return $server;
-    }
-
-    public function show($id) {
-        $server = $this->getServer($id);
-        
-        if (!$server) {
-            if ($this->isAjaxRequest()) {
-                return $this->notFound('Server not found');
-            }
-            
-            http_response_code(404);
-            require_once dirname(__DIR__) . '/views/pages/404.php';
+            $this->redirect('/404');
             return;
         }
-        
-        // Get data for the server view
-        $currentUserId = $_SESSION['user_id'] ?? 0;
-        $userServers = Server::getFormattedServersForUser($currentUserId);
-        
-        // Use try/catch for each data fetch to ensure we can continue even if one fails
-        try {
-            $serverMembers = UserServerMembership::getServerMembers($server->id);
-        } catch (Exception $e) {
-            error_log("Error fetching server members: " . $e->getMessage());
-            $serverMembers = [];
+
+        $membership = UserServerMembership::findByUserAndServer($_SESSION['user_id'], $id);
+        if (!$membership) {
+            $this->redirect('/404');
+            return;
         }
-        
-        try {
-            $serverRoles = UserServerMembership::getServerRoles($server->id);
-        } catch (Exception $e) {
-            error_log("Error fetching server roles: " . $e->getMessage());
-            $serverRoles = [];
-        }
-        
-        try {
-            $serverChannels = Channel::getServerChannels($server->id);
-        } catch (Exception $e) {
-            error_log("Error fetching server channels: " . $e->getMessage());
-            $serverChannels = [];
-        }
-        
-        // Get active channel and its messages
+
+        $channels = Channel::getByServerId($id);
+        $GLOBALS['serverChannels'] = $channels;
+
         $activeChannelId = $_GET['channel'] ?? null;
-        $channelMessages = [];
-        
-        if (empty($activeChannelId) && !empty($serverChannels)) {
-            // Find first text channel
-            foreach ($serverChannels as $channel) {
-                if (isset($channel['type_name']) && $channel['type_name'] === 'text') {
-                    $activeChannelId = $channel['id'];
-                    break;
-                }
-                
-                // Fallback to using type directly if type_name is not set
-                if (!isset($channel['type_name']) && isset($channel['type']) && ($channel['type'] === 'text' || $channel['type'] === 1)) {
-                    $activeChannelId = $channel['id'];
-                    break;
-                }
-            }
-        }
-        
         if ($activeChannelId) {
-            try {
-                $channelMessages = Channel::getChannelMessages($activeChannelId);
-            } catch (Exception $e) {
-                error_log("Error fetching channel messages: " . $e->getMessage());
-                $channelMessages = [];
+            $activeChannel = Channel::find($activeChannelId);
+            if ($activeChannel && $activeChannel->server_id == $id) {
+                $GLOBALS['activeChannelId'] = $activeChannelId;
+                
+                // Get messages for the active channel - FIXED to use proper field names
+                try {
+                    $messages = Message::getForChannel($activeChannelId, 50, 0);
+                    $GLOBALS['channelMessages'] = $messages;
+                    error_log("ServerController: Loaded " . count($messages) . " messages for channel $activeChannelId");
+                } catch (Exception $e) {
+                    error_log("ServerController: Error loading messages: " . $e->getMessage());
+                    $GLOBALS['channelMessages'] = [];
+                }
             }
+        } else if (!empty($channels)) {
+            $firstChannel = $channels[0];
+            $this->redirect("/server/$id?channel={$firstChannel['id']}");
+            return;
         }
-        
-        // For AJAX requests, return server data as JSON
-        if ($this->isAjaxRequest()) {
-            return $this->successResponse([
-                'server' => [
-                    'id' => $server->id,
-                    'name' => $server->name,
-                    'description' => $server->description,
-                    'image_url' => $server->image_url,
-                    'is_public' => (bool)$server->is_public
-                ],
-                'userServers' => $userServers ?? [],
-                'serverMembers' => $serverMembers ?? [],
-                'serverRoles' => $serverRoles ?? [],
-                'serverChannels' => $serverChannels ?? [],
-                'activeChannelId' => $activeChannelId,
-                'channelMessages' => $channelMessages ?? []
-            ]);
-        }
-        
-        // For regular requests, set global variables and render the page
+
         $GLOBALS['currentServer'] = $server;
-        $GLOBALS['userServers'] = $userServers ?? [];
-        $GLOBALS['serverMembers'] = $serverMembers ?? [];
-        $GLOBALS['serverRoles'] = $serverRoles ?? [];
-        $GLOBALS['serverChannels'] = $serverChannels ?? [];
-        $GLOBALS['activeChannelId'] = $activeChannelId;
-        $GLOBALS['channelMessages'] = $channelMessages ?? [];
         
-        require_once dirname(__DIR__) . '/views/pages/server-page.php';
+        $this->view('pages/server-page', [
+            'title' => htmlspecialchars($server->name),
+            'currentServer' => $server,
+            'activeChannelId' => $activeChannelId ?? null,
+            'channels' => $channels,
+            'messages' => $GLOBALS['channelMessages'] ?? []
+        ]);
     }
 
     public function create() {
@@ -182,7 +116,7 @@ class ServerController extends BaseController {
             $imageUrl = null;
             if (isset($_FILES['image_file']) && $_FILES['image_file']['error'] === UPLOAD_ERR_OK) {
                 error_log("Attempting to upload server image");
-                $imageUrl = $this->uploadServerImage($_FILES['image_file']);
+                $imageUrl = $this->uploadImage($_FILES['image_file'], 'servers');
                 if ($imageUrl === false) {
                     error_log("Server creation failed: Image upload failed");
                     return $this->serverError('Failed to upload server image');
@@ -331,29 +265,6 @@ class ServerController extends BaseController {
             // Restore error reporting settings
             error_reporting($oldErrorReporting);
         }
-    }
-
-    private function uploadServerImage($file) {
-        $fileType = exif_imagetype($file['tmp_name']);
-        if (!$fileType || !in_array($fileType, [IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_GIF, IMAGETYPE_WEBP])) {
-            return false;
-        }
-
-        $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
-        $filename = 'server_' . time() . '_' . bin2hex(random_bytes(8)) . '.' . $extension;
-
-        $uploadDir = __DIR__ . '/../public/assets/uploads/servers/';
-        if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0755, true);
-        }
-
-        $filepath = $uploadDir . $filename;
-
-        if (move_uploaded_file($file['tmp_name'], $filepath)) {
-            return '/public/assets/uploads/servers/' . $filename;
-        }
-
-        return false;
     }
 
     private function createDefaultChannels($serverId) {
@@ -821,189 +732,32 @@ class ServerController extends BaseController {
     }
 
     public function generateInviteLink($serverId) {
-        // Set error reporting to maximum for debugging
-        error_reporting(E_ALL);
-        ini_set('display_errors', 1);
-
-        error_log("generateInviteLink called for server ID: $serverId");
-        
-        try {
-            if (!isset($_SESSION['user_id'])) {
-                error_log("Authentication failed: user_id not set in session");
-                return $this->unauthorized();
-            }
-            
-            error_log("User ID: {$_SESSION['user_id']} attempting to generate invite for server: $serverId");
-            
-            $server = Server::find($serverId);
-            if (!$server) {
-                error_log("Server not found with ID: $serverId");
-                return $this->notFound('Server not found');
-            }
-            
-            error_log("Server found: {$server->name} (ID: {$server->id})");
-            
-            // Check if user has permission to generate invite link
-            if (!UserServerMembership::isMember($_SESSION['user_id'], $serverId)) {
-                error_log("Permission denied: User {$_SESSION['user_id']} is not a member of server $serverId");
-                return $this->forbidden('You do not have permission to generate invite links for this server');
-            }
-            
-            error_log("User has permission to generate invite link");
-            
-            // Generate a new invite code
-            try {
-                $newInviteCode = $this->generateUniqueInviteCode();
-                error_log("Generated new invite code: $newInviteCode");
-            } catch (Exception $e) {
-                error_log("Error generating invite code: " . $e->getMessage());
-                throw $e;
-            }
-            
-            try {
-                // Use direct PDO query which is more reliable
-                $query = new Query();
-                $pdo = $query->getPdo();
-                
-                $stmt = $pdo->prepare("UPDATE servers SET invite_link = ? WHERE id = ?");
-                $pdoResult = $stmt->execute([$newInviteCode, $serverId]);
-                
-                error_log("Direct PDO update result: " . ($pdoResult ? "Success" : "Failed"));
-                
-                if (!$pdoResult) {
-                    error_log("PDO Error Info: " . print_r($stmt->errorInfo(), true));
-                    return $this->serverError('Failed to update invite link - Database error');
-                }
-                
-                // Double-check the update worked
-                $checkServer = Server::find($serverId);
-                error_log("Verification - Server invite_link after update: " . ($checkServer->invite_link ?? 'null'));
-                
-                $baseUrl = $this->getBaseUrl();
-                error_log("Base URL: $baseUrl");
-                
-                return $this->successResponse([
-                    'invite_code' => $newInviteCode,
-                    'full_url' => $baseUrl . "/join/" . $newInviteCode
-                ], 'New invite link generated');
-            } catch (Exception $e) {
-                error_log("Database error updating invite link: " . $e->getMessage());
-                error_log("SQL State: " . $e->getCode());
-                error_log("Stack trace: " . $e->getTraceAsString());
-                throw $e;
-            }
-        } catch (Exception $e) {
-            error_log("Unhandled exception in generateInviteLink: " . $e->getMessage());
-            error_log("Stack trace: " . $e->getTraceAsString());
-            
-            // Return detailed error message in development
-            $errorMessage = 'An error occurred while generating the invite link: ' . $e->getMessage();
-            return $this->serverError($errorMessage);
-        }
-    }
-    
-    private function getBaseUrl() {
-        $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http';
-        $host = $_SERVER['HTTP_HOST'];
-        return $protocol . '://' . $host;
-    }
-
-    /**
-     * Debug method that tries multiple approaches to update the invite link
-     * Only used for debugging purposes
-     */
-    public function debugInviteLink($serverId) {
         if (!isset($_SESSION['user_id'])) {
-            echo "Auth needed\n";
-            return false;
+            return $this->unauthorized();
         }
-        
+
         $server = Server::find($serverId);
         if (!$server) {
-            echo "Server not found\n";
-            return false;
+            return $this->notFound('Server not found');
         }
-        
-        echo "Server found: {$server->name} (ID: {$server->id})\n";
-        
-        if (!UserServerMembership::isMember($_SESSION['user_id'], $serverId)) {
-            echo "Not a member\n";
-            return false;
-        }
-        
-        echo "User is a member\n";
-        
-        // Generate a new invite code
-        $newInviteCode = $this->generateUniqueInviteCode();
-        echo "Generated new invite code: $newInviteCode\n";
-        
-        // Approach 1: Using the model's save method
-        try {
-            echo "\nApproach 1: Using model's save method\n";
-            $server->invite_link = $newInviteCode;
-            $saveResult = $server->save();
-            echo "Save result: " . ($saveResult ? "Success" : "Failed") . "\n";
-        } catch (Exception $e) {
-            echo "Error with approach 1: " . $e->getMessage() . "\n";
-        }
-        
-        // Approach 2: Using Query class
-        try {
-            echo "\nApproach 2: Using Query class\n";
-            $query = new Query();
-            $updateResult = $query->table('servers')
-                ->where('id', $serverId)
-                ->update(['invite_link' => $newInviteCode.'_2']);
-            echo "Update result: " . ($updateResult ? "Success" : "Failed") . "\n";
-        } catch (Exception $e) {
-            echo "Error with approach 2: " . $e->getMessage() . "\n";
-        }
-        
-        // Approach 3: Using direct PDO
-        try {
-            echo "\nApproach 3: Using direct PDO\n";
-            $query = new Query();
-            $pdo = $query->getPdo();
-            $stmt = $pdo->prepare("UPDATE servers SET invite_link = ? WHERE id = ?");
-            $pdoResult = $stmt->execute([$newInviteCode.'_3', $serverId]);
-            echo "PDO update result: " . ($pdoResult ? "Success" : "Failed") . "\n";
-            
-            if (!$pdoResult) {
-                echo "PDO Error Info: " . print_r($stmt->errorInfo(), true) . "\n";
-            }
-        } catch (Exception $e) {
-            echo "Error with approach 3: " . $e->getMessage() . "\n";
-        }
-        
-        // Approach 4: Using direct SQL query
-        try {
-            echo "\nApproach 4: Using direct SQL query\n";
-            $query = new Query();
-            $pdo = $query->getPdo();
-            $sql = "UPDATE servers SET invite_link = '{$newInviteCode}_4' WHERE id = {$serverId}";
-            $rawResult = $pdo->exec($sql);
-            echo "Raw SQL result: " . ($rawResult !== false ? "Success ($rawResult rows)" : "Failed") . "\n";
-            
-            if ($rawResult === false) {
-                echo "PDO Error Info: " . print_r($pdo->errorInfo(), true) . "\n";
-            }
-        } catch (Exception $e) {
-            echo "Error with approach 4: " . $e->getMessage() . "\n";
-        }
-        
-        // Check which approach worked
-        $updatedServer = Server::find($serverId);
-        echo "\nVerification\n";
-        echo "Final invite_link: " . ($updatedServer->invite_link ?? 'null') . "\n";
-        
-        return true;
-    }
 
-    /**
-     * Check if the current request is an AJAX request
-     */
-    protected function isAjaxRequest() {
-        return !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
-               strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
+        $membership = UserServerMembership::findByUserAndServer($_SESSION['user_id'], $serverId);
+        if (!$membership || !in_array($membership->role, ['admin', 'moderator', 'owner'])) {
+            return $this->forbidden('You do not have permission to create invite links');
+        }
+
+        try {
+            $inviteCode = $server->generateInviteCode();
+            
+            return $this->successResponse([
+                'invite_code' => $inviteCode,
+                'invite_url' => $_SERVER['HTTP_HOST'] . "/join/$inviteCode",
+                'expires_at' => null // For now, invites don't expire
+            ]);
+            
+        } catch (Exception $e) {
+            error_log("Error generating invite link: " . $e->getMessage());
+            return $this->serverError('Failed to generate invite link');
+        }
     }
 }

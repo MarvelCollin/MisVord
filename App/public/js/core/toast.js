@@ -1,158 +1,103 @@
 /**
- * Toast notification system for MiscVord
- * Provides consistent notification display across the application
+ * Toast notification system
  */
 
-class ToastManager {
-    constructor() {
-        this.init();
-    }
+let toastContainer = null;
 
-    init() {
-        // We initialize when this module loads
-        console.log('Toast manager initialized');
+function createToastContainer() {
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toast-container';
+        toastContainer.className = 'fixed top-4 right-4 z-50 space-y-2';
+        document.body.appendChild(toastContainer);
     }
+    return toastContainer;
+}
 
-    /**
-     * Create toast container if not exists
-     */
-    createToastContainer() {
-        let container = document.getElementById('toast-container');
-        if (!container) {
-            container = document.createElement('div');
-            container.id = 'toast-container';
-            container.className = 'fixed top-0 right-0 p-4 z-50 flex flex-col items-end space-y-2';
-            document.body.appendChild(container);
-        }
-        return container;
-    }
-
-    /**
-     * Create a new toast element
-     */
-    createToast(message, type = 'info') {
-        const toast = document.createElement('div');
-        const toastClass = this.getToastClass(type);
-        
-        toast.className = `transform transition-all duration-300 ease-out translate-x-full 
-                          flex items-center p-3 rounded shadow-lg max-w-md ${toastClass}`;
-        
-        // Add icon based on type
-        const icon = this.getIconForType(type);
-        
-        toast.innerHTML = `
-            <div class="mr-2">${icon}</div>
-            <div class="flex-grow text-sm">${message}</div>
-            <button type="button" class="ml-2 text-gray-400 hover:text-gray-600 focus:outline-none" aria-label="Close">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-            </button>
-        `;
-        
-        // Add event listener to close button
-        const closeBtn = toast.querySelector('button');
-        closeBtn.addEventListener('click', () => {
-            this.removeToast(toast);
-        });
-        
-        return toast;
-    }
-
-    /**
-     * Get appropriate CSS class based on toast type
-     */
-    getToastClass(type) {
-        switch (type.toLowerCase()) {
-            case 'success':
-                return 'bg-green-600 text-white';
-            case 'error':
-                return 'bg-red-600 text-white';
-            case 'warning':
-                return 'bg-yellow-500 text-white';
-            default:
-                return 'bg-discord-blue text-white';
-        }
-    }
-
-    /**
-     * Get appropriate icon based on toast type
-     */
-    getIconForType(type) {
-        switch (type.toLowerCase()) {
-            case 'success':
-                return '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
-            case 'error':
-                return '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
-            case 'warning':
-                return '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>';
-            default:
-                return '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
-        }
-    }
-
-    /**
-     * Add the toast to the DOM and animate it
-     */
-    showToast(toast) {
-        const container = this.createToastContainer();
-        container.appendChild(toast);
-        
-        // Trigger animation
-        setTimeout(() => {
-            toast.classList.remove('translate-x-full');
-        }, 10);
-        
-        // Auto-remove after delay (for non-error toasts)
-        const type = toast.classList.contains('bg-red-600') ? 'error' : 'other';
-        const timeout = type === 'error' ? 8000 : 5000;
-        
-        setTimeout(() => {
-            if (toast.parentNode) {
-                this.removeToast(toast);
-            }
-        }, timeout);
-    }
-
-    /**
-     * Remove the toast with animation
-     */
-    removeToast(toast) {
-        // Animate out
-        toast.classList.add('translate-x-full');
-        
-        // Remove after animation completes
-        setTimeout(() => {
-            if (toast.parentNode) {
-                toast.parentNode.removeChild(toast);
-            }
-            
-            // Clean up container if empty
-            const container = document.getElementById('toast-container');
-            if (container && !container.hasChildNodes()) {
-                container.remove();
-            }
-        }, 300);
+export function showToast(message, type = 'info', duration = 5000) {
+    const container = createToastContainer();
+    
+    const toast = document.createElement('div');
+    toast.className = `
+        px-4 py-3 rounded-lg shadow-lg max-w-sm transform transition-all duration-300 ease-out
+        ${getToastClasses(type)}
+    `;
+    
+    toast.innerHTML = `
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                ${getToastIcon(type)}
+            </div>
+            <div class="ml-3">
+                <p class="text-sm font-medium">${message}</p>
+            </div>
+            <div class="ml-4 flex-shrink-0 flex">
+                <button class="toast-close inline-flex text-gray-400 hover:text-gray-600 focus:outline-none">
+                    <span class="sr-only">Close</span>
+                    <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    `;
+    
+    // Add close functionality
+    const closeBtn = toast.querySelector('.toast-close');
+    closeBtn.addEventListener('click', () => removeToast(toast));
+    
+    container.appendChild(toast);
+    
+    // Animate in
+    setTimeout(() => {
+        toast.classList.add('translate-x-0');
+        toast.classList.remove('translate-x-full');
+    }, 10);
+    
+    // Auto remove after duration
+    if (duration > 0) {
+        setTimeout(() => removeToast(toast), duration);
     }
     
-    /**
-     * Public method to show toast
-     */
-    show(message, type = 'info') {
-        if (!message) return;
-        const toast = this.createToast(message, type);
-        this.showToast(toast);
-        return toast;
+    return toast;
+}
+
+function removeToast(toast) {
+    toast.classList.add('translate-x-full');
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+        }
+    }, 300);
+}
+
+function getToastClasses(type) {
+    switch (type) {
+        case 'success':
+            return 'bg-green-500 text-white';
+        case 'error':
+            return 'bg-red-500 text-white';
+        case 'warning':
+            return 'bg-yellow-500 text-white';
+        case 'info':
+        default:
+            return 'bg-blue-500 text-white';
     }
 }
 
-// Create singleton instance
-const toastManager = new ToastManager();
-
-// Export for ES modules
-export function showToast(message, type = 'info') {
-    return toastManager.show(message, type);
+function getToastIcon(type) {
+    switch (type) {
+        case 'success':
+            return '<svg class="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>';
+        case 'error':
+            return '<svg class="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>';
+        case 'warning':
+            return '<svg class="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>';
+        case 'info':
+        default:
+            return '<svg class="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>';
+    }
 }
 
-// Also make available globally for backwards compatibility
-window.showToast = showToast; 
+// Make it globally available
+window.showToast = showToast;
