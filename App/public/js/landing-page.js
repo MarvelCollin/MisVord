@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Remove initNavigation() call since navbar is removed
+
     initScrollAnimations();
     initHeroAnimations();
     initMockupAnimations();
@@ -331,17 +331,15 @@ function initLiveChatSimulation() {
     const userMessageInput = document.getElementById('userMessageInput');
     const sendMessageBtn = document.getElementById('sendMessageBtn');
     const typingIndicator = document.querySelector('.typing-indicator');
-    
+
     if (!chatContainer || !userMessageInput || !sendMessageBtn) return;
-    
-    // Predefined conversation flow
+
     const messages = [
         { author: 'GamingWizard', text: 'Hey everyone! Excited about the new server features?', time: '1m ago' },
         { author: 'DesignMaster', text: 'Yeah, definitely! The new voice channels are amazing.', time: '45s ago' },
         { author: 'CodeNinja', text: 'I\'ve been using them for my study groups. Works perfectly!', time: '20s ago' }
     ];
-    
-    // Initialize with some messages
+
     messages.forEach((msg, idx) => {
         setTimeout(() => {
             const messageElement = createChatMessage({
@@ -351,10 +349,10 @@ function initLiveChatSimulation() {
                 isUser: false,
                 avatarColor: getRandomHsl()
             });
-            
+
             chatContainer.appendChild(messageElement);
             chatContainer.scrollTop = chatContainer.scrollHeight;
-            
+
             if (idx === 1) {
                 setTimeout(() => {
                     addReactionToMessage(messageElement);
@@ -362,25 +360,23 @@ function initLiveChatSimulation() {
             }
         }, 800 * (idx + 1));
     });
-    
-    // Input handling
+
     userMessageInput.addEventListener('keypress', e => {
         if (e.key === 'Enter' && userMessageInput.value.trim() !== '') {
             handleUserMessage();
         }
     });
-    
+
     sendMessageBtn.addEventListener('click', () => {
         if (userMessageInput.value.trim() !== '') {
             handleUserMessage();
         }
     });
-    
+
     function handleUserMessage() {
         const text = userMessageInput.value.trim();
         if (!text) return;
-        
-        // Add user message
+
         const messageElement = createChatMessage({
             author: 'You',
             text: text,
@@ -388,14 +384,12 @@ function initLiveChatSimulation() {
             isUser: true,
             avatarColor: 'var(--gradient-primary)'
         });
-        
+
         chatContainer.appendChild(messageElement);
         chatContainer.scrollTop = chatContainer.scrollHeight;
-        
-        // Clear input
+
         userMessageInput.value = '';
-        
-        // Add bot response after delay
+
         setTimeout(() => {
             const responses = [
                 "That's interesting! Tell me more.",
@@ -404,11 +398,11 @@ function initLiveChatSimulation() {
                 "I appreciate your input on this topic.",
                 "Let's discuss this further in the voice channel."
             ];
-            
+
             const randomResponse = responses[Math.floor(Math.random() * responses.length)];
             const botNames = ['ChatHelper', 'ModBot', 'Assistant', 'ServerGuide'];
             const randomName = botNames[Math.floor(Math.random() * botNames.length)];
-            
+
             const botMessage = createChatMessage({
                 author: randomName,
                 text: randomResponse,
@@ -416,50 +410,49 @@ function initLiveChatSimulation() {
                 isUser: false,
                 avatarColor: getRandomHsl()
             });
-            
+
             chatContainer.appendChild(botMessage);
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }, 1000);
     }
-    
+
     function formatTime() {
         const now = new Date();
         return now.getHours() % 12 + ':' + 
                now.getMinutes().toString().padStart(2, '0') + ' ' + 
                (now.getHours() >= 12 ? 'PM' : 'AM');
     }
-    
+
     function getRandomHsl() {
         return `hsl(${Math.random() * 360}, 70%, 60%)`;
     }
-    
+
     function addReactionToMessage(messageElement) {
         const reactionContainer = messageElement.querySelector('.message-reactions');
         if (!reactionContainer) return;
-        
+
         const reactions = ['👍', '❤️', '😊', '🎉', '🔥', '👏'];
         const randomReaction = reactions[Math.floor(Math.random() * reactions.length)];
-        
+
         const reaction = document.createElement('div');
         reaction.className = 'reaction';
         reaction.innerHTML = `${randomReaction} 1`;
         reaction.addEventListener('click', () => animateReaction(reaction));
-        
+
         reactionContainer.appendChild(reaction);
     }
 }
 
 function createChatMessage(messageData) {
     const { author, text, time, isUser, avatarColor } = messageData;
-    
+
     const messageElement = document.createElement('div');
     messageElement.className = 'chat-message';
-    
-    // Keep all chat messages with the same structure
+
     messageElement.classList.add(isUser ? 'user-message' : 'bot-message');
-    
+
     const avatarInitial = author.charAt(0);
-    
+
     messageElement.innerHTML = `
         <div class="message-avatar" style="background: ${avatarColor || 'var(--gradient-primary)'}">
             ${avatarInitial}
@@ -470,11 +463,11 @@ function createChatMessage(messageData) {
             <div class="message-reactions"></div>
         </div>
     `;
-    
+
     setTimeout(() => {
         messageElement.classList.add('visible');
     }, 100);
-    
+
     return messageElement;
 }
 

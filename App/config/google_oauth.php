@@ -1,16 +1,18 @@
 <?php
 
-$domain = getenv('DOMAIN') ?: 'localhost';
-$subpath = getenv('SUBPATH') ? '/' . trim(getenv('SUBPATH'), '/') : '';
-$protocol = (getenv('USE_HTTPS') === 'true') ? 'https' : 'http';
+require_once __DIR__ . '/env.php';
+
+$domain = EnvLoader::get('DOMAIN', 'localhost');
+$subpath = EnvLoader::get('SUBPATH') ? '/' . trim(EnvLoader::get('SUBPATH'), '/') : '';
+$protocol = (EnvLoader::get('USE_HTTPS') === 'true') ? 'https' : 'http';
 
 $baseUrl = $protocol . '://' . $domain . $subpath;
 
 return [
 
-    'client_id' => getenv('GOOGLE_CLIENT_ID') ?: '',
+    'client_id' => EnvLoader::get('GOOGLE_CLIENT_ID', ''),
 
-    'client_secret' => getenv('GOOGLE_CLIENT_SECRET') ?: '',
+    'client_secret' => EnvLoader::get('GOOGLE_CLIENT_SECRET', ''),
 
     'redirect_uri' => $baseUrl . '/google/', 
 

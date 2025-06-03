@@ -1,51 +1,49 @@
 <?php
 
 class BaseController {
-    
+
     public function __construct() {
-        // Start session if not already started
+
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
-        
-        // Set JSON header for API responses
+
         if ($this->isApiRoute() || $this->isAjaxRequest()) {
             header('Content-Type: application/json');
         }
     }
-    
+
     protected function view($viewPath, $data = []) {
-        // Extract data to variables
+
         extract($data);
-        
-        // Include the view file
+
         $fullPath = __DIR__ . '/../views/' . $viewPath . '.php';
-        
+
         if (file_exists($fullPath)) {
             include $fullPath;
         } else {
-            // View not found, show 404
+
             http_response_code(404);
             include __DIR__ . '/../views/pages/404.php';
         }
     }
-    
+
     protected function redirect($url) {
         header("Location: $url");
         exit;
     }
-    
+
     protected function redirectToLogin() {
         $this->redirect('/login');
     }
-    
+
     protected function json($data, $statusCode = 200) {
         http_response_code($statusCode);
         header('Content-Type: application/json');
         echo json_encode($data);
         exit;
     }
-    
+
     protected function successResponse($data = [], $message = 'Success') {
         return $this->json([
             'success' => true,
@@ -53,14 +51,14 @@ class BaseController {
             'data' => $data
         ]);
     }
-    
+
     protected function errorResponse($message = 'Error', $statusCode = 400) {
         return $this->json([
             'success' => false,
             'message' => $message
         ], $statusCode);
     }
-    
+
     protected function validationError($errors) {
         return $this->json([
             'success' => false,
@@ -68,19 +66,19 @@ class BaseController {
             'errors' => $errors
         ], 422);
     }
-    
+
     protected function unauthorized($message = 'Unauthorized') {
         return $this->errorResponse($message, 401);
     }
-    
+
     protected function forbidden($message = 'Forbidden') {
         return $this->errorResponse($message, 403);
     }
-    
+
     protected function notFound($message = 'Not found') {
         return $this->errorResponse($message, 404);
     }
-    
+
     protected function serverError($message = 'Internal server error') {
         return $this->errorResponse($message, 500);
     }
@@ -92,7 +90,7 @@ class BaseController {
             'data' => $data
         ], 206);
     }
-    
+
     protected function redirectResponse($url, $message = 'Redirecting') {
         return $this->json([
             'success' => true,
@@ -100,49 +98,49 @@ class BaseController {
             'redirect' => $url
         ]);
     }
-    
+
     protected function validateRequired($data, $fields) {
         $errors = [];
-        
+
         foreach ($fields as $field) {
             if (!isset($data[$field]) || empty($data[$field])) {
                 $errors[$field] = ucfirst($field) . ' is required';
             }
         }
-        
+
         return $errors;
     }
-    
+
     protected function validateEmail($email) {
         return filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
     }
-    
+
     protected function sanitizeInput($input) {
         if (is_array($input)) {
             return array_map([$this, 'sanitizeInput'], $input);
         }
-        
+
         return htmlspecialchars(strip_tags(trim($input)), ENT_QUOTES, 'UTF-8');
     }
-    
+
     protected function isAuthenticated() {
         return isset($_SESSION['user_id']) && !empty($_SESSION['user_id']);
     }
-    
+
     protected function getCurrentUser() {
         if (!$this->isAuthenticated()) {
             return null;
         }
-        
+
         require_once __DIR__ . '/../database/models/User.php';
         return User::find($_SESSION['user_id']);
     }
-    
+
     protected function isAjaxRequest() {
         return !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
                strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
     }
-    
+
     protected function isApiRoute() {
         $uri = $_SERVER['REQUEST_URI'] ?? '';
         return strpos($uri, '/api/') === 0 || strpos($uri, '/api/') !== false;

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VideoSDK Fix Test - Docker Environment</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #1a1a1a; color: #fff; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .section { background: #2a2a2a; padding: 20px; margin: 20px 0; border-radius: 8px; }
+        .success { color: #4CAF50; }
+        .error { color: #f44336; }
+        .warning { color: #ff9800; }
+        .info { color: #2196F3; }
+        pre { background: #333; padding: 15px; border-radius: 4px; overflow-x: auto; }
+        button { background: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
+        button:hover { background: #45a049; }
+        .loading { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🐳 VideoSDK Docker Configuration Fix Test</h1>
+        
+        <div class="section">
+            <h2>Test Status</h2>
+            <div id="status">
+                <p class="info">Click "Run Tests" to start testing...</p>
+            </div>
+            <button onclick="runTests()">Run Tests</button>
+            <button onclick="testVoiceSection()">Test Voice Section</button>
+            <button onclick="clearResults()">Clear Results</button>
+        </div>
+        
+        <div class="section">
+            <h2>Test Results</h2>
+            <div id="results">
+                <p class="info">No tests run yet.</p>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>Debug Information</h2>
+            <div id="debug">
+                <p class="info">Debug information will appear here.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function runTests() {
+            const statusDiv = document.getElementById('status');
+            const resultsDiv = document.getElementById('results');
+            const debugDiv = document.getElementById('debug');
+            
+            statusDiv.innerHTML = '<p class="info">🔄 Running tests...</p>';
+            resultsDiv.innerHTML = '<p class="info">Testing in progress...</p>';
+            
+            try {
+                const response = await fetch('/api/test-docker-videosdk-fix.php');
+                const data = await response.json();
+                
+                // Update status
+                if (data.success) {
+                    statusDiv.innerHTML = '<p class="success">✅ All tests passed!</p>';
+                } else {
+                    statusDiv.innerHTML = '<p class="error">❌ Some tests failed</p>';
+                }
+                
+                // Display results
+                let html = '<h3>Test Summary</h3>';
+                html += `<p><strong>Environment:</strong> ${data.environment}</p>`;
+                html += `<p><strong>Timestamp:</strong> ${data.timestamp}</p>`;
+                
+                if (data.error) {
+                    html += `<p class="error"><strong>Error:</strong> ${data.error}</p>`;
+                }
+                
+                // Environment Detection
+                html += '<h4>Environment Detection</h4>';
+                if (data.debug.detection_methods) {
+                    html += '<ul>';
+                    for (const [method, value] of Object.entries(data.debug.detection_methods)) {
+                        const status = value ? '✅' : '❌';
+                        html += `<li>${method}: ${status} ${value || 'NOT SET'}</li>`;
+                    }
+                    html += '</ul>';
+                }
+                
+                // Test Results
+                if (data.tests) {
+                    html += '<h4>Configuration Tests</h4>';
+                    
+                    // Direct Access Test
+                    if (data.tests.direct_access) {
+                        html += '<h5>Direct Environment Variable Access</h5>';
+                        html += '<ul>';
+                        for (const [var_name, sources] of Object.entries(data.tests.direct_access)) {
+                            html += `<li><strong>${var_name}:</strong>`;
+                            html += ` $_SERVER: ${sources.server === 'SET' ? '✅' : '❌'}`;
+                            html += ` getenv(): ${sources.getenv === 'SET' ? '✅' : '❌'}`;
+                            html += ` $_ENV: ${sources.env === 'SET' ? '✅' : '❌'}`;
+                            html += '</li>';
+                        }
+                        html += '</ul>';
+                    }
+                    
+                    // EnvLoader Test
+                    if (data.tests.envloader) {
+                        html += '<h5>EnvLoader Test</h5>';
+                        if (data.tests.envloader.loaded) {
+                            html += '<p class="success">✅ EnvLoader loaded successfully</p>';
+                            if (data.tests.envloader.variables) {
+                                html += '<ul>';
+                                for (const [var_name, status] of Object.entries(data.tests.envloader.variables)) {
+                                    const icon = status === 'FOUND' ? '✅' : '❌';
+                                    html += `<li>${icon} ${var_name}: ${status}</li>`;
+                                }
+                                html += '</ul>';
+                            }
+                        } else {
+                            html += `<p class="error">❌ EnvLoader failed: ${data.tests.envloader.error}</p>`;
+                        }
+                    }
+                    
+                    // VideoSDK Test
+                    if (data.tests.videosdk) {
+                        html += '<h5>VideoSDK Configuration Test</h5>';
+                        if (data.tests.videosdk.initialized) {
+                            html += '<p class="success">✅ VideoSDK initialized successfully</p>';
+                            if (data.tests.videosdk.config) {
+                                html += '<ul>';
+                                for (const [key, value] of Object.entries(data.tests.videosdk.config)) {
+                                    if (key === 'isProduction') {
+                                        html += `<li>${key}: ${value}</li>`;
+                                    } else {
+                                        const icon = value === 'SET' ? '✅' : '❌';
+                                        html += `<li>${icon} ${key}: ${value}</li>`;
+                                    }
+                                }
+                                html += '</ul>';
+                            }
+                        } else {
+                            html += `<p class="error">❌ VideoSDK failed: ${data.tests.videosdk.error}</p>`;
+                        }
+                    }
+                }
+                
+                resultsDiv.innerHTML = html;
+                
+                // Debug information
+                let debugHtml = '<h3>Debug Information</h3>';
+                debugHtml += '<pre>' + JSON.stringify(data.debug, null, 2) + '</pre>';
+                debugDiv.innerHTML = debugHtml;
+                
+            } catch (error) {
+                statusDiv.innerHTML = `<p class="error">❌ Test failed: ${error.message}</p>`;
+                resultsDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+            }
+        }
+        
+        async function testVoiceSection() {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = '<p class="info">🔄 Testing voice section...</p>';
+            
+            try {
+                // Test if the main application loads
+                window.open('/', '_blank');
+                statusDiv.innerHTML = '<p class="success">✅ Opened main application in new tab</p>';
+            } catch (error) {
+                statusDiv.innerHTML = `<p class="error">❌ Voice section test failed: ${error.message}</p>`;
+            }
+        }
+        
+        function clearResults() {
+            document.getElementById('status').innerHTML = '<p class="info">Results cleared.</p>';
+            document.getElementById('results').innerHTML = '<p class="info">No tests run yet.</p>';
+            document.getElementById('debug').innerHTML = '<p class="info">Debug information will appear here.</p>';
+        }
+        
+        // Auto-run tests on page load
+        window.addEventListener('load', function() {
+            setTimeout(runTests, 1000);
+        });
+    </script>
+</body>
+</html>

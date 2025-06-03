@@ -1,31 +1,22 @@
-/**
- * Simple drag and drop functionality for channels and categories
- * Discord-style implementation
- */
-
 document.addEventListener('DOMContentLoaded', function() {
     setTimeout(initDragDrop, 1000);
 });
 
 function initDragDrop() {
-    // Make sure the channel container is loaded into the DOM
+
     const channelContent = document.querySelector('#channel-container');
     const channelListContainer = document.querySelector('.channel-list-container');
-    
-    // Make the content visible if it's in the hidden container
+
     if (channelContent && channelContent.classList.contains('hidden') && 
         channelListContainer && !channelListContainer.querySelector('.channel-item')) {
         channelListContainer.innerHTML += channelContent.innerHTML;
     }
 
-    // Get current server ID
     const serverIdElement = document.querySelector('#current-server-id') || document.querySelector('meta[name="server-id"]');
     if (!serverIdElement) return;
-    
-    // Add required CSS
+
     addDragDropStyles();
-    
-    // Initialize draggable elements
+
     initCategories();
     initChannels();
 }
@@ -37,7 +28,7 @@ function addDragDropStyles() {
             cursor: grab;
             transition: background-color 0.1s ease, box-shadow 0.1s ease;
         }
-        
+
         .dragging {
             opacity: 0.7;
             background-color: #2f3136 !important;
@@ -46,7 +37,7 @@ function addDragDropStyles() {
             z-index: 1000;
             cursor: grabbing !important;
         }
-        
+
         .drag-handle {
             display: flex !important;
             opacity: 0.4 !important;
@@ -57,19 +48,19 @@ function addDragDropStyles() {
             cursor: grab;
             transition: opacity 0.2s;
         }
-        
+
         .channel-item:hover .drag-handle,
         .category-header:hover .drag-handle {
             opacity: 0.9 !important;
         }
-        
+
         .drag-over {
             position: relative;
             border-radius: 4px;
             background-color: rgba(88, 101, 242, 0.2) !important;
             box-shadow: 0 0 5px rgba(88, 101, 242, 0.5);
         }
-        
+
         .drag-over::after {
             content: '';
             position: absolute;
@@ -80,21 +71,19 @@ function addDragDropStyles() {
             background-color: #5865f2;
             border-radius: 4px 0 0 4px;
         }
-        
-        /* Add drop preview indication */
+
         .drop-preview {
             height: 2px;
             background-color: #5865f2;
             margin: 2px 0;
             animation: pulse-drop 1.5s infinite;
         }
-        
+
         @keyframes pulse-drop {
             0%, 100% { opacity: 0.6; }
             50% { opacity: 1; }
         }
-        
-        /* Enhance drop indicators */
+
         .drop-target-above::before,
         .drop-target-below::after {
             content: '';
@@ -106,33 +95,33 @@ function addDragDropStyles() {
             right: 0;
             z-index: 10;
         }
-        
+
         .drop-target-above::before {
             top: 0;
         }
-        
+
         .drop-target-below::after {
             bottom: 0;
         }
-        
+
         .updating {
             opacity: 0.7;
             pointer-events: none;
         }
-        
+
         .update-success {
             animation: pulse-success 1s ease;
         }
-        
+
         .update-error {
             animation: pulse-error 1s ease;
         }
-        
+
         @keyframes pulse-success {
             0%, 100% { background-color: transparent; }
             50% { background-color: rgba(59, 165, 93, 0.2); }
         }
-        
+
         @keyframes pulse-error {
             0%, 100% { background-color: transparent; }
             50% { background-color: rgba(237, 66, 69, 0.2); }
@@ -144,11 +133,11 @@ function addDragDropStyles() {
 function initCategories() {
     const categoryList = document.querySelector('.category-list');
     if (!categoryList) return;
-    
+
     const categories = document.querySelectorAll('.category-item');
-    
+
     categories.forEach(category => {
-        // Add drag handle if not exists
+
         const categoryHeader = category.querySelector('.category-header');
         if (categoryHeader) {
             if (!categoryHeader.querySelector('.drag-handle')) {
@@ -157,27 +146,23 @@ function initCategories() {
                 dragHandle.innerHTML = '<i class="fas fa-grip-lines fa-xs"></i>';
                 categoryHeader.querySelector('div').prepend(dragHandle);
             }
-            
-            // Make draggable
+
             category.setAttribute('draggable', 'true');
             category.classList.add('draggable');
-            
-            // Remove any existing event listeners
+
             category.removeEventListener('dragstart', handleCategoryDragStart);
             category.removeEventListener('dragend', handleCategoryDragEnd);
-            
-            // Add event listeners
+
             category.addEventListener('dragstart', handleCategoryDragStart);
             category.addEventListener('dragend', handleCategoryDragEnd);
         }
     });
-    
-    // Add event listeners for drop targets
+
     categoryList.removeEventListener('dragover', handleCategoryDragOver);
     categoryList.removeEventListener('dragenter', handleDragEnter);
     categoryList.removeEventListener('dragleave', handleDragLeave);
     categoryList.removeEventListener('drop', handleCategoryDrop);
-    
+
     categoryList.addEventListener('dragover', handleCategoryDragOver);
     categoryList.addEventListener('dragenter', handleDragEnter);
     categoryList.addEventListener('dragleave', handleDragLeave);
@@ -185,15 +170,14 @@ function initCategories() {
 }
 
 function initChannels() {
-    // Setup uncategorized channels
+
     const uncategorizedChannels = document.querySelector('.uncategorized-channels');
     if (uncategorizedChannels) {
         setupChannelContainer(uncategorizedChannels, null);
     }
-    
-    // Setup categorized channels
+
     const categoryChannels = document.querySelectorAll('.category-channels');
-    
+
     categoryChannels.forEach(channelList => {
         const categoryItem = channelList.closest('.category-item');
         const categoryId = categoryItem ? categoryItem.getAttribute('data-category-id') : null;
@@ -203,9 +187,9 @@ function initChannels() {
 
 function setupChannelContainer(container, categoryId) {
     const channels = container.querySelectorAll('.channel-item');
-    
+
     channels.forEach(channel => {
-        // Add drag handle if not exists
+
         const firstDiv = channel.querySelector('div');
         if (firstDiv && !channel.querySelector('.drag-handle')) {
             const dragHandle = document.createElement('span');
@@ -213,26 +197,22 @@ function setupChannelContainer(container, categoryId) {
             dragHandle.innerHTML = '<i class="fas fa-grip-lines fa-xs"></i>';
             firstDiv.prepend(dragHandle);
         }
-        
-        // Make draggable
+
         channel.setAttribute('draggable', 'true');
         channel.classList.add('draggable');
-        
-        // Remove any existing event listeners
+
         channel.removeEventListener('dragstart', handleChannelDragStart);
         channel.removeEventListener('dragend', handleChannelDragEnd);
-        
-        // Add event listeners
+
         channel.addEventListener('dragstart', handleChannelDragStart);
         channel.addEventListener('dragend', handleChannelDragEnd);
     });
-    
-    // Add event listeners for drop targets
+
     container.removeEventListener('dragover', handleChannelDragOver);
     container.removeEventListener('dragenter', handleDragEnter);
     container.removeEventListener('dragleave', handleDragLeave);
     container.removeEventListener('drop', function(event) { handleChannelDrop(event, categoryId); });
-    
+
     container.addEventListener('dragover', handleChannelDragOver);
     container.addEventListener('dragenter', handleDragEnter);
     container.addEventListener('dragleave', handleDragLeave);
@@ -241,28 +221,24 @@ function setupChannelContainer(container, categoryId) {
     });
 }
 
-// Category drag handlers
 function handleCategoryDragStart(event) {
     const categoryId = this.getAttribute('data-category-id');
-    
+
     event.dataTransfer.setData('application/category', categoryId);
     event.dataTransfer.effectAllowed = 'move';
     this.classList.add('dragging');
-    
-    // Create a clean drag image without the drag handle dots
+
     const dragImage = this.cloneNode(true);
-    
-    // Remove any drag handles from the drag image
+
     const dragHandles = dragImage.querySelectorAll('.drag-handle, .drag-icon');
     dragHandles.forEach(handle => handle.remove());
-    
-    // Style for ghost image
+
     dragImage.style.opacity = '0.7';
     dragImage.style.position = 'absolute';
     dragImage.style.top = '-1000px';
     document.body.appendChild(dragImage);
     event.dataTransfer.setDragImage(dragImage, 10, 10);
-    
+
     setTimeout(() => {
         document.body.removeChild(dragImage);
     }, 0);
@@ -275,7 +251,7 @@ function handleCategoryDragEnd(event) {
 
 function handleCategoryDragOver(event) {
     if (!event.dataTransfer.types.includes('application/category')) return;
-    
+
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
 }
@@ -284,71 +260,65 @@ function handleCategoryDrop(event) {
     event.preventDefault();
     const categoryId = event.dataTransfer.getData('application/category');
     if (!categoryId) return;
-    
+
     const categoryList = document.querySelector('.category-list');
     const categories = Array.from(categoryList.querySelectorAll('.category-item'));
     const draggedCategory = document.querySelector(`.category-item[data-category-id="${categoryId}"]`);
-    
+
     if (!draggedCategory) return;
-    
-    // Get drop target - could be either the container or a category
+
     let dropTarget;
-    
-    // If we're dropping directly on a category item
+
     if (event.target.classList.contains('category-item')) {
         dropTarget = event.target;
     } 
-    // If we're dropping on a child element of a category item
+
     else if (event.target.closest('.category-item')) {
         dropTarget = event.target.closest('.category-item');
     }
-    // Otherwise, we're dropping on the container
+
     else {
         dropTarget = categoryList;
     }
-    
-    // Calculate the best position
+
     let targetIndex = categories.length;
     let targetElement = null;
-    
-    // If dropping on a specific category
+
     if (dropTarget.classList && dropTarget.classList.contains('category-item') && dropTarget !== draggedCategory) {
-        // Get position based on where in the item we're dropping
+
         const rect = dropTarget.getBoundingClientRect();
         const isInUpperHalf = event.clientY - rect.top < rect.height / 2;
-        
-        // Find the index of the drop target
+
         const dropTargetIndex = categories.indexOf(dropTarget);
-        
+
         if (isInUpperHalf) {
-            // Insert before the drop target
+
             targetElement = dropTarget;
             targetIndex = dropTargetIndex;
         } else {
-            // Insert after the drop target
+
             targetIndex = dropTargetIndex + 1;
             targetElement = categories[dropTargetIndex + 1] || null;
         }
     } 
-    // If dropping directly on the container, find the nearest category
+
     else {
-        // Find the closest category based on Y position
+
         const mouseY = event.clientY;
         let closestDistance = Infinity;
         let closestIndex = -1;
-        
+
         categories.forEach((category, index) => {
             if (category === draggedCategory) return;
-            
+
             const rect = category.getBoundingClientRect();
             const categoryMiddle = rect.top + rect.height / 2;
             const distance = Math.abs(mouseY - categoryMiddle);
-            
+
             if (distance < closestDistance) {
                 closestDistance = distance;
                 closestIndex = index;
-                
-                // Determine if we should insert before or after this category
+
                 if (mouseY < categoryMiddle) {
                     targetElement = category;
                     targetIndex = index;
@@ -358,30 +328,25 @@ function handleCategoryDrop(event) {
                 }
             }
         });
-        
-        // If container is empty or mouseY is below all categories
+
         if (closestIndex === -1 || targetIndex >= categories.length) {
             targetIndex = categories.length;
             targetElement = null;
         }
     }
-    
-    // Update DOM position
+
     if (targetElement) {
         categoryList.insertBefore(draggedCategory, targetElement);
     } else {
         categoryList.appendChild(draggedCategory);
     }
-    
-    // Remove any drop target indicators
+
     document.querySelectorAll('.drag-over, .drop-target-above, .drop-target-below').forEach(el => {
         el.classList.remove('drag-over', 'drop-target-above', 'drop-target-below');
     });
-    
-    // Visual feedback
+
     draggedCategory.classList.add('updating');
-    
-    // Update server position
+
     updateCategoryPosition(categoryId, targetIndex)
         .then(() => {
             draggedCategory.classList.remove('updating');
@@ -389,8 +354,7 @@ function handleCategoryDrop(event) {
             setTimeout(() => {
                 draggedCategory.classList.remove('update-success');
             }, 1000);
-            
-            // Remove any drop previews
+
             document.querySelectorAll('.drop-preview').forEach(el => el.remove());
         })
         .catch((error) => {
@@ -403,28 +367,24 @@ function handleCategoryDrop(event) {
         });
 }
 
-// Channel drag handlers
 function handleChannelDragStart(event) {
     const channelId = this.getAttribute('data-channel-id');
-    
+
     event.dataTransfer.setData('application/channel', channelId);
     event.dataTransfer.effectAllowed = 'move';
     this.classList.add('dragging');
-    
-    // Create a clean drag image without the drag handle dots
+
     const dragImage = this.cloneNode(true);
-    
-    // Remove any drag handles from the drag image
+
     const dragHandles = dragImage.querySelectorAll('.drag-handle, .drag-icon');
     dragHandles.forEach(handle => handle.remove());
-    
-    // Style for ghost image
+
     dragImage.style.opacity = '0.7';
     dragImage.style.position = 'absolute';
     dragImage.style.top = '-1000px';
     document.body.appendChild(dragImage);
     event.dataTransfer.setDragImage(dragImage, 10, 10);
-    
+
     setTimeout(() => {
         document.body.removeChild(dragImage);
     }, 0);
@@ -437,7 +397,7 @@ function handleChannelDragEnd(event) {
 
 function handleChannelDragOver(event) {
     if (!event.dataTransfer.types.includes('application/channel')) return;
-    
+
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
 }
@@ -446,71 +406,65 @@ function handleChannelDrop(event, categoryId) {
     event.preventDefault();
     const channelId = event.dataTransfer.getData('application/channel');
     if (!channelId) return;
-    
+
     const container = event.currentTarget;
     const channels = Array.from(container.querySelectorAll('.channel-item'));
     const draggedChannel = document.querySelector(`.channel-item[data-channel-id="${channelId}"]`);
-    
+
     if (!draggedChannel) return;
-    
-    // Get drop target - could be either the container or a channel
+
     let dropTarget;
-    
-    // If we're dropping directly on a channel item
+
     if (event.target.classList.contains('channel-item')) {
         dropTarget = event.target;
     } 
-    // If we're dropping on a child element of a channel item
+
     else if (event.target.closest('.channel-item')) {
         dropTarget = event.target.closest('.channel-item');
     }
-    // Otherwise, we're dropping on the container
+
     else {
         dropTarget = container;
     }
-    
-    // Calculate the best position
+
     let newPosition = 0;
     let targetItem = null;
-    
-    // If dropping on a specific channel
+
     if (dropTarget.classList && dropTarget.classList.contains('channel-item') && dropTarget !== draggedChannel) {
-        // Get position based on where in the item we're dropping
+
         const rect = dropTarget.getBoundingClientRect();
         const isInUpperHalf = event.clientY - rect.top < rect.height / 2;
-        
-        // Find the index of the drop target
+
         const dropTargetIndex = channels.indexOf(dropTarget);
-        
+
         if (isInUpperHalf) {
-            // Insert before the drop target
+
             targetItem = dropTarget;
             newPosition = dropTargetIndex;
         } else {
-            // Insert after the drop target
+
             newPosition = dropTargetIndex + 1;
             targetItem = channels[dropTargetIndex + 1] || null;
         }
     } 
-    // If dropping directly on the container (or another element), find the nearest channel
+
     else {
-        // Find the closest channel based on Y position
+
         const mouseY = event.clientY;
         let closestDistance = Infinity;
         let closestIndex = -1;
-        
+
         channels.forEach((channel, index) => {
             if (channel === draggedChannel) return;
-            
+
             const rect = channel.getBoundingClientRect();
             const channelMiddle = rect.top + rect.height / 2;
             const distance = Math.abs(mouseY - channelMiddle);
-            
+
             if (distance < closestDistance) {
                 closestDistance = distance;
                 closestIndex = index;
-                
-                // Determine if we should insert before or after this channel
+
                 if (mouseY < channelMiddle) {
                     targetItem = channel;
                     newPosition = index;
@@ -520,40 +474,34 @@ function handleChannelDrop(event, categoryId) {
                 }
             }
         });
-        
-        // If container is empty or mouseY is below all channels
+
         if (closestIndex === -1 || newPosition >= channels.length) {
             newPosition = channels.length;
             targetItem = null;
         }
     }
-    
-    // Insert at calculated position
+
     if (targetItem) {
         container.insertBefore(draggedChannel, targetItem);
     } else {
         container.appendChild(draggedChannel);
     }
-    
-    // Remove any drop target indicators
+
     document.querySelectorAll('.drag-over, .drop-target-above, .drop-target-below').forEach(el => {
         el.classList.remove('drag-over', 'drop-target-above', 'drop-target-below');
     });
-    
-    // Visual feedback during update
+
     draggedChannel.classList.add('updating');
-    
-    // Update positions on the server
+
     updateChannelPosition(channelId, newPosition, categoryId)
         .then(() => {
             draggedChannel.classList.remove('updating');
-            // Add success indicator briefly
+
             draggedChannel.classList.add('update-success');
             setTimeout(() => {
                 draggedChannel.classList.remove('update-success');
             }, 1000);
-            
-            // Remove any drop previews
+
             document.querySelectorAll('.drop-preview').forEach(el => el.remove());
         })
         .catch((error) => {
@@ -566,12 +514,11 @@ function handleChannelDrop(event, categoryId) {
         });
 }
 
-// Helper functions
 function findDropTarget(clientY, elements) {
     for (const element of elements) {
         const rect = element.getBoundingClientRect();
         const elementMiddle = rect.top + rect.height / 2;
-        
+
         if (clientY < elementMiddle) {
             return element;
         }
@@ -580,34 +527,29 @@ function findDropTarget(clientY, elements) {
 }
 
 function handleDragEnter(event) {
-    // Clear any existing drag-over indicators first
+
     document.querySelectorAll('.drag-over, .drop-target-above, .drop-target-below').forEach(el => {
         el.classList.remove('drag-over', 'drop-target-above', 'drop-target-below');
     });
-    
-    // Check if target can receive drop
+
     const isChannelOrCategory = event.target.classList.contains('channel-item') || 
                                 event.target.classList.contains('category-item') ||
                                 event.target.closest('.channel-item') ||
                                 event.target.closest('.category-item');
-    
+
     if (!isChannelOrCategory) return;
-    
-    // Get the actual item element
+
     const targetItem = event.target.classList.contains('channel-item') || event.target.classList.contains('category-item') 
         ? event.target 
         : (event.target.closest('.channel-item') || event.target.closest('.category-item'));
-    
+
     if (!targetItem) return;
-    
-    // Add drag-over class
+
     targetItem.classList.add('drag-over');
-    
-    // Determine if we're on the top or bottom half of the target
+
     const rect = targetItem.getBoundingClientRect();
     const isInUpperHalf = event.clientY - rect.top < rect.height / 2;
-    
-    // Add appropriate class based on position
+
     if (isInUpperHalf) {
         targetItem.classList.add('drop-target-above');
     } else {
@@ -616,23 +558,20 @@ function handleDragEnter(event) {
 }
 
 function handleDragLeave(event) {
-    // Only remove classes if we're actually leaving the element
-    // and not just moving between its children
+
     const relatedTarget = event.relatedTarget;
     if (relatedTarget && event.target.contains(relatedTarget)) {
         return;
     }
-    
-    // Only remove from the specific element being left
+
     if (event.target.classList.contains('drag-over')) {
         event.target.classList.remove('drag-over', 'drop-target-above', 'drop-target-below');
     }
 }
 
-// API functions
 function updateCategoryPosition(categoryId, position) {
     console.log(`Updating category ${categoryId} to position ${position}`);
-    
+
     return fetch('/api/categories/position', {
         method: 'POST',
         headers: {
@@ -646,7 +585,7 @@ function updateCategoryPosition(categoryId, position) {
     })
     .then(response => {
         if (!response.ok) {
-            // For debugging - capture and log the entire response text
+
             return response.text().then(text => {
                 console.error(`Server returned error ${response.status}: ${text}`);
                 throw new Error(`Server returned ${response.status}: ${text}`);
@@ -658,7 +597,7 @@ function updateCategoryPosition(categoryId, position) {
 
 function updateChannelPosition(channelId, position, categoryId) {
     console.log(`Updating channel ${channelId} to position ${position} in category ${categoryId}`);
-    
+
     return fetch('/api/channels/position', {
         method: 'POST',
         headers: {
@@ -673,7 +612,7 @@ function updateChannelPosition(channelId, position, categoryId) {
     })
     .then(response => {
         if (!response.ok) {
-            // For debugging - capture and log the entire response text
+
             return response.text().then(text => {
                 console.error(`Server returned error ${response.status}: ${text}`);
                 throw new Error(`Server returned ${response.status}: ${text}`);
@@ -683,17 +622,14 @@ function updateChannelPosition(channelId, position, categoryId) {
     });
 }
 
-// Initialize on various events
 window.addEventListener('load', initDragDrop);
 
-// Reinitialize when LazyLoader loads the content
 document.addEventListener('LazyLoaderCompleted', function(event) {
     if (event.detail && event.detail.target === 'channel-list') {
         setTimeout(initDragDrop, 500);
     }
 });
 
-// Periodic check to make sure drag and drop is initialized
 setInterval(function() {
     const channelListContainer = document.querySelector('.channel-list-container');
     if (channelListContainer && channelListContainer.querySelector('.channel-item')) {
@@ -704,39 +640,34 @@ setInterval(function() {
     }
 }, 2000);
 
-// Add a new function to create a channel at a specific position when dropped
 function handleNewChannelDrop(event, categoryId, position) {
-    // Prevent default browser handling
+
     event.preventDefault();
-    
-    // Get the server ID
+
     const serverIdElement = document.querySelector('#current-server-id') || document.querySelector('meta[name="server-id"]');
     if (!serverIdElement) {
         console.error('Server ID not found');
         return;
     }
-    
+
     const serverId = serverIdElement.value || serverIdElement.getAttribute('content');
-    
-    // Show modal to create channel at position
+
     if (typeof openCreateChannelModal === 'function') {
-        // If the modal function exists, use it with position data
+
         openCreateChannelModal(categoryId, position);
     } else {
-        // Add modal HTML dynamically if not present
+
         showCreateChannelModal(serverId, categoryId, position);
     }
 }
 
-// Create a simple modal if one doesn't exist
 function showCreateChannelModal(serverId, categoryId, position) {
-    // Remove any existing modals
+
     const existingModal = document.getElementById('quick-create-channel-modal');
     if (existingModal) {
         existingModal.remove();
     }
-    
-    // Create modal HTML
+
     const modal = document.createElement('div');
     modal.id = 'quick-create-channel-modal';
     modal.className = 'fixed inset-0 flex items-center justify-center z-50';
@@ -774,25 +705,23 @@ function showCreateChannelModal(serverId, categoryId, position) {
             </form>
         </div>
     `;
-    
-    // Add to document
+
     document.body.appendChild(modal);
-    
-    // Add event listeners
+
     document.getElementById('cancel-quick-channel').addEventListener('click', () => {
         modal.remove();
     });
-    
+
     document.getElementById('quick-create-channel-form').addEventListener('submit', (e) => {
         e.preventDefault();
-        
+
         const form = e.target;
         const name = form.name.value.trim();
         const type = form.type.value;
         const serverId = form.server_id.value;
         const categoryId = form.category_id.value || null;
         const position = parseInt(form.position.value, 10);
-        
+
         if (typeof createChannelAtPosition === 'function') {
             createChannelAtPosition(name, type, serverId, categoryId, position)
                 .then(() => {
@@ -802,9 +731,9 @@ function showCreateChannelModal(serverId, categoryId, position) {
                     console.error('Error creating channel:', error);
                 });
         } else {
-            // Fallback if function doesn't exist
+
             const formData = new FormData(form);
-            
+
             fetch('/api/channels', {
                 method: 'POST',
                 body: formData
@@ -814,7 +743,7 @@ function showCreateChannelModal(serverId, categoryId, position) {
                 if (data.success) {
                     console.log('Channel created at position:', position);
                     modal.remove();
-                    window.location.reload(); // Reload to see changes
+                    window.location.reload(); 
                 } else {
                     alert(data.message || 'Failed to create channel');
                 }
@@ -825,38 +754,33 @@ function showCreateChannelModal(serverId, categoryId, position) {
             });
         }
     });
-    
-    // Focus the input
+
     setTimeout(() => {
         modal.querySelector('input[name="name"]').focus();
     }, 100);
 }
 
-// Add a context menu for more options
 function showChannelContextMenu(event, channelId) {
     event.preventDefault();
-    
-    // Remove any existing context menus
+
     removeContextMenus();
-    
-    // Create context menu
+
     const contextMenu = document.createElement('div');
     contextMenu.className = 'channel-context-menu fixed bg-discord-dark rounded shadow-lg py-1 z-50';
     contextMenu.style.left = `${event.clientX}px`;
     contextMenu.style.top = `${event.clientY}px`;
-    
+
     contextMenu.innerHTML = `
         <div class="px-3 py-1 text-xs text-gray-400">Channel Options</div>
         <button class="w-full text-left px-3 py-1 hover:bg-discord-light text-white text-sm">Edit Channel</button>
         <button class="w-full text-left px-3 py-1 hover:bg-discord-light text-white text-sm">Delete Channel</button>
         <button class="w-full text-left px-3 py-1 hover:bg-discord-light text-white text-sm">Add to Category</button>
     `;
-    
+
     document.body.appendChild(contextMenu);
-    
-    // Close menu when clicking elsewhere
+
     document.addEventListener('click', removeContextMenus);
-    
+
     function removeContextMenus() {
         const menus = document.querySelectorAll('.channel-context-menu');
         menus.forEach(menu => menu.remove());
@@ -864,10 +788,9 @@ function showChannelContextMenu(event, channelId) {
     }
 }
 
-// Add batch update function
 function batchUpdatePositions(updates, serverId) {
     console.log('Batch updating positions:', updates);
-    
+
     return fetch('/api/positions/batch', {
         method: 'POST',
         headers: {
@@ -890,34 +813,31 @@ function batchUpdatePositions(updates, serverId) {
     });
 }
 
-// Collect all channel positions for batch update
 function collectChannelPositions() {
     const serverId = document.querySelector('#current-server-id')?.value || 
                     document.querySelector('meta[name="server-id"]')?.getAttribute('content');
-    
+
     if (!serverId) {
         console.error('Server ID not found');
         return null;
     }
-    
+
     const updates = [];
-    
-    // Get all categories
+
     document.querySelectorAll('.category-item').forEach((category, categoryIndex) => {
         const categoryId = category.getAttribute('data-category-id');
-        
+
         updates.push({
             id: categoryId,
             type: 'category',
             position: categoryIndex,
             server_id: serverId
         });
-        
-        // Get channels in this category
+
         const channels = category.querySelectorAll('.channel-item');
         channels.forEach((channel, channelIndex) => {
             const channelId = channel.getAttribute('data-channel-id');
-            
+
             updates.push({
                 id: channelId,
                 type: 'channel',
@@ -927,14 +847,13 @@ function collectChannelPositions() {
             });
         });
     });
-    
-    // Get uncategorized channels
+
     const uncategorizedContainer = document.querySelector('.uncategorized-channels');
     if (uncategorizedContainer) {
         const channels = uncategorizedContainer.querySelectorAll('.channel-item');
         channels.forEach((channel, channelIndex) => {
             const channelId = channel.getAttribute('data-channel-id');
-            
+
             updates.push({
                 id: channelId,
                 type: 'channel',
@@ -944,18 +863,17 @@ function collectChannelPositions() {
             });
         });
     }
-    
+
     return {
         updates: updates,
         server_id: serverId
     };
 }
 
-// Add function to sync all positions with server
 function syncAllPositions() {
     const positionData = collectChannelPositions();
     if (!positionData) return Promise.reject('Could not collect positions');
-    
+
     return batchUpdatePositions(positionData.updates, positionData.server_id)
         .then(response => {
             console.log('Positions synced successfully:', response);
@@ -967,39 +885,34 @@ function syncAllPositions() {
         });
 }
 
-// Add a new function to create a category at a specific position when dropped
 function handleNewCategoryDrop(event, position) {
-    // Prevent default browser handling
+
     event.preventDefault();
-    
-    // Get the server ID
+
     const serverIdElement = document.querySelector('#current-server-id') || document.querySelector('meta[name="server-id"]');
     if (!serverIdElement) {
         console.error('Server ID not found');
         return;
     }
-    
+
     const serverId = serverIdElement.value || serverIdElement.getAttribute('content');
-    
-    // Show modal to create category at position
+
     if (typeof openCreateCategoryModal === 'function') {
-        // If the modal function exists, use it with position data
+
         openCreateCategoryModal(position);
     } else {
-        // Add modal HTML dynamically if not present
+
         showCreateCategoryModal(serverId, position);
     }
 }
 
-// Create a simple category modal if one doesn't exist
 function showCreateCategoryModal(serverId, position) {
-    // Remove any existing modals
+
     const existingModal = document.getElementById('quick-create-category-modal');
     if (existingModal) {
         existingModal.remove();
     }
-    
-    // Create modal HTML
+
     const modal = document.createElement('div');
     modal.id = 'quick-create-category-modal';
     modal.className = 'fixed inset-0 flex items-center justify-center z-50';
@@ -1026,23 +939,21 @@ function showCreateCategoryModal(serverId, position) {
             </form>
         </div>
     `;
-    
-    // Add to document
+
     document.body.appendChild(modal);
-    
-    // Add event listeners
+
     document.getElementById('cancel-quick-category').addEventListener('click', () => {
         modal.remove();
     });
-    
+
     document.getElementById('quick-create-category-form').addEventListener('submit', (e) => {
         e.preventDefault();
-        
+
         const form = e.target;
         const name = form.name.value.trim();
         const serverId = form.server_id.value;
         const position = parseInt(form.position.value, 10);
-        
+
         if (typeof createCategoryAtPosition === 'function') {
             createCategoryAtPosition(name, serverId, position)
                 .then(() => {
@@ -1052,9 +963,9 @@ function showCreateCategoryModal(serverId, position) {
                     console.error('Error creating category:', error);
                 });
         } else {
-            // Fallback if function doesn't exist
+
             const formData = new FormData(form);
-            
+
             fetch('/api/channels/category', {
                 method: 'POST',
                 body: formData
@@ -1064,7 +975,7 @@ function showCreateCategoryModal(serverId, position) {
                 if (data.success) {
                     console.log('Category created at position:', position);
                     modal.remove();
-                    window.location.reload(); // Reload to see changes
+                    window.location.reload(); 
                 } else {
                     alert(data.message || 'Failed to create category');
                 }
@@ -1075,9 +986,8 @@ function showCreateCategoryModal(serverId, position) {
             });
         }
     });
-    
-    // Focus the input
+
     setTimeout(() => {
         modal.querySelector('input[name="name"]').focus();
     }, 100);
-} 
+}

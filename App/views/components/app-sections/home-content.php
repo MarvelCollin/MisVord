@@ -32,7 +32,7 @@ $onlineFriends = $friendData['onlineFriends'];
                 <?php 
                 $statusText = 'Offline';
                 $statusColor = 'bg-gray-500';
-                
+
                 if ($friend['status'] === 'online') {
                     $statusText = 'Online';
                     $statusColor = 'bg-discord-green';
@@ -73,9 +73,7 @@ $onlineFriends = $friendData['onlineFriends'];
 </div>
 
 <script>
-// Trigger content loaded event once data is available
 document.addEventListener('DOMContentLoaded', function() {
-    // Use a slight delay to simulate network request
     setTimeout(function() {
         if (window.LazyLoader) {
             window.LazyLoader.triggerDataLoaded('friend-list', <?php echo empty($friends) ? 'true' : 'false'; ?>);

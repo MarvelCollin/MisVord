@@ -10,14 +10,14 @@ $currentServer = $currentServer ?? $GLOBALS['currentServer'] ?? null;
      data-user-id="<?php echo htmlspecialchars($_SESSION['user_id']); ?>" 
      data-username="<?php echo htmlspecialchars($_SESSION['username']); ?>"
      id="app-container">
-    
+
     <?php include dirname(__DIR__) . '/app-sections/server-sidebar.php'; ?>
 
     <div class="flex flex-1 overflow-hidden">
         <?php if ($contentType === 'home'): ?>
             <?php include dirname(__DIR__) . '/app-sections/direct-messages-sidebar.php'; ?>
         <?php endif; ?>
-        
+
         <div class="flex flex-col flex-1">
             <?php if ($contentType === 'home'): ?>
                 <div class="flex-1 bg-discord-background flex flex-col">
@@ -39,10 +39,37 @@ $currentServer = $currentServer ?? $GLOBALS['currentServer'] ?? null;
                     <?php include dirname(__DIR__) . '/app-sections/home-content.php'; ?>
                 </div>
             <?php elseif ($contentType === 'server'): ?>
-                <?php include dirname(__DIR__) . '/app-sections/chat-section.php'; ?>
+                <?php
+
+                $activeChannelId = $GLOBALS['activeChannelId'] ?? null;
+                $channels = $GLOBALS['serverChannels'] ?? [];
+                $activeChannel = null;
+                $channelType = 'text'; 
+
+                foreach ($channels as $channel) {
+                    if ($channel['id'] == $activeChannelId) {
+                        $activeChannel = $channel;
+
+                        if (isset($channel['type_name']) && $channel['type_name'] === 'voice') {
+                            $channelType = 'voice';
+                        } elseif (isset($channel['type']) && ($channel['type'] === 'voice' || $channel['type'] === 2)) {
+                            $channelType = 'voice';
+                        }
+
+                        $GLOBALS['activeChannel'] = $activeChannel;
+                        break;
+                    }
+                }
+
+                if ($channelType === 'voice') {
+                    include dirname(__DIR__) . '/app-sections/voice-section.php';
+                } else {
+                    include dirname(__DIR__) . '/app-sections/chat-section.php';
+                }
+                ?>
             <?php endif; ?>
         </div>
-        
+
         <?php if ($contentType === 'home'): ?>
             <?php include dirname(__DIR__) . '/app-sections/active-now-section.php'; ?>
         <?php elseif ($contentType === 'server'): ?>
@@ -55,25 +82,24 @@ $currentServer = $currentServer ?? $GLOBALS['currentServer'] ?? null;
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Handle create server button click
+
     const createServerBtn = document.querySelector('[data-action="create-server"]');
     const modal = document.getElementById('create-server-modal');
     const closeBtn = document.getElementById('close-server-modal');
-    
+
     if (createServerBtn && modal) {
         createServerBtn.addEventListener('click', function(e) {
             e.preventDefault();
             modal.classList.remove('hidden');
         });
     }
-    
+
     if (closeBtn && modal) {
         closeBtn.addEventListener('click', function() {
             modal.classList.add('hidden');
         });
     }
-    
-    // Close modal when clicking outside
+
     if (modal) {
         modal.addEventListener('click', function(e) {
             if (e.target === modal) {

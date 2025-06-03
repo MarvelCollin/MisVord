@@ -19,44 +19,41 @@ class ServerSettingsController extends BaseController {
         }
 
         $data = json_decode(file_get_contents('php://input'), true);
-        
+
         if (!$data || !isset($data['server_id'])) {
             return $this->validationError(['message' => 'Invalid request']);
         }
 
         $serverId = $data['server_id'];
         $server = Server::find($serverId);
-        
+
         if (!$server) {
             return $this->notFound('Server not found');
         }
-        
-        // Check if user has permission to update server settings
+
         if (!UserServerMembership::isOwner($_SESSION['user_id'], $serverId)) {
             return $this->forbidden('You do not have permission to update server settings');
         }
-        
-        // Update server properties
+
         if (isset($data['name']) && !empty($data['name'])) {
             $server->name = $data['name'];
         }
-        
+
         if (isset($data['description'])) {
             $server->description = $data['description'];
         }
-        
+
         if (isset($data['is_public'])) {
             $server->is_public = (bool)$data['is_public'];
         }
-        
-        // Handle server image update if provided
+
         if (isset($_FILES['image_file']) && $_FILES['image_file']['error'] === UPLOAD_ERR_OK) {
             $imageUrl = $this->uploadImage($_FILES['image_file'], 'servers');
             if ($imageUrl !== false) {
                 $server->image_url = $imageUrl;
             }
         }
-        
+
         if ($server->save()) {
             return $this->successResponse([
                 'server' => [
@@ -77,45 +74,41 @@ class ServerSettingsController extends BaseController {
             return $this->unauthorized();
         }
 
-        // Extract server ID from URL path instead of JSON body
         $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
         preg_match('/\/api\/servers\/(\d+)\/invite/', $path, $matches);
-        
+
         if (!isset($matches[1])) {
             return $this->validationError(['message' => 'Server ID not found in URL']);
         }
 
         $serverId = $matches[1];
         $server = Server::find($serverId);
-        
+
         if (!$server) {
             return $this->notFound('Server not found');
         }
-        
-        // Check if user has permission to generate invite link
+
         $membership = UserServerMembership::findByUserAndServer($_SESSION['user_id'], $serverId);
         if (!$membership || ($membership->role !== 'admin' && $membership->role !== 'owner')) {
             return $this->forbidden('You do not have permission to generate invite links');
         }
-        
+
         try {
-            // Generate unique invite code
+
             $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
             $inviteCode = '';
             for ($i = 0; $i < 10; $i++) {
                 $inviteCode .= $characters[rand(0, strlen($characters) - 1)];
             }
-            
-            // Delete old invites for this server (optional - keep only latest)
+
             ServerInvite::deleteOldInvites($serverId);
-            
-            // Create new invite
+
             $invite = ServerInvite::create([
                 'server_id' => $serverId,
                 'inviter_user_id' => $_SESSION['user_id'],
                 'invite_link' => $inviteCode
             ]);
-            
+
             if ($invite) {
                 return $this->successResponse([
                     'invite_code' => $inviteCode
@@ -130,4 +123,4 @@ class ServerSettingsController extends BaseController {
             return $this->serverError('Server error: ' . $e->getMessage());
         }
     }
-} 
+}

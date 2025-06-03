@@ -11,8 +11,11 @@ RUN npm ci || npm install
 # Copy source code
 COPY . .
 
+# Copy the main .env file from parent directory
+COPY ../.env ./.env
+
 # Expose socket port
 EXPOSE 1002
 
 # Command to run the app
-CMD ["node", "server.js"] 
+CMD ["node", "server.js"]

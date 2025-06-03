@@ -10,34 +10,32 @@ class NotificationSettingsController extends BaseController {
     public function __construct() {
         parent::__construct();
     }
-    
+
     public function updateServerNotificationSettings() {
         if (!isset($_SESSION['user_id'])) {
             return $this->unauthorized();
         }
 
         $data = json_decode(file_get_contents('php://input'), true);
-        
+
         if (!$data || !isset($data['server_id'])) {
             return $this->validationError(['message' => 'Invalid request']);
         }
 
         $serverId = $data['server_id'];
         $userId = $_SESSION['user_id'];
-        
-        // Check if user is a member of this server
+
         $membership = UserServerMembership::findByUserAndServer($userId, $serverId);
         if (!$membership) {
             return $this->forbidden('You are not a member of this server');
         }
-        
-        // Get notification settings
+
         $allMessages = isset($data['all_messages']) ? (bool)$data['all_messages'] : false;
         $mentionsOnly = isset($data['mentions_only']) ? (bool)$data['mentions_only'] : true;
         $muted = isset($data['muted']) ? (bool)$data['muted'] : false;
         $suppressEveryone = isset($data['suppress_everyone']) ? (bool)$data['suppress_everyone'] : false;
         $suppressRoles = isset($data['suppress_roles']) ? (bool)$data['suppress_roles'] : false;
-        
+
         $notificationSettings = [
             'all_messages' => $allMessages,
             'mentions_only' => $mentionsOnly,
@@ -45,16 +43,15 @@ class NotificationSettingsController extends BaseController {
             'suppress_everyone' => $suppressEveryone,
             'suppress_roles' => $suppressRoles
         ];
-        
-        // Update the notification_settings in the membership record
+
         $query = new Query();
-        
+
         try {
             $result = $query->table('user_server_memberships')
                 ->where('user_id', $userId)
                 ->where('server_id', $serverId)
                 ->update(['notification_settings' => json_encode($notificationSettings)]);
-            
+
             if ($result) {
                 return $this->successResponse([
                     'notification_settings' => $notificationSettings
@@ -66,20 +63,19 @@ class NotificationSettingsController extends BaseController {
             return $this->serverError('Error updating notification settings: ' . $e->getMessage());
         }
     }
-    
+
     public function getServerNotificationSettings($serverId) {
         if (!isset($_SESSION['user_id'])) {
             return $this->unauthorized();
         }
-        
+
         $userId = $_SESSION['user_id'];
-        
-        // Check if user is a member of this server
+
         $membership = UserServerMembership::findByUserAndServer($userId, $serverId);
         if (!$membership) {
             return $this->forbidden('You are not a member of this server');
         }
-        
+
         try {
             $query = new Query();
             $result = $query->table('user_server_memberships')
@@ -87,14 +83,14 @@ class NotificationSettingsController extends BaseController {
                 ->where('user_id', $userId)
                 ->where('server_id', $serverId)
                 ->first();
-                
+
             if ($result && !empty($result['notification_settings'])) {
                 $settings = json_decode($result['notification_settings'], true);
                 return $this->successResponse([
                     'notification_settings' => $settings
                 ]);
             } else {
-                // Return default settings if no settings are saved
+
                 $defaultSettings = [
                     'all_messages' => false,
                     'mentions_only' => true,
@@ -102,7 +98,7 @@ class NotificationSettingsController extends BaseController {
                     'suppress_everyone' => false,
                     'suppress_roles' => false
                 ];
-                
+
                 return $this->successResponse([
                     'notification_settings' => $defaultSettings
                 ]);
@@ -111,4 +107,4 @@ class NotificationSettingsController extends BaseController {
             return $this->serverError('Error retrieving notification settings: ' . $e->getMessage());
         }
     }
-} 
+}

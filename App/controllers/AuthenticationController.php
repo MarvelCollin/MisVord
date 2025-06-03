@@ -11,29 +11,26 @@ class AuthenticationController extends BaseController {
 
     public function showLogin() {
         if (isset($_SESSION['user_id'])) {
-            // If user is already logged in
+
             if (!$this->isAjaxRequest()) {
-                // Check for redirect parameter
+
                 $redirect = $_GET['redirect'] ?? '/app';
                 header('Location: ' . $redirect);
                 exit;
             }
-            
+
             return $this->redirectResponse('/app');
         }
 
-        // Save redirect URL from query string if present
         if (isset($_GET['redirect'])) {
             $_SESSION['login_redirect'] = $_GET['redirect'];
         }
 
-        // For regular requests, render the page
         if (!$this->isAjaxRequest()) {
             require_once __DIR__ . '/../views/pages/authentication-page.php';
             return;
         }
-        
-        // For AJAX, return data needed to render login page
+
         return $this->successResponse([
             'view' => 'login',
             'csrf_token' => $_SESSION['csrf_token'] ?? ''
@@ -57,7 +54,7 @@ class AuthenticationController extends BaseController {
             if ($this->isAjaxRequest()) {
                 return $this->validationError($errors);
             }
-            
+
             $_SESSION['errors'] = $errors;
             $_SESSION['old_input'] = ['email' => $email];
             header('Location: /login');
@@ -68,11 +65,11 @@ class AuthenticationController extends BaseController {
 
         if (!$user || !$user->verifyPassword($password)) {
             $loginError = ['auth' => 'Invalid email or password'];
-            
+
             if ($this->isAjaxRequest()) {
                 return $this->validationError($loginError);
             }
-            
+
             $_SESSION['errors'] = $loginError;
             $_SESSION['old_input'] = ['email' => $email];
             header('Location: /login');
@@ -85,17 +82,15 @@ class AuthenticationController extends BaseController {
 
         $user->status = 'online';
         $user->save();
-        
-        // Determine where to redirect the user
+
         $redirect = '/app';
-        
-        // Check if there's a pending invite or a redirect URL
+
         if (isset($_SESSION['pending_invite'])) {
-            // Redirect to the invitation page
+
             $redirect = '/join/' . $_SESSION['pending_invite'];
             unset($_SESSION['pending_invite']);
         } elseif (isset($_SESSION['login_redirect'])) {
-            // Use the stored redirect URL
+
             $redirect = $_SESSION['login_redirect'];
             unset($_SESSION['login_redirect']);
         }
@@ -110,7 +105,7 @@ class AuthenticationController extends BaseController {
                 'redirect' => $redirect
             ], 'Login successful');
         }
-        
+
         header('Location: ' . $redirect);
         exit;
     }
@@ -121,22 +116,19 @@ class AuthenticationController extends BaseController {
                 header('Location: /');
                 exit;
             }
-            
+
             return $this->redirectResponse('/app');
         }
 
-        // Save redirect URL from query string if present
         if (isset($_GET['redirect'])) {
             $_SESSION['login_redirect'] = $_GET['redirect'];
         }
 
-        // For regular requests, render the page
         if (!$this->isAjaxRequest()) {
             require_once __DIR__ . '/../views/pages/authentication-page.php';
             return;
         }
-        
-        // For AJAX, return data needed to render register page
+
         return $this->successResponse([
             'view' => 'register',
             'csrf_token' => $_SESSION['csrf_token'] ?? ''
@@ -180,7 +172,7 @@ class AuthenticationController extends BaseController {
             if ($this->isAjaxRequest()) {
                 return $this->validationError($errors);
             }
-            
+
             $_SESSION['errors'] = $errors;
             $_SESSION['old_input'] = [
                 'username' => $username,
@@ -213,16 +205,14 @@ class AuthenticationController extends BaseController {
             $_SESSION['user_id'] = $user->id;
             $_SESSION['username'] = $user->username;
 
-            // Determine where to redirect the user
             $redirect = '/app';
-            
-            // Check if there's a pending invite or a redirect URL
+
             if (isset($_SESSION['pending_invite'])) {
-                // Redirect to the invitation page
+
                 $redirect = '/join/' . $_SESSION['pending_invite'];
                 unset($_SESSION['pending_invite']);
             } elseif (isset($_SESSION['login_redirect'])) {
-                // Use the stored redirect URL
+
                 $redirect = $_SESSION['login_redirect'];
                 unset($_SESSION['login_redirect']);
             }
@@ -236,7 +226,7 @@ class AuthenticationController extends BaseController {
                     'redirect' => $redirect
                 ], 'Registration successful');
             }
-            
+
             header('Location: ' . $redirect);
             exit;
         } catch (Exception $e) {
@@ -244,11 +234,11 @@ class AuthenticationController extends BaseController {
             error_log('Error details: ' . $e->getTraceAsString());
 
             $errorMessage = 'Registration failed: ' . $e->getMessage();
-            
+
             if ($this->isAjaxRequest()) {
                 return $this->serverError($errorMessage);
             }
-            
+
             $_SESSION['errors'] = [
                 'auth' => $errorMessage,
                 'debug_info' => 'See server logs for more details'
@@ -273,11 +263,11 @@ class AuthenticationController extends BaseController {
 
         session_unset();
         session_destroy();
-        
+
         if ($this->isAjaxRequest()) {
             return $this->successResponse(['redirect' => '/'], 'Logged out successfully');
         }
-        
+
         header('Location: /');
         exit;
     }
@@ -288,17 +278,15 @@ class AuthenticationController extends BaseController {
                 header('Location: /');
                 exit;
             }
-            
+
             return $this->redirectResponse('/app');
         }
 
-        // For regular requests, render the page
         if (!$this->isAjaxRequest()) {
             require_once __DIR__ . '/../views/pages/authentication-page.php';
             return;
         }
-        
-        // For AJAX, return data needed to render forgot password page
+
         return $this->successResponse([
             'view' => 'forgot-password',
             'csrf_token' => $_SESSION['csrf_token'] ?? ''
@@ -321,7 +309,7 @@ class AuthenticationController extends BaseController {
             if ($this->isAjaxRequest()) {
                 return $this->validationError($errors);
             }
-            
+
             $_SESSION['errors'] = $errors;
             $_SESSION['old_input'] = ['email' => $email];
             header('Location: /forgot-password');
@@ -329,11 +317,11 @@ class AuthenticationController extends BaseController {
         }
 
         $message = 'If an account exists with that email, you will receive password reset instructions.';
-        
+
         if ($this->isAjaxRequest()) {
             return $this->successResponse(['redirect' => '/login'], $message);
         }
-        
+
         $_SESSION['success'] = $message;
         header('Location: /login');
         exit;
@@ -347,11 +335,11 @@ class AuthenticationController extends BaseController {
 
         if (!$googleId || !$email) {
             $errorMessage = 'Unable to authenticate with Google';
-            
+
             if ($this->isAjaxRequest()) {
                 return $this->validationError(['auth' => $errorMessage]);
             }
-            
+
             $_SESSION['errors'] = ['auth' => $errorMessage];
             header('Location: /login');
             exit;
@@ -399,14 +387,11 @@ class AuthenticationController extends BaseController {
                 'redirect' => '/app'
             ], 'Google authentication successful');
         }
-        
+
         header('Location: /app');
         exit;
     }
-    
-    /**
-     * Check if the current request is an AJAX request
-     */
+
     protected function isAjaxRequest() {
         return !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
                strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';

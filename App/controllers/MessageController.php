@@ -198,42 +198,36 @@ class MessageController extends BaseController {
         ];
     }
 
-    /**
-     * Debug endpoint to test database connectivity and message storage
-     */
     public function debugMessageStorage() {
         error_log("MessageController::debugMessageStorage called");
 
         try {
             $results = [];
-            
-            // Test database connection
+
             $query = new Query();
             $dbConnected = $query->testConnection();
             $results['db_connection'] = $dbConnected ? 'successful' : 'failed';
-            
+
             if ($dbConnected) {
-                // Check if tables exist
+
                 $messagesTableExists = $query->tableExists('messages');
                 $channelMessagesTableExists = $query->tableExists('channel_messages');
-                
+
                 $results['tables'] = [
                     'messages_table' => $messagesTableExists ? 'exists' : 'missing',
                     'channel_messages_table' => $channelMessagesTableExists ? 'exists' : 'missing'
                 ];
-                
-                // Get recent messages
+
                 if ($messagesTableExists) {
                     $recentMessages = $query->table('messages')
                         ->orderBy('id', 'DESC')
                         ->limit(5)
                         ->get();
-                    
+
                     $results['recent_messages'] = $recentMessages;
                     $results['total_messages'] = $query->table('messages')->count();
                 }
-                
-                // Test WebSocket client
+
                 try {
                     $wsClient = new WebSocketClient();
                     $wsTestResult = $wsClient->testConnection();
@@ -241,29 +235,26 @@ class MessageController extends BaseController {
                 } catch (Exception $e) {
                     $results['websocket_connection'] = 'failed: ' . $e->getMessage();
                 }
-                
-                // Try inserting a test message
+
                 if ($messagesTableExists && $channelMessagesTableExists) {
                     $userId = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 1;
                     $channelId = isset($_GET['channel_id']) ? $_GET['channel_id'] : 11;
-                    
-                    // Create message
+
                     $message = new Message();
                     $message->user_id = $userId;
                     $message->content = "Debug test message at " . date('Y-m-d H:i:s');
                     $message->sent_at = date('Y-m-d H:i:s');
                     $message->message_type = 'text';
-                    
+
                     $saveResult = $message->save();
                     $results['test_message_save'] = $saveResult ? 'successful' : 'failed';
-                    
+
                     if ($saveResult) {
-                        // Associate with channel
+
                         $associateResult = $message->associateWithChannel($channelId);
                         $results['test_associate_channel'] = $associateResult ? 'successful' : 'failed';
                         $results['test_message_id'] = $message->id;
-                        
-                        // Test WebSocket broadcast
+
                         try {
                             $wsClient = new WebSocketClient();
                             $broadcastResult = $wsClient->sendMessage($channelId, $message->content, [
@@ -277,7 +268,7 @@ class MessageController extends BaseController {
                     }
                 }
             }
-            
+
             return $this->successResponse($results);
         } catch (Exception $e) {
             error_log("Error in debugMessageStorage: " . $e->getMessage());

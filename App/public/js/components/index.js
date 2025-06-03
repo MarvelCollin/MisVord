@@ -1,21 +1,11 @@
-/**
- * Components index file
- * Exports all component modules for easy importing
- */
-
-// Export authentication components
 export * from './auth.js';
 
-// Export server management components
 export * from './server-manager.js';
 export * from './server-sidebar.js';
 
-// Export channel management components
 export * from './channel-manager.js';
 export * from './channel-drag.js';
 
-// Export messaging components
 export * from './messaging.js';
 
-// Export server exploration components
-export * from './explore-servers.js'; 
+export * from './explore-servers.js';

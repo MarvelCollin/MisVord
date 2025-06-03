@@ -1,8 +1,20 @@
 <?php
-require_once dirname(__DIR__, 2) . '/config/videosdk.php';
+// Ensure we get the correct path to the config directory
+$configPath = realpath(dirname(__DIR__, 2) . '/config/videosdk.php');
+if (!$configPath) {
+    // Fallback path resolution
+    $configPath = dirname(__DIR__, 2) . '/config/videosdk.php';
+}
+require_once $configPath;
 
 // Initialize VideoSDK
-VideoSDKConfig::init();
+try {
+    VideoSDKConfig::init();
+} catch (Exception $e) {
+    error_log('VideoSDK initialization error in call.php: ' . $e->getMessage());
+    error_log('Config path attempted: ' . $configPath);
+    die('VideoSDK configuration error: ' . htmlspecialchars($e->getMessage()));
+}
 
 // Handle meeting creation or joining
 $meetingId = $_GET['meetingId'] ?? null;

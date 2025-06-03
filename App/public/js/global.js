@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initScrollReveal();
     initDropdowns();
     initTextareaAutosize();
-    
+
     document.addEventListener('click', function(e) {
         closeDropdowns(e);
     });
@@ -107,12 +107,12 @@ function createRippleEffect(event) {
 }
 
 function initSocketConnection() {
-    // Socket connection disabled
+
     console.log('Socket functionality disabled');
 }
 
 function connectSocket(socketUrl, userId, username) {
-    // This function is no longer used
+
 }
 
 function initDropdowns() {
@@ -125,17 +125,17 @@ function initDropdowns() {
 function toggleDropdown(e) {
     e.preventDefault();
     e.stopPropagation();
-    
+
     const trigger = e.currentTarget;
     const targetId = trigger.dataset.dropdown;
     const dropdown = document.getElementById(targetId);
-    
+
     if (!dropdown) return;
-    
+
     const isOpen = dropdown.classList.contains('block');
-    
+
     closeAllDropdowns();
-    
+
     if (!isOpen) {
         dropdown.classList.remove('hidden');
         dropdown.classList.add('block');
@@ -145,7 +145,7 @@ function toggleDropdown(e) {
 function closeDropdowns(e) {
     if (e.target.closest('[data-dropdown]')) return;
     if (e.target.closest('.dropdown-menu')) return;
-    
+
     closeAllDropdowns();
 }
 

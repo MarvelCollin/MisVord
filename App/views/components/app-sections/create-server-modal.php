@@ -1,5 +1,5 @@
 <?php
-// Create Server Modal Component
+
 ?>
 <div id="create-server-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 hidden">
     <div class="bg-discord-background rounded-lg w-full max-w-md p-6 shadow-xl">
@@ -9,9 +9,9 @@
                 <i class="fas fa-times"></i>
             </button>
         </div>
-        
+
         <p class="text-gray-400 mb-4">Your server is where you and your friends hang out. Make yours and start talking.</p>
-        
+
         <form id="create-server-form" action="/api/servers/create" method="POST" class="space-y-4">
             <div class="group relative w-24 h-24 mx-auto mb-4 rounded-full bg-discord-dark flex items-center justify-center overflow-hidden border-2 border-dashed border-gray-600 hover:border-discord-blue transition-colors cursor-pointer">
                 <img id="server-icon-preview" class="hidden w-full h-full object-cover" src="" alt="Server icon">
@@ -21,12 +21,12 @@
                 </div>
                 <input type="file" id="server-icon-input" name="server_icon" class="absolute inset-0 opacity-0 cursor-pointer" accept="image/*">
             </div>
-            
+
             <div class="mb-4">
                 <label for="server-name" class="block text-gray-300 text-sm font-medium mb-2">Server Name</label>
                 <input type="text" id="server-name" name="name" class="bg-discord-dark text-white w-full px-3 py-2 rounded border border-gray-700 focus:border-discord-blue focus:outline-none" placeholder="My Awesome Server" required>
             </div>
-            
+
             <div>
                 <button type="submit" class="w-full bg-discord-blue text-white font-medium py-2 px-4 rounded hover:bg-opacity-80 transition-colors">
                     Create Server
@@ -38,35 +38,34 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Server icon upload preview
+
     const iconInput = document.getElementById('server-icon-input');
     const iconPreview = document.getElementById('server-icon-preview');
     const iconPlaceholder = document.getElementById('server-icon-placeholder');
-    
+
     if (iconInput) {
         iconInput.addEventListener('change', function() {
             if (this.files && this.files[0]) {
                 const reader = new FileReader();
-                
+
                 reader.onload = function(e) {
                     iconPreview.src = e.target.result;
                     iconPreview.classList.remove('hidden');
                     iconPlaceholder.classList.add('hidden');
                 }
-                
+
                 reader.readAsDataURL(this.files[0]);
             }
         });
     }
-    
-    // Submit form via AJAX
+
     const serverForm = document.getElementById('create-server-form');
     if (serverForm) {
         serverForm.addEventListener('submit', function(e) {
             e.preventDefault();
-            
+
             const formData = new FormData(this);
-            
+
             fetch('/api/servers/create', {
                 method: 'POST',
                 body: formData
@@ -74,7 +73,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Redirect to the new server or refresh the page
+
                     window.location.href = '/servers/' + data.server.id;
                 } else {
                     alert('Failed to create server: ' + (data.message || 'Unknown error'));
@@ -87,4 +86,4 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
-</script> 
+</script>

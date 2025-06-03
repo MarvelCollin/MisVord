@@ -12,19 +12,19 @@ require_once __DIR__ . '/env.php';
 
 class Route {
     private static $routes = [];
-    
+
     public static function add($pattern, $handler, $method = 'GET') {
         self::$routes[$method . ':' . $pattern] = $handler;
     }
-    
+
     public static function get($pattern, $handler) {
         self::add($pattern, $handler, 'GET');
     }
-    
+
     public static function post($pattern, $handler) {
         self::add($pattern, $handler, 'POST');
     }
-    
+
     public static function getRoutes() {
         return self::$routes;
     }
@@ -38,6 +38,7 @@ Route::get('/register', 'pages/authentication-page.php');
 Route::get('/explore-servers', 'pages/explore-servers.php');
 Route::get('/settings', 'pages/settings.php');
 Route::get('/call', 'pages/call.php');
+Route::get('/dev', 'pages/dev.php');
 Route::get('/forgot-password', 'pages/authentication-page.php');
 Route::get('/404', 'pages/404.php');
 
@@ -97,7 +98,6 @@ Route::post('/api/servers/create', function() {
     return $controller->create();
 });
 
-// Add fallback route for incorrect endpoint
 Route::post('/servers/create', function() {
     require_once __DIR__ . '/../controllers/api/ServerController.php';
     $controller = new ServerController();
@@ -119,31 +119,26 @@ Route::get('/api/channels/([0-9]+)/messages', function($channelId) {
     $controller->getMessages($channelId);
 });
 
-// Get channel details
 Route::get('/api/channels/([0-9]+)', function($channelId) {
     $controller = new ChannelController();
     $controller->show($channelId);
 });
 
-// Add new route for channel participants
 Route::get('/api/channels/([0-9]+)/participants', function($channelId) {
     $controller = new ChannelController();
     $controller->getChannelParticipants($channelId);
 });
 
-// Add missing route for getting server details
 Route::get('/api/servers/([0-9]+)', function($serverId) {
     $controller = new ServerController();
     $controller->getServerDetails($serverId);
 });
 
-// Add missing route for server invite link generation
 Route::post('/api/servers/([0-9]+)/invite', function($serverId) {
     $controller = new ServerController();
     $controller->generateInviteLink($serverId);
 });
 
-// Routes for drag and drop functionality
 Route::post('/api/channels/position', function() {
     $controller = new ChannelController();
     $controller->updateChannelPosition();
@@ -154,15 +149,13 @@ Route::post('/api/categories/position', function() {
     $controller->updateCategoryPosition();
 });
 
-// Add position management routes
 Route::post('/api/positions/batch', function() {
     $controller = new ChannelController();
     $controller->batchUpdatePositions();
 });
 
-// Add debug endpoints
 Route::get('/debug/invite', function() {
-    // Simple debug page for invite link generation
+
     include_once __DIR__ . '/../debug-invite.php';
     exit;
 });
@@ -172,7 +165,6 @@ Route::get('/debug/messages', function() {
     $controller->debugMessageStorage();
 });
 
-// Add new database debug route
 Route::get('/debug/database', function() {
     include_once __DIR__ . '/../debug-db.php';
     exit;

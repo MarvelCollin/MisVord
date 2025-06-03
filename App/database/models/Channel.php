@@ -4,72 +4,101 @@ require_once __DIR__ . '/../query.php';
 
 class Channel {
     public static $table = 'channels';
-    
+
     protected $attributes = [];
-    
+
     public function __construct($attributes = []) {
         $this->fill($attributes);
     }
-    
+
     public function fill($attributes) {
         foreach ($attributes as $key => $value) {
             $this->attributes[$key] = $value;
         }
-        
+
         return $this;
     }
-    
+
     public function __get($key) {
         return $this->attributes[$key] ?? null;
     }
-    
+
     public function __set($key, $value) {
         $this->attributes[$key] = $value;
     }
-    
+
     public static function find($id) {
         $query = new Query();
         $result = $query->table(static::$table)
             ->where('id', $id)
             ->first();
-            
+
         if (!$result) {
             return null;
         }
-        
+
         return new static($result);
     }
-    
-    // FIXED: Add missing getByServerId method
+
     public static function getByServerId($serverId) {
         $query = new Query();
-        
+
         try {
-            return $query->table(static::$table)
+            $channels = $query->table(static::$table)
                 ->where('server_id', $serverId)
                 ->orderBy('position', 'ASC')
                 ->orderBy('id', 'ASC')
                 ->get();
+
+            foreach ($channels as &$channel) {
+
+                if (isset($channel['type'])) {
+                    $type = $channel['type'];
+
+                    if (!isset($channel['type_name'])) {
+                        if ($type === 'voice' || $type == 2) {
+                            $channel['type_name'] = 'voice';
+                        } elseif ($type === 'text' || $type == 1) {
+                            $channel['type_name'] = 'text';
+                        } elseif ($type === 'category' || $type == 3) {
+                            $channel['type_name'] = 'category';
+                        } elseif ($type === 'announcement' || $type == 4) {
+                            $channel['type_name'] = 'announcement';
+                        } elseif ($type === 'forum' || $type == 5) {
+                            $channel['type_name'] = 'forum';
+                        } else {
+
+                            $channel['type_name'] = 'text';
+                        }
+                    }
+                } else {
+
+                    $channel['type'] = 1;
+                    $channel['type_name'] = 'text';
+                }
+            }
+
+            return $channels;
         } catch (Exception $e) {
             error_log("Channel::getByServerId error: " . $e->getMessage());
             return [];
         }
     }
-    
+
     public static function findByNameAndServer($name, $serverId) {
         $query = new Query();
         $result = $query->table(static::$table)
             ->where('name', $name)
             ->where('server_id', $serverId)
             ->first();
-            
+
         if (!$result) {
             return null;
         }
-        
+
         return new static($result);
     }
-    
+
     public static function getForServer($serverId) {
         $query = new Query();
         return $query->table(static::$table)
@@ -77,7 +106,7 @@ class Channel {
                 ->orderBy('position')
                 ->get();
     }
-    
+
     public static function getForCategory($categoryId) {
         $query = new Query();
         return $query->table(static::$table)
@@ -85,116 +114,108 @@ class Channel {
                 ->orderBy('position')
                 ->get();
     }
-    
+
     public function save() {
         $query = new Query();
-        
+
         try {
             error_log("Channel save() called with attributes: " . json_encode($this->attributes));
-            
-            // Handle type field conversion if it's a string value
+
             if (isset($this->attributes['type']) && !is_numeric($this->attributes['type'])) {
                 $typeValue = strtolower($this->attributes['type']);
-                
-                // Direct string storage approach - store exactly as provided
-                // This ensures we keep the string representation which is more reliable
+
                 $this->attributes['type'] = $typeValue;
-                
+
                 error_log("Using string type value: {$typeValue}");
             }
-            
-            // Handle empty strings for integer fields - convert to NULL
+
             foreach (['position', 'category_id', 'parent_id'] as $field) {
                 if (isset($this->attributes[$field])) {
                     if ($this->attributes[$field] === '' || $this->attributes[$field] === null) {
-                        // Convert empty strings to NULL for database
+
                         $this->attributes[$field] = null;
                     } else if (is_numeric($this->attributes[$field])) {
-                        // Convert numeric values to actual integers
+
                         $this->attributes[$field] = intval($this->attributes[$field]);
                     }
                 }
             }
-            
-            // Make sure is_private is a boolean
+
             if (isset($this->attributes['is_private'])) {
                 $this->attributes['is_private'] = $this->attributes['is_private'] ? 1 : 0;
             }
-            
-            // Ensure datetime fields are in the correct format
+
             if (!isset($this->attributes['created_at'])) {
                 $this->attributes['created_at'] = date('Y-m-d H:i:s');
             }
-            
+
             $this->attributes['updated_at'] = date('Y-m-d H:i:s');
-            
+
             if (isset($this->attributes['id'])) {
                 $id = $this->attributes['id'];
                 unset($this->attributes['id']);
-                
-                // Log the update query
+
                 error_log("Updating channel with ID: $id and attributes: " . json_encode($this->attributes));
-                
+
                 try {
                     $result = $query->table(static::$table)
                             ->where('id', $id)
                             ->update($this->attributes);
-                    
+
                     $this->attributes['id'] = $id;
-                    
+
                     error_log("Update result: $result rows affected");
-                    
-                    return $result >= 0; // Success even if no rows were updated (no changes)
+
+                    return $result >= 0; 
                 } catch (PDOException $e) {
                     error_log("PDO Exception in Channel::save() update: " . $e->getMessage());
                     error_log("SQL State: " . $e->getCode());
-                    throw $e; // Re-throw to be caught by outer try-catch
+                    throw $e; 
                 }
             } else {
-                // Log the insert query
+
                 error_log("Inserting new channel with attributes: " . json_encode($this->attributes));
-                
+
                 try {
                     $this->attributes['id'] = $query->table(static::$table)
                             ->insert($this->attributes);
-                    
+
                     error_log("Insert result: New ID = {$this->attributes['id']}");
-                    
+
                     if (!$this->attributes['id']) {
                         error_log("Insert failed - no ID returned");
                         return false;
                     }
-                    
+
                     return $this->attributes['id'] > 0;
                 } catch (PDOException $e) {
                     error_log("PDO Exception in Channel::save() insert: " . $e->getMessage());
                     error_log("SQL State: " . $e->getCode());
-                    throw $e; // Re-throw to be caught by outer try-catch
+                    throw $e; 
                 }
             }
         } catch (Exception $e) {
             error_log("Error in Channel::save(): " . $e->getMessage());
             error_log("Stack trace: " . $e->getTraceAsString());
-            
-            // Add more detailed logging
+
             if ($e instanceof PDOException) {
                 error_log("PDO Error Code: " . $e->getCode());
                 error_log("SQL State: " . $e->errorInfo[0] ?? 'N/A');
                 error_log("Driver Error Code: " . $e->errorInfo[1] ?? 'N/A');
                 error_log("Driver Error Message: " . $e->errorInfo[2] ?? 'N/A');
             }
-            
-            throw $e; // Throw the exception up so the controller can handle it
+
+            throw $e; 
         }
     }
-    
+
     public function delete() {
         $query = new Query();
         return $query->table(static::$table)
                 ->where('id', $this->id)
                 ->delete() > 0;
     }
-    
+
     public function messages($limit = 50, $offset = 0) {
         $query = new Query();
         return $query->table('messages m')
@@ -207,12 +228,12 @@ class Channel {
                 ->offset($offset)
                 ->get();
     }
-    
+
     public static function createTable() {
         $query = new Query();
-        
+
         try {
-            // First check if the channel_types table exists and create it if needed
+
             $channelTypesExists = $query->tableExists('channel_types');
             if (!$channelTypesExists) {
                 error_log("channel_types table doesn't exist, creating it");
@@ -225,31 +246,30 @@ class Channel {
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
                     )
                 ");
-                
-                // Insert basic channel types
+
                 $types = [
                     ['name' => 'text', 'description' => 'Text channel for messages'],
                     ['name' => 'voice', 'description' => 'Voice chat channel'],
                     ['name' => 'category', 'description' => 'Category to group channels'],
                     ['name' => 'announcement', 'description' => 'Announcements channel']
                 ];
-                
+
                 foreach ($types as $type) {
                     $query->table('channel_types')->insert($type);
                     error_log("Added channel type: " . $type['name']);
                 }
-                
+
                 error_log("channel_types table created and populated");
             }
-            
+
             $tableExists = $query->tableExists(static::$table);
-            
+
             if (!$tableExists) {
-                // First, check if the categories table exists
+
                 $categoriesExists = $query->tableExists('categories');
-                
+
                 if (!$categoriesExists) {
-                    // Create a basic categories table if it doesn't exist
+
                     error_log("Categories table doesn't exist, creating it first");
                     $query->raw("
                         CREATE TABLE IF NOT EXISTS categories (
@@ -263,8 +283,7 @@ class Channel {
                         )
                     ");
                 }
-                
-                // Create channels table but handle the case where we need to disable foreign keys
+
                 try {
                     $query->raw("
                         CREATE TABLE IF NOT EXISTS " . static::$table . " (
@@ -287,7 +306,7 @@ class Channel {
                         )
                     ");
                 } catch (PDOException $e) {
-                    // If we get an error related to foreign key constraints, try with less constraints
+
                     error_log("Error creating channels table with all constraints: " . $e->getMessage());
                     error_log("Creating channels table with minimal constraints");
                     $query->raw("
@@ -308,63 +327,59 @@ class Channel {
                         )
                     ");
                 }
-                
+
                 $tableExists = $query->tableExists(static::$table);
             }
-            
+
             return $tableExists;
         } catch (PDOException $e) {
             error_log("Error creating channels table: " . $e->getMessage());
             return false;
         }
     }
-    
+
     public static function initialize() {
         return self::createTable();
     }
-    
+
     public static function all() {
         $query = new Query();
         return $query->table(static::$table)->get();
     }
-    
-    /**
-     * Get channels for a server
-     */
+
     public static function getServerChannels($serverId) {
         $query = new Query();
         error_log("Fetching channels for server ID: $serverId");
-        
+
         try {
-            // First check if the channel_types table exists
+
             $channel_types_exists = $query->tableExists('channel_types');
-            
+
             if ($channel_types_exists) {
-                // Use the join with channel_types if it exists
+
                 $channels = $query->table('channels c')
                     ->select('c.*, t.name as type_name')
                     ->join('channel_types t', 'c.type', '=', 't.id')
                     ->where('c.server_id', $serverId)
                     ->get();
             } else {
-                // If channel_types doesn't exist, use the type field directly
+
                 $channels = $query->table('channels c')
                     ->select('c.*, c.type as type_name')
                     ->where('c.server_id', $serverId)
                     ->orderBy('c.position')
                     ->get();
-                    
+
                 error_log("Using direct type field instead of channel_types join");
             }
-            
-            // Process the channels to ensure type is always an integer
+
             foreach ($channels as &$channel) {
                 if (isset($channel['type'])) {
-                    // Force type to be an integer
+
                     $channel['type'] = intval($channel['type']);
                 }
             }
-            
+
             error_log("Found " . count($channels) . " channels for server ID: $serverId");
             return $channels;
         } catch (Exception $e) {
@@ -372,10 +387,7 @@ class Channel {
             return [];
         }
     }
-    
-    /**
-     * Get messages for a channel
-     */
+
     public static function getChannelMessages($channelId, $limit = 50) {
         $query = new Query();
         $messages = $query->table('messages m')
@@ -385,20 +397,14 @@ class Channel {
             ->orderBy('m.timestamp', 'DESC')
             ->limit($limit)
             ->get();
-            
-        return array_reverse($messages); // Return in chronological order
+
+        return array_reverse($messages); 
     }
-    
-    /**
-     * Get minimal channel data for a server (faster, with less data)
-     * 
-     * @param int $serverId The server ID
-     * @return array Array of minimal channel data
-     */
+
     public static function getServerChannelsMinimal($serverId) {
         $query = new Query();
         try {
-            // Only select essential fields for channel listing
+
             return $query->table(self::$table)
                 ->select('id, name, type, category_id, is_private, server_id')
                 ->where('server_id', $serverId)
@@ -409,22 +415,15 @@ class Channel {
             return [];
         }
     }
-    
-    /**
-     * Get participants for this channel
-     * 
-     * @return array Array of channel participants
-     */
+
     public function participants() {
-        // For now, we'll just return server members since that's all we need
-        // In a real app, you would filter by channel access permissions
+
         try {
             $query = new Query();
             $serverId = $this->server_id;
             $members = [];
             $roles = [];
-            
-            // Check if server_members table exists
+
             if ($query->tableExists('server_members')) {
                 $members = $query->table('server_members sm')
                     ->select('sm.*, u.username, u.avatar, u.status')
@@ -433,15 +432,14 @@ class Channel {
                     ->get();
             } else {
                 error_log("Warning: server_members table doesn't exist, using fallback");
-                // Fallback to user_server_memberships table
+
                 $members = $query->table('user_server_memberships usm')
                     ->select('usm.*, u.username, u.avatar, u.status')
                     ->join('users u', 'usm.user_id', '=', 'u.id')
                     ->where('usm.server_id', $serverId)
                     ->get();
             }
-            
-            // Check if server_roles table exists
+
             if ($query->tableExists('server_roles')) {
                 $roles = $query->table('server_roles')
                     ->where('server_id', $serverId)
@@ -450,7 +448,7 @@ class Channel {
                 error_log("Warning: server_roles table doesn't exist, returning empty roles array");
                 $roles = [];
             }
-            
+
             return [
                 'members' => $members,
                 'roles' => $roles

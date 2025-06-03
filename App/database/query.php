@@ -22,17 +22,16 @@ class Query {
         } else {
             try {
                 require_once __DIR__ . '/../config/env.php';
-                
+
                 $dbHost = EnvLoader::get('DB_HOST', 'localhost');
                 $port = EnvLoader::get('DB_PORT', '1003');
                 $dbname = EnvLoader::get('DB_NAME', 'misvord');
                 $username = EnvLoader::get('DB_USER', 'root');
                 $password = EnvLoader::get('DB_PASS', 'kolin123');
                 $charset = EnvLoader::get('DB_CHARSET', 'utf8mb4');
-                
-                // Force explicit database connection
+
                 $dsn = "mysql:host={$dbHost};port={$port};dbname={$dbname};charset={$charset}";
-                
+
                 $options = [
                     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
@@ -40,17 +39,16 @@ class Query {
                     PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES {$charset}",
                     PDO::ATTR_PERSISTENT => false,
                 ];
-                
+
                 $this->pdo = new PDO($dsn, $username, $password, $options);
-                
-                // Verify database connection
+
                 $stmt = $this->pdo->query('SELECT DATABASE() as current_db');
                 $result = $stmt->fetch();
-                
+
                 if ($result['current_db'] !== $dbname) {
                     throw new PDOException("Connected to wrong database: {$result['current_db']}, expected: $dbname");
                 }
-                
+
             } catch (PDOException $e) {
                 error_log("Database connection failed: " . $e->getMessage());
                 error_log("Connection details: host=$dbHost, port=$port, dbname=$dbname, user=$username");
@@ -521,7 +519,7 @@ class Query {
         if ($pdo->inTransaction()) {
             return $callback($this);
         }
-        
+
         try {
             $pdo->beginTransaction();
             $result = $callback($this);
@@ -673,7 +671,7 @@ class Query {
                 }
             }
         }
-        
+
         return $statement->execute($params);
     }
 

@@ -17,19 +17,17 @@ function asset($path) {
     if (strpos($host, 'marvelcollin.my.id') !== false) {
         $basePath = '/misvord';
     }
-    
-    // Always ensure there's a /public in the base path
+
     if (strpos($basePath, '/public') === false) {
         $basePath = $basePath . '/public';
     }
 
     $path = '/' . ltrim($path, '/');
-    
-    // If path starts with 'css/' or 'js/', don't add 'assets/'
+
     if (strpos($path, '/css/') === 0 || strpos($path, '/js/') === 0) {
-        // Do nothing - keep the path as is
+
     } 
-    // Otherwise, if it doesn't already include 'assets/', add it
+
     else if (strpos($path, '/assets/') !== 0) {
         $path = '/assets' . $path;
     }
@@ -102,8 +100,7 @@ function getBaseUrl() {
             $scriptDir = '/misvord';
         }
     }
-    
-    // Always include '/public' in the base URL
+
     if (strpos($scriptDir, '/public') === false) {
         $scriptDir = $scriptDir . '/public';
     }

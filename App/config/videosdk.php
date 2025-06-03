@@ -3,122 +3,145 @@
 class VideoSDKConfig {
     private static $apiKey = null;
     private static $secretKey = null;
-
-    public static function init() {
-
-        if (class_exists('EnvLoader')) {
-            $envVars = EnvLoader::getEnv();
-            self::$apiKey = $envVars['VIDEOSDK_API_KEY'] ?? null;
-            self::$secretKey = $envVars['VIDEOSDK_SECRET_KEY'] ?? null;
+    private static $token = null;
+    private static $initialized = false;    public static function init() {
+        if (self::$initialized) {
+            return; // Prevent double initialization
         }
-
-        if (!self::$apiKey) {
-            self::$apiKey = getenv('VIDEOSDK_API_KEY');
-        }
-        if (!self::$secretKey) {
-            self::$secretKey = getenv('VIDEOSDK_SECRET_KEY');
-        }
-
-        if (!self::$apiKey) {
-            self::$apiKey = $_ENV['VIDEOSDK_API_KEY'] ?? null;
-        }
-        if (!self::$secretKey) {
-            self::$secretKey = $_ENV['VIDEOSDK_SECRET_KEY'] ?? null;
-        }
-
-        if (!self::$apiKey || !self::$secretKey) {
-            self::loadFromEnvFile();
-        }
-
-        if (!self::$apiKey || !self::$secretKey) {
-            throw new Exception('VideoSDK credentials not found. API Key: ' . (self::$apiKey ? 'Found' : 'Missing') . ', Secret Key: ' . (self::$secretKey ? 'Found' : 'Missing'));
-        }
-    }
-
-    private static function loadFromEnvFile() {
-        $envFile = dirname(__DIR__) . '/.env';
-
-        if (!file_exists($envFile)) {
-            return false;
-        }
-
-        $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-
-        foreach ($lines as $line) {
-
-            if (strpos(trim($line), '#') === 0 || strpos(trim($line), '//') === 0) {
-                continue;
+        
+        // Enhanced Docker detection
+        $isDocker = (
+            getenv('IS_DOCKER') === 'true' || 
+            isset($_SERVER['IS_DOCKER']) || 
+            getenv('CONTAINER') !== false ||
+            isset($_SERVER['CONTAINER']) ||
+            file_exists('/.dockerenv')
+        );
+        
+        error_log('VideoSDK Debug - Docker Detection: ' . ($isDocker ? 'YES' : 'NO'));
+        
+        // In Docker context, try to get environment variables directly first
+        if ($isDocker) {
+            error_log('VideoSDK Debug - Attempting Docker direct environment access');
+            
+            // Try to get values directly from Docker environment
+            $dockerToken = $_SERVER['VIDEOSDK_TOKEN'] ?? getenv('VIDEOSDK_TOKEN') ?? $_ENV['VIDEOSDK_TOKEN'] ?? null;
+            $dockerApiKey = $_SERVER['VIDEOSDK_API_KEY'] ?? getenv('VIDEOSDK_API_KEY') ?? $_ENV['VIDEOSDK_API_KEY'] ?? null;
+            $dockerSecretKey = $_SERVER['VIDEOSDK_SECRET_KEY'] ?? getenv('VIDEOSDK_SECRET_KEY') ?? $_ENV['VIDEOSDK_SECRET_KEY'] ?? null;
+            
+            if ($dockerToken && $dockerApiKey) {
+                error_log('VideoSDK Debug - Found Docker environment variables directly');
+                self::$apiKey = $dockerApiKey;
+                self::$secretKey = $dockerSecretKey;
+                self::$token = $dockerToken;
+                self::$initialized = true;
+                error_log('✅ VideoSDK initialized successfully from Docker environment');
+                return;
             }
-
-            if (strpos($line, '=') !== false) {
-                list($key, $value) = explode('=', $line, 2);
-                $key = trim($key);
-                $value = trim($value);
-
-                if (preg_match('/^"(.*)"$/', $value, $matches)) {
-                    $value = $matches[1];
-                } elseif (preg_match("/^'(.*)'$/", $value, $matches)) {
-                    $value = $matches[1];
-                }
-
-                if ($key === 'VIDEOSDK_API_KEY' && !self::$apiKey) {
-                    self::$apiKey = $value;
-                }
-                if ($key === 'VIDEOSDK_SECRET_KEY' && !self::$secretKey) {
-                    self::$secretKey = $value;
-                }
+            
+            error_log('VideoSDK Debug - Docker environment variables not found directly, falling back to EnvLoader');
+        }
+        
+        // Multiple strategies to load environment variables
+        $envConfigPath = null;
+        $possibleEnvPaths = [
+            __DIR__ . '/env.php',
+            dirname(__DIR__) . '/config/env.php',
+            (defined('APP_ROOT') ? APP_ROOT : '') . '/config/env.php',
+        ];
+        
+        foreach ($possibleEnvPaths as $path) {
+            if (!empty($path) && file_exists($path)) {
+                $envConfigPath = $path;
+                break;
             }
         }
+        
+        if (!$envConfigPath) {
+            throw new Exception('Environment configuration file not found. Attempted paths: ' . implode(', ', array_filter($possibleEnvPaths)));
+        }
+        
+        // Load environment variables using the centralized loader
+        require_once $envConfigPath;
+        
+        // Force reload of environment variables if not already loaded
+        if (!EnvLoader::isLoaded()) {
+            EnvLoader::load();
+        }
+        
+        self::$apiKey = EnvLoader::get('VIDEOSDK_API_KEY');
+        self::$secretKey = EnvLoader::get('VIDEOSDK_SECRET_KEY');
+        self::$token = EnvLoader::get('VIDEOSDK_TOKEN');
+          // Debug logging
+        error_log('VideoSDK Debug - API Key: ' . (self::$apiKey ? 'SET (' . substr(self::$apiKey, 0, 8) . '...)' : 'NOT SET'));
+        error_log('VideoSDK Debug - Token: ' . (self::$token ? 'SET (' . substr(self::$token, 0, 20) . '...)' : 'NOT SET'));
+        error_log('VideoSDK Debug - Environment loaded from: ' . $envConfigPath);
+        error_log('VideoSDK Debug - Current working directory: ' . getcwd());
+        
+        // Additional debugging for Docker environment
+        if ($isDocker) {
+            error_log('VideoSDK Debug - Docker ENV VIDEOSDK_TOKEN: ' . (isset($_SERVER['VIDEOSDK_TOKEN']) ? 'SET' : 'NOT SET'));
+            error_log('VideoSDK Debug - Docker ENV VIDEOSDK_API_KEY: ' . (isset($_SERVER['VIDEOSDK_API_KEY']) ? 'SET' : 'NOT SET'));
+            error_log('VideoSDK Debug - Docker getenv VIDEOSDK_TOKEN: ' . (getenv('VIDEOSDK_TOKEN') ? 'SET' : 'NOT SET'));
+            error_log('VideoSDK Debug - Docker getenv VIDEOSDK_API_KEY: ' . (getenv('VIDEOSDK_API_KEY') ? 'SET' : 'NOT SET'));
+        }
+        
+        if (empty(self::$apiKey)) {
+            $errorMsg = 'VideoSDK API key must be set in environment variables (VIDEOSDK_API_KEY). Check your .env file.';
+            if ($isDocker) {
+                $errorMsg .= ' Running in Docker - ensure environment variables are properly passed to container.';
+            }
+            throw new Exception($errorMsg);
+        }
+        
+        if (empty(self::$token)) {
+            $errorMsg = 'VideoSDK token must be set in environment variables (VIDEOSDK_TOKEN). Check your .env file.';
+            if ($isDocker) {
+                $errorMsg .= ' Running in Docker - ensure environment variables are properly passed to container.';
+            }
+            throw new Exception($errorMsg);
+        }
+        
+        self::$initialized = true;
+        error_log('✅ VideoSDK initialized successfully');
     }
 
     public static function getApiKey() {
-        if (!self::$apiKey) {
+        if (!self::$initialized) {
             self::init();
         }
         return self::$apiKey;
     }
 
     public static function getSecretKey() {
-        if (!self::$secretKey) {
+        if (!self::$initialized) {
             self::init();
         }
         return self::$secretKey;
     }
 
+    public static function getToken() {
+        if (!self::$initialized) {
+            self::init();
+        }
+        return self::$token;
+    }
+
+    // Keep this method for backward compatibility, but use static token
     public static function generateToken($expiresIn = 3600) {
-        $header = json_encode(['typ' => 'JWT', 'alg' => 'HS256']);
-        $payload = json_encode([
-            'apikey' => self::getApiKey(),
-            'permissions' => ['allow_join', 'allow_mod'],
-            'version' => 2,
-            'exp' => time() + $expiresIn
-        ]);
-
-        $base64Header = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($header));
-        $base64Payload = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($payload));
-
-        $signature = hash_hmac('sha256', $base64Header . "." . $base64Payload, self::getSecretKey(), true);
-        $base64Signature = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($signature));
-
-        return $base64Header . "." . $base64Payload . "." . $base64Signature;
-    }
-
-    public static function generateMeetingId() {
-        return 'meeting_' . uniqid() . '_' . time();
-    }
-
-    public static function getFrontendConfig() {
+        return self::getToken();
+    }    public static function getFrontendConfig() {
+        require_once __DIR__ . '/env.php';
         return [
             'apiKey' => self::getApiKey(),
-            'token' => self::generateToken(),
-            'isProduction' => getenv('APP_ENV') === 'production',
-            'domain' => getenv('DOMAIN') ?: 'localhost'
+            'token' => self::getToken(),
+            'isProduction' => EnvLoader::get('APP_ENV') === 'production'
         ];
     }
 
     public static function createMeeting() {
         $url = 'https://api.videosdk.live/v2/rooms';
-        $token = self::generateToken();
+        $token = self::getToken();
 
         $headers = [
             'Authorization: ' . $token,
@@ -145,7 +168,7 @@ class VideoSDKConfig {
 
     public static function validateMeeting($meetingId) {
         $url = 'https://api.videosdk.live/v2/rooms/validate/' . $meetingId;
-        $token = self::generateToken();
+        $token = self::getToken();
 
         $headers = [
             'Authorization: ' . $token,

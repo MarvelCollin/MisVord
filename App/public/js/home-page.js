@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function initFriendProfileCards() {
     const friendItems = document.querySelectorAll('.friend-item');
-    
+
     friendItems.forEach(item => {
         item.addEventListener('mouseenter', showProfileCard);
         item.addEventListener('mouseleave', hideProfileCard);
@@ -17,33 +17,33 @@ function initFriendProfileCards() {
 function showProfileCard(e) {
     const friendItem = e.currentTarget;
     const userId = friendItem.dataset.userId;
-    
+
     if (!userId) return;
-    
+
     if (window.activeProfileCard) {
         window.activeProfileCard.remove();
         window.activeProfileCard = null;
     }
-    
+
     const rect = friendItem.getBoundingClientRect();
-    
+
     fetch(`/api/users/${userId}/profile`)
         .then(response => response.json())
         .then(data => {
             if (!data) return;
-            
+
             const { user } = data;
-            
+
             if (!user) return;
-            
+
             const card = document.createElement('div');
             card.className = 'profile-card';
             card.innerHTML = createProfileCardContent(user);
-            
+
             document.body.appendChild(card);
-            
+
             positionProfileCard(card, rect);
-            
+
             window.activeProfileCard = card;
         })
         .catch(error => console.error('Error fetching profile data:', error));
@@ -56,12 +56,12 @@ function createProfileCardContent(user) {
         'dnd': 'bg-discord-red',
         'offline': 'bg-gray-500'
     };
-    
+
     const statusColor = statusColors[user.status] || 'bg-gray-500';
-    
+
     const badges = user.badges || [];
     let badgeHtml = '';
-    
+
     if (badges.length > 0) {
         badgeHtml = `
             <div class="profile-badges">
@@ -73,7 +73,7 @@ function createProfileCardContent(user) {
             </div>
         `;
     }
-    
+
     return `
         <div class="profile-header" style="background-color: ${user.banner_color || '#5865f2'}"></div>
         <div class="profile-content">
@@ -92,9 +92,9 @@ function createProfileCardContent(user) {
                     </div>
                 </div>
             </div>
-            
+
             ${badgeHtml}
-            
+
             ${user.about ? `
                 <div class="mb-3">
                     <div class="text-xs font-bold text-gray-400 uppercase mb-1">About Me</div>
@@ -103,7 +103,7 @@ function createProfileCardContent(user) {
                     </div>
                 </div>
             ` : ''}
-            
+
             ${user.member_since ? `
                 <div class="mb-3">
                     <div class="text-xs font-bold text-gray-400 uppercase mb-1">Member Since</div>
@@ -112,9 +112,9 @@ function createProfileCardContent(user) {
                     </div>
                 </div>
             ` : ''}
-            
+
             <div class="profile-divider"></div>
-            
+
             <div class="flex space-x-2 py-2">
                 <button class="bg-discord-green hover:bg-discord-green/90 text-white rounded flex-1 py-2 text-sm font-medium">Send Message</button>
                 <button class="bg-discord-dark hover:bg-discord-light text-white rounded p-2">
@@ -128,13 +128,13 @@ function createProfileCardContent(user) {
 function positionProfileCard(card, targetRect) {
     const cardHeight = card.offsetHeight;
     const windowHeight = window.innerHeight;
-    
+
     let top = targetRect.top;
-    
+
     if (targetRect.top + cardHeight > windowHeight - 20) {
         top = windowHeight - cardHeight - 20;
     }
-    
+
     card.style.top = 'auto';
     card.style.bottom = 'auto';
     card.style.left = `${targetRect.left + targetRect.width + 10}px`;
@@ -155,20 +155,20 @@ function hideProfileCard() {
 function initSearchFilter() {
     const searchInput = document.querySelector('.search-input');
     if (!searchInput) return;
-    
+
     searchInput.addEventListener('input', filterFriends);
 }
 
 function filterFriends() {
     const searchInput = document.querySelector('.search-input');
     if (!searchInput) return;
-    
+
     const query = searchInput.value.toLowerCase();
     const friendItems = document.querySelectorAll('.friend-item');
-    
+
     friendItems.forEach(item => {
         const username = item.querySelector('.friend-name').textContent.toLowerCase();
-        
+
         if (username.includes(query)) {
             item.classList.remove('hidden');
         } else {
@@ -180,7 +180,7 @@ function filterFriends() {
 function setupFriendSocketListeners() {
     const socket = window.misvordSocket;
     if (!socket) return;
-    
+
     socket.on('friend-request', handleFriendRequest);
     socket.on('friend-status-update', updateFriendStatus);
     socket.on('friend-activity-update', updateFriendActivity);
@@ -188,7 +188,7 @@ function setupFriendSocketListeners() {
 
 function handleFriendRequest(data) {
     const { type, user } = data;
-    
+
     if (type === 'new') {
         addPendingRequest(user);
         updatePendingCount();
@@ -201,29 +201,29 @@ function handleFriendRequest(data) {
 function updateFriendStatus(data) {
     const { userId, status } = data;
     const friendItems = document.querySelectorAll(`.friend-item[data-user-id="${userId}"]`);
-    
+
     const statusColors = {
         'online': 'bg-discord-green',
         'away': 'bg-discord-yellow',
         'dnd': 'bg-discord-red',
         'offline': 'bg-gray-500'
     };
-    
+
     const statusTexts = {
         'online': 'Online',
         'away': 'Away',
         'dnd': 'Do Not Disturb',
         'offline': 'Offline'
     };
-    
+
     friendItems.forEach(item => {
         const statusDot = item.querySelector('.status-indicator');
         const statusText = item.querySelector('.friend-status');
-        
+
         if (statusDot) {
             statusDot.className = `status-indicator ${statusColors[status] || 'bg-gray-500'}`;
         }
-        
+
         if (statusText) {
             statusText.textContent = statusTexts[status] || 'Offline';
         }
@@ -233,11 +233,11 @@ function updateFriendStatus(data) {
 function updateFriendActivity(data) {
     const { userId, activity } = data;
     const activeNowSection = document.querySelector('.active-now-list');
-    
+
     if (!activeNowSection) return;
-    
+
     const existingActivity = document.querySelector(`.activity-item[data-user-id="${userId}"]`);
-    
+
     if (activity) {
         if (existingActivity) {
             existingActivity.querySelector('.activity-name').textContent = activity.name;
@@ -253,7 +253,7 @@ function updateFriendActivity(data) {
 
 function createActivityItem(data) {
     const { user, activity } = data;
-    
+
     return `
         <div class="activity-item" data-user-id="${user.id}">
             <div class="mb-3 rounded-md bg-discord-background overflow-hidden">
@@ -270,12 +270,12 @@ function createActivityItem(data) {
                             <div class="font-medium text-white text-sm">${escapeHtml(user.username)}</div>
                         </div>
                     </div>
-                    
+
                     <div class="flex items-center bg-discord-darker p-2 rounded">
                         <div class="w-8 h-8 rounded bg-discord-dark flex items-center justify-center mr-2">
                             <i class="fas fa-gamepad text-gray-400"></i>
                         </div>
-                        
+
                         <div class="flex-1">
                             <div class="text-xs text-gray-400">Playing</div>
                             <div class="text-sm text-white font-medium truncate activity-name">${escapeHtml(activity.name)}</div>
@@ -283,7 +283,7 @@ function createActivityItem(data) {
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="bg-discord-darker py-2 px-3 flex">
                     <button class="flex-1 bg-discord-background text-white text-xs py-1 rounded hover:bg-gray-600 font-medium">Join</button>
                 </div>
@@ -296,10 +296,10 @@ function getElapsedTime(startTime) {
     const start = new Date(startTime).getTime();
     const now = Date.now();
     const diff = now - start;
-    
+
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    
+
     if (hours > 0) {
         return `${hours}h ${mins}m`;
     } else {
@@ -310,19 +310,19 @@ function getElapsedTime(startTime) {
 function initPendingRequests() {
     const pendingTab = document.querySelector('button[data-tab="pending"]');
     if (!pendingTab) return;
-    
+
     pendingTab.addEventListener('click', loadPendingRequests);
 }
 
 function loadPendingRequests() {
     const pendingContainer = document.getElementById('pending-requests');
     if (!pendingContainer) return;
-    
+
     fetch('/api/friends/pending')
         .then(response => response.json())
         .then(data => {
             pendingContainer.innerHTML = '';
-            
+
             if (data.incoming && data.incoming.length > 0) {
                 const incomingHtml = `
                     <h3 class="text-xs uppercase font-semibold text-gray-400 mb-2">Incoming Friend Requests — ${data.incoming.length}</h3>
@@ -332,7 +332,7 @@ function loadPendingRequests() {
                 `;
                 pendingContainer.insertAdjacentHTML('beforeend', incomingHtml);
             }
-            
+
             if (data.outgoing && data.outgoing.length > 0) {
                 const outgoingHtml = `
                     <h3 class="text-xs uppercase font-semibold text-gray-400 mt-4 mb-2">Outgoing Friend Requests — ${data.outgoing.length}</h3>
@@ -342,7 +342,7 @@ function loadPendingRequests() {
                 `;
                 pendingContainer.insertAdjacentHTML('beforeend', outgoingHtml);
             }
-            
+
             if (!data.incoming?.length && !data.outgoing?.length) {
                 pendingContainer.innerHTML = `
                     <div class="flex flex-col items-center justify-center py-8">
@@ -407,40 +407,40 @@ function createOutgoingRequestItem(user) {
 
 function acceptFriendRequest(userId) {
     const socket = window.misvordSocket;
-    
+
     if (socket) {
         socket.emit('friend-request-response', { userId, action: 'accept' });
-        
+
         const requestElement = document.querySelector(`.pending-request[data-user-id="${userId}"]`);
         if (requestElement) {
             requestElement.remove();
         }
-        
+
         updatePendingCount();
     }
 }
 
 function ignoreFriendRequest(userId) {
     const socket = window.misvordSocket;
-    
+
     if (socket) {
         socket.emit('friend-request-response', { userId, action: 'ignore' });
-        
+
         const requestElement = document.querySelector(`.pending-request[data-user-id="${userId}"]`);
         if (requestElement) {
             requestElement.remove();
         }
-        
+
         updatePendingCount();
     }
 }
 
 function cancelFriendRequest(userId) {
     const socket = window.misvordSocket;
-    
+
     if (socket) {
         socket.emit('friend-request-response', { userId, action: 'cancel' });
-        
+
         const requestElement = document.querySelector(`.pending-request[data-user-id="${userId}"]`);
         if (requestElement) {
             requestElement.remove();
@@ -451,16 +451,16 @@ function cancelFriendRequest(userId) {
 function addPendingRequest(user) {
     const pendingContainer = document.getElementById('pending-requests');
     const pendingHeader = pendingContainer?.querySelector('h3');
-    
+
     if (!pendingContainer) return;
-    
+
     if (pendingHeader) {
         const countEl = pendingHeader.textContent.match(/(\d+)/);
         if (countEl) {
             const count = parseInt(countEl[1]) + 1;
             pendingHeader.textContent = pendingHeader.textContent.replace(/(\d+)/, count);
         }
-        
+
         const requestHtml = createPendingRequestItem(user);
         pendingContainer.querySelector('div').insertAdjacentHTML('afterbegin', requestHtml);
     } else {
@@ -478,7 +478,7 @@ function updatePendingCount() {
         .then(response => response.json())
         .then(data => {
             const pendingTab = document.querySelector('button[data-tab="pending"]');
-            
+
             if (pendingTab) {
                 if (data.count > 0) {
                     pendingTab.innerHTML = `Pending <span class="bg-discord-red px-1.5 py-0.5 rounded text-white ml-1">${data.count}</span>`;
@@ -493,7 +493,7 @@ function updatePendingCount() {
 function addNewFriend(user) {
     const friendsList = document.querySelector('.friends-list');
     if (!friendsList) return;
-    
+
     const friendHtml = `
         <div class="flex justify-between items-center p-2 rounded hover:bg-discord-light group friend-item" data-user-id="${user.id}">
             <div class="flex items-center">
@@ -519,9 +519,9 @@ function addNewFriend(user) {
             </div>
         </div>
     `;
-    
+
     friendsList.insertAdjacentHTML('afterbegin', friendHtml);
-    
+
     const newFriendItem = friendsList.querySelector(`.friend-item[data-user-id="${user.id}"]`);
     if (newFriendItem) {
         newFriendItem.addEventListener('mouseenter', showProfileCard);
@@ -533,9 +533,9 @@ function showNotification(message) {
     const notification = document.createElement('div');
     notification.className = 'fixed bottom-4 right-4 bg-discord-dark border border-discord-primary text-white p-3 rounded-md shadow-lg z-50 transition-opacity duration-300';
     notification.innerHTML = message;
-    
+
     document.body.appendChild(notification);
-    
+
     setTimeout(() => {
         notification.classList.add('opacity-0');
         setTimeout(() => notification.remove(), 300);

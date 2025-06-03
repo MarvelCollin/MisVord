@@ -77,7 +77,7 @@ foreach ($channels as $channel) {
                 $messageDate = date('Y-m-d', $timestamp);
                 $showHeader = $lastUserId !== $message['user_id'];
                 $lastUserId = $message['user_id'];
-                
+
                 if ($messageDate !== $currentDate) {
                     $currentDate = $messageDate;
                     $displayDate = date('F j, Y', $timestamp);
@@ -168,12 +168,12 @@ foreach ($channels as $channel) {
                           autocomplete="off"
                           spellcheck="true"></textarea>
             </div>
-            
+
             <!-- Hidden inputs for user data -->
             <input type="hidden" name="channel_id" value="<?php echo htmlspecialchars($activeChannelId ?? ''); ?>" />
             <input type="hidden" data-user-id="<?php echo htmlspecialchars($currentUserId); ?>" />
             <input type="hidden" data-username="<?php echo htmlspecialchars($_SESSION['username'] ?? ''); ?>" />
-            
+
             <!-- Send button and status -->
             <div class="flex justify-between items-center mt-2">
                 <div class="flex items-center text-xs text-gray-400">
@@ -198,14 +198,13 @@ foreach ($channels as $channel) {
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 Chat section initializing...');
-    
-    // Create global debug object early
+
     window.MisVordDebug = {
         initialized: false,
         messagingAvailable: false,
         errors: [],
         logs: [],
-        
+
         log: function(message, data) {
             const logEntry = {
                 timestamp: new Date().toISOString(),
@@ -216,7 +215,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log(`[MisVordDebug] ${message}`, data);
             if (this.logs.length > 50) this.logs.shift();
         },
-        
+
         error: function(message, error) {
             const errorEntry = {
                 timestamp: new Date().toISOString(),
@@ -228,7 +227,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error(`[MisVordDebug] ${message}`, error);
             if (this.errors.length > 20) this.errors.shift();
         },
-        
+
         getDebugInfo: function() {
             return {
                 initialized: this.initialized,
@@ -245,11 +244,11 @@ document.addEventListener('DOMContentLoaded', function() {
             };
         }
     };
-    
+
     const messageInput = document.getElementById('message-input');
     const characterCount = document.querySelector('.character-count');
     const sendButton = document.getElementById('send-button');
-    
+
     window.MisVordDebug.log('Chat elements check', {
         messageInput: !!messageInput,
         characterCount: !!characterCount,
@@ -257,27 +256,25 @@ document.addEventListener('DOMContentLoaded', function() {
         messageForm: !!document.getElementById('message-form'),
         chatMessages: !!document.getElementById('chat-messages')
     });
-    
+
     if (messageInput && sendButton) {
         window.MisVordDebug.log('Message input and send button found');
-        
-        // Remove the duplicate send button click event handler since MisVordMessaging already handles it
-        // We'll only keep this code to set button state and focus
+
         messageInput.addEventListener('input', function(e) {
             this.style.height = 'auto';
             this.style.height = (this.scrollHeight) + 'px';
-            
+
             if (characterCount) {
                 const length = this.value.length;
                 characterCount.textContent = `${length}/2000`;
                 characterCount.classList.toggle('hidden', length === 0);
                 characterCount.classList.toggle('text-red-400', length > 1900);
             }
-            
+
             const hasContent = this.value.trim().length > 0;
             sendButton.disabled = !hasContent;
         });
-        
+
         sendButton.disabled = true;
         setTimeout(() => {
             messageInput.focus();
@@ -290,14 +287,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Set up socket connection data
     const channelId = '<?php echo htmlspecialchars($activeChannelId ?? ""); ?>';
     const userId = '<?php echo htmlspecialchars($currentUserId ?? ""); ?>';
     const username = '<?php echo htmlspecialchars($_SESSION['username'] ?? ""); ?>';
-    
+
     window.MisVordDebug.log('Socket connection data', { channelId, userId, username });
-    
-    // Create socket data element
+
     const socketData = document.createElement('div');
     socketData.id = 'socket-data';
     socketData.setAttribute('data-channel-id', channelId);
@@ -306,23 +301,21 @@ document.addEventListener('DOMContentLoaded', function() {
     socketData.style.display = 'none';
     document.body.appendChild(socketData);
     window.MisVordDebug.log('Socket data element created and added to DOM');
-    
+
     if (typeof io !== 'undefined') {
         window.MisVordDebug.log('Socket.IO is available');
-        
-        // Wait for messaging system with manual initialization fallback
+
         let attempts = 0;
         const maxAttempts = 10;
-        
+
         const checkMessaging = setInterval(() => {
             attempts++;
-            
+
             if (window.MisVordMessaging) {
                 window.MisVordDebug.log('MisVordMessaging is available', { attempts });
                 window.MisVordDebug.messagingAvailable = true;
                 clearInterval(checkMessaging);
-                
-                // Ensure it's initialized
+
                 if (typeof window.MisVordMessaging.init === 'function') {
                     try {
                         window.MisVordMessaging.init();
@@ -335,8 +328,7 @@ document.addEventListener('DOMContentLoaded', function() {
             } else if (attempts >= maxAttempts) {
                 window.MisVordDebug.error('MisVordMessaging was never initialized after ' + maxAttempts + ' attempts');
                 clearInterval(checkMessaging);
-                
-                // Try to create it manually if the class exists
+
                 if (typeof MisVordMessaging !== 'undefined') {
                     try {
                         window.MisVordMessaging = new MisVordMessaging();
@@ -352,22 +344,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 window.MisVordDebug.log('Waiting for MisVordMessaging... attempt ' + attempts + '/' + maxAttempts);
             }
         }, 1000);
-        
+
     } else {
         window.MisVordDebug.error('Socket.IO not available - messaging disabled');
-        
+
         const socketStatus = document.querySelector('.socket-status');
         if (socketStatus) {
             socketStatus.innerHTML = '<span class="text-red-500">•</span> <span class="ml-1">WebSocket required - please refresh</span>';
         }
-        
+
         if (messageInput) {
             messageInput.disabled = true;
             messageInput.placeholder = 'WebSocket connection required for messaging';
         }
     }
-    
-    // Auto-scroll to bottom on page load if there are messages
+
     const messagesContainer = document.getElementById('chat-messages');
     if (messagesContainer) {
         const hasMessages = messagesContainer.querySelector('[id^="msg-"]');
@@ -377,22 +368,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 window.MisVordDebug.log('Auto-scrolled to bottom on page load');
             }, 100);
         }
-        
-        // Watch for new messages and auto-scroll
+
         const observer = new MutationObserver(() => {
-            // Only auto-scroll if user is at the bottom
+
             const isAtBottom = messagesContainer.scrollTop + messagesContainer.clientHeight >= messagesContainer.scrollHeight - 50;
             if (isAtBottom) {
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
             }
         });
-        
+
         observer.observe(messagesContainer, {
             childList: true,
             subtree: true
         });
     }
-    
+
     window.MisVordDebug.log('Chat section initialization complete');
 });
 </script>

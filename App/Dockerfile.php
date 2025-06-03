@@ -47,6 +47,7 @@ COPY docker/php/php.ini /usr/local/etc/php/php.ini
 
 # Set environment variables
 ENV IS_DOCKER=true
+ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
 
 # Configure PHP for debugging
 RUN echo "log_errors = On" >> /usr/local/etc/php/conf.d/debug.ini && \

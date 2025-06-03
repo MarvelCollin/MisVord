@@ -12,13 +12,11 @@ export class AuthManager {
             this.initAuthForms();
         });
     }    initAuthForms() {
-        // Disable AJAX form handlers - use traditional form submission for reliable redirects
+
         console.log('🔄 Auth forms will use traditional submission (no AJAX)');
-        
-        // Keep form switching functionality only
+
         this.initFormSwitchLinks();
-        
-        // Note: Forms will submit normally to server, which handles redirects properly
+
     }
 
     initFormSwitchLinks() {
@@ -60,11 +58,9 @@ export class AuthManager {
                   if (response.success) {
                     showToast('Login successful. Redirecting...', 'success');
 
-                    // Redirect to the specified URL or default to /app
                     const redirectUrl = response.redirect || '/app';
                     console.log('🔄 Redirecting to:', redirectUrl);
-                    
-                    // Force redirect after a small delay to ensure toast shows
+
                     setTimeout(() => {
                         console.log('🚀 Executing redirect...');
                         window.location.replace(redirectUrl);
@@ -102,11 +98,9 @@ export class AuthManager {
                   if (response.success) {
                     showToast('Registration successful. Redirecting...', 'success');
 
-                    // Redirect to the specified URL or default to /app
                     const redirectUrl = response.redirect || '/app';
                     console.log('🔄 Redirecting to:', redirectUrl);
-                    
-                    // Force redirect after a small delay to ensure toast shows
+
                     setTimeout(() => {
                         console.log('🚀 Executing redirect...');
                         window.location.replace(redirectUrl);

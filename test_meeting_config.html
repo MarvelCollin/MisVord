@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VideoSDK Meeting Configuration Test</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            background: #2f3136; 
+            color: white; 
+        }
+        .test-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: #36393f;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #40444b;
+            border-radius: 5px;
+        }
+        .success { color: #43b581; }
+        .error { color: #f04747; }
+        .warning { color: #faa61a; }
+        button {
+            background: #5865f2;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #4752c4; }
+        #test-output {
+            background: #2f3136;
+            border: 1px solid #40444b;
+            padding: 10px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .config-display {
+            background: #2f3136;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🎯 VideoSDK Meeting Configuration Test</h1>
+        <p>This test validates the exact meeting configuration structure that was causing the "token or apiKey must be provided" error.</p>
+        
+        <div class="test-section">
+            <h3>📋 Configuration Structure Test</h3>
+            <p>Testing the meeting configuration object structure with proper credential assignment.</p>
+            <button onclick="testMeetingConfiguration()">Test Meeting Config</button>
+            <button onclick="testCredentialValidation()">Test Credential Validation</button>
+            <button onclick="testCompleteFlow()">Test Complete Flow</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>🔧 Mock VideoSDK Integration</h3>
+            <p>Testing with a mock VideoSDK library to simulate the actual integration.</p>
+            <button onclick="createMockVideoSDK()">Create Mock VideoSDK</button>
+            <button onclick="testWithMockSDK()">Test with Mock SDK</button>
+        </div>
+        
+        <div id="test-output"></div>
+        
+        <div class="test-section">
+            <h3>📊 Configuration Display</h3>
+            <div id="config-display" class="config-display">Configuration will be displayed here...</div>
+        </div>
+    </div>
+
+    <!-- Enhanced module system compatibility - must be loaded first -->
+    <script>
+    (function() {
+        'use strict';
+        
+        // Comprehensive module system polyfill for VideoSDK compatibility
+        console.log('🔧 Setting up enhanced module system compatibility...');
+        
+        // CommonJS compatibility with enhanced features
+        if (typeof window.exports === 'undefined') {
+            window.exports = {};
+        }
+        
+        if (typeof window.module === 'undefined') {
+            window.module = { 
+                exports: window.exports,
+                id: 'browser',
+                filename: window.location.href,
+                loaded: false,
+                children: [],
+                paths: []
+            };
+        }
+        
+        if (typeof window.global === 'undefined') {
+            window.global = window;
+        }
+        
+        // Enhanced process object for Node.js compatibility
+        if (typeof window.process === 'undefined') {
+            window.process = {
+                env: {},
+                nextTick: function(callback) { setTimeout(callback, 0); },
+                browser: true,
+                version: 'v16.0.0',
+                versions: { node: '16.0.0' }
+            };
+        }
+        
+        // Buffer polyfill for VideoSDK
+        if (typeof window.Buffer === 'undefined') {
+            window.Buffer = {
+                isBuffer: function() { return false; },
+                from: function(data) { return new Uint8Array(data); }
+            };
+        }
+        
+        console.log('✅ Enhanced module system compatibility setup complete');
+    })();
+    </script>
+
+    <script>
+    // Test configuration - exactly matching the server configuration
+    const videoSdkConfig = {
+        apiKey: 'test-api-key-12345678-should-be-longer',
+        token: 'test-token-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcGlfa2V5IjoidGVzdCIsInBlcm1pc3Npb25zIjpbImFsbG93X2pvaW4iXSwiaWF0IjoxNjAwMDAwMDAwLCJleHAiOjE2MDAwMDAwMDB9.test',
+        isProduction: false
+    };
+    
+    const meetingId = 'test-meeting-123';
+    const userName = 'Test User';
+    
+    function log(message, type = 'info') {
+        const output = document.getElementById('test-output');
+        const timestamp = new Date().toLocaleTimeString();
+        const className = type === 'error' ? 'error' : type === 'warning' ? 'warning' : type === 'success' ? 'success' : '';
+        output.innerHTML += `[${timestamp}] <span class="${className}">${message}</span>\n`;
+        output.scrollTop = output.scrollHeight;
+        console.log(message);
+    }
+    
+    function displayConfig(config, title = 'Configuration') {
+        const display = document.getElementById('config-display');
+        display.innerHTML = `<h4>${title}</h4><pre>${JSON.stringify(config, null, 2)}</pre>`;
+    }
+    
+    function testMeetingConfiguration() {
+        log('📋 Testing Meeting Configuration Structure...', 'info');
+        
+        try {
+            // Validate input parameters first
+            const configValidation = {
+                hasApiKey: videoSdkConfig.apiKey && typeof videoSdkConfig.apiKey === 'string' && videoSdkConfig.apiKey.trim().length > 0,
+                hasToken: videoSdkConfig.token && typeof videoSdkConfig.token === 'string' && videoSdkConfig.token.trim().length > 0,
+                hasMeetingId: meetingId && typeof meetingId === 'string' && meetingId.trim().length > 0,
+                hasUserName: userName && typeof userName === 'string' && userName.trim().length > 0
+            };
+            
+            log('Configuration validation results:', 'info');
+            log(`  - API Key: ${configValidation.hasApiKey ? '✅ VALID' : '❌ INVALID'}`, configValidation.hasApiKey ? 'success' : 'error');
+            log(`  - Token: ${configValidation.hasToken ? '✅ VALID' : '❌ INVALID'}`, configValidation.hasToken ? 'success' : 'error');
+            log(`  - Meeting ID: ${configValidation.hasMeetingId ? '✅ VALID' : '❌ INVALID'}`, configValidation.hasMeetingId ? 'success' : 'error');
+            log(`  - User Name: ${configValidation.hasUserName ? '✅ VALID' : '❌ INVALID'}`, configValidation.hasUserName ? 'success' : 'error');
+            
+            if (!configValidation.hasApiKey || !configValidation.hasToken) {
+                throw new Error('Missing required credentials');
+            }
+            
+            const validMeetingId = "misvord-voice-" + meetingId.replace(/[^a-zA-Z0-9]/g, "-");
+            
+            // Create meeting configuration object EXACTLY as in the fixed voice-section.php
+            const meetingConfig = {
+                containerId: 'video-grid',
+                meetingId: validMeetingId,
+                name: userName.trim(),
+                micEnabled: true,
+                webcamEnabled: false,
+                participantId: "user-" + Math.floor(Math.random() * 10000),
+                joinScreen: { visible: false },
+                
+                // Event handlers
+                joined: function() {
+                    log('✅ Successfully joined meeting', 'success');
+                },
+                
+                participantJoined: function(participant) {
+                    log('👤 Participant joined: ' + (participant.displayName || participant.id), 'info');
+                },
+                
+                participantLeft: function(participant) {
+                    log('👤 Participant left: ' + (participant.displayName || participant.id), 'info');
+                },
+                
+                error: function(error) {
+                    log('💥 Meeting error: ' + error.message, 'error');
+                }
+            };
+            
+            // Add credentials separately to ensure they're properly set
+            meetingConfig.apiKey = videoSdkConfig.apiKey.trim();
+            meetingConfig.token = videoSdkConfig.token.trim();
+            
+            log('Meeting configuration object created successfully', 'success');
+            log(`  - Meeting ID: ${meetingConfig.meetingId}`, 'info');
+            log(`  - User Name: ${meetingConfig.name}`, 'info');
+            log(`  - API Key: SET (${meetingConfig.apiKey.substring(0, 8)}...)`, 'success');
+            log(`  - Token: SET (${meetingConfig.token.substring(0, 20)}...)`, 'success');
+            log(`  - Container: ${meetingConfig.containerId}`, 'info');
+            
+            // Validate the config object one more time before using it
+            if (!meetingConfig.apiKey || !meetingConfig.token) {
+                throw new Error('Critical error: Configuration validation passed but credentials are missing after assignment');
+            }
+            
+            log('Final validation: ✅ PASS - All credentials present', 'success');
+            
+            displayConfig(meetingConfig, 'Complete Meeting Configuration');
+            
+        } catch (error) {
+            log('❌ Meeting configuration test failed: ' + error.message, 'error');
+        }
+    }
+    
+    function testCredentialValidation() {
+        log('🔐 Testing Credential Validation...', 'info');
+        
+        try {
+            // Test various credential scenarios
+            const testCases = [
+                {
+                    name: 'Valid credentials',
+                    config: {
+                        apiKey: 'valid-api-key-123',
+                        token: 'valid-token-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9'
+                    },
+                    shouldPass: true
+                },
+                {
+                    name: 'Empty API key',
+                    config: {
+                        apiKey: '',
+                        token: 'valid-token-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9'
+                    },
+                    shouldPass: false
+                },
+                {
+                    name: 'Null token',
+                    config: {
+                        apiKey: 'valid-api-key-123',
+                        token: null
+                    },
+                    shouldPass: false
+                },
+                {
+                    name: 'Whitespace-only credentials',
+                    config: {
+                        apiKey: '   ',
+                        token: '\t\n  '
+                    },
+                    shouldPass: false
+                }
+            ];
+            
+            testCases.forEach(testCase => {
+                const validation = {
+                    hasApiKey: testCase.config.apiKey && typeof testCase.config.apiKey === 'string' && testCase.config.apiKey.trim().length > 0,
+                    hasToken: testCase.config.token && typeof testCase.config.token === 'string' && testCase.config.token.trim().length > 0
+                };
+                
+                const passed = validation.hasApiKey && validation.hasToken;
+                const result = passed === testCase.shouldPass ? '✅ PASS' : '❌ FAIL';
+                const type = passed === testCase.shouldPass ? 'success' : 'error';
+                
+                log(`${testCase.name}: ${result}`, type);
+            });
+            
+            log('Credential validation test completed', 'success');
+            
+        } catch (error) {
+            log('❌ Credential validation test failed: ' + error.message, 'error');
+        }
+    }
+    
+    function createMockVideoSDK() {
+        log('🔧 Creating Mock VideoSDK...', 'info');
+        
+        try {
+            // Create a mock VideoSDK class that mimics the real one
+            window.VideoSDKMeeting = function(config) {
+                log('Mock VideoSDKMeeting constructor called', 'info');
+                
+                // Validate that required properties are present
+                if (!config) {
+                    throw new Error('Configuration object is required');
+                }
+                
+                if (!config.apiKey) {
+                    throw new Error('API key is required');
+                }
+                
+                if (!config.token) {
+                    throw new Error('Token is required');
+                }
+                
+                if (!config.apiKey && !config.token) {
+                    throw new Error('Any one of \'token\' or \'apiKey\' must be provided');
+                }
+                
+                this.config = config;
+                this.initialized = false;
+                
+                log(`Mock SDK initialized with apiKey: ${config.apiKey ? 'SET' : 'MISSING'}`, config.apiKey ? 'success' : 'error');
+                log(`Mock SDK initialized with token: ${config.token ? 'SET' : 'MISSING'}`, config.token ? 'success' : 'error');
+                
+                return this;
+            };
+            
+            window.VideoSDKMeeting.prototype.init = function() {
+                log('Mock VideoSDK init() called', 'info');
+                this.initialized = true;
+                
+                // Simulate successful initialization
+                setTimeout(() => {
+                    if (this.config.joined && typeof this.config.joined === 'function') {
+                        this.config.joined();
+                    }
+                }, 1000);
+                
+                return this;
+            };
+            
+            log('✅ Mock VideoSDK created successfully', 'success');
+            
+        } catch (error) {
+            log('❌ Failed to create mock VideoSDK: ' + error.message, 'error');
+        }
+    }
+    
+    function testWithMockSDK() {
+        log('🎯 Testing with Mock VideoSDK...', 'info');
+        
+        try {
+            if (typeof VideoSDKMeeting === 'undefined') {
+                throw new Error('VideoSDKMeeting class not found. Create mock first.');
+            }
+            
+            // Create the exact same configuration as the voice section
+            const validMeetingId = "misvord-voice-" + meetingId.replace(/[^a-zA-Z0-9]/g, "-");
+            
+            const meetingConfig = {
+                containerId: 'video-grid',
+                meetingId: validMeetingId,
+                name: userName.trim(),
+                micEnabled: true,
+                webcamEnabled: false,
+                participantId: "user-" + Math.floor(Math.random() * 10000),
+                joinScreen: { visible: false },
+                
+                joined: function() {
+                    log('✅ Mock meeting joined successfully!', 'success');
+                },
+                
+                participantJoined: function(participant) {
+                    log('👤 Mock participant joined', 'info');
+                },
+                
+                participantLeft: function(participant) {
+                    log('👤 Mock participant left', 'info');
+                },
+                
+                error: function(error) {
+                    log('💥 Mock meeting error: ' + error.message, 'error');
+                }
+            };
+            
+            // Add credentials separately to ensure they're properly set
+            meetingConfig.apiKey = videoSdkConfig.apiKey.trim();
+            meetingConfig.token = videoSdkConfig.token.trim();
+            
+            log('Creating meeting with mock VideoSDK...', 'info');
+            
+            const meeting = new VideoSDKMeeting(meetingConfig);
+            
+            if (typeof meeting.init === 'function') {
+                meeting.init();
+                log('✅ Mock meeting initialization started', 'success');
+            } else {
+                throw new Error('Meeting object does not have init() method');
+            }
+            
+            displayConfig(meetingConfig, 'Mock Meeting Configuration Used');
+            
+        } catch (error) {
+            log('❌ Mock SDK test failed: ' + error.message, 'error');
+        }
+    }
+    
+    function testCompleteFlow() {
+        log('🚀 Testing Complete Flow...', 'info');
+        
+        try {
+            log('Step 1: Creating mock VideoSDK...', 'info');
+            createMockVideoSDK();
+            
+            setTimeout(() => {
+                log('Step 2: Testing configuration...', 'info');
+                testMeetingConfiguration();
+                
+                setTimeout(() => {
+                    log('Step 3: Testing with mock SDK...', 'info');
+                    testWithMockSDK();
+                    
+                    log('🎉 Complete flow test finished!', 'success');
+                }, 500);
+            }, 500);
+            
+        } catch (error) {
+            log('❌ Complete flow test failed: ' + error.message, 'error');
+        }
+    }
+    
+    // Run initial setup
+    document.addEventListener('DOMContentLoaded', function() {
+        log('🚀 VideoSDK Meeting Configuration Test Started', 'info');
+        log('This test validates the exact configuration structure used in voice-section.php', 'info');
+        
+        // Display initial configuration
+        displayConfig(videoSdkConfig, 'Initial VideoSDK Configuration');
+    });
+    </script>
+</body>
+</html>

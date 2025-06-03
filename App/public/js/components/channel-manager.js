@@ -6,39 +6,31 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function initChannelManager() {
-    // Load channels on page load
-    loadServerChannels();
 
-    // These functions are no longer needed as forms submit directly
-    // initCreateChannelForm();
-    // initCreateCategoryForm();
+    loadServerChannels();
 
     initUpdateChannelForms();
 
     initDeleteChannelButtons();
 }
 
-/**
- * Load server channels on page load
- */
 function loadServerChannels() {
     const serverId = getServerId();
     if (!serverId) return;
-    
-    // Show loading indicator if available
+
     const loadingEl = document.getElementById('channel-loading');
     if (loadingEl) loadingEl.classList.remove('hidden');
-    
+
     MisVordAjax.get(`/api/servers/${serverId}/channels`, {
         onSuccess: function(response) {
             if (response.success) {
                 renderChannelList(response.data);
             }
-            // Hide loading indicator
+
             if (loadingEl) loadingEl.classList.add('hidden');
         },
         onError: function() {
-            // Hide loading indicator on error
+
             if (loadingEl) loadingEl.classList.add('hidden');
         }
     });
@@ -111,76 +103,62 @@ function deleteChannel(channelId) {
 }
 
 function refreshChannelList() {
-    // Get the current server ID from the URL
+
     const urlParts = window.location.pathname.split('/');
     const serverId = urlParts[urlParts.indexOf('server') + 1];
-    
+
     if (serverId) {
         MisVordAjax.get(`/api/servers/${serverId}/channels`, {
             onSuccess: function(response) {
                 if (response.success) {
-                    // Update the categories and channels in the UI
+
                     renderChannelList(response.data);
                 }
             }
         });
     } else {
-        // Fallback to page reload if we can't determine server ID
+
         window.location.reload();
     }
 }
 
-/**
- * Render channel list in UI based on server data
- * @param {Object} data - Server data with categories and channels
- */
 function renderChannelList(data) {
     const channelContainer = document.querySelector('.channel-list-container');
     if (!channelContainer) return;
-    
-    // Clear existing channel list except for the header
+
     const headerDiv = channelContainer.querySelector('.flex.justify-between.items-center');
     channelContainer.innerHTML = '';
     if (headerDiv) {
         channelContainer.appendChild(headerDiv);
     }
-    
-    // Add uncategorized channels if any
+
     if (data.uncategorizedChannels && data.uncategorizedChannels.length > 0) {
         const uncategorizedSection = document.createElement('div');
         uncategorizedSection.className = 'uncategorized-channels mb-4';
-        
+
         data.uncategorizedChannels.forEach(channel => {
             const channelEl = createChannelElement(channel);
             uncategorizedSection.appendChild(channelEl);
         });
-        
+
         channelContainer.appendChild(uncategorizedSection);
     }
-    
-    // Add categories with channels
+
     if (data.categories && data.categories.length > 0) {
         data.categories.forEach(category => {
             const categoryEl = createCategoryElement(category);
             channelContainer.appendChild(categoryEl);
         });
     }
-    
-    // Initialize any event listeners on the new elements
+
     initChannelEventListeners();
 }
 
-/**
- * Create a category element with its channels
- * @param {Object} category - Category object with channels array
- * @returns {HTMLElement} - Category element with channels
- */
 function createCategoryElement(category) {
     const categoryContainer = document.createElement('div');
     categoryContainer.className = 'category-container mb-4';
     categoryContainer.dataset.categoryId = category.id;
-    
-    // Create category header
+
     const categoryHeader = document.createElement('div');
     categoryHeader.className = 'category-header flex items-center justify-between py-2 px-3 text-gray-300 cursor-pointer hover:text-white';
     categoryHeader.innerHTML = `
@@ -195,54 +173,44 @@ function createCategoryElement(category) {
             </button>
         </div>
     `;
-    
-    // Create channels container
+
     const channelsContainer = document.createElement('div');
     channelsContainer.className = 'channels-container';
-    
-    // Add channels to the container
+
     if (category.channels && category.channels.length > 0) {
         category.channels.forEach(channel => {
             const channelEl = createChannelElement(channel);
             channelsContainer.appendChild(channelEl);
         });
     } else {
-        // No channels message
+
         const emptyMessage = document.createElement('div');
         emptyMessage.className = 'text-gray-400 text-xs italic px-6 py-2';
         emptyMessage.textContent = 'No channels in this category';
         channelsContainer.appendChild(emptyMessage);
     }
-    
-    // Assemble category element
+
     categoryContainer.appendChild(categoryHeader);
     categoryContainer.appendChild(channelsContainer);
-    
+
     return categoryContainer;
 }
 
-/**
- * Create a channel element
- * @param {Object} channel - Channel object
- * @returns {HTMLElement} - Channel element
- */
 function createChannelElement(channel) {
     const channelEl = document.createElement('div');
     channelEl.className = 'channel-item flex items-center py-1 px-2 mx-2 rounded hover:bg-gray-700 cursor-pointer';
     channelEl.id = `channel-${channel.id}`;
     channelEl.dataset.channelId = channel.id;
-    
-    // Determine if it's a text channel (type 1) or voice channel (type 2)
-    let isTextChannel = true; // Default to text channel
-    
-    // Handle type as both string and number
+
+    let isTextChannel = true; 
+
     if (channel.type === 2 || channel.type === '2' || 
         (channel.type_name && (channel.type_name === 'voice' || channel.type_name === '2'))) {
         isTextChannel = false;
     }
-    
+
     const iconClass = isTextChannel ? 'fa-hashtag' : 'fa-volume-up';
-    
+
     channelEl.innerHTML = `
         <div class="channel-icon mr-2 text-gray-400">
             <i class="fas ${iconClass}"></i>
@@ -262,7 +230,7 @@ function createChannelElement(channel) {
             </button>
         </div>
     `;
-    
+
     if (channel.is_private) {
         channelEl.classList.add('private-channel');
         const lockIcon = document.createElement('span');
@@ -270,26 +238,23 @@ function createChannelElement(channel) {
         lockIcon.innerHTML = '<i class="fas fa-lock text-xs"></i>';
         channelEl.querySelector('.channel-name').appendChild(lockIcon);
     }
-    
+
     return channelEl;
 }
 
-/**
- * Initialize event listeners for channel elements
- */
 function initChannelEventListeners() {
-    // Category toggle
+
     document.querySelectorAll('.category-header').forEach(header => {
         header.addEventListener('click', function(e) {
-            // Skip if clicking on add button
+
             if (e.target.closest('.add-channel-btn')) {
                 return;
             }
-            
+
             const category = this.closest('.category-container');
             const channelsContainer = category.querySelector('.channels-container');
             const chevron = this.querySelector('i.fa-chevron-down, i.fa-chevron-right');
-            
+
             if (channelsContainer.classList.contains('hidden')) {
                 channelsContainer.classList.remove('hidden');
                 if (chevron) chevron.classList.replace('fa-chevron-right', 'fa-chevron-down');
@@ -299,24 +264,22 @@ function initChannelEventListeners() {
             }
         });
     });
-    
-    // Add channel to category button
+
     document.querySelectorAll('.add-channel-btn').forEach(btn => {
         btn.addEventListener('click', function(e) {
-            e.stopPropagation(); // Prevent category toggle
+            e.stopPropagation(); 
             const categoryId = this.getAttribute('data-category-id');
             openCreateChannelModal(categoryId);
         });
     });
-    
-    // Channel click (navigation)
+
     document.querySelectorAll('.channel-item').forEach(item => {
         item.addEventListener('click', function(e) {
             if (e.target.closest('.channel-actions')) {
-                // Don't navigate if clicking on actions
+
                 return;
             }
-            
+
             const channelId = this.dataset.channelId;
             const serverId = getServerId();
             if (channelId && serverId) {
@@ -324,37 +287,27 @@ function initChannelEventListeners() {
             }
         });
     });
-    
-    // Initialize edit and delete buttons
+
     initUpdateChannelForms();
     initDeleteChannelButtons();
 }
 
-/**
- * Helper function to get server ID from URL
- */
 function getServerId() {
     const urlParts = window.location.pathname.split('/');
     return urlParts[urlParts.indexOf('server') + 1];
 }
 
-/**
- * Open the create channel modal and pre-select category if provided
- * @param {string|null} categoryId - Optional category ID to pre-select
- */
 function openCreateChannelModal(categoryId = null) {
     const modal = document.getElementById('create-channel-modal');
     if (!modal) return;
-    
-    // Set the category ID if provided
+
     if (categoryId) {
         const categoryIdInput = modal.querySelector('input[name="category_id"]');
         if (categoryIdInput) {
             categoryIdInput.value = categoryId;
         }
     }
-    
-    // Show the modal
+
     if (typeof window.openModal === 'function') {
         window.openModal(modal);
     } else {
@@ -381,23 +334,21 @@ function updateChannelInUI(channel) {
     }
 }
 
-// Find or add function for position-aware channel creation
 function createChannelAtPosition(name, type, serverId, categoryId = null, position = null) {
-    // Create form data with position parameter
+
     const formData = new FormData();
     formData.append('name', name);
     formData.append('type', type);
     formData.append('server_id', serverId);
-    
+
     if (categoryId) {
         formData.append('category_id', categoryId);
     }
-    
+
     if (position !== null) {
         formData.append('position', position);
     }
-    
-    // Send request to create channel
+
     return new Promise((resolve, reject) => {
         fetch('/api/channels', {
             method: 'POST',
@@ -423,18 +374,16 @@ function createChannelAtPosition(name, type, serverId, categoryId = null, positi
     });
 }
 
-// Find or add function for position-aware category creation
 function createCategoryAtPosition(name, serverId, position = null) {
-    // Create form data with position parameter
+
     const formData = new FormData();
     formData.append('name', name);
     formData.append('server_id', serverId);
-    
+
     if (position !== null) {
         formData.append('position', position);
     }
-    
-    // Send request to create category
+
     return new Promise((resolve, reject) => {
         fetch('/api/categories', {
             method: 'POST',

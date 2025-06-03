@@ -32,7 +32,7 @@ function displayActiveRoute($uri, $matchedRoute, $viewFile) {
 function handleRoute($routes) {
     error_reporting(E_ALL);
     ini_set('display_errors', 1);
-    
+
     $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
     $method = $_SERVER['REQUEST_METHOD'];
     $methodRoute = $method . ':' . $uri;
@@ -49,14 +49,14 @@ function handleRoute($routes) {
     if ($uri === '//') {
         $uri = '/';
     }
-    
+
     $GLOBALS['active_route'] = $uri;
-    
+
     $viewFile = null;
     $matchedRoute = null;
-    
+
     if (isset($routes[$methodRoute])) {
-        // Found exact method route match
+
         if (is_callable($routes[$methodRoute])) {
             $routes[$methodRoute]();
             return;
@@ -64,7 +64,7 @@ function handleRoute($routes) {
         $viewFile = $routes[$methodRoute];
         $matchedRoute = $methodRoute;
     } elseif (isset($routes[$uri])) {
-        // Found exact route match
+
         if (is_callable($routes[$uri])) {
             $routes[$uri]();
             return;
@@ -112,7 +112,7 @@ function handleRoute($routes) {
                 if ($methodPattern !== null) {
                     $pattern = $methodPattern . ':' . $pattern;
                 }
-                
+
                 if (is_callable($handler)) {
                     $handler($params);
                     $matched = true;
@@ -125,15 +125,15 @@ function handleRoute($routes) {
                 }
             }
         }
-        
+
         if (!$matched) {
-            // No route matched
+
             $viewFile = $routes['404'] ?? 'pages/404.php';
             $matchedRoute = '404 (Not Found)';
             http_response_code(404);
         }
     }
-    
+
     $viewsPath = dirname(__DIR__) . '/views/';
     $fullPath = $viewsPath . $viewFile;
 
@@ -153,7 +153,7 @@ function handleRoute($routes) {
         }
         require $fullPath;
     } else {
-        // Error: View file not found
+
         http_response_code(404);
         echo "<h1>Page Not Found</h1>";
         echo "<p>The requested page could not be found.</p>";

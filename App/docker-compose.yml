@@ -40,10 +40,12 @@ services:
       - DB_CHARSET=utf8mb4
       - IS_VPS=${IS_VPS:-true} 
       - USE_HTTPS=${USE_HTTPS:-true} 
-      - DOMAIN=${DOMAIN:-marvelcollin.my.id} 
-      - PORT=1001 
+      - DOMAIN=${DOMAIN:-marvelcollin.my.id}      - PORT=1001 
       - VIDEOSDK_API_KEY=${VIDEOSDK_API_KEY}
       - VIDEOSDK_SECRET_KEY=${VIDEOSDK_SECRET_KEY}
+      - VIDEOSDK_TOKEN=${VIDEOSDK_TOKEN}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
     security_opt:
       - no-new-privileges:true
     healthcheck:

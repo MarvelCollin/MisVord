@@ -8,7 +8,6 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Only enable error reporting for non-API requests
 $requestUri = $_SERVER['REQUEST_URI'];
 if (strpos($requestUri, '/api/') !== false) {
     error_reporting(0);
@@ -17,7 +16,6 @@ if (strpos($requestUri, '/api/') !== false) {
     error_reporting(E_ALL);
     ini_set('display_errors', 1);
 }
-
 
 if (preg_match('/\\.(?:css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|webp|map)$/', $_SERVER["REQUEST_URI"])) {
     $requestFile = parse_url($_SERVER["REQUEST_URI"], PHP_URL_PATH);
@@ -48,21 +46,19 @@ if (preg_match('/\\.(?:css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|webp|map)$
         __DIR__ . '/',                  
         dirname(__DIR__) . '/public/',  
         dirname(__DIR__) . '/',         
-    ];    // Debug logging removed
+    ];    
 
     header("HTTP/1.0 404 Not Found");
     exit("Static file not found: {$requestFile}");
 }
 
-// Debug logging removed
-
 $webConfigPath = dirname(__DIR__) . '/config/web.php';
 if (file_exists($webConfigPath)) {
-    // Loading web.php configuration
+
     require_once $webConfigPath;
     exit; 
 } else {
-    // Fatal error: Cannot find web.php configuration file
+
     http_response_code(500);
     echo "Server configuration error: web.php not found";
     exit;

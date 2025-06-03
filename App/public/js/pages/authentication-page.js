@@ -1,9 +1,3 @@
-/**
- * Authentication Page Scripts
- * Handles all UI interactions for the authentication page
- */
-
-// Import required modules
 import { showToast } from '../core/toast.js';
 import { MiscVordAjax } from '../core/ajax-handler.js';
 
@@ -260,7 +254,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 input.type = currentType === 'password' ? 'text' : 'password';
 
-                // Update Font Awesome icon
                 const icon = this.querySelector('i');
                 if (icon) {
                     if (currentType === 'password') {
@@ -351,20 +344,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
         return Math.min(score, 100);
     }    function setupFormSubmission() {
-        // Allow normal form submission - no AJAX interference
+
         console.log('🔄 Forms will use traditional submission for reliable redirects');
-        
-        // Only add validation, but allow normal submission
+
         document.querySelectorAll('form').forEach(form => {
             form.addEventListener('submit', function(e) {
                 const isValid = validateForm(this);
-                
+
                 if (!isValid) {
-                    e.preventDefault(); // Only prevent if validation fails
+                    e.preventDefault(); 
                     return false;
                 }
-                
-                // If validation passes, allow normal form submission
+
                 console.log('✅ Form validation passed, allowing normal submission');
                 return true;
             });
