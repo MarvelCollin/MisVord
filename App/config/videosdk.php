@@ -1,190 +1,124 @@
 <?php
+// Load environment variables if not already loaded
+if (!function_exists('getenv') || !getenv('VIDEOSDK_API_KEY')) {
+    $envPath = dirname(__DIR__) . '/.env';
+    if (file_exists($envPath)) {
+        $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        foreach ($lines as $line) {
+            if (strpos(trim($line), '#') === 0) continue;
+            list($name, $value) = explode('=', $line, 2);
+            $_ENV[trim($name)] = trim($value);
+        }
+    }
+}
 
+// VideoSDK Configuration
 class VideoSDKConfig {
-    private static $apiKey = null;
-    private static $secretKey = null;
-    private static $token = null;
-    private static $initialized = false;    public static function init() {
-        if (self::$initialized) {
-            return; // Prevent double initialization
-        }
-        
-        // Enhanced Docker detection
-        $isDocker = (
-            getenv('IS_DOCKER') === 'true' || 
-            isset($_SERVER['IS_DOCKER']) || 
-            getenv('CONTAINER') !== false ||
-            isset($_SERVER['CONTAINER']) ||
-            file_exists('/.dockerenv')
-        );
-        
-        error_log('VideoSDK Debug - Docker Detection: ' . ($isDocker ? 'YES' : 'NO'));
-        
-        // In Docker context, try to get environment variables directly first
-        if ($isDocker) {
-            error_log('VideoSDK Debug - Attempting Docker direct environment access');
-            
-            // Try to get values directly from Docker environment
-            $dockerToken = $_SERVER['VIDEOSDK_TOKEN'] ?? getenv('VIDEOSDK_TOKEN') ?? $_ENV['VIDEOSDK_TOKEN'] ?? null;
-            $dockerApiKey = $_SERVER['VIDEOSDK_API_KEY'] ?? getenv('VIDEOSDK_API_KEY') ?? $_ENV['VIDEOSDK_API_KEY'] ?? null;
-            $dockerSecretKey = $_SERVER['VIDEOSDK_SECRET_KEY'] ?? getenv('VIDEOSDK_SECRET_KEY') ?? $_ENV['VIDEOSDK_SECRET_KEY'] ?? null;
-            
-            if ($dockerToken && $dockerApiKey) {
-                error_log('VideoSDK Debug - Found Docker environment variables directly');
-                self::$apiKey = $dockerApiKey;
-                self::$secretKey = $dockerSecretKey;
-                self::$token = $dockerToken;
-                self::$initialized = true;
-                error_log('✅ VideoSDK initialized successfully from Docker environment');
-                return;
-            }
-            
-            error_log('VideoSDK Debug - Docker environment variables not found directly, falling back to EnvLoader');
-        }
-        
-        // Multiple strategies to load environment variables
-        $envConfigPath = null;
-        $possibleEnvPaths = [
-            __DIR__ . '/env.php',
-            dirname(__DIR__) . '/config/env.php',
-            (defined('APP_ROOT') ? APP_ROOT : '') . '/config/env.php',
-        ];
-        
-        foreach ($possibleEnvPaths as $path) {
-            if (!empty($path) && file_exists($path)) {
-                $envConfigPath = $path;
-                break;
-            }
-        }
-        
-        if (!$envConfigPath) {
-            throw new Exception('Environment configuration file not found. Attempted paths: ' . implode(', ', array_filter($possibleEnvPaths)));
-        }
-        
-        // Load environment variables using the centralized loader
-        require_once $envConfigPath;
-        
-        // Force reload of environment variables if not already loaded
-        if (!EnvLoader::isLoaded()) {
-            EnvLoader::load();
-        }
-        
-        self::$apiKey = EnvLoader::get('VIDEOSDK_API_KEY');
-        self::$secretKey = EnvLoader::get('VIDEOSDK_SECRET_KEY');
-        self::$token = EnvLoader::get('VIDEOSDK_TOKEN');
-          // Debug logging
-        error_log('VideoSDK Debug - API Key: ' . (self::$apiKey ? 'SET (' . substr(self::$apiKey, 0, 8) . '...)' : 'NOT SET'));
-        error_log('VideoSDK Debug - Token: ' . (self::$token ? 'SET (' . substr(self::$token, 0, 20) . '...)' : 'NOT SET'));
-        error_log('VideoSDK Debug - Environment loaded from: ' . $envConfigPath);
-        error_log('VideoSDK Debug - Current working directory: ' . getcwd());
-        
-        // Additional debugging for Docker environment
-        if ($isDocker) {
-            error_log('VideoSDK Debug - Docker ENV VIDEOSDK_TOKEN: ' . (isset($_SERVER['VIDEOSDK_TOKEN']) ? 'SET' : 'NOT SET'));
-            error_log('VideoSDK Debug - Docker ENV VIDEOSDK_API_KEY: ' . (isset($_SERVER['VIDEOSDK_API_KEY']) ? 'SET' : 'NOT SET'));
-            error_log('VideoSDK Debug - Docker getenv VIDEOSDK_TOKEN: ' . (getenv('VIDEOSDK_TOKEN') ? 'SET' : 'NOT SET'));
-            error_log('VideoSDK Debug - Docker getenv VIDEOSDK_API_KEY: ' . (getenv('VIDEOSDK_API_KEY') ? 'SET' : 'NOT SET'));
-        }
-        
-        if (empty(self::$apiKey)) {
-            $errorMsg = 'VideoSDK API key must be set in environment variables (VIDEOSDK_API_KEY). Check your .env file.';
-            if ($isDocker) {
-                $errorMsg .= ' Running in Docker - ensure environment variables are properly passed to container.';
-            }
-            throw new Exception($errorMsg);
-        }
-        
-        if (empty(self::$token)) {
-            $errorMsg = 'VideoSDK token must be set in environment variables (VIDEOSDK_TOKEN). Check your .env file.';
-            if ($isDocker) {
-                $errorMsg .= ' Running in Docker - ensure environment variables are properly passed to container.';
-            }
-            throw new Exception($errorMsg);
-        }
-        
-        self::$initialized = true;
-        error_log('✅ VideoSDK initialized successfully');
+    const API_KEY = '8ad2dbcd-638d-4fbb-999c-9a48a83caa15';
+    const SECRET_KEY = '2894abac68603be19aa80b781cad6683eebfb922f496c22cc46b19ad91647d4e';
+    const API_BASE_URL = 'https://api.videosdk.live';
+    const AUTH_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcGlrZXkiOiI4YWQyZGJjZC02MzhkLTRmYmItOTk5Yy05YTQ4YTgzY2FhMTUiLCJwZXJtaXNzaW9ucyI6WyJhbGxvd19qb2luIl0sImlhdCI6MTc0ODkxMzI5NywiZXhwIjoxNzY0NDY1Mjk3fQ.16_7vBmTkjKz8plb9eiRPAcKwmIxHqCgIb1OqSeB5vQ';
+    
+    public static function getAuthToken() {
+        // Try to get from environment first, fallback to constant
+        return $_ENV['VIDEOSDK_TOKEN'] ?? self::AUTH_TOKEN;
     }
-
+    
     public static function getApiKey() {
-        if (!self::$initialized) {
-            self::init();
-        }
-        return self::$apiKey;
+        return $_ENV['VIDEOSDK_API_KEY'] ?? self::API_KEY;
     }
-
+    
     public static function getSecretKey() {
-        if (!self::$initialized) {
-            self::init();
+        return $_ENV['VIDEOSDK_SECRET_KEY'] ?? self::SECRET_KEY;
+    }
+    
+    public static function createMeeting($customId = null) {
+        $curl = curl_init();
+        
+        $postData = [];
+        if ($customId) {
+            $postData['customRoomId'] = $customId;
         }
-        return self::$secretKey;
-    }
-
-    public static function getToken() {
-        if (!self::$initialized) {
-            self::init();
+        
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => self::API_BASE_URL . '/v2/rooms',
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 30,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'POST',
+            CURLOPT_POSTFIELDS => empty($postData) ? '{}' : json_encode($postData),
+            CURLOPT_HTTPHEADER => array(
+                'Authorization: ' . self::getAuthToken(),
+                'Content-Type: application/json'
+            ),
+        ));
+        
+        $response = curl_exec($curl);
+        $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        $error = curl_error($curl);
+        curl_close($curl);
+        
+        if ($error) {
+            error_log("VideoSDK CURL Error: $error");
+            return false;
         }
-        return self::$token;
+        
+        // Accept both 200 and 201 status codes
+        if ($httpCode !== 200 && $httpCode !== 201) {
+            error_log("VideoSDK API Error: HTTP $httpCode - $response");
+            return false;
+        }
+        
+        $result = json_decode($response, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            error_log("VideoSDK JSON decode error: " . json_last_error_msg());
+            return false;
+        }
+        
+        return $result;
     }
-
-    // Keep this method for backward compatibility, but use static token
-    public static function generateToken($expiresIn = 3600) {
-        return self::getToken();
-    }    public static function getFrontendConfig() {
-        require_once __DIR__ . '/env.php';
-        return [
-            'apiKey' => self::getApiKey(),
-            'token' => self::getToken(),
-            'isProduction' => EnvLoader::get('APP_ENV') === 'production'
-        ];
+    
+    public static function validateMeeting($meetingId) {
+        $curl = curl_init();
+        
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => self::API_BASE_URL . '/v2/rooms/validate/' . $meetingId,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => array(
+                'Authorization: ' . self::getAuthToken(),
+            ),
+        ));
+        
+        $response = curl_exec($curl);
+        $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        curl_close($curl);
+        
+        return $httpCode === 200;
     }
-
-    public static function createMeeting() {
-        $url = 'https://api.videosdk.live/v2/rooms';
-        $token = self::getToken();
-
-        $headers = [
-            'Authorization: ' . $token,
-            'Content-Type: application/json'
-        ];
-
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-
+    
+    public static function getMeetingInfo($meetingId) {
+        $curl = curl_init();
+        
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => self::API_BASE_URL . '/v2/rooms/' . $meetingId,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => array(
+                'Authorization: ' . self::getAuthToken(),
+            ),
+        ));
+        
+        $response = curl_exec($curl);
+        $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        curl_close($curl);
+        
         if ($httpCode === 200) {
             return json_decode($response, true);
         }
-
-        throw new Exception('Failed to create meeting: ' . $response);
-    }
-
-    public static function validateMeeting($meetingId) {
-        $url = 'https://api.videosdk.live/v2/rooms/validate/' . $meetingId;
-        $token = self::getToken();
-
-        $headers = [
-            'Authorization: ' . $token,
-            'Content-Type: application/json'
-        ];
-
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-
-        return $httpCode === 200;
+        
+        return false;
     }
 }
+?>
