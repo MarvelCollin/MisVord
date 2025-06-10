@@ -1,14 +1,44 @@
 document.addEventListener('DOMContentLoaded', function() {
-
+    console.log('DOM Content Loaded - Starting initialization');
+    
+    // Check if elements exist first
+    const scrambleTextElements = document.querySelectorAll('.scramble-text');
+    console.log('Found scramble text elements:', scrambleTextElements.length);
+    scrambleTextElements.forEach(el => {
+        console.log('Scramble text content:', el.textContent);
+        console.log('Scramble text data-attribute:', el.getAttribute('data-text'));
+    });
+    
+    const chatContainer = document.getElementById('chatContainer');
+    console.log('Chat container found:', !!chatContainer);
+    
+    // Force initialization immediately without waiting for fonts
     initScrollAnimations();
     initHeroAnimations();
     initMockupAnimations();
+    
+    // Initialize scramble text and chat immediately
+    console.log('Initializing scramble text...');
+    initScrambleText();
+    
+    console.log('Initializing chat simulation...');
     initLiveChatSimulation();
+    
     initInteractiveElements();
-
+    
+    // Also try to initialize after a small delay to ensure DOM is fully ready
     setTimeout(() => {
+        console.log('Delayed initialization...');
         initScrambleText();
-    }, 300); 
+        initLiveChatSimulation();
+    }, 1000);
+    
+    // Wait for fonts to load before starting animations as a backup
+    document.fonts.ready.then(() => {
+        console.log('Fonts loaded, starting animations');
+        initScrambleText();
+        initLiveChatSimulation();
+    });
 });
 
 function initScrollAnimations() {
@@ -87,28 +117,55 @@ function initMockupAnimations() {
 
 function initScrambleText() {
     const scrambleElements = document.querySelectorAll('.scramble-text');
+    
+    console.log('Found scramble elements:', scrambleElements.length);
+    
+    if (scrambleElements.length === 0) {
+        console.warn('No scramble text elements found');
+        return;
+    }
 
-    scrambleElements.forEach(element => {
-        const originalText = element.dataset.text || element.textContent;
+    scrambleElements.forEach((element, index) => {
+        console.log(`Processing scramble element ${index}:`, element);
+        
+        // Make sure we get the text from data-text attribute first, or the inner text
+        const originalText = element.getAttribute('data-text') || element.textContent.trim();
+        console.log('Original text:', originalText);
+        
+        if (!originalText) {
+            console.warn('No text found for scramble element');
+            return;
+        }
+        
         const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?▓▒░█▄▀◤◥◢◣";
 
-        element.style.color = 'transparent';
-        element.style.opacity = '0';
+        // Force visibility and clear element
+        element.style.display = 'inline-block';
+        element.style.opacity = '1';
+        element.style.visibility = 'visible';
+        element.style.color = '#FFFFFF';
         element.innerHTML = '';
 
         const spans = [];
 
+        // Create spans for each character
         for (let i = 0; i < originalText.length; i++) {
             const span = document.createElement('span');
             span.className = 'char';
-            span.style.color = 'transparent';
-            span.style.opacity = '0';
-            span.style.animationDelay = `${i * 0.05}s`;
+            span.style.cssText = `
+                display: inline-block;
+                position: relative;
+                color: transparent;
+                opacity: 0;
+                min-width: 0.1em;
+            `;
 
             if (originalText[i] === ' ') {
                 span.innerHTML = '&nbsp;';
                 span.classList.add('space');
-                span.style.opacity = '1'; 
+                span.style.opacity = '1';
+                span.style.color = 'transparent';
+                span.style.minWidth = '0.3em';
             } else {
                 span.textContent = originalText[i];
                 span.dataset.finalChar = originalText[i];
@@ -120,18 +177,22 @@ function initScrambleText() {
         }
 
         element.classList.add('initialized');
-        element.style.opacity = '1';
+        console.log('Created spans:', spans.length);
 
+        // Start animation immediately
         setTimeout(() => {
-            startEnhancedScrambleAnimation(spans, chars, originalText);
-        }, 800);
+            console.log('Starting scramble animation for element', index);
+            startScrambleAnimation(spans, chars, originalText);
+        }, 500 + (index * 300));
     });
 }
 
-function startEnhancedScrambleAnimation(spans, chars, originalText) {
+function startScrambleAnimation(spans, chars, originalText) {
+    console.log('Starting scramble animation with', spans.length, 'characters');
+    
     let counter = 0;
-    const totalDuration = 1500; 
-    const interval = 50; 
+    const totalDuration = 2000; 
+    const interval = 80; 
     const totalSteps = totalDuration / interval;
 
     const scrambleInterval = setInterval(() => {
@@ -139,65 +200,56 @@ function startEnhancedScrambleAnimation(spans, chars, originalText) {
         const progress = counter / totalSteps;
         const revealCount = Math.floor(progress * spans.length);
 
+        console.log(`Animation step ${counter}, revealing ${revealCount} characters`);
+
         spans.forEach((span, index) => {
             if (span.classList.contains('space')) return;
 
             if (index < revealCount && !span.classList.contains('revealed')) {
-
+                // Reveal character
                 span.textContent = span.dataset.finalChar;
                 span.classList.remove('scrambling');
                 span.classList.add('revealed');
-                span.style.color = 'var(--discord-white)';
+                span.style.color = '#FFFFFF';
                 span.style.opacity = '1';
-                span.style.transform = '';
-
-                if (index % 3 === 0) { 
-                    createSimpleSparkle(span);
-                }
+                span.style.transform = 'translateY(0) scale(1)';
+                
+                console.log(`Revealed character ${index}: ${span.dataset.finalChar}`);
 
             } else if (index >= revealCount) {
-
-                if (counter % 3 === 0) { 
+                // Scramble character
+                if (counter % 2 === 0) { 
                     const randomChar = chars[Math.floor(Math.random() * chars.length)];
                     span.textContent = randomChar;
                     span.classList.add('scrambling');
                     span.style.opacity = '1';
-
-                    const hue = (index * 30 + counter * 5) % 360;
-                    span.style.color = `hsl(${hue}, 70%, 60%)`;
-
-                    const scale = 0.95 + Math.sin(counter * 0.3 + index) * 0.1;
-                    span.style.transform = `scale(${scale})`;
+                    span.style.color = '#5865F2';
+                    span.style.transform = 'translateY(-2px) scale(1.05)';
                 }
             }
         });
 
         if (progress >= 1) {
             clearInterval(scrambleInterval);
+            console.log('Scramble animation completed');
 
+            // Final cleanup
             spans.forEach((span, index) => {
                 if (!span.classList.contains('space')) {
                     span.textContent = span.dataset.finalChar;
-                    span.style.color = 'var(--discord-white)';
+                    span.style.color = '#FFFFFF';
                     span.style.opacity = '1';
-                    span.style.transform = '';
+                    span.style.transform = 'translateY(0) scale(1)';
                     span.classList.remove('scrambling');
                     span.classList.add('floating');
-
-                    setTimeout(() => {
-                        span.style.animation = `charFloat 6s ease-in-out infinite`;
-                        span.style.animationDelay = `${index * 0.1}s`;
-                    }, index * 50); 
                 }
             });
-
-            setTimeout(() => {
-                initAdvancedHoverEffects(spans, chars);
-            }, 500); 
-
+            
+            // Initialize random character scrambling
             setTimeout(() => {
                 initRandomCharacterScrambling(spans, chars);
-            }, 3000); 
+                initAdvancedHoverEffects(spans, chars);
+            }, 1000);
         }
     }, interval);
 }
@@ -207,7 +259,8 @@ function createSimpleSparkle(element) {
     const size = 1 + Math.random() * 2; 
     const colors = ['var(--discord-blue)', 'var(--discord-green)'];
     const color = colors[Math.floor(Math.random() * colors.length)];
-
+    
+    // Remove duplicate variable declarations that were causing errors
     sparkle.style.cssText = `
         position: absolute;
         top: ${40 + Math.random() * 20}%;
@@ -327,163 +380,215 @@ function initAdvancedHoverEffects(spans, chars) {
 }
 
 function initLiveChatSimulation() {
+    console.log('Starting chat simulation initialization...');
+    
     const chatContainer = document.getElementById('chatContainer');
     const userMessageInput = document.getElementById('userMessageInput');
     const sendMessageBtn = document.getElementById('sendMessageBtn');
     const typingIndicator = document.querySelector('.typing-indicator');
 
-    if (!chatContainer || !userMessageInput || !sendMessageBtn) return;
+    console.log('Chat elements found:', {
+        chatContainer: !!chatContainer,
+        userMessageInput: !!userMessageInput,
+        sendMessageBtn: !!sendMessageBtn,
+        typingIndicator: !!typingIndicator
+    });
+
+    if (!chatContainer) {
+        console.error('Chat container not found with ID: chatContainer');
+        return;
+    }
+    
+    if (!userMessageInput || !sendMessageBtn) {
+        console.error('Chat input elements not found');
+        return;
+    }
+
+    // Clear existing content
+    chatContainer.innerHTML = '';
+    console.log('Cleared chat container');
 
     const messages = [
-        { author: 'GamingWizard', text: 'Hey everyone! Excited about the new server features?', time: '1m ago' },
-        { author: 'DesignMaster', text: 'Yeah, definitely! The new voice channels are amazing.', time: '45s ago' },
-        { author: 'CodeNinja', text: 'I\'ve been using them for my study groups. Works perfectly!', time: '20s ago' }
+        { author: 'GamingWizard', text: 'Hey everyone! Excited about the new server features? 🎮', time: '2m ago', color: '#7289da' },
+        { author: 'DesignMaster', text: 'Yeah, definitely! The new voice channels are amazing. ✨', time: '1m ago', color: '#43b581' },
+        { author: 'CodeNinja', text: 'I\'ve been using them for my study groups. Works perfectly! 💻', time: '30s ago', color: '#faa61a' }
     ];
 
+    console.log('Adding initial messages...');
+
+    // Add initial messages with staggered timing
     messages.forEach((msg, idx) => {
         setTimeout(() => {
+            console.log(`Adding message ${idx}:`, msg.text);
+            
             const messageElement = createChatMessage({
                 author: msg.author,
                 text: msg.text,
                 time: msg.time,
                 isUser: false,
-                avatarColor: getRandomHsl()
+                avatarColor: msg.color
             });
 
             chatContainer.appendChild(messageElement);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
+            
+            // Smooth scroll to bottom
+            setTimeout(() => {
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }, 100);
 
+            // Add reaction to second message
             if (idx === 1) {
                 setTimeout(() => {
                     addReactionToMessage(messageElement);
-                }, 1000);
+                }, 1500);
             }
-        }, 800 * (idx + 1));
+        }, 1000 * (idx + 1));
     });
 
-    userMessageInput.addEventListener('keypress', e => {
-        if (e.key === 'Enter' && userMessageInput.value.trim() !== '') {
-            handleUserMessage();
-        }
-    });
-
-    sendMessageBtn.addEventListener('click', () => {
-        if (userMessageInput.value.trim() !== '') {
-            handleUserMessage();
-        }
-    });
-
+    // Handle user input
     function handleUserMessage() {
         const text = userMessageInput.value.trim();
+        console.log('User message:', text);
+        
         if (!text) return;
+
+        // Show typing indicator briefly
+        if (typingIndicator) {
+            typingIndicator.classList.remove('hidden');
+            setTimeout(() => {
+                typingIndicator.classList.add('hidden');
+            }, 800);
+        }
 
         const messageElement = createChatMessage({
             author: 'You',
             text: text,
             time: formatTime(),
             isUser: true,
-            avatarColor: 'var(--gradient-primary)'
+            avatarColor: 'linear-gradient(135deg, #5865F2 0%, #7c3aed 100%)'
         });
 
         chatContainer.appendChild(messageElement);
         chatContainer.scrollTop = chatContainer.scrollHeight;
-
         userMessageInput.value = '';
 
+        // Auto-reply after delay
         setTimeout(() => {
             const responses = [
-                "That's interesting! Tell me more.",
-                "I see what you mean. Great point!",
-                "Thanks for sharing that with us!",
-                "I appreciate your input on this topic.",
-                "Let's discuss this further in the voice channel."
+                "That's interesting! Tell me more. 🤔",
+                "I see what you mean. Great point! 👍",
+                "Thanks for sharing that with us! 😊",
+                "I appreciate your input on this topic. ❤️",
+                "Let's discuss this further in the voice channel. 🎤"
             ];
 
-            const randomResponse = responses[Math.floor(Math.random() * responses.length)];
             const botNames = ['ChatHelper', 'ModBot', 'Assistant', 'ServerGuide'];
+            const botColors = ['#ed4245', '#57f287', '#fee75c', '#eb459e'];
+            
+            const randomResponse = responses[Math.floor(Math.random() * responses.length)];
             const randomName = botNames[Math.floor(Math.random() * botNames.length)];
+            const randomColor = botColors[Math.floor(Math.random() * botColors.length)];
 
             const botMessage = createChatMessage({
                 author: randomName,
                 text: randomResponse,
                 time: formatTime(),
                 isUser: false,
-                avatarColor: getRandomHsl()
+                avatarColor: randomColor
             });
 
             chatContainer.appendChild(botMessage);
             chatContainer.scrollTop = chatContainer.scrollHeight;
-        }, 1000);
+        }, 1500 + Math.random() * 1000);
     }
 
-    function formatTime() {
-        const now = new Date();
-        return now.getHours() % 12 + ':' + 
-               now.getMinutes().toString().padStart(2, '0') + ' ' + 
-               (now.getHours() >= 12 ? 'PM' : 'AM');
-    }
+    // Event listeners
+    userMessageInput.addEventListener('keypress', e => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleUserMessage();
+        }
+    });
 
-    function getRandomHsl() {
-        return `hsl(${Math.random() * 360}, 70%, 60%)`;
-    }
+    sendMessageBtn.addEventListener('click', handleUserMessage);
 
-    function addReactionToMessage(messageElement) {
-        const reactionContainer = messageElement.querySelector('.message-reactions');
-        if (!reactionContainer) return;
-
-        const reactions = ['👍', '❤️', '😊', '🎉', '🔥', '👏'];
-        const randomReaction = reactions[Math.floor(Math.random() * reactions.length)];
-
-        const reaction = document.createElement('div');
-        reaction.className = 'reaction';
-        reaction.innerHTML = `${randomReaction} 1`;
-        reaction.addEventListener('click', () => animateReaction(reaction));
-
-        reactionContainer.appendChild(reaction);
-    }
+    console.log('Chat simulation initialized successfully');
 }
 
 function createChatMessage(messageData) {
     const { author, text, time, isUser, avatarColor } = messageData;
 
     const messageElement = document.createElement('div');
-    messageElement.className = 'chat-message';
+    messageElement.className = `chat-message ${isUser ? 'user-message' : 'bot-message'}`;
 
-    messageElement.classList.add(isUser ? 'user-message' : 'bot-message');
-
-    const avatarInitial = author.charAt(0);
+    const avatarInitial = author.charAt(0).toUpperCase();
 
     messageElement.innerHTML = `
-        <div class="message-avatar" style="background: ${avatarColor || 'var(--gradient-primary)'}">
+        <div class="message-avatar" style="background: ${avatarColor || '#5865f2'};">
             ${avatarInitial}
         </div>
         <div class="message-content">
-            <div class="message-author">${author} <span class="message-timestamp">${time}</span></div>
+            <div class="message-author">
+                ${author} 
+                <span class="message-timestamp">${time}</span>
+            </div>
             <div class="message-text">${text}</div>
             <div class="message-reactions"></div>
         </div>
     `;
 
+    // Animate message appearance
+    messageElement.style.opacity = '0';
+    messageElement.style.transform = 'translateY(20px)';
+    
     setTimeout(() => {
+        messageElement.style.opacity = '1';
+        messageElement.style.transform = 'translateY(0)';
+        messageElement.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
         messageElement.classList.add('visible');
-    }, 100);
+    }, 50);
 
     return messageElement;
 }
 
-function animateReaction(element) {
-    if (!element) return;
+function formatTime() {
+    const now = new Date();
+    return now.getHours() % 12 + ':' + 
+           now.getMinutes().toString().padStart(2, '0') + ' ' + 
+           (now.getHours() >= 12 ? 'PM' : 'AM');
+}
 
-    element.style.transform = 'scale(1.3) rotate(10deg)';
-    element.style.transition = 'all 0.2s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
+function addReactionToMessage(messageElement) {
+    const reactionContainer = messageElement.querySelector('.message-reactions');
+    if (!reactionContainer) return;
 
+    const reactions = ['👍', '❤️', '😊', '🎉', '🔥', '👏'];
+    const randomReaction = reactions[Math.floor(Math.random() * reactions.length)];
+
+    const reaction = document.createElement('div');
+    reaction.className = 'reaction';
+    reaction.innerHTML = `${randomReaction} 1`;
+    reaction.addEventListener('click', () => animateReaction(reaction));
+
+    reactionContainer.appendChild(reaction);
+}
+
+function animateReaction(reaction) {
+    // Add a quick animation when clicking on a reaction
+    reaction.style.transform = 'scale(1.3)';
     setTimeout(() => {
-        element.style.transform = 'scale(1.1)';
+        reaction.style.transform = 'scale(1)';
     }, 200);
-
-    setTimeout(() => {
-        element.style.transform = '';
-    }, 400);
+    
+    // Update the counter
+    const text = reaction.innerText;
+    const parts = text.split(' ');
+    if (parts.length > 1) {
+        const emoji = parts[0];
+        let count = parseInt(parts[1] || '0');
+        count++;
+        reaction.innerHTML = `${emoji} ${count}`;
+    }
 }
 
 function initInteractiveElements() {

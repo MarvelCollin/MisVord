@@ -233,572 +233,311 @@ body {
     justify-content: center;
 }
 
-/* Enhanced Scramble Text */
+/* Fixed Scramble Text Styles */
 .scramble-text {
     position: relative;
-    display: inline-block;
+    display: inline-block !important;
     overflow: visible;
-    color: transparent;
-    opacity: 0;
+    color: #FFFFFF !important;
+    opacity: 1 !important;
+    visibility: visible !important;
 }
 
 .scramble-text.initialized {
-    opacity: 1;
+    opacity: 1 !important;
+    visibility: visible !important;
 }
 
 .scramble-text .char {
-    display: inline-block;
-    transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    display: inline-block !important;
     position: relative;
-    color: transparent;
-    opacity: 0;
-    will-change: transform, color, opacity;
+    transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+    will-change: transform, color, opacity, text-shadow;
+    transform-style: preserve-3d;
+    backface-visibility: hidden;
+    transform-origin: bottom center;
+    font-weight: 800;
 }
 
 .scramble-text .char.space {
-    color: transparent;
-    opacity: 1;
-}
-
-.scramble-text .char.scrambling {
-    color: var(--discord-blue);
-    opacity: 1;
-    text-shadow: 
-        0 0 10px rgba(88, 101, 242, 0.9),
-        0 0 20px rgba(88, 101, 242, 0.7);
-    animation: scrambleGlow 0.1s ease-in-out;
-    transform: translateY(-2px) scale(1.05);
-    transition: all 0.1s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    color: transparent !important;
+    opacity: 1 !important;
+    min-width: 0.3em;
 }
 
 .scramble-text .char.revealed {
-    color: var(--discord-white);
-    opacity: 1;
-    animation: charReveal 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    color: #FFFFFF !important;
+    opacity: 1 !important;
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
 }
 
-.scramble-text .char.floating {
-    animation: charFloat 5s ease-in-out infinite;
-    opacity: 1;
-    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-}
-
-.scramble-text .char.random-scramble {
-    animation: randomScrambleEffect 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-    color: var(--discord-green);
-    text-shadow: 
-        0 0 12px rgba(87, 242, 135, 1),
-        0 0 24px rgba(87, 242, 135, 0.8);
-}
-
-/* Discord Mockup Styles */
-.discord-mockup {
+/* Enhanced Scramble Text Styles */
+.hero-title.scramble-text {
+    display: inline-block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    color: white !important;
     position: relative;
-    width: 100%;
-    max-width: 500px;
-    background: var(--discord-dark);
-    border-radius: var(--radius-2xl);
-    overflow: hidden;
-    box-shadow: var(--shadow-xl);
-    animation: fadeInRight 1s ease-out 0.4s both;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: center;
+    letter-spacing: 0.03em;
+    line-height: 1.2;
+    filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.3));
+    perspective: 1000px;
 }
 
-.mockup-header {
-    background: var(--discord-darker);
-    padding: var(--space-lg);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    display: flex;
-    align-items: center;
-    gap: var(--space-md);
-    position: relative;
-}
-
-.mockup-header::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    right: var(--space-lg);
-    transform: translateY(-50%);
-    width: 8px;
-    height: 8px;
-    background: var(--discord-green);
-    border-radius: 50%;
-    animation: pulse 2s ease-in-out infinite;
-}
-
-.mockup-avatar {
-    width: 40px;
-    height: 40px;
-    background: var(--gradient-primary);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    color: var(--discord-white);
-    font-size: 1.2rem;
-}
-
-.mockup-info h4 {
-    color: var(--discord-white);
-    font-size: 1.1rem;
-    font-weight: 600;
-    margin-bottom: var(--space-xs);
-}
-
-.online-status {
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-    font-size: 0.875rem;
-    color: var(--discord-gray);
-}
-
-.member-count-static {
-    color: var(--discord-green);
-    font-weight: 600;
-    display: inline-block;
-}
-
-.mockup-content {
-    padding: var(--space-md);
-    height: 300px;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    background-color: #36393f;
-}
-
-.chat-message {
-    display: flex;
-    margin-bottom: 0.4rem;
-    opacity: 0;
-    animation: slideInMessage 0.3s ease forwards;
-    padding: 0.4rem var(--space-sm);
-    transition: background-color 0.2s ease;
-}
-
-.chat-message:hover {
-    background-color: rgba(4, 4, 5, 0.07);
-    border-radius: 0;
-}
-
-.message-author {
-    display: flex;
-    align-items: center;
-    font-weight: 500;
-    margin-bottom: 0.2rem;
-    font-size: 1rem;
-}
-
-.message-avatar {
-    width: 2.5rem;
-    height: 2.5rem;
-    min-width: 2.5rem;
-    border-radius: 50%;
-    margin-right: var(--space-md);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    color: white;
-    font-size: 1rem;
-    position: relative;
-    overflow: hidden;
-}
-
-.message-content {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-}
-
-.message-timestamp {
-    font-weight: 400;
-    color: #72767d;
-    font-size: 0.75rem;
-    margin-left: var(--space-xs);
-}
-
-.message-text {
-    background: transparent;
-    color: #dcddde;
-    padding: 0;
-    border-radius: 0;
-    font-size: 0.9375rem;
-    line-height: 1.375rem;
-    word-break: break-word;
-    display: inline-block;
-    max-width: 100%;
-}
-
-.user-message .message-author {
-    color: var(--discord-blue);
-}
-
-.message-reactions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-xs);
-    margin-top: var(--space-xs);
-}
-
-.reaction {
-    background: rgba(79, 84, 92, 0.3);
-    border: none;
-    border-radius: 0.25rem;
-    padding: 0.125rem 0.375rem;
-    font-size: 0.875rem;
-    display: flex;
-    align-items: center;
-    gap: var(--space-xs);
-    cursor: pointer;
-    transition: all 0.1s ease;
-}
-
-.reaction:hover {
-    background: rgba(79, 84, 92, 0.6);
-    transform: scale(1.1);
-}
-
-/* Chat Input Styling */
-.chat-input-area {
-    padding: var(--space-md) var(--space-lg);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(30, 33, 36, 0.5);
-}
-
-.typing-users {
-    min-height: 24px;
-    margin-bottom: var(--space-sm);
-}
-
-.typing-indicator {
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-    padding: var(--space-sm);
-    background: rgba(64, 68, 75, 0.5);
-    border-radius: var(--radius-md);
-    font-size: 0.875rem;
-    color: var(--discord-gray);
-    transition: all 0.3s ease;
-    animation: slideInMessage 0.5s ease-out;
-}
-
-.typing-indicator.hidden {
-    display: none;
-}
-
-.typing-dots {
-    display: flex;
-    gap: 4px;
-    align-items: center;
-    height: 20px;
-}
-
-.typing-dots span {
-    width: 6px;
-    height: 6px;
-    background: var(--discord-gray);
-    border-radius: 50%;
-    animation: typingDot 1.4s ease-in-out infinite;
-}
-
-.typing-dots span:nth-child(1) { animation-delay: 0s; }
-.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
-.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
-
-.chat-input-box {
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-    background: rgba(64, 68, 75, 0.8);
-    border-radius: var(--radius-lg);
-    padding: var(--space-sm);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-}
-
-.chat-input-box:focus-within {
-    border-color: var(--discord-blue);
-    box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.2);
-    background: rgba(64, 68, 75, 1);
-}
-
-.chat-input-box input {
-    flex: 1;
-    background: transparent;
-    border: none;
-    padding: var(--space-md) var(--space-lg);
-    color: var(--discord-white);
-    font-size: 0.875rem;
-    outline: none;
-    font-family: inherit;
-    min-height: 20px;
-}
-
-.chat-input-box input::placeholder {
-    color: rgba(255, 255, 255, 0.5);
-    font-style: normal;
-}
-
-.chat-input-box button {
-    background: var(--gradient-primary);
-    border: none;
-    border-radius: var(--radius-lg);
-    padding: var(--space-md);
-    color: var(--discord-white);
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 45px;
-    min-height: 45px;
-    flex-shrink: 0;
-}
-
-.chat-input-box button:hover:not(:disabled) {
-    transform: scale(1.1);
-    box-shadow: 0 5px 15px rgba(88, 101, 242, 0.4);
-}
-
-.chat-input-box button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
-    background: var(--discord-gray);
-}
-
-/* Floating elements around hero */
-.floating-element {
-    position: absolute;
-    border-radius: 50%;
-    opacity: 0.4;
-    animation: float 12s ease-in-out infinite;
-    background: linear-gradient(45deg, var(--discord-blue), var(--discord-green));
-    filter: blur(2px);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    will-change: transform;
-}
-
-.floating-element:hover {
-    opacity: 0.8;
-    filter: blur(0);
-    transform: scale(1.2);
-}
-
-.floating-1 {
-    top: 20%;
-    left: 15%;
-    width: 60px;
-    height: 60px;
-    background: linear-gradient(45deg, var(--discord-blue), var(--discord-green));
-    animation-delay: 0s;
-    animation-duration: 15s;
-}
-
-.floating-2 {
-    top: 30%;
-    right: 20%;
-    width: 80px;
-    height: 80px;
-    background: linear-gradient(45deg, var(--discord-green), var(--discord-yellow));
-    animation-delay: 3s;
-    animation-duration: 18s;
-}
-
-.floating-3 {
-    bottom: 40%;
-    left: 10%;
-    width: 40px;
-    height: 40px;
-    background: linear-gradient(45deg, var(--discord-yellow), var(--discord-red));
-    animation-delay: 6s;
-    animation-duration: 12s;
-}
-
-.floating-4 {
-    bottom: 20%;
-    right: 15%;
-    width: 70px;
-    height: 70px;
-    background: linear-gradient(45deg, var(--discord-red), var(--discord-blue));
-    animation-delay: 2s;
-    animation-duration: 16s;
-}
-
-/* Animations */
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(30px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@keyframes fadeInRight {
-    from {
-        opacity: 0;
-        transform: translateX(30px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
-
-@keyframes float {
-    0%, 100% {
-        transform: translateY(0) rotate(0deg);
-        opacity: 0.4;
-    }
-    50% {
-        transform: translateY(-20px) rotate(180deg) scale(1.1);
-        opacity: 0.6;
-    }
-}
-
-@keyframes slideInMessage {
-    from {
-        opacity: 0;
-        transform: translateX(-20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
-
-@keyframes backgroundShift {
-    0%, 100% { 
-        transform: scale(1) rotate(0deg);
-        filter: hue-rotate(0deg) brightness(1);
-    }
-    50% { 
-        transform: scale(1.02) rotate(0.5deg);
-        filter: hue-rotate(15deg) brightness(1.05);
-    }
-}
-
-@keyframes backgroundFloat {
+/* Advanced floating animation variations for more dynamic character behavior */
+@keyframes charFloat1 {
     0% {
-        opacity: 0.6;
-        transform: translateY(0);
+        transform: translateY(0) scale(1) rotate(0deg);
+        text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+    }
+    20% {
+        transform: translateY(-4px) scale(1.03) rotate(1deg);
+        text-shadow: 0 0 12px rgba(88, 101, 242, 0.5), 0 0 20px rgba(88, 101, 242, 0.2);
+    }
+    40% {
+        transform: translateY(-2px) scale(1.01) rotate(-0.5deg);
+        text-shadow: 0 0 8px rgba(88, 101, 242, 0.3), 0 0 15px rgba(88, 101, 242, 0.1);
+    }
+    60% {
+        transform: translateY(-5px) scale(1.04) rotate(0deg);
+        text-shadow: 0 0 15px rgba(88, 101, 242, 0.6), 0 0 30px rgba(88, 101, 242, 0.3);
+    }
+    80% {
+        transform: translateY(-1px) scale(1.00) rotate(0.5deg);
+        text-shadow: 0 0 10px rgba(87, 242, 135, 0.4), 0 0 20px rgba(87, 242, 135, 0.1);
     }
     100% {
-        opacity: 0.8;
-        transform: translateY(-10px);
+        transform: translateY(0) scale(1) rotate(0deg);
+        text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
     }
 }
 
-@keyframes scrambleGlow {
-    0% { 
-        transform: translateY(0) scale(1);
-        filter: brightness(1);
-    }
-    100% { 
-        transform: translateY(-1px) scale(1.02);
-        filter: brightness(1.2);
-    }
-}
-
-@keyframes charReveal {
+@keyframes charFloat2 {
     0% {
-        opacity: 0;
-        transform: translateY(10px) scale(0.95);
-        color: var(--discord-blue);
+        transform: translateY(0) scale(1) rotate(0deg);
+        text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+    }
+    25% {
+        transform: translateY(-3px) scale(1.02) rotate(-1deg);
+        text-shadow: 0 0 12px rgba(255, 102, 196, 0.5), 0 0 20px rgba(255, 102, 196, 0.2);
+    }
+    50% {
+        transform: translateY(-5px) scale(1.03) rotate(0.5deg);
+        text-shadow: 0 0 15px rgba(254, 231, 92, 0.6), 0 0 30px rgba(254, 231, 92, 0.3);
+    }
+    75% {
+        transform: translateY(-2px) scale(1.01) rotate(-0.5deg);
+        text-shadow: 0 0 10px rgba(87, 242, 135, 0.5), 0 0 20px rgba(87, 242, 135, 0.2);
     }
     100% {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-        color: var(--discord-white);
+        transform: translateY(0) scale(1) rotate(0deg);
+        text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
     }
 }
 
-@keyframes charFloat {
-    0%, 100% {
-        transform: translateY(0) scale(1);
-    }
-    50% {
-        transform: translateY(-2px) scale(1.01);
-    }
-}
-
-@keyframes randomScrambleEffect {
+@keyframes charFloat3 {
     0% {
-        transform: scale(1);
-        opacity: 1;
-    }
-    50% {
-        transform: scale(1.1);
-        opacity: 0.9;
-    }
-    100% {
-        transform: scale(1);
-        opacity: 1;
-    }
-}
-
-@keyframes simpleSparkleEffect {
-    0% {
-        transform: scale(0);
-        opacity: 1;
-    }
-    50% {
-        transform: scale(1);
-        opacity: 1;
-    }
-    100% {
-        transform: scale(0);
-        opacity: 0;
-    }
-}
-
-@keyframes pulse {
-    0%, 100% {
-        opacity: 1;
-        transform: scale(1);
-    }
-    50% {
-        opacity: 0.7;
-        transform: scale(1.05);
-    }
-}
-
-@keyframes typingDot {
-    0%, 60%, 100% {
-        transform: translateY(0);
-        opacity: 0.4;
+        transform: translateY(0) scale(1) rotate(0deg);
+        text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
     }
     30% {
-        transform: translateY(-10px);
-        opacity: 1;
+        transform: translateY(-4px) scale(1.03) rotate(0.8deg);
+        text-shadow: 0 0 15px rgba(138, 101, 242, 0.5), 0 0 30px rgba(138, 101, 242, 0.2);
+    }
+    50% {
+        transform: translateY(-2px) scale(1.01) rotate(-0.3deg);
+        text-shadow: 0 0 8px rgba(138, 101, 242, 0.3), 0 0 16px rgba(138, 101, 242, 0.15);
+    }
+    70% {
+        transform: translateY(-3.5px) scale(1.02) rotate(0.5deg);
+        text-shadow: 0 0 12px rgba(242, 87, 87, 0.6), 0 0 25px rgba(242, 87, 87, 0.3);
+    }
+    85% {
+        transform: translateY(-1px) scale(1.00) rotate(-0.2deg);
+        text-shadow: 0 0 10px rgba(87, 212, 242, 0.5), 0 0 20px rgba(87, 212, 242, 0.2);
+    }
+    100% {
+        transform: translateY(0) scale(1) rotate(0deg);
+        text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
     }
 }
 
-.chat-message.visible {
-    opacity: 1;
+/* Add two more advanced floating animations for more variety */
+@keyframes charFloat4 {
+    0%, 100% {
+        transform: translateY(0) scale(1) rotate(0deg);
+        text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+    }
+    20%, 80% {
+        transform: translateY(-2px) scale(1.01) rotate(0.4deg);
+        text-shadow: 0 0 8px rgba(88, 101, 242, 0.4);
+    }
+    35% {
+        transform: translateY(-6px) scale(1.05) rotate(-0.5deg);
+        text-shadow: 0 0 15px rgba(235, 69, 158, 0.6), 0 0 30px rgba(235, 69, 158, 0.3);
+    }
+    65% {
+        transform: translateY(-4px) scale(1.03) rotate(0.8deg);
+        text-shadow: 0 0 12px rgba(254, 231, 92, 0.5), 0 0 24px rgba(254, 231, 92, 0.25);
+    }
 }
 
-.mockup-content::-webkit-scrollbar {
-    width: 8px;
+@keyframes charFloat5 {
+    0%, 100% {
+        transform: translateY(0) scale(1) rotate(0deg);
+        text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+    }
+    10% {
+        transform: translateY(-1px) scale(1.00) rotate(0.2deg);
+        text-shadow: 0 0 6px rgba(255, 255, 255, 0.4);
+    }
+    30% {
+        transform: translateY(-3px) scale(1.02) rotate(-0.6deg);
+        text-shadow: 0 0 10px rgba(87, 242, 135, 0.5), 0 0 20px rgba(87, 242, 135, 0.2);
+    }
+    50% {
+        transform: translateY(-5px) scale(1.04) rotate(0.3deg);
+        text-shadow: 0 0 15px rgba(88, 101, 242, 0.6), 0 0 30px rgba(88, 101, 242, 0.3);
+    }
+    70% {
+        transform: translateY(-3px) scale(1.02) rotate(-0.4deg);
+        text-shadow: 0 0 10px rgba(235, 69, 158, 0.5), 0 0 20px rgba(235, 69, 158, 0.2);
+    }
+    90% {
+        transform: translateY(-1px) scale(1.00) rotate(0.2deg);
+        text-shadow: 0 0 6px rgba(255, 255, 255, 0.4);
+    }
 }
 
-.mockup-content::-webkit-scrollbar-thumb {
-    background-color: rgba(32, 34, 37, 0.6);
-    border-radius: 4px;
+/* Distribute the 5 different floating animations across characters */
+.scramble-text .char.floating:nth-child(5n) {
+    animation: charFloat1 5s ease-in-out infinite;
 }
 
-.mockup-content::-webkit-scrollbar-track {
-    background-color: rgba(32, 34, 37, 0.3);
-    border-radius: 4px;
+.scramble-text .char.floating:nth-child(5n+1) {
+    animation: charFloat2 5.5s ease-in-out infinite;
+    animation-delay: 0.2s;
+}
+
+.scramble-text .char.floating:nth-child(5n+2) {
+    animation: charFloat3 6s ease-in-out infinite;
+    animation-delay: 0.4s;
+}
+
+.scramble-text .char.floating:nth-child(5n+3) {
+    animation: charFloat4 5.8s ease-in-out infinite;
+    animation-delay: 0.6s;
+}
+
+.scramble-text .char.floating:nth-child(5n+4) {
+    animation: charFloat5 6.2s ease-in-out infinite;
+    animation-delay: 0.8s;
+}
+
+/* Special pulse for first and last characters to draw attention */
+.scramble-text .char.floating:first-child,
+.scramble-text .char.floating:last-child {
+    animation: charFloat1 4s ease-in-out infinite;
+    animation-delay: 0.1s;
+}
+
+/* Enhanced glitch animation */
+@keyframes glitch {
+    0%, 100% { 
+        transform: translate(0);
+        text-shadow: 0 0 4px rgba(255, 255, 255, 0.8), 0 0 10px rgba(88, 101, 242, 0.4);
+    }
+    10% { 
+        transform: translate(-2px, -2px);
+        text-shadow: 0 0 4px rgba(255, 55, 55, 0.8), 0 0 10px rgba(255, 55, 55, 0.4);
+    }
+    20% { 
+        transform: translate(2px, 2px);
+        text-shadow: 0 0 4px rgba(55, 55, 255, 0.8), 0 0 10px rgba(55, 55, 255, 0.4);
+    }
+    30% { 
+        transform: translate(-2px, 2px);
+        text-shadow: 0 0 4px rgba(255, 255, 155, 0.8), 0 0 10px rgba(255, 255, 155, 0.4);
+    }
+    40% {
+        transform: translate(2px, -2px);
+        text-shadow: 0 0 4px rgba(155, 255, 55, 0.8), 0 0 10px rgba(155, 255, 55, 0.4);
+    }
+    50% {
+        transform: translate(-1.5px, -2.5px);
+        text-shadow: 0 0 4px rgba(255, 55, 255, 0.8), 0 0 10px rgba(255, 55, 255, 0.4);
+    }
+    60% {
+        transform: translate(1.5px, 1.5px);
+        text-shadow: 0 0 4px rgba(55, 255, 255, 0.8), 0 0 10px rgba(55, 255, 255, 0.4);
+    }
+    70% {
+        transform: translate(-0.5px, 2px);
+        text-shadow: 0 0 4px rgba(255, 155, 55, 0.8), 0 0 10px rgba(255, 155, 55, 0.4);
+    }
+    80% {
+        transform: translate(0.5px, -1px);
+        text-shadow: 0 0 4px rgba(155, 55, 255, 0.8), 0 0 10px rgba(155, 55, 255, 0.4);
+    }
+    90% {
+        transform: translate(-2px, 1px);
+        text-shadow: 0 0 4px rgba(55, 255, 155, 0.8), 0 0 10px rgba(55, 255, 155, 0.4);
+    }
+}
+
+/* Improved glitching character appearance */
+.scramble-text .char[data-is-glitching="true"] {
+    animation: glitch 0.3s infinite !important;
+    position: relative;
+    z-index: 5;
+}
+
+/* More intense hover effect */
+.scramble-text .char.user-hover {
+    animation: charHoverPulse 0.8s ease-in-out infinite !important;
+    color: var(--discord-blue) !important;
+    position: relative;
+    z-index: 10;
+}
+
+@keyframes charHoverPulse {
+    0% {
+        transform: translateY(-8px) scale(1.4) rotate(-2deg);
+        text-shadow: 
+            0 0 10px rgba(88, 101, 242, 0.8), 
+            0 0 20px rgba(88, 101, 242, 0.4),
+            0 0 30px rgba(88, 101, 242, 0.2);
+    }
+    50% {
+        transform: translateY(-12px) scale(1.6) rotate(2deg);
+        text-shadow: 
+            0 0 15px rgba(88, 101, 242, 1), 
+            0 0 30px rgba(88, 101, 242, 0.6), 
+            0 0 50px rgba(88, 101, 242, 0.3),
+            0 0 70px rgba(88, 101, 242, 0.2);
+    }
+    100% {
+        transform: translateY(-8px) scale(1.4) rotate(-2deg);
+        text-shadow: 
+            0 0 10px rgba(88, 101, 242, 0.8), 
+            0 0 20px rgba(88, 101, 242, 0.4),
+            0 0 30px rgba(88, 101, 242, 0.2);
+    }
+}
+
+/* Improved spark animation */
+@keyframes spark {
+    0% {
+        transform: scale(0) rotate(0deg);
+        opacity: 0.8;
+    }
+    40% {
+        transform: scale(2.5) rotate(180deg);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(0) rotate(360deg);
+        opacity: 0;
+    }
 }
