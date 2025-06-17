@@ -7,33 +7,37 @@ class FriendController extends BaseController {
 
     public function __construct() {
         parent::__construct();
-    }
-
-    public function getUserFriends() {
+    }    public function getUserFriends() {
         $currentUserId = $_SESSION['user_id'] ?? 0;
         $friends = [];
         $currentUser = null;
 
         try {
-            $query = new Query();
-
-            $currentUser = $query->table('users')
+            // Create separate query for current user
+            $userQuery = new Query();
+            $currentUser = $userQuery->table('users')
                 ->where('id', $currentUserId)
                 ->first();
 
-            $friendsQuery = $query->table('users u')
+            // Create separate query for friends (direction 1)
+            $friendsQuery1 = new Query();
+            $friends1 = $friendsQuery1->table('users u')
                 ->select('u.*')
                 ->join('friend_list fl', 'u.id', '=', 'fl.user_id2')
                 ->where('fl.user_id', $currentUserId)
-                ->where('fl.status', 'accepted');
+                ->where('fl.status', 'accepted')
+                ->get();
 
-            $friendsQuery2 = $query->table('users u')
+            // Create separate query for friends (direction 2)
+            $friendsQuery2 = new Query();
+            $friends2 = $friendsQuery2->table('users u')
                 ->select('u.*')
                 ->join('friend_list fl', 'u.id', '=', 'fl.user_id')
                 ->where('fl.user_id2', $currentUserId)
-                ->where('fl.status', 'accepted');
+                ->where('fl.status', 'accepted')
+                ->get();
 
-            $friends = array_merge($friendsQuery->get(), $friendsQuery2->get());
+            $friends = array_merge($friends1, $friends2);
 
         } catch (Exception $e) {
             error_log("Error fetching user friends: " . $e->getMessage());
@@ -70,9 +74,7 @@ class FriendController extends BaseController {
         }
 
         return $pendingRequests;
-    }
-
-    public function sendFriendRequest($username) {
+    }    public function sendFriendRequest($username) {
         $currentUserId = $_SESSION['user_id'] ?? 0;
 
         if (!$currentUserId) {
@@ -80,9 +82,9 @@ class FriendController extends BaseController {
         }
 
         try {
-            $query = new Query();
-
-            $user = $query->table('users')
+            // Separate query for finding user
+            $userQuery = new Query();
+            $user = $userQuery->table('users')
                 ->where('username', $username)
                 ->first();
 
@@ -90,7 +92,9 @@ class FriendController extends BaseController {
                 return $this->notFound('User not found');
             }
 
-            $existingRequest = $query->table('friend_list')
+            // Separate query for checking existing request
+            $existingQuery = new Query();
+            $existingRequest = $existingQuery->table('friend_list')
                 ->where(function($q) use ($currentUserId, $user) {
                     $q->where('user_id', $currentUserId)
                       ->where('user_id2', $user['id']);
@@ -109,7 +113,9 @@ class FriendController extends BaseController {
                 }
             }
 
-            $query->table('friend_list')
+            // Separate query for inserting new request
+            $insertQuery = new Query();
+            $insertQuery->table('friend_list')
                 ->insert([
                     'user_id' => $currentUserId,
                     'user_id2' => $user['id'],
@@ -122,9 +128,7 @@ class FriendController extends BaseController {
             error_log("Error sending friend request: " . $e->getMessage());
             return $this->serverError('Failed to send friend request');
         }
-    }
-
-    public function respondToFriendRequest($requestId, $accept = true) {
+    }    public function respondToFriendRequest($requestId, $accept = true) {
         $currentUserId = $_SESSION['user_id'] ?? 0;
 
         if (!$currentUserId) {
@@ -132,9 +136,9 @@ class FriendController extends BaseController {
         }
 
         try {
-            $query = new Query();
-
-            $request = $query->table('friend_list')
+            // Separate query to find the request
+            $findQuery = new Query();
+            $request = $findQuery->table('friend_list')
                 ->where('id', $requestId)
                 ->where('user_id2', $currentUserId)
                 ->where('status', 'pending')
@@ -145,8 +149,9 @@ class FriendController extends BaseController {
             }
 
             if ($accept) {
-
-                $query->table('friend_list')
+                // Separate query to update the request
+                $updateQuery = new Query();
+                $updateQuery->table('friend_list')
                     ->where('id', $requestId)
                     ->update([
                         'status' => 'accepted'
@@ -154,8 +159,9 @@ class FriendController extends BaseController {
 
                 return $this->successResponse([], 'Friend request accepted');
             } else {
-
-                $query->table('friend_list')
+                // Separate query to delete the request
+                $deleteQuery = new Query();
+                $deleteQuery->table('friend_list')
                     ->where('id', $requestId)
                     ->delete();
 

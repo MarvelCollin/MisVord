@@ -1,5 +1,4 @@
 <?php
-// Include helper functions
 require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
 ?>
 <!DOCTYPE html>

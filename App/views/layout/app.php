@@ -5,7 +5,6 @@
 </head>
 <body class="bg-discord-background text-white">    <?php echo $content ?? ''; ?>
     
-    <!-- Scripts -->
     <?php include_once __DIR__ . '/scripts.php'; ?>
 </body>
 </html>

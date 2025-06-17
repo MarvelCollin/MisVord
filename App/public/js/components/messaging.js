@@ -11,6 +11,7 @@ class MisVordMessaging {
             debug: true
         };
 
+        // Use global socket manager instead of creating own socket
         this.socket = null;
         this.connected = false;
         this.authenticated = false;
@@ -32,8 +33,12 @@ class MisVordMessaging {
         this.connectionHistory = [];
         this.messageHistory = [];
 
+        // Wait for global socket manager to be ready
+        this.globalSocketManager = null;
+        this.waitingForGlobalSocket = false;
+
         window.MisVordMessaging = this;
-        this.log('✅ MisVordMessaging instance created and registered globally');
+        this.log('✅ MisVordMessaging instance created and registered globally (using global socket manager)');
     }
 
     log(...args) {
@@ -52,24 +57,22 @@ class MisVordMessaging {
             return;
         }
         
-        // Check if we're in a voice channel - if so, don't initialize socket
+        // Check if we're in a voice channel - if so, don't initialize messaging
         if (this.isVoiceChannel()) {
-            this.log('🎙️ Voice channel detected, skipping socket initialization');
+            this.log('🎙️ Voice channel detected, skipping messaging initialization');
             return;
         }
 
-        this.log('🚀 Initializing WebSocket-only messaging system...');
+        this.log('🚀 Initializing messaging system with global socket manager...');
         this.logSystemInfo();
 
         try {
-            this.initSocket();
+            // Use global socket manager instead of creating own socket
+            this.connectToGlobalSocketManager();
             this.initMessageForm();
             this.initMessageContainer();
 
-            setInterval(() => this.sendHeartbeat(), this.config.heartbeatInterval);
-
             this.log('✅ Messaging system initialized successfully');
-
             this.initialized = true;
 
             this.dispatchEvent('misVordReady', { messaging: this });
@@ -77,6 +80,111 @@ class MisVordMessaging {
         } catch (error) {
             this.error('❌ Failed to initialize messaging system:', error);
             this.trackError('INIT_FAILED', error);
+        }
+    }
+
+    /**
+     * Connect to the global socket manager instead of creating own socket
+     */
+    connectToGlobalSocketManager() {
+        this.log('🔌 Connecting to global socket manager...');
+
+        // Check if global socket manager is available
+        if (window.globalSocketManager) {
+            this.setupGlobalSocketManager(window.globalSocketManager);
+            return;
+        }
+
+        // Wait for global socket manager to be ready
+        this.waitingForGlobalSocket = true;
+        this.log('⏳ Waiting for global socket manager to be ready...');
+
+        const checkGlobalSocket = () => {
+            if (window.globalSocketManager) {
+                this.setupGlobalSocketManager(window.globalSocketManager);
+                this.waitingForGlobalSocket = false;
+                return;
+            }
+
+            // Keep checking for a reasonable amount of time
+            setTimeout(checkGlobalSocket, 100);
+        };
+
+        // Listen for global socket ready event
+        window.addEventListener('misVordGlobalReady', (event) => {
+            if (this.waitingForGlobalSocket) {
+                this.log('📡 Global socket manager ready event received');
+                this.setupGlobalSocketManager(event.detail.socketManager);
+                this.waitingForGlobalSocket = false;
+            }
+        });
+
+        // Start checking
+        checkGlobalSocket();
+    }
+
+    /**
+     * Setup connection with global socket manager
+     */
+    setupGlobalSocketManager(globalManager) {
+        this.log('🔗 Setting up connection with global socket manager');
+        
+        this.globalSocketManager = globalManager;
+        
+        if (globalManager.isGuest) {
+            this.log('👤 Guest user detected, messaging disabled');
+            this.updateStatus('error', 'Login required for messaging');
+            return;
+        }
+
+        // Use the global socket connection
+        this.socket = globalManager.socket;
+        this.connected = globalManager.connected;
+        this.authenticated = globalManager.authenticated;
+        this.userId = globalManager.userId;
+        this.username = globalManager.username;
+
+        // Listen for global socket events that we care about for messaging
+        this.setupGlobalSocketEventListeners();
+
+        // Join active channel if we have one
+        this.joinActiveChannel();
+
+        this.log('✅ Successfully connected to global socket manager');
+        this.updateStatus('connected');
+    }
+
+    /**
+     * Setup event listeners for global socket events
+     */
+    setupGlobalSocketEventListeners() {
+        // Listen for global socket connection state changes
+        window.addEventListener('globalSocketReady', () => {
+            this.connected = true;
+            this.authenticated = true;
+            this.updateStatus('connected');
+        });
+
+        // Listen for messaging-specific events
+        window.addEventListener('messageReceived', (event) => {
+            this.onNewMessage(event.detail);
+        });
+
+        window.addEventListener('typingStart', (event) => {
+            this.onUserTyping(event.detail);
+        });
+
+        window.addEventListener('typingStop', (event) => {
+            this.onUserStopTyping(event.detail);
+        });
+
+        window.addEventListener('userStatusChanged', (event) => {
+            this.onUserStatusChange(event.detail);
+        });
+
+        // Also listen directly on the socket for compatibility
+        if (this.socket) {
+            this.registerSocketEvents();
         }
     }
 
@@ -182,10 +290,17 @@ class MisVordMessaging {
         this.log('🏠 Joining active channel...');
 
         const channelId = this.getActiveChannelId();
-        if (channelId && this.socket && this.connected) {
-            this.socket.emit('join-channel', channelId);
-            this.activeChannel = channelId;
-            this.log('🏠 Joined channel:', channelId);
+        if (channelId) {
+            // Use global socket manager if available
+            if (this.globalSocketManager && this.globalSocketManager.isReady()) {
+                this.globalSocketManager.joinChannel(channelId);
+                this.activeChannel = channelId;
+                this.log('🏠 Joined channel via global manager:', channelId);
+            } else if (this.socket && this.connected) {
+                this.socket.emit('join-channel', channelId);
+                this.activeChannel = channelId;
+                this.log('🏠 Joined channel via direct socket:', channelId);
+            }
         }
     }
 
@@ -197,7 +312,8 @@ class MisVordMessaging {
             connected: this.connected,
             socket: !!this.socket,
             userId: this.getUserId(),
-            authenticated: this.authenticated
+            authenticated: this.authenticated,
+            globalSocketManager: !!this.globalSocketManager
         });
 
         if (!channelId || !content) {
@@ -206,6 +322,25 @@ class MisVordMessaging {
             return false;
         }
 
+        // Use global socket manager if available
+        if (this.globalSocketManager && this.globalSocketManager.isReady()) {
+            this.log('📤 Sending message via global socket manager');
+            const tempId = this.globalSocketManager.sendMessage(channelId, content);
+            
+            if (tempId) {
+                // Create and display temp message
+                const tempMessage = this.createTempMessage(content, tempId);
+                this.appendMessage(tempMessage);
+                
+                this.trackMessage('MESSAGE_SENDING', { channelId, content, tempId });
+                return true;
+            } else {
+                this.showToast('Failed to send message. Please try again.', 'error');
+                return false;
+            }
+        }
+
+        // Fallback to direct socket if global manager not available
         if (!this.connected || !this.socket) {
             const error = new Error('Cannot send message: WebSocket not connected');
             this.trackError('SEND_NOT_CONNECTED', error);
@@ -233,7 +368,10 @@ class MisVordMessaging {
         this.log('📤 Sending message data:', messageData);
         this.trackMessage('MESSAGE_SENDING', messageData);
 
-        if (this.activeChannel !== channelId) {
+        // Use global socket manager to join channel
+        if (this.globalSocketManager) {
+            this.globalSocketManager.joinChannel(channelId);
+        } else if (this.activeChannel !== channelId) {
             this.log('🏠 Joining channel before sending');
             this.socket.emit('join-channel', channelId);
             this.activeChannel = channelId;
@@ -243,7 +381,6 @@ class MisVordMessaging {
         this.appendMessage(tempMessage);
 
         try {
-
             this.socket.emit('channel-message', messageData);
             this.log('✅ Message sent via WebSocket');
 
@@ -769,6 +906,13 @@ class MisVordMessaging {
     }
 
     sendHeartbeat() {
+        // Let global socket manager handle heartbeats
+        if (this.globalSocketManager) {
+            // Global manager handles heartbeats automatically
+            return;
+        }
+        
+        // Fallback for direct socket connection
         if (this.socket && this.connected) {
             this.socket.emit('heartbeat');
         }
@@ -946,17 +1090,23 @@ class MisVordMessaging {
 
     handleTyping() {
         const channelId = this.getActiveChannelId();
-        if (this.socket && this.connected && channelId) {
-            this.socket.emit('typing', { channelId });
-
-            if (this.typingTimeout) {
-                clearTimeout(this.typingTimeout);
+        
+        // Use global socket manager if available
+        if (this.globalSocketManager && this.globalSocketManager.isReady() && channelId) {
+            if (this.globalSocketManager.socket) {
+                this.globalSocketManager.socket.emit('typing', { channelId });
             }
-
-            this.typingTimeout = setTimeout(() => {
-                this.stopTyping();
-            }, 3000);
+        } else if (this.socket && this.connected && channelId) {
+            this.socket.emit('typing', { channelId });
         }
+
+        if (this.typingTimeout) {
+            clearTimeout(this.typingTimeout);
+        }
+
+        this.typingTimeout = setTimeout(() => {
+            this.stopTyping();
+        }, 3000);
     }
 
     stopTyping() {
@@ -966,7 +1116,13 @@ class MisVordMessaging {
         }
 
         const channelId = this.getActiveChannelId();
-        if (this.socket && this.connected && channelId) {
+        
+        // Use global socket manager if available
+        if (this.globalSocketManager && this.globalSocketManager.isReady() && channelId) {
+            if (this.globalSocketManager.socket) {
+                this.globalSocketManager.socket.emit('stop-typing', { channelId });
+            }
+        } else if (this.socket && this.connected && channelId) {
             this.socket.emit('stop-typing', { channelId });
         }
     }
@@ -1011,23 +1167,45 @@ class MisVordMessaging {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 Document ready - initializing MisVord messaging...');
+    console.log('🚀 Document ready - checking messaging initialization...');
 
-    try {
-        if (!window.MisVordMessaging || !window.MisVordMessaging.initialized) {
-            console.log('Creating new MisVordMessaging instance or initializing existing one');
-            if (!window.MisVordMessaging) {
-                window.MisVordMessaging = new MisVordMessaging();
-            }
-            window.MisVordMessaging.init();
-            window.MisVordMessaging.initialized = true;
-            console.log('✅ MisVordMessaging initialized');
+    // Wait for global socket manager to be available before initializing messaging
+    const waitForGlobalSocket = () => {
+        if (window.globalSocketManager || window.globalSocketManager === null) {
+            console.log('Global socket manager available, initializing messaging...');
+            initializeMessaging();
         } else {
-            console.log('✅ MisVordMessaging already initialized - skipping');
+            console.log('Waiting for global socket manager...');
+            setTimeout(waitForGlobalSocket, 100);
         }
-    } catch (error) {
-        console.error('❌ Failed to initialize MisVordMessaging:', error);
-    }
+    };
+
+    const initializeMessaging = () => {
+        try {
+            if (!window.MisVordMessaging || !window.MisVordMessaging.initialized) {
+                console.log('Creating new MisVordMessaging instance or initializing existing one');
+                if (!window.MisVordMessaging) {
+                    window.MisVordMessaging = new MisVordMessaging();
+                }
+                window.MisVordMessaging.init();
+                window.MisVordMessaging.initialized = true;
+                console.log('✅ MisVordMessaging initialized');
+            } else {
+                console.log('✅ MisVordMessaging already initialized - skipping');
+            }
+        } catch (error) {
+            console.error('❌ Failed to initialize MisVordMessaging:', error);
+        }
+    };
+
+    // Listen for global socket ready event
+    window.addEventListener('misVordGlobalReady', () => {
+        console.log('📡 Global socket ready, ensuring messaging is initialized');
+        initializeMessaging();
+    });
+
+    // Start waiting for global socket manager
+    waitForGlobalSocket();
 });
 
 if (document.readyState !== 'loading') {
@@ -1046,7 +1224,7 @@ if (document.readyState !== 'loading') {
                 console.error('❌ Failed immediate initialization:', error);
             }
         }
-    }, 100);
+    }, 500); // Give more time for global socket manager to be ready
 }
 
 export { MisVordMessaging };

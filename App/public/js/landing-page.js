@@ -1,7 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM Content Loaded - Starting initialization');
     
-    // Check if elements exist first
     const scrambleTextElements = document.querySelectorAll('.scramble-text');
     console.log('Found scramble text elements:', scrambleTextElements.length);
     scrambleTextElements.forEach(el => {
@@ -12,12 +11,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const chatContainer = document.getElementById('chatContainer');
     console.log('Chat container found:', !!chatContainer);
     
-    // Force initialization immediately without waiting for fonts
     initScrollAnimations();
     initHeroAnimations();
     initMockupAnimations();
     
-    // Initialize scramble text and chat immediately
     console.log('Initializing scramble text...');
     initScrambleText();
     
@@ -26,14 +23,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     initInteractiveElements();
     
-    // Also try to initialize after a small delay to ensure DOM is fully ready
     setTimeout(() => {
         console.log('Delayed initialization...');
         initScrambleText();
         initLiveChatSimulation();
     }, 1000);
     
-    // Wait for fonts to load before starting animations as a backup
     document.fonts.ready.then(() => {
         console.log('Fonts loaded, starting animations');
         initScrambleText();
@@ -139,7 +134,6 @@ function initScrambleText() {
         
         const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?▓▒░█▄▀◤◥◢◣";
 
-        // Force visibility and clear element
         element.style.display = 'inline-block';
         element.style.opacity = '1';
         element.style.visibility = 'visible';
@@ -148,7 +142,6 @@ function initScrambleText() {
 
         const spans = [];
 
-        // Create spans for each character
         for (let i = 0; i < originalText.length; i++) {
             const span = document.createElement('span');
             span.className = 'char';
@@ -179,7 +172,6 @@ function initScrambleText() {
         element.classList.add('initialized');
         console.log('Created spans:', spans.length);
 
-        // Start animation immediately
         setTimeout(() => {
             console.log('Starting scramble animation for element', index);
             startScrambleAnimation(spans, chars, originalText);

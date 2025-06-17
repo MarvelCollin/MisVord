@@ -1,5 +1,6 @@
 import { showToast } from './core/toast.js';
 import { MisVordAjax } from './core/ajax-handler.js';
+import { GlobalSocketManager } from './core/global-socket-manager.js';
 
 import * as Components from './components/index.js';
 
@@ -7,7 +8,7 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('MisVord application initialized');
 
     initGlobalUI();
-
+    initGlobalSocketManager();
     initPageSpecificComponents();
 });
 
@@ -98,6 +99,112 @@ window.misvord = {
     toggleDropdown,
     autosizeTextarea
 };
+
+/**
+ * Initialize the global socket manager for real-time features
+ * This will be called on every page load to establish WebSocket connection
+ * for authenticated users and track all user activity globally
+ */
+function initGlobalSocketManager() {
+    console.log('🌐 Initializing global socket manager...');
+
+    // Get user data from the page
+    const userData = getUserDataFromPage();
+    
+    if (userData && userData.user_id) {
+        console.log('👤 User authenticated, initializing socket connection for:', userData.username);
+        
+        // Create global socket manager instance
+        const socketManager = new GlobalSocketManager();
+        
+        // Initialize with user data
+        socketManager.init(userData);
+        
+        // Make it available globally for other components
+        window.globalSocketManager = socketManager;
+        
+        // Listen for global socket events
+        window.addEventListener('globalSocketReady', function(event) {
+            console.log('✅ Global socket manager ready:', event.detail);
+            
+            // Dispatch custom event for other components
+            window.dispatchEvent(new CustomEvent('misVordGlobalReady', {
+                detail: { socketManager: event.detail.manager }
+            }));
+        });
+        
+    } else {
+        console.log('👤 Guest user detected, socket connection disabled');
+        
+        // Still create a minimal instance for API compatibility, but it won't connect
+        const socketManager = new GlobalSocketManager();
+        window.globalSocketManager = socketManager;
+    }
+}
+
+/**
+ * Extract user data from the current page
+ * This looks for user data in various places (meta tags, data attributes, etc.)
+ */
+function getUserDataFromPage() {
+    let userData = null;
+    
+    // Method 1: Look for data attributes on body or html
+    const bodyUserId = document.body.getAttribute('data-user-id');
+    const bodyUsername = document.body.getAttribute('data-username');
+    
+    if (bodyUserId && bodyUsername) {
+        userData = {
+            user_id: bodyUserId,
+            username: bodyUsername
+        };
+    }
+    
+    // Method 2: Look for meta tags
+    if (!userData) {
+        const userIdMeta = document.querySelector('meta[name="user-id"]');
+        const usernameMeta = document.querySelector('meta[name="username"]');
+        
+        if (userIdMeta && usernameMeta) {
+            userData = {
+                user_id: userIdMeta.content,
+                username: usernameMeta.content
+            };
+        }
+    }
+    
+    // Method 3: Look for hidden inputs or data elements
+    if (!userData) {
+        const socketData = document.getElementById('socket-data');
+        if (socketData) {
+            const userId = socketData.getAttribute('data-user-id');
+            const username = socketData.getAttribute('data-username');
+            
+            if (userId && username) {
+                userData = {
+                    user_id: userId,
+                    username: username
+                };
+            }
+        }
+    }
+    
+    // Method 4: Look for hidden form inputs
+    if (!userData) {
+        const userIdInput = document.querySelector('input[data-user-id]');
+        const usernameInput = document.querySelector('input[data-username]');
+        
+        if (userIdInput && usernameInput) {
+            userData = {
+                user_id: userIdInput.getAttribute('data-user-id'),
+                username: usernameInput.getAttribute('data-username')
+            };
+        }
+    }
+    
+    console.log('🔍 User data extracted from page:', userData);
+    return userData;
+}
 
 export {
     showToast,

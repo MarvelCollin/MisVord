@@ -7,36 +7,29 @@ if (!function_exists('asset')) {
     require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
 }
 
-// Use controller to handle business logic
 require_once dirname(dirname(__DIR__)) . '/controllers/SettingsController.php';
 $settingsController = new SettingsController();
 $settingsData = $settingsController->prepareSettingsData();
 
-// Extract data for the view
 $server = $settingsData['server'];
 $channel = $settingsData['channel'];
 $serverId = $settingsData['serverId'];
 $channelId = $settingsData['channelId'];
 $section = $settingsData['section'];
 
-// Page configuration
 $page_title = 'misvord - Channel Settings';
 $body_class = 'bg-discord-dark text-white';
 $page_css = 'settings-page';
 $page_js = 'settings-page';
 $additional_js = ['server-dropdown.js'];
 
-// Start output buffering
 ob_start();
 ?>
 
 <div class="flex min-h-screen">
-    <!-- Side Navigation -->
     <?php include dirname(dirname(__DIR__)) . '/views/components/app-sections/server-sidebar.php'; ?>
     
-    <!-- Main Content -->
     <div class="flex-1 flex">
-        <!-- Settings Sidebar -->
         <div class="w-64 bg-discord-light border-r border-discord-dark">
             <div class="p-4 border-b border-discord-dark">
                 <?php if ($channel): ?>

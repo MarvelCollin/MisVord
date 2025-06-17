@@ -13,14 +13,17 @@ $additional_js = array_filter($additional_js, function($script) {
 });
 
 // Define base/core scripts that should be loaded on every page
-$core_scripts = ['core/toast', 'core/ajax-handler'];
+$core_scripts = ['core/toast', 'core/ajax-handler', 'core/global-socket-manager'];
 ?>
 
 <!-- Vendor JS -->
 <!-- Load Socket.IO first as non-module script to ensure it's available globally -->
 <script src="<?php echo js('socket.io.min'); ?>?v=<?php echo time(); ?>"></script>
 
-<!-- Core scripts -->
+<!-- Socket Status Utility (for debugging and monitoring) -->
+<script src="<?php echo js('utils/socket-status'); ?>?v=<?php echo time(); ?>"></script>
+
+<!-- Core scripts (modules) -->
 <script src="<?php echo js('main'); ?>?v=<?php echo time(); ?>" type="module"></script>
 
 <!-- Page specific scripts -->
@@ -29,7 +32,6 @@ $core_scripts = ['core/toast', 'core/ajax-handler'];
 <?php endforeach; ?>
 
 <script>
-    // Add any non-module scripts or inline code here
     document.addEventListener('DOMContentLoaded', function() {
         document.body.classList.add('page-loaded');
         

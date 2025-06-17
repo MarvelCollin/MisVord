@@ -69,8 +69,7 @@ window.DISABLE_MESSAGING = true;
             originalLog.apply(console, args);
         }
     };
-    
-    // Completely disable MisVordMessaging before it loads
+      // Completely disable MisVordMessaging before it loads
     Object.defineProperty(window, 'MisVordMessaging', {
         value: {
             init: () => false,
@@ -81,6 +80,30 @@ window.DISABLE_MESSAGING = true;
             log: () => {},
             trackError: () => {}
         },
+        writable: false,
+        configurable: false
+    });
+    
+    // Completely disable GlobalSocketManager before it loads
+    Object.defineProperty(window, 'GlobalSocketManager', {
+        value: {
+            init: () => false,
+            connect: () => false,
+            disconnect: () => false,
+            updatePresence: () => false,
+            trackActivity: () => false,
+            isReady: () => false,
+            getStatus: () => ({ isGuest: true, connected: false }),
+            error: () => {},
+            log: () => {}
+        },
+        writable: false,
+        configurable: false
+    });
+    
+    // Disable globalSocketManager instance
+    Object.defineProperty(window, 'globalSocketManager', {
+        value: null,
         writable: false,
         configurable: false
     });
@@ -488,16 +511,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 const scrambleBaseSpeed = 30; // Base time between scramble iterations
                 const scrambleRandomSpeed = 20; // Random additional time
                 
-                // Function to create advanced spark effect
                 function createAdvancedSpark(span, isBlast = false) {
                     const sparkCount = isBlast ? 20 + Math.floor(Math.random() * 15) : 5 + Math.floor(Math.random() * 5);
                     const rect = span.getBoundingClientRect();
                     const heroRect = heroTitle.getBoundingClientRect();
                     
-                    // Calculate position relative to the canvas
                     const x = rect.left + rect.width/2 - heroRect.left;
                     const y = rect.top + rect.height/2 - heroRect.top;
-                    // Get a color scheme
                     const colorScheme = colorSchemes[Math.floor(Math.random() * colorSchemes.length)];
                     
                     emitParticles(x, y, sparkCount, colorScheme.primary);

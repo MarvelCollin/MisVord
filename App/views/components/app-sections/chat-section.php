@@ -199,6 +199,7 @@ foreach ($channels as $channel) {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 Chat section initializing...');
 
+    // Basic debug info helper
     window.MisVordDebug = {
         initialized: false,
         messagingAvailable: false,
@@ -233,14 +234,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 initialized: this.initialized,
                 messagingAvailable: this.messagingAvailable,
                 socketAvailable: typeof io !== 'undefined',
+                globalSocketManager: !!window.globalSocketManager,
+                misVordMessaging: !!window.MisVordMessaging,
                 recentErrors: this.errors.slice(-5),
-                recentLogs: this.logs.slice(-10),
-                messaging: window.MisVordMessaging ? {
-                    connected: window.MisVordMessaging.connected,
-                    authenticated: window.MisVordMessaging.authenticated,
-                    activeChannel: window.MisVordMessaging.activeChannel,
-                    userId: window.MisVordMessaging.userId
-                } : null
+                recentLogs: this.logs.slice(-10)
             };
         }
     };
@@ -287,6 +284,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Create socket data element for the global socket manager and messaging system
     const channelId = '<?php echo htmlspecialchars($activeChannelId ?? ""); ?>';
     const userId = '<?php echo htmlspecialchars($currentUserId ?? ""); ?>';
     const username = '<?php echo htmlspecialchars($_SESSION['username'] ?? ""); ?>';
@@ -302,48 +300,32 @@ document.addEventListener('DOMContentLoaded', function() {
     document.body.appendChild(socketData);
     window.MisVordDebug.log('Socket data element created and added to DOM');
 
+    // Check WebSocket and global socket manager availability
     if (typeof io !== 'undefined') {
         window.MisVordDebug.log('Socket.IO is available');
-
-        let attempts = 0;
-        const maxAttempts = 10;
-
-        const checkMessaging = setInterval(() => {
-            attempts++;
-
-            if (window.MisVordMessaging) {
-                window.MisVordDebug.log('MisVordMessaging is available', { attempts });
-                window.MisVordDebug.messagingAvailable = true;
-                clearInterval(checkMessaging);
-
-                if (typeof window.MisVordMessaging.init === 'function') {
-                    try {
-                        window.MisVordMessaging.init();
-                        window.MisVordDebug.initialized = true;
-                        window.MisVordDebug.log('MisVordMessaging initialized successfully');
-                    } catch (error) {
-                        window.MisVordDebug.error('Failed to initialize MisVordMessaging', error);
-                    }
-                }
-            } else if (attempts >= maxAttempts) {
-                window.MisVordDebug.error('MisVordMessaging was never initialized after ' + maxAttempts + ' attempts');
-                clearInterval(checkMessaging);
-
-                if (typeof MisVordMessaging !== 'undefined') {
-                    try {
-                        window.MisVordMessaging = new MisVordMessaging();
-                        window.MisVordMessaging.init();
-                        window.MisVordDebug.log('MisVordMessaging manually created and initialized');
-                        window.MisVordDebug.messagingAvailable = true;
-                        window.MisVordDebug.initialized = true;
-                    } catch (error) {
-                        window.MisVordDebug.error('Failed to manually initialize MisVordMessaging', error);
-                    }
-                }
-            } else {
-                window.MisVordDebug.log('Waiting for MisVordMessaging... attempt ' + attempts + '/' + maxAttempts);
+        
+        // Listen for global socket manager ready event
+        window.addEventListener('misVordGlobalReady', function(event) {
+            window.MisVordDebug.log('Global socket manager is ready:', event.detail);
+            window.MisVordDebug.initialized = true;
+            
+            // Update status indicator
+            const socketStatus = document.querySelector('.socket-status');
+            if (socketStatus && event.detail.socketManager.isReady()) {
+                socketStatus.innerHTML = '<span class="text-green-500">•</span> <span class="ml-1">Connected</span>';
             }
-        }, 1000);
+        });
+
+        // Check if global socket manager is already available
+        if (window.globalSocketManager) {
+            window.MisVordDebug.log('Global socket manager already available');
+            window.MisVordDebug.initialized = true;
+            
+            const socketStatus = document.querySelector('.socket-status');
+            if (socketStatus && window.globalSocketManager.isReady()) {
+                socketStatus.innerHTML = '<span class="text-green-500">•</span> <span class="ml-1">Connected</span>';
+            }
+        }
 
     } else {
         window.MisVordDebug.error('Socket.IO not available - messaging disabled');
@@ -359,6 +341,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // Auto-scroll to bottom and setup scroll observer
     const messagesContainer = document.getElementById('chat-messages');
     if (messagesContainer) {
         const hasMessages = messagesContainer.querySelector('[id^="msg-"]');
@@ -369,8 +352,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 100);
         }
 
+        // Setup scroll observer for new messages
         const observer = new MutationObserver(() => {
-
             const isAtBottom = messagesContainer.scrollTop + messagesContainer.clientHeight >= messagesContainer.scrollHeight - 50;
             if (isAtBottom) {
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
