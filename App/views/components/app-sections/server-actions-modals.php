@@ -3,9 +3,8 @@
 // This component contains all the modals for server dropdown actions
 $serverId = isset($GLOBALS['currentServer']) ? $GLOBALS['currentServer']->id : 0;
 
-// Get categories for the server for dropdown in channel creation
-require_once __DIR__ . '/../../../database/models/Category.php';
-$categories = Category::getForServer($serverId);
+// Get categories from GLOBALS (should be set by controller)
+$categories = $GLOBALS['serverCategories'] ?? [];
 ?>
 
 <!-- Animation Styles for Modals -->

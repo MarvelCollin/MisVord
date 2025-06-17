@@ -121,4 +121,42 @@ class ExploreController extends BaseController {
             'userServerIds' => $userServerId
         ];
     }
+
+    public function prepareExploreData()
+    {
+        // Check authentication
+        if (!isset($_SESSION['user_id'])) {
+            header('Location: /login');
+            exit;
+        }
+
+        $currentUserId = $_SESSION['user_id'];
+
+        // Load user's servers for the sidebar
+        require_once dirname(__DIR__) . '/database/models/Server.php';
+        $userServers = Server::getFormattedServersForUser($currentUserId);
+        $GLOBALS['userServers'] = $userServers;
+
+        // Get servers data
+        $allServersData = $this->getPublicServers();
+        $featuredServersData = $this->getFeaturedServers(3);
+
+        $categories = [
+            'gaming' => 'Gaming',
+            'music' => 'Music',
+            'education' => 'Education',
+            'science' => 'Science & Tech',
+            'entertainment' => 'Entertainment',
+            'community' => 'Community'
+        ];
+
+        return [
+            'userServers' => $userServers,
+            'servers' => $allServersData['servers'],
+            'userServerIds' => $allServersData['userServerIds'],
+            'featuredServers' => $featuredServersData['featuredServers'],
+            'categories' => $categories,
+            'currentUserId' => $currentUserId
+        ];
+    }
 }

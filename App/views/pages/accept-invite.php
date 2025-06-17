@@ -1,6 +1,6 @@
 <?php
 // Accept invite page
-$pageTitle = "Join Server - MiscVord";
+$page_title = "Join Server - MiscVord";
 
 // Check if we have server information
 $server = $GLOBALS['inviteServer'] ?? null;
@@ -14,65 +14,9 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Helper function to get asset URLs
-if (!function_exists('js')) {
-    function js($path) {
-        $path = rtrim($path, '.js');
-        return "/js/{$path}.js";
-    }
-}
-
-if (!function_exists('css')) {
-    function css($path) {
-        $path = rtrim($path, '.css');
-        return "/css/{$path}.css";
-    }
-}
+// Set up content for layout
+ob_start();
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $pageTitle; ?></title>
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        discord: {
-                            'blurple': '#5865F2',
-                            'dark': '#202225',
-                            'light': '#36393F',
-                            'gray': '#2F3136',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    
-    <!-- Global styles -->
-    <link rel="stylesheet" href="/css/global.css">
-    
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #202225;
-            color: white;
-        }
-    </style>
-</head>
-<body>
     <div class="min-h-screen bg-discord-dark flex flex-col">
         <!-- Top Navigation -->
         <nav class="bg-discord-light p-4">
@@ -146,9 +90,8 @@ if (!function_exists('css')) {
                         </div>
                         <h2 class="text-2xl font-bold text-white mb-2">Invalid Invite</h2>
                         <p class="text-gray-300">This invite may be expired, or you might not have permission to join.</p>
-                        
-                        <div class="mt-8">
-                            <a href="/app" class="bg-discord-blurple hover:bg-blue-600 text-white py-2 px-6 rounded-md transition duration-200">
+                          <div class="mt-8">
+                            <a href="/app" class="bg-discord-primary hover:bg-blue-600 text-white py-2 px-6 rounded-md transition duration-200">
                                 Back to App
                             </a>
                         </div>
@@ -157,9 +100,12 @@ if (!function_exists('css')) {
             </div>
         </div>
     </div>
+<?php
+$content = ob_get_clean();
 
-    <!-- JS scripts -->
-    <script src="/js/main.js"></script>
-    <script src="/js/pages/accept-invite.js"></script>
-</body>
-</html>
+// Set body class for the layout
+$body_class = 'bg-discord-dark text-white min-h-screen';
+
+// Include the main layout
+include dirname(__DIR__) . '/layout/main-app.php';
+?>

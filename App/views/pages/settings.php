@@ -7,37 +7,19 @@ if (!function_exists('asset')) {
     require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
 }
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: /login');
-    exit;
-}
+// Use controller to handle business logic
+require_once dirname(dirname(__DIR__)) . '/controllers/SettingsController.php';
+$settingsController = new SettingsController();
+$settingsData = $settingsController->prepareSettingsData();
 
-// Get the server ID, channel ID, and other details from URL parameters
-$serverId = $_GET['server_id'] ?? null;
-$channelId = $_GET['channel_id'] ?? null;
-$section = $_GET['section'] ?? 'overview';
+// Extract data for the view
+$server = $settingsData['server'];
+$channel = $settingsData['channel'];
+$serverId = $settingsData['serverId'];
+$channelId = $settingsData['channelId'];
+$section = $settingsData['section'];
 
-// Load server and channel data if IDs are provided
-$server = null;
-$channel = null;
-
-if ($serverId) {
-    require_once dirname(dirname(__DIR__)) . '/database/models/Server.php';
-    $server = Server::find($serverId);
-}
-
-if ($channelId) {
-    require_once dirname(dirname(__DIR__)) . '/database/models/Channel.php';
-    $channel = Channel::find($channelId);
-}
-
-// Redirect if server or channel not found
-if (!$server || ($channelId && !$channel)) {
-    header('Location: /home');
-    exit;
-}
-
-// Set page variables
+// Page configuration
 $page_title = 'misvord - Settings';
 $body_class = 'bg-discord-dark text-white';
 $page_css = 'settings-page';

@@ -28,18 +28,14 @@ $core_scripts = ['core/toast', 'core/ajax-handler'];
     <script src="<?php echo js(rtrim($script, '.js')); ?>?v=<?php echo time(); ?>" type="module"></script>
 <?php endforeach; ?>
 
-<!-- Include any non-module scripts that need to be loaded synchronously -->
 <script>
     // Add any non-module scripts or inline code here
     document.addEventListener('DOMContentLoaded', function() {
-        // Make body visible when everything is loaded
         document.body.classList.add('page-loaded');
         
-        // Listen for LazyLoader ready event
         function handleLazyLoaderReady() {
             console.log('✅ LazyLoader is available globally');
             
-            // Log all lazy-loaded elements
             const lazyElements = document.querySelectorAll('[data-lazyload]');
             console.log(`Found ${lazyElements.length} elements with data-lazyload attribute:`, 
                 Array.from(lazyElements).map(el => ({
@@ -50,17 +46,14 @@ $core_scripts = ['core/toast', 'core/ajax-handler'];
             );
         }
         
-        // Check if LazyLoader is already available
         if (window.LazyLoader) {
             handleLazyLoaderReady();
         } else {
-            // Listen for the LazyLoader ready event
             window.addEventListener('MainModulesReady', function(event) {
                 console.log('MainModulesReady event received');
                 handleLazyLoaderReady();
             });
             
-            // Fallback timeout in case events don't fire
             setTimeout(function() {
                 if (window.LazyLoader) {
                     console.log('✅ LazyLoader is available globally (fallback check)');
@@ -69,7 +62,7 @@ $core_scripts = ['core/toast', 'core/ajax-handler'];
                     console.error('❌ LazyLoader is NOT available globally - skeleton loading will not work');
                     console.log('Available global objects:', Object.keys(window).filter(key => key.includes('Lazy') || key.includes('Ajax')));
                 }
-            }, 2000); // Increased timeout as final fallback
+            }, 2000);
         }
     });
 </script>

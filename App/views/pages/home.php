@@ -7,31 +7,17 @@ if (!function_exists('asset')) {
     require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
 }
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: /login');
-    exit;
-}
+// Use controller to handle business logic
+require_once dirname(dirname(__DIR__)) . '/controllers/HomeController.php';
+$homeController = new HomeController();
+$homeData = $homeController->index();
 
-// Force load fresh server data for the current user (avoid caching issues)
-require_once dirname(dirname(__DIR__)) . '/database/models/Server.php';
-$currentUserId = $_SESSION['user_id'] ?? 0;
-log_debug("HOME.PHP - Loading servers for user", ['user_id' => $currentUserId]);
+// Extract data for the view
+$currentUserId = $homeData['currentUserId'];
+$userServers = $homeData['userServers'];
+$memberships = $homeData['memberships'];
 
-// Clear any previously loaded server data
-if (isset($GLOBALS['userServers'])) {
-    unset($GLOBALS['userServers']);
-    log_debug("HOME.PHP - Cleared existing server data from GLOBALS");
-}
-
-// Get fresh server data
-$GLOBALS['userServers'] = Server::getFormattedServersForUser($currentUserId);
-log_debug("HOME.PHP - Loaded servers for sidebar", ['count' => count($GLOBALS['userServers'])]);
-
-// Direct database check (debug only)
-$query = new Query();
-$memberships = $query->table('user_server_memberships')->where('user_id', $currentUserId)->get();
-log_debug("HOME.PHP - Direct query found memberships", ['count' => count($memberships)]);
-
+// Page configuration
 $page_title = 'misvord - Home';
 $body_class = 'bg-discord-dark text-white overflow-hidden';
 $page_css = 'home-page';

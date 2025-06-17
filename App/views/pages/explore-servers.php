@@ -7,41 +7,24 @@ if (!function_exists('asset')) {
     require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
 }
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: /login');
-    exit;
-}
-
+// Use controller to handle business logic
 require_once dirname(dirname(__DIR__)) . '/controllers/ExploreController.php';
-require_once dirname(dirname(__DIR__)) . '/database/models/Server.php';
+$exploreController = new ExploreController();
+$exploreData = $exploreController->prepareExploreData();
 
-// Load user's servers for the sidebar
-$currentUserId = $_SESSION['user_id'] ?? 0;
-$GLOBALS['userServers'] = Server::getFormattedServersForUser($currentUserId);
+// Extract data for the view
+$userServers = $exploreData['userServers'];
+$servers = $exploreData['servers'];
+$userServerId = $exploreData['userServerIds'];
+$featuredServers = $exploreData['featuredServers'];
+$categories = $exploreData['categories'];
 
+// Page configuration
 $page_title = 'misvord - Explore Servers';
 $body_class = 'bg-discord-dark text-white';
 $page_css = 'explore-servers';
 $page_js = 'explore-servers';
 $additional_js = ['server-dropdown.js'];
-
-// Get servers data from controller
-$exploreController = new ExploreController();
-$allServersData = $exploreController->getPublicServers();
-$featuredServersData = $exploreController->getFeaturedServers(3);
-
-$servers = $allServersData['servers'];
-$userServerId = $allServersData['userServerIds'];
-$featuredServers = $featuredServersData['featuredServers'];
-
-$categories = [
-    'gaming' => 'Gaming',
-    'music' => 'Music',
-    'education' => 'Education',
-    'science' => 'Science & Tech',
-    'entertainment' => 'Entertainment',
-    'community' => 'Community'
-];
 ?>
 
 <?php ob_start(); ?>

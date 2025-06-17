@@ -1,18 +1,15 @@
 <?php
-
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-
 
 if (!function_exists('asset')) {
     require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
 }
 
-
+// Determine authentication mode from URL
 $mode = 'login'; 
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-
 
 if ($path === '/register') {
     $mode = 'register';
@@ -20,138 +17,29 @@ if ($path === '/register') {
     $mode = 'forgot-password';
 }
 
-
+// Get flash messages and form data
 $errors = $_SESSION['errors'] ?? [];
 $oldInput = $_SESSION['old_input'] ?? [];
-
-
 $success = $_SESSION['success'] ?? null;
 
-
+// Clear flash data
 unset($_SESSION['errors'], $_SESSION['old_input'], $_SESSION['success']);
 
-
+// Page configuration
 $page_title = ucfirst($mode) . ' - misvord';
 $body_class = 'bg-[#202225] authentication-page overflow-hidden flex items-center justify-center min-h-screen';
-$additional_head = '<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">';
-
-
 $page_css = 'authentication-page';
 $page_js = 'authentication-page';
-
-// Add the AJAX required scripts
 $additional_js = ['main', 'pages/authentication-page'];
-
-// Add data-page attribute to identify the page for JavaScript
 $data_page = 'auth';
 
-
-ob_start();
-try {
-    
-    require_once dirname(dirname(__DIR__)) . '/database/query.php';
-    
-    
-    require_once dirname(dirname(__DIR__)) . '/config/env.php';
-    
-    
-    $dbHost = EnvLoader::get('DB_HOST', 'db');
-    $port = EnvLoader::get('DB_PORT', '3306');
-    $dbname = EnvLoader::get('DB_NAME', 'misvord');
-    $dsn = "mysql:host=" . $dbHost . ";port=" . $port . 
-           ";dbname=" . $dbname . ";charset=" . EnvLoader::get('DB_CHARSET', 'utf8mb4');
-    
-    
-    echo '<div class="bg-blue-500 text-white p-3 rounded-md mb-6 text-left overflow-auto max-h-36">';
-    echo '<strong>Database Connection Settings:</strong><br>';
-    echo 'Host: ' . $dbHost . '<br>';
-    echo 'Port: ' . $port . '<br>';
-    echo 'Database: ' . $dbname . '<br>'; 
-    echo 'User: ' . EnvLoader::get('DB_USER', 'root') . '<br>';
-    echo '</div>';
-    
-    
-    $options = [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        PDO::ATTR_EMULATE_PREPARES => false,
-        // Force TCP connection
-        PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4",
-        // Disable persistent connections
-        PDO::ATTR_PERSISTENT => false,
-    ];    
-    
-    $pdo = new PDO(
-        $dsn, 
-        EnvLoader::get('DB_USER', 'root'), 
-        EnvLoader::get('DB_PASS', 'kolin123'),
-        $options
-    );
-    
-    
-    $stmt = $pdo->query("SELECT 1 AS test_connection");
-    $result = $stmt->fetch(PDO::FETCH_ASSOC);
-    $stmt->closeCursor(); 
-    
-    echo '<div class="bg-green-500 text-white p-3 rounded-md mb-6 text-center">
-        Database connection successful! Server: ' . $pdo->getAttribute(PDO::ATTR_SERVER_VERSION) . '
-    </div>';
-    
-    
-    require_once dirname(dirname(__DIR__)) . '/database/models/User.php';
-    $tableExists = User::createTable();
-    
-    echo '<div class="bg-green-500 text-white p-3 rounded-md mb-6 text-center">
-        User table ' . ($tableExists ? 'exists' : 'creation attempted') . '!
-    </div>';
-    
-} catch (PDOException $e) {
-    echo '<div class="bg-red-500 text-white p-3 rounded-md mb-6 text-left overflow-auto max-h-64">';
-    echo '<strong>Database Error:</strong><br>';
-    echo 'Error Code: ' . $e->getCode() . '<br>';
-    echo 'Message: ' . $e->getMessage() . '<br>';
-    
-    
-    switch ($e->getCode()) {
-        case 1049:
-            echo '<br><strong>Hint:</strong> Database "' . EnvLoader::get('DB_NAME', 'misvord') . '" does not exist. Create it using:<br>';
-            echo '<code>CREATE DATABASE ' . EnvLoader::get('DB_NAME', 'misvord') . ';</code>';
-            break;
-        case 1045:
-            echo '<br><strong>Hint:</strong> Access denied. Check username and password.';
-            break;
-        case 2002:
-            echo '<br><strong>Hint:</strong> Cannot connect to MySQL server. Is it running?';
-            break;
-    }
-    
-    echo '</div>';
-} catch (Exception $e) {
-    echo '<div class="bg-red-500 text-white p-3 rounded-md mb-6 text-left overflow-auto max-h-64">';
-    echo '<strong>General Error:</strong><br>';
-    echo 'Type: ' . get_class($e) . '<br>';
-    echo 'Message: ' . $e->getMessage() . '<br>';
-    echo 'File: ' . $e->getFile() . ' (Line ' . $e->getLine() . ')<br>';
-    echo '</div>';
-}
-
-$debugInfo = ob_get_clean();
-
-
-
-$GLOBALS['debugInfo'] = $debugInfo;
-
-
-try {
-    
-    require_once dirname(dirname(__DIR__)) . '/database/query.php';
-    require_once dirname(dirname(__DIR__)) . '/database/models/User.php';
-    User::initialize();
-} catch (Exception $e) {
-    
-    log_error("Error initializing database", ['error' => $e->getMessage()]);
+// Get debug info if needed (only in development mode)
+$debugInfo = '';
+if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
+    require_once dirname(dirname(__DIR__)) . '/controllers/DebugController.php';
+    $debugController = new DebugController();
+    $debugInfo = $debugController->getDatabaseDebugInfo();
+    $debugController->initializeDatabase();
 }
 ?>
 

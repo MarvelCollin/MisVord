@@ -1,24 +1,18 @@
 <?php
+// Get data from global scope (set by controller)
 $currentUserId = $_SESSION['user_id'] ?? 0;
 $servers = $GLOBALS['userServers'] ?? [];
 
-log_debug("SERVER-SIDEBAR.PHP - User and servers", [
-    'user_id' => $currentUserId,
-    'servers_count' => count($servers),
-    'servers_data' => $servers
-]);
-
+// If no servers loaded and we have a user ID, try to load them
 if (empty($servers) && $currentUserId) {
-    log_debug("No servers found in GLOBALS, fetching directly from Server model");
-    require_once dirname(dirname(dirname(__DIR__))) . '/database/models/Server.php';
-    $servers = Server::getFormattedServersForUser($currentUserId);
-    log_debug("Directly fetched servers", ['count' => count($servers)]);
+    log_warning("No servers found in GLOBALS for user", ['user_id' => $currentUserId]);
 }
 
 $currentServerId = isset($currentServer) ? $currentServer->id : null;
 $currentPath = $_SERVER['REQUEST_URI'] ?? '';
 $isHomePage = !str_contains($currentPath, '/server/');
 
+// Include tooltip component
 $tooltipPath = dirname(dirname(__DIR__)) . '/components/common/tooltip.php';
 if (file_exists($tooltipPath)) {
     require_once $tooltipPath;

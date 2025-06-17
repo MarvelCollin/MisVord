@@ -497,19 +497,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Calculate position relative to the canvas
                     const x = rect.left + rect.width/2 - heroRect.left;
                     const y = rect.top + rect.height/2 - heroRect.top;
-                    
                     // Get a color scheme
                     const colorScheme = colorSchemes[Math.floor(Math.random() * colorSchemes.length)];
                     
-                    // Emit particles
                     emitParticles(x, y, sparkCount, colorScheme.primary);
                 }
                 
-                // Create a wave animation that moves through the text
                 function animateTextWave() {
                     const nonSpaceSpans = spans.filter(span => !span.classList.contains('space'));
-                    const totalDuration = 3000; // Total wave duration in ms
-                    const waveWidth = 4; // How many characters the wave affects at once
+                    const totalDuration = 3000; 
+                    const waveWidth = 4; 
                     
                     function animateWave() {
                         const now = Date.now();
@@ -524,10 +521,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             const wavePosition = progress * (nonSpaceSpans.length + waveWidth) - waveWidth/2;
                             
                             nonSpaceSpans.forEach((span, idx) => {
-                                // Calculate how close this character is to the wave center
                                 const distanceFromWave = Math.abs(idx - wavePosition);
                                 if (distanceFromWave < waveWidth/2) {
-                                    // This character is in the wave
                                     const waveIntensity = 1 - (distanceFromWave / (waveWidth/2));
                                     
                                     const scheme = colorSchemes[Math.floor(Math.random() * colorSchemes.length)];
@@ -535,7 +530,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                     span.style.textShadow = `0 0 10px ${scheme.glow}, 0 0 20px ${scheme.glow}`;
                                     span.style.transform = `translateY(${-5 * waveIntensity}px) scale(${1 + 0.2 * waveIntensity})`;
                                 } else {
-                                    // Reset characters outside the wave
                                     if (!span.matches(':hover') && span.dataset.isGlitching !== 'true') {
                                         span.style.color = '#FFFFFF';
                                         span.style.textShadow = '0 0 5px rgba(255, 255, 255, 0.3)';

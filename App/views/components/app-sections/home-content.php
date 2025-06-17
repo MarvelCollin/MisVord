@@ -1,12 +1,7 @@
 <?php
-require_once __DIR__ . '/../../../controllers/FriendController.php';
-
-$friendController = new FriendController();
-$friendData = $friendController->getUserFriends();
-
-$currentUser = $friendData['currentUser'];
-$friends = $friendData['friends'];
-$onlineFriends = $friendData['onlineFriends'];
+$currentUser = $GLOBALS['currentUser'] ?? null;
+$friends = $GLOBALS['friends'] ?? [];
+$onlineFriends = $GLOBALS['onlineFriends'] ?? [];
 ?>
 
 <div class="flex-1 p-4 overflow-y-auto bg-discord-background">

@@ -1,6 +1,4 @@
 <?php
-require_once __DIR__ . '/../../../controllers/ChannelController.php';
-
 if (!isset($currentServer) || empty($currentServer)) {
     return;
 }
@@ -9,39 +7,17 @@ $currentServerId = $currentServer->id ?? 0;
 $currentUserId = $_SESSION['user_id'] ?? 0;
 $activeChannelId = $_GET['channel'] ?? null;
 
+$channels = $GLOBALS['serverChannels'] ?? [];
+$categories = $GLOBALS['serverCategories'] ?? [];
+
 $debugMode = isset($_GET['debug']) && $_GET['debug'] === 'true';
-
-$channelController = new ChannelController();
-$channelData = $channelController->getServerChannels($currentServerId);
-
-$channels = $channelData['channels'] ?? [];
-$categories = $channelData['categories'] ?? [];
-
 if ($debugMode) {
     echo '<div style="background-color: #111; color: #0f0; padding: 10px; margin: 10px; border: 1px solid #0f0; font-family: monospace; font-size: 12px; position: fixed; top: 10px; left: 10px; z-index: 9999; max-width: 90%; max-height: 80%; overflow: auto;">';
     echo '<h3>Channel Debug Info:</h3>';
-
-    echo '<h4>Raw Channel Data from DB:</h4>';
-    echo '<pre>' . print_r($channels, true) . '</pre>';
-
-    echo '<h4>Processed Channel Types:</h4>';
-    echo '<ul>';
-    foreach ($channels as $channel) {
-        $type = isset($channel['type']) ? $channel['type'] : 'undefined';
-        $typeName = isset($channel['type_name']) ? $channel['type_name'] : 'undefined';
-        $channelType = getChannelType($channel);
-        $icon = getChannelIcon($channelType);
-
-        echo '<li>';
-        echo htmlspecialchars($channel['name']) . ' - ';
-        echo 'DB type: [' . htmlspecialchars($type) . '] - ';
-        echo 'type_name: [' . htmlspecialchars($typeName) . '] - ';
-        echo 'Resolved type: [' . htmlspecialchars($channelType) . '] - ';
-        echo 'Icon: [' . htmlspecialchars($icon) . ']';
-        echo '</li>';
-    }
-    echo '</ul>';
-
+    echo '<h4>Channels Count:</h4>';
+    echo '<p>Total channels: ' . count($channels) . '</p>';
+    echo '<h4>Categories Count:</h4>';
+    echo '<p>Total categories: ' . count($categories) . '</p>';
     echo '<button onclick="this.parentNode.style.display=\'none\'" style="background: #333; color: white; border: none; padding: 5px 10px; margin-top: 10px; cursor: pointer;">Close Debug Panel</button>';
     echo '</div>';
 }

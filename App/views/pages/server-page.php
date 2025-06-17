@@ -1,12 +1,4 @@
 <?php
-// Load logger if available
-if (file_exists(dirname(dirname(__DIR__)) . '/utils/AppLogger.php')) {
-    require_once dirname(dirname(__DIR__)) . '/utils/AppLogger.php';
-    if (function_exists('logger')) {
-        logger()->debug("Server page loaded");
-    }
-}
-
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -20,6 +12,7 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
+// Page configuration
 $page_title = 'MisVord - Server';
 $body_class = 'bg-discord-dark text-white overflow-hidden';
 $page_css = 'server-page';
@@ -37,21 +30,13 @@ $contentType = 'server';
 $currentServer = $GLOBALS['currentServer'] ?? null;
 $data_page = 'server';
 
-if (isset($GLOBALS['currentServer'])) {
-    if (function_exists('logger')) {
-        logger()->debug("Current server data", [
-            'id' => $GLOBALS['currentServer']->id,
-            'name' => $GLOBALS['currentServer']->name
-        ]);
-    }
+// Log server information if available
+if (isset($GLOBALS['currentServer'])) {    log_debug("Current server data", [
+        'id' => $GLOBALS['currentServer']->id,
+        'name' => $GLOBALS['currentServer']->name
+    ]);
 } else {
-    if (function_exists('logger')) {
-        logger()->warning("No current server set in GLOBALS");        
-        // Check if coming from a route parameter
-        if (isset($params['id'])) {
-            logger()->debug("Server ID from route params", ['server_id' => $params['id']]);
-        }
-    }
+    log_warning("No current server set in GLOBALS");
 }
 ?>
 
