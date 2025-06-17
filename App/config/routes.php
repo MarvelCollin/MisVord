@@ -179,6 +179,18 @@ Route::get('/health', function() {
     ]);
 });
 
+// Debug logs route (only in development)
+Route::get('/debug/logs', function() {
+    if (EnvLoader::get('APP_ENV') === 'production') {
+        http_response_code(404);
+        echo "Not found";
+        return;
+    }
+    
+    require_once __DIR__ . '/../public/debug-logs.html';
+    exit;
+});
+
 return array_merge(Route::getRoutes(), [
     '404' => 'pages/404.php'
 ]);

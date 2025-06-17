@@ -17,8 +17,16 @@ class Query {
     private $unionQueries = [];
     private $raw = [];
       public function __construct($pdo = null) {
+        // Load logger if available
+        if (file_exists(__DIR__ . '/../utils/AppLogger.php')) {
+            require_once __DIR__ . '/../utils/AppLogger.php';
+        }
+        
         if ($pdo) {
             $this->pdo = $pdo;
+            if (function_exists('logger')) {
+                logger()->debug("Query: Using provided PDO connection");
+            }
         } else {
             try {
                 require_once __DIR__ . '/../config/env.php';
@@ -31,6 +39,15 @@ class Query {
                 $charset = EnvLoader::get('DB_CHARSET', 'utf8mb4');
 
                 $dsn = "mysql:host={$dbHost};port={$port};dbname={$dbname};charset={$charset}";
+
+                if (function_exists('logger')) {
+                    logger()->debug("Connecting to database", [
+                        'host' => $dbHost,
+                        'port' => $port,
+                        'database' => $dbname,
+                        'charset' => $charset
+                    ]);
+                }
 
                 $options = [
                     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
@@ -46,12 +63,37 @@ class Query {
                 $result = $stmt->fetch();
 
                 if ($result['current_db'] !== $dbname) {
-                    throw new PDOException("Connected to wrong database: {$result['current_db']}, expected: $dbname");
+                    $error = "Connected to wrong database: {$result['current_db']}, expected: $dbname";
+                    if (function_exists('logger')) {
+                        logger()->error("Database connection error: $error");
+                    }
+                    throw new PDOException($error);
+                }
+
+                if (function_exists('logger')) {
+                    logger()->info("Database connected successfully", [
+                        'database' => $result['current_db']
+                    ]);
                 }
 
             } catch (PDOException $e) {
-                error_log("Database connection failed: " . $e->getMessage());
-                error_log("Connection details: host=$dbHost, port=$port, dbname=$dbname, user=$username");
+                if (function_exists('logger')) {
+                    logger()->error("Database connection failed", [
+                        'error' => $e->getMessage(),
+                        'host' => $dbHost,
+                        'port' => $port,
+                        'database' => $dbname,
+                        'user' => $username
+                    ]);
+                } else {
+                    log_error("Database connection failed", [
+                        'error' => $e->getMessage(),
+                        'host' => $dbHost,
+                        'port' => $port,
+                        'database' => $dbname,
+                        'user' => $username
+                    ]);
+                }
                 die("Database connection failed: " . $e->getMessage());
             }
         }
@@ -278,7 +320,10 @@ class Query {
             return $this;
         } catch (PDOException $e) {
 
-            error_log("Database error: " . $e->getMessage());
+            log_error("Database error in query", [
+                'error' => $e->getMessage(),
+                'query' => $sql
+            ]);
             return $this;
         }
     }
@@ -290,24 +335,71 @@ class Query {
             $stmt->closeCursor(); 
             return $results;
         } catch (PDOException $e) {
-            error_log("Database error in rawQuery: " . $e->getMessage());
+            log_error("Database error in rawQuery", [
+                'error' => $e->getMessage(),
+                'query' => $sql
+            ]);
             return [];
         }
     }
 
     public function get() {
+        $startTime = microtime(true);
         $query = $this->buildSelectQuery();
-        $stmt = $this->pdo->prepare($query);
-        $this->execute($stmt, $this->bindings);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        try {
+            $stmt = $this->pdo->prepare($query);
+            $this->execute($stmt, $this->bindings);
+            $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            if (function_exists('logger')) {
+                $duration = microtime(true) - $startTime;
+                logger()->dbQuery($query, $duration, null, [
+                    'bindings' => $this->bindings,
+                    'result_count' => count($result)
+                ]);
+            }
+            
+            return $result;
+        } catch (Exception $e) {
+            if (function_exists('logger')) {
+                $duration = microtime(true) - $startTime;
+                logger()->dbQuery($query, $duration, $e->getMessage(), [
+                    'bindings' => $this->bindings
+                ]);
+            }
+            throw $e;
+        }
     }
 
     public function first() {
+        $startTime = microtime(true);
         $this->limit(1);
         $query = $this->buildSelectQuery();
-        $stmt = $this->pdo->prepare($query);
-        $this->execute($stmt, $this->bindings);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        try {
+            $stmt = $this->pdo->prepare($query);
+            $this->execute($stmt, $this->bindings);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (function_exists('logger')) {
+                $duration = microtime(true) - $startTime;
+                logger()->dbQuery($query, $duration, null, [
+                    'bindings' => $this->bindings,
+                    'found' => $result !== false
+                ]);
+            }
+            
+            return $result;
+        } catch (Exception $e) {
+            if (function_exists('logger')) {
+                $duration = microtime(true) - $startTime;
+                logger()->dbQuery($query, $duration, $e->getMessage(), [
+                    'bindings' => $this->bindings
+                ]);
+            }
+            throw $e;
+        }
     }
 
     public function find($id) {
@@ -375,6 +467,7 @@ class Query {
     }
 
     public function insert(array $data) {
+        $startTime = microtime(true);
         $columns = array_keys($data);
         $values = array_values($data);
         $columnsList = '`' . implode('`, `', $columns) . '`';
@@ -382,14 +475,32 @@ class Query {
 
         $query = "INSERT INTO {$this->table} ($columnsList) VALUES ($placeholders)";
 
-        $stmt = $this->pdo->prepare($query);
-        $this->execute($stmt, $values);
+        try {
+            $stmt = $this->pdo->prepare($query);
+            $this->execute($stmt, $values);
+            $insertId = $stmt->rowCount() > 0 ? $this->pdo->lastInsertId() : false;
 
-        if ($stmt->rowCount() > 0) {
-            return $this->pdo->lastInsertId();
+            if (function_exists('logger')) {
+                $duration = microtime(true) - $startTime;
+                logger()->dbQuery($query, $duration, null, [
+                    'table' => $this->table,
+                    'data' => $data,
+                    'insert_id' => $insertId,
+                    'affected_rows' => $stmt->rowCount()
+                ]);
+            }
+
+            return $insertId;
+        } catch (Exception $e) {
+            if (function_exists('logger')) {
+                $duration = microtime(true) - $startTime;
+                logger()->dbQuery($query, $duration, $e->getMessage(), [
+                    'table' => $this->table,
+                    'data' => $data
+                ]);
+            }
+            throw $e;
         }
-
-        return false;
     }
 
     public function insertBatch(array $data) {
@@ -495,7 +606,11 @@ class Query {
             $this->execute($stmt, [$column]);
             return $stmt->rowCount() > 0;
         } catch (PDOException $e) {
-            error_log("Error checking if column exists: " . $e->getMessage());
+            log_error("Error checking if column exists", [
+                'error' => $e->getMessage(),
+                'table' => $table,
+                'column' => $column
+            ]);
             return false;
         }
     }
@@ -505,7 +620,10 @@ class Query {
             $stmt = $this->pdo->query($sql);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
-            error_log("Error executing raw query: " . $e->getMessage());
+            log_error("Error executing raw query", [
+                'error' => $e->getMessage(),
+                'query' => $sql
+            ]);
             return [];
         }
     }
@@ -529,7 +647,9 @@ class Query {
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
             }
-            error_log("Transaction error: " . $e->getMessage());
+            log_error("Transaction error", [
+                'error' => $e->getMessage()
+            ]);
             throw $e;
         }
     }
@@ -680,7 +800,9 @@ class Query {
             $this->getPdo();
             return true;
         } catch (PDOException $e) {
-            error_log("Database connection test failed: " . $e->getMessage());
+            log_error("Database connection test failed", [
+                'error' => $e->getMessage()
+            ]);
             return false;
         }
     }

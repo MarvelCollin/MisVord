@@ -2,15 +2,17 @@
 $currentUserId = $_SESSION['user_id'] ?? 0;
 $servers = $GLOBALS['userServers'] ?? [];
 
-error_log("SERVER-SIDEBAR.PHP - User ID: $currentUserId");
-error_log("SERVER-SIDEBAR.PHP - Servers count: " . count($servers));
-error_log("SERVER-SIDEBAR.PHP - Servers data: " . json_encode($servers));
+log_debug("SERVER-SIDEBAR.PHP - User and servers", [
+    'user_id' => $currentUserId,
+    'servers_count' => count($servers),
+    'servers_data' => $servers
+]);
 
 if (empty($servers) && $currentUserId) {
-    error_log("No servers found in GLOBALS, fetching directly from Server model");
+    log_debug("No servers found in GLOBALS, fetching directly from Server model");
     require_once dirname(dirname(dirname(__DIR__))) . '/database/models/Server.php';
     $servers = Server::getFormattedServersForUser($currentUserId);
-    error_log("Directly fetched servers count: " . count($servers));
+    log_debug("Directly fetched servers", ['count' => count($servers)]);
 }
 
 $currentServerId = isset($currentServer) ? $currentServer->id : null;
@@ -86,10 +88,11 @@ if (file_exists($tooltipPath)) {
         ?>
     </div>
     
-    <?php 
-    error_log("Server sidebar debug - contentType: " . ($contentType ?? 'undefined') . 
-              ", currentServer: " . (isset($currentServer) ? 'set' : 'not set') .
-              ", currentServer type: " . (isset($currentServer) ? gettype($currentServer) : 'N/A'));
+    <?php    log_debug("Server sidebar debug", [
+        'contentType' => $contentType ?? 'undefined',
+        'currentServer' => isset($currentServer) ? 'set' : 'not set',
+        'currentServer_type' => isset($currentServer) ? gettype($currentServer) : 'N/A'
+    ]);
     ?>
     
     <?php if (isset($contentType) && $contentType === 'server' && isset($currentServer)): ?>

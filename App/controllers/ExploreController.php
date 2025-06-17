@@ -35,7 +35,7 @@ class ExploreController extends BaseController {
             }
 
         } catch (Exception $e) {
-            error_log("Error fetching public servers: " . $e->getMessage());
+            log_error("Error fetching public servers", ['error' => $e->getMessage()]);
             $servers = [];
             $userServerId = [];
         }
@@ -73,7 +73,7 @@ class ExploreController extends BaseController {
             }
 
         } catch (Exception $e) {
-            error_log("Error fetching featured servers: " . $e->getMessage());
+            log_error("Error fetching featured servers", ['error' => $e->getMessage()]);
             $featuredServers = [];
             $userServerId = [];
         }
@@ -111,7 +111,7 @@ class ExploreController extends BaseController {
             }
 
         } catch (Exception $e) {
-            error_log("Error fetching servers by category: " . $e->getMessage());
+            log_error("Error fetching servers by category", ['error' => $e->getMessage()]);
             $servers = [];
             $userServerId = [];
         }

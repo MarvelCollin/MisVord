@@ -187,20 +187,21 @@ class AuthenticationController extends BaseController {
             $user->username = $username;
             $user->email = $email;
             $user->setPassword($password);
-            $user->status = 'online';
-
-            error_log("Attempting to save user: " . json_encode([
+            $user->status = 'online';            log_debug("Attempting to save user", [
                 'username' => $username,
                 'email' => $email,
                 'status' => 'online'
-            ]));
+            ]);
 
             if (!$user->save()) {
-                error_log("Failed to save user - Save method returned false");
+                log_error("Failed to save user - Save method returned false");
                 throw new Exception("Failed to save user to database");
             }
 
-            error_log("User successfully registered: ID={$user->id}, Username={$user->username}");
+            log_info("User successfully registered", [
+                'user_id' => $user->id,
+                'username' => $user->username
+            ]);
             $_SESSION['success'] = "Registration successful! Welcome to misvord, {$user->username}!";
             $_SESSION['user_id'] = $user->id;
             $_SESSION['username'] = $user->username;
@@ -229,9 +230,10 @@ class AuthenticationController extends BaseController {
 
             header('Location: ' . $redirect);
             exit;
-        } catch (Exception $e) {
-            error_log('Registration error: ' . $e->getMessage());
-            error_log('Error details: ' . $e->getTraceAsString());
+        } catch (Exception $e) {            log_error("Registration error", [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
 
             $errorMessage = 'Registration failed: ' . $e->getMessage();
 

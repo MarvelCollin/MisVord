@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../query.php';
+require_once __DIR__ . '/../../utils/AppLogger.php';
 
 class Channel {
     public static $table = 'channels';
@@ -80,7 +81,7 @@ class Channel {
 
             return $channels;
         } catch (Exception $e) {
-            error_log("Channel::getByServerId error: " . $e->getMessage());
+            log_error("Channel::getByServerId error", ['message' => $e->getMessage()]);
             return [];
         }
     }
@@ -119,14 +120,14 @@ class Channel {
         $query = new Query();
 
         try {
-            error_log("Channel save() called with attributes: " . json_encode($this->attributes));
+            log_debug("Channel save() called", ['attributes' => $this->attributes]);
 
             if (isset($this->attributes['type']) && !is_numeric($this->attributes['type'])) {
                 $typeValue = strtolower($this->attributes['type']);
 
                 $this->attributes['type'] = $typeValue;
 
-                error_log("Using string type value: {$typeValue}");
+                log_debug("Using string type value", ['type_value' => $typeValue]);
             }
 
             foreach (['position', 'category_id', 'parent_id'] as $field) {
@@ -155,7 +156,10 @@ class Channel {
                 $id = $this->attributes['id'];
                 unset($this->attributes['id']);
 
-                error_log("Updating channel with ID: $id and attributes: " . json_encode($this->attributes));
+                log_debug("Updating channel", [
+                    'id' => $id,
+                    'attributes' => $this->attributes
+                ]);
 
                 try {
                     $result = $query->table(static::$table)
@@ -164,48 +168,53 @@ class Channel {
 
                     $this->attributes['id'] = $id;
 
-                    error_log("Update result: $result rows affected");
+                    log_debug("Update result", ['rows_affected' => $result]);
 
                     return $result >= 0; 
-                } catch (PDOException $e) {
-                    error_log("PDO Exception in Channel::save() update: " . $e->getMessage());
-                    error_log("SQL State: " . $e->getCode());
+                } catch (PDOException $e) {                    log_error("PDO Exception in Channel::save() update", [
+                        'message' => $e->getMessage(),
+                        'sql_state' => $e->getCode()
+                    ]);
                     throw $e; 
                 }
             } else {
 
-                error_log("Inserting new channel with attributes: " . json_encode($this->attributes));
+                log_debug("Inserting new channel", ['attributes' => $this->attributes]);
 
                 try {
                     $this->attributes['id'] = $query->table(static::$table)
                             ->insert($this->attributes);
 
-                    error_log("Insert result: New ID = {$this->attributes['id']}");
+                    log_debug("Insert result", ['new_id' => $this->attributes['id']]);
 
                     if (!$this->attributes['id']) {
-                        error_log("Insert failed - no ID returned");
+                        log_error("Insert failed - no ID returned");
                         return false;
                     }
 
                     return $this->attributes['id'] > 0;
-                } catch (PDOException $e) {
-                    error_log("PDO Exception in Channel::save() insert: " . $e->getMessage());
-                    error_log("SQL State: " . $e->getCode());
+                } catch (PDOException $e) {                    log_error("PDO Exception in Channel::save() insert", [
+                        'message' => $e->getMessage(),
+                        'sql_state' => $e->getCode()
+                    ]);
                     throw $e; 
                 }
-            }
-        } catch (Exception $e) {
-            error_log("Error in Channel::save(): " . $e->getMessage());
-            error_log("Stack trace: " . $e->getTraceAsString());
+            }        } catch (Exception $e) {
+            log_error("Error in Channel::save()", [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
 
             if ($e instanceof PDOException) {
-                error_log("PDO Error Code: " . $e->getCode());
-                error_log("SQL State: " . $e->errorInfo[0] ?? 'N/A');
-                error_log("Driver Error Code: " . $e->errorInfo[1] ?? 'N/A');
-                error_log("Driver Error Message: " . $e->errorInfo[2] ?? 'N/A');
+                log_error("PDO Error details", [
+                    'code' => $e->getCode(),
+                    'sql_state' => $e->errorInfo[0] ?? 'N/A',
+                    'driver_code' => $e->errorInfo[1] ?? 'N/A',
+                    'driver_message' => $e->errorInfo[2] ?? 'N/A'
+                ]);
             }
 
-            throw $e; 
+            return false; 
         }
     }
 

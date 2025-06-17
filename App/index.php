@@ -1,56 +1,26 @@
 <?php
 /**
  * Main Application Entry Point
- *
- * This file redirects all requests to the public/index.php file
- * which is the proper entry point for the application when using Apache.
+ * Redirects to public/index.php for proper web server setup
  */
 
-header("Permissions-Policy: autoplay=*");
+// Define APP_ROOT for the application
+define('APP_ROOT', __DIR__);
 
+// Check if we're being accessed directly (not through web server document root)
 if (php_sapi_name() !== 'cli-server' && 
     !isset($_SERVER['DOCUMENT_ROOT']) && 
     !preg_match('/\/public\/index.php$/', $_SERVER['SCRIPT_FILENAME'])) {
-
-    error_log("Main index.php accessed directly - redirecting to public/index.php");
-
-    define('APP_ROOT', __DIR__);
-
+    
+    // Redirect to proper entry point
     require_once __DIR__ . '/public/index.php';
 } else {
-
-    define('APP_ROOT', __DIR__);
-
+    // Normal application initialization
     if (session_status() === PHP_SESSION_NONE) {
         session_start();
     }
 
     // Initialize application configuration
-    require_once __DIR__ . '/config/app.php';
-
-    // Database tables are already created via migrations
-    // Table initialization has been moved to the migration system
-    // require_once __DIR__ . '/database/models/User.php';
-    // require_once __DIR__ . '/database/models/Server.php';
-    // require_once __DIR__ . '/database/models/UserServerMembership.php';
-    
-    // Initialize tables in the proper order to handle foreign key constraints
-    // User::initialize();
-    // Server::initialize();
-    // UserServerMembership::initialize();
-
-    // Application router
+    require_once __DIR__ . '/config/app.php';    // Application router
     require_once __DIR__ . '/router.php';
-
-    // Use headers to set context in global scope
-    header('X-App-Active: true');
-
-    // Set page identifier for JavaScript
-    $data_page = 'app';
-
-    Route::add('/', function() {
-        require_once 'controllers/AppController.php';
-        $controller = new AppController();
-        $controller->index();
-    });
 }

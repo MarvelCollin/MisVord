@@ -33,7 +33,7 @@ class WebSocketClient {
             
             return $this->broadcast($data['event'], $data['data']);
         } catch (Exception $e) {
-            error_log("WebSocketClient::sendMessage error: " . $e->getMessage());
+            log_error("WebSocketClient::sendMessage error", ['error' => $e->getMessage()]);
             return false;
         }
     }
@@ -63,12 +63,15 @@ class WebSocketClient {
             curl_close($ch);
             
             if ($this->debug) {
-                error_log("WebSocket broadcast response: $response (HTTP $httpCode)");
+                log_debug("WebSocket broadcast response", [
+                    'response' => $response,
+                    'http_code' => $httpCode
+                ]);
             }
             
             return $httpCode === 200;
         } catch (Exception $e) {
-            error_log("WebSocket broadcast error: " . $e->getMessage());
+            log_error("WebSocket broadcast error", ['error' => $e->getMessage()]);
             return false;
         }
     }
@@ -88,7 +91,7 @@ class WebSocketClient {
             
             return $httpCode === 200;
         } catch (Exception $e) {
-            error_log("WebSocket test connection error: " . $e->getMessage());
+            log_error("WebSocket test connection error", ['error' => $e->getMessage()]);
             return false;
         }
     }

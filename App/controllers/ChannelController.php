@@ -6,6 +6,7 @@ require_once __DIR__ . '/../database/models/Server.php';
 require_once __DIR__ . '/../database/models/UserServerMembership.php';
 require_once __DIR__ . '/../database/query.php';
 require_once __DIR__ . '/BaseController.php';
+require_once __DIR__ . '/../utils/AppLogger.php';
 
 class ChannelController extends BaseController {
 
@@ -73,14 +74,17 @@ class ChannelController extends BaseController {
 
             if ($memoryUsed / 1024 / 1024 > intval($memoryLimit) * 0.9) {
 
-                error_log("Warning: High memory usage detected: {$memoryUsed} bytes used, limit is {$memoryLimit}");
+                log_warning("High memory usage detected", [
+                    'memory_used' => $memoryUsed,
+                    'memory_limit' => $memoryLimit
+                ]);
             }
 
             if (!isset($_SESSION['user_id'])) {
                 return $this->unauthorized();
             }
 
-            error_log("Raw POST data: " . print_r($_POST, true));
+            log_debug("Raw POST data", ['post_data' => $_POST]);
 
             $serverId = $_POST['server_id'] ?? null;
             $name = $_POST['name'] ?? '';
@@ -89,13 +93,17 @@ class ChannelController extends BaseController {
             $isFallback = isset($_POST['ajax_fallback']) && $_POST['ajax_fallback'] === 'true';
 
             $categoryIdExists = array_key_exists('category_id', $_POST);
-            error_log("category_id exists in POST: " . ($categoryIdExists ? 'Yes' : 'No'));
+            log_debug("Category ID exists in POST", ['exists' => $categoryIdExists]);
 
             $categoryId = $categoryIdExists ? ($_POST['category_id'] !== '' ? $_POST['category_id'] : null) : null;
-            $position = isset($_POST['position']) && $_POST['position'] !== '' ? intval($_POST['position']) : null;
-
-            error_log("EXPLICIT DEBUG: categoryId=" . var_export($categoryId, true));  
-            error_log("Creating channel with values: serverId={$serverId}, name={$name}, type={$type}, categoryId=" . ($categoryId ?? 'null') . ", position=" . ($position ?? 'null'));
+            $position = isset($_POST['position']) && $_POST['position'] !== '' ? intval($_POST['position']) : null;            log_debug("EXPLICIT DEBUG", ['categoryId' => $categoryId]);
+            log_debug("Creating channel with values", [
+                'serverId' => $serverId,
+                'name' => $name,
+                'type' => $type,
+                'categoryId' => $categoryId ?? 'null',
+                'position' => $position ?? 'null'
+            ]);
 
             if (!$serverId) {
                 return $this->validationError(['server_id' => 'Server ID is required']);
@@ -122,28 +130,38 @@ class ChannelController extends BaseController {
             }
 
             if ($categoryIdExists && $categoryId !== null && $categoryId !== '') {
-                error_log("Validating category: $categoryId for server: $serverId");
+                log_debug("Validating category", [
+                    'category_id' => $categoryId,
+                    'server_id' => $serverId
+                ]);
 
                 try {
                     $category = Category::find($categoryId);
 
                     if (!$category) {
-                        error_log("Category validation failed: Category with ID $categoryId not found");
+                        log_error("Category validation failed: Category not found", ['category_id' => $categoryId]);
                         return $this->notFound('Category not found');
                     }
 
                     if ($category->server_id != $serverId) {
-                        error_log("Category validation failed: Category $categoryId belongs to server {$category->server_id}, not $serverId");
+                        log_error("Category validation failed: Category belongs to wrong server", [
+                            'category_id' => $categoryId,
+                            'category_server_id' => $category->server_id,
+                            'expected_server_id' => $serverId
+                        ]);
                         return $this->notFound('Category not found in this server');
                     }
 
-                    error_log("Category validation passed: $categoryId is valid for server $serverId");
+                    log_debug("Category validation passed", [
+                        'category_id' => $categoryId,
+                        'server_id' => $serverId
+                    ]);
                 } catch (Exception $e) {
-                    error_log("Exception during category validation: " . $e->getMessage());
+                    log_error("Exception during category validation", ['message' => $e->getMessage()]);
                     return $this->serverError('Error validating category: ' . $e->getMessage());
                 }
             } else {
-                error_log("Skipping category validation - no valid category ID provided");
+                log_debug("Skipping category validation - no valid category ID provided");
             }
 
             $existingChannel = Channel::findByNameAndServer($name, $serverId);
@@ -160,7 +178,7 @@ class ChannelController extends BaseController {
                         throw new Exception("Failed to verify database connection");
                     }
                 } catch (Exception $dbException) {
-                    error_log("Database connection error: " . $dbException->getMessage());
+                    log_error("Database connection error", ['message' => $dbException->getMessage()]);
                     return $this->serverError('Database connection error: ' . $dbException->getMessage());
                 }
 
@@ -169,7 +187,7 @@ class ChannelController extends BaseController {
                     $channel->server_id = $serverId;
 
                     $channel->category_id = ($categoryId !== null && $categoryId !== '') ? $categoryId : null;
-                    error_log("Setting channel->category_id to: " . var_export($channel->category_id, true));
+                    log_debug("Setting channel category_id", ['category_id' => $channel->category_id]);
 
                     $channel->name = $name;
 
@@ -191,20 +209,16 @@ class ChannelController extends BaseController {
                                             ->where('category_id', $categoryId)
                                             ->max('position');
                         $channel->position = ($maxPosition !== null) ? $maxPosition + 1 : 0;
-                    }
-
-                    if ($channel->save()) {
-                        $response = $this->successResponse([
-                            'channel' => $this->formatChannel($channel),
-                            'redirect' => "/server/{$serverId}" 
-                        ], 'Channel created successfully');
-
+                    }                    if ($channel->save()) {
                         if ($isFallback) {
                             header("Location: /server/{$serverId}");
                             exit;
                         }
 
-                        return $response;
+                        return $this->successResponse([
+                            'channel' => $this->formatChannel($channel),
+                            'redirect' => "/server/{$serverId}" 
+                        ], 'Channel created successfully');
                     } else {
                         return $this->serverError('Failed to create channel');
                     }
@@ -217,14 +231,14 @@ class ChannelController extends BaseController {
 
                 ob_end_clean();
 
-                error_log("Error creating channel: " . $e->getMessage());
+                log_error("Error creating channel", ['message' => $e->getMessage()]);
                 return $this->serverError('Server error: ' . $e->getMessage());
             }
         } catch (Exception $e) {
 
             ob_end_clean();
 
-            error_log("Critical error creating channel: " . $e->getMessage());
+            log_error("Critical error creating channel", ['message' => $e->getMessage()]);
 
             if (isset($_POST['ajax_fallback']) && $_POST['ajax_fallback'] === 'true') {
                 $serverId = $_POST['server_id'] ?? null;
@@ -289,7 +303,11 @@ class ChannelController extends BaseController {
 
             $position = isset($_POST['position']) && $_POST['position'] !== '' ? intval($_POST['position']) : null;
 
-            error_log("Creating category with values: serverId={$serverId}, name={$name}, position=" . ($position ?? 'null'));
+            log_debug("Creating category with values", [
+                'serverId' => $serverId,
+                'name' => $name,
+                'position' => $position ?? 'null'
+            ]);
 
             if (empty($name) || empty($serverId)) {
                 return $this->validationError(['message' => 'Missing required fields']);
@@ -309,7 +327,7 @@ class ChannelController extends BaseController {
                     throw new Exception("Failed to verify database connection");
                 }
             } catch (Exception $dbException) {
-                error_log("Database connection error: " . $dbException->getMessage());
+                log_error("Database connection error", ['message' => $dbException->getMessage()]);
                 return $this->serverError('Database connection error: ' . $dbException->getMessage());
             }
 
@@ -326,13 +344,16 @@ class ChannelController extends BaseController {
                           ->update(['position' => $query->raw('position + 1')]);
 
                     $category->position = $position;
-                } else {
-
-                    $category->position = $this->getNextCategoryPosition($serverId);
+                } else {                    $category->position = $this->getNextCategoryPosition($serverId);
                 }
-
+                
                 if ($category->save()) {
-                    $response = $this->successResponse([
+                    if ($isFallback) {
+                        header("Location: /server/{$serverId}");
+                        exit;
+                    }
+
+                    return $this->successResponse([
                         'category' => [
                             'id' => $category->id,
                             'name' => $category->name,
@@ -340,13 +361,6 @@ class ChannelController extends BaseController {
                         ],
                         'redirect' => "/server/{$serverId}" 
                     ], 'Category created successfully');
-
-                    if ($isFallback) {
-                        header("Location: /server/{$serverId}");
-                        exit;
-                    }
-
-                    return $response;
                 } else {
                     return $this->serverError('Failed to create category');
                 }
@@ -359,7 +373,7 @@ class ChannelController extends BaseController {
 
             ob_end_clean();
 
-            error_log("Error creating category: " . $e->getMessage());
+            log_error("Error creating category", ['message' => $e->getMessage()]);
 
             if (isset($_POST['ajax_fallback']) && $_POST['ajax_fallback'] === 'true') {
                 $serverId = $_POST['server_id'] ?? null;
@@ -453,7 +467,7 @@ class ChannelController extends BaseController {
                 return $this->serverError('Failed to update channel');
             }
         } catch (Exception $e) {
-            error_log("Error updating channel: " . $e->getMessage());
+            log_error("Error updating channel", ['message' => $e->getMessage()]);
             return $this->serverError('Server error: ' . $e->getMessage());
         }
     }
@@ -480,7 +494,7 @@ class ChannelController extends BaseController {
                 return $this->serverError('Failed to delete channel');
             }
         } catch (Exception $e) {
-            error_log("Error deleting channel: " . $e->getMessage());
+            log_error("Error deleting channel", ['message' => $e->getMessage()]);
             return $this->serverError('Server error: ' . $e->getMessage());
         }
     }
@@ -503,10 +517,10 @@ class ChannelController extends BaseController {
         $categories = [];
 
         try {
-            error_log("ChannelController: Getting channels for server ID $serverId");
+            log_debug("Getting channels for server", ['server_id' => $serverId]);
 
             $channels = Channel::getServerChannels($serverId);
-            error_log("Retrieved " . count($channels) . " channels from model");
+            log_debug("Retrieved channels from model", ['count' => count($channels)]);
 
             foreach ($channels as $key => $channel) {
 
@@ -523,10 +537,13 @@ class ChannelController extends BaseController {
 
             $channels = array_values($channels);
 
-            error_log("Processed channels: " . count($channels) . ", categories: " . count($categories));
+            log_debug("Processed channels and categories", [
+                'channels_count' => count($channels),
+                'categories_count' => count($categories)
+            ]);
 
         } catch (Exception $e) {
-            error_log("Error fetching server channels: " . $e->getMessage());
+            log_error("Error fetching server channels", ['message' => $e->getMessage()]);
             $channels = [];
             $categories = [];
         }
@@ -589,7 +606,7 @@ class ChannelController extends BaseController {
             ]);
 
         } catch (Exception $e) {
-            error_log("Error fetching channel messages: " . $e->getMessage());
+            log_error("Error fetching channel messages", ['message' => $e->getMessage()]);
             return $this->serverError('Failed to fetch channel messages');
         }
     }
@@ -615,7 +632,7 @@ class ChannelController extends BaseController {
                 'participants' => $participants
             ]);
         } catch (Exception $e) {
-            error_log("Error getting channel participants: " . $e->getMessage());
+            log_error("Error getting channel participants", ['message' => $e->getMessage()]);
             return $this->serverError('Server error: ' . $e->getMessage());
         }
     }
@@ -628,7 +645,7 @@ class ChannelController extends BaseController {
 
             $data = json_decode(file_get_contents('php://input'), true);
 
-            error_log("Channel position update request: " . json_encode($data));
+            log_debug("Channel position update request", ['data' => $data]);
 
             if (!isset($data['channel_id']) || !isset($data['position'])) {
                 return $this->validationError(['message' => 'Channel ID and position are required']);
@@ -638,28 +655,29 @@ class ChannelController extends BaseController {
             $newPosition = $data['position'];
             $newCategoryId = $data['category_id'] ?? null;
 
-            error_log("Finding channel with ID: $channelId");
+            log_debug("Finding channel with ID", ['channel_id' => $channelId]);
 
             $channel = Channel::find($channelId);
             if (!$channel) {
-                error_log("Channel not found: $channelId");
+                log_error("Channel not found", ['channel_id' => $channelId]);
                 return $this->notFound('Channel not found');
             }
 
-            error_log("Channel found: " . json_encode($channel));
+            log_debug("Channel found", ['channel' => $channel]);
 
             $membership = UserServerMembership::findByUserAndServer($_SESSION['user_id'], $channel->server_id);
             if (!$membership || ($membership->role !== 'admin' && $membership->role !== 'owner' && $membership->role !== 'moderator')) {
                 return $this->forbidden('You do not have permission to update this channel');
-            }
-
-            $query = new Query();
-            return $query->transaction(function($query) use ($channel, $newPosition, $newCategoryId) {
+            }            $query = new Query();
+            return $query->transaction(function($query) use ($channel, $newPosition, $newCategoryId, $channelId) {
                 $oldPosition = (int)$channel->position;
                 $oldCategoryId = $channel->category_id;
 
                 if ($newCategoryId !== null && $newCategoryId != $oldCategoryId) {
-                    error_log("Moving channel between categories: from $oldCategoryId to $newCategoryId");
+                    log_debug("Moving channel between categories", [
+                        'from_category' => $oldCategoryId,
+                        'to_category' => $newCategoryId
+                    ]);
 
                     $query->table('channels')
                           ->where('category_id', $oldCategoryId)
@@ -676,7 +694,10 @@ class ChannelController extends BaseController {
                 } 
 
                 else {
-                    error_log("Moving channel within same category from position $oldPosition to $newPosition");
+                    log_debug("Moving channel within same category", [
+                        'from_position' => $oldPosition,
+                        'to_position' => $newPosition
+                    ]);
 
                     if ($newPosition > $oldPosition) {
 
@@ -692,34 +713,40 @@ class ChannelController extends BaseController {
                               ->where('position', '>=', $newPosition)
                               ->where('position', '<', $oldPosition)
                               ->update(['position' => $query->raw('position + 1')]);
-                    } else {
-
-                        error_log("No position change needed: old=$oldPosition, new=$newPosition");
+                    } else {                        log_debug("No position change needed", [
+                            'old_position' => $oldPosition,
+                            'new_position' => $newPosition
+                        ]);
                         return $this->successResponse([
                             'success' => true,
                             'channel' => $this->formatChannel($channel)
                         ], 'Channel position unchanged');
                     }
-
+                    
                     $channel->position = $newPosition;
                 }
-
-                $saved = $channel->save();
-                error_log("Channel save result: " . ($saved ? 'success' : 'failed'));
-
-                if ($saved) {
-                    return $this->successResponse([
-                        'success' => true,
-                        'channel' => $this->formatChannel($channel)
-                    ], 'Channel position updated successfully');
-                } else {
-                    error_log("Failed to update channel position for ID: $channelId");
+                
+                try {
+                    $saved = $channel->save();
+                    
+                    if ($saved) {
+                        return $this->successResponse([
+                            'success' => true,
+                            'channel' => $this->formatChannel($channel)
+                        ], 'Channel position updated successfully');
+                    } else {
+                        log_error("Failed to update channel position", ['channel_id' => $channelId]);
+                        return $this->serverError('Failed to update channel position');
+                    }
+                } catch (Exception $saveException) {
+                    log_error("Exception saving channel", ['message' => $saveException->getMessage()]);
                     return $this->serverError('Failed to update channel position');
                 }
             });
-        } catch (Exception $e) {
-            error_log("Exception in updateChannelPosition: " . $e->getMessage());
-            error_log("Stack trace: " . $e->getTraceAsString());
+        } catch (Exception $e) {            log_error("Exception in updateChannelPosition", [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return $this->serverError('Server error: ' . $e->getMessage());
         }
     }
@@ -732,24 +759,24 @@ class ChannelController extends BaseController {
 
             $data = json_decode(file_get_contents('php://input'), true);
 
-            error_log("Category position update request: " . json_encode($data));
+            log_debug("Category position update request", ['data' => $data]);
 
-            if (!isset($data['category_id']) || !isset($data['position'])) {
-                return $this->validationError(['message' => 'Category ID and position are required']);
+                if (!isset($data['category_id']) || !isset($data['position'])) {
+                    return $this->validationError(['message' => 'Category ID and position are required']);
             }
 
             $categoryId = $data['category_id'];
             $newPosition = $data['position'];
 
-            error_log("Finding category with ID: $categoryId");
+            log_debug("Finding category with ID", ['category_id' => $categoryId]);
 
             $category = Category::find($categoryId);
             if (!$category) {
-                error_log("Category not found: $categoryId");
+                log_error("Category not found", ['category_id' => $categoryId]);
                 return $this->notFound('Category not found');
             }
 
-            error_log("Category found: " . json_encode($category));
+            log_debug("Category found", ['category' => $category]);
 
             $membership = UserServerMembership::findByUserAndServer($_SESSION['user_id'], $category->server_id);
             if (!$membership || ($membership->role !== 'admin' && $membership->role !== 'owner' && $membership->role !== 'moderator')) {
@@ -762,7 +789,10 @@ class ChannelController extends BaseController {
                 $serverId = $category->server_id;
 
                 if ($oldPosition === $newPosition) {
-                    error_log("No position change needed for category: old=$oldPosition, new=$newPosition");
+                    log_debug("No position change needed for category", [
+                        'old_position' => $oldPosition, 
+                        'new_position' => $newPosition
+                    ]);
                     return $this->successResponse([
                         'success' => true,
                         'category' => [
@@ -773,7 +803,10 @@ class ChannelController extends BaseController {
                     ], 'Category position unchanged');
                 }
 
-                error_log("Moving category from position $oldPosition to $newPosition");
+                log_debug("Moving category position", [
+                    'from_position' => $oldPosition, 
+                    'to_position' => $newPosition
+                ]);
 
                 if ($newPosition > $oldPosition) {
 
@@ -793,10 +826,10 @@ class ChannelController extends BaseController {
 
                 $category->position = $newPosition;
 
-                error_log("Saving category with new position: $newPosition");
+                log_debug("Saving category with new position", ['new_position' => $newPosition]);
 
                 $saved = $category->save();
-                error_log("Category save result: " . ($saved ? 'success' : 'failed'));
+                log_debug("Category save result", ['saved' => $saved ? 'success' : 'failed']);
 
                 if ($saved) {
                     return $this->successResponse([
@@ -808,13 +841,14 @@ class ChannelController extends BaseController {
                         ]
                     ], 'Category position updated successfully');
                 } else {
-                    error_log("Failed to update category position for ID: $categoryId");
+                    log_error("Failed to update category position", ['category_id' => $categoryId]);
                     return $this->serverError('Failed to update category position');
                 }
             });
-        } catch (Exception $e) {
-            error_log("Exception in updateCategoryPosition: " . $e->getMessage());
-            error_log("Stack trace: " . $e->getTraceAsString());
+        } catch (Exception $e) {            log_error("Exception in updateCategoryPosition", [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return $this->serverError('Server error: ' . $e->getMessage());
         }
     }
@@ -827,7 +861,7 @@ class ChannelController extends BaseController {
 
             $data = json_decode(file_get_contents('php://input'), true);
 
-            error_log("Batch position update request: " . json_encode($data));
+            log_debug("Batch position update request", ['data' => $data]);
 
             if (!isset($data['updates']) || !is_array($data['updates'])) {
                 return $this->validationError(['message' => 'Updates array is required']);
@@ -911,7 +945,7 @@ class ChannelController extends BaseController {
                         }
                     } catch (Exception $e) {
                         $errors[] = "Error updating item with ID $id: " . $e->getMessage();
-                        error_log("Error in batch update: " . $e->getMessage());
+                        log_error("Error in batch update", ['message' => $e->getMessage()]);
                         $success = false;
                     }
                 }
@@ -930,9 +964,10 @@ class ChannelController extends BaseController {
                     ], 'Some updates failed');
                 }
             });
-        } catch (Exception $e) {
-            error_log("Exception in batchUpdatePositions: " . $e->getMessage());
-            error_log("Stack trace: " . $e->getTraceAsString());
+        } catch (Exception $e) {            log_error("Exception in batchUpdatePositions", [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return $this->serverError('Server error: ' . $e->getMessage());
         }
     }

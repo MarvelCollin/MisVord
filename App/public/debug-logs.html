@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MiscVord Debug Logs</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            margin: 0;
+            padding: 20px;
+            background-color: #1a1a1a;
+            color: #ffffff;
+        }
+        .header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 20px;
+            background-color: #2d2d2d;
+            border-radius: 8px;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .btn-primary { background-color: #007bff; color: white; }
+        .btn-danger { background-color: #dc3545; color: white; }
+        .btn-success { background-color: #28a745; color: white; }
+        .btn-info { background-color: #17a2b8; color: white; }
+        .btn:hover { opacity: 0.8; }
+        .stats {
+            background-color: #2d2d2d;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .logs-container {
+            background-color: #000000;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 15px;
+            height: 600px;
+            overflow-y: auto;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 2px 0;
+        }
+        .log-debug { color: #6c757d; }
+        .log-info { color: #17a2b8; }
+        .log-warning { color: #ffc107; }
+        .log-error { color: #dc3545; }
+        .log-critical { color: #ff69b4; font-weight: bold; }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+        }
+        .error {
+            color: #dc3545;
+            background-color: #3d1a1a;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .auto-refresh {
+            margin-left: 20px;
+        }
+        .timestamp {
+            color: #6c757d;
+        }
+        .log-level {
+            font-weight: bold;
+            margin: 0 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>MiscVord Debug Logs</h1>
+        <div class="controls">
+            <button class="btn btn-primary" onclick="loadLogs()">Refresh</button>
+            <button class="btn btn-success" onclick="testLogs()">Test Logs</button>
+            <button class="btn btn-info" onclick="loadStats()">Stats</button>
+            <button class="btn btn-danger" onclick="clearLogs()">Clear Logs</button>
+            <div class="auto-refresh">
+                <input type="checkbox" id="autoRefresh" onchange="toggleAutoRefresh()">
+                <label for="autoRefresh">Auto Refresh (5s)</label>
+            </div>
+        </div>
+    </div>
+
+    <div class="stats" id="statsContainer" style="display: none;">
+        <h3>Log Statistics</h3>
+        <div id="statsContent"></div>
+    </div>
+
+    <div class="logs-container" id="logsContainer">
+        <div class="loading">Loading logs...</div>
+    </div>
+
+    <script>
+        let autoRefreshInterval = null;
+
+        function showError(message) {
+            document.getElementById('logsContainer').innerHTML = 
+                `<div class="error">Error: ${message}</div>`;
+        }
+
+        function showLoading() {
+            document.getElementById('logsContainer').innerHTML = 
+                '<div class="loading">Loading logs...</div>';
+        }
+
+        async function loadLogs() {
+            showLoading();
+            try {
+                const response = await fetch('/api/debug/logs?action=recent&lines=200');
+                const data = await response.json();
+
+                if (data.success) {
+                    displayLogs(data.logs);
+                } else {
+                    showError(data.error || 'Failed to load logs');
+                }
+            } catch (error) {
+                showError(`Network error: ${error.message}`);
+            }
+        }
+
+        function displayLogs(logs) {
+            const container = document.getElementById('logsContainer');
+            
+            if (!logs || logs.length === 0) {
+                container.innerHTML = '<div class="loading">No logs found</div>';
+                return;
+            }
+
+            const logHtml = logs.map(log => {
+                const line = log.trim();
+                if (!line) return '';
+
+                // Parse log level from the line
+                let levelClass = 'log-info';
+                if (line.includes('[DEBUG]')) levelClass = 'log-debug';
+                else if (line.includes('[INFO]')) levelClass = 'log-info';
+                else if (line.includes('[WARNING]')) levelClass = 'log-warning';
+                else if (line.includes('[ERROR]')) levelClass = 'log-error';
+                else if (line.includes('[CRITICAL]')) levelClass = 'log-critical';
+
+                // Highlight different parts of the log
+                const highlightedLine = line
+                    .replace(/(\[[\d-]+ [\d:]+\])/g, '<span class="timestamp">$1</span>')
+                    .replace(/(\[(DEBUG|INFO|WARNING|ERROR|CRITICAL)\])/g, '<span class="log-level">$1</span>');
+
+                return `<div class="log-entry ${levelClass}">${highlightedLine}</div>`;
+            }).join('');
+
+            container.innerHTML = logHtml;
+            
+            // Auto-scroll to bottom
+            container.scrollTop = container.scrollHeight;
+        }
+
+        async function testLogs() {
+            try {
+                const response = await fetch('/api/debug/logs?action=test');
+                const data = await response.json();
+
+                if (data.success) {
+                    setTimeout(loadLogs, 500); // Reload logs after a short delay
+                } else {
+                    showError(data.error || 'Failed to generate test logs');
+                }
+            } catch (error) {
+                showError(`Network error: ${error.message}`);
+            }
+        }
+
+        async function clearLogs() {
+            if (!confirm('Are you sure you want to clear all logs?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/debug/logs?action=clear', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    loadLogs();
+                } else {
+                    showError(data.error || 'Failed to clear logs');
+                }
+            } catch (error) {
+                showError(`Network error: ${error.message}`);
+            }
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/debug/logs?action=stats');
+                const data = await response.json();
+
+                if (data.success) {
+                    displayStats(data.stats);
+                } else {
+                    showError(data.error || 'Failed to load stats');
+                }
+            } catch (error) {
+                showError(`Network error: ${error.message}`);
+            }
+        }
+
+        function displayStats(stats) {
+            const container = document.getElementById('statsContainer');
+            const content = document.getElementById('statsContent');
+            
+            const formatBytes = (bytes) => {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            };
+
+            const filesHtml = stats.files.map(file => 
+                `<tr>
+                    <td>${file.name}</td>
+                    <td>${formatBytes(file.size)}</td>
+                    <td>${file.modified}</td>
+                </tr>`
+            ).join('');
+
+            content.innerHTML = `
+                <p><strong>Log Directory:</strong> ${stats.log_directory}</p>
+                <p><strong>Total Files:</strong> ${stats.log_files_count}</p>
+                <p><strong>Total Size:</strong> ${formatBytes(stats.total_size)}</p>
+                
+                <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                    <thead>
+                        <tr style="background-color: #444;">
+                            <th style="padding: 8px; text-align: left;">File</th>
+                            <th style="padding: 8px; text-align: left;">Size</th>
+                            <th style="padding: 8px; text-align: left;">Modified</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${filesHtml}
+                    </tbody>
+                </table>
+            `;
+
+            container.style.display = 'block';
+        }
+
+        function toggleAutoRefresh() {
+            const checkbox = document.getElementById('autoRefresh');
+            
+            if (checkbox.checked) {
+                autoRefreshInterval = setInterval(loadLogs, 5000);
+            } else {
+                if (autoRefreshInterval) {
+                    clearInterval(autoRefreshInterval);
+                    autoRefreshInterval = null;
+                }
+            }
+        }
+
+        // Load logs on page load
+        window.onload = loadLogs;
+    </script>
+</body>
+</html>

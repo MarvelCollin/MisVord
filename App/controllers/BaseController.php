@@ -3,6 +3,10 @@
 class BaseController {
 
     public function __construct() {
+        // Load logger if available
+        if (file_exists(__DIR__ . '/../utils/AppLogger.php')) {
+            require_once __DIR__ . '/../utils/AppLogger.php';
+        }
 
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
@@ -10,6 +14,15 @@ class BaseController {
 
         if ($this->isApiRoute() || $this->isAjaxRequest()) {
             header('Content-Type: application/json');
+        }
+
+        // Log controller instantiation
+        if (function_exists('logger')) {
+            logger()->debug("Controller instantiated", [
+                'controller' => get_class($this),
+                'request_uri' => $_SERVER['REQUEST_URI'] ?? '',
+                'request_method' => $_SERVER['REQUEST_METHOD'] ?? 'GET'
+            ]);
         }
     }
 
@@ -19,10 +32,25 @@ class BaseController {
 
         $fullPath = __DIR__ . '/../views/' . $viewPath . '.php';
 
+        if (function_exists('logger')) {
+            logger()->debug("Rendering view", [
+                'view_path' => $viewPath,
+                'full_path' => $fullPath,
+                'data_keys' => array_keys($data),
+                'exists' => file_exists($fullPath)
+            ]);
+        }
+
         if (file_exists($fullPath)) {
             include $fullPath;
         } else {
-
+            if (function_exists('logger')) {
+                logger()->error("View not found", [
+                    'view_path' => $viewPath,
+                    'full_path' => $fullPath
+                ]);
+            }
+            
             http_response_code(404);
             include __DIR__ . '/../views/pages/404.php';
         }
@@ -147,10 +175,63 @@ class BaseController {
     }
 
     protected function jsonResponse($data, $statusCode = 200) {
+        if (function_exists('logger')) {
+            logger()->debug("JSON response", [
+                'status_code' => $statusCode,
+                'data_keys' => is_array($data) ? array_keys($data) : 'non-array',
+                'response_size' => strlen(json_encode($data))
+            ]);
+        }
+        
         http_response_code($statusCode);
         header('Content-Type: application/json');
         echo json_encode($data);
         exit;
+    }
+
+    protected function jsonError($message, $statusCode = 400, $context = []) {
+        if (function_exists('logger')) {
+            logger()->error("JSON error response", array_merge([
+                'message' => $message,
+                'status_code' => $statusCode
+            ], $context));
+        }
+        
+        $this->jsonResponse([
+            'success' => false,
+            'error' => $message,
+            'timestamp' => date('Y-m-d H:i:s')
+        ], $statusCode);
+    }
+
+    protected function jsonSuccess($data = [], $message = null) {
+        $response = ['success' => true];
+        
+        if ($message) {
+            $response['message'] = $message;
+        }
+        
+        if (!empty($data)) {
+            $response = array_merge($response, $data);
+        }
+        
+        $this->jsonResponse($response);
+    }
+
+    protected function handleException(Exception $e, $context = []) {
+        if (function_exists('logger')) {
+            logger()->exception($e, $context);
+        }
+        
+        if ($this->isApiRoute() || $this->isAjaxRequest()) {
+            $this->jsonError('An error occurred: ' . $e->getMessage(), 500);
+        } else {
+            // For web requests, show error page
+            $this->view('pages/error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
     }
 
     protected function formatTime($time) {

@@ -11,13 +11,10 @@ if (!$configPath) {
 require_once $configPath;
 
 try {
-    // Initialize VideoSDK
-    VideoSDKConfig::init();
-    
     // Prepare response
     $response = [
         'success' => true,
-        'token' => VideoSDKConfig::getToken(),
+        'token' => VideoSDKConfig::getAuthToken(),
         'apiKey' => VideoSDKConfig::getApiKey()
     ];
     

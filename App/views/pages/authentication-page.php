@@ -151,7 +151,7 @@ try {
     User::initialize();
 } catch (Exception $e) {
     
-    error_log("Error initializing database: " . $e->getMessage());
+    log_error("Error initializing database", ['error' => $e->getMessage()]);
 }
 ?>
 

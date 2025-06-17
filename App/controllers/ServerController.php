@@ -5,6 +5,7 @@ require_once __DIR__ . '/../database/models/Channel.php';
 require_once __DIR__ . '/../database/models/Message.php';
 require_once __DIR__ . '/../database/models/UserServerMembership.php';
 require_once __DIR__ . '/BaseController.php';
+require_once __DIR__ . '/../utils/AppLogger.php';
 
 class ServerController extends BaseController {
 
@@ -38,9 +39,15 @@ class ServerController extends BaseController {
                 try {
                     $messages = Message::getForChannel($activeChannelId, 50, 0);
                     $GLOBALS['channelMessages'] = $messages;
-                    error_log("ServerController: Loaded " . count($messages) . " messages for channel $activeChannelId");
+                    log_debug("ServerController: Loaded messages for channel", [
+                        'channel_id' => $activeChannelId,
+                        'message_count' => count($messages)
+                    ]);
                 } catch (Exception $e) {
-                    error_log("ServerController: Error loading messages: " . $e->getMessage());
+                    log_error("ServerController: Error loading messages", [
+                        'error' => $e->getMessage(),
+                        'channel_id' => $activeChannelId
+                    ]);
                     $GLOBALS['channelMessages'] = [];
                 }
             }
@@ -57,53 +64,59 @@ class ServerController extends BaseController {
             'currentServer' => $server,
             'activeChannelId' => $activeChannelId ?? null,
             'channels' => $channels,
-            'messages' => $GLOBALS['channelMessages'] ?? []
-        ]);
+            'messages' => $GLOBALS['channelMessages'] ?? []        ]);
     }
 
     public function create() {
-
-        $oldErrorReporting = error_reporting(E_ALL);
-        ini_set('display_errors', 0);
-
         try {
-            error_log("Starting server creation process");
+            logger()->info("Starting server creation process");
 
             if (!isset($_SESSION['user_id'])) {
-                error_log("Server creation failed: User not authenticated");
+                logger()->warning("Server creation failed: User not authenticated");
                 return $this->unauthorized();
             }
 
-            error_log("Authenticated user ID: {$_SESSION['user_id']}");
+            logger()->debug("Authenticated user", ['user_id' => $_SESSION['user_id']]);
 
             $postData = $_POST;
-            error_log("POST data: " . json_encode($postData));
+            logger()->debug("Server creation POST data received", $postData);
 
             if (isset($_FILES['image_file'])) {
-                error_log("Image file received: " . $_FILES['image_file']['name'] . ", size: " . $_FILES['image_file']['size'] . " bytes");
+                logger()->debug("Image file received", [
+                    'filename' => $_FILES['image_file']['name'],
+                    'size' => $_FILES['image_file']['size']
+                ]);
             } else {
-                error_log("No image file received");
+                logger()->debug("No image file received");
             }
 
             $name = $_POST['name'] ?? '';
             $description = $_POST['description'] ?? '';
             $isPublic = isset($_POST['is_public']) ? (bool)$_POST['is_public'] : true;  
 
-            error_log("Server details - Name: $name, Description length: " . strlen($description) . ", Public: " . ($isPublic ? 'true' : 'false'));
+            logger()->debug("Server creation details", [
+                'name' => $name,
+                'description_length' => strlen($description),
+                'is_public' => $isPublic
+            ]);
 
             if (empty($name)) {
-                error_log("Server creation failed: Empty name");
+                logger()->warning("Server creation failed: Empty name");
                 return $this->validationError(['name' => 'Server name is required']);
             }
 
-            error_log("Checking for duplicate server name");
+            logger()->debug("Checking for duplicate server name", ['name' => $name]);
             $existingServer = Server::findByName($name);
             if ($existingServer) {
-                error_log("Server creation failed: Name already exists");
-                return $this->validationError(['name' => 'Server with this name already exists']);
+                log_error("Server creation failed: Name already exists", [
+                    'server_name' => $_POST['server_name']
+                ]);                return $this->validationError(['name' => 'Server with this name already exists']);
             }
-
-            error_log("Creating new Server object");
+            
+            log_debug("Creating new Server object", [
+                'server_name' => $name,
+                'user_id' => $_SESSION['user_id']
+            ]);
             $server = new Server();
             $server->name = $name;
             $server->description = $description;
@@ -111,13 +124,13 @@ class ServerController extends BaseController {
 
             $imageUrl = null;
             if (isset($_FILES['image_file']) && $_FILES['image_file']['error'] === UPLOAD_ERR_OK) {
-                error_log("Attempting to upload server image");
+                log_debug("Attempting to upload server image");
                 $imageUrl = $this->uploadImage($_FILES['image_file'], 'servers');
                 if ($imageUrl === false) {
-                    error_log("Server creation failed: Image upload failed");
+                    log_error("Server creation failed: Image upload failed");
                     return $this->serverError('Failed to upload server image');
                 }
-                error_log("Image uploaded successfully: $imageUrl");
+                log_info("Image uploaded successfully", ['image_url' => $imageUrl]);
                 $server->image_url = $imageUrl;
             }
 
@@ -131,26 +144,28 @@ class ServerController extends BaseController {
             try {
 
                 if ($pdo->inTransaction()) {
-                    error_log("Transaction already active - using existing transaction");
+                    log_debug("Transaction already active - using existing transaction");
                 } else {
-                    error_log("Starting new transaction");
+                    log_debug("Starting new transaction");
                     $pdo->beginTransaction();
                     $transactionActive = true;
                 }
 
-                error_log("Saving server to database within transaction");
-                if (!$server->save()) {
-                    error_log("Server creation failed: Could not save server");
+                log_debug("Saving server to database within transaction");
+                if (!$server->save()) {                    log_error("Server creation failed: Could not save server");
                     if ($transactionActive) {
-                        error_log("Rolling back transaction");
+                        log_debug("Rolling back transaction");
                         $pdo->rollBack();
                         $transactionActive = false;
                     }
                     return $this->serverError('Failed to create server');
                 }
-                error_log("Server saved with ID: " . $server->id);
+                log_info("Server saved with ID", ['server_id' => $server->id]);
 
-                error_log("Adding user as server owner (UserId: {$_SESSION['user_id']}, ServerId: {$server->id})");
+                log_debug("Adding user as server owner", [
+                    'user_id' => $_SESSION['user_id'],
+                    'server_id' => $server->id
+                ]);
 
                 try {
 
@@ -165,9 +180,11 @@ class ServerController extends BaseController {
                         throw new Exception("Direct server membership insertion failed");
                     }
 
-                    error_log("Membership created with PDO directly - Success");
+                    log_debug("Membership created with PDO directly");
                 } catch (Exception $e) {
-                    error_log("Error creating membership with PDO directly: " . $e->getMessage());
+                    log_error("Error creating membership with PDO directly", [
+                        'error' => $e->getMessage()
+                    ]);
 
                     $membershipInserted = $query->table('user_server_memberships')
                         ->insert([
@@ -177,27 +194,27 @@ class ServerController extends BaseController {
 
                         ]);
 
-                    error_log("Membership created with query builder - Success: " . ($membershipInserted ? 'Yes' : 'No'));
-                }
-
-                if (!$membershipInserted) {
-                    error_log("Failed to create membership record, rolling back transaction");
+                    log_debug("Membership created with query builder", [
+                        'success' => $membershipInserted
+                    ]);
+                }                if (!$membershipInserted) {
+                    log_error("Failed to create membership record, rolling back transaction");
                     if ($transactionActive) {
-                        error_log("Rolling back transaction");
+                        log_debug("Rolling back transaction");
                         $pdo->rollBack();
                         $transactionActive = false;
                     }
                     return $this->serverError('Failed to assign server ownership');
                 }
 
-                error_log("Creating default channels for server: " . $server->id);
+                log_debug("Creating default channels for server", ['server_id' => $server->id]);
                 $channelsCreated = $this->createDefaultChannels($server->id);
-                error_log("Default channels created: " . ($channelsCreated ? 'Yes' : 'No'));
+                log_debug("Default channels created", ['success' => $channelsCreated]);
 
                 if (!$channelsCreated) {
-                    error_log("Failed to create default channels, rolling back transaction");
+                    log_error("Failed to create default channels, rolling back transaction");
                     if ($transactionActive) {
-                        error_log("Rolling back transaction");
+                        log_debug("Rolling back transaction");
                         $pdo->rollBack();
                         $transactionActive = false;
                     }
@@ -205,19 +222,19 @@ class ServerController extends BaseController {
                 }
 
                 if ($transactionActive) {
-                    error_log("Committing transaction");
+                    log_debug("Committing transaction");
                     $pdo->commit();
                     $transactionActive = false;
                 }
 
                 $membership = UserServerMembership::findByUserAndServer($_SESSION['user_id'], $server->id);
                 if (!$membership) {
-                    error_log("ERROR: Membership not found after successful transaction - this should never happen");
+                    log_error("ERROR: Membership not found after successful transaction - this should never happen");
                 } else {
-                    error_log("SUCCESS: User membership verified with role: " . $membership->role);
+                    log_info("SUCCESS: User membership verified", ['role' => $membership->role]);
                 }
 
-                error_log("Server creation completed successfully");
+                log_info("Server creation completed successfully");
                 return $this->successResponse([
                     'success' => true,
                     'server_id' => (string)$server->id,
@@ -234,41 +251,39 @@ class ServerController extends BaseController {
             } catch (Exception $e) {
 
                 if ($transactionActive) {
-                    error_log("Rolling back transaction due to exception");
+                    log_debug("Rolling back transaction due to exception");
                     try {
                         $pdo->rollBack();
                     } catch (Exception $rollbackEx) {
-                        error_log("Error during rollback: " . $rollbackEx->getMessage());
-                    }
+                        log_error("Error during rollback", ['error' => $rollbackEx->getMessage()]);                    }
                     $transactionActive = false;
-                }
-                error_log("Server creation error: " . $e->getMessage());
-                error_log("Error trace: " . $e->getTraceAsString());
+                }                log_error("Server creation error", [
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
                 return $this->serverError('Server creation failed: ' . $e->getMessage());
             }
-
-        } catch (Exception $e) {
-            error_log("Unexpected error during server creation: " . $e->getMessage());
-            error_log("Error trace: " . $e->getTraceAsString());
+        } catch (Exception $generalException) {
+            log_error("Unexpected error during server creation", [
+                'error' => $generalException->getMessage(),
+                'trace' => $generalException->getTraceAsString()
+            ]);
             return $this->serverError('An unexpected error occurred');
-        } finally {
-
-            error_reporting($oldErrorReporting);
         }
     }
 
     private function createDefaultChannels($serverId) {
-        error_log("Starting createDefaultChannels for server: $serverId");
+        log_debug("Starting createDefaultChannels for server", ['server_id' => $serverId]);
 
         if (empty($serverId) || !is_numeric($serverId)) {
-            error_log("Invalid serverId: $serverId");
+            log_error("Invalid serverId", ['server_id' => $serverId]);
             return false;
         }
 
         try {
-            error_log("Attempting to create a Query object");
+            log_debug("Attempting to create a Query object");
             $query = new Query();
-            error_log("Query object created successfully");
+            log_debug("Query object created successfully");
 
             $generalChannelData = [
                 'server_id' => $serverId,
@@ -278,15 +293,16 @@ class ServerController extends BaseController {
                 'position' => 0
             ];
 
-            error_log("Creating general text channel");
+            log_debug("Creating general text channel");
             $generalChannelId = $query->table('channels')->insert($generalChannelData);
-            error_log("General text channel created with ID: $generalChannelId");
+            log_debug("General text channel created", ['channel_id' => $generalChannelId]);
 
-            error_log("Default general channel created successfully");
+            log_info("Default general channel created successfully");
             return true;
-        } catch (Exception $e) {
-            error_log("Error creating default channels: " . $e->getMessage());
-            error_log("Error trace: " . $e->getTraceAsString());
+        } catch (Exception $e) {            log_error("Error creating default channels", [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return false;
         }
     }
@@ -296,12 +312,12 @@ class ServerController extends BaseController {
     }
 
     public function showInvite($inviteCode) {
-        error_log("showInvite called with code: $inviteCode");
+        log_debug("showInvite called", ['invite_code' => $inviteCode]);
 
         $server = Server::findByInviteLink($inviteCode);
 
         if (!$server) {
-            error_log("Invalid invite link: $inviteCode");
+            log_warning("Invalid invite link", ['invite_code' => $inviteCode]);
 
             $GLOBALS['inviteServer'] = null;
             $GLOBALS['inviteCode'] = $inviteCode;
@@ -309,7 +325,7 @@ class ServerController extends BaseController {
             return;
         }
 
-        error_log("Found server for invite: " . $server->name);
+        log_debug("Found server for invite", ['server_name' => $server->name]);
 
         if (isset($_SESSION['user_id'])) {
 
@@ -324,16 +340,15 @@ class ServerController extends BaseController {
         require_once __DIR__ . '/../views/pages/accept-invite.php';
     }
 
-    public function join($inviteCode) {
-        error_log("join method called with code: $inviteCode");
-        error_log("Session data: " . json_encode([
+    public function join($inviteCode) {        log_debug("join method called", ['invite_code' => $inviteCode]);
+        log_debug("Session data", [
             'user_id' => $_SESSION['user_id'] ?? 'not set',
             'pending_invite' => $_SESSION['pending_invite'] ?? 'not set',
             'login_redirect' => $_SESSION['login_redirect'] ?? 'not set'
-        ]));
+        ]);
 
         if (!isset($_SESSION['user_id'])) {
-            error_log("User not logged in - redirecting to login with return URL");
+            log_info("User not logged in - redirecting to login with return URL");
 
             $_SESSION['pending_invite'] = $inviteCode;
 
@@ -345,10 +360,13 @@ class ServerController extends BaseController {
             exit;
         }
 
-        error_log("User is logged in, processing invite $inviteCode for user_id: {$_SESSION['user_id']}");
+        log_debug("User is logged in, processing invite", [
+            'invite_code' => $inviteCode,
+            'user_id' => $_SESSION['user_id']
+        ]);
 
         if (empty($inviteCode)) {
-            error_log("Empty invite code provided");
+            log_warning("Empty invite code provided");
             $errorMessage = 'Invalid invite link';
 
             if ($this->isAjaxRequest()) {
@@ -363,7 +381,7 @@ class ServerController extends BaseController {
         $server = Server::findByInviteLink($inviteCode);
 
         if (!$server) {
-            error_log("Server not found for invite code: $inviteCode");
+            log_warning("Server not found for invite code", ['invite_code' => $inviteCode]);
             $errorMessage = 'Invalid or expired invite link';
 
             if ($this->isAjaxRequest()) {
@@ -372,16 +390,15 @@ class ServerController extends BaseController {
 
             $_SESSION['error'] = $errorMessage;
             header('Location: /app');
-            exit;
-        }
-
-        error_log("Found server for invite: " . json_encode([
+            exit;        }
+        
+        log_debug("Found server for invite", [
             'server_id' => $server->id,
             'server_name' => $server->name
-        ]));
+        ]);
 
         if (UserServerMembership::isMember($_SESSION['user_id'], $server->id)) {
-            error_log("User is already a member of this server");
+            log_debug("User is already a member of this server");
             if ($this->isAjaxRequest()) {
                 return $this->successResponse([
                     'server' => [
@@ -396,11 +413,17 @@ class ServerController extends BaseController {
             exit;
         }
 
-        error_log("Attempting to join server {$server->id} for user {$_SESSION['user_id']}");
+        log_debug("Attempting to join server", [
+            'server_id' => $server->id,
+            'user_id' => $_SESSION['user_id']
+        ]);
         $joined = UserServerMembership::create($_SESSION['user_id'], $server->id, 'member');
 
         if (!$joined) {
-            error_log("Failed to join server: user_id={$_SESSION['user_id']}, server_id={$server->id}");
+            log_error("Failed to join server", [
+                'user_id' => $_SESSION['user_id'],
+                'server_id' => $server->id
+            ]);
 
             if ($this->isAjaxRequest()) {
                 return $this->serverError('Failed to join the server. Please try again.');
@@ -411,10 +434,10 @@ class ServerController extends BaseController {
             exit;
         }
 
-        error_log("Successfully joined server {$server->id}");
+        log_info("Successfully joined server", ['server_id' => $server->id]);
 
         if (isset($_SESSION['pending_invite'])) {
-            error_log("Clearing pending_invite from session");
+            log_debug("Clearing pending_invite from session");
             unset($_SESSION['pending_invite']);
         }
 
@@ -429,7 +452,7 @@ class ServerController extends BaseController {
         }
 
         $_SESSION['success'] = "You've successfully joined " . $server->name;
-        error_log("Redirecting to server page: /server/{$server->id}");
+        log_debug("Redirecting to server page", ['url' => "/server/{$server->id}"]);
         header('Location: /server/' . $server->id);
         exit;
     }
@@ -546,7 +569,7 @@ class ServerController extends BaseController {
 
             return $this->successResponse(['servers' => $formattedServers]);
         } catch (Exception $e) {
-            error_log("Error getting server list: " . $e->getMessage());
+            log_error("Error getting server list", ['message' => $e->getMessage()]);
             return $this->serverError('An error occurred while fetching servers');
         }
     }
@@ -570,7 +593,10 @@ class ServerController extends BaseController {
 
         $inviteLink = $server->invite_link;
 
-        error_log("Server ID: {$server->id}, Invite Link: " . ($inviteLink ?? 'null'));
+        log_debug("Server invite link", [
+            'server_id' => $server->id,
+            'invite_link' => $inviteLink ?? 'null'
+        ]);
 
         return $this->successResponse([
             'server' => [
@@ -586,7 +612,7 @@ class ServerController extends BaseController {
     }
 
     public function getServerChannels($id) {
-        error_log("getServerChannels called for server ID: $id");
+        log_debug("getServerChannels called", ['server_id' => $id]);
 
         if (!isset($_SESSION['user_id'])) {
             if ($this->isAjaxRequest()) {
@@ -599,18 +625,21 @@ class ServerController extends BaseController {
 
         $serverId = is_numeric($id) ? intval($id) : 0;
         if (!$serverId) {
-            error_log("Invalid server ID provided: $id");
+            log_error("Invalid server ID provided", ['server_id' => $id]);
             return $this->validationError(['server' => 'Invalid server ID']);
         }
 
         $server = Server::find($serverId);
         if (!$server) {
-            error_log("Server not found with ID: $id");
+            log_error("Server not found", ['server_id' => $id]);
             return $this->notFound('Server not found');
         }
 
         if (!UserServerMembership::isMember($_SESSION['user_id'], $serverId)) {
-            error_log("User ID {$_SESSION['user_id']} is not a member of server ID: $id");
+            log_error("User is not a member of server", [
+                'user_id' => $_SESSION['user_id'], 
+                'server_id' => $id
+            ]);
             return $this->forbidden('You are not a member of this server');
         }
 
@@ -682,7 +711,10 @@ class ServerController extends BaseController {
                 ];
             }
         } catch (Exception $e) {
-            error_log("Error fetching channels for server ID $id: " . $e->getMessage());
+            log_error("Error fetching channels for server", [
+                'server_id' => $id, 
+                'message' => $e->getMessage()
+            ]);
 
             if ($this->isAjaxRequest()) {
                 return $this->serverError('Failed to load channels');
@@ -708,10 +740,8 @@ class ServerController extends BaseController {
         $membership = UserServerMembership::findByUserAndServer($_SESSION['user_id'], $serverId);
         if (!$membership || !in_array($membership->role, ['admin', 'moderator', 'owner'])) {
             return $this->forbidden('You do not have permission to create invite links');
-        }
-
-        try {
-            $inviteCode = $server->generateInviteCode();
+        }        try {
+            $inviteCode = $server->generateInviteLink();
 
             return $this->successResponse([
                 'invite_code' => $inviteCode,
@@ -720,7 +750,7 @@ class ServerController extends BaseController {
             ]);
 
         } catch (Exception $e) {
-            error_log("Error generating invite link: " . $e->getMessage());
+            log_error("Error generating invite link", ['message' => $e->getMessage()]);
             return $this->serverError('Failed to generate invite link');
         }
     }
