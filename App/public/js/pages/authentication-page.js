@@ -1,7 +1,4 @@
-import { showToast } from '../core/ui/toast.js';
-import { MisVordAjax } from '../core/ajax/ajax-handler.js';
-
-document.addEventListener('DOMContentLoaded', function() {
+function initAuth() {
     const elements = {
         logo: document.getElementById('logo'),
         logoUnderline: document.getElementById('logoUnderline'),
@@ -36,8 +33,19 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    let currentForm = document.querySelector('form:not(.hidden)').id.replace('Form', '');
+    let currentForm = getCurrentVisibleForm();
     console.log('Current form detected as:', currentForm);
+
+    function getCurrentVisibleForm() {
+        if (elements.loginForm && !elements.loginForm.classList.contains('hidden')) {
+            return 'login';
+        } else if (elements.registerForm && !elements.registerForm.classList.contains('hidden')) {
+            return 'register';
+        } else if (elements.forgotForm && !elements.forgotForm.classList.contains('hidden')) {
+            return 'forgot';
+        }
+        return 'login';
+    }
 
     const timing = {
         formTransition: 300,
@@ -155,63 +163,75 @@ document.addEventListener('DOMContentLoaded', function() {
     function setupFormToggles() {
         console.log('Form toggles found:', elements.formToggles.length);
         
+        document.addEventListener('click', function(e) {
+            const toggle = e.target.closest('.form-toggle');
+            if (!toggle) return;
+            
+            console.log('Toggle clicked!');
+            e.preventDefault();
+            e.stopPropagation();
+
+            const targetForm = toggle.getAttribute('data-form');
+            console.log('Toggle clicked for', targetForm, 'current form is', currentForm);
+            
+            if (targetForm === currentForm) return;
+
+            elements.authContainer.classList.add('scale-in');
+            setTimeout(() => {
+                elements.authContainer.classList.remove('scale-in');
+            }, timing.formScaleEffect);
+
+            const direction = formDirections[`${currentForm}_to_${targetForm}`] || 'forward';
+            console.log('Transition direction:', direction);
+
+            if (window.formTransitionTimeout) {
+                clearTimeout(window.formTransitionTimeout);
+            }
+
+            animateTitle(getFormTitle(targetForm));
+            
+            if (targetForm === 'register') {
+                elements.loginForm.classList.add('hidden');
+                elements.registerForm.classList.remove('hidden');
+                elements.forgotForm.classList.add('hidden');
+            } else if (targetForm === 'login') {
+                elements.loginForm.classList.remove('hidden');
+                elements.registerForm.classList.add('hidden');
+                elements.forgotForm.classList.add('hidden');
+            } else if (targetForm === 'forgot') {
+                elements.loginForm.classList.add('hidden');
+                elements.registerForm.classList.add('hidden');
+                elements.forgotForm.classList.remove('hidden');
+            }
+
+            updateFormHeight();
+            
+            currentForm = targetForm;
+
+            setTimeout(() => {
+                const activeForm = document.querySelector('form:not(.hidden)');
+                const firstInput = activeForm?.querySelector('input:first-of-type');
+                if (firstInput) {
+                    firstInput.focus();
+                }
+            }, timing.formTransition);
+
+            document.title = `${getFormTitle(targetForm)} - misvord`;
+            
+            try {
+                const newUrl = targetForm === 'login' ? '/login' : 
+                               targetForm === 'register' ? '/register' : 
+                               '/forgot-password';
+                               
+                history.pushState({}, '', newUrl);
+            } catch (e) {
+                console.error('Error updating URL:', e);
+            }
+        });
+        
         elements.formToggles.forEach(toggle => {
             const targetForm = toggle.getAttribute('data-form');
             console.log('Setting up toggle for', targetForm);
-            
-            toggle.addEventListener('click', function(e) {
-                console.log('Toggle clicked!');
-                e.preventDefault();
-
-                const targetForm = this.getAttribute('data-form');
-                console.log('Toggle clicked for', targetForm, 'current form is', currentForm);
-                
-                if (targetForm === currentForm) return;
-
-                elements.authContainer.classList.add('scale-in');
-                setTimeout(() => {
-                    elements.authContainer.classList.remove('scale-in');
-                }, timing.formScaleEffect);
-
-                const direction = formDirections[`${currentForm}_to_${targetForm}`] || 'forward';
-                console.log('Transition direction:', direction);
-
-                if (window.formTransitionTimeout) {
-                    clearTimeout(window.formTransitionTimeout);
-                }
-
-                animateTitle(getFormTitle(targetForm));
-                
-                if (targetForm === 'register') {
-                    elements.loginForm.classList.add('hidden');
-                    elements.registerForm.classList.remove('hidden');
-                    elements.forgotForm.classList.add('hidden');
-                } else if (targetForm === 'login') {
-                    elements.loginForm.classList.remove('hidden');
-                    elements.registerForm.classList.add('hidden');
-                    elements.forgotForm.classList.add('hidden');
-                } else if (targetForm === 'forgot') {
-                    elements.loginForm.classList.add('hidden');
-                    elements.registerForm.classList.add('hidden');
-                    elements.forgotForm.classList.remove('hidden');
-                }
-
-                updateFormHeight();
-                
-                currentForm = targetForm;
-
-                document.title = `${getFormTitle(targetForm)} - misvord`;
-                
-                try {
-                    const newUrl = targetForm === 'login' ? '/login' : 
-                                   targetForm === 'register' ? '/register' : 
-                                   '/forgot-password';
-                                   
-                    history.pushState({}, '', newUrl);
-                } catch (e) {
-                    console.error('Error updating URL:', e);
-                }
-            });
         });
     }
 
@@ -464,4 +484,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     init();
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAuth);
+} else {
+    initAuth();
+}

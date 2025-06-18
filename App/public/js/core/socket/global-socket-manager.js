@@ -28,14 +28,20 @@ export class GlobalSocketManager {
             status: 'online',
             activity: null,
             lastSeen: Date.now()
-        };
-
-        this.debug = this.config.debug;
+        };        this.debug = this.config.debug;
         this.isGuest = false;
 
-        // Make this available globally
-        window.GlobalSocketManager = this;
-        this.log('✅ GlobalSocketManager instance created and registered globally');
+        // Safely assign to window, checking if it's already defined
+        if (!window.GlobalSocketManager || typeof window.GlobalSocketManager !== 'function') {
+            try {
+                window.GlobalSocketManager = this;
+                this.log('✅ GlobalSocketManager instance created and registered globally');
+            } catch (error) {
+                this.log('⚠️ Could not assign to window.GlobalSocketManager (read-only), but instance created');
+            }
+        } else {
+            this.log('⚠️ GlobalSocketManager already exists on window, using new instance');
+        }
     }
 
     log(...args) {
@@ -48,17 +54,12 @@ export class GlobalSocketManager {
         console.error('[GlobalSocketManager]', ...args);
     }
 
-    /**
-     * Initialize the global socket connection
-     * This should be called on every page load for authenticated users
-     */
     init(userData = null) {
         if (this.initialized) {
             this.log('🔄 Already initialized, skipping duplicate initialization');
             return;
         }
 
-        // Check if user is authenticated
         if (!userData || !userData.user_id) {
             this.log('👤 Guest user detected, socket connection disabled');
             this.isGuest = true;
@@ -76,13 +77,11 @@ export class GlobalSocketManager {
             this.initPresenceTracking();
             this.initActivityTracking();
 
-            // Start heartbeat
             setInterval(() => this.sendHeartbeat(), this.config.heartbeatInterval);
 
             this.log('✅ Global socket manager initialized successfully');
             this.initialized = true;
 
-            // Dispatch global event
             this.dispatchEvent('globalSocketReady', { manager: this });
 
         } catch (error) {
@@ -91,9 +90,6 @@ export class GlobalSocketManager {
         }
     }
 
-    /**
-     * Initialize the socket connection
-     */
     initSocket() {
         if (typeof io === 'undefined') {
             throw new Error('Socket.IO not available');
@@ -113,9 +109,6 @@ export class GlobalSocketManager {
         this.setupSocketEventHandlers();
     }
 
-    /**
-     * Set up socket event handlers
-     */
     setupSocketEventHandlers() {
         this.socket.on('connect', () => {
             this.log('🟢 Connected to WebSocket server');
@@ -150,7 +143,6 @@ export class GlobalSocketManager {
             this.trackConnection('AUTH_FAILED', data);
         });
 
-        // Presence events
         this.socket.on('user-status-changed', (data) => {
             this.log('👤 User status changed:', data);
             this.dispatchEvent('userStatusChanged', data);
@@ -161,25 +153,21 @@ export class GlobalSocketManager {
             this.dispatchEvent('userStatusChanged', data);
         });
 
-        // Enhanced user presence events
         this.socket.on('user-activity-changed', (data) => {
             this.log('🏃 User activity changed:', data);
             this.dispatchEvent('userActivityChanged', data);
             
-            // Show toast notification for friends
             if (data.user_id !== this.userId) {
                 const activityText = data.activity_details ? `is ${data.activity_details}` : 'changed activity';
                 showToast(`${data.username} ${activityText}`);
             }
         });
 
-        // Global activity events
         this.socket.on('user-activity', (data) => {
             this.log('🏃 User activity:', data);
             this.dispatchEvent('userActivity', data);
         });
 
-        // Keep existing messaging events for compatibility
         this.socket.on('message-received', (data) => {
             this.log('💬 Message received:', data);
             this.dispatchEvent('messageReceived', data);
@@ -193,7 +181,6 @@ export class GlobalSocketManager {
             this.dispatchEvent('typingStop', data);
         });
 
-        // Group server events
         this.socket.on('group-server-created', (data) => {
             this.log('📁 Group server created:', data);
             this.dispatchEvent('groupServerCreated', data);
@@ -212,7 +199,6 @@ export class GlobalSocketManager {
             showToast(`Server deleted: ${data.server_name}`);
         });
 
-        // Role events
         this.socket.on('role-created', (data) => {
             this.log('👑 Role created:', data);
             this.dispatchEvent('roleCreated', data);
@@ -249,7 +235,6 @@ export class GlobalSocketManager {
             }
         });
 
-        // Emoji events
         this.socket.on('emoji-created', (data) => {
             this.log('😀 Emoji created:', data);
             this.dispatchEvent('emojiCreated', data);

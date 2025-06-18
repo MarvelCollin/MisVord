@@ -1,11 +1,24 @@
 .authentication-page {
   background-color: #202225;
   color: white;
-  height: 100vh;
+  min-height: 100vh;
   width: 100vw;
   overflow-x: hidden;
   overflow-y: auto;
   will-change: transform;
+  padding: 1rem;
+}
+
+@media (max-width: 640px) {
+  .authentication-page {
+    padding: 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .authentication-page {
+    padding: 0.25rem;
+  }
 }
 
 @keyframes float {
@@ -43,14 +56,22 @@
 }
 
 #logo {
-  transition: opacity 0.3s ease, transform 0.3s ease;
-  opacity: 0;
-  transform: translateY(10px);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-#logo.visible {
-  opacity: 1;
-  transform: translateY(0);
+#logo:hover {
+  animation: logoGlow 2s ease-in-out infinite;
+  transform: translateY(-2px) scale(1.05);
+}
+
+@keyframes logoGlow {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 5px rgba(88, 101, 242, 0.3));
+  }
+  50% {
+    filter: drop-shadow(0 0 15px rgba(88, 101, 242, 0.6));
+  }
 }
 
 #logoUnderline {
@@ -65,9 +86,36 @@
 
 .form-group {
   margin-bottom: 1.25rem;
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
-    opacity 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: transform, opacity;
+}
+
+.auth-form:not(.form-enter) .form-group {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.form-enter .form-group {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: formGroupSlideIn 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.form-enter .form-group:nth-child(1) { animation-delay: 0.1s; }
+.form-enter .form-group:nth-child(2) { animation-delay: 0.15s; }
+.form-enter .form-group:nth-child(3) { animation-delay: 0.2s; }
+.form-enter .form-group:nth-child(4) { animation-delay: 0.25s; }
+.form-enter .form-group:nth-child(5) { animation-delay: 0.3s; }
+
+@keyframes formGroupSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .form-group:focus-within {
@@ -79,14 +127,21 @@ input {
   color: white;
   border: 1px solid #40444b;
   border-radius: 0.375rem;
-  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  will-change: border-color, box-shadow;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: border-color, box-shadow, transform;
+  position: relative;
 }
 
 input:focus {
   border-color: #5865f2 !important;
   box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.3) !important;
   outline: none;
+  transform: translateY(-1px);
+}
+
+input:hover:not(:focus) {
+  border-color: #4f46e5;
+  transform: translateY(-0.5px);
 }
 
 .input-focus-effect {
@@ -107,131 +162,201 @@ input:focus ~ .input-focus-effect {
   position: relative;
   overflow: hidden;
   transform: translateZ(0);
+  transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .auth-form {
-  transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
-    opacity 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   backface-visibility: hidden;
   will-change: transform, opacity;
 }
 
-.fade-enter {
-  opacity: 0;
-  transform: translateY(10px) translateZ(0);
+.form-switching {
+  transform: scale(1.02);
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.fade-enter-active {
-  opacity: 1;
-  transform: translateY(0) translateZ(0);
+.form-enter {
+  animation: slideInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
-.fade-exit {
-  opacity: 1;
-  transform: translateY(0) translateZ(0);
-  position: absolute;
+.form-exit {
+  animation: slideOutDown 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes slideInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  50% {
+    opacity: 0.8;
+    transform: translateY(-5px) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes slideOutDown {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.98);
+  }
+}
+
+#authTitle {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform, opacity;
+}
+
+#authContainer {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform, box-shadow;
+  transform: translateZ(0);
+  max-width: 28rem;
   width: 100%;
-  top: 0;
+  padding: 2rem;
+  margin: 0 auto;
 }
 
-.fade-exit-active {
-  opacity: 0;
-  transform: translateY(-10px) translateZ(0);
+@media (max-width: 768px) {
+  #authContainer {
+    max-width: 24rem;
+    padding: 1.5rem;
+  }
 }
 
-.slide-left-enter {
-  opacity: 0;
-  transform: translateX(30px) translateZ(0);
+@media (max-width: 640px) {
+  #authContainer {
+    max-width: 100%;
+    margin: 0.5rem;
+    padding: 1.25rem;
+    border-radius: 0.75rem;
+  }
 }
 
-.slide-left-enter-active {
-  opacity: 1;
-  transform: translateX(0) translateZ(0);
+@media (max-width: 480px) {
+  #authContainer {
+    margin: 0.25rem;
+    padding: 1rem;
+    border-radius: 0.5rem;
+  }
 }
 
-.slide-left-exit {
-  opacity: 1;
-  transform: translateX(0) translateZ(0);
-  position: absolute;
-  width: 100%;
-  top: 0;
+@media (max-width: 360px) {
+  #authContainer {
+    margin: 0;
+    padding: 0.75rem;
+    border-radius: 0.25rem;
+  }
 }
 
-.slide-left-exit-active {
-  opacity: 0;
-  transform: translateX(-30px) translateZ(0);
+#authContainer:hover {
+  transform: translateY(-5px) translateZ(0);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
 }
 
-.slide-right-enter {
-  opacity: 0;
-  transform: translateX(-30px) translateZ(0);
+@media (max-width: 640px) {
+  #authContainer:hover {
+    transform: translateY(-2px) translateZ(0);
+  }
 }
 
-.slide-right-enter-active {
-  opacity: 1;
-  transform: translateX(0) translateZ(0);
-}
-
-.slide-right-exit {
-  opacity: 1;
-  transform: translateX(0) translateZ(0);
-  position: absolute;
-  width: 100%;
-  top: 0;
-}
-
-.slide-right-exit-active {
-  opacity: 0;
-  transform: translateX(30px) translateZ(0);
+#authContainer.form-switching {
+  box-shadow: 0 30px 60px -12px rgba(88, 101, 242, 0.2);
 }
 
 button[type="submit"],
 .btn-google {
   position: relative;
   overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  will-change: transform, box-shadow;
+  border: none;
+  font-weight: 600;
+  letter-spacing: 0.025em;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform, box-shadow, background;
   transform: translateZ(0);
+  cursor: pointer;
 }
 
-button[type="submit"]:hover,
-.btn-google:hover {
-  transform: translateY(-2px) scale(1.01) translateZ(0);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-button[type="submit"]:active,
-.btn-google:active {
-  transform: translateY(0) scale(0.99) translateZ(0);
-}
-
-.btn-ripple {
-  position: relative;
-  overflow: hidden;
-}
-
-.btn-ripple:after {
-  content: "";
-  display: block;
+button[type="submit"]::before,
+.btn-google::before {
+  content: '';
   position: absolute;
+  top: 0;
+  left: -100%;
   width: 100%;
   height: 100%;
-  top: 0;
-  left: 0;
-  pointer-events: none;
-  background-image: radial-gradient(circle, #fff 10%, transparent 10.01%);
-  background-repeat: no-repeat;
-  background-position: 50%;
-  transform: scale(10, 10);
-  opacity: 0;
-  transition: transform 0.5s, opacity 0.8s;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: left 0.5s;
 }
 
-.btn-ripple:active:after {
-  transform: scale(0, 0);
-  opacity: 0.3;
-  transition: 0s;
+button[type="submit"]:hover::before,
+.btn-google:hover::before {
+  left: 100%;
 }
+
+button[type="submit"] {
+  background: linear-gradient(135deg, #5865f2 0%, #4f46e5 100%);
+  color: white;
+  border-radius: 8px;
+  padding: 12px 24px;
+  box-shadow: 0 2px 8px rgba(88, 101, 242, 0.2);
+}
+
+button[type="submit"]:hover {
+  background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+  transform: translateY(-2px) translateZ(0) scale(1.02);
+  box-shadow: 0 8px 25px rgba(88, 101, 242, 0.4);
+}
+
+button[type="submit"]:active {
+  transform: translateY(0) translateZ(0) scale(0.98);
+  box-shadow: 0 2px 8px rgba(88, 101, 242, 0.2);
+}
+
+.btn-google {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  color: #374151;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.btn-google:hover {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-color: #d1d5db;
+  transform: translateY(-2px) translateZ(0) scale(1.02);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.btn-google:active {
+  transform: translateY(0) translateZ(0) scale(0.98);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+button[type="submit"]:focus,
+.btn-google:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(88, 101, 242, 0.2);
+}
+
+button[type="submit"]:focus {
+  box-shadow: 0 4px 16px rgba(88, 101, 242, 0.3), 0 0 0 3px rgba(88, 101, 242, 0.2);
+}
+
+.btn-google:focus {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 0 0 3px rgba(88, 101, 242, 0.2);
+}
+
+
 
 .password-strength-bar {
   height: 4px;
@@ -550,4 +675,126 @@ button[type="submit"]:active,
 
 .error-pulse {
   animation: errorPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.form-toggle {
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  text-decoration: none;
+  overflow: hidden;
+}
+
+.form-toggle::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #5865f2, #eb459e);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.form-toggle:hover::before {
+  width: 100%;
+}
+
+.form-toggle:hover {
+  color: #5865f2;
+  transform: translateY(-1px);
+}
+
+.form-toggle:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.password-toggle {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.password-toggle:hover {
+  color: #5865f2 !important;
+  transform: scale(1.1);
+}
+
+.password-toggle:active {
+  transform: scale(0.9);
+}
+
+@keyframes formContainerPulse {
+  0%, 100% {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  }
+  50% {
+    box-shadow: 0 15px 40px rgba(88, 101, 242, 0.15);
+  }
+}
+
+.glass-hero.form-switching {
+  animation: formContainerPulse 0.6s ease-in-out;
+}
+
+.form-enter .form-group {
+  animation: formGroupSlideIn 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+label {
+  transition: color 0.3s ease;
+}
+
+.form-group:focus-within label {
+  color: #5865f2;
+}
+
+.ripple-effect {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: ripple 0.6s ease-out;
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+.input-focused {
+  transform: scale(1.02);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.input-focused input {
+  box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.3), 0 4px 20px rgba(88, 101, 242, 0.1) !important;
+}
+
+.form-group:hover:not(.input-focused) {
+  transform: translateY(-1px);
+}
+
+.minimalist-bg .shape {
+  animation-duration: 15s;
+  filter: blur(80px);
+}
+
+.minimalist-bg .blink-dot {
+  animation-duration: 4s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .form-enter,
+  .form-exit,
+  .form-group,
+  button,
+  input,
+  .ripple-effect {
+    animation: none;
+    transition: none;
+  }
 }

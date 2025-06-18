@@ -4,14 +4,16 @@ import { showToast } from '../../core/ui/toast.js';
 export class AuthManager {
     constructor() {
         this.init();
-    }
-
-    init() {
+    }    init() {
         console.log('Auth manager initialized');
         document.addEventListener('DOMContentLoaded', () => {
+            if (document.body.getAttribute('data-page') === 'auth') {
+                console.log('Auth page detected, skipping auth component initialization');
+                return;
+            }
             this.initAuthForms();
         });
-    }    initAuthForms() {
+    }initAuthForms() {
 
         console.log('🔄 Auth forms will use traditional submission (no AJAX)');
 

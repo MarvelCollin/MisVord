@@ -25,8 +25,8 @@ unset($_SESSION['errors'], $_SESSION['old_input'], $_SESSION['success']);
 $page_title = 'misvord - Login or Register';
 $body_class = 'bg-discord-dark text-white';
 $page_css = 'authentication-page';
-$page_js = 'pages/authentication-page';
-$additional_js = ['components/auth/auth'];
+$page_js = 'pages/authentication-simple';
+$additional_js = [];
 $data_page = 'auth';
 
 $debugInfo = '';
