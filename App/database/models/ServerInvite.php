@@ -1,91 +1,99 @@
 <?php
 
-require_once __DIR__ . '/../query.php';
+require_once __DIR__ . '/Model.php';
 
-class ServerInvite {
-    public $id;
-    public $server_id;
-    public $inviter_user_id;
-    public $target_user_id;
-    public $invite_link;
-    public $created_at;
-    public $updated_at;
+class ServerInvite extends Model {
+    protected static $table = 'server_invites';
+    protected $fillable = ['server_id', 'created_by', 'invite_code', 'expires_at', 'max_uses', 'uses'];
 
-    public static function create($data) {
-        $query = new Query();
-
-        $insertData = [
-            'server_id' => $data['server_id'],
-            'inviter_user_id' => $data['inviter_user_id'],
-            'target_user_id' => $data['target_user_id'] ?? null,
-            'invite_link' => $data['invite_link']
-        ];
-
-        $insertId = $query->table('server_invites')->insert($insertData);
-
-        if ($insertId) {
-            return self::find($insertId);
-        }
-
-        return false;
+    public static function findByCode($code) {
+        $result = static::where('invite_code', $code)->first();
+        return $result ? new static($result) : null;
     }
 
-    public static function find($id) {
-        $query = new Query();
-        $result = $query->table('server_invites')
-                       ->where('id', $id)
-                       ->first();
+    public static function findActiveByCode($code) {
+        $query = static::where('invite_code', $code);
+        
+        $query->where(function($q) {
+            $q->whereNull('expires_at')
+              ->orWhere('expires_at', '>', date('Y-m-d H:i:s'));
+        });
+        
+        $query->where(function($q) {
+            $q->whereNull('max_uses')
+              ->orWhereRaw('uses < max_uses');
+        });
+        
+        $result = $query->first();
+        return $result ? new static($result) : null;
+    }
 
-        if ($result) {
-            $invite = new self();
-            foreach ($result as $key => $value) {
-                $invite->$key = $value;
+    public function isValid() {
+        if ($this->expires_at && strtotime($this->expires_at) < time()) {
+            return false;
+        }
+        
+        if ($this->max_uses && $this->uses >= $this->max_uses) {
+            return false;
+        }
+        
+        return true;
+    }
+
+    public function incrementUses() {
+        $this->uses = ($this->uses ?? 0) + 1;
+        return $this->save();
+    }
+
+    public static function generateCode() {
+        $characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        $charactersLength = strlen($characters);
+        $randomString = '';
+        
+        for ($i = 0; $i < 8; $i++) {
+            $randomString .= $characters[rand(0, $charactersLength - 1)];
+        }
+        
+        return $randomString;
+    }
+
+    public static function createTable() {
+        $query = new Query();
+
+        try {
+            $tableExists = $query->tableExists('server_invites');
+
+            if (!$tableExists) {
+                $query->raw("
+                    CREATE TABLE IF NOT EXISTS server_invites (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        server_id INT NOT NULL,
+                        created_by INT NOT NULL,
+                        invite_code VARCHAR(255) UNIQUE NOT NULL,
+                        expires_at TIMESTAMP NULL,
+                        max_uses INT NULL,
+                        uses INT DEFAULT 0,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                        INDEX server_idx (server_id),
+                        INDEX code_idx (invite_code),
+                        INDEX creator_idx (created_by),
+                        FOREIGN KEY (server_id) REFERENCES servers(id) ON DELETE CASCADE,
+                        FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
+                    )
+                ");
+
+                $tableExists = $query->tableExists('server_invites');
             }
-            return $invite;
-        }
 
-        return null;
+            return $tableExists;
+        } catch (PDOException $e) {
+            error_log("Error creating server_invites table: " . $e->getMessage());
+            return false;
+        }
     }
 
-    public static function findByInviteCode($inviteCode) {
-        $query = new Query();
-        $result = $query->table('server_invites')
-                       ->where('invite_link', $inviteCode)
-                       ->first();
-
-        if ($result) {
-            $invite = new self();
-            foreach ($result as $key => $value) {
-                $invite->$key = $value;
-            }
-            return $invite;
-        }
-
-        return null;
-    }
-
-    public static function findActiveByServer($serverId) {
-        $query = new Query();
-        $result = $query->table('server_invites')
-                       ->where('server_id', $serverId)
-                       ->orderBy('created_at', 'DESC')
-                       ->first();
-
-        if ($result) {
-            $invite = new self();
-            foreach ($result as $key => $value) {
-                $invite->$key = $value;
-            }
-            return $invite;
-        }
-
-        return null;
-    }
-
-    public static function deleteOldInvites($serverId) {
-        $query = new Query();
-        return $query->table('server_invites')
-                    ->where('server_id', $serverId)
-                    ->delete();
+    public static function initialize() {
+        return self::createTable();
     }
 }

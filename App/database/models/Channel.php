@@ -1,79 +1,32 @@
 <?php
 
-require_once __DIR__ . '/../query.php';
+require_once __DIR__ . '/Model.php';
 require_once __DIR__ . '/../../utils/AppLogger.php';
 
-class Channel {
-    public static $table = 'channels';
-
-    protected $attributes = [];
-
-    public function __construct($attributes = []) {
-        $this->fill($attributes);
-    }
-
-    public function fill($attributes) {
-        foreach ($attributes as $key => $value) {
-            $this->attributes[$key] = $value;
-        }
-
-        return $this;
-    }
-
-    public function __get($key) {
-        return $this->attributes[$key] ?? null;
-    }
-
-    public function __set($key, $value) {
-        $this->attributes[$key] = $value;
-    }
-
-    public static function find($id) {
-        $query = new Query();
-        $result = $query->table(static::$table)
-            ->where('id', $id)
-            ->first();
-
-        if (!$result) {
-            return null;
-        }
-
-        return new static($result);
-    }
-
+class Channel extends Model {
+    protected static $table = 'channels';
+    protected $fillable = ['server_id', 'category_id', 'name', 'type', 'position', 'description'];    
     public static function getByServerId($serverId) {
-        $query = new Query();
-
         try {
-            $channels = $query->table(static::$table)
-                ->where('server_id', $serverId)
+            $channels = static::where('server_id', $serverId)
                 ->orderBy('position', 'ASC')
                 ->orderBy('id', 'ASC')
                 ->get();
 
             foreach ($channels as &$channel) {
-
                 if (isset($channel['type'])) {
                     $type = $channel['type'];
-
                     if (!isset($channel['type_name'])) {
-                        if ($type === 'voice' || $type == 2) {
-                            $channel['type_name'] = 'voice';
-                        } elseif ($type === 'text' || $type == 1) {
-                            $channel['type_name'] = 'text';
-                        } elseif ($type === 'category' || $type == 3) {
-                            $channel['type_name'] = 'category';
-                        } elseif ($type === 'announcement' || $type == 4) {
-                            $channel['type_name'] = 'announcement';
-                        } elseif ($type === 'forum' || $type == 5) {
-                            $channel['type_name'] = 'forum';
-                        } else {
-
-                            $channel['type_name'] = 'text';
-                        }
+                        $channel['type_name'] = match($type) {
+                            'voice', 2 => 'voice',
+                            'text', 1 => 'text',
+                            'category', 3 => 'category',
+                            'announcement', 4 => 'announcement',
+                            'forum', 5 => 'forum',
+                            default => 'text'
+                        };
                     }
                 } else {
-
                     $channel['type'] = 1;
                     $channel['type_name'] = 'text';
                 }
@@ -87,56 +40,31 @@ class Channel {
     }
 
     public static function findByNameAndServer($name, $serverId) {
-        $query = new Query();
-        $result = $query->table(static::$table)
-            ->where('name', $name)
+        $result = static::where('name', $name)
             ->where('server_id', $serverId)
             ->first();
-
-        if (!$result) {
-            return null;
-        }
-
-        return new static($result);
+        return $result ? new static($result) : null;
     }
 
     public static function getForServer($serverId) {
-        $query = new Query();
-        return $query->table(static::$table)
-                ->where('server_id', $serverId)
-                ->orderBy('position')
-                ->get();
+        return static::where('server_id', $serverId)->orderBy('position')->get();
     }
 
     public static function getForCategory($categoryId) {
-        $query = new Query();
-        return $query->table(static::$table)
-                ->where('category_id', $categoryId)
-                ->orderBy('position')
-                ->get();
+        return static::where('category_id', $categoryId)->orderBy('position')->get();
     }
 
     public function save() {
-        $query = new Query();
-
         try {
-            log_debug("Channel save() called", ['attributes' => $this->attributes]);
-
             if (isset($this->attributes['type']) && !is_numeric($this->attributes['type'])) {
-                $typeValue = strtolower($this->attributes['type']);
-
-                $this->attributes['type'] = $typeValue;
-
-                log_debug("Using string type value", ['type_value' => $typeValue]);
+                $this->attributes['type'] = strtolower($this->attributes['type']);
             }
 
             foreach (['position', 'category_id', 'parent_id'] as $field) {
                 if (isset($this->attributes[$field])) {
                     if ($this->attributes[$field] === '' || $this->attributes[$field] === null) {
-
                         $this->attributes[$field] = null;
                     } else if (is_numeric($this->attributes[$field])) {
-
                         $this->attributes[$field] = intval($this->attributes[$field]);
                     }
                 }
@@ -146,83 +74,11 @@ class Channel {
                 $this->attributes['is_private'] = $this->attributes['is_private'] ? 1 : 0;
             }
 
-            if (!isset($this->attributes['created_at'])) {
-                $this->attributes['created_at'] = date('Y-m-d H:i:s');
-            }
-
-            $this->attributes['updated_at'] = date('Y-m-d H:i:s');
-
-            if (isset($this->attributes['id'])) {
-                $id = $this->attributes['id'];
-                unset($this->attributes['id']);
-
-                log_debug("Updating channel", [
-                    'id' => $id,
-                    'attributes' => $this->attributes
-                ]);
-
-                try {
-                    $result = $query->table(static::$table)
-                            ->where('id', $id)
-                            ->update($this->attributes);
-
-                    $this->attributes['id'] = $id;
-
-                    log_debug("Update result", ['rows_affected' => $result]);
-
-                    return $result >= 0; 
-                } catch (PDOException $e) {                    log_error("PDO Exception in Channel::save() update", [
-                        'message' => $e->getMessage(),
-                        'sql_state' => $e->getCode()
-                    ]);
-                    throw $e; 
-                }
-            } else {
-
-                log_debug("Inserting new channel", ['attributes' => $this->attributes]);
-
-                try {
-                    $this->attributes['id'] = $query->table(static::$table)
-                            ->insert($this->attributes);
-
-                    log_debug("Insert result", ['new_id' => $this->attributes['id']]);
-
-                    if (!$this->attributes['id']) {
-                        log_error("Insert failed - no ID returned");
-                        return false;
-                    }
-
-                    return $this->attributes['id'] > 0;
-                } catch (PDOException $e) {                    log_error("PDO Exception in Channel::save() insert", [
-                        'message' => $e->getMessage(),
-                        'sql_state' => $e->getCode()
-                    ]);
-                    throw $e; 
-                }
-            }        } catch (Exception $e) {
-            log_error("Error in Channel::save()", [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-
-            if ($e instanceof PDOException) {
-                log_error("PDO Error details", [
-                    'code' => $e->getCode(),
-                    'sql_state' => $e->errorInfo[0] ?? 'N/A',
-                    'driver_code' => $e->errorInfo[1] ?? 'N/A',
-                    'driver_message' => $e->errorInfo[2] ?? 'N/A'
-                ]);
-            }
-
-            return false; 
+            return parent::save();
+        } catch (Exception $e) {
+            log_error("Error in Channel::save()", ['message' => $e->getMessage()]);
+            return false;
         }
-    }
-
-    public function delete() {
-        $query = new Query();
-        return $query->table(static::$table)
-                ->where('id', $this->id)
-                ->delete() > 0;
     }
 
     public function messages($limit = 50, $offset = 0) {
