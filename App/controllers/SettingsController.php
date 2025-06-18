@@ -14,13 +14,9 @@ class SettingsController extends BaseController
         parent::__construct();
         $this->serverRepository = new ServerRepository();
         $this->channelRepository = new ChannelRepository();
-    }
-    public function prepareSettingsData()
+    }    public function prepareSettingsData()
     {
-        if (!isset($_SESSION['user_id'])) {
-            header('Location: /login');
-            exit;
-        }
+        $this->requireAuth();
 
         $serverId = $_GET['server_id'] ?? null;
         $channelId = $_GET['channel_id'] ?? null;

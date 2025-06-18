@@ -17,7 +17,6 @@ class Query {
     private $unionQueries = [];
     private $raw = [];
       public function __construct($pdo = null) {
-        // Load logger if available
         if (file_exists(__DIR__ . '/../utils/AppLogger.php')) {
             require_once __DIR__ . '/../utils/AppLogger.php';
         }

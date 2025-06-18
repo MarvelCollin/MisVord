@@ -7,10 +7,7 @@ require_once __DIR__ . '/BaseController.php';
 class NotificationSettingsController extends BaseController
 {
 
-    private $userServerMembershipRepository;
-    private $serverRepository;
-
-    public function __construct()
+    private $userServerMembershipRepository;     private $serverRepository;    public function __construct()
     {
         parent::__construct();
         $this->userServerMembershipRepository = new UserServerMembershipRepository();
@@ -19,28 +16,24 @@ class NotificationSettingsController extends BaseController
 
     public function updateServerNotificationSettings()
     {
-        if (!isset($_SESSION['user_id'])) {
-            return $this->unauthorized();
-        }
+        $this->requireAuth();
 
-        $data = json_decode(file_get_contents('php://input'), true);
-
-        if (!$data || !isset($data['server_id'])) {
+        $input = $this->getInput();
+        $input = $this->sanitize($input);        if (!$input || !isset($input['server_id'])) {
             return $this->validationError(['message' => 'Invalid request']);
         }
-        $serverId = $data['server_id'];
-        $userId = $_SESSION['user_id'];
+        $serverId = $input['server_id'];
+        $userId = $this->getCurrentUserId();
 
         $membership = $this->userServerMembershipRepository->findByUserAndServer($userId, $serverId);
         if (!$membership) {
             return $this->forbidden('You are not a member of this server');
         }
 
-        $allMessages = isset($data['all_messages']) ? (bool)$data['all_messages'] : false;
-        $mentionsOnly = isset($data['mentions_only']) ? (bool)$data['mentions_only'] : true;
-        $muted = isset($data['muted']) ? (bool)$data['muted'] : false;
-        $suppressEveryone = isset($data['suppress_everyone']) ? (bool)$data['suppress_everyone'] : false;
-        $suppressRoles = isset($data['suppress_roles']) ? (bool)$data['suppress_roles'] : false;
+        $allMessages = isset($input['all_messages']) ? (bool)$input['all_messages'] : false;
+        $mentionsOnly = isset($input['mentions_only']) ? (bool)$input['mentions_only'] : true;
+        $muted = isset($input['muted']) ? (bool)$input['muted'] : false;        $suppressEveryone = isset($input['suppress_everyone']) ? (bool)$input['suppress_everyone'] : false;
+        $suppressRoles = isset($input['suppress_roles']) ? (bool)$input['suppress_roles'] : false;
 
         $notificationSettings = [
             'all_messages' => $allMessages,
@@ -49,11 +42,12 @@ class NotificationSettingsController extends BaseController
             'suppress_everyone' => $suppressEveryone,
             'suppress_roles' => $suppressRoles
         ];
+        
         try {
             $result = $this->userServerMembershipRepository->updateNotificationSettings($userId, $serverId, $notificationSettings);
 
-            if ($result) {
-                return $this->successResponse([
+            if ($result !== false) {
+                return $this->success([
                     'notification_settings' => $notificationSettings
                 ], 'Notification settings updated successfully');
             } else {
@@ -66,21 +60,18 @@ class NotificationSettingsController extends BaseController
 
     public function getServerNotificationSettings($serverId)
     {
-        if (!isset($_SESSION['user_id'])) {
-            return $this->unauthorized();
-        }
+        $this->requireAuth();
 
-        $userId = $_SESSION['user_id'];
+        $userId = $this->getCurrentUserId();
 
-        $membership = $this->userServerMembershipRepository->findByUserAndServer($userId, $serverId);
-        if (!$membership) {
+        $membership = $this->userServerMembershipRepository->findByUserAndServer($userId, $serverId);        if (!$membership) {
             return $this->forbidden('You are not a member of this server');
         }
 
         try {
             $settings = $this->userServerMembershipRepository->getNotificationSettings($userId, $serverId);
 
-            return $this->successResponse([
+            return $this->success([
                 'notification_settings' => $settings
             ]);
         } catch (Exception $e) {

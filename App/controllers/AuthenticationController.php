@@ -14,12 +14,8 @@ class AuthenticationController extends BaseController
         $this->userRepository = new UserRepository();
     }
 
-    /**
-     * Show login page or return login view data
-     */
     public function showLogin()
     {
-        // Redirect if already authenticated
         if ($this->isAuthenticated()) {
             $redirect = $_GET['redirect'] ?? '/app';
 
@@ -31,12 +27,10 @@ class AuthenticationController extends BaseController
             exit;
         }
 
-        // Store redirect URL for after login
         if (isset($_GET['redirect'])) {
             $_SESSION['login_redirect'] = $_GET['redirect'];
         }
 
-        // Return view for AJAX/API requests
         if ($this->isApiRoute() || $this->isAjaxRequest()) {
             return $this->success([
                 'view' => 'login',
@@ -44,19 +38,14 @@ class AuthenticationController extends BaseController
             ]);
         }
 
-        // Render login page
         require_once __DIR__ . '/../views/pages/authentication-page.php';
     }
 
-    /**
-     * Handle user login
-     */
     public function login()
     {
         $input = $this->getInput();
         $input = $this->sanitize($input);
 
-        // Validate input
         $this->validate($input, [
             'email' => 'required',
             'password' => 'required'
@@ -78,18 +67,15 @@ class AuthenticationController extends BaseController
             exit;
         }
 
-        // Set session data
         $_SESSION['user_id'] = $user->id;
         $_SESSION['username'] = $user->username;
         $_SESSION['avatar_url'] = $user->avatar_url;
 
-        // Update user status
         $user->status = 'online';
         $user->save();
 
         $this->logActivity('login_success', ['user_id' => $user->id]);
 
-        // Determine redirect URL
         $redirect = $this->getRedirectUrl();
 
         if ($this->isApiRoute() || $this->isAjaxRequest()) {
@@ -107,9 +93,6 @@ class AuthenticationController extends BaseController
         exit;
     }
 
-    /**
-     * Show registration page or return registration view data
-     */
     public function showRegister()
     {
         // Redirect if already authenticated
@@ -122,12 +105,10 @@ class AuthenticationController extends BaseController
             exit;
         }
 
-        // Store redirect URL for after registration
         if (isset($_GET['redirect'])) {
             $_SESSION['login_redirect'] = $_GET['redirect'];
         }
 
-        // Return view for AJAX/API requests
         if ($this->isApiRoute() || $this->isAjaxRequest()) {
             return $this->success([
                 'view' => 'register',
@@ -135,18 +116,14 @@ class AuthenticationController extends BaseController
             ]);
         }
 
-        // Render registration page
         require_once __DIR__ . '/../views/pages/authentication-page.php';
     }
 
-    /**
-     * Handle user registration
-     */    public function register()
+    public function register()
     {
         $input = $this->getInput();
         $input = $this->sanitize($input);
 
-        // Validate input
         $this->validate($input, [
             'username' => 'required',
             'email' => 'required',
@@ -159,21 +136,19 @@ class AuthenticationController extends BaseController
         $password = $input['password'];
         $passwordConfirm = $input['password_confirm'];
 
-        $errors = [];        // Validate username
+        $errors = [];
         if (strlen($username) < 3) {
             $errors['username'] = 'Username must be at least 3 characters';
         } elseif ($this->userRepository->findByUsername($username)) {
             $errors['username'] = 'Username already exists';
         }
 
-        // Validate email
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $errors['email'] = 'Invalid email format';
         } elseif ($this->userRepository->findByEmail($email)) {
             $errors['email'] = 'Email already registered';
         }
 
-        // Validate password
         if (strlen($password) < 6) {
             $errors['password'] = 'Password must be at least 6 characters';
         }
@@ -182,7 +157,6 @@ class AuthenticationController extends BaseController
             $errors['password_confirm'] = 'Passwords do not match';
         }
 
-        // Handle validation errors
         if (!empty($errors)) {
             $this->logActivity('registration_failed', ['email' => $email, 'errors' => array_keys($errors)]);
 
@@ -199,7 +173,6 @@ class AuthenticationController extends BaseController
             exit;
         }
 
-        // Create new user
         try {
             $user = new User();
             $user->username = $username;
@@ -210,7 +183,6 @@ class AuthenticationController extends BaseController
             $this->logActivity('registration_attempt', ['username' => $username, 'email' => $email]);
 
             if ($user->save()) {
-                // Set session data
                 $_SESSION['user_id'] = $user->id;
                 $_SESSION['username'] = $user->username;
                 $_SESSION['avatar_url'] = $user->avatar_url;
@@ -257,13 +229,9 @@ class AuthenticationController extends BaseController
         }
     }
 
-    /**
-     * Handle user logout
-     */
     public function logout()
     {
         $userId = $this->getCurrentUserId();
-        // Update user status if logged in
         if ($userId) {
             try {
                 $user = $this->userRepository->find($userId);
@@ -272,14 +240,12 @@ class AuthenticationController extends BaseController
                     $user->save();
                 }
             } catch (Exception $e) {
-                // Log error but don't prevent logout
                 $this->logActivity('logout_error', ['error' => $e->getMessage()]);
             }
         }
 
         $this->logActivity('logout', ['user_id' => $userId]);
 
-        // Clear session
         session_destroy();
 
         if ($this->isApiRoute() || $this->isAjaxRequest()) {
@@ -290,9 +256,6 @@ class AuthenticationController extends BaseController
         exit;
     }
 
-    /**
-     * Show forgot password page
-     */
     public function showForgotPassword()
     {
         if ($this->isAuthenticated()) {
@@ -309,9 +272,6 @@ class AuthenticationController extends BaseController
         require_once __DIR__ . '/../views/pages/authentication-page.php';
     }
 
-    /**
-     * Handle forgot password request
-     */
     public function forgotPassword()
     {
         $input = $this->getInput();
@@ -331,7 +291,6 @@ class AuthenticationController extends BaseController
             exit;
         }
 
-        // Always return success for security (don't reveal if email exists)
         $message = 'If an account with that email exists, you will receive password reset instructions.';
 
         if ($this->isApiRoute() || $this->isAjaxRequest()) {
@@ -343,9 +302,6 @@ class AuthenticationController extends BaseController
         exit;
     }
 
-    /**
-     * Handle Google OAuth authentication
-     */
     public function googleAuth($googleData)
     {
         try {
@@ -365,7 +321,6 @@ class AuthenticationController extends BaseController
             $user = $this->userRepository->findByEmail($email);
 
             if (!$user) {
-                // Create new user from Google data
                 $user = new User();
                 $user->email = $email;
                 $user->username = $this->generateUniqueUsername($name ?? $email);
@@ -375,7 +330,6 @@ class AuthenticationController extends BaseController
 
                 $this->logActivity('google_registration', ['user_id' => $user->id, 'email' => $email]);
             } else {
-                // Update existing user
                 $user->google_id = $googleId;
                 $user->status = 'online';
                 $user->save();
@@ -383,7 +337,6 @@ class AuthenticationController extends BaseController
                 $this->logActivity('google_login', ['user_id' => $user->id]);
             }
 
-            // Set session
             $_SESSION['user_id'] = $user->id;
             $_SESSION['username'] = $user->username;
             $_SESSION['avatar_url'] = $user->avatar_url;
@@ -416,9 +369,6 @@ class AuthenticationController extends BaseController
         }
     }
 
-    /**
-     * Generate unique username from name or email
-     */
     private function generateUniqueUsername($name)
     {
         $username = strtolower(trim($name));

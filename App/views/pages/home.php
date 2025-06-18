@@ -16,10 +16,10 @@ $userServers = $homeData['userServers'];
 $memberships = $homeData['memberships'];
 
 $page_title = 'misvord - Home';
-$body_class = 'bg-discord-dark text-white overflow-hidden';
-$page_css = 'home-page';
-$page_js = 'home-page';
-$additional_js = ['components/servers/server-dropdown.js'];
+$body_class = 'bg-discord-dark text-white';
+$page_css = 'app';
+$page_js = 'pages/app';
+$additional_js = ['components/servers/server-dropdown'];
 $contentType = 'home';
 ?>
 

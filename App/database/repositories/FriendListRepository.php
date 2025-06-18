@@ -54,7 +54,7 @@ class FriendListRepository extends Repository {
         
         return $this->update($friendshipId, ['status' => 'accepted']);
     }
-    
+
     public function declineFriendRequest($userId, $friendshipId) {
         $friendship = $this->find($friendshipId);
         
@@ -101,9 +101,30 @@ class FriendListRepository extends Repository {
         $query = new Query();
         return $query->table('friend_list fl')
             ->join('users u', 'fl.user_id2', '=', 'u.id')
-            ->where('fl.user_id', $userId)
-            ->where('fl.status', 'blocked')
+            ->where('fl.user_id', $userId)            ->where('fl.status', 'blocked')
             ->select('u.*, fl.id as block_id')
             ->get();
     }
-} 
+    
+    public function findFriendship($friendshipId) {
+        return $this->find($friendshipId);
+    }
+    
+    public function findFriendshipBetweenUsers($userId1, $userId2) {
+        $query = new Query();
+        $result = $query->table(FriendList::getTable())
+            ->where('user_id', $userId1)
+            ->where('user_id2', $userId2)
+            ->first();
+            
+        if (!$result) {
+            $query2 = new Query();
+            $result = $query2->table(FriendList::getTable())
+                ->where('user_id', $userId2)
+                ->where('user_id2', $userId1)
+                ->first();
+        }
+            
+        return $result ? new FriendList($result) : null;
+    }
+}

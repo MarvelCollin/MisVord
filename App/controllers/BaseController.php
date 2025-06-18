@@ -28,7 +28,6 @@ class BaseController
         if ($this->isApiRoute() || $this->isAjaxRequest()) {
             header('Content-Type: application/json');
             
-            // Apply CORS headers if enabled
             if ($this->ajaxConfig['cors']['enabled'] ?? false) {
                 $this->applyCorsHeaders();
             }
@@ -47,7 +46,6 @@ class BaseController
     protected function applyCorsHeaders() {
         $cors = $this->ajaxConfig['cors'] ?? [];
         
-        // Allow origins
         $origin = $_SERVER['HTTP_ORIGIN'] ?? '*';
         $allowedOrigins = $cors['allowed_origins'] ?? ['*'];
         
@@ -55,24 +53,19 @@ class BaseController
             header("Access-Control-Allow-Origin: $origin");
         }
         
-        // Allow methods
         $allowedMethods = implode(', ', $cors['allowed_methods'] ?? ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']);
         header("Access-Control-Allow-Methods: $allowedMethods");
         
-        // Allow headers
         $allowedHeaders = implode(', ', $cors['allowed_headers'] ?? ['Content-Type', 'X-Requested-With']);
         header("Access-Control-Allow-Headers: $allowedHeaders");
         
-        // Support credentials
         if ($cors['supports_credentials'] ?? true) {
             header("Access-Control-Allow-Credentials: true");
         }
         
-        // Max age
         $maxAge = $cors['max_age'] ?? 86400;
         header("Access-Control-Max-Age: $maxAge");
         
-        // Handle preflight requests
         if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
             exit(0);
         }

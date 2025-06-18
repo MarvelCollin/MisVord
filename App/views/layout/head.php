@@ -81,7 +81,7 @@ $cache_version = time();
 <?php endif; ?>
 
 <?php if (isset($include_channel_loader) && $include_channel_loader): ?>
-    <script src="/js/channel-loader.js?v=<?php echo $cache_version; ?>"></script>
+    
 <?php endif; ?>
 
 <?php if (isset($head_scripts) && is_array($head_scripts)): ?>
@@ -89,3 +89,7 @@ $cache_version = time();
         <script src="<?php echo $script; ?>?v=<?php echo $cache_version; ?>"></script>
     <?php endforeach; ?>
 <?php endif; ?>
+
+<!-- Lazyload components preload -->
+<script src="<?php echo js('utils/lazy-loader'); ?>?v=<?php echo $cache_version; ?>"></script>
+<script src="<?php echo js('components/channels/channel-loader'); ?>?v=<?php echo $cache_version; ?>"></script>

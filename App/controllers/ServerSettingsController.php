@@ -19,40 +19,37 @@ class ServerSettingsController extends BaseController
         $this->serverRepository = new ServerRepository();
         $this->membershipRepository = new UserServerMembershipRepository();
         $this->inviteRepository = new ServerInviteRepository();
-    }
-
-    public function updateServerSettings()
+    }    public function updateServerSettings()
     {
-        if (!isset($_SESSION['user_id'])) {
-            return $this->unauthorized();
-        }
+        $this->requireAuth();
 
-        $data = json_decode(file_get_contents('php://input'), true);
+        $input = $this->getInput();
+        $input = $this->sanitize($input);
 
-        if (!$data || !isset($data['server_id'])) {
+        if (!$input || !isset($input['server_id'])) {
             return $this->validationError(['message' => 'Invalid request']);
         }
-        $serverId = $data['server_id'];
+        $serverId = $input['server_id'];
         $server = $this->serverRepository->find($serverId);
 
         if (!$server) {
             return $this->notFound('Server not found');
         }
 
-        if (!$this->membershipRepository->isOwner($_SESSION['user_id'], $serverId)) {
+        if (!$this->membershipRepository->isOwner($this->getCurrentUserId(), $serverId)) {
             return $this->forbidden('You do not have permission to update server settings');
         }
 
-        if (isset($data['name']) && !empty($data['name'])) {
-            $server->name = $data['name'];
+        if (isset($input['name']) && !empty($input['name'])) {
+            $server->name = $input['name'];
         }
 
-        if (isset($data['description'])) {
-            $server->description = $data['description'];
+        if (isset($input['description'])) {
+            $server->description = $input['description'];
         }
 
-        if (isset($data['is_public'])) {
-            $server->is_public = (bool)$data['is_public'];
+        if (isset($input['is_public'])) {
+            $server->is_public = (bool)$input['is_public'];
         }
 
         if (isset($_FILES['image_file']) && $_FILES['image_file']['error'] === UPLOAD_ERR_OK) {
@@ -60,10 +57,8 @@ class ServerSettingsController extends BaseController
             if ($imageUrl !== false) {
                 $server->image_url = $imageUrl;
             }
-        }
-
-        if ($server->save()) {
-            return $this->successResponse([
+        }        if ($server->save()) {
+            return $this->success([
                 'server' => [
                     'id' => $server->id,
                     'name' => $server->name,
@@ -79,9 +74,7 @@ class ServerSettingsController extends BaseController
 
     public function generateInviteLink()
     {
-        if (!isset($_SESSION['user_id'])) {
-            return $this->unauthorized();
-        }
+        $this->requireAuth();
 
         $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
         preg_match('/\/api\/servers\/(\d+)\/invite/', $path, $matches);
@@ -94,9 +87,7 @@ class ServerSettingsController extends BaseController
 
         if (!$server) {
             return $this->notFound('Server not found');
-        }
-
-        $membership = $this->membershipRepository->findByUserAndServer($_SESSION['user_id'], $serverId);
+        }        $membership = $this->membershipRepository->findByUserAndServer($this->getCurrentUserId(), $serverId);
         if (!$membership || ($membership->role !== 'admin' && $membership->role !== 'owner')) {
             return $this->forbidden('You do not have permission to generate invite links');
         }
@@ -110,14 +101,13 @@ class ServerSettingsController extends BaseController
             }
             $this->inviteRepository->deleteOldInvites($serverId);
 
-            $invite = $this->inviteRepository->create([
-                'server_id' => $serverId,
-                'inviter_user_id' => $_SESSION['user_id'],
+            $invite = $this->inviteRepository->create([                'server_id' => $serverId,
+                'inviter_user_id' => $this->getCurrentUserId(),
                 'invite_link' => $inviteCode
             ]);
 
             if ($invite) {
-                return $this->successResponse([
+                return $this->success([
                     'invite_code' => $inviteCode
                 ], 'Invite link generated successfully');
             } else {

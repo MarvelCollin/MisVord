@@ -200,7 +200,7 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 Chat section initializing...');
 
     // Basic debug info helper
-    window.MisVordDebug = {
+    window.MiscVordDebug = {
         initialized: false,
         messagingAvailable: false,
         errors: [],
@@ -213,7 +213,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 data: data || {}
             };
             this.logs.push(logEntry);
-            console.log(`[MisVordDebug] ${message}`, data);
+            console.log(`[MiscVordDebug] ${message}`, data);
             if (this.logs.length > 50) this.logs.shift();
         },
 
@@ -225,7 +225,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 stack: error ? error.stack : 'No stack trace'
             };
             this.errors.push(errorEntry);
-            console.error(`[MisVordDebug] ${message}`, error);
+            console.error(`[MiscVordDebug] ${message}`, error);
             if (this.errors.length > 20) this.errors.shift();
         },
 
@@ -235,7 +235,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 messagingAvailable: this.messagingAvailable,
                 socketAvailable: typeof io !== 'undefined',
                 globalSocketManager: !!window.globalSocketManager,
-                misVordMessaging: !!window.MisVordMessaging,
+                miscVordMessaging: !!window.MiscVordMessaging,
                 recentErrors: this.errors.slice(-5),
                 recentLogs: this.logs.slice(-10)
             };
@@ -246,7 +246,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const characterCount = document.querySelector('.character-count');
     const sendButton = document.getElementById('send-button');
 
-    window.MisVordDebug.log('Chat elements check', {
+    window.MiscVordDebug.log('Chat elements check', {
         messageInput: !!messageInput,
         characterCount: !!characterCount,
         sendButton: !!sendButton,
@@ -255,7 +255,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     if (messageInput && sendButton) {
-        window.MisVordDebug.log('Message input and send button found');
+        window.MiscVordDebug.log('Message input and send button found');
 
         messageInput.addEventListener('input', function(e) {
             this.style.height = 'auto';
@@ -275,10 +275,10 @@ document.addEventListener('DOMContentLoaded', function() {
         sendButton.disabled = true;
         setTimeout(() => {
             messageInput.focus();
-            window.MisVordDebug.log('Message input focused');
+            window.MiscVordDebug.log('Message input focused');
         }, 500);
     } else {
-        window.MisVordDebug.error('Critical elements missing', {
+        window.MiscVordDebug.error('Critical elements missing', {
             messageInput: !!messageInput,
             sendButton: !!sendButton
         });
@@ -289,7 +289,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const userId = '<?php echo htmlspecialchars($currentUserId ?? ""); ?>';
     const username = '<?php echo htmlspecialchars($_SESSION['username'] ?? ""); ?>';
 
-    window.MisVordDebug.log('Socket connection data', { channelId, userId, username });
+    window.MiscVordDebug.log('Socket connection data', { channelId, userId, username });
 
     const socketData = document.createElement('div');
     socketData.id = 'socket-data';
@@ -298,16 +298,16 @@ document.addEventListener('DOMContentLoaded', function() {
     socketData.setAttribute('data-username', username);
     socketData.style.display = 'none';
     document.body.appendChild(socketData);
-    window.MisVordDebug.log('Socket data element created and added to DOM');
+    window.MiscVordDebug.log('Socket data element created and added to DOM');
 
     // Check WebSocket and global socket manager availability
     if (typeof io !== 'undefined') {
-        window.MisVordDebug.log('Socket.IO is available');
+        window.MiscVordDebug.log('Socket.IO is available');
         
         // Listen for global socket manager ready event
-        window.addEventListener('misVordGlobalReady', function(event) {
-            window.MisVordDebug.log('Global socket manager is ready:', event.detail);
-            window.MisVordDebug.initialized = true;
+        window.addEventListener('miscVordGlobalReady', function(event) {
+            window.MiscVordDebug.log('Global socket manager is ready:', event.detail);
+            window.MiscVordDebug.initialized = true;
             
             // Update status indicator
             const socketStatus = document.querySelector('.socket-status');
@@ -318,8 +318,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Check if global socket manager is already available
         if (window.globalSocketManager) {
-            window.MisVordDebug.log('Global socket manager already available');
-            window.MisVordDebug.initialized = true;
+            window.MiscVordDebug.log('Global socket manager already available');
+            window.MiscVordDebug.initialized = true;
             
             const socketStatus = document.querySelector('.socket-status');
             if (socketStatus && window.globalSocketManager.isReady()) {
@@ -328,7 +328,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
     } else {
-        window.MisVordDebug.error('Socket.IO not available - messaging disabled');
+        window.MiscVordDebug.error('Socket.IO not available - messaging disabled');
 
         const socketStatus = document.querySelector('.socket-status');
         if (socketStatus) {
@@ -348,7 +348,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (hasMessages) {
             setTimeout(() => {
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                window.MisVordDebug.log('Auto-scrolled to bottom on page load');
+                window.MiscVordDebug.log('Auto-scrolled to bottom on page load');
             }, 100);
         }
 
@@ -366,6 +366,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    window.MisVordDebug.log('Chat section initialization complete');
+    window.MiscVordDebug.log('Chat section initialization complete');
 });
 </script>

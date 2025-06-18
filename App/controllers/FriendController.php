@@ -227,229 +227,370 @@ class FriendController extends BaseController
 
     public function getFriends()
     {
+        $this->requireAuth();
+        
         $userId = $this->getCurrentUserId();
         
-        if (!$userId) {
-            return $this->json(['error' => 'Unauthorized'], 401);
+        try {
+            $friends = $this->friendListRepository->getUserFriends($userId);
+            
+            foreach ($friends as &$friend) {
+                $presence = $this->userPresenceRepository->findByUserId($friend['id']);
+                $friend['status'] = $presence ? $presence->status : 'offline';
+                $friend['activity'] = $presence ? $presence->activity_details : null;
+                $friend['last_seen'] = $presence ? $presence->last_seen : null;
+            }
+            
+            $this->logActivity('friends_viewed');
+            
+            return $this->success($friends, 'Friends retrieved successfully');
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while retrieving friends: ' . $e->getMessage());
         }
-        
-        $friends = $this->friendListRepository->getUserFriends($userId);
-        
-        foreach ($friends as &$friend) {
-            $presence = $this->userPresenceRepository->findByUserId($friend['id']);
-            $friend['status'] = $presence ? $presence->status : 'offline';
-            $friend['activity'] = $presence ? $presence->activity_details : null;
-            $friend['last_seen'] = $presence ? $presence->last_seen : null;
-        }
-        
-        return $this->json(['friends' => $friends]);
     }
     
     public function getOnlineFriends()
     {
+        $this->requireAuth();
+        
         $userId = $this->getCurrentUserId();
         
-        if (!$userId) {
-            return $this->json(['error' => 'Unauthorized'], 401);
+        try {
+            $onlineFriends = $this->userPresenceRepository->getOnlineFriends($userId);
+            
+            $this->logActivity('online_friends_viewed');
+            
+            return $this->success($onlineFriends, 'Online friends retrieved successfully');
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while retrieving online friends: ' . $e->getMessage());
         }
-        
-        $onlineFriends = $this->userPresenceRepository->getOnlineFriends($userId);
-        return $this->json(['online_friends' => $onlineFriends]);
     }
     
     public function getSentRequests()
     {
+        $this->requireAuth();
+        
         $userId = $this->getCurrentUserId();
         
-        if (!$userId) {
-            return $this->json(['error' => 'Unauthorized'], 401);
+        try {
+            $sentRequests = $this->friendListRepository->getSentRequests($userId);
+            
+            $this->logActivity('sent_requests_viewed');
+            
+            return $this->success($sentRequests, 'Sent friend requests retrieved successfully');
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while retrieving sent requests: ' . $e->getMessage());
         }
-        
-        $sentRequests = $this->friendListRepository->getSentRequests($userId);
-        return $this->json(['sent_requests' => $sentRequests]);
     }
     
     public function sendFriendRequest()
     {
+        $this->requireAuth();
+        
         $userId = $this->getCurrentUserId();
+        $input = $this->getInput();
         
-        if (!$userId) {
-            return $this->json(['error' => 'Unauthorized'], 401);
-        }
-        
-        $data = $this->getRequestBody();
-        
-        if (!isset($data['user_id']) && !isset($data['username'])) {
-            return $this->json(['error' => 'Either user_id or username is required'], 400);
-        }
-        
-        $targetUserId = null;
-        
-        if (isset($data['user_id'])) {
-            $targetUserId = $data['user_id'];
-        } else {
-            $user = $this->userRepository->findByUsername($data['username']);
-            
-            if (!$user) {
-                return $this->json(['error' => 'User not found'], 404);
+        try {
+            if (!isset($input['user_id']) && !isset($input['username'])) {
+                return $this->error('Either user_id or username is required', 400);
             }
             
-            $targetUserId = $user->id;
+            $targetUserId = null;
+            $targetUsername = null;
+            
+            if (isset($input['user_id'])) {
+                $targetUserId = $input['user_id'];
+                $targetUser = $this->userRepository->find($targetUserId);
+                if (!$targetUser) {
+                    return $this->notFound('User not found');
+                }
+                $targetUsername = $targetUser->username;
+            } else {
+                $username = $input['username'];
+                $targetUser = $this->userRepository->findByUsername($username);
+                
+                if (!$targetUser) {
+                    return $this->notFound('User not found');
+                }
+                
+                $targetUserId = $targetUser->id;
+                $targetUsername = $targetUser->username;
+            }
+            
+            if ($targetUserId == $userId) {
+                return $this->error('You cannot send a friend request to yourself', 400);
+            }
+            
+            $result = $this->friendListRepository->sendFriendRequest($userId, $targetUserId);
+            
+            if ($result === false) {
+                return $this->error('Failed to send friend request, the user may have blocked you', 400);
+            }
+            
+            $currentUser = $this->userRepository->find($userId);
+            
+            $this->notifyViaSocket($targetUserId, 'friend-request-received', [
+                'friendship_id' => $result->id,
+                'sender_id' => $userId,
+                'sender_username' => $currentUser->username,
+                'timestamp' => date('Y-m-d H:i:s')
+            ]);
+            
+            $this->logActivity('friend_request_sent', [
+                'target_user_id' => $targetUserId,
+                'target_username' => $targetUsername
+            ]);
+            
+            return $this->success([
+                'friendship_id' => $result->id,
+                'target_user' => [
+                    'id' => $targetUserId,
+                    'username' => $targetUsername
+                ]
+            ], 'Friend request sent successfully');
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while sending friend request: ' . $e->getMessage());
         }
-        
-        if ($targetUserId == $userId) {
-            return $this->json(['error' => 'You cannot send a friend request to yourself'], 400);
-        }
-        
-        $result = $this->friendListRepository->sendFriendRequest($userId, $targetUserId);
-        
-        if ($result === false) {
-            return $this->json(['error' => 'Failed to send friend request, the user may have blocked you'], 400);
-        }
-        
-        return $this->json(['message' => 'Friend request sent successfully']);
     }
     
     public function acceptFriendRequest($friendshipId)
     {
+        $this->requireAuth();
+        
         $userId = $this->getCurrentUserId();
         
-        if (!$userId) {
-            return $this->json(['error' => 'Unauthorized'], 401);
+        try {
+            $friendship = $this->friendListRepository->findFriendship($friendshipId);
+            
+            if (!$friendship) {
+                return $this->notFound('Friend request not found');
+            }
+            
+            if ($friendship->recipient_id != $userId) {
+                return $this->forbidden('You cannot accept this friend request');
+            }
+            
+            $result = $this->friendListRepository->acceptFriendRequest($userId, $friendshipId);
+            
+            if (!$result) {
+                return $this->serverError('Failed to accept friend request');
+            }
+            
+            $currentUser = $this->userRepository->find($userId);
+            $senderUser = $this->userRepository->find($friendship->sender_id);
+            
+            $this->notifyViaSocket($friendship->sender_id, 'friend-request-accepted', [
+                'friendship_id' => $friendshipId,
+                'recipient_id' => $userId,
+                'recipient_username' => $currentUser->username,
+                'timestamp' => date('Y-m-d H:i:s')
+            ]);
+            
+            $this->logActivity('friend_request_accepted', [
+                'friendship_id' => $friendshipId,
+                'sender_id' => $friendship->sender_id,
+                'sender_username' => $senderUser->username
+            ]);
+            
+            return $this->success([
+                'friendship_id' => $friendshipId,
+                'friend' => [
+                    'id' => $friendship->sender_id,
+                    'username' => $senderUser->username
+                ]
+            ], 'Friend request accepted');
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while accepting friend request: ' . $e->getMessage());
         }
-        
-        $result = $this->friendListRepository->acceptFriendRequest($userId, $friendshipId);
-        
-        if (!$result) {
-            return $this->json(['error' => 'Failed to accept friend request'], 400);
-        }
-        
-        return $this->json(['message' => 'Friend request accepted']);
     }
     
     public function declineFriendRequest($friendshipId)
     {
+        $this->requireAuth();
+        
         $userId = $this->getCurrentUserId();
         
-        if (!$userId) {
-            return $this->json(['error' => 'Unauthorized'], 401);
+        try {
+            $friendship = $this->friendListRepository->findFriendship($friendshipId);
+            
+            if (!$friendship) {
+                return $this->notFound('Friend request not found');
+            }
+            
+            if ($friendship->recipient_id != $userId) {
+                return $this->forbidden('You cannot decline this friend request');
+            }
+            
+            $result = $this->friendListRepository->declineFriendRequest($userId, $friendshipId);
+            
+            if (!$result) {
+                return $this->serverError('Failed to decline friend request');
+            }
+            
+            $this->notifyViaSocket($friendship->sender_id, 'friend-request-declined', [
+                'friendship_id' => $friendshipId,
+                'recipient_id' => $userId,
+                'timestamp' => date('Y-m-d H:i:s')
+            ]);
+            
+            $this->logActivity('friend_request_declined', [
+                'friendship_id' => $friendshipId,
+                'sender_id' => $friendship->sender_id
+            ]);
+            
+            return $this->success(null, 'Friend request declined');
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while declining friend request: ' . $e->getMessage());
         }
-        
-        $result = $this->friendListRepository->declineFriendRequest($userId, $friendshipId);
-        
-        if (!$result) {
-            return $this->json(['error' => 'Failed to decline friend request'], 400);
-        }
-        
-        return $this->json(['message' => 'Friend request declined']);
     }
     
     public function removeFriend()
     {
+        $this->requireAuth();
+        
         $userId = $this->getCurrentUserId();
+        $input = $this->getInput();
         
-        if (!$userId) {
-            return $this->json(['error' => 'Unauthorized'], 401);
+        try {
+            if (!isset($input['user_id'])) {
+                return $this->error('User ID is required', 400);
+            }
+            
+            $friendId = $input['user_id'];
+            
+            $friendship = $this->friendListRepository->findFriendshipBetweenUsers($userId, $friendId);
+            
+            if (!$friendship) {
+                return $this->notFound('Friendship not found');
+            }
+            
+            $result = $this->friendListRepository->removeFriend($userId, $friendId);
+            
+            if (!$result) {
+                return $this->serverError('Failed to remove friend');
+            }
+            
+            $this->notifyViaSocket($friendId, 'friend-removed', [
+                'user_id' => $userId,
+                'timestamp' => date('Y-m-d H:i:s')
+            ]);
+            
+            $this->logActivity('friend_removed', [
+                'friend_id' => $friendId
+            ]);
+            
+            return $this->success(null, 'Friend removed successfully');
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while removing friend: ' . $e->getMessage());
         }
-        
-        $data = $this->getRequestBody();
-        
-        if (!isset($data['friend_id'])) {
-            return $this->json(['error' => 'Friend ID is required'], 400);
-        }
-        
-        $friendId = $data['friend_id'];
-        $result = $this->friendListRepository->removeFriend($userId, $friendId);
-        
-        if (!$result) {
-            return $this->json(['error' => 'Failed to remove friend'], 400);
-        }
-        
-        return $this->json(['message' => 'Friend removed successfully']);
     }
     
     public function blockUser()
     {
+        $this->requireAuth();
+        
         $userId = $this->getCurrentUserId();
+        $input = $this->getInput();
         
-        if (!$userId) {
-            return $this->json(['error' => 'Unauthorized'], 401);
+        try {
+            if (!isset($input['user_id'])) {
+                return $this->error('User ID is required', 400);
+            }
+            
+            $targetUserId = $input['user_id'];
+            
+            if ($targetUserId == $userId) {
+                return $this->error('You cannot block yourself', 400);
+            }
+            
+            $result = $this->friendListRepository->blockUser($userId, $targetUserId);
+            
+            if (!$result) {
+                return $this->serverError('Failed to block user');
+            }
+            
+            $this->logActivity('user_blocked', [
+                'blocked_user_id' => $targetUserId
+            ]);
+            
+            return $this->success(null, 'User blocked successfully');
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while blocking user: ' . $e->getMessage());
         }
-        
-        $data = $this->getRequestBody();
-        
-        if (!isset($data['user_id'])) {
-            return $this->json(['error' => 'User ID is required'], 400);
-        }
-        
-        $targetUserId = $data['user_id'];
-        
-        if ($targetUserId == $userId) {
-            return $this->json(['error' => 'You cannot block yourself'], 400);
-        }
-        
-        $result = $this->friendListRepository->blockUser($userId, $targetUserId);
-        
-        if (!$result) {
-            return $this->json(['error' => 'Failed to block user'], 500);
-        }
-        
-        return $this->json(['message' => 'User blocked successfully']);
     }
     
     public function unblockUser()
     {
+        $this->requireAuth();
+        
         $userId = $this->getCurrentUserId();
+        $input = $this->getInput();
         
-        if (!$userId) {
-            return $this->json(['error' => 'Unauthorized'], 401);
+        try {
+            if (!isset($input['user_id'])) {
+                return $this->error('User ID is required', 400);
+            }
+            
+            $targetUserId = $input['user_id'];
+            $result = $this->friendListRepository->unblockUser($userId, $targetUserId);
+            
+            if (!$result) {
+                return $this->serverError('Failed to unblock user');
+            }
+            
+            $this->logActivity('user_unblocked', [
+                'unblocked_user_id' => $targetUserId
+            ]);
+            
+            return $this->success(null, 'User unblocked successfully');
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while unblocking user: ' . $e->getMessage());
         }
-        
-        $data = $this->getRequestBody();
-        
-        if (!isset($data['user_id'])) {
-            return $this->json(['error' => 'User ID is required'], 400);
-        }
-        
-        $targetUserId = $data['user_id'];
-        $result = $this->friendListRepository->unblockUser($userId, $targetUserId);
-        
-        if (!$result) {
-            return $this->json(['error' => 'Failed to unblock user'], 400);
-        }
-        
-        return $this->json(['message' => 'User unblocked successfully']);
     }
     
     public function getBlockedUsers()
     {
+        $this->requireAuth();
+        
         $userId = $this->getCurrentUserId();
         
-        if (!$userId) {
-            return $this->json(['error' => 'Unauthorized'], 401);
+        try {
+            $blockedUsers = $this->friendListRepository->getBlockedUsers($userId);
+            
+            $this->logActivity('blocked_users_viewed');
+            
+            return $this->success($blockedUsers, 'Blocked users retrieved successfully');
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while retrieving blocked users: ' . $e->getMessage());
         }
-        
-        $blockedUsers = $this->friendListRepository->getBlockedUsers($userId);
-        return $this->json(['blocked_users' => $blockedUsers]);
     }
     
     public function findUsers()
     {
+        $this->requireAuth();
+        
         $userId = $this->getCurrentUserId();
+        $input = $this->getInput();
         
-        if (!$userId) {
-            return $this->json(['error' => 'Unauthorized'], 401);
+        try {
+            if (!isset($input['query']) || empty($input['query'])) {
+                return $this->error('Search query is required', 400);
+            }
+            
+            $query = $input['query'];
+            $users = $this->userRepository->searchByUsername($query, $userId);
+            
+            $this->logActivity('users_searched', [
+                'query' => $query,
+                'result_count' => count($users)
+            ]);
+            
+            return $this->success([
+                'query' => $query,
+                'users' => $users
+            ], 'Users found successfully');
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while searching users: ' . $e->getMessage());
         }
-        
-        $data = $this->getRequestBody();
-        
-        if (!isset($data['query']) || empty($data['query'])) {
-            return $this->json(['error' => 'Search query is required'], 400);
-        }
-        
-        $query = $data['query'];
-        $users = $this->userRepository->searchByUsername($query, $userId);
-        
-        return $this->json(['users' => $users]);
     }
 }

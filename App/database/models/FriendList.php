@@ -19,23 +19,19 @@ class FriendList extends Model {
             
         return $result ? new static($result) : null;
     }
-    
-    public static function getUserFriends($userId) {
+      public static function getUserFriends($userId) {
         $query = new Query();
         $results = $query->table(static::$table . ' fl')
-            ->join('users u', function($join) use ($userId) {
-                $join->on('fl.user_id2', '=', 'u.id')
-                     ->where('fl.user_id', '=', $userId);
-            })
+            ->join('users u', 'fl.user_id2', '=', 'u.id')
+            ->where('fl.user_id', $userId)
             ->where('fl.status', 'accepted')
             ->select('u.*, fl.id as friendship_id')
             ->get();
             
-        $results2 = $query->table(static::$table . ' fl')
-            ->join('users u', function($join) use ($userId) {
-                $join->on('fl.user_id', '=', 'u.id')
-                     ->where('fl.user_id2', '=', $userId);
-            })
+        $query2 = new Query();
+        $results2 = $query2->table(static::$table . ' fl')
+            ->join('users u', 'fl.user_id', '=', 'u.id')
+            ->where('fl.user_id2', $userId)
             ->where('fl.status', 'accepted')
             ->select('u.*, fl.id as friendship_id')
             ->get();

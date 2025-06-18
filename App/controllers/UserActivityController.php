@@ -12,11 +12,11 @@ class UserActivityController extends BaseController
     {
         parent::__construct();
         $this->userActivityRepository = new UserActivityRepository();
-    }
-
-    public function getActiveUsers()
+    }    public function getActiveUsers()
     {
-        $currentUserId = $_SESSION['user_id'] ?? 0;
+        $this->requireAuth();
+        
+        $currentUserId = $this->getCurrentUserId();
 
         try {
             $activeUsers = $this->userActivityRepository->getActiveUsers($currentUserId);

@@ -46,14 +46,13 @@ class RolePermissionRepository extends Repository {
             
         return $result && isset($result[$permission]) && $result[$permission];
     }
-    
-    public function getRolePermissionsForServer($serverId) {
+      public function getRolePermissionsForServer($serverId) {
         $query = new Query();
         return $query->table('role_permissions rp')
             ->join('roles r', 'rp.role_id', '=', 'r.id')
             ->join('channels c', 'rp.channel_id', '=', 'c.id')
             ->where('r.server_id', $serverId)
-            ->select('rp.*', 'r.role_name', 'c.name as channel_name')
+            ->select('rp.*, r.role_name, c.name as channel_name')
             ->get();
     }
     

@@ -16,129 +16,212 @@ class UserPresenceController extends BaseController {
     }
     
     public function updateStatus() {
+        $this->requireAuth();
+        
         $userId = $this->getCurrentUserId();
+        $input = $this->getInput();
         
-        if (!$userId) {
-            return $this->json(['error' => 'Unauthorized'], 401);
+        try {
+            $this->validate($input, [
+                'status' => 'required'
+            ]);
+            
+            $status = $input['status'];
+            
+            if (!in_array($status, ['online', 'away', 'dnd', 'offline'])) {
+                return $this->error('Invalid status. Must be one of: online, away, dnd, offline', 400);
+            }
+            
+            $activityDetails = isset($input['activity_details']) ? $input['activity_details'] : null;
+            
+            $updated = $this->userPresenceRepository->updatePresence($userId, $status, $activityDetails);
+            
+            if (!$updated) {
+                return $this->serverError('Failed to update status');
+            }
+            
+            $user = $this->userRepository->find($userId);
+            
+            $this->broadcastViaSocket('user-status-changed', [
+                'user_id' => $userId,
+                'username' => $user->username,
+                'status' => $status,
+                'activity_details' => $activityDetails,
+                'timestamp' => date('Y-m-d H:i:s')
+            ]);
+            
+            $this->logActivity('status_updated', [
+                'status' => $status,
+                'activity_details' => $activityDetails
+            ]);
+            
+            return $this->success([
+                'status' => $status,
+                'activity_details' => $activityDetails
+            ], 'Status updated successfully');
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while updating status: ' . $e->getMessage());
         }
-        
-        $data = $this->getRequestBody();
-        
-        if (!isset($data['status']) || empty($data['status'])) {
-            return $this->json(['error' => 'Status is required'], 400);
-        }
-        
-        $status = $data['status'];
-        
-        if (!in_array($status, ['online', 'away', 'dnd', 'offline'])) {
-            return $this->json(['error' => 'Invalid status. Must be one of: online, away, dnd, offline'], 400);
-        }
-        
-        $activityDetails = isset($data['activity_details']) ? $data['activity_details'] : null;
-        
-        $updated = $this->userPresenceRepository->updatePresence($userId, $status, $activityDetails);
-        
-        if (!$updated) {
-            return $this->json(['error' => 'Failed to update status'], 500);
-        }
-        
-        return $this->json(['message' => 'Status updated successfully']);
     }
     
     public function getStatus($userId = null) {
+        $this->requireAuth();
+        
         $currentUserId = $this->getCurrentUserId();
-        
-        if (!$currentUserId) {
-            return $this->json(['error' => 'Unauthorized'], 401);
-        }
-        
         $targetUserId = $userId ?? $currentUserId;
         
-        $presence = $this->userPresenceRepository->findByUserId($targetUserId);
-        
-        if (!$presence) {
-            return $this->json(['status' => 'offline', 'activity_details' => null, 'last_seen' => null]);
+        try {
+            $presence = $this->userPresenceRepository->findByUserId($targetUserId);
+            
+            if (!$presence) {
+                return $this->success([
+                    'status' => 'offline', 
+                    'activity_details' => null, 
+                    'last_seen' => null
+                ], 'User is offline');
+            }
+            
+            $result = [
+                'status' => $presence->status,
+                'activity_details' => $presence->activity_details,
+                'last_seen' => $presence->last_seen,
+                'formatted_last_seen' => $presence->getFormattedLastSeen()
+            ];
+            
+            if ($targetUserId != $currentUserId) {
+                $this->logActivity('viewed_user_status', [
+                    'target_user_id' => $targetUserId
+                ]);
+            }
+            
+            return $this->success($result, 'Status retrieved successfully');
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while retrieving status: ' . $e->getMessage());
         }
-        
-        return $this->json([
-            'status' => $presence->status,
-            'activity_details' => $presence->activity_details,
-            'last_seen' => $presence->last_seen,
-            'formatted_last_seen' => $presence->getFormattedLastSeen()
-        ]);
     }
     
     public function getOnlineUsers() {
+        $this->requireAuth();
+        
         $userId = $this->getCurrentUserId();
         
-        if (!$userId) {
-            return $this->json(['error' => 'Unauthorized'], 401);
+        try {
+            $onlineUsers = $this->userPresenceRepository->getOnlineUsers();
+            
+            $this->logActivity('viewed_online_users');
+            
+            return $this->success($onlineUsers, 'Online users retrieved successfully');
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while retrieving online users: ' . $e->getMessage());
         }
-        
-        $onlineUsers = $this->userPresenceRepository->getOnlineUsers();
-        return $this->json(['online_users' => $onlineUsers]);
     }
     
     public function setActivity() {
+        $this->requireAuth();
+        
         $userId = $this->getCurrentUserId();
+        $input = $this->getInput();
         
-        if (!$userId) {
-            return $this->json(['error' => 'Unauthorized'], 401);
+        try {
+            $this->validate($input, [
+                'activity_details' => 'required'
+            ]);
+            
+            $activityDetails = $input['activity_details'];
+            
+            $updated = $this->userPresenceRepository->updateActivity($userId, $activityDetails);
+            
+            if (!$updated) {
+                return $this->serverError('Failed to update activity');
+            }
+            
+            $user = $this->userRepository->find($userId);
+            $presence = $this->userPresenceRepository->findByUserId($userId);
+            
+            $this->broadcastViaSocket('user-activity-changed', [
+                'user_id' => $userId,
+                'username' => $user->username,
+                'status' => $presence ? $presence->status : 'online',
+                'activity_details' => $activityDetails,
+                'timestamp' => date('Y-m-d H:i:s')
+            ]);
+            
+            $this->logActivity('activity_updated', [
+                'activity_details' => $activityDetails
+            ]);
+            
+            return $this->success([
+                'activity_details' => $activityDetails
+            ], 'Activity updated successfully');
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while updating activity: ' . $e->getMessage());
         }
-        
-        $data = $this->getRequestBody();
-        
-        if (!isset($data['activity_details']) || empty($data['activity_details'])) {
-            return $this->json(['error' => 'Activity details are required'], 400);
-        }
-        
-        $activityDetails = $data['activity_details'];
-        
-        $updated = $this->userPresenceRepository->updateActivity($userId, $activityDetails);
-        
-        if (!$updated) {
-            return $this->json(['error' => 'Failed to update activity'], 500);
-        }
-        
-        return $this->json(['message' => 'Activity updated successfully']);
     }
     
     public function clearActivity() {
+        $this->requireAuth();
+        
         $userId = $this->getCurrentUserId();
         
-        if (!$userId) {
-            return $this->json(['error' => 'Unauthorized'], 401);
-        }
-        
-        $presence = $this->userPresenceRepository->findByUserId($userId);
-        
-        if ($presence) {
-            $updated = $this->userPresenceRepository->update($presence->id, [
-                'activity_details' => null,
-                'last_seen' => date('Y-m-d H:i:s')
-            ]);
+        try {
+            $presence = $this->userPresenceRepository->findByUserId($userId);
             
-            if (!$updated) {
-                return $this->json(['error' => 'Failed to clear activity'], 500);
+            if ($presence) {
+                $updated = $this->userPresenceRepository->update($presence->id, [
+                    'activity_details' => null,
+                    'last_seen' => date('Y-m-d H:i:s')
+                ]);
+                
+                if (!$updated) {
+                    return $this->serverError('Failed to clear activity');
+                }
+                
+                $user = $this->userRepository->find($userId);
+                
+                $this->broadcastViaSocket('user-activity-changed', [
+                    'user_id' => $userId,
+                    'username' => $user->username,
+                    'status' => $presence->status,
+                    'activity_details' => null,
+                    'timestamp' => date('Y-m-d H:i:s')
+                ]);
             }
+            
+            $this->logActivity('activity_cleared');
+            
+            return $this->success(null, 'Activity cleared successfully');
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while clearing activity: ' . $e->getMessage());
         }
-        
-        return $this->json(['message' => 'Activity cleared successfully']);
     }
     
     public function goOffline() {
+        $this->requireAuth();
+        
         $userId = $this->getCurrentUserId();
         
-        if (!$userId) {
-            return $this->json(['error' => 'Unauthorized'], 401);
+        try {
+            $marked = $this->userPresenceRepository->markOffline($userId);
+            
+            if (!$marked) {
+                return $this->serverError('Failed to mark user as offline');
+            }
+            
+            $user = $this->userRepository->find($userId);
+            
+            $this->broadcastViaSocket('user-status-changed', [
+                'user_id' => $userId,
+                'username' => $user->username,
+                'status' => 'offline',
+                'activity_details' => null,
+                'timestamp' => date('Y-m-d H:i:s')
+            ]);
+            
+            $this->logActivity('went_offline');
+            
+            return $this->success(null, 'User marked as offline successfully');
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while going offline: ' . $e->getMessage());
         }
-        
-        $marked = $this->userPresenceRepository->markOffline($userId);
-        
-        if (!$marked) {
-            return $this->json(['error' => 'Failed to mark user as offline'], 500);
-        }
-        
-        return $this->json(['message' => 'User marked as offline successfully']);
     }
 } 

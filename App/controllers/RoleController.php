@@ -63,13 +63,11 @@ class RoleController extends BaseController {
                 return $this->serverError('Failed to create role');
             }
             
-            // Notify via socket
             $this->broadcastViaSocket('role-created', [
                 'role' => $role->toArray(),
                 'server_id' => $serverId
             ], 'server-' . $serverId);
             
-            // Log activity
             $this->logActivity('role_created', [
                 'role_id' => $role->id,
                 'role_name' => $role->role_name,
@@ -99,7 +97,6 @@ class RoleController extends BaseController {
                 return $this->forbidden('Only server owners can update roles');
             }
             
-            // Validate input
             $this->validate($input, [
                 'role_name' => 'required'
             ]);
@@ -113,13 +110,11 @@ class RoleController extends BaseController {
                 return $this->serverError('Failed to update role');
             }
             
-            // Notify via socket
             $this->broadcastViaSocket('role-updated', [
                 'role' => $updated->toArray(),
                 'server_id' => $role->server_id
             ], 'server-' . $role->server_id);
             
-            // Log activity
             $this->logActivity('role_updated', [
                 'role_id' => $roleId,
                 'role_name' => $roleName,
@@ -148,23 +143,21 @@ class RoleController extends BaseController {
                 return $this->forbidden('Only server owners can delete roles');
             }
             
-            $serverId = $role->server_id; // Save for notification
-            $roleData = $role->toArray(); // Save for notification
-            
+            $serverId = $role->server_id; 
+            $roleData = $role->toArray();
+
             $deleted = $this->roleRepository->delete($roleId);
             
             if (!$deleted) {
                 return $this->serverError('Failed to delete role');
             }
             
-            // Notify via socket
             $this->broadcastViaSocket('role-deleted', [
                 'role_id' => $roleId,
                 'server_id' => $serverId,
                 'role_data' => $roleData
             ], 'server-' . $serverId);
             
-            // Log activity
             $this->logActivity('role_deleted', [
                 'role_id' => $roleId,
                 'role_name' => $role->role_name,
@@ -194,7 +187,6 @@ class RoleController extends BaseController {
                 return $this->forbidden('Only server owners can assign roles');
             }
             
-            // Validate input
             $this->validate($input, [
                 'user_id' => 'required'
             ]);
@@ -211,7 +203,6 @@ class RoleController extends BaseController {
                 return $this->serverError('Failed to assign role');
             }
             
-            // Notify via socket
             $this->broadcastViaSocket('user-role-assigned', [
                 'role_id' => $roleId,
                 'user_id' => $targetUserId,
@@ -219,14 +210,12 @@ class RoleController extends BaseController {
                 'role_data' => $role->toArray()
             ], 'server-' . $role->server_id);
             
-            // Also notify the specific user
             $this->notifyViaSocket($targetUserId, 'role-received', [
                 'role_id' => $roleId,
                 'server_id' => $role->server_id,
                 'role_data' => $role->toArray()
             ]);
             
-            // Log activity
             $this->logActivity('role_assigned', [
                 'role_id' => $roleId,
                 'role_name' => $role->role_name,
@@ -257,7 +246,6 @@ class RoleController extends BaseController {
                 return $this->forbidden('Only server owners can remove roles');
             }
             
-            // Validate input
             $this->validate($input, [
                 'user_id' => 'required'
             ]);
@@ -270,20 +258,17 @@ class RoleController extends BaseController {
                 return $this->serverError('Failed to remove role');
             }
             
-            // Notify via socket
             $this->broadcastViaSocket('user-role-removed', [
                 'role_id' => $roleId,
                 'user_id' => $targetUserId,
                 'server_id' => $role->server_id
             ], 'server-' . $role->server_id);
             
-            // Also notify the specific user
             $this->notifyViaSocket($targetUserId, 'role-removed', [
                 'role_id' => $roleId,
                 'server_id' => $role->server_id
             ]);
             
-            // Log activity
             $this->logActivity('role_removed', [
                 'role_id' => $roleId,
                 'role_name' => $role->role_name,

@@ -20,8 +20,8 @@ $categories = $exploreData['categories'];
 $page_title = 'misvord - Explore Servers';
 $body_class = 'bg-discord-dark text-white';
 $page_css = 'explore-servers';
-$page_js = 'explore-servers';
-$additional_js = ['server-dropdown.js'];
+$page_js = 'pages/explore-servers';
+$additional_js = ['components/servers/server-dropdown'];
 ?>
 
 <?php ob_start(); ?>

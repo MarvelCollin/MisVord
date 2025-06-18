@@ -12,18 +12,14 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-$page_title = 'MisVord - Server';
-$body_class = 'bg-discord-dark text-white overflow-hidden';
-$page_css = 'server-page';
-$page_js = 'server-page';
+$page_title = 'misvord - ' . $serverName;
+$body_class = 'bg-discord-dark text-white';
+$page_css = 'app';
+$page_js = 'pages/app';
 $additional_js = [
-    'lib/socket.io.min.js',
-    'components/servers/server-dropdown.js',
-    'components/servers/server-sidebar.js',
-    'components/messaging/messaging.js',
-    'components/channels/channel-manager.js',
-    'components/channels/channel-drag.js',
-    'utils/lazy-loader.js'
+    'components/servers/server-dropdown',
+    'components/channels/channel-manager',
+    'components/messaging/messaging'
 ];
 $contentType = 'server';
 $currentServer = $GLOBALS['currentServer'] ?? null;

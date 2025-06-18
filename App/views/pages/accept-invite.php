@@ -1,11 +1,12 @@
 <?php
 
-$page_title = "Join Server - MiscVord";
+$page_title = 'misvord - Accept Invite';
+$page_css = 'app';
+$page_js = 'pages/accept-invite';
+$additional_js = [];
 
 $server = $GLOBALS['inviteServer'] ?? null;
 $inviteCode = $GLOBALS['inviteCode'] ?? null;
-
-$additional_js = ['pages/accept-invite'];
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();

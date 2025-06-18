@@ -87,16 +87,11 @@ class ExploreController extends BaseController
             'servers' => $servers,
             'userServerIds' => $userServerId
         ];
-    }
-
-    public function prepareExploreData()
+    }    public function prepareExploreData()
     {
-        // Check authentication
-        if (!isset($_SESSION['user_id'])) {
-            header('Location: /login');
-            exit;
-        }
-        $currentUserId = $_SESSION['user_id'];
+        $this->requireAuth();
+
+        $currentUserId = $this->getCurrentUserId();
 
         $userServers = $this->serverRepository->getForUser($currentUserId);
         $GLOBALS['userServers'] = $userServers;

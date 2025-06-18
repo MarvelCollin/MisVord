@@ -98,6 +98,94 @@ app.post('/emit', (req, res) => {
       return res.json({ success: true });
     }
     
+    // Emoji events
+    if (event === 'emoji-created') {
+      console.log(`😀 Emoji created event`);
+      io.to(`server-${data.server_id}`).emit('emoji-created', data);
+      return res.json({ success: true });
+    }
+    
+    if (event === 'emoji-updated') {
+      console.log(`😀 Emoji updated event`);
+      io.to(`server-${data.server_id}`).emit('emoji-updated', data);
+      return res.json({ success: true });
+    }
+    
+    if (event === 'emoji-deleted') {
+      console.log(`😀 Emoji deleted event`);
+      io.to(`server-${data.server_id}`).emit('emoji-deleted', data);
+      return res.json({ success: true });
+    }
+    
+    if (event === 'reaction-added') {
+      console.log(`👍 Reaction added event`);
+      io.to(`channel-${data.channel_id}`).emit('reaction-added', data);
+      return res.json({ success: true });
+    }
+    
+    if (event === 'reaction-removed') {
+      console.log(`👎 Reaction removed event`);
+      io.to(`channel-${data.channel_id}`).emit('reaction-removed', data);
+      return res.json({ success: true });
+    }
+    
+    // Friend events
+    if (event === 'friend-request-received') {
+      console.log(`👋 Friend request received event for user: ${data.recipient_id}`);
+      // Notify the recipient
+      const recipientSockets = Array.from(connectedUsers.entries())
+        .filter(([socketId, user]) => user.userId === data.recipient_id.toString())
+        .map(([socketId]) => socketId);
+        
+      recipientSockets.forEach(socketId => {
+        io.to(socketId).emit('friend-request-received', data);
+      });
+      
+      return res.json({ success: true });
+    }
+    
+    if (event === 'friend-request-accepted') {
+      console.log(`✅ Friend request accepted event for user: ${data.sender_id}`);
+      // Notify the sender
+      const senderSockets = Array.from(connectedUsers.entries())
+        .filter(([socketId, user]) => user.userId === data.sender_id.toString())
+        .map(([socketId]) => socketId);
+        
+      senderSockets.forEach(socketId => {
+        io.to(socketId).emit('friend-request-accepted', data);
+      });
+      
+      return res.json({ success: true });
+    }
+    
+    if (event === 'friend-request-declined') {
+      console.log(`❌ Friend request declined event for user: ${data.sender_id}`);
+      // Notify the sender
+      const senderSockets = Array.from(connectedUsers.entries())
+        .filter(([socketId, user]) => user.userId === data.sender_id.toString())
+        .map(([socketId]) => socketId);
+        
+      senderSockets.forEach(socketId => {
+        io.to(socketId).emit('friend-request-declined', data);
+      });
+      
+      return res.json({ success: true });
+    }
+    
+    if (event === 'friend-removed') {
+      console.log(`💔 Friend removed event for user: ${data.user_id}`);
+      // Notify the user
+      const userSockets = Array.from(connectedUsers.entries())
+        .filter(([socketId, user]) => user.userId === data.user_id.toString())
+        .map(([socketId]) => socketId);
+        
+      userSockets.forEach(socketId => {
+        io.to(socketId).emit('friend-removed', data);
+      });
+      
+      return res.json({ success: true });
+    }
+    
     // Fallback - just emit the event as is
     io.emit(event, data);
     res.json({ success: true });
@@ -431,8 +519,20 @@ io.on('connection', async (socket) => {
             socket.join(`channel:${channel.id}`);
             console.log(`🔄 User ${username} joined channel ${channel.id}`);
           });
+          
+          // Join server rooms for all servers the user is a member of
+          const [userServers] = await pool.execute(`
+            SELECT server_id 
+            FROM user_server_memberships
+            WHERE user_id = ?
+          `, [userId]);
+          
+          userServers.forEach(server => {
+            socket.join(`server-${server.server_id}`);
+            console.log(`🔄 User ${username} joined server ${server.server_id}`);
+          });
         } catch (err) {
-          console.error('❌ Error joining user channels:', err);
+          console.error('❌ Error joining user channels and servers:', err);
         }
       }
 
@@ -662,7 +762,7 @@ io.on('connection', async (socket) => {
 
   socket.on('status-change', async (data) => {
     try {
-      const { status } = data;
+      const { status, activity_details } = data;
       const userId = socket.userId;
 
       if (!userId || !status) return;
@@ -675,7 +775,16 @@ io.on('connection', async (socket) => {
           await pool.execute('UPDATE users SET status = ? WHERE id = ?', [status, userId]);
           userStatus.set(userId, status);
 
-          io.emit('user-status-change', { userId, status });
+          const statusData = {
+            user_id: userId,
+            username: socket.username,
+            status,
+            activity_details,
+            timestamp: new Date().toISOString()
+          };
+          
+          io.emit('user-status-changed', statusData);
+          console.log(`👤 User ${socket.username} status changed to ${status}`);
         } catch (dbError) {
           console.error('❌ Error updating user status:', dbError);
         }
@@ -714,6 +823,67 @@ io.on('connection', async (socket) => {
       }
     } catch (error) {
       console.error('❌ Disconnection error:', error);
+    }
+  });
+
+  // Handle activity setting
+  socket.on('set-activity', async (data) => {
+    try {
+      const { activity_details } = data;
+      const userId = socket.userId;
+
+      if (!userId || !activity_details) return;
+
+      if (pool) {
+        try {
+          await pool.execute('UPDATE user_presence SET activity_details = ? WHERE user_id = ?', [activity_details, userId]);
+          
+          const activityData = {
+            user_id: userId,
+            username: socket.username,
+            status: userStatus.get(userId) || 'online',
+            activity_details,
+            timestamp: new Date().toISOString()
+          };
+          
+          io.emit('user-activity-changed', activityData);
+          console.log(`🎮 User ${socket.username} activity changed to: ${activity_details}`);
+        } catch (dbError) {
+          console.error('❌ Error updating user activity:', dbError);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Activity change error:', error);
+    }
+  });
+  
+  // Handle activity clearing
+  socket.on('clear-activity', async () => {
+    try {
+      const userId = socket.userId;
+
+      if (!userId) return;
+
+      if (pool) {
+        try {
+          await pool.execute('UPDATE user_presence SET activity_details = NULL WHERE user_id = ?', [userId]);
+          
+          const activityData = {
+            user_id: userId,
+            username: socket.username,
+            status: userStatus.get(userId) || 'online',
+            activity_details: null,
+            timestamp: new Date().toISOString()
+          };
+          
+          io.emit('user-activity-changed', activityData);
+          console.log(`🎮 User ${socket.username} cleared activity`);
+        } catch (dbError) {
+          console.error('❌ Error clearing user activity:', dbError);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Activity clearing error:', error);
     }
   });
 });

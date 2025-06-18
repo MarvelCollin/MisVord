@@ -1,11 +1,11 @@
 <?php
 require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
 
-$page_title = 'misvord - Where Communities Thrive';
+$page_title = 'misvord - Chat & Share with Friends';
+$body_class = 'bg-white';
 $page_css = 'landing-page';
-$page_js = 'landing-page';
+$page_js = 'pages/landing-page';
 $additional_js = ['sections/hero-section'];
-$body_class = 'modern-landing';
 
 ob_start();
 ?>
@@ -33,7 +33,7 @@ window.DISABLE_MESSAGING = true;
         'SOCKET_ERROR',
         'Error tracked:',
         'socket.io',
-        'messaging.js'
+        'components/messaging/messaging.js'
     ];
 
     function shouldSuppress(args) {
@@ -68,16 +68,26 @@ window.DISABLE_MESSAGING = true;
         }
     };
 
-    Object.defineProperty(window, 'MisVordMessaging', {
-        value: {
-            init: () => false,
-            connect: () => false,
-            disconnect: () => false,
-            sendMessage: () => false,
-            error: () => {},
-            log: () => {},
-            trackError: () => {}
-        },
+    let blockedGlobalProperties = [
+        'DOMParser',
+        'HTMLElement',
+        'XMLHttpRequest',
+        'fetch',
+        'jQuery',
+        'globalSocketManager',
+        'MiscVordMessaging',
+        'URLSearchParams',
+        'WebSocket',
+        'XMLHttpRequest',
+        'addEventListener',
+        'removeEventListener',
+        'document',
+        'window'
+    ];
+
+    // Secure Object Replacement
+    Object.defineProperty(window, 'MiscVordMessaging', {
+        value: {},
         writable: false,
         configurable: false
     });
@@ -132,10 +142,12 @@ window.DISABLE_MESSAGING = true;
 
         if (typeof listener === 'function') {
             const listenerString = listener.toString();
-            if (listenerString.includes('MisVordMessaging') || 
-                listenerString.includes('socket.io') ||
-                listenerString.includes('messaging')) {
-                return; 
+            if (listenerString.includes('MiscVordMessaging') ||
+                listenerString.includes('globalThis') ||
+                listenerString.includes('window.parent') ||
+                listenerString.includes('window.top')) {
+                
+                return false;
             }
         }
         return originalAddEventListener.call(this, type, listener, options);
@@ -264,6 +276,25 @@ window.DISABLE_MESSAGING = true;
 <script>
 
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('Landing page loaded');
+    
+    // Secure object interception
+    let blockedGlobalProperties = [
+        'DOMParser',
+        'HTMLElement',
+        'XMLHttpRequest',
+        'fetch',
+        'jQuery',
+        'globalSocketManager',
+        'MiscVordMessaging',
+        'URLSearchParams',
+        'WebSocket',
+        'XMLHttpRequest',
+        'addEventListener',
+        'removeEventListener',
+        'document',
+        'window'
+    ];
 
     setTimeout(function() {
         console.log("Direct script initialization running...");

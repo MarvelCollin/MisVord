@@ -162,6 +162,23 @@ export class GlobalSocketManager {
             this.dispatchEvent('userStatusChanged', data);
         });
 
+        this.socket.on('user-status-change', (data) => {
+            this.log('👤 User status change:', data);
+            this.dispatchEvent('userStatusChanged', data);
+        });
+
+        // Enhanced user presence events
+        this.socket.on('user-activity-changed', (data) => {
+            this.log('🏃 User activity changed:', data);
+            this.dispatchEvent('userActivityChanged', data);
+            
+            // Show toast notification for friends
+            if (data.user_id !== this.userId) {
+                const activityText = data.activity_details ? `is ${data.activity_details}` : 'changed activity';
+                showToast(`${data.username} ${activityText}`);
+            }
+        });
+
         // Global activity events
         this.socket.on('user-activity', (data) => {
             this.log('🏃 User activity:', data);
@@ -186,63 +203,63 @@ export class GlobalSocketManager {
         this.socket.on('group-server-created', (data) => {
             this.log('📁 Group server created:', data);
             this.dispatchEvent('groupServerCreated', data);
+            showToast(`New server created: ${data.server_name}`);
         });
 
         this.socket.on('group-server-updated', (data) => {
             this.log('📝 Group server updated:', data);
             this.dispatchEvent('groupServerUpdated', data);
+            showToast(`Server updated: ${data.server_name}`);
         });
 
         this.socket.on('group-server-deleted', (data) => {
             this.log('🗑️ Group server deleted:', data);
             this.dispatchEvent('groupServerDeleted', data);
+            showToast(`Server deleted: ${data.server_name}`);
         });
 
         // Role events
         this.socket.on('role-created', (data) => {
             this.log('👑 Role created:', data);
             this.dispatchEvent('roleCreated', data);
+            showToast(`New role created: ${data.role.name}`);
         });
 
         this.socket.on('role-updated', (data) => {
             this.log('👑 Role updated:', data);
             this.dispatchEvent('roleUpdated', data);
+            showToast(`Role updated: ${data.role.name}`);
         });
 
         this.socket.on('role-deleted', (data) => {
             this.log('👑 Role deleted:', data);
             this.dispatchEvent('roleDeleted', data);
+            showToast(`Role deleted: ${data.role_name}`);
         });
 
         this.socket.on('user-role-assigned', (data) => {
-            this.log('�� User role assigned:', data);
+            this.log('👤 User role assigned:', data);
             this.dispatchEvent('userRoleAssigned', data);
+            
+            if (data.user_id === this.userId) {
+                showToast(`You received the ${data.role_name} role`);
+            }
         });
 
         this.socket.on('user-role-removed', (data) => {
             this.log('👤 User role removed:', data);
             this.dispatchEvent('userRoleRemoved', data);
-        });
-
-        this.socket.on('role-received', (data) => {
-            this.log('👑 Role received:', data);
-            this.dispatchEvent('roleReceived', data);
-        });
-
-        this.socket.on('role-removed', (data) => {
-            this.log('👑 Role removed:', data);
-            this.dispatchEvent('roleRemoved', data);
-        });
-
-        this.socket.on('role-permissions-updated', (data) => {
-            this.log('🔒 Role permissions updated:', data);
-            this.dispatchEvent('rolePermissionsUpdated', data);
+            
+            if (data.user_id === this.userId) {
+                showToast(`Your ${data.role_name} role was removed`);
+            }
         });
 
         // Emoji events
         this.socket.on('emoji-created', (data) => {
             this.log('😀 Emoji created:', data);
             this.dispatchEvent('emojiCreated', data);
+            showToast(`New emoji added: ${data.emoji.name}`);
         });
 
         this.socket.on('emoji-updated', (data) => {
@@ -269,11 +286,13 @@ export class GlobalSocketManager {
         this.socket.on('friend-request-received', (data) => {
             this.log('👋 Friend request received:', data);
             this.dispatchEvent('friendRequestReceived', data);
+            showToast(`${data.sender_username} sent you a friend request!`);
         });
 
         this.socket.on('friend-request-accepted', (data) => {
             this.log('✅ Friend request accepted:', data);
             this.dispatchEvent('friendRequestAccepted', data);
+            showToast(`${data.recipient_username} accepted your friend request!`);
         });
 
         this.socket.on('friend-request-declined', (data) => {
@@ -286,14 +305,14 @@ export class GlobalSocketManager {
             this.dispatchEvent('friendRemoved', data);
         });
 
-        this.socket.on('user-blocked', (data) => {
-            this.log('🚫 User blocked:', data);
-            this.dispatchEvent('userBlocked', data);
-        });
-
-        this.socket.on('user-unblocked', (data) => {
-            this.log('✅ User unblocked:', data);
-            this.dispatchEvent('userUnblocked', data);
+        // User presence events - enhanced versions
+        this.socket.on('user-status-changed', (data) => {
+            this.log('👤 User status changed:', data);
+            this.dispatchEvent('userStatusChanged', data);
+            
+            if (data.user_id !== this.userId && data.status === 'online') {
+                showToast(`${data.username} is now online`);
+            }
         });
     }
 
@@ -411,8 +430,43 @@ export class GlobalSocketManager {
         this.presenceData.activity = activity;
         this.presenceData.lastSeen = Date.now();
 
-        this.socket.emit('update-presence', this.presenceData);
+        this.socket.emit('status-change', {
+            status: status,
+            activity_details: activity
+        });
+        
         this.log('👤 Presence updated:', this.presenceData);
+    }
+
+    /**
+     * Set user activity (for "Playing/Watching/Listening to" status)
+     */
+    setActivity(activityDetails) {
+        if (!this.socket || !this.connected || !this.authenticated) {
+            return false;
+        }
+        
+        this.socket.emit('set-activity', {
+            activity_details: activityDetails
+        });
+        
+        this.presenceData.activity = activityDetails;
+        this.log('🎮 Activity set:', activityDetails);
+        return true;
+    }
+    
+    /**
+     * Clear user activity
+     */
+    clearActivity() {
+        if (!this.socket || !this.connected || !this.authenticated) {
+            return false;
+        }
+        
+        this.socket.emit('clear-activity');
+        this.presenceData.activity = null;
+        this.log('🎮 Activity cleared');
+        return true;
     }
 
     /**

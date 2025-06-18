@@ -15,53 +15,43 @@ class UserProfileController extends BaseController
         parent::__construct();
         $this->userServerMembershipRepository = new UserServerMembershipRepository();
         $this->serverRepository = new ServerRepository();
-    }
-
-    public function updatePerServerProfile()
+    }    public function updatePerServerProfile()
     {
-        if (!isset($_SESSION['user_id'])) {
-            return $this->unauthorized();
-        }
+        $this->requireAuth();
 
-        $data = json_decode(file_get_contents('php://input'), true);
+        $input = $this->getInput();
+        $input = $this->sanitize($input);
 
-        if (!$data || !isset($data['server_id'])) {
+        if (!$input || !isset($input['server_id'])) {
             return $this->validationError(['message' => 'Invalid request']);
         }
 
-        $serverId = $data['server_id'];
-        $userId = $_SESSION['user_id'];
-        $nickname = trim($data['nickname'] ?? '');
+        $serverId = $input['server_id'];
+        $userId = $this->getCurrentUserId();
+        $nickname = trim($input['nickname'] ?? '');
 
         $membership = $this->userServerMembershipRepository->findByUserAndServer($userId, $serverId);
         if (!$membership) {
             return $this->forbidden('You are not a member of this server');
         }
 
-        $result = $this->userServerMembershipRepository->update($membership->id, ['nickname' => $nickname]);
-
-        if ($result) {
-            return $this->successResponse([
+        $result = $this->userServerMembershipRepository->update($membership->id, ['nickname' => $nickname]);        if ($result) {
+            return $this->success([
                 'nickname' => $nickname
             ], 'Server profile updated successfully');
         } else {
             return $this->serverError('Failed to update server profile');
         }
-    }
-
-    public function getPerServerProfile($serverId)
+    }    public function getPerServerProfile($serverId)
     {
-        if (!isset($_SESSION['user_id'])) {
-            return $this->unauthorized();
-        }
-        $userId = $_SESSION['user_id'];
+        $this->requireAuth();
+
+        $userId = $this->getCurrentUserId();
 
         $membership = $this->userServerMembershipRepository->findByUserAndServer($userId, $serverId);
         if (!$membership) {
             return $this->forbidden('You are not a member of this server');
-        }
-
-        return $this->successResponse([
+        }        return $this->success([
             'profile' => [
                 'nickname' => $membership->nickname,
                 'role' => $membership->role

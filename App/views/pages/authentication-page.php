@@ -22,11 +22,11 @@ $success = $_SESSION['success'] ?? null;
 
 unset($_SESSION['errors'], $_SESSION['old_input'], $_SESSION['success']);
 
-$page_title = ucfirst($mode) . ' - misvord';
-$body_class = 'bg-[#202225] authentication-page overflow-hidden flex items-center justify-center min-h-screen';
+$page_title = 'misvord - Login or Register';
+$body_class = 'bg-discord-dark text-white';
 $page_css = 'authentication-page';
-$page_js = 'authentication-page';
-$additional_js = ['main', 'pages/authentication-page', 'components/auth/auth'];
+$page_js = 'pages/authentication-page';
+$additional_js = ['components/auth/auth'];
 $data_page = 'auth';
 
 $debugInfo = '';
