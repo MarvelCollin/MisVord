@@ -1,139 +1,139 @@
 .friend-item {
-    transition: background-color 0.2s ease-out;
+  transition: background-color 0.2s ease-out;
 }
 
 .friend-item:hover {
-    background-color: rgba(79, 84, 92, 0.16);
+  background-color: rgba(79, 84, 92, 0.16);
 }
 
 .friend-actions {
-    opacity: 0;
-    transition: opacity 0.2s ease-out;
+  opacity: 0;
+  transition: opacity 0.2s ease-out;
 }
 
 .friend-item:hover .friend-actions {
-    opacity: 1;
+  opacity: 1;
 }
 
 .profile-card {
-    position: absolute;
-    bottom: 100%;
-    left: 0;
-    width: 340px;
-    background-color: #18191c;
-    border-radius: 8px;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.24);
-    z-index: 10;
-    overflow: visible;
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  width: 340px;
+  background-color: #18191c;
+  border-radius: 8px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.24);
+  z-index: 10;
+  overflow: visible;
 }
 
 .profile-header {
-    height: 60px;
-    background-color: #5865f2;
+  height: 60px;
+  background-color: #5865f2;
 }
 
 .profile-content {
-    margin-top: -30px;
-    padding: 0 16px;
+  margin-top: -30px;
+  padding: 0 16px;
 }
 
 .profile-avatar {
-    width: 80px;
-    height: 80px;
-    border: 6px solid #18191c;
-    border-radius: 50%;
-    background-color: #18191c;
+  width: 80px;
+  height: 80px;
+  border: 6px solid #18191c;
+  border-radius: 50%;
+  background-color: #18191c;
 }
 
 .profile-badges {
-    display: flex;
-    gap: 8px;
-    margin-top: 12px;
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
 }
 
 .profile-badge {
-    width: 22px;
-    height: 22px;
-    background-color: #5865f2;
-    border-radius: 3px;
+  width: 22px;
+  height: 22px;
+  background-color: #5865f2;
+  border-radius: 3px;
 }
 
 .profile-divider {
-    margin: 12px 0;
-    height: 1px;
-    background-color: rgba(255, 255, 255, 0.06);
+  margin: 12px 0;
+  height: 1px;
+  background-color: rgba(255, 255, 255, 0.06);
 }
 
 .profile-note {
-    font-size: 0.75rem;
-    color: #b9bbbe;
-    margin-bottom: 16px;
+  font-size: 0.75rem;
+  color: #b9bbbe;
+  margin-bottom: 16px;
 }
 
 .status-indicator {
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    border: 3px solid #36393f;
-    background-color: #3ba55c;
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 3px solid #36393f;
+  background-color: #3ba55c;
 }
 
 .status-mobile {
-    position: relative;
+  position: relative;
 }
 
 .status-mobile::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background-color: #3ba55c;
-    border: 2px solid #36393f;
+  content: "";
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #3ba55c;
+  border: 2px solid #36393f;
 }
 
 .friend-section-title {
-    text-transform: uppercase;
-    font-size: 12px;
-    font-weight: 600;
-    color: #b9bbbe;
-    margin: 24px 8px 8px;
+  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: 600;
+  color: #b9bbbe;
+  margin: 24px 8px 8px;
 }
 
 .search-input {
-    background-color: #202225;
-    border-radius: 4px;
-    color: white;
-    padding: 8px 8px 8px 32px;
-    font-size: 14px;
-    border: none;
-    width: 100%;
+  background-color: #202225;
+  border-radius: 4px;
+  color: white;
+  padding: 8px 8px 8px 32px;
+  font-size: 14px;
+  border: none;
+  width: 100%;
 }
 
 .search-input::placeholder {
-    color: #72767d;
+  color: #72767d;
 }
 
 .search-input:focus {
-    outline: none;
+  outline: none;
 }
 
 .search-icon {
-    position: absolute;
-    left: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #72767d;
-    font-size: 14px;
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #72767d;
+  font-size: 14px;
 }
 
 @media (max-width: 768px) {
-    .active-now-sidebar {
-        display: none;
-    }
+  .active-now-sidebar {
+    display: none;
+  }
 }

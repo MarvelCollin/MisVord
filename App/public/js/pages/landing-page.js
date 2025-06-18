@@ -1,3 +1,200 @@
+window.LANDING_PAGE_MODE = true;
+window.DISABLE_MESSAGING = true;
+
+// Debug function to check if scramble text works
+window.checkScrambleTextStatus = function() {
+    console.log('---- SCRAMBLE TEXT DEBUG INFO ----');
+    
+    // Check for text elements
+    const elements = document.querySelectorAll('.scramble-text');
+    console.log('Scramble text elements found:', elements.length);
+    elements.forEach((el, i) => {
+        console.log(`Element ${i}:`, {
+            text: el.innerText,
+            dataText: el.getAttribute('data-text'),
+            initialized: el.classList.contains('initialized'),
+            childNodes: el.childNodes.length
+        });
+    });
+    
+    // Check for required CSS
+    const styles = Array.from(document.styleSheets).some(sheet => {
+        try {
+            return Array.from(sheet.cssRules).some(rule => 
+                rule.selectorText && rule.selectorText.includes('.scramble-text')
+            );
+        } catch (e) {
+            // Cross-origin style sheet access error
+            return false;
+        }
+    });
+    
+    console.log('CSS for scramble text found:', styles);
+    
+    // Check for script loading
+    console.log('Script functions available:', {
+        initScrambleText: typeof initScrambleText === 'function',
+        startScrambleAnimation: typeof startScrambleAnimation === 'function',
+        initRandomCharacterScrambling: typeof initRandomCharacterScrambling === 'function',
+        initAdvancedHoverEffects: typeof initAdvancedHoverEffects === 'function'
+    });
+    
+    console.log('---- END DEBUG INFO ----');
+    return elements;
+};
+
+(function() {
+    const originalError = console.error;
+    const originalWarn = console.warn;
+    const originalLog = console.log;
+
+    const suppressPatterns = [
+        'Message container not found',
+        'Message form not found in DOM',
+        'WebSocket connection error',
+        'Invalid namespace',
+        'LazyLoader is NOT available globally',
+        'Failed to load resource.*favicon.ico',
+        'MisVordMessaging',
+        'SOCKET_ERROR',
+        'Error tracked:',
+        'socket.io',
+        'components/messaging/messaging.js'
+    ];
+
+    function shouldSuppress(args) {
+        const message = args.map(arg => {
+            if (typeof arg === 'object' && arg !== null) {
+                return JSON.stringify(arg);
+            }
+            return String(arg);
+        }).join(' ');
+
+        return suppressPatterns.some(pattern => {
+            const regex = new RegExp(pattern, 'i');
+            return regex.test(message);
+        });
+    }
+
+    console.error = function(...args) {
+        if (!shouldSuppress(args)) {
+            originalError.apply(console, args);
+        }
+    };
+
+    console.warn = function(...args) {
+        if (!shouldSuppress(args)) {
+            originalWarn.apply(console, args);
+        }
+    };
+
+    console.log = function(...args) {
+        if (!shouldSuppress(args)) {
+            originalLog.apply(console, args);
+        }
+    };
+
+    let blockedGlobalProperties = [
+        'DOMParser',
+        'HTMLElement',
+        'XMLHttpRequest',
+        'fetch',
+        'jQuery',
+        'globalSocketManager',
+        'MiscVordMessaging',
+        'URLSearchParams',
+        'WebSocket',
+        'XMLHttpRequest',
+        'addEventListener',
+        'removeEventListener',
+        'document',
+        'window'
+    ];
+
+    Object.defineProperty(window, 'MiscVordMessaging', {
+        value: {},
+        writable: false,
+        configurable: false
+    });
+
+    Object.defineProperty(window, 'GlobalSocketManager', {
+        value: {
+            init: () => false,
+            connect: () => false,
+            disconnect: () => false,
+            updatePresence: () => false,
+            trackActivity: () => false,
+            isReady: () => false,
+            getStatus: () => ({ isGuest: true, connected: false }),
+            error: () => {},
+            log: () => {}
+        },
+        writable: false,
+        configurable: false
+    });
+
+    Object.defineProperty(window, 'globalSocketManager', {
+        value: null,
+        writable: false,
+        configurable: false
+    });
+
+    Object.defineProperty(window, 'io', {
+        value: function() {
+            return {
+                on: () => ({ on: () => {}, emit: () => {}, connect: () => {}, disconnect: () => {} }),
+                emit: () => {},
+                connect: () => {},
+                disconnect: () => {},
+                connected: false
+            };
+        },
+        writable: false,
+        configurable: false
+    });
+
+    const originalAddEventListener = EventTarget.prototype.addEventListener;
+    EventTarget.prototype.addEventListener = function(type, listener, options) {
+        if (typeof listener === 'function') {
+            const listenerString = listener.toString();
+            if (listenerString.includes('MiscVordMessaging') ||
+                listenerString.includes('globalThis') ||
+                listenerString.includes('window.parent') ||
+                listenerString.includes('window.top')) {
+                return false;
+            }
+        }
+        return originalAddEventListener.call(this, type, listener, options);
+    };
+
+    const originalFetch = window.fetch;
+    window.fetch = function(url, options) {
+        if (typeof url === 'string' && 
+            (url.includes('socket.io') || url.includes('messaging') || url.includes('ws://'))) {
+            return Promise.reject(new Error('Messaging disabled on landing page'));
+        }
+        return originalFetch.apply(this, arguments);
+    };
+
+    const OriginalWebSocket = window.WebSocket;
+    window.WebSocket = function() {
+        throw new Error('WebSocket disabled on landing page');
+    };
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const messagingElements = document.querySelectorAll('[id*="message"], [class*="message-form"], [class*="messaging"]');
+        messagingElements.forEach(el => {
+            if (!el.closest('.discord-mockup')) { 
+                el.remove();
+            }
+        });
+
+        if (window.initMessaging) window.initMessaging = () => {};
+        if (window.connectSocket) window.connectSocket = () => {};
+        if (window.joinRoom) window.joinRoom = () => {};
+    });
+})();
+
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM Content Loaded - Starting initialization');
     
@@ -11,28 +208,28 @@ document.addEventListener('DOMContentLoaded', function() {
     const chatContainer = document.getElementById('chatContainer');
     console.log('Chat container found:', !!chatContainer);
     
-    initScrollAnimations();
-    initHeroAnimations();
-    initMockupAnimations();
+    if (typeof initScrollAnimations === 'function') initScrollAnimations();
+    if (typeof initHeroAnimations === 'function') initHeroAnimations();
+    if (typeof initMockupAnimations === 'function') initMockupAnimations();
     
     console.log('Initializing scramble text...');
     initScrambleText();
     
     console.log('Initializing chat simulation...');
-    initLiveChatSimulation();
+    if (typeof initLiveChatSimulation === 'function') initLiveChatSimulation();
     
-    initInteractiveElements();
+    if (typeof initInteractiveElements === 'function') initInteractiveElements();
     
     setTimeout(() => {
         console.log('Delayed initialization...');
         initScrambleText();
-        initLiveChatSimulation();
+        if (typeof initLiveChatSimulation === 'function') initLiveChatSimulation();
     }, 1000);
     
     document.fonts.ready.then(() => {
         console.log('Fonts loaded, starting animations');
         initScrambleText();
-        initLiveChatSimulation();
+        if (typeof initLiveChatSimulation === 'function') initLiveChatSimulation();
     });
 });
 
@@ -361,12 +558,30 @@ function initAdvancedHoverEffects(spans, chars) {
                 } else {
                     clearInterval(hoverScramble);
                     this.textContent = originalChar;
-                    this.style.color = 'var(--discord-white)';
-                    this.style.transform = '';
-                    this.style.animationPlayState = 'running';
-                    this._isAnimating = false;
+                    this.style.color = '#FFFFFF'; // Use plain color instead of var() for better compatibility
+                    this.style.textShadow = '0 0 10px rgba(255, 255, 255, 0.5), 0 0 15px rgba(88, 101, 242, 0.5)';
+                    this.style.transform = 'scale(1.2)';
+                    
+                    createSimpleSparkle(this);
+                    
+                    setTimeout(() => {
+                        this.style.transition = 'all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+                    }, 50);
                 }
-            }, 100); 
+            }, 80);
+        });
+
+        span.addEventListener('mouseleave', function() {
+            this.style.animationPlayState = '';
+            this.textContent = this.dataset.finalChar;
+            this.style.color = '#FFFFFF';
+            this.style.textShadow = '';
+            this.style.transform = '';
+            
+            setTimeout(() => {
+                this._isAnimating = false;
+                this.style.transition = '';
+            }, 500);
         });
     });
 }

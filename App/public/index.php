@@ -1,6 +1,5 @@
 <?php
 
-// Fix the APP_ROOT path for Docker environment
 if (getenv('IS_DOCKER') === 'true') {
     define('APP_ROOT', '/var/www/html');
 } else {
@@ -11,7 +10,6 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Simple health check endpoint
 if ($_SERVER['REQUEST_URI'] === '/health') {
     header('Content-Type: application/json');
     echo json_encode([

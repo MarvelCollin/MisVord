@@ -20,19 +20,19 @@ $section = $settingsData['section'];
 $page_title = 'misvord - Settings';
 $body_class = 'bg-discord-dark text-white';
 $page_css = 'settings-page';
-$page_js = 'settings-page';
+$page_js = 'pages/settings-page';
 $additional_js = ['components/servers/server-dropdown'];
 
 ob_start();
 ?>
 
+<meta name="channel-id" content="<?php echo $channelId; ?>">
+<meta name="server-id" content="<?php echo $serverId; ?>">
+
 <div class="flex min-h-screen">
-    <!-- Side Navigation -->
     <?php include dirname(dirname(__DIR__)) . '/views/components/app-sections/server-sidebar.php'; ?>
 
-    <!-- Main Content -->
     <div class="flex-1 flex">
-        <!-- Settings Sidebar -->
         <div class="w-64 bg-discord-light border-r border-discord-dark">
             <div class="p-4 border-b border-discord-dark">
                 <?php if ($channel): ?>
@@ -75,7 +75,6 @@ ob_start();
             </nav>
         </div>
 
-        <!-- Settings Content -->
         <div class="flex-1 bg-discord-background overflow-y-auto">
             <?php if ($section === 'overview'): ?>
                 <div class="p-8">
@@ -253,61 +252,6 @@ ob_start();
         </div>
     </div>
 </div>
-
-<style>
-
-.switch {
-    position: relative;
-    display: inline-block;
-    width: 40px;
-    height: 24px;
-}
-
-.switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-
-.slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #36393f;
-    transition: .4s;
-}
-
-.slider:before {
-    position: absolute;
-    content: "";
-    height: 16px;
-    width: 16px;
-    left: 4px;
-    bottom: 4px;
-    background-color: #72767d;
-    transition: .4s;
-}
-
-input:checked + .slider {
-    background-color: #5865f2;
-}
-
-input:checked + .slider:before {
-    transform: translateX(16px);
-    background-color: white;
-}
-
-.slider.round {
-    border-radius: 24px;
-}
-
-.slider.round:before {
-    border-radius: 50%;
-}
-</style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

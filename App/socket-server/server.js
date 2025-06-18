@@ -14,14 +14,14 @@ try {
 }
 
 const dotenv = require('dotenv');
-// Load .env from parent directory (main App folder)
+
 dotenv.config({ path: '../.env' });
 
 const app = express();
 app.use(cors());
 app.use(express.json()); 
 
-// Add a new endpoint for PHP server to emit events
+
 app.post('/emit', (req, res) => {
   try {
     const { event, data } = req.body;
@@ -35,7 +35,7 @@ app.post('/emit', (req, res) => {
     
     console.log(`📤 Server-to-socket event: ${event}`, data);
     
-    // Handle special events
+    
     if (event === 'notify-user') {
       const { userId, event: userEvent, data: userData } = data;
       
@@ -46,7 +46,7 @@ app.post('/emit', (req, res) => {
         });
       }
       
-      // Find all socket connections for this user
+      
       const userSockets = Array.from(connectedUsers.entries())
         .filter(([socketId, user]) => user.userId === userId.toString())
         .map(([socketId]) => socketId);
@@ -64,7 +64,7 @@ app.post('/emit', (req, res) => {
       return res.json({ success: true, notified: userSockets.length });
     }
     
-    // Handle broadcast to room
+    
     if (event === 'broadcast-to-room') {
       const { room, event: roomEvent, data: roomData } = data;
       
@@ -81,7 +81,7 @@ app.post('/emit', (req, res) => {
       return res.json({ success: true, room });
     }
     
-    // Default broadcast to all
+    
     if (event === 'broadcast') {
       const { event: broadcastEvent, data: broadcastData } = data;
       
@@ -98,7 +98,7 @@ app.post('/emit', (req, res) => {
       return res.json({ success: true });
     }
     
-    // Emoji events
+    
     if (event === 'emoji-created') {
       console.log(`😀 Emoji created event`);
       io.to(`server-${data.server_id}`).emit('emoji-created', data);
@@ -129,10 +129,10 @@ app.post('/emit', (req, res) => {
       return res.json({ success: true });
     }
     
-    // Friend events
+    
     if (event === 'friend-request-received') {
       console.log(`👋 Friend request received event for user: ${data.recipient_id}`);
-      // Notify the recipient
+      
       const recipientSockets = Array.from(connectedUsers.entries())
         .filter(([socketId, user]) => user.userId === data.recipient_id.toString())
         .map(([socketId]) => socketId);
@@ -146,7 +146,7 @@ app.post('/emit', (req, res) => {
     
     if (event === 'friend-request-accepted') {
       console.log(`✅ Friend request accepted event for user: ${data.sender_id}`);
-      // Notify the sender
+      
       const senderSockets = Array.from(connectedUsers.entries())
         .filter(([socketId, user]) => user.userId === data.sender_id.toString())
         .map(([socketId]) => socketId);
@@ -160,7 +160,7 @@ app.post('/emit', (req, res) => {
     
     if (event === 'friend-request-declined') {
       console.log(`❌ Friend request declined event for user: ${data.sender_id}`);
-      // Notify the sender
+      
       const senderSockets = Array.from(connectedUsers.entries())
         .filter(([socketId, user]) => user.userId === data.sender_id.toString())
         .map(([socketId]) => socketId);
@@ -174,7 +174,7 @@ app.post('/emit', (req, res) => {
     
     if (event === 'friend-removed') {
       console.log(`💔 Friend removed event for user: ${data.user_id}`);
-      // Notify the user
+      
       const userSockets = Array.from(connectedUsers.entries())
         .filter(([socketId, user]) => user.userId === data.user_id.toString())
         .map(([socketId]) => socketId);
@@ -186,7 +186,7 @@ app.post('/emit', (req, res) => {
       return res.json({ success: true });
     }
     
-    // Fallback - just emit the event as is
+    
     io.emit(event, data);
     res.json({ success: true });
     
@@ -199,7 +199,7 @@ app.post('/emit', (req, res) => {
   }
 });
 
-// Add health check endpoint for WebSocketClient
+
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
@@ -214,7 +214,7 @@ const server = http.createServer(app);
 const PORT = process.env.SOCKET_PORT || 1002;
 const BASE_PATH = process.env.SOCKET_BASE_PATH || '/socket.io';
 const SUBPATH = process.env.SOCKET_SUBPATH || '';
-const CORS_ALLOWED_ORIGINS = (process.env.CORS_ALLOWED_ORIGINS || 'http://localhost:1001').split(',');
+const CORS_ALLOWED_ORIGINS = (process.env.CORS_ALLOWED_ORIGINS || 'http:
 
 const dbConfig = {
   host: process.env.DB_HOST || 'localhost', 
@@ -520,7 +520,7 @@ io.on('connection', async (socket) => {
             console.log(`🔄 User ${username} joined channel ${channel.id}`);
           });
           
-          // Join server rooms for all servers the user is a member of
+          
           const [userServers] = await pool.execute(`
             SELECT server_id 
             FROM user_server_memberships
@@ -826,7 +826,7 @@ io.on('connection', async (socket) => {
     }
   });
 
-  // Handle activity setting
+  
   socket.on('set-activity', async (data) => {
     try {
       const { activity_details } = data;
@@ -857,7 +857,7 @@ io.on('connection', async (socket) => {
     }
   });
   
-  // Handle activity clearing
+  
   socket.on('clear-activity', async () => {
     try {
       const userId = socket.userId;

@@ -20,11 +20,14 @@ $section = $settingsData['section'];
 $page_title = 'misvord - Channel Settings';
 $body_class = 'bg-discord-dark text-white';
 $page_css = 'settings-page';
-$page_js = 'settings-page';
+$page_js = 'pages/settings-page';
 $additional_js = ['components/servers/server-dropdown'];
 
 ob_start();
 ?>
+
+<meta name="channel-id" content="<?php echo $channelId; ?>">
+<meta name="server-id" content="<?php echo $serverId; ?>">
 
 <div class="flex min-h-screen">
     <?php include dirname(dirname(__DIR__)) . '/views/components/app-sections/server-sidebar.php'; ?>
@@ -255,113 +258,6 @@ ob_start();
         </div>
     </div>
 </div>
-
-<style>
-
-.switch {
-    position: relative;
-    display: inline-block;
-    width: 40px;
-    height: 24px;
-}
-
-.switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-
-.slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #36393f;
-    transition: .4s;
-}
-
-.slider:before {
-    position: absolute;
-    content: "";
-    height: 16px;
-    width: 16px;
-    left: 4px;
-    bottom: 4px;
-    background-color: #72767d;
-    transition: .4s;
-}
-
-input:checked + .slider {
-    background-color: #5865f2;
-}
-
-input:checked + .slider:before {
-    transform: translateX(16px);
-    background-color: white;
-}
-
-.slider.round {
-    border-radius: 24px;
-}
-
-.slider.round:before {
-    border-radius: 50%;
-}
-</style>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-
-    const deleteBtn = document.getElementById('delete-channel-btn');
-    const deleteModal = document.getElementById('delete-channel-modal');
-    const cancelDeleteBtn = document.getElementById('cancel-delete-channel');
-    const confirmDeleteBtn = document.getElementById('confirm-delete-channel');
-
-    if (deleteBtn) {
-        deleteBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            deleteModal.classList.remove('hidden');
-        });
-    }
-
-    if (cancelDeleteBtn) {
-        cancelDeleteBtn.addEventListener('click', function() {
-            deleteModal.classList.add('hidden');
-        });
-    }
-
-    if (confirmDeleteBtn) {
-        confirmDeleteBtn.addEventListener('click', function() {
-
-            const channelId = '<?php echo $channelId; ?>';
-            const serverId = '<?php echo $serverId; ?>';
-
-            if (channelId) {
-                fetch(`/api/channels/${channelId}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        window.location.href = `/server/${serverId}`;
-                    } else {
-                        alert('Failed to delete channel: ' + data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('An error occurred while trying to delete the channel.');
-                });
-            }
-        });
-    }
-});
-</script>
 
 <?php 
 $content = ob_get_clean();

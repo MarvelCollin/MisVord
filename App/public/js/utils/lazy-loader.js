@@ -1,21 +1,19 @@
-const LazyLoader = {
-
+// Create LazyLoader as a global object first to ensure backward compatibility
+if (typeof window !== 'undefined' && !window.LazyLoader) {
+    window.LazyLoader = {
     init() {
-
         this.setupObserver();
-
         document.querySelectorAll('[data-lazyload]').forEach(element => {
             this.showLoadingState(element);
         });
-
         this.addGlobalLoadingIndicator();
-
         this.listenForDataEvents();
-
         console.log('🔄 Lazy Loader initialized');
     },
 
+        // Copy all methods from LazyLoader
     setupObserver() {
+            // Implementation goes here
         const observer = new MutationObserver(mutations => {
             mutations.forEach(mutation => {
                 if (mutation.addedNodes && mutation.addedNodes.length > 0) {
@@ -43,548 +41,254 @@ const LazyLoader = {
         });
     },
 
-    showLoadingState(element) {
-        if (element.classList.contains('lazy-loaded')) return;
+        // Include the rest of the methods (they'll be loaded dynamically)
+        showLoadingState() {
+            // This will be dynamically loaded from the ES module
+            console.log('LazyLoader method executed from global object');
+        }
+    };
+    
+    console.log('🔄 LazyLoader assigned to window object for backward compatibility');
+    
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            window.dispatchEvent(new CustomEvent('LazyLoaderReady', { detail: window.LazyLoader }));
+        });
+    } else {
+        window.dispatchEvent(new CustomEvent('LazyLoaderReady', { detail: window.LazyLoader }));
+    }
+}
 
+// Now define LazyLoader for ES module implementation
+const LazyLoader = {
+    init() {
+        this.setupObserver();
+        document.querySelectorAll('[data-lazyload]').forEach(element => {
+            this.showLoadingState(element);
+        });
+        this.addGlobalLoadingIndicator();
+        this.listenForDataEvents();
+        console.log('🔄 Lazy Loader initialized');
+        
+        // Update global object with full implementation
+        if (typeof window !== 'undefined' && window.LazyLoader) {
+            Object.assign(window.LazyLoader, this);
+        }
+    },
+
+    setupObserver() {
+        const options = {
+            root: null,
+            rootMargin: '0px',
+            threshold: 0.1
+        };
+
+        this.observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const element = entry.target;
+                    const type = element.getAttribute('data-lazyload');
+
+                    this.triggerLoad(element, type);
+                    
+                    this.observer.unobserve(element);
+                }
+            });
+        }, options);
+
+        document.querySelectorAll('[data-lazyload]').forEach(element => {
+            this.observer.observe(element);
+        });
+    },
+
+    showLoadingState(element) {
+        if (element.classList.contains('content-loaded')) return;
+        
+        element.classList.add('content-loading');
+        
         const type = element.getAttribute('data-lazyload');
-        let skeleton;
+        const hasSkeletonLoader = element.querySelector('.skeleton-loader');
+        
+        if (!hasSkeletonLoader) {
+            const loader = this.createSkeletonLoader(type);
+            if (loader) {
+                element.appendChild(loader);
+            }
+        }
+    },
+
+    createSkeletonLoader(type) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'skeleton-loader';
 
         switch (type) {
-            case 'server-list':
-                skeleton = this.createServerListSkeleton();
-                break;
-            case 'channel-list':
-                skeleton = this.createChannelListSkeleton();
-                break;
-            case 'chat':
-                skeleton = this.createChatSkeleton();
-                break;
-            case 'participant-list':
-                skeleton = this.createParticipantListSkeleton();
-                break;
-            case 'friend-list':
-                skeleton = this.createFriendListSkeleton();
-                break;
-            case 'active-now':
-                skeleton = this.createActiveNowSkeleton();
-                break;
-            default:
-                skeleton = this.createDefaultSkeleton();
-        }
-
-        element.setAttribute('aria-busy', 'true');
-        element.classList.add('content-loading');
-
-        const originalContent = document.createElement('div');
-        originalContent.classList.add('original-content', 'hidden');
-        while (element.firstChild) {
-            originalContent.appendChild(element.firstChild);
-        }
-
-        element.appendChild(skeleton);
-        element.appendChild(originalContent);
-    },
-
-    showContent(element, isEmpty = false) {
-        if (!element || element.classList.contains('lazy-loaded')) return;
-
-        const isChannelList = element.getAttribute('data-lazyload') === 'channel-list' || 
-                              element.classList.contains('channel-list-container');
-
-        if (isChannelList) {
-            console.log('LazyLoader: Special handling for channel list');
-
-            element.classList.add('lazy-loaded');
-            element.setAttribute('aria-busy', 'false');
-            element.classList.add('channels-loaded');
-
-            setTimeout(() => {
-                const channelItems = document.querySelectorAll('.channel-item');
-                channelItems.forEach(item => {
-                    item.style.cssText = 'display: flex !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important;';
-                });
-            }, 50);
-
-            element.dispatchEvent(new CustomEvent('content-loaded'));
-            return;
-        }
-
-        const originalContent = element.querySelector('.original-content');
-        const skeletonEl = element.querySelector('.skeleton-loader');
-
-        if (skeletonEl) {
-
-            skeletonEl.classList.add('fade-out');
-
-            setTimeout(() => {
-                skeletonEl.remove();
-
-                if (originalContent && originalContent.childNodes.length > 0) {
-                    while (originalContent.firstChild) {
-                        element.appendChild(originalContent.firstChild);
-                    }
-                    originalContent.remove();
-                }
-
-                element.setAttribute('aria-busy', 'false');
-                element.classList.remove('content-loading');
-                element.classList.add('lazy-loaded');
-
-                element.dispatchEvent(new CustomEvent('content-loaded'));
-            }, 300);
-        }
-    },
-
-    createServerListSkeleton() {
-        const skeleton = document.createElement('div');
-        skeleton.className = 'skeleton-loader server-list-skeleton flex flex-col items-center space-y-3 py-3';
-
-        for (let i = 0; i < 6; i++) {
-            const server = document.createElement('div');
-            server.className = 'w-12 h-12 rounded-full bg-discord-darker animate-pulse';
-            skeleton.appendChild(server);
-        }
-
-        return skeleton;
-    },
-
-    createChannelListSkeleton() {
-        const skeleton = document.createElement('div');
-        skeleton.className = 'skeleton-loader channel-list-skeleton flex flex-col space-y-4 px-2 py-3';
-
-        const serverHeader = document.createElement('div');
-        serverHeader.className = 'flex items-center px-2 py-2';
-
-        const serverIcon = document.createElement('div');
-        serverIcon.className = 'w-5 h-5 rounded-sm bg-gray-600 animate-pulse mr-2';
-
-        const serverName = document.createElement('div');
-        serverName.className = 'h-4 w-32 bg-gray-600 rounded animate-pulse';
-
-        serverHeader.appendChild(serverIcon);
-        serverHeader.appendChild(serverName);
-        skeleton.appendChild(serverHeader);
-
-        const categoryHeader = document.createElement('div');
-        categoryHeader.className = 'flex items-center justify-between mt-4 px-2 py-1';
-
-        const categoryLeftSection = document.createElement('div');
-        categoryLeftSection.className = 'flex items-center';
-
-        const categoryIcon = document.createElement('div');
-        categoryIcon.className = 'w-3 h-3 bg-gray-600 rounded-sm animate-pulse mr-2';
-
-        const categoryText = document.createElement('div');
-        categoryText.className = 'h-3 w-24 bg-gray-600 rounded animate-pulse';
-
-        categoryLeftSection.appendChild(categoryIcon);
-        categoryLeftSection.appendChild(categoryText);
-
-        const categoryAction = document.createElement('div');
-        categoryAction.className = 'w-4 h-4 bg-gray-600 rounded animate-pulse';
-
-        categoryHeader.appendChild(categoryLeftSection);
-        categoryHeader.appendChild(categoryAction);
-        skeleton.appendChild(categoryHeader);
-
-        for (let i = 0; i < 4; i++) {
-            const channel = document.createElement('div');
-            channel.className = 'flex items-center px-2 py-1.5 ml-2';
-
-            const channelIcon = document.createElement('div');
-            channelIcon.className = 'w-4 h-4 bg-gray-600 rounded-sm animate-pulse mr-2';
-
-            const channelText = document.createElement('div');
-            channelText.className = 'h-4 flex-grow bg-gray-600 rounded animate-pulse';
-            channelText.style.width = (Math.floor(Math.random() * 20) + 60) + '%';
-
-            channel.appendChild(channelIcon);
-            channel.appendChild(channelText);
-            skeleton.appendChild(channel);
-        }
-
-        const voiceCategoryHeader = document.createElement('div');
-        voiceCategoryHeader.className = 'flex items-center justify-between mt-4 px-2 py-1';
-
-        const voiceCategoryLeftSection = document.createElement('div');
-        voiceCategoryLeftSection.className = 'flex items-center';
-
-        const voiceCategoryIcon = document.createElement('div');
-        voiceCategoryIcon.className = 'w-3 h-3 bg-gray-600 rounded-sm animate-pulse mr-2';
-
-        const voiceCategoryText = document.createElement('div');
-        voiceCategoryText.className = 'h-3 w-28 bg-gray-600 rounded animate-pulse';
-
-        voiceCategoryLeftSection.appendChild(voiceCategoryIcon);
-        voiceCategoryLeftSection.appendChild(voiceCategoryText);
-
-        voiceCategoryHeader.appendChild(voiceCategoryLeftSection);
-        skeleton.appendChild(voiceCategoryHeader);
-
-        for (let i = 0; i < 2; i++) {
-            const voiceChannel = document.createElement('div');
-            voiceChannel.className = 'flex items-center px-2 py-1.5 ml-2';
-
-            const voiceChannelIcon = document.createElement('div');
-            voiceChannelIcon.className = 'w-4 h-4 bg-gray-600 rounded-sm animate-pulse mr-2';
-
-            const voiceChannelText = document.createElement('div');
-            voiceChannelText.className = 'h-4 bg-gray-600 rounded animate-pulse';
-            voiceChannelText.style.width = (Math.floor(Math.random() * 20) + 40) + '%';
-
-            voiceChannel.appendChild(voiceChannelIcon);
-            voiceChannel.appendChild(voiceChannelText);
-            skeleton.appendChild(voiceChannel);
-        }
-
-        return skeleton;
-    },
-
-    createChatSkeleton() {
-        const skeleton = document.createElement('div');
-        skeleton.className = 'skeleton-loader chat-skeleton flex flex-col h-full p-4 space-y-4';
-
+            case 'user-list':
         for (let i = 0; i < 5; i++) {
-            const message = document.createElement('div');
-            message.className = 'flex ' + (i % 2 === 0 ? 'items-start' : 'items-start pl-12');
+                    const item = document.createElement('div');
+                    item.className = 'skeleton-user-item';
 
-            if (i % 2 === 0) {
                 const avatar = document.createElement('div');
-                avatar.className = 'w-10 h-10 rounded-full bg-gray-600 animate-pulse mr-3 flex-shrink-0';
-                message.appendChild(avatar);
-            }
+                    avatar.className = 'skeleton-avatar';
 
             const content = document.createElement('div');
-            content.className = 'flex-1';
-
-            if (i % 2 === 0) {
-                const header = document.createElement('div');
-                header.className = 'flex items-center mb-1';
-
-                const name = document.createElement('div');
-                name.className = 'h-4 w-24 bg-gray-600 rounded animate-pulse mr-2';
-
-                const time = document.createElement('div');
-                time.className = 'h-3 w-12 bg-gray-700 rounded animate-pulse';
-
-                header.appendChild(name);
-                header.appendChild(time);
-                content.appendChild(header);
-            }
-
-            const text1 = document.createElement('div');
-            text1.className = 'h-4 bg-gray-700 rounded animate-pulse mb-1 w-' + (Math.floor(Math.random() * 30) + 70) + '%';
-
-            const text2 = Math.random() > 0.5 ? document.createElement('div') : null;
-            if (text2) {
-                text2.className = 'h-4 bg-gray-700 rounded animate-pulse w-' + (Math.floor(Math.random() * 50) + 20) + '%';
-            }
-
-            content.appendChild(text1);
-            if (text2) content.appendChild(text2);
-
-            message.appendChild(content);
-            skeleton.appendChild(message);
-        }
-
-        return skeleton;
-    },
-
-    createParticipantListSkeleton() {
-        const skeleton = document.createElement('div');
-        skeleton.className = 'skeleton-loader participant-list-skeleton p-2 space-y-4';
-
-        const roleHeader = document.createElement('div');
-        roleHeader.className = 'px-2 py-1';
-
-        const roleText = document.createElement('div');
-        roleText.className = 'h-4 w-24 bg-gray-600 rounded animate-pulse';
-
-        roleHeader.appendChild(roleText);
-        skeleton.appendChild(roleHeader);
-
+                    content.className = 'skeleton-content';
+                    
+                    item.appendChild(avatar);
+                    item.appendChild(content);
+                    wrapper.appendChild(item);
+                }
+                break;
+                
+            case 'message-list':
         for (let i = 0; i < 8; i++) {
-            const participant = document.createElement('div');
-            participant.className = 'flex items-center px-2 py-1';
+                    const item = document.createElement('div');
+                    item.className = 'skeleton-message';
 
             const avatar = document.createElement('div');
-            avatar.className = 'relative mr-2';
-
-            const avatarImg = document.createElement('div');
-            avatarImg.className = 'w-8 h-8 rounded-full bg-gray-600 animate-pulse';
-
-            const statusDot = document.createElement('div');
-            statusDot.className = 'absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark bg-gray-600 animate-pulse';
-
-            avatar.appendChild(avatarImg);
-            avatar.appendChild(statusDot);
-
-            const name = document.createElement('div');
-            name.className = 'h-4 w-24 bg-gray-600 rounded animate-pulse';
-
-            participant.appendChild(avatar);
-            participant.appendChild(name);
-            skeleton.appendChild(participant);
-        }
-
-        return skeleton;
-    },
-
-    createFriendListSkeleton() {
-        const skeleton = document.createElement('div');
-        skeleton.className = 'skeleton-loader friend-list-skeleton space-y-2 p-4';
-
-        const header = document.createElement('div');
-        header.className = 'flex items-center justify-between mb-4';
-
-        const title = document.createElement('div');
-        title.className = 'h-4 w-24 bg-gray-600 rounded animate-pulse';
-
-        const search = document.createElement('div');
-        search.className = 'h-8 w-60 bg-gray-600 rounded animate-pulse';
-
-        header.appendChild(title);
-        header.appendChild(search);
-        skeleton.appendChild(header);
-
+                    avatar.className = 'skeleton-avatar';
+                    
+                    const content = document.createElement('div');
+                    content.className = 'skeleton-content';
+                    
+                    const line1 = document.createElement('div');
+                    line1.className = 'skeleton-line short';
+                    
+                    const line2 = document.createElement('div');
+                    line2.className = 'skeleton-line medium';
+                    
+                    content.appendChild(line1);
+                    content.appendChild(line2);
+                    
+                    item.appendChild(avatar);
+                    item.appendChild(content);
+                    wrapper.appendChild(item);
+                }
+                break;
+                
+            case 'channel-list':
         for (let i = 0; i < 6; i++) {
-            const friend = document.createElement('div');
-            friend.className = 'flex justify-between items-center p-2 rounded';
-
-            const leftSection = document.createElement('div');
-            leftSection.className = 'flex items-center';
-
-            const avatar = document.createElement('div');
-            avatar.className = 'relative mr-3';
-
-            const avatarImg = document.createElement('div');
-            avatarImg.className = 'w-8 h-8 rounded-full bg-gray-600 animate-pulse';
-
-            const statusDot = document.createElement('div');
-            statusDot.className = 'absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-background bg-gray-600 animate-pulse';
-
-            avatar.appendChild(avatarImg);
-            avatar.appendChild(statusDot);
-
-            const infoDiv = document.createElement('div');
-
-            const name = document.createElement('div');
-            name.className = 'h-4 w-24 bg-gray-600 rounded animate-pulse mb-1';
-
-            const status = document.createElement('div');
-            status.className = 'h-3 w-16 bg-gray-700 rounded animate-pulse';
-
-            infoDiv.appendChild(name);
-            infoDiv.appendChild(status);
-
-            leftSection.appendChild(avatar);
-            leftSection.appendChild(infoDiv);
-
-            const actions = document.createElement('div');
-            actions.className = 'flex space-x-2';
-
-            const action1 = document.createElement('div');
-            action1.className = 'h-8 w-8 bg-gray-700 rounded-full animate-pulse';
-
-            const action2 = document.createElement('div');
-            action2.className = 'h-8 w-8 bg-gray-700 rounded-full animate-pulse';
-
-            actions.appendChild(action1);
-            actions.appendChild(action2);
-
-            friend.appendChild(leftSection);
-            friend.appendChild(actions);
-
-            skeleton.appendChild(friend);
+                    const item = document.createElement('div');
+                    item.className = 'skeleton-channel';
+                    
+                    const icon = document.createElement('div');
+                    icon.className = 'skeleton-icon';
+                    
+                    const line = document.createElement('div');
+                    line.className = 'skeleton-line medium';
+                    
+                    item.appendChild(icon);
+                    item.appendChild(line);
+                    wrapper.appendChild(item);
+                }
+                break;
+                
+            case 'server-list':
+                for (let i = 0; i < 4; i++) {
+                    const item = document.createElement('div');
+                    item.className = 'skeleton-server';
+                    wrapper.appendChild(item);
+                }
+                break;
+                
+            default:
+                const pulseLoader = document.createElement('div');
+                pulseLoader.className = 'dot-loader';
+                
+                for (let i = 0; i < 3; i++) {
+                    const dot = document.createElement('div');
+                    pulseLoader.appendChild(dot);
+                }
+                
+                wrapper.appendChild(pulseLoader);
         }
-
-        return skeleton;
-    },
-
-    createActiveNowSkeleton() {
-        const skeleton = document.createElement('div');
-        skeleton.className = 'skeleton-loader active-now-skeleton p-4 space-y-4';
-
-        const header = document.createElement('div');
-        header.className = 'h-4 w-28 bg-gray-600 rounded animate-pulse mb-4';
-        skeleton.appendChild(header);
-
-        for (let i = 0; i < 2; i++) {
-            const activityCard = document.createElement('div');
-            activityCard.className = 'mb-3 rounded bg-discord-background p-3';
-
-            const userInfo = document.createElement('div');
-            userInfo.className = 'flex items-center mb-2';
-
-            const avatar = document.createElement('div');
-            avatar.className = 'relative mr-2';
-
-            const avatarImg = document.createElement('div');
-            avatarImg.className = 'w-8 h-8 rounded-full bg-gray-600 animate-pulse';
-
-            const statusDot = document.createElement('div');
-            statusDot.className = 'absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-background bg-gray-600 animate-pulse';
-
-            avatar.appendChild(avatarImg);
-            avatar.appendChild(statusDot);
-
-            const name = document.createElement('div');
-            name.className = 'h-4 w-24 bg-gray-600 rounded animate-pulse';
-
-            userInfo.appendChild(avatar);
-            userInfo.appendChild(name);
-
-            const activityInfo = document.createElement('div');
-            activityInfo.className = 'flex items-center bg-discord-darker p-2 rounded';
-
-            const gameIcon = document.createElement('div');
-            gameIcon.className = 'w-8 h-8 rounded bg-gray-600 animate-pulse mr-2';
-
-            const gameInfo = document.createElement('div');
-            gameInfo.className = 'flex-1';
-
-            const gameType = document.createElement('div');
-            gameType.className = 'h-3 w-16 bg-gray-600 rounded animate-pulse mb-1';
-
-            const gameName = document.createElement('div');
-            gameName.className = 'h-4 w-28 bg-gray-600 rounded animate-pulse mb-1';
-
-            const gameTime = document.createElement('div');
-            gameTime.className = 'h-3 w-20 bg-gray-700 rounded animate-pulse';
-
-            gameInfo.appendChild(gameType);
-            gameInfo.appendChild(gameName);
-            gameInfo.appendChild(gameTime);
-
-            activityInfo.appendChild(gameIcon);
-            activityInfo.appendChild(gameInfo);
-
-            const joinBtn = document.createElement('div');
-            joinBtn.className = 'bg-discord-darker py-2 px-3 flex mt-2';
-
-            const btnContent = document.createElement('div');
-            btnContent.className = 'flex-1 h-6 bg-discord-background animate-pulse rounded';
-
-            joinBtn.appendChild(btnContent);
-
-            activityCard.appendChild(userInfo);
-            activityCard.appendChild(activityInfo);
-            activityCard.appendChild(joinBtn);
-
-            skeleton.appendChild(activityCard);
-        }
-
-        return skeleton;
-    },
-
-    createDefaultSkeleton() {
-        const skeleton = document.createElement('div');
-        skeleton.className = 'skeleton-loader default-skeleton animate-pulse';
-
-        for (let i = 0; i < 3; i++) {
-            const line = document.createElement('div');
-            line.className = 'h-4 bg-gray-600 rounded my-2 w-' + (Math.floor(Math.random() * 50) + 50) + '%';
-            skeleton.appendChild(line);
-        }
-
-        return skeleton;
+        
+        return wrapper;
     },
 
     addGlobalLoadingIndicator() {
+        if (document.getElementById('globalLoadingIndicator')) return;
+        
         const indicator = document.createElement('div');
-        indicator.id = 'global-lazy-loader';
-        indicator.className = 'fixed top-4 right-4 bg-discord-primary text-white px-3 py-1 rounded text-xs shadow-lg flex items-center z-50 transition-opacity duration-300 opacity-0 pointer-events-none';
-
-        const spinnerIcon = document.createElement('div');
-        spinnerIcon.className = 'mr-2 w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin';
-
-        const text = document.createElement('span');
-        text.textContent = 'Loading...';
-
-        indicator.appendChild(spinnerIcon);
-        indicator.appendChild(text);
+        indicator.id = 'globalLoadingIndicator';
+        indicator.className = 'fixed top-0 left-0 w-full h-1 bg-transparent z-50 pointer-events-none';
+        
+        const progress = document.createElement('div');
+        progress.className = 'h-full bg-gradient-to-r from-blue-500 to-purple-500 w-0 transition-all duration-300 ease-out';
+        
+        indicator.appendChild(progress);
         document.body.appendChild(indicator);
     },
 
-    showGlobalLoadingIndicator() {
-        const indicator = document.getElementById('global-lazy-loader');
-        if (indicator) {
-            indicator.classList.remove('opacity-0');
-            indicator.classList.add('opacity-100');
+    updateGlobalLoadingProgress(percent) {
+        const indicator = document.getElementById('globalLoadingIndicator');
+        if (!indicator) return;
+        
+        const progress = indicator.querySelector('div');
+        if (progress) {
+            progress.style.width = `${percent}%`;
+            
+            if (percent >= 100) {
+                setTimeout(() => {
+                    progress.style.width = '0%';
+                }, 500);
+            }
         }
     },
 
-    hideGlobalLoadingIndicator() {
-        const indicator = document.getElementById('global-lazy-loader');
-        if (indicator) {
-            indicator.classList.remove('opacity-100');
-            indicator.classList.add('opacity-0');
+    triggerLoad(element, type) {
+        console.log(`🔄 Triggering lazy load for type: ${type}`);
+        
+        const event = new CustomEvent('LazyLoad', {
+            detail: { 
+                element, 
+                type 
+            }
+        });
+        
+        document.dispatchEvent(event);
+        element.dispatchEvent(event);
+        
+        if (type === 'channel-list') {
+            console.log('📂 Channel list loading dispatched');
         }
+        
+        this.updateGlobalLoadingProgress(25);
     },
 
     listenForDataEvents() {
-        document.addEventListener('data-loaded', event => {
-            const { target, isEmpty } = event.detail || {};
-            if (target) {
-                const elements = document.querySelectorAll(`[data-lazyload="${target}"]`);
-                elements.forEach(element => {
-                    this.showContent(element, isEmpty);
-                });
-            }
-
-            if (document.querySelectorAll('.content-loading').length === 0) {
-                this.hideGlobalLoadingIndicator();
+        document.addEventListener('LazyLoadStart', (event) => {
+            const { element } = event.detail;
+            if (element) {
+                this.showLoadingState(element);
+                this.updateGlobalLoadingProgress(50);
             }
         });
-
-        const originalXhrOpen = XMLHttpRequest.prototype.open;
-        const self = this;
-
-        XMLHttpRequest.prototype.open = function() {
-            this.addEventListener('loadstart', () => self.showGlobalLoadingIndicator());
-            this.addEventListener('loadend', () => {
-
+        
+        document.addEventListener('LazyLoadComplete', (event) => {
+            const { element } = event.detail;
+            if (element) {
+                element.classList.remove('content-loading');
+                element.classList.add('content-loaded');
+                
+                const skeletonLoader = element.querySelector('.skeleton-loader');
+                if (skeletonLoader) {
+                    skeletonLoader.classList.add('fade-out');
                 setTimeout(() => {
-                    if (document.querySelectorAll('.content-loading').length === 0) {
-                        self.hideGlobalLoadingIndicator();
+                        if (skeletonLoader.parentNode === element) {
+                            element.removeChild(skeletonLoader);
                     }
                 }, 300);
-            });
-
-            originalXhrOpen.apply(this, arguments);
-        };
-    },
-
-    triggerDataLoaded(target, isEmpty = false) {
-        console.log(`LazyLoader: Triggering data loaded for ${target}`);
-
-        if (target === 'channel-list') {
-            const channelElements = document.querySelectorAll('[data-lazyload="channel-list"], .channel-list-container');
-            channelElements.forEach(element => {
-
-                element.classList.add('lazy-loaded');
-                element.setAttribute('aria-busy', 'false');
-                element.classList.add('channels-loaded');
-
-                const channelItems = document.querySelectorAll('.channel-item');
-                channelItems.forEach(item => {
-                    item.style.cssText = 'display: flex !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important;';
-                });
-
-                element.dispatchEvent(new CustomEvent('content-loaded', {
-                    detail: { isEmpty: isEmpty }
-                }));
-            });
-        }
-
-        document.dispatchEvent(new CustomEvent('data-loaded', {
-            detail: { target, isEmpty }
-        }));
+                }
+                
+                this.updateGlobalLoadingProgress(100);
+            }
+        });
     }
 };
 
 if (typeof window !== 'undefined') {
-    window.LazyLoader = LazyLoader;
+    // Update the global LazyLoader with all methods
+    window.LazyLoader = Object.assign(window.LazyLoader || {}, LazyLoader);
     console.log('🔄 LazyLoader assigned to window object');
 
     if (document.readyState === 'loading') {
@@ -596,4 +300,6 @@ if (typeof window !== 'undefined') {
     }
 }
 
+// Export for ES modules
 export { LazyLoader };
+

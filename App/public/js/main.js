@@ -1,16 +1,30 @@
-import { showToast } from './core/ui/toast.js';
-import { MisVordAjax } from './core/ajax/ajax-handler.js';
-import { GlobalSocketManager } from './core/socket/global-socket-manager.js';
-
+import { showToast, MisVordAjax, GlobalSocketManager } from './core/index.js';
 import * as Components from './components/index.js';
 import * as Utils from './utils/index.js';
+import { LazyLoader } from './utils/lazy-loader.js';
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('MisVord application initialized');
 
+    window.showToast = showToast;
+    window.MisVordAjax = MisVordAjax;
+    
+    if (LazyLoader) {
+        window.LazyLoader = LazyLoader;
+        LazyLoader.init();
+    }
+
     initGlobalUI();
     initGlobalSocketManager();
     initPageSpecificComponents();
+    
+    window.dispatchEvent(new CustomEvent('MainModulesReady', {
+        detail: {
+            LazyLoader: window.LazyLoader,
+            showToast,
+            MisVordAjax
+        }
+    }));
 });
 
 function initGlobalUI() {

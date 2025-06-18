@@ -1,4 +1,4 @@
-import { showToast } from '../core/toast.js';
+import { showToast } from '../../core/ui/toast.js';
 
 class MisVordMessaging {
     constructor() {
@@ -727,7 +727,10 @@ class MisVordMessaging {
     initMessageForm() {
         const form = document.getElementById('message-form');
         if (!form) {
-            this.error('Message form not found in DOM');
+            const path = window.location.pathname;
+            if (path.includes('/app') || path.includes('/server/') || path.includes('/channel/')) {
+                this.error('Message form not found in DOM');
+            }
             return;
         }
 
@@ -769,7 +772,10 @@ class MisVordMessaging {
             textarea.addEventListener('blur', () => this.stopTyping());
             setTimeout(() => textarea.focus(), 100);
         } else {
-            this.error('Message textarea not found');
+            const path = window.location.pathname;
+            if (path.includes('/app') || path.includes('/server/') || path.includes('/channel/')) {
+                this.error('Message textarea not found');
+            }
         }
 
         this.log('Message form initialized');
@@ -901,7 +907,10 @@ class MisVordMessaging {
         if (container) {
             this.log('✅ Message container found');
         } else {
-            this.error('❌ Message container not found');
+            const path = window.location.pathname;
+            if (path.includes('/app') || path.includes('/server/') || path.includes('/channel/')) {
+                this.error('❌ Message container not found');
+            }
         }
     }
 

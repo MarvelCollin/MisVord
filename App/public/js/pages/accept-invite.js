@@ -1,4 +1,4 @@
-import { showToast } from '../core/toast.js';
+import { showToast } from '../core/ui/toast.js';
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log("Accept Invite page loaded");

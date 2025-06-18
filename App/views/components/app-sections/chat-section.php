@@ -17,7 +17,13 @@ foreach ($channels as $channel) {
         break;
     }
 }
+
+$additional_js[] = 'components/messaging/chat-section';
 ?>
+
+<meta name="channel-id" content="<?php echo htmlspecialchars($activeChannelId ?? ''); ?>">
+<meta name="user-id" content="<?php echo htmlspecialchars($currentUserId); ?>">
+<meta name="username" content="<?php echo htmlspecialchars($_SESSION['username'] ?? ''); ?>">
 
 <div class="flex flex-col flex-1 h-screen">
     <?php if ($activeChannel): ?>
@@ -31,7 +37,6 @@ foreach ($channels as $channel) {
         <div class="text-sm text-gray-400 truncate"><?php echo htmlspecialchars($activeChannel['topic']); ?></div>
         <?php endif; ?>
         <div class="flex-1"></div>
-        <!-- Socket status indicator -->
         <div class="socket-status text-sm mr-4 flex items-center opacity-75">
             <span class="text-yellow-500">•</span> <span class="ml-1">Connecting...</span>
         </div>
@@ -57,9 +62,7 @@ foreach ($channels as $channel) {
         </div>
     </div>
 
-    <!-- Chat messages container with lazy loading -->
     <div class="flex-1 overflow-y-auto p-4 bg-discord-background" id="chat-messages" data-lazyload="chat">
-        <!-- Content will be replaced by skeleton loader during loading -->
         <?php if (empty($messages)): ?>
         <div class="flex flex-col items-center justify-center h-full text-center" id="welcome-message">
             <div class="w-16 h-16 mb-4 bg-discord-dark rounded-full flex items-center justify-center">
@@ -133,7 +136,6 @@ foreach ($channels as $channel) {
         <?php endif; ?>
     </div>
 
-    <!-- Add a container for typing indicator -->
     <div id="typing-indicator" class="text-xs text-gray-400 pb-1 pl-5 flex items-center hidden">
         <div class="typing-animation mr-2">
             <span class="dot"></span>
@@ -169,12 +171,10 @@ foreach ($channels as $channel) {
                           spellcheck="true"></textarea>
             </div>
 
-            <!-- Hidden inputs for user data -->
             <input type="hidden" name="channel_id" value="<?php echo htmlspecialchars($activeChannelId ?? ''); ?>" />
             <input type="hidden" data-user-id="<?php echo htmlspecialchars($currentUserId); ?>" />
             <input type="hidden" data-username="<?php echo htmlspecialchars($_SESSION['username'] ?? ''); ?>" />
 
-            <!-- Send button and status -->
             <div class="flex justify-between items-center mt-2">
                 <div class="flex items-center text-xs text-gray-400">
                     <div class="socket-status mr-4 flex items-center">
@@ -194,178 +194,3 @@ foreach ($channels as $channel) {
         </div>
     <?php endif; ?>
 </div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 Chat section initializing...');
-
-    // Basic debug info helper
-    window.MiscVordDebug = {
-        initialized: false,
-        messagingAvailable: false,
-        errors: [],
-        logs: [],
-
-        log: function(message, data) {
-            const logEntry = {
-                timestamp: new Date().toISOString(),
-                message: message,
-                data: data || {}
-            };
-            this.logs.push(logEntry);
-            console.log(`[MiscVordDebug] ${message}`, data);
-            if (this.logs.length > 50) this.logs.shift();
-        },
-
-        error: function(message, error) {
-            const errorEntry = {
-                timestamp: new Date().toISOString(),
-                message: message,
-                error: error ? error.toString() : 'Unknown error',
-                stack: error ? error.stack : 'No stack trace'
-            };
-            this.errors.push(errorEntry);
-            console.error(`[MiscVordDebug] ${message}`, error);
-            if (this.errors.length > 20) this.errors.shift();
-        },
-
-        getDebugInfo: function() {
-            return {
-                initialized: this.initialized,
-                messagingAvailable: this.messagingAvailable,
-                socketAvailable: typeof io !== 'undefined',
-                globalSocketManager: !!window.globalSocketManager,
-                miscVordMessaging: !!window.MiscVordMessaging,
-                recentErrors: this.errors.slice(-5),
-                recentLogs: this.logs.slice(-10)
-            };
-        }
-    };
-
-    const messageInput = document.getElementById('message-input');
-    const characterCount = document.querySelector('.character-count');
-    const sendButton = document.getElementById('send-button');
-
-    window.MiscVordDebug.log('Chat elements check', {
-        messageInput: !!messageInput,
-        characterCount: !!characterCount,
-        sendButton: !!sendButton,
-        messageForm: !!document.getElementById('message-form'),
-        chatMessages: !!document.getElementById('chat-messages')
-    });
-
-    if (messageInput && sendButton) {
-        window.MiscVordDebug.log('Message input and send button found');
-
-        messageInput.addEventListener('input', function(e) {
-            this.style.height = 'auto';
-            this.style.height = (this.scrollHeight) + 'px';
-
-            if (characterCount) {
-                const length = this.value.length;
-                characterCount.textContent = `${length}/2000`;
-                characterCount.classList.toggle('hidden', length === 0);
-                characterCount.classList.toggle('text-red-400', length > 1900);
-            }
-
-            const hasContent = this.value.trim().length > 0;
-            sendButton.disabled = !hasContent;
-        });
-
-        sendButton.disabled = true;
-        setTimeout(() => {
-            messageInput.focus();
-            window.MiscVordDebug.log('Message input focused');
-        }, 500);
-    } else {
-        window.MiscVordDebug.error('Critical elements missing', {
-            messageInput: !!messageInput,
-            sendButton: !!sendButton
-        });
-    }
-
-    // Create socket data element for the global socket manager and messaging system
-    const channelId = '<?php echo htmlspecialchars($activeChannelId ?? ""); ?>';
-    const userId = '<?php echo htmlspecialchars($currentUserId ?? ""); ?>';
-    const username = '<?php echo htmlspecialchars($_SESSION['username'] ?? ""); ?>';
-
-    window.MiscVordDebug.log('Socket connection data', { channelId, userId, username });
-
-    const socketData = document.createElement('div');
-    socketData.id = 'socket-data';
-    socketData.setAttribute('data-channel-id', channelId);
-    socketData.setAttribute('data-user-id', userId);
-    socketData.setAttribute('data-username', username);
-    socketData.style.display = 'none';
-    document.body.appendChild(socketData);
-    window.MiscVordDebug.log('Socket data element created and added to DOM');
-
-    // Check WebSocket and global socket manager availability
-    if (typeof io !== 'undefined') {
-        window.MiscVordDebug.log('Socket.IO is available');
-        
-        // Listen for global socket manager ready event
-        window.addEventListener('miscVordGlobalReady', function(event) {
-            window.MiscVordDebug.log('Global socket manager is ready:', event.detail);
-            window.MiscVordDebug.initialized = true;
-            
-            // Update status indicator
-            const socketStatus = document.querySelector('.socket-status');
-            if (socketStatus && event.detail.socketManager.isReady()) {
-                socketStatus.innerHTML = '<span class="text-green-500">•</span> <span class="ml-1">Connected</span>';
-            }
-        });
-
-        // Check if global socket manager is already available
-        if (window.globalSocketManager) {
-            window.MiscVordDebug.log('Global socket manager already available');
-            window.MiscVordDebug.initialized = true;
-            
-            const socketStatus = document.querySelector('.socket-status');
-            if (socketStatus && window.globalSocketManager.isReady()) {
-                socketStatus.innerHTML = '<span class="text-green-500">•</span> <span class="ml-1">Connected</span>';
-            }
-        }
-
-    } else {
-        window.MiscVordDebug.error('Socket.IO not available - messaging disabled');
-
-        const socketStatus = document.querySelector('.socket-status');
-        if (socketStatus) {
-            socketStatus.innerHTML = '<span class="text-red-500">•</span> <span class="ml-1">WebSocket required - please refresh</span>';
-        }
-
-        if (messageInput) {
-            messageInput.disabled = true;
-            messageInput.placeholder = 'WebSocket connection required for messaging';
-        }
-    }
-
-    // Auto-scroll to bottom and setup scroll observer
-    const messagesContainer = document.getElementById('chat-messages');
-    if (messagesContainer) {
-        const hasMessages = messagesContainer.querySelector('[id^="msg-"]');
-        if (hasMessages) {
-            setTimeout(() => {
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                window.MiscVordDebug.log('Auto-scrolled to bottom on page load');
-            }, 100);
-        }
-
-        // Setup scroll observer for new messages
-        const observer = new MutationObserver(() => {
-            const isAtBottom = messagesContainer.scrollTop + messagesContainer.clientHeight >= messagesContainer.scrollHeight - 50;
-            if (isAtBottom) {
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            }
-        });
-
-        observer.observe(messagesContainer, {
-            childList: true,
-            subtree: true
-        });
-    }
-
-    window.MiscVordDebug.log('Chat section initialization complete');
-});
-</script>

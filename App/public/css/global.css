@@ -1,397 +1,384 @@
-/* Global Variables - Updated with Discord's exact colors */
 :root {
-    /* Core Discord Colors (2023 updated) */
-    --discord-primary-dark: #1e1f22; /* Sidebar background */
-    --discord-secondary-dark: #2b2d31; /* Channel list background */
-    --discord-tertiary-dark: #313338; /* Main chat area background */
-    --discord-input-dark: #383a40; /* Message input background */
-    
-    --discord-blurple: #5865f2; /* Primary blue */
-    --discord-green: #23a559; /* Online status */
-    --discord-yellow: #f0b132; /* Warning */
-    --discord-red: #f23f42; /* Error/delete */
-    --discord-fuchsia: #eb459e; /* Nitro color */
-    
-    --discord-text-normal: #f2f3f5; /* Normal text */
-    --discord-text-muted: #949ba4; /* Secondary text */
-    --discord-text-link: #00a8fc; /* Link text */
-    
-    --discord-header-primary: #f2f3f5;
-    --discord-header-secondary: #b5bac1;
-    
-    --discord-channeltextarea-background: #383a40;
-    --discord-background-modifier-hover: rgba(255, 255, 255, 0.05);
-    --discord-background-modifier-active: rgba(255, 255, 255, 0.07);
-    --discord-background-modifier-selected: rgba(255, 255, 255, 0.1);
-    
-    /* Server List Colors */
-    --discord-guild-background: #2f3136;
-    --discord-white: #ffffff;
-    --discord-black: #000000;
-    --discord-dark: #2c2f33;
-    --discord-lighter: #b5bac1;
-    
-    /* Spacing */
-    --space-xs: 0.25rem; /* 4px */
-    --space-sm: 0.5rem;  /* 8px */
-    --space-md: 0.75rem; /* 12px */
-    --space-lg: 1rem;    /* 16px */
-    --space-xl: 1.25rem; /* 20px */
-    
-    /* Border radius */
-    --radius-sm: 0.25rem; /* 4px */
-    --radius-md: 0.375rem; /* 6px */
-    --radius-lg: 0.5rem;  /* 8px */
-    --radius-xl: 0.75rem; /* 12px */
-    --radius-xxl: 1rem;   /* 16px */
-    --radius-server: 50%;  /* Server icons */
+  --discord-primary-dark: #1e1f22;
+  --discord-secondary-dark: #2b2d31;
+  --discord-tertiary-dark: #313338;
+  --discord-input-dark: #383a40;
+
+  --discord-blurple: #5865f2;
+  --discord-green: #23a559;
+  --discord-yellow: #f0b132;
+  --discord-red: #f23f42;
+  --discord-fuchsia: #eb459e;
+
+  --discord-text-normal: #f2f3f5;
+  --discord-text-muted: #949ba4;
+  --discord-text-link: #00a8fc;
+
+  --discord-header-primary: #f2f3f5;
+  --discord-header-secondary: #b5bac1;
+
+  --discord-channeltextarea-background: #383a40;
+  --discord-background-modifier-hover: rgba(255, 255, 255, 0.05);
+  --discord-background-modifier-active: rgba(255, 255, 255, 0.07);
+  --discord-background-modifier-selected: rgba(255, 255, 255, 0.1);
+
+  --discord-guild-background: #2f3136;
+  --discord-white: #ffffff;
+  --discord-black: #000000;
+  --discord-dark: #2c2f33;
+  --discord-lighter: #b5bac1;
+
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 0.75rem;
+  --space-lg: 1rem;
+  --space-xl: 1.25rem;
+
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-xxl: 1rem;
+  --radius-server: 50%;
 }
 
-/* Reset and base styles */
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 html {
-    scroll-behavior: smooth;
-    font-size: 16px;
+  scroll-behavior: smooth;
+  font-size: 16px;
 }
 
 body {
-    font-family: 'gg sans', 'Noto Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    line-height: 1.375rem;
-    color: var(--discord-text-normal);
-    background: var(--discord-primary-dark);
-    overflow-x: hidden;
-    overflow-y: auto;
-    font-weight: 400;
+  font-family: "gg sans", "Noto Sans", "Helvetica Neue", Helvetica, Arial,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.375rem;
+  color: var(--discord-text-normal);
+  background: var(--discord-primary-dark);
+  overflow-x: hidden;
+  overflow-y: auto;
+  font-weight: 400;
 }
 
-/* Discord-Style Scrollbar */
 ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-    background: transparent;
-    border-radius: 4px;
-    margin: 4px;
+  background: transparent;
+  border-radius: 4px;
+  margin: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #1a1b1e;
-    border-radius: 4px;
-    border: 2px solid var(--discord-tertiary-dark);
-    min-height: 40px;
+  background: #1a1b1e;
+  border-radius: 4px;
+  border: 2px solid var(--discord-tertiary-dark);
+  min-height: 40px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #141517;
+  background: #141517;
 }
 
-/* Form elements */
-input, textarea, button {
-    font-family: 'gg sans', 'Noto Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    font-weight: 400;
+input,
+textarea,
+button {
+  font-family: "gg sans", "Noto Sans", "Helvetica Neue", Helvetica, Arial,
+    sans-serif;
+  font-weight: 400;
 }
 
 a {
-    text-decoration: none;
-    color: var(--discord-text-link);
+  text-decoration: none;
+  color: var(--discord-text-link);
 }
 
 textarea {
-    min-height: 44px;
-    max-height: 300px;
-    resize: none;
-    border: none;
-    background: var(--discord-channeltextarea-background);
-    color: var(--discord-text-normal);
-    padding: 11px 16px;
-    border-radius: 8px;
-    font-size: 1rem;
+  min-height: 44px;
+  max-height: 300px;
+  resize: none;
+  border: none;
+  background: var(--discord-channeltextarea-background);
+  color: var(--discord-text-normal);
+  padding: 11px 16px;
+  border-radius: 8px;
+  font-size: 1rem;
 }
 
 textarea:focus {
-    outline: none;
+  outline: none;
 }
 
 button {
-    cursor: pointer;
-    border: none;
-    background: transparent;
-    font-size: 0.875rem;
-    font-weight: 500;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  font-size: 0.875rem;
+  font-weight: 500;
 }
 
 button:focus {
-    outline: none;
+  outline: none;
 }
 
-/* Discord-specific text styles */
 .channel-name {
-    font-size: 0.875rem;
-    font-weight: 500;
-    line-height: 1.25rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .channel-unread {
-    font-weight: 600;
+  font-weight: 600;
 }
 
-/* Discord-specific icons */
 .discord-icon {
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0.8;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.8;
 }
 
-/* Status indicators */
 .status-online {
-    background-color: var(--discord-green);
+  background-color: var(--discord-green);
 }
 
 .status-idle {
-    background-color: var(--discord-yellow);
+  background-color: var(--discord-yellow);
 }
 
 .status-dnd {
-    background-color: var(--discord-red);
+  background-color: var(--discord-red);
 }
 
 .status-offline {
-    background-color: var(--discord-text-muted);
+  background-color: var(--discord-text-muted);
 }
 
-/* Utility classes */
 .text-muted {
-    color: var(--discord-text-muted);
+  color: var(--discord-text-muted);
 }
 
-/* Animations */
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideUp {
-    from { transform: translateY(20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-}
-
-/* Responsive utilities */
-@media (max-width: 768px) {
-    html {
-        font-size: 14px;
-    }
-}
-
-/* Add tooltip styles */
-.group:hover .tooltip-text {
-    opacity: 1;
-    visibility: visible;
-}
-
-/* Server sidebar styles */
-.group:hover .tooltip-text {
-    display: block;
-}
-
-/* Simple tooltip styles */
-/* Remove the old tooltip styles and replace with new ones */
-.tooltip-wrapper {
-    position: relative;
-    display: inline-block;
-}
-
-/* Enhanced tooltip styles */
-.tooltip-content {
-    position: absolute;
-    background: #18191c;
-    color: white;
-    padding: 8px 12px;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: 500;
-    white-space: nowrap;
-    z-index: 99999;
+  from {
+    transform: translateY(20px);
     opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.15s ease, visibility 0.15s ease;
-    pointer-events: none;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.24);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 768px) {
+  html {
+    font-size: 14px;
+  }
+}
+
+.group:hover .tooltip-text {
+  opacity: 1;
+  visibility: visible;
+}
+
+.group:hover .tooltip-text {
+  display: block;
+}
+
+.tooltip-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.tooltip-content {
+  position: absolute;
+  background: #18191c;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  z-index: 99999;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+  pointer-events: none;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.24);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .tooltip-wrapper[data-position="right"] .tooltip-content {
-    left: calc(100% + 15px);
-    top: 50%;
-    transform: translateY(-50%);
+  left: calc(100% + 15px);
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .tooltip-wrapper[data-position="left"] .tooltip-content {
-    right: calc(100% + 15px);
-    top: 50%;
-    transform: translateY(-50%);
+  right: calc(100% + 15px);
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .tooltip-wrapper[data-position="top"] .tooltip-content {
-    bottom: calc(100% + 15px);
-    left: 50%;
-    transform: translateX(-50%);
+  bottom: calc(100% + 15px);
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .tooltip-wrapper[data-position="bottom"] .tooltip-content {
-    top: calc(100% + 15px);
-    left: 50%;
-    transform: translateX(-50%);
+  top: calc(100% + 15px);
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .tooltip-wrapper:hover .tooltip-content {
-    opacity: 1;
-    visibility: visible;
-    transition-delay: 0.5s;
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0.5s;
 }
 
-/* Add arrow indicators */
 .tooltip-wrapper[data-position="right"] .tooltip-content::before {
-    content: '';
-    position: absolute;
-    right: 100%;
-    top: 50%;
-    transform: translateY(-50%);
-    border: 5px solid transparent;
-    border-right-color: #18191c;
+  content: "";
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 5px solid transparent;
+  border-right-color: #18191c;
 }
 
 .tooltip-wrapper[data-position="left"] .tooltip-content::before {
-    content: '';
-    position: absolute;
-    left: 100%;
-    top: 50%;
-    transform: translateY(-50%);
-    border: 5px solid transparent;
-    border-left-color: #18191c;
+  content: "";
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 5px solid transparent;
+  border-left-color: #18191c;
 }
 
 .tooltip-wrapper[data-position="top"] .tooltip-content::before {
-    content: '';
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    border: 5px solid transparent;
-    border-top-color: #18191c;
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: #18191c;
 }
 
 .tooltip-wrapper[data-position="bottom"] .tooltip-content::before {
-    content: '';
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    border: 5px solid transparent;
-    border-bottom-color: #18191c;
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-bottom-color: #18191c;
 }
 
-/* Add hover stability */
 .hover-stable {
-    position: relative;
+  position: relative;
 }
 
-/* Explicit CSS for Discord hover effects since Tailwind CDN might not apply these correctly */
-/* Server button hover effects */
 [data-action="create-server"] {
-    transition: all 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 [data-action="create-server"]:hover {
-    background-color: #23a559 !important; /* Discord green */
-    border-radius: 1rem !important; /* rounded-2xl */
+  background-color: #23a559 !important;
+  border-radius: 1rem !important;
 }
 
 [data-action="create-server"]:hover i {
-    color: white !important;
+  color: white !important;
 }
 
-/* Server icon hover effects */
-.server-icon, 
+.server-icon,
 .w-12.h-12.rounded-full {
-    transition: all 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .server-icon:hover,
 .w-12.h-12.rounded-full:hover {
-    border-radius: 1rem !important;
+  border-radius: 1rem !important;
 }
 
-/* Authentication container hover effect */
 #authContainer {
-    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 #authContainer:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  transform: translateY(-5px);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
 }
 
-/* Form group hover animations */
 .form-group {
-    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 0.2s ease;
 }
 
 .form-group:focus-within {
-    transform: translateY(-2px) scale(1.01);
+  transform: translateY(-2px) scale(1.01);
 }
 
-/* Button hover effects */
 button[type="submit"],
 .btn-google {
-    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 button[type="submit"]:hover,
 .btn-google:hover {
-    transform: translateY(-2px) scale(1.01);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px) scale(1.01);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-/* Tailwind custom discord colors */
 .bg-discord-primary {
-    background-color: #5865F2;
+  background-color: #5865f2;
 }
 
 .bg-discord-green {
-    background-color: #23a559;
+  background-color: #23a559;
 }
 
 .bg-discord-dark {
-    background-color: #202225;
+  background-color: #202225;
 }
 
 .hover\:bg-discord-primary:hover {
-    background-color: #5865F2;
+  background-color: #5865f2;
 }
 
 .hover\:bg-discord-green:hover {
-    background-color: #23a559;
+  background-color: #23a559;
 }
 
 .hover\:bg-discord-dark:hover {
-    background-color: #202225;
+  background-color: #202225;
 }
 
 .hover\:rounded-2xl:hover {
-    border-radius: 1rem;
+  border-radius: 1rem;
 }

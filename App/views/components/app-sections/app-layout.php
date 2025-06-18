@@ -4,6 +4,7 @@ if (!isset($contentType)) {
 }
 
 $currentServer = $currentServer ?? $GLOBALS['currentServer'] ?? null;
+$additional_js[] = 'components/app-layout';
 ?>
 
 <div class="flex h-screen" 
@@ -79,33 +80,3 @@ $currentServer = $currentServer ?? $GLOBALS['currentServer'] ?? null;
 </div>
 
 <?php include dirname(__DIR__) . '/app-sections/create-server-modal.php'; ?>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-
-    const createServerBtn = document.querySelector('[data-action="create-server"]');
-    const modal = document.getElementById('create-server-modal');
-    const closeBtn = document.getElementById('close-server-modal');
-
-    if (createServerBtn && modal) {
-        createServerBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            modal.classList.remove('hidden');
-        });
-    }
-
-    if (closeBtn && modal) {
-        closeBtn.addEventListener('click', function() {
-            modal.classList.add('hidden');
-        });
-    }
-
-    if (modal) {
-        modal.addEventListener('click', function(e) {
-            if (e.target === modal) {
-                modal.classList.add('hidden');
-            }
-        });
-    }
-});
-</script>

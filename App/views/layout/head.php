@@ -91,5 +91,5 @@ $cache_version = time();
 <?php endif; ?>
 
 <!-- Lazyload components preload -->
-<script src="<?php echo js('utils/lazy-loader'); ?>?v=<?php echo $cache_version; ?>"></script>
-<script src="<?php echo js('components/channels/channel-loader'); ?>?v=<?php echo $cache_version; ?>"></script>
+<script src="<?php echo js('utils/lazy-loader'); ?>?v=<?php echo $cache_version; ?>" type="module"></script>
+<script src="<?php echo js('components/channels/channel-loader'); ?>?v=<?php echo $cache_version; ?>" type="module"></script>

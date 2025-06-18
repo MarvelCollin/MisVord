@@ -1,20 +1,15 @@
 <?php
-/**
- * Public Router
- * Handles static file serving and web routes
- */
 
-// Ensure APP_ROOT is defined
 if (!defined('APP_ROOT')) {
     define('APP_ROOT', dirname(__DIR__));
 }
 
-// Start session if not already started
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Set error reporting based on environment
+
 $requestUri = $_SERVER['REQUEST_URI'];
 if (strpos($requestUri, '/api/') !== false) {
     error_reporting(0);
@@ -52,9 +47,10 @@ if (preg_match('/\\.(?:css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|webp|map)$
     $searchPaths = [
         __DIR__ . '/',
         dirname(__DIR__) . '/public/',
-        dirname(__DIR__) . '/',           ];    
+        dirname(__DIR__) . '/',
+    ];
 
-    // Try to find and serve the static file
+
     foreach ($searchPaths as $searchPath) {
         $fullPath = $searchPath . $requestFile;
         if (file_exists($fullPath) && is_file($fullPath)) {
@@ -67,7 +63,7 @@ if (preg_match('/\\.(?:css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|webp|map)$
     exit("Static file not found: {$requestFile}");
 }
 
-// Handle web routes through config/web.php
+
 $webConfigPath = APP_ROOT . '/config/web.php';
 
 if (file_exists($webConfigPath)) {

@@ -299,7 +299,6 @@ class RoleController extends BaseController {
                 return $this->forbidden('Only server owners can update role permissions');
             }
             
-            // Validate input
             $this->validate($input, [
                 'channel_id' => 'required'
             ]);

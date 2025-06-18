@@ -1,5 +1,5 @@
-import { showToast } from '../core/toast.js';
-import { MisVordAjax } from '../core/ajax-handler.js';
+import { showToast } from '../core/ui/toast.js';
+import { MisVordAjax } from '../core/ajax/ajax-handler.js';
 
 document.addEventListener('DOMContentLoaded', function() {
     const elements = {
@@ -20,7 +20,24 @@ document.addEventListener('DOMContentLoaded', function() {
         formToggles: document.querySelectorAll('.form-toggle')
     };
 
+    console.log('Auth elements loaded:', {
+        authContainer: !!elements.authContainer,
+        formsContainer: !!elements.formsContainer,
+        loginForm: !!elements.loginForm,
+        registerForm: !!elements.registerForm,
+        forgotForm: !!elements.forgotForm,
+        formToggles: elements.formToggles.length
+    });
+    
+    elements.formToggles.forEach((toggle, index) => {
+        console.log(`Form toggle ${index}:`, {
+            element: toggle,
+            target: toggle.getAttribute('data-form')
+        });
+    });
+
     let currentForm = document.querySelector('form:not(.hidden)').id.replace('Form', '');
+    console.log('Current form detected as:', currentForm);
 
     const timing = {
         formTransition: 300,
@@ -116,7 +133,7 @@ document.addEventListener('DOMContentLoaded', function() {
             createBlinkDot(minimalistBg);
         }
 
-        document.querySelector('.min-h-screen').prepend(minimalistBg);
+        document.querySelector('.authentication-page').prepend(minimalistBg);
     }
 
     function createBlinkDot(container) {
@@ -136,12 +153,19 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function setupFormToggles() {
+        console.log('Form toggles found:', elements.formToggles.length);
+        
         elements.formToggles.forEach(toggle => {
+            const targetForm = toggle.getAttribute('data-form');
+            console.log('Setting up toggle for', targetForm);
+            
             toggle.addEventListener('click', function(e) {
+                console.log('Toggle clicked!');
                 e.preventDefault();
 
                 const targetForm = this.getAttribute('data-form');
-
+                console.log('Toggle clicked for', targetForm, 'current form is', currentForm);
+                
                 if (targetForm === currentForm) return;
 
                 elements.authContainer.classList.add('scale-in');
@@ -150,67 +174,44 @@ document.addEventListener('DOMContentLoaded', function() {
                 }, timing.formScaleEffect);
 
                 const direction = formDirections[`${currentForm}_to_${targetForm}`] || 'forward';
+                console.log('Transition direction:', direction);
 
                 if (window.formTransitionTimeout) {
                     clearTimeout(window.formTransitionTimeout);
                 }
 
                 animateTitle(getFormTitle(targetForm));
+                
+                if (targetForm === 'register') {
+                    elements.loginForm.classList.add('hidden');
+                    elements.registerForm.classList.remove('hidden');
+                    elements.forgotForm.classList.add('hidden');
+                } else if (targetForm === 'login') {
+                    elements.loginForm.classList.remove('hidden');
+                    elements.registerForm.classList.add('hidden');
+                    elements.forgotForm.classList.add('hidden');
+                } else if (targetForm === 'forgot') {
+                    elements.loginForm.classList.add('hidden');
+                    elements.registerForm.classList.add('hidden');
+                    elements.forgotForm.classList.remove('hidden');
+                }
 
-                transitionForms(currentForm, targetForm, direction);
-
+                updateFormHeight();
+                
                 currentForm = targetForm;
 
                 document.title = `${getFormTitle(targetForm)} - misvord`;
+                
+                try {
+                    const newUrl = targetForm === 'login' ? '/login' : 
+                                   targetForm === 'register' ? '/register' : 
+                                   '/forgot-password';
+                                   
+                    history.pushState({}, '', newUrl);
+                } catch (e) {
+                    console.error('Error updating URL:', e);
+                }
             });
-        });
-    }
-
-    function transitionForms(fromForm, toForm, direction) {
-        const currentFormEl = document.getElementById(fromForm + 'Form');
-        const targetFormEl = document.getElementById(toForm + 'Form');
-
-        const currentHeight = currentFormEl.offsetHeight;
-        elements.formsContainer.style.height = `${currentHeight}px`;
-
-        currentFormEl.classList.add('auth-form');
-        targetFormEl.classList.add('auth-form');
-
-        currentFormEl.classList.add(transitions[fromForm].exit);
-
-        requestAnimationFrame(() => {
-            currentFormEl.classList.add(transitions[fromForm].exitActive);
-
-            window.formTransitionTimeout = setTimeout(() => {
-                currentFormEl.classList.add('hidden');
-                currentFormEl.classList.remove(
-                    transitions[fromForm].exit,
-                    transitions[fromForm].exitActive,
-                    'auth-form'
-                );
-
-                targetFormEl.classList.remove('hidden');
-                targetFormEl.classList.add(transitions[toForm].enter);
-
-                targetFormEl.offsetWidth;
-
-                requestAnimationFrame(() => {
-                    targetFormEl.classList.add(transitions[toForm].enterActive);
-
-                    elements.formsContainer.style.height = `${targetFormEl.offsetHeight}px`;
-
-                    setTimeout(() => {
-                        targetFormEl.classList.remove(
-                            transitions[toForm].enter,
-                            transitions[toForm].enterActive,
-                            'auth-form'
-                        );
-
-                        const firstInput = targetFormEl.querySelector('input');
-                        if (firstInput) firstInput.focus();
-                    }, timing.formTransition);
-                });
-            }, timing.formTransition / 2);
         });
     }
 

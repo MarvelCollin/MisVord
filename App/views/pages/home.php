@@ -25,7 +25,6 @@ $contentType = 'home';
 
 <?php ob_start(); ?>
 
-<!-- Debug panel to show server info -->
 <?php if (isset($_GET['debug'])): ?>
 <div style="position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 5px; z-index: 1000; color: white; max-width: 500px; overflow: auto; max-height: 80%;">
     <h3>Debug Info</h3>
@@ -44,43 +43,6 @@ $contentType = 'home';
 <?php include dirname(dirname(__DIR__)) . '/views/components/app-sections/app-layout.php'; ?>
 
 <?php include dirname(dirname(__DIR__)) . '/views/components/app-sections/create-server-modal.php'; ?>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-
-    const createServerBtn = document.querySelector('[data-action="create-server"]');
-    const modal = document.getElementById('create-server-modal');
-    const closeBtn = document.getElementById('close-server-modal');
-
-    if (createServerBtn && modal) {
-        createServerBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            modal.classList.remove('hidden');
-        });
-    }
-
-    if (closeBtn && modal) {
-        closeBtn.addEventListener('click', function() {
-            modal.classList.add('hidden');
-        });
-    }
-
-    if (modal) {
-        modal.addEventListener('click', function(e) {
-            if (e.target === modal) {
-                modal.classList.add('hidden');
-            }
-        });
-
-        const modalContent = modal.querySelector('.bg-discord-background');
-        if (modalContent) {
-            modalContent.addEventListener('click', function(e) {
-                e.stopPropagation();
-            });
-        }
-    }
-});
-</script>
 
 <?php 
 $content = ob_get_clean(); 

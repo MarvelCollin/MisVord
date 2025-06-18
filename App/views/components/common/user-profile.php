@@ -1,14 +1,12 @@
 <?php
 require_once dirname(dirname(dirname(__DIR__))) . '/controllers/FriendController.php';
 
-// Get current user data if not already provided
 if (!isset($currentUser) || empty($currentUser)) {
     $friendController = new FriendController();
     $friendData = $friendController->getUserFriends();
     $currentUser = $friendData['currentUser'];
 }
 
-// Get tooltip helper if available
 $tooltipPath = dirname(__DIR__) . '/common/tooltip.php';
 $hasTooltip = file_exists($tooltipPath);
 if ($hasTooltip) {
@@ -45,7 +43,6 @@ if ($hasTooltip) {
                 $statusColor = 'bg-discord-red';
             }
         } else {
-            // If no status is set, default to online
             $statusColor = 'bg-discord-green';
         }
         ?>

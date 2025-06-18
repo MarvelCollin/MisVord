@@ -1,5 +1,5 @@
-import { MisVordAjax } from '../core/ajax-handler.js';
-import { showToast } from '../core/toast.js';
+import { MisVordAjax } from '../../core/ajax/ajax-handler.js';
+import { showToast } from '../../core/ui/toast.js';
 
 document.addEventListener('DOMContentLoaded', function() {
     initExploreServers();

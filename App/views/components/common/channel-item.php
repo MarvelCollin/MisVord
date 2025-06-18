@@ -10,7 +10,6 @@
     $typeName = $channel['type_name'] ?? 'text';
     $isPrivate = $channel['is_private'] ?? false;
     
-    // Channel icon mapping
     $icon = '#';
     if ($typeName == 'voice') {
         $icon = '<i class="fas fa-volume-up"></i>';

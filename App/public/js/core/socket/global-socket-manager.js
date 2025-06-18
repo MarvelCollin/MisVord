@@ -1,10 +1,4 @@
-/**
- * Global WebSocket Manager for MisVord
- * This class manages the global WebSocket connection that tracks all user activity
- * across the entire application, regardless of which page or component is loaded.
- */
-
-import { showToast } from './toast.js';
+import { showToast } from '../ui/toast.js';
 
 export class GlobalSocketManager {
     constructor() {
@@ -305,7 +299,7 @@ export class GlobalSocketManager {
             this.dispatchEvent('friendRemoved', data);
         });
 
-        // User presence events - enhanced versions
+        // User presence events 
         this.socket.on('user-status-changed', (data) => {
             this.log('👤 User status changed:', data);
             this.dispatchEvent('userStatusChanged', data);
@@ -316,9 +310,6 @@ export class GlobalSocketManager {
         });
     }
 
-    /**
-     * Authenticate the user with the socket server
-     */
     authenticate() {
         if (!this.socket || !this.connected) {
             this.error('❌ Cannot authenticate: not connected');
@@ -338,11 +329,7 @@ export class GlobalSocketManager {
         this.socket.emit('authenticate', authData);
     }
 
-    /**
-     * Initialize presence tracking
-     */
     initPresenceTracking() {
-        // Update presence on page visibility change
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') {
                 this.updatePresence('online');
@@ -353,7 +340,6 @@ export class GlobalSocketManager {
             }
         });
 
-        // Update presence on mouse/keyboard activity
         let activityTimeout;
         const resetActivityTimer = () => {
             clearTimeout(activityTimeout);
@@ -361,31 +347,24 @@ export class GlobalSocketManager {
             
             activityTimeout = setTimeout(() => {
                 this.updatePresence('idle');
-            }, 300000); // 5 minutes of inactivity = idle
+            }, 300000); 
         };
 
         document.addEventListener('mousemove', resetActivityTimer);
         document.addEventListener('keypress', resetActivityTimer);
         document.addEventListener('click', resetActivityTimer);
 
-        // Initial activity timer
         resetActivityTimer();
     }
 
-    /**
-     * Initialize activity tracking
-     */
     initActivityTracking() {
-        // Track page navigation
         this.trackActivity('PAGE_LOAD', { page: this.currentPage });
 
-        // Track page unload
         window.addEventListener('beforeunload', () => {
             this.trackActivity('PAGE_UNLOAD', { page: this.currentPage });
             this.updatePresence('offline');
         });
 
-        // Track route changes for SPA behavior
         const originalPushState = history.pushState;
         const originalReplaceState = history.replaceState;
 
@@ -404,9 +383,6 @@ export class GlobalSocketManager {
         });
     }
 
-    /**
-     * Handle route changes
-     */
     onRouteChange() {
         const newPage = window.location.pathname;
         if (newPage !== this.currentPage) {
@@ -418,9 +394,6 @@ export class GlobalSocketManager {
         }
     }
 
-    /**
-     * Update user presence
-     */
     updatePresence(status, activity = null) {
         if (!this.socket || !this.connected || !this.authenticated) {
             return;
@@ -438,9 +411,6 @@ export class GlobalSocketManager {
         this.log('👤 Presence updated:', this.presenceData);
     }
 
-    /**
-     * Set user activity (for "Playing/Watching/Listening to" status)
-     */
     setActivity(activityDetails) {
         if (!this.socket || !this.connected || !this.authenticated) {
             return false;
@@ -455,9 +425,6 @@ export class GlobalSocketManager {
         return true;
     }
     
-    /**
-     * Clear user activity
-     */
     clearActivity() {
         if (!this.socket || !this.connected || !this.authenticated) {
             return false;
@@ -469,9 +436,6 @@ export class GlobalSocketManager {
         return true;
     }
 
-    /**
-     * Track user activity
-     */
     trackActivity(action, data = {}) {
         const activityData = {
             action,
@@ -495,9 +459,6 @@ export class GlobalSocketManager {
         }
     }
 
-    /**
-     * Send heartbeat to maintain connection
-     */
     sendHeartbeat() {
         if (this.socket && this.connected && this.authenticated) {
             this.socket.emit('heartbeat', {
@@ -508,9 +469,6 @@ export class GlobalSocketManager {
         }
     }
 
-    /**
-     * Join a specific channel (for messaging)
-     */
     joinChannel(channelId) {
         if (!this.socket || !this.connected || !this.authenticated) {
             this.error('❌ Cannot join channel: not connected or authenticated');
@@ -522,10 +480,7 @@ export class GlobalSocketManager {
         this.log('🏠 Joined channel:', channelId);
         return true;
     }
-
-    /**
-     * Leave a specific channel
-     */
+    
     leaveChannel(channelId) {
         if (!this.socket || !this.connected || !this.authenticated) {
             return false;
@@ -537,9 +492,6 @@ export class GlobalSocketManager {
         return true;
     }
 
-    /**
-     * Send a message to a channel
-     */
     sendMessage(channelId, content, messageType = 'text') {
         if (!this.socket || !this.connected || !this.authenticated) {
             this.error('❌ Cannot send message: not connected or authenticated');
@@ -560,9 +512,6 @@ export class GlobalSocketManager {
         return messageData.tempId;
     }
 
-    /**
-     * Dispatch custom events
-     */
     dispatchEvent(eventName, detail = {}) {
         try {
             const event = new CustomEvent(eventName, { detail });
@@ -573,9 +522,6 @@ export class GlobalSocketManager {
         }
     }
 
-    /**
-     * Track connection events
-     */
     trackConnection(event, data = {}) {
         const connectionInfo = {
             event: event,
@@ -594,9 +540,6 @@ export class GlobalSocketManager {
         }
     }
 
-    /**
-     * Track errors
-     */
     trackError(type, error) {
         const errorInfo = {
             type: type,
@@ -643,24 +586,15 @@ export class GlobalSocketManager {
         };
     }
 
-    /**
-     * Check if the socket manager is ready for messaging
-     */
     isReady() {
         return this.initialized && this.connected && this.authenticated && !this.isGuest;
     }
 
-    /**
-     * Gracefully disconnect
-     */
     disconnect() {
         if (this.socket) {
             this.updatePresence('offline');
             this.trackActivity('MANUAL_DISCONNECT');
             this.socket.disconnect();
-            this.log('👋 Manually disconnected from WebSocket server');
-        }
+            this.log('👋 Manually disconnected from WebSocket server');        }
     }
 }
-
-export { GlobalSocketManager };

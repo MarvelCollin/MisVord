@@ -40,7 +40,7 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
 
 <?php ob_start(); ?>
 
-<div class="w-full p-4 min-h-screen flex items-center justify-center bg-[#202225]">
+<div class="authentication-page w-full p-4 min-h-screen flex items-center justify-center bg-[#202225]">
 
     <div class="w-full max-w-md p-8 mx-auto rounded-xl shadow-2xl relative z-10 glass-hero transform transition-all duration-700 ease-out bg-[#2f3136]/80 backdrop-filter backdrop-blur-md border border-white/10" id="authContainer">
 

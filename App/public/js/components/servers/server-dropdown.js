@@ -1,15 +1,22 @@
-import { showToast } from './core/toast.js';
+import { showToast } from '../../core/ui/toast.js';
 
 console.log('server-dropdown.js loaded successfully - UPDATED VERSION');
 window.SERVER_DROPDOWN_VERSION = '2.0';
 document.addEventListener('DOMContentLoaded', function() {
     console.log('server-dropdown.js DOMContentLoaded triggered - UPDATED VERSION');
-
-    const dropdownBtn = document.getElementById('server-dropdown-btn');
-    const dropdown = document.getElementById('server-dropdown');
-    console.log('Dropdown elements found:', { dropdownBtn: !!dropdownBtn, dropdown: !!dropdown });
-      initServerDropdown();
-    initServerActions();
+    
+    // Check if we're on a server page by looking for server elements
+    const isServerPage = document.getElementById('server-dropdown-btn') !== null;
+    
+    if (isServerPage) {
+        const dropdownBtn = document.getElementById('server-dropdown-btn');
+        const dropdown = document.getElementById('server-dropdown');
+        console.log('Dropdown elements found:', { dropdownBtn: !!dropdownBtn, dropdown: !!dropdown });
+        initServerDropdown();
+        initServerActions();
+    } else {
+        console.log('Not on a server page, skipping server dropdown initialization');
+    }
 });
 
 window.testDropdown = function() {

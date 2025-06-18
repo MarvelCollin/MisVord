@@ -1,13 +1,9 @@
 <?php
-// Server Actions Modals Component
-// This component contains all the modals for server dropdown actions
 $serverId = isset($GLOBALS['currentServer']) ? $GLOBALS['currentServer']->id : 0;
 
-// Get categories from GLOBALS (should be set by controller)
 $categories = $GLOBALS['serverCategories'] ?? [];
 ?>
 
-<!-- Animation Styles for Modals -->
 <style>
     .animate-fade-in {
         animation: fadeIn 0.15s ease-in-out forwards;
@@ -23,33 +19,28 @@ $categories = $GLOBALS['serverCategories'] ?? [];
         to { transform: scale(1); opacity: 1; }
     }
     
-    /* Dialog animation */
     .transform.transition-all {
         animation: scaleIn 0.15s ease-out forwards;
     }
     
-    /* Custom checkbox styling */
     input[type="checkbox"].peer:checked + div svg {
         display: block;
     }
 </style>
 
-<!-- Create Channel Modal -->
 <div id="create-channel-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 hidden animate-fade-in">
     <div class="w-full max-w-md transform transition-all">
         <div class="bg-[#313338] modal-content rounded-md shadow-xl overflow-hidden">
-            <!-- Header -->
             <div class="px-4 py-3 border-b border-[#232428] flex justify-between items-center">
                 <h2 class="text-[#f2f3f5] text-base font-semibold">Create Channel</h2>
                 <button id="close-create-channel-modal" class="text-[#b5bac1] hover:text-white" aria-label="Close">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+                    <svg xmlns="http:
                         <line x1="18" y1="6" x2="6" y2="18"></line>
                         <line x1="6" y1="6" x2="18" y2="18"></line>
                     </svg>
                 </button>
             </div>
             
-            <!-- Content -->
             <form id="create-channel-form" action="/api/channels" method="POST" onsubmit="return submitChannelForm(event)" class="p-4">
                 <input type="hidden" name="server_id" value="<?php echo $serverId; ?>">
                 <input type="hidden" name="position" id="channel-position" value="">
@@ -130,22 +121,19 @@ $categories = $GLOBALS['serverCategories'] ?? [];
     </div>
 </div>
 
-<!-- Create Category Modal -->
 <div id="create-category-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 hidden animate-fade-in">
     <div class="w-full max-w-md transform transition-all">
         <div class="bg-[#313338] modal-content rounded-md shadow-xl overflow-hidden">
-            <!-- Header -->
             <div class="px-4 py-3 border-b border-[#232428] flex justify-between items-center">
                 <h2 class="text-[#f2f3f5] text-base font-semibold">Create Category</h2>
                 <button id="close-create-category-modal" class="text-[#b5bac1] hover:text-white" aria-label="Close">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+                    <svg xmlns="http:
                         <line x1="18" y1="6" x2="6" y2="18"></line>
                         <line x1="6" y1="6" x2="18" y2="18"></line>
                     </svg>
                 </button>
             </div>
             
-            <!-- Content -->
             <form id="create-category-form" action="/api/categories" method="POST" onsubmit="return submitCategoryForm(event)" class="p-4">
                 <input type="hidden" name="server_id" value="<?php echo $serverId; ?>">
                 <input type="hidden" name="position" id="category-position" value="">
@@ -175,8 +163,7 @@ $categories = $GLOBALS['serverCategories'] ?? [];
     </div>
 </div>
 
-<!-- Invite People Modal -->
-<div id="invite-people-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 hidden">
+ <div id="invite-people-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 hidden">
     <div class="w-full max-w-md">
         <div class="bg-discord-background rounded-lg shadow-lg overflow-hidden">
             <div class="p-6">
@@ -213,7 +200,6 @@ $categories = $GLOBALS['serverCategories'] ?? [];
     </div>
 </div>
 
-<!-- Server Settings Modal -->
 <div id="server-settings-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 hidden">
     <div class="w-full max-w-lg">
         <div class="bg-discord-background rounded-lg shadow-lg overflow-hidden">
@@ -266,7 +252,6 @@ $categories = $GLOBALS['serverCategories'] ?? [];
     </div>
 </div>
 
-<!-- Notification Settings Modal -->
 <div id="notification-settings-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 hidden">
     <div class="w-full max-w-md">
         <div class="bg-discord-background rounded-lg shadow-lg overflow-hidden">
@@ -345,7 +330,6 @@ $categories = $GLOBALS['serverCategories'] ?? [];
     </div>
 </div>
 
-<!-- Edit Per-server Profile Modal -->
 <div id="edit-profile-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 hidden">
     <div class="w-full max-w-md">
         <div class="bg-discord-background rounded-lg shadow-lg overflow-hidden">
@@ -384,7 +368,6 @@ $categories = $GLOBALS['serverCategories'] ?? [];
     </div>
 </div>
 
-<!-- Leave Server Confirmation Modal -->
 <div id="leave-server-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 hidden">
     <div class="w-full max-w-md">
         <div class="bg-discord-background rounded-lg shadow-lg overflow-hidden">
@@ -419,29 +402,24 @@ $categories = $GLOBALS['serverCategories'] ?? [];
     </div>
 </div>
 
-<!-- Toast Notification Container -->
 <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2"></div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Add keydown event listener for Escape key
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             closeActiveModals();
         }
     });
 
-    // Close all active modals
     function closeActiveModals() {
         const openModals = document.querySelectorAll('.fixed.inset-0:not(.hidden)');
         openModals.forEach(modal => {
             if (modal.id === 'create-channel-modal') closeCreateChannelModal();
             if (modal.id === 'create-category-modal') closeCreateCategoryModal();
-            // Add other modals here as needed
         });
     }
 
-    // Channel Modal Event Handlers
     const createChannelModal = document.getElementById('create-channel-modal');
     const closeChannelBtn = document.getElementById('close-create-channel-modal');
     const cancelChannelBtn = document.getElementById('cancel-create-channel');
@@ -449,17 +427,14 @@ document.addEventListener('DOMContentLoaded', function() {
     function closeCreateChannelModal() {
         if (!createChannelModal) return;
         
-        // Add fade-out animation
         createChannelModal.classList.add('opacity-0');
         createChannelModal.style.transition = 'opacity 150ms ease-in-out';
         
-        // Hide after animation
         setTimeout(() => {
             createChannelModal.classList.add('hidden');
             createChannelModal.classList.remove('opacity-0');
             createChannelModal.style.transition = '';
             
-            // Reset form
             const form = createChannelModal.querySelector('form');
             if (form) form.reset();
         }, 150);
@@ -473,7 +448,6 @@ document.addEventListener('DOMContentLoaded', function() {
         cancelChannelBtn.addEventListener('click', closeCreateChannelModal);
     }
     
-    // Close modal when clicking the backdrop
     if (createChannelModal) {
         createChannelModal.addEventListener('click', function(e) {
             if (e.target === this) {
@@ -482,7 +456,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Category Modal Event Handlers
     const createCategoryModal = document.getElementById('create-category-modal');
     const closeCategoryBtn = document.getElementById('close-create-category-modal');
     const cancelCategoryBtn = document.getElementById('cancel-create-category');
@@ -490,17 +463,14 @@ document.addEventListener('DOMContentLoaded', function() {
     function closeCreateCategoryModal() {
         if (!createCategoryModal) return;
         
-        // Add fade-out animation
         createCategoryModal.classList.add('opacity-0');
         createCategoryModal.style.transition = 'opacity 150ms ease-in-out';
         
-        // Hide after animation
         setTimeout(() => {
             createCategoryModal.classList.add('hidden');
             createCategoryModal.classList.remove('opacity-0');
             createCategoryModal.style.transition = '';
             
-            // Reset form
             const form = createCategoryModal.querySelector('form');
             if (form) form.reset();
         }, 150);
@@ -514,7 +484,6 @@ document.addEventListener('DOMContentLoaded', function() {
         cancelCategoryBtn.addEventListener('click', closeCreateCategoryModal);
     }
     
-    // Close modal when clicking the backdrop
     if (createCategoryModal) {
         createCategoryModal.addEventListener('click', function(e) {
             if (e.target === this) {
@@ -523,51 +492,42 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Prevent form clicks from bubbling to backdrop
     document.querySelectorAll('.modal-content').forEach(modal => {
         modal.addEventListener('click', function(e) {
             e.stopPropagation();
         });
     });
     
-    // Global functions for opening modals
     window.openCreateChannelModal = function(categoryId = null, position = null) {
-        // Reset the form
         const form = createChannelModal.querySelector('form');
         if (form) form.reset();
         
-        // Set category if provided
         if (categoryId) {
             const categoryInput = document.getElementById('category-id');
             if (categoryInput) {
                 categoryInput.value = categoryId;
             }
         } else {
-            // Clear category
             const categoryInput = document.getElementById('category-id');
             if (categoryInput) {
                 categoryInput.value = '';
             }
         }
         
-        // Set position if provided
         if (position !== null) {
             const positionInput = document.getElementById('channel-position');
             if (positionInput) {
                 positionInput.value = position;
             }
         } else {
-            // Clear position
             const positionInput = document.getElementById('channel-position');
             if (positionInput) {
                 positionInput.value = '';
             }
         }
         
-        // Show modal with fade-in
         createChannelModal.classList.remove('hidden');
         
-        // Focus the channel name input
         setTimeout(() => {
             const nameInput = document.getElementById('channel-name');
             if (nameInput) nameInput.focus();
@@ -577,28 +537,23 @@ document.addEventListener('DOMContentLoaded', function() {
     window.closeCreateChannelModal = closeCreateChannelModal;
     
     window.openCreateCategoryModal = function(position = null) {
-        // Reset the form
         const form = createCategoryModal.querySelector('form');
         if (form) form.reset();
         
-        // Set position if provided
         if (position !== null) {
             const positionInput = document.getElementById('category-position');
             if (positionInput) {
                 positionInput.value = position;
             }
         } else {
-            // Clear position
             const positionInput = document.getElementById('category-position');
             if (positionInput) {
                 positionInput.value = '';
             }
         }
         
-        // Show modal with fade-in
         createCategoryModal.classList.remove('hidden');
         
-        // Focus the category name input
         setTimeout(() => {
             const nameInput = document.getElementById('category-name');
             if (nameInput) nameInput.focus();
@@ -607,20 +562,16 @@ document.addEventListener('DOMContentLoaded', function() {
     
     window.closeCreateCategoryModal = closeCreateCategoryModal;
     
-    // Format channel name to be URL-friendly
     const channelNameInput = document.getElementById('channel-name');
     if (channelNameInput) {
         channelNameInput.addEventListener('input', function() {
-            // Convert to lowercase and replace spaces with hyphens
             let value = this.value.toLowerCase();
             value = value.replace(/\s+/g, '-');
-            // Remove any character that isn't lowercase letter, number, hyphen, or underscore
             value = value.replace(/[^a-z0-9\-_]/g, '');
             this.value = value;
         });
     }
     
-    // AJAX form submission for Channel
     window.submitChannelForm = function(event) {
         event.preventDefault();
         console.log("Channel form submission started");
@@ -628,25 +579,20 @@ document.addEventListener('DOMContentLoaded', function() {
         const form = document.getElementById('create-channel-form');
         const formData = new FormData(form);
         
-        // Handle empty values for integer fields
         const positionField = document.getElementById('channel-position');
         const categoryField = document.getElementById('category-id');
         
-        // Handle position - make sure we use null instead of empty string
         if (positionField && (positionField.value === '' || positionField.value === null)) {
             formData.set('position', null);
         }
         
-        // Handle category - make sure we use null instead of empty string
         if (categoryField && (categoryField.value === '' || categoryField.value === null)) {
-            // Remove the category_id field entirely rather than setting it to "null"
             formData.delete('category_id');
             console.log("Removed category_id field from form data");
         } else {
             console.log("Using category_id:", categoryField ? categoryField.value : 'categoryField not found');
         }
         
-        // Show loading state
         const submitBtn = form.querySelector('[type="submit"]');
         if (submitBtn) {
             submitBtn.disabled = true;
@@ -654,10 +600,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         try {
-            // Make sure the type value is properly formatted as a string
             const typeInput = form.querySelector('[name="type"]');
             if (typeInput && typeInput.value) {
-                // Ensure type is a string value
                 const typeValue = typeInput.value.toString().trim();
                 formData.set('type', typeValue);
             }
@@ -673,25 +617,20 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => {
                 console.log("Channel API response received", response.status, response.statusText);
                 
-                // First capture the raw text of the response for debugging
                 return response.text().then(rawText => {
                     console.log("Raw response:", rawText.substring(0, 300) + (rawText.length > 300 ? '...' : ''));
                     
-                    // If response status is not ok, handle error appropriately
                     if (!response.ok) {
                         console.warn("Server returned error status:", response.status);
                         
                         try {
-                            // Try to parse as JSON first
                             const errorData = JSON.parse(rawText);
                             console.error("Server error details:", errorData);
                             
-                            // Show error message from server if available
                             if (errorData && errorData.message) {
                                 if (typeof showToast === 'function') {
                                     showToast(errorData.message, 'error');
                                 }
-                                // Reset button state
                                 if (submitBtn) {
                                     submitBtn.disabled = false;
                                     submitBtn.innerHTML = 'Create Channel';
@@ -699,10 +638,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                 return { success: false, message: errorData.message };
                             }
                         } catch (parseError) {
-                            // If it's not JSON, it could be HTML error page
                             console.error("Failed to parse error response:", parseError);
                             
-                            // For server errors, attempt fallback
                             if (response.status >= 500) {
                                 return submitFormDirectly('create-channel-form');
                             }
@@ -710,16 +647,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     
                     try {
-                        // Try to parse as JSON
                         const data = JSON.parse(rawText);
                         return data;
                     } catch (e) {
                         console.error("Failed to parse JSON:", e);
-                        // If this is HTML, it could be a PHP error
                         if (rawText.includes("</html>") || rawText.includes("<br />")) {
                             console.error("Server returned HTML instead of JSON. Possible PHP error.");
                             
-                            // Try direct submission
                             return submitFormDirectly('create-channel-form');
                         }
                         throw new Error("Invalid response format from server");
@@ -727,12 +661,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             })
             .then(data => {
-                // If the data is true, it means we triggered the fallback
                 if (data === true) {
-                    return; // Let the fallback handle it
+                    return; 
                 }
                 
-                // Check for error response
                 if (!data || data.success === false) {
                     const errorMsg = (data && data.message) ? data.message : 'Error creating channel';
                     console.error("Error from API:", errorMsg);
@@ -741,7 +673,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         showToast(errorMsg, 'error');
                     }
                     
-                    // Reset button state
                     if (submitBtn) {
                         submitBtn.disabled = false;
                         submitBtn.innerHTML = 'Create Channel';
@@ -754,12 +685,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     closeCreateChannelModal();
                     form.reset();
                     
-                    // Show success message
+                    
                     if (typeof showToast === 'function') {
                         showToast('Channel created successfully', 'success');
                     }
                     
-                    // Handle redirect or page reload with safety checks
+                    
                     try {
                         if (data.redirect) {
                             console.log("Redirecting to:", data.redirect);
@@ -779,13 +710,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     } catch (navError) {
                         console.error("Navigation error:", navError);
-                        // Final fallback - just reload
+                        
                         setTimeout(function() {
                             window.location.reload();
                         }, 1000);
                     }
                 } else {
-                    // Reset button state
+                    
                     if (submitBtn) {
                         submitBtn.disabled = false;
                         submitBtn.innerHTML = 'Create Channel';
@@ -799,33 +730,33 @@ document.addEventListener('DOMContentLoaded', function() {
                     showToast('Error creating channel. Please try again.', 'error');
                 }
                 
-                // Reset button state
+                
                 if (submitBtn) {
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = 'Create Channel';
                 }
                 
-                // For serious errors, fallback to traditional form submission
+                
                 submitFormDirectly('create-channel-form');
             });
         } catch (outerError) {
             console.error('Critical error in form submission:', outerError);
             
-            // Reset button state
+            
             if (submitBtn) {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = 'Create Channel';
             }
             
-            // Fallback to traditional form submission
+            
             submitFormDirectly('create-channel-form');
         }
         
-        // Return false to prevent traditional form submission
+        
         return false;
     };
     
-    // AJAX form submission for Category
+    
     window.submitCategoryForm = function(event) {
         event.preventDefault();
         console.log("Category form submission started");
@@ -833,15 +764,15 @@ document.addEventListener('DOMContentLoaded', function() {
         const form = document.getElementById('create-category-form');
         const formData = new FormData(form);
         
-        // Handle empty values for integer fields
+        
         const positionField = document.getElementById('category-position');
         
-        // Handle position - make sure we use null instead of empty string
+        
         if (positionField && (positionField.value === '' || positionField.value === null)) {
             formData.set('position', null);
         }
         
-        // Show loading state
+        
         const submitBtn = form.querySelector('[type="submit"]');
         if (submitBtn) {
             submitBtn.disabled = true;
@@ -860,25 +791,25 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => {
                 console.log("Category API response received", response.status, response.statusText);
                 
-                // First capture the raw text of the response for debugging
+                
                 return response.text().then(rawText => {
                     console.log("Raw response:", rawText.substring(0, 300) + (rawText.length > 300 ? '...' : ''));
                     
-                    // If response status is not ok, handle error appropriately
+                    
                     if (!response.ok) {
                         console.warn("Server returned error status:", response.status);
                         
                         try {
-                            // Try to parse as JSON first
+                            
                             const errorData = JSON.parse(rawText);
                             console.error("Server error details:", errorData);
                             
-                            // Show error message from server if available
+                            
                             if (errorData && errorData.message) {
                                 if (typeof showToast === 'function') {
                                     showToast(errorData.message, 'error');
                                 }
-                                // Reset button state
+                                
                                 if (submitBtn) {
                                     submitBtn.disabled = false;
                                     submitBtn.innerHTML = 'Create Category';
@@ -886,10 +817,10 @@ document.addEventListener('DOMContentLoaded', function() {
                                 return { success: false, message: errorData.message };
                             }
                         } catch (parseError) {
-                            // If it's not JSON, it could be HTML error page
+                            
                             console.error("Failed to parse error response:", parseError);
                             
-                            // For server errors, attempt fallback
+                            
                             if (response.status >= 500) {
                                 return submitFormDirectly('create-category-form');
                             }
@@ -897,16 +828,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     
                     try {
-                        // Try to parse as JSON
+                        
                         const data = JSON.parse(rawText);
                         return data;
                     } catch (e) {
                         console.error("Failed to parse JSON:", e);
-                        // If this is HTML, it could be a PHP error
+                        
                         if (rawText.includes("</html>") || rawText.includes("<br />")) {
                             console.error("Server returned HTML instead of JSON. Possible PHP error.");
                             
-                            // Try direct submission
+                            
                             return submitFormDirectly('create-category-form');
                         }
                         throw new Error("Invalid response format from server");
@@ -914,12 +845,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             })
             .then(data => {
-                // If the data is true, it means we triggered the fallback
+                
                 if (data === true) {
-                    return; // Let the fallback handle it
+                    return; 
                 }
                 
-                // Check for error response
+                
                 if (!data || data.success === false) {
                     const errorMsg = (data && data.message) ? data.message : 'Error creating category';
                     console.error("Error from API:", errorMsg);
@@ -928,7 +859,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         showToast(errorMsg, 'error');
                     }
                     
-                    // Reset button state
+                    
                     if (submitBtn) {
                         submitBtn.disabled = false;
                         submitBtn.innerHTML = 'Create Category';
@@ -941,12 +872,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     closeCreateCategoryModal();
                     form.reset();
                     
-                    // Show success message
+                    
                     if (typeof showToast === 'function') {
                         showToast('Category created successfully', 'success');
                     }
                     
-                    // Handle redirect or page reload with safety checks
+                    
                     try {
                         if (data.redirect) {
                             console.log("Redirecting to:", data.redirect);
@@ -966,13 +897,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     } catch (navError) {
                         console.error("Navigation error:", navError);
-                        // Final fallback - just reload
+                        
                         setTimeout(function() {
                             window.location.reload();
                         }, 1000);
                     }
                 } else {
-                    // Reset button state
+                    
                     if (submitBtn) {
                         submitBtn.disabled = false;
                         submitBtn.innerHTML = 'Create Category';
@@ -986,51 +917,51 @@ document.addEventListener('DOMContentLoaded', function() {
                     showToast('Error creating category. Please try again.', 'error');
                 }
                 
-                // Reset button state
+                
                 if (submitBtn) {
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = 'Create Category';
                 }
                 
-                // For serious errors, fallback to traditional form submission
+                
                 submitFormDirectly('create-category-form');
             });
         } catch (outerError) {
             console.error('Critical error in form submission:', outerError);
             
-            // Reset button state
+            
             if (submitBtn) {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = 'Create Category';
             }
             
-            // Fallback to traditional form submission
+            
             submitFormDirectly('create-category-form');
         }
         
-        // Return false to prevent traditional form submission
+        
         return false;
     };
     
-    // Fallback submission function - non-AJAX direct submit
+    
     window.submitFormDirectly = function(formId) {
         console.log("Attempting direct form submission for", formId);
         const form = document.getElementById(formId);
         if (form) {
-            // Set flag to indicate this is a fallback submission
+            
             const fallbackField = form.querySelector('[name="ajax_fallback"]');
             if (fallbackField) {
                 fallbackField.value = "true";
             }
             
-            // Submit the form directly
+            
             form.submit();
             return true;
         }
         return false;
     };
 
-    // Log debug info to help diagnose redirect issues
+    
     console.log("Modal scripts initialized");
 });
 </script>

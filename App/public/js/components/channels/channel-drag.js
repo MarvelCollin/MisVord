@@ -1,4 +1,4 @@
-import { MisVordAjax } from '../core/ajax-handler.js';
+import { MisVordAjax } from '../../core/ajax/ajax-handler.js';
 
 document.addEventListener('DOMContentLoaded', function() {
     setTimeout(initDragDrop, 1000);

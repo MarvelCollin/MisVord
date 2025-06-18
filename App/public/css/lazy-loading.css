@@ -1,284 +1,262 @@
-/* Lazy Loading Styles for MiscVord App */
-
-/* Animation for pulsing skeleton elements */
 @keyframes pulse {
-    0%, 100% {
-        opacity: 0.6;
-    }
-    50% {
-        opacity: 0.3;
-    }
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 0.3;
+  }
 }
 
-/* Animation for fade in/out transitions */
 @keyframes fadeIn {
-    0% {
-        opacity: 0;
-    }
-    100% {
-        opacity: 1;
-    }
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
 }
 
 @keyframes fadeOut {
-    0% {
-        opacity: 1;
-    }
-    100% {
-        opacity: 0;
-    }
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 
-/* Hide original content while loading */
 .content-loading .original-content {
-    display: none;
+  display: none;
 }
 
-/* Fade out animation for skeletons */
 .skeleton-loader.fade-out {
-    animation: fadeOut 0.3s ease forwards;
+  animation: fadeOut 0.3s ease forwards;
 }
 
-/* Animation for skeleton elements */
 .animate-pulse {
-    animation: pulse 1.5s ease-in-out infinite;
+  animation: pulse 1.5s ease-in-out infinite;
 }
 
-/* Base skeleton styles */
 .skeleton-loader {
-    width: 100%;
-    animation: fadeIn 0.3s ease;
-    overflow: hidden;
-    animation-fill-mode: forwards;
-    transition: opacity 0.3s ease-out;
+  width: 100%;
+  animation: fadeIn 0.3s ease;
+  overflow: hidden;
+  animation-fill-mode: forwards;
+  transition: opacity 0.3s ease-out;
 }
 
-/* Specific skeleton styles */
 .server-list-skeleton {
-    min-height: 300px;
+  min-height: 300px;
 }
 
 .channel-list-skeleton {
-    min-height: 200px;
+  min-height: 200px;
 }
 
 .chat-skeleton {
-    min-height: 400px;
+  min-height: 400px;
 }
 
 .participant-list-skeleton {
-    min-height: 300px;
+  min-height: 300px;
 }
 
 .friend-list-skeleton {
-    min-height: 300px;
+  min-height: 300px;
 }
 
 .active-now-skeleton {
-    min-height: 200px;
+  min-height: 200px;
 }
 
-/* Global loading indicator styles */
 #global-lazy-loader {
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-    transition: opacity 0.3s ease;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  transition: opacity 0.3s ease;
 }
 
-/* Hide content that's being loaded */
 [data-lazyload] {
-    position: relative;
-    min-height: 50px;
+  position: relative;
+  min-height: 50px;
 }
 
-/* Element to show if there's no data after loading */
 .empty-content {
-    padding: 2rem;
-    text-align: center;
-    color: #99aab5;
-    border-radius: 0.375rem;
-    background-color: rgba(0, 0, 0, 0.1);
-    margin: 1rem 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
+  padding: 2rem;
+  text-align: center;
+  color: #99aab5;
+  border-radius: 0.375rem;
+  background-color: rgba(0, 0, 0, 0.1);
+  margin: 1rem 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
 .empty-content i {
-    font-size: 2rem;
-    opacity: 0.7;
+  font-size: 2rem;
+  opacity: 0.7;
 }
 
-/* Make sure the loading states have appropriate text colors */
 .skeleton-loader {
-    color: transparent;
-    user-select: none;
-    pointer-events: none;
+  color: transparent;
+  user-select: none;
+  pointer-events: none;
 }
 
-/* Shimmer effect */
 .shimmer {
-    position: relative;
-    overflow: hidden;
+  position: relative;
+  overflow: hidden;
 }
 
 .shimmer::after {
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    transform: translateX(-100%);
-    background-image: linear-gradient(
-        90deg,
-        rgba(255, 255, 255, 0) 0,
-        rgba(255, 255, 255, 0.1) 20%,
-        rgba(255, 255, 255, 0.2) 60%,
-        rgba(255, 255, 255, 0)
-    );
-    animation: shimmer 2s infinite;
-    content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0,
+    rgba(255, 255, 255, 0.1) 20%,
+    rgba(255, 255, 255, 0.2) 60%,
+    rgba(255, 255, 255, 0)
+  );
+  animation: shimmer 2s infinite;
+  content: "";
 }
 
 @keyframes shimmer {
-    100% {
-        transform: translateX(100%);
-    }
+  100% {
+    transform: translateX(100%);
+  }
 }
 
-/* Apply shimmer effect to skeletons */
 .skeleton-loader .bg-gray-600,
 .skeleton-loader .bg-gray-700,
 .skeleton-loader .bg-discord-darker {
-    position: relative;
-    overflow: hidden;
+  position: relative;
+  overflow: hidden;
 }
 
 .skeleton-loader .bg-gray-600::after,
 .skeleton-loader .bg-gray-700::after,
 .skeleton-loader .bg-discord-darker::after {
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    transform: translateX(-100%);
-    background-image: linear-gradient(
-        90deg,
-        rgba(255, 255, 255, 0) 0,
-        rgba(255, 255, 255, 0.05) 20%,
-        rgba(255, 255, 255, 0.1) 60%,
-        rgba(255, 255, 255, 0)
-    );
-    animation: shimmer 2s infinite;
-    content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0,
+    rgba(255, 255, 255, 0.05) 20%,
+    rgba(255, 255, 255, 0.1) 60%,
+    rgba(255, 255, 255, 0)
+  );
+  animation: shimmer 2s infinite;
+  content: "";
 }
 
-/* Enhanced pulse animation with higher contrast */
 @keyframes enhanced-pulse {
-    0%, 100% { 
-        opacity: 0.8; 
-        background-color: #4d5159;
-    }
-    50% { 
-        opacity: 0.4; 
-        background-color: #36393f;
-    }
+  0%,
+  100% {
+    opacity: 0.8;
+    background-color: #4d5159;
+  }
+  50% {
+    opacity: 0.4;
+    background-color: #36393f;
+  }
 }
 
 .skeleton-loader .animate-pulse {
-    animation: enhanced-pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  animation: enhanced-pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* Higher contrast for skeleton items in dark mode */
 .skeleton-loader .bg-gray-600 {
-    background-color: #4d5159 !important;
+  background-color: #4d5159 !important;
 }
 
 .skeleton-loader .bg-gray-700 {
-    background-color: #36393f !important;
+  background-color: #36393f !important;
 }
 
-/* Make sure skeletons are shown with proper z-index */
 [data-lazyload] {
-    position: relative;
+  position: relative;
 }
 
 [data-lazyload].content-loading > .original-content {
-    display: none !important;
+  display: none !important;
 }
 
-/* Make the skeleton loading more obvious */
 .skeleton-loader {
-    width: 100%;
-    position: relative;
-    z-index: 1;
-    padding: 8px;
-    border-radius: 4px;
+  width: 100%;
+  position: relative;
+  z-index: 1;
+  padding: 8px;
+  border-radius: 4px;
 }
 
-/* Channel list skeleton specific styles */
 .channel-list-skeleton .w-3 {
-    width: 0.75rem;
+  width: 0.75rem;
 }
 
 .channel-list-skeleton .w-4 {
-    width: 1rem;
+  width: 1rem;
 }
 
 .channel-list-skeleton .h-3 {
-    height: 0.75rem;
+  height: 0.75rem;
 }
 
 .channel-list-skeleton .h-4 {
-    height: 1rem;
+  height: 1rem;
 }
 
-/* Chat skeleton specific styles */
 .chat-skeleton .w-10 {
-    width: 2.5rem;
+  width: 2.5rem;
 }
 
 .chat-skeleton .h-10 {
-    height: 2.5rem;
+  height: 2.5rem;
 }
 
-/* Participant list skeleton specific styles */
 .participant-list-skeleton .w-8 {
-    width: 2rem;
+  width: 2rem;
 }
 
 .participant-list-skeleton .h-8 {
-    height: 2rem;
+  height: 2rem;
 }
 
 .participant-list-skeleton .w-3 {
-    width: 0.75rem;
+  width: 0.75rem;
 }
 
 .participant-list-skeleton .h-3 {
-    height: 0.75rem;
+  height: 0.75rem;
 }
 
-/* Make sure the border is visible in dark mode */
 .participant-list-skeleton .border-discord-dark {
-    border-color: #202225;
+  border-color: #202225;
 }
 
-/* Animation delay to create a wave effect */
 .skeleton-loader > div:nth-child(2) .animate-pulse {
-    animation-delay: 0.1s;
+  animation-delay: 0.1s;
 }
 
 .skeleton-loader > div:nth-child(3) .animate-pulse {
-    animation-delay: 0.2s;
+  animation-delay: 0.2s;
 }
 
 .skeleton-loader > div:nth-child(4) .animate-pulse {
-    animation-delay: 0.3s;
+  animation-delay: 0.3s;
 }
 
 .skeleton-loader > div:nth-child(5) .animate-pulse {
-    animation-delay: 0.4s;
-} 
+  animation-delay: 0.4s;
+}

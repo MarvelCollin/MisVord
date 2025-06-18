@@ -1,5 +1,5 @@
 <?php
-
+$additional_js[] = 'components/servers/create-server-modal';
 ?>
 <div id="create-server-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 hidden">
     <div class="bg-discord-background rounded-lg w-full max-w-md p-6 shadow-xl">
@@ -35,55 +35,3 @@
         </form>
     </div>
 </div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-
-    const iconInput = document.getElementById('server-icon-input');
-    const iconPreview = document.getElementById('server-icon-preview');
-    const iconPlaceholder = document.getElementById('server-icon-placeholder');
-
-    if (iconInput) {
-        iconInput.addEventListener('change', function() {
-            if (this.files && this.files[0]) {
-                const reader = new FileReader();
-
-                reader.onload = function(e) {
-                    iconPreview.src = e.target.result;
-                    iconPreview.classList.remove('hidden');
-                    iconPlaceholder.classList.add('hidden');
-                }
-
-                reader.readAsDataURL(this.files[0]);
-            }
-        });
-    }
-
-    const serverForm = document.getElementById('create-server-form');
-    if (serverForm) {
-        serverForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-
-            const formData = new FormData(this);
-
-            fetch('/api/servers/create', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-
-                    window.location.href = '/servers/' + data.server.id;
-                } else {
-                    alert('Failed to create server: ' + (data.message || 'Unknown error'));
-                }
-            })
-            .catch(error => {
-                console.error('Error creating server:', error);
-                alert('An error occurred while creating the server');
-            });
-        });
-    }
-});
-</script>

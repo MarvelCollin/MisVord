@@ -1,9 +1,9 @@
 <?php
-// Get data from global scope (set by controller)
+
 $currentUserId = $_SESSION['user_id'] ?? 0;
 $servers = $GLOBALS['userServers'] ?? [];
 
-// If no servers loaded and we have a user ID, try to load them
+
 if (empty($servers) && $currentUserId) {
     log_warning("No servers found in GLOBALS for user", ['user_id' => $currentUserId]);
 }
@@ -12,7 +12,7 @@ $currentServerId = isset($currentServer) ? $currentServer->id : null;
 $currentPath = $_SERVER['REQUEST_URI'] ?? '';
 $isHomePage = !str_contains($currentPath, '/server/');
 
-// Include tooltip component
+
 $tooltipPath = dirname(dirname(__DIR__)) . '/components/common/tooltip.php';
 if (file_exists($tooltipPath)) {
     require_once $tooltipPath;
@@ -34,7 +34,6 @@ if (file_exists($tooltipPath)) {
         echo tooltip($homeContent, 'Home', 'right');
         ?>
         
-        <!-- Only show separator if there are servers -->
         <?php if (!empty($servers)): ?>
         <div class="w-8 h-0.5 bg-discord-dark rounded my-1"></div>
         <?php endif; ?>
@@ -148,7 +147,6 @@ if (file_exists($tooltipPath)) {
         <?php include dirname(__DIR__) . '/common/user-profile.php'; ?>
     </div>
     <?php else: ?>
-    <!-- DEBUG: Not in server context -->
     <script>
         console.log('DEBUG: Not in server context', {
             contentType: '<?php echo $contentType ?? 'undefined'; ?>',
@@ -160,7 +158,7 @@ if (file_exists($tooltipPath)) {
 </div>
 
 <script>
-// Enhanced debugging and better data loading
+
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Server sidebar loaded with servers:', <?php echo json_encode($servers); ?>);
     console.log('Current user ID:', <?php echo $currentUserId; ?>);

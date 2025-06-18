@@ -26,7 +26,6 @@ $onlineCount = array_reduce($members, function($count, $member) {
         <input type="text" placeholder="Search" class="w-full bg-black bg-opacity-30 text-white text-sm rounded px-2 py-1 focus:outline-none">
     </div>
     
-    <!-- Participant list container with lazy loading - content will be replaced by skeleton during loading -->
     <div class="flex-1 overflow-y-auto p-2" data-lazyload="participant-list">
         <?php if (!empty($roles)): ?>
             <?php 
@@ -219,12 +218,9 @@ $onlineCount = array_reduce($members, function($count, $member) {
 </div>
 
 <script>
-// Trigger content loaded event once data is available
 document.addEventListener('DOMContentLoaded', function() {
-    // Handle lazy loading of participant list
     const participantContainer = document.querySelector('[data-lazyload="participant-list"]');
     if (participantContainer) {
-        // Simulate network request with a random delay between 600-1000ms
         const loadDelay = Math.floor(Math.random() * 400) + 600;
         
         setTimeout(function() {
