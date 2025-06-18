@@ -3,24 +3,23 @@
 require_once __DIR__ . '/../database/repositories/UserRepository.php';
 require_once __DIR__ . '/BaseController.php';
 
-class FriendController extends BaseController {
+class FriendController extends BaseController
+{
 
     private $userRepository;
 
-    public function __construct() {
+    public function __construct()
+    {
         parent::__construct();
         $this->userRepository = new UserRepository();
     }
 
-    /**
-     * Get user's friends list
-     */
-    public function index() {
+    public function index()
+    {
         $this->requireAuth();
 
         try {
-            // TODO: Implement proper friends relationship
-            // For now, return empty array
+
             $friends = [];
 
             $this->logActivity('friends_viewed');
@@ -37,30 +36,27 @@ class FriendController extends BaseController {
         }
     }
 
-    /**
-     * Send friend request
-     */
-    public function sendRequest() {
+    public function sendRequest()
+    {
         $this->requireAuth();
-        
+
         $input = $this->getInput();
         $input = $this->sanitize($input);
-        
+
         $this->validate($input, ['username' => 'required']);
-          $username = $input['username'];
-        
+        $username = $input['username'];
+
         $targetUser = $this->userRepository->findByUsername($username);
         if (!$targetUser) {
             return $this->notFound('User not found');
         }
-        
-        // Can't send request to yourself
+
         if ($targetUser->id == $this->getCurrentUserId()) {
             return $this->validationError(['username' => 'You cannot send a friend request to yourself']);
         }
 
         try {
-            // TODO: Implement friend request system
+
             $this->logActivity('friend_request_sent', [
                 'target_user_id' => $targetUser->id,
                 'target_username' => $username
@@ -81,14 +77,12 @@ class FriendController extends BaseController {
         }
     }
 
-    /**
-     * Accept friend request
-     */
-    public function acceptRequest($requestId) {
+    public function acceptRequest($requestId)
+    {
         $this->requireAuth();
 
         try {
-            // TODO: Implement friend request acceptance
+
             $this->logActivity('friend_request_accepted', [
                 'request_id' => $requestId
             ]);
@@ -103,14 +97,12 @@ class FriendController extends BaseController {
         }
     }
 
-    /**
-     * Decline friend request
-     */
-    public function declineRequest($requestId) {
+    public function declineRequest($requestId)
+    {
         $this->requireAuth();
 
         try {
-            // TODO: Implement friend request decline
+
             $this->logActivity('friend_request_declined', [
                 'request_id' => $requestId
             ]);
@@ -125,14 +117,12 @@ class FriendController extends BaseController {
         }
     }
 
-    /**
-     * Remove friend
-     */
-    public function remove($friendId) {
+    public function remove($friendId)
+    {
         $this->requireAuth();
 
         try {
-            // TODO: Implement friend removal
+
             $this->logActivity('friend_removed', [
                 'friend_id' => $friendId
             ]);
@@ -147,14 +137,12 @@ class FriendController extends BaseController {
         }
     }
 
-    /**
-     * Get pending friend requests
-     */
-    public function getPendingRequests() {
+    public function getPendingRequests()
+    {
         $this->requireAuth();
 
         try {
-            // TODO: Implement pending requests retrieval
+
             $requests = [];
 
             $this->logActivity('pending_requests_viewed');
@@ -171,16 +159,15 @@ class FriendController extends BaseController {
         }
     }
 
-    /**
-     * Search for users to add as friends
-     */
-    public function searchUsers() {
+    public function searchUsers()
+    {
         $this->requireAuth();
 
         $query = $_GET['q'] ?? '';
         if (empty($query)) {
             return $this->validationError(['q' => 'Search query is required']);
-        }        try {
+        }
+        try {
             $users = $this->userRepository->searchByUsername($query, $this->getCurrentUserId(), 20);
 
             $this->logActivity('users_searched', [
@@ -201,21 +188,19 @@ class FriendController extends BaseController {
         }
     }
 
-    /**
-     * Get user's friends data (for HomeController compatibility)
-     */
-    public function getUserFriends() {
-        $this->requireAuth();        try {
+    public function getUserFriends()
+    {
+        $this->requireAuth();
+        try {
             $currentUserId = $this->getCurrentUserId();
-            
+
             $currentUser = $this->userRepository->find($currentUserId);
-            
-            // TODO: Implement proper friends relationship
-            // For now, return empty arrays
+
             $friends = [];
             $onlineFriends = [];
 
-            $this->logActivity('friends_data_retrieved');            return [
+            $this->logActivity('friends_data_retrieved');
+            return [
                 'currentUser' => $currentUser,
                 'friends' => $friends,
                 'onlineFriends' => $onlineFriends
@@ -224,8 +209,7 @@ class FriendController extends BaseController {
             $this->logActivity('friends_data_error', [
                 'error' => $e->getMessage()
             ]);
-            
-            // Return empty data on error to prevent HomeController from breaking
+
             return [
                 'currentUser' => null,
                 'friends' => [],

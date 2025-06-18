@@ -4,16 +4,20 @@ require_once __DIR__ . '/../database/repositories/ServerRepository.php';
 require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
 require_once __DIR__ . '/BaseController.php';
 
-class ExploreController extends BaseController {
+class ExploreController extends BaseController
+{
 
     private $serverRepository;
     private $userServerMembershipRepository;
 
-    public function __construct() {
+    public function __construct()
+    {
         parent::__construct();
         $this->serverRepository = new ServerRepository();
         $this->userServerMembershipRepository = new UserServerMembershipRepository();
-    }    public function getPublicServers() {
+    }
+    public function getPublicServers()
+    {
         $currentUserId = $_SESSION['user_id'] ?? 0;
         $servers = [];
         $userServerId = [];
@@ -25,7 +29,6 @@ class ExploreController extends BaseController {
             foreach ($userServerMemberships as $membership) {
                 $userServerId[] = $membership['server_id'];
             }
-
         } catch (Exception $e) {
             log_error("Error fetching public servers", ['error' => $e->getMessage()]);
             $servers = [];
@@ -36,7 +39,9 @@ class ExploreController extends BaseController {
             'servers' => $servers,
             'userServerIds' => $userServerId
         ];
-    }    public function getFeaturedServers($limit = 3) {
+    }
+    public function getFeaturedServers($limit = 3)
+    {
         $currentUserId = $_SESSION['user_id'] ?? 0;
         $featuredServers = [];
         $userServerId = [];
@@ -48,7 +53,6 @@ class ExploreController extends BaseController {
             foreach ($userServerMemberships as $membership) {
                 $userServerId[] = $membership['server_id'];
             }
-
         } catch (Exception $e) {
             log_error("Error fetching featured servers", ['error' => $e->getMessage()]);
             $featuredServers = [];
@@ -59,7 +63,9 @@ class ExploreController extends BaseController {
             'featuredServers' => $featuredServers,
             'userServerIds' => $userServerId
         ];
-    }    public function getServersByCategory($category) {
+    }
+    public function getServersByCategory($category)
+    {
         $currentUserId = $_SESSION['user_id'] ?? 0;
         $servers = [];
         $userServerId = [];
@@ -71,7 +77,6 @@ class ExploreController extends BaseController {
             foreach ($userServerMemberships as $membership) {
                 $userServerId[] = $membership['server_id'];
             }
-
         } catch (Exception $e) {
             log_error("Error fetching servers by category", ['error' => $e->getMessage()]);
             $servers = [];
@@ -90,10 +95,12 @@ class ExploreController extends BaseController {
         if (!isset($_SESSION['user_id'])) {
             header('Location: /login');
             exit;
-        }        $currentUserId = $_SESSION['user_id'];
+        }
+        $currentUserId = $_SESSION['user_id'];
 
         $userServers = $this->serverRepository->getForUser($currentUserId);
-        $GLOBALS['userServers'] = $userServers;        $allServersData = $this->getPublicServers();
+        $GLOBALS['userServers'] = $userServers;
+        $allServersData = $this->getPublicServers();
         $featuredServersData = $this->getFeaturedServers(3);
 
         $categories = [

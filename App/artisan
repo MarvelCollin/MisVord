@@ -40,6 +40,11 @@ putenv("DB_PASS=kolin123");
 require_once __DIR__ . '/config/env.php';
 require_once __DIR__ . '/config/db.php';
 
+// Database connection helper
+function get_db_connection() {
+    return Database::getInstance()->getConnection();
+}
+
 // Get CLI arguments
 $argv = $_SERVER['argv'];
 $argc = $_SERVER['argc'];
@@ -76,13 +81,12 @@ try {
             list($host, $port) = explode(':', $hostPort);
             $port = (int) $port;
             
-            echo "\033[32mStarting development server on http://$host:$port\033[0m\n";
-            $command = sprintf(
+            echo "\033[32mStarting development server on http://$host:$port\033[0m\n";            $command = sprintf(
                 'php -S %s:%d -t %s %s',
                 $host,
                 $port,
-                escapeshellarg(APP_ROOT),
-                escapeshellarg(APP_ROOT . '/router.php')
+                escapeshellarg(APP_ROOT . '/public'),
+                escapeshellarg(APP_ROOT . '/public/router.php')
             );
             
             passthru($command);

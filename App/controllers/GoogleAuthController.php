@@ -2,13 +2,15 @@
 
 require_once __DIR__ . '/../database/repositories/UserRepository.php';
 
-class GoogleAuthController {
+class GoogleAuthController
+{
     private $clientId;
     private $clientSecret;
     private $redirectUri;
     private $userRepository;
 
-    public function __construct() {
+    public function __construct()
+    {
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
@@ -24,7 +26,8 @@ class GoogleAuthController {
         error_log("GoogleAuthController initialized with: clientId={$this->clientId}, redirectUri={$this->redirectUri}");
     }
 
-    public function redirect() {
+    public function redirect()
+    {
 
         $state = bin2hex(random_bytes(16));
         $_SESSION['oauth_state'] = $state;
@@ -45,7 +48,8 @@ class GoogleAuthController {
         exit;
     }
 
-    public function callback() {
+    public function callback()
+    {
         error_log("Google OAuth callback received: " . json_encode($_GET));
 
         if (!isset($_GET['state']) || !isset($_SESSION['oauth_state']) || $_GET['state'] !== $_SESSION['oauth_state']) {
@@ -77,8 +81,8 @@ class GoogleAuthController {
             $tokenData = $this->getAccessToken($code);
 
             if (!isset($tokenData['access_token'])) {
-                $errorMsg = isset($tokenData['error']) ? 
-                    "Failed to get access token: {$tokenData['error']} - {$tokenData['error_description']}" : 
+                $errorMsg = isset($tokenData['error']) ?
+                    "Failed to get access token: {$tokenData['error']} - {$tokenData['error_description']}" :
                     "Failed to get access token: " . json_encode($tokenData);
 
                 error_log($errorMsg);
@@ -92,7 +96,6 @@ class GoogleAuthController {
 
             header('Location: /app');
             exit;
-
         } catch (Exception $e) {
             error_log('Google OAuth error: ' . $e->getMessage());
             $_SESSION['errors'] = ['auth' => 'Google authentication error: ' . $e->getMessage()];
@@ -101,7 +104,8 @@ class GoogleAuthController {
         }
     }
 
-    private function getAccessToken($code) {
+    private function getAccessToken($code)
+    {
         $params = [
             'client_id' => $this->clientId,
             'client_secret' => $this->clientSecret,
@@ -148,7 +152,8 @@ class GoogleAuthController {
         return json_decode($response, true);
     }
 
-    private function getUserInfo($accessToken) {
+    private function getUserInfo($accessToken)
+    {
         $ch = curl_init('https://www.googleapis.com/oauth2/v3/userinfo');
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
@@ -165,7 +170,8 @@ class GoogleAuthController {
         return json_decode($response, true);
     }
 
-    private function authenticateUser($googleData) {
+    private function authenticateUser($googleData)
+    {
         if (!isset($googleData['sub']) || !isset($googleData['email'])) {
             throw new Exception("Incomplete user data received from Google");
         }
@@ -175,19 +181,21 @@ class GoogleAuthController {
         $name = $googleData['name'] ?? null;
         $firstName = $googleData['given_name'] ?? null;
         $lastName = $googleData['family_name'] ?? null;
-        $picture = $googleData['picture'] ?? null;        error_log("Authenticating Google user: email={$email}, name={$name}, picture=" . ($picture ? "provided" : "not provided"));
+        $picture = $googleData['picture'] ?? null;
+        error_log("Authenticating Google user: email={$email}, name={$name}, picture=" . ($picture ? "provided" : "not provided"));
 
         $user = $this->userRepository->findByGoogleId($googleId);
 
         if (!$user) {
-            $user = $this->userRepository->findByEmail($email);            if ($user) {
+            $user = $this->userRepository->findByEmail($email);
+            if ($user) {
                 error_log("User found by email, updating Google ID: user_id={$user->id}");
                 $user->google_id = $googleId;
                 $user->avatar_url = $picture;
                 $user->save();
             } else {
                 error_log("Creating new user from Google data");
-                
+
                 $userData = [
                     'username' => $name ?? $email,
                     'email' => $email,
@@ -195,7 +203,7 @@ class GoogleAuthController {
                     'avatar_url' => $picture,
                     'status' => 'online'
                 ];
-                
+
                 $user = $this->userRepository->create($userData);
                 if (!$user) {
                     throw new Exception("Failed to create user account");

@@ -4,18 +4,21 @@ require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository
 require_once __DIR__ . '/../database/repositories/ServerRepository.php';
 require_once __DIR__ . '/BaseController.php';
 
-class UserProfileController extends BaseController {
+class UserProfileController extends BaseController
+{
 
     private $userServerMembershipRepository;
     private $serverRepository;
 
-    public function __construct() {
+    public function __construct()
+    {
         parent::__construct();
         $this->userServerMembershipRepository = new UserServerMembershipRepository();
         $this->serverRepository = new ServerRepository();
     }
 
-    public function updatePerServerProfile() {
+    public function updatePerServerProfile()
+    {
         if (!isset($_SESSION['user_id'])) {
             return $this->unauthorized();
         }
@@ -26,7 +29,8 @@ class UserProfileController extends BaseController {
             return $this->validationError(['message' => 'Invalid request']);
         }
 
-        $serverId = $data['server_id'];        $userId = $_SESSION['user_id'];
+        $serverId = $data['server_id'];
+        $userId = $_SESSION['user_id'];
         $nickname = trim($data['nickname'] ?? '');
 
         $membership = $this->userServerMembershipRepository->findByUserAndServer($userId, $serverId);
@@ -45,10 +49,12 @@ class UserProfileController extends BaseController {
         }
     }
 
-    public function getPerServerProfile($serverId) {
+    public function getPerServerProfile($serverId)
+    {
         if (!isset($_SESSION['user_id'])) {
             return $this->unauthorized();
-        }        $userId = $_SESSION['user_id'];
+        }
+        $userId = $_SESSION['user_id'];
 
         $membership = $this->userServerMembershipRepository->findByUserAndServer($userId, $serverId);
         if (!$membership) {

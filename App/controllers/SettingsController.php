@@ -9,7 +9,8 @@ class SettingsController extends BaseController
     private $serverRepository;
     private $channelRepository;
 
-    public function __construct() {
+    public function __construct()
+    {
         parent::__construct();
         $this->serverRepository = new ServerRepository();
         $this->channelRepository = new ChannelRepository();
@@ -26,7 +27,8 @@ class SettingsController extends BaseController
         $section = $_GET['section'] ?? 'overview';
 
         $server = null;
-        $channel = null;        if ($serverId) {
+        $channel = null;
+        if ($serverId) {
             $server = $this->serverRepository->find($serverId);
         }
 
@@ -34,7 +36,7 @@ class SettingsController extends BaseController
             $channel = $this->channelRepository->find($channelId);
         }
 
-         if (!$server || ($channelId && !$channel)) {
+        if (!$server || ($channelId && !$channel)) {
             header('Location: /home');
             exit;
         }

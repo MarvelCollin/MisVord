@@ -6,20 +6,23 @@ require_once __DIR__ . '/../database/repositories/ServerInviteRepository.php';
 require_once __DIR__ . '/../config/env.php';
 require_once __DIR__ . '/BaseController.php';
 
-class ServerSettingsController extends BaseController {
+class ServerSettingsController extends BaseController
+{
 
     private $serverRepository;
     private $membershipRepository;
     private $inviteRepository;
 
-    public function __construct() {
+    public function __construct()
+    {
         parent::__construct();
         $this->serverRepository = new ServerRepository();
         $this->membershipRepository = new UserServerMembershipRepository();
         $this->inviteRepository = new ServerInviteRepository();
     }
 
-    public function updateServerSettings() {
+    public function updateServerSettings()
+    {
         if (!isset($_SESSION['user_id'])) {
             return $this->unauthorized();
         }
@@ -28,7 +31,8 @@ class ServerSettingsController extends BaseController {
 
         if (!$data || !isset($data['server_id'])) {
             return $this->validationError(['message' => 'Invalid request']);
-        }        $serverId = $data['server_id'];
+        }
+        $serverId = $data['server_id'];
         $server = $this->serverRepository->find($serverId);
 
         if (!$server) {
@@ -73,7 +77,8 @@ class ServerSettingsController extends BaseController {
         }
     }
 
-    public function generateInviteLink() {
+    public function generateInviteLink()
+    {
         if (!isset($_SESSION['user_id'])) {
             return $this->unauthorized();
         }
@@ -83,7 +88,8 @@ class ServerSettingsController extends BaseController {
 
         if (!isset($matches[1])) {
             return $this->validationError(['message' => 'Server ID not found in URL']);
-        }        $serverId = $matches[1];
+        }
+        $serverId = $matches[1];
         $server = $this->serverRepository->find($serverId);
 
         if (!$server) {
@@ -101,7 +107,8 @@ class ServerSettingsController extends BaseController {
             $inviteCode = '';
             for ($i = 0; $i < 10; $i++) {
                 $inviteCode .= $characters[rand(0, strlen($characters) - 1)];
-            }            $this->inviteRepository->deleteOldInvites($serverId);
+            }
+            $this->inviteRepository->deleteOldInvites($serverId);
 
             $invite = $this->inviteRepository->create([
                 'server_id' => $serverId,

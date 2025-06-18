@@ -14,7 +14,6 @@ if (session_status() === PHP_SESSION_NONE) {
 ob_start();
 ?>
     <div class="min-h-screen bg-discord-dark flex flex-col">
-        <!-- Top Navigation -->
         <nav class="bg-discord-light p-4">
             <div class="container mx-auto flex justify-between items-center">
                 <a href="/" class="text-white font-bold text-xl">MiscVord</a>
@@ -31,7 +30,6 @@ ob_start();
             </div>
         </nav>
 
-        <!-- Main Content -->
         <div class="flex-1 flex items-center justify-center p-4">
             <div class="bg-discord-light rounded-lg shadow-lg w-full max-w-md p-6">
                 <?php if ($server): ?>

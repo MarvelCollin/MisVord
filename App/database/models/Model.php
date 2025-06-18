@@ -94,16 +94,19 @@ abstract class Model {
                 ->where('id', $id)
                 ->update($data);
                 
-            return $result > 0;
-        } else {
+            return $result > 0;        } else {
             if (!isset($this->attributes['created_at'])) {
                 $this->attributes['created_at'] = date('Y-m-d H:i:s');
             }
             
-            $this->attributes['id'] = $query->table(static::$table)
+            $insertId = $query->table(static::$table)
                 ->insert($this->attributes);
                 
-            return $this->attributes['id'] > 0;
+            if ($insertId) {
+                $this->attributes['id'] = $insertId;
+                return true;
+            }
+            return false;
         }
     }
     

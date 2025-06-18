@@ -154,20 +154,9 @@ Route::post('/api/positions/batch', function() {
     $controller->batchUpdatePositions();
 });
 
-Route::get('/debug/invite', function() {
-
-    include_once __DIR__ . '/../debug-invite.php';
-    exit;
-});
-
 Route::get('/debug/messages', function() {
     $controller = new MessageController();
     $controller->debugMessageStorage();
-});
-
-Route::get('/debug/database', function() {
-    include_once __DIR__ . '/../debug-db.php';
-    exit;
 });
 
 Route::get('/health', function() {

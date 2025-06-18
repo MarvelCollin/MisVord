@@ -7,14 +7,16 @@ require_once __DIR__ . '/../database/repositories/UserRepository.php';
 require_once __DIR__ . '/../utils/WebSocketClient.php';
 require_once __DIR__ . '/BaseController.php';
 
-class MessageController extends BaseController {
-    
+class MessageController extends BaseController
+{
+
     private $messageRepository;
     private $channelRepository;
     private $userServerMembershipRepository;
     private $userRepository;
-    
-    public function __construct() {
+
+    public function __construct()
+    {
         parent::__construct();
         $this->messageRepository = new MessageRepository();
         $this->channelRepository = new ChannelRepository();
@@ -22,15 +24,14 @@ class MessageController extends BaseController {
         $this->userRepository = new UserRepository();
     }
 
-    /**
-     * Get messages for a channel
-     */    public function getMessages($channelId) {
+        public function getMessages($channelId)
+    {
         $this->requireAuth();
 
         $channel = $this->channelRepository->find($channelId);
         if (!$channel) {
             return $this->notFound('Channel not found');
-        }        // Check if user has access to this channel
+        }        
         if ($channel->server_id != 0) {
             $membership = $this->userServerMembershipRepository->findByUserAndServer($this->getCurrentUserId(), $channel->server_id);
             if (!$membership) {
@@ -64,16 +65,13 @@ class MessageController extends BaseController {
         }
     }
 
-    /**
-     * Send a new message
-     */
-    public function send() {
+    public function send()
+    {
         $this->requireAuth();
-        
+
         $input = $this->getInput();
         $input = $this->sanitize($input);
-        
-        // Validate input
+
         $this->validate($input, [
             'channel_id' => 'required',
             'content' => 'required'
@@ -84,10 +82,11 @@ class MessageController extends BaseController {
 
         if (empty($content)) {
             return $this->validationError(['content' => 'Message content cannot be empty']);
-        }        // Check if channel exists and user has access
+        }        
         $channel = $this->channelRepository->find($channelId);
         if (!$channel) {
-            return $this->notFound('Channel not found');        }
+            return $this->notFound('Channel not found');
+        }
 
         if ($channel->server_id != 0) {
             $membership = $this->userServerMembershipRepository->findByUserAndServer($this->getCurrentUserId(), $channel->server_id);
@@ -102,17 +101,16 @@ class MessageController extends BaseController {
             $message->channel_id = $channelId;
             $message->user_id = $this->getCurrentUserId();
             $message->type = 'text';
-            
+
             if ($message->save()) {
                 $formattedMessage = $this->formatMessage($message);
-                
-                // Send real-time notification via WebSocket
+
                 $this->sendWebSocketNotification([
                     'type' => 'new_message',
                     'channel_id' => $channelId,
                     'message' => $formattedMessage
                 ]);
-                
+
                 $this->logActivity('message_sent', [
                     'message_id' => $message->id,
                     'channel_id' => $channelId
@@ -133,26 +131,24 @@ class MessageController extends BaseController {
         }
     }
 
-    /**
-     * Update a message
-     */    public function update($id) {
+        public function update($id)
+    {
         $this->requireAuth();
-        
+
         $message = $this->messageRepository->find($id);
         if (!$message) {
             return $this->notFound('Message not found');
         }
 
-        // Check if user owns the message
         if ($message->user_id != $this->getCurrentUserId()) {
             return $this->forbidden('You can only edit your own messages');
         }
 
         $input = $this->getInput();
         $input = $this->sanitize($input);
-        
+
         $this->validate($input, ['content' => 'required']);
-        
+
         $content = trim($input['content']);
         if (empty($content)) {
             return $this->validationError(['content' => 'Message content cannot be empty']);
@@ -161,17 +157,16 @@ class MessageController extends BaseController {
         try {
             $message->content = $content;
             $message->edited_at = date('Y-m-d H:i:s');
-            
+
             if ($message->save()) {
                 $formattedMessage = $this->formatMessage($message);
-                
-                // Send real-time notification via WebSocket
+
                 $this->sendWebSocketNotification([
                     'type' => 'message_updated',
                     'channel_id' => $message->channel_id,
                     'message' => $formattedMessage
                 ]);
-                
+
                 $this->logActivity('message_updated', [
                     'message_id' => $id
                 ]);
@@ -191,34 +186,32 @@ class MessageController extends BaseController {
         }
     }
 
-    /**
-     * Delete a message
-     */
-    public function delete($id) {        $this->requireAuth();
-        
+    public function delete($id)
+    {
+        $this->requireAuth();
+
         $message = $this->messageRepository->find($id);
         if (!$message) {
             return $this->notFound('Message not found');
         }
 
-        // Check if user owns the message or has admin permissions
         if ($message->user_id != $this->getCurrentUserId() && !$this->canDeleteMessage($message)) {
             return $this->forbidden('You can only delete your own messages');
         }
 
         try {
-            // For now, mark as deleted instead of hard delete to preserve conversation flow
+
             $message->content = '[deleted]';
             $message->deleted_at = date('Y-m-d H:i:s');
-            
+
             if ($message->save()) {
-                // Send real-time notification via WebSocket
+
                 $this->sendWebSocketNotification([
                     'type' => 'message_deleted',
                     'channel_id' => $message->channel_id,
                     'message_id' => $id
                 ]);
-                
+
                 $this->logActivity('message_deleted', [
                     'message_id' => $id
                 ]);
@@ -236,28 +229,28 @@ class MessageController extends BaseController {
         }
     }
 
-    /**
-     * Search messages in a channel
-     */
-    public function search($channelId) {        $this->requireAuth();
-        
+    public function search($channelId)
+    {
+        $this->requireAuth();
+
         $channel = $this->channelRepository->find($channelId);
         if (!$channel) {
             return $this->notFound('Channel not found');
         }
 
-        // Check access
         if ($channel->server_id != 0) {
             $membership = $this->userServerMembershipRepository->findByUserAndServer($this->getCurrentUserId(), $channel->server_id);
             if (!$membership) {
                 return $this->forbidden('You are not a member of this server');
             }
-        }$searchQuery = $_GET['q'] ?? '';
+        }
+        $searchQuery = $_GET['q'] ?? '';
         if (empty($searchQuery)) {
             return $this->validationError(['q' => 'Search query is required']);
-        }        try {
+        }
+        try {
             $messages = $this->messageRepository->searchInChannel($channelId, $searchQuery, 50);
-            
+
             $formattedMessages = array_map([$this, 'formatMessage'], $messages);
 
             $this->logActivity('messages_searched', [
@@ -280,13 +273,11 @@ class MessageController extends BaseController {
         }
     }
 
-    /**
-     * Format message data for API response
-     */
-    private function formatMessage($message) {
-        // Get user information
+    private function formatMessage($message)
+    {
+
         $user = $this->userRepository->find($message->user_id);
-        
+
         return [
             'id' => $message->id,
             'content' => $message->content,
@@ -303,17 +294,16 @@ class MessageController extends BaseController {
             'edited_at' => $message->edited_at ?? null,
             'deleted_at' => $message->deleted_at ?? null
         ];
-    }    /**
-     * Send WebSocket notification
-     */
-    private function sendWebSocketNotification($data) {
+    }
+
+    private function sendWebSocketNotification($data)
+    {
         try {
             $wsClient = new WebSocketClient();
-            // TODO: Implement proper send method in WebSocketClient
-            // For now, just log the notification
+
             $this->logActivity('websocket_notification', $data);
         } catch (Exception $e) {
-            // Log but don't fail the request
+
             $this->logActivity('websocket_error', [
                 'error' => $e->getMessage(),
                 'data' => $data
@@ -321,31 +311,28 @@ class MessageController extends BaseController {
         }
     }
 
-    /**
-     * Check if user can delete a message (admin permissions)
-     */
-    private function canDeleteMessage($message) {
-        // TODO: Implement role-based permissions
-        // For now, only message owner can delete
+    private function canDeleteMessage($message)
+    {
+
         return false;
     }
 
-    /**
-     * Debug message storage (development only)
-     */
-    public function debugMessageStorage() {
-        // Only allow in development
+    public function debugMessageStorage()
+    {
+
         if (EnvLoader::get('APP_ENV') === 'production') {
             return $this->forbidden('Debug methods not allowed in production');
         }
 
-        $this->requireAuth();        try {
+        $this->requireAuth();
+        try {
             $recentMessages = $this->messageRepository->getRecentMessages(10);
-            
-            $this->logActivity('debug_message_storage_accessed');            return $this->success([
+
+            $this->logActivity('debug_message_storage_accessed');
+            return $this->success([
                 'stats' => [
                     'total_messages' => 'N/A',
-                    'channel_messages' => 'N/A', 
+                    'channel_messages' => 'N/A',
                     'recent_messages' => count($recentMessages),
                     'user_message_count' => 'N/A'
                 ],
