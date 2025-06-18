@@ -596,4 +596,4 @@ if (typeof window !== 'undefined') {
     }
 }
 
-export default LazyLoader;
+export { LazyLoader };

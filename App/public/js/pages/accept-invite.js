@@ -1,3 +1,5 @@
+import { showToast } from '../core/toast.js';
+
 document.addEventListener('DOMContentLoaded', function() {
     console.log("Accept Invite page loaded");
 
@@ -81,32 +83,3 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log("Join server button not found - user might not be logged in");
     }
 });
-
-function showToast(message, type = 'info') {
-    console.log(`Toast: ${type} - ${message}`);
-
-    if (window.showToast) {
-        window.showToast(message, type);
-        return;
-    }
-
-    const toast = document.createElement('div');
-    toast.className = `fixed bottom-4 right-4 p-4 rounded-md shadow-lg z-50 ${
-        type === 'error' ? 'bg-red-500' : 
-        type === 'success' ? 'bg-green-500' : 'bg-blue-500'
-    } text-white`;
-    toast.textContent = message;
-
-    document.body.appendChild(toast);
-
-    toast.style.opacity = '0';
-    toast.style.transition = 'opacity 0.3s ease-in-out';
-    setTimeout(() => { toast.style.opacity = '1'; }, 10);
-
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        setTimeout(() => {
-            document.body.removeChild(toast);
-        }, 300);
-    }, 4000);
-}

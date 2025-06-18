@@ -1,5 +1,5 @@
 import { showToast } from '../core/toast.js';
-import { MiscVordAjax } from '../core/ajax-handler.js';
+import { MisVordAjax } from '../core/ajax-handler.js';
 
 document.addEventListener('DOMContentLoaded', function() {
     const elements = {
@@ -343,8 +343,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (/[^A-Za-z0-9]/.test(password)) score += 20;
 
         return Math.min(score, 100);
-    }    function setupFormSubmission() {
+    }
 
+    function setupFormSubmission() {
         console.log('🔄 Forms will use traditional submission for reliable redirects');
 
         document.querySelectorAll('form').forEach(form => {
@@ -360,7 +361,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 return true;
             });
         });
-    }    function validateForm(form) {
+    }
+
+    function validateForm(form) {
         let isValid = true;
         const formId = form.id;
 

@@ -19,7 +19,7 @@ $page_title = 'misvord - Home';
 $body_class = 'bg-discord-dark text-white overflow-hidden';
 $page_css = 'home-page';
 $page_js = 'home-page';
-$additional_js = ['server-dropdown.js'];
+$additional_js = ['components/servers/server-dropdown.js'];
 $contentType = 'home';
 ?>
 

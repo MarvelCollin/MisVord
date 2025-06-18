@@ -1,8 +1,9 @@
-import { showToast } from './core/toast.js';
-import { MisVordAjax } from './core/ajax-handler.js';
-import { GlobalSocketManager } from './core/global-socket-manager.js';
+import { showToast } from './core/ui/toast.js';
+import { MisVordAjax } from './core/ajax/ajax-handler.js';
+import { GlobalSocketManager } from './core/socket/global-socket-manager.js';
 
 import * as Components from './components/index.js';
+import * as Utils from './utils/index.js';
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('MisVord application initialized');

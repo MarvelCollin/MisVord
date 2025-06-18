@@ -77,7 +77,7 @@ $cache_version = time();
 <?php endif; ?>
 
 <?php if (isset($include_socket_io) && $include_socket_io): ?>
-    <script src="<?php echo js('socket.io.min'); ?>?v=<?php echo $cache_version; ?>"></script>
+    <script src="<?php echo js('lib/socket.io.min'); ?>?v=<?php echo $cache_version; ?>"></script>
 <?php endif; ?>
 
 <?php if (isset($include_channel_loader) && $include_channel_loader): ?>

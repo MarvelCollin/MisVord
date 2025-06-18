@@ -6,7 +6,7 @@
 
 import { showToast } from './toast.js';
 
-class GlobalSocketManager {
+export class GlobalSocketManager {
     constructor() {
         this.config = {
             socketPort: 1002,

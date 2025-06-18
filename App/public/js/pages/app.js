@@ -1,4 +1,4 @@
-import { MiscVordAjax } from '../core/ajax-handler.js';
+import { MisVordAjax } from '../core/ajax-handler.js';
 import { showToast } from '../core/toast.js';
 
 document.addEventListener('DOMContentLoaded', function() {

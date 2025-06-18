@@ -140,5 +140,4 @@ const AjaxHandler = {
     }
 };
 
-export const MisVordAjax = AjaxHandler;
-export const MiscVordAjax = AjaxHandler; 
+export const MisVordAjax = AjaxHandler; 

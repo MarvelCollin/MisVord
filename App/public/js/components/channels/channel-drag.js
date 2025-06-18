@@ -1,3 +1,5 @@
+import { MisVordAjax } from '../core/ajax-handler.js';
+
 document.addEventListener('DOMContentLoaded', function() {
     setTimeout(initDragDrop, 1000);
 });
@@ -572,53 +574,19 @@ function handleDragLeave(event) {
 function updateCategoryPosition(categoryId, position) {
     console.log(`Updating category ${categoryId} to position ${position}`);
 
-    return fetch('/api/categories/position', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: JSON.stringify({
-            category_id: categoryId,
-            position: position
-        })
-    })
-    .then(response => {
-        if (!response.ok) {
-
-            return response.text().then(text => {
-                console.error(`Server returned error ${response.status}: ${text}`);
-                throw new Error(`Server returned ${response.status}: ${text}`);
-            });
-        }
-        return response.json();
+    return MisVordAjax.post('/api/categories/position', {
+        category_id: categoryId,
+        position: position
     });
 }
 
 function updateChannelPosition(channelId, position, categoryId) {
     console.log(`Updating channel ${channelId} to position ${position} in category ${categoryId}`);
 
-    return fetch('/api/channels/position', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: JSON.stringify({
-            channel_id: channelId,
-            position: position,
-            category_id: categoryId
-        })
-    })
-    .then(response => {
-        if (!response.ok) {
-
-            return response.text().then(text => {
-                console.error(`Server returned error ${response.status}: ${text}`);
-                throw new Error(`Server returned ${response.status}: ${text}`);
-            });
-        }
-        return response.json();
+    return MisVordAjax.post('/api/channels/position', {
+        channel_id: channelId,
+        position: position,
+        category_id: categoryId
     });
 }
 
@@ -791,25 +759,9 @@ function showChannelContextMenu(event, channelId) {
 function batchUpdatePositions(updates, serverId) {
     console.log('Batch updating positions:', updates);
 
-    return fetch('/api/positions/batch', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: JSON.stringify({
-            updates: updates,
-            server_id: serverId
-        })
-    })
-    .then(response => {
-        if (!response.ok) {
-            return response.text().then(text => {
-                console.error(`Server returned error ${response.status}: ${text}`);
-                throw new Error(`Server returned ${response.status}: ${text}`);
-            });
-        }
-        return response.json();
+    return MisVordAjax.post('/api/positions/batch', {
+        updates: updates,
+        server_id: serverId
     });
 }
 

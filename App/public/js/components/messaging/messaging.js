@@ -1128,22 +1128,7 @@ class MisVordMessaging {
     }
 
     showToast(message, type = 'info') {
-        try {
-
-            if (typeof showToast === 'function') {
-                showToast(message, type);
-                return;
-            }
-
-            if (typeof window.showToast === 'function') {
-                window.showToast(message, type);
-                return;
-            }
-
-            console.log(`[Toast ${type.toUpperCase()}] ${message}`);
-        } catch (error) {
-            console.log(`[Toast ${type.toUpperCase()}] ${message}`);
-        }
+        showToast(message, type);
     }
 
     // Utility method to check if current page is a voice channel

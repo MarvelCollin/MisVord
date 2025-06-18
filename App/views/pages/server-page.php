@@ -17,13 +17,13 @@ $body_class = 'bg-discord-dark text-white overflow-hidden';
 $page_css = 'server-page';
 $page_js = 'server-page';
 $additional_js = [
-    'socket.io.min.js',
-    'server-dropdown.js',
-    'components/server-sidebar.js',
-    'components/messaging.js',
-    'components/channel-manager.js',
-    'components/channel-drag.js',
-    'lazy-loader.js'
+    'lib/socket.io.min.js',
+    'components/servers/server-dropdown.js',
+    'components/servers/server-sidebar.js',
+    'components/messaging/messaging.js',
+    'components/channels/channel-manager.js',
+    'components/channels/channel-drag.js',
+    'utils/lazy-loader.js'
 ];
 $contentType = 'server';
 $currentServer = $GLOBALS['currentServer'] ?? null;

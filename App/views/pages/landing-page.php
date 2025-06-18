@@ -4,6 +4,7 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
 $page_title = 'misvord - Where Communities Thrive';
 $page_css = 'landing-page';
 $page_js = 'landing-page';
+$additional_js = ['sections/hero-section'];
 $body_class = 'modern-landing';
 
 ob_start();

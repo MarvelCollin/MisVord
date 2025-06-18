@@ -14,6 +14,6 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
     
     <?php include_once __DIR__ . '/scripts.php'; ?>
     
-    <script type="module" src="<?php echo js('components/server-manager'); ?>"></script>
+    <script type="module" src="<?php echo js('components/servers/server-manager'); ?>"></script>
 </body>
 </html>

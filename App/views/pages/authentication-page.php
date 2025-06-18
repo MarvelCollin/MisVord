@@ -26,7 +26,7 @@ $page_title = ucfirst($mode) . ' - misvord';
 $body_class = 'bg-[#202225] authentication-page overflow-hidden flex items-center justify-center min-h-screen';
 $page_css = 'authentication-page';
 $page_js = 'authentication-page';
-$additional_js = ['main', 'pages/authentication-page'];
+$additional_js = ['main', 'pages/authentication-page', 'components/auth/auth'];
 $data_page = 'auth';
 
 $debugInfo = '';
