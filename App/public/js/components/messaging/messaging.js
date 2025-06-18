@@ -49,9 +49,7 @@ class MisVordMessaging {
 
     error(...args) {
         console.error('[MisVordMessaging]', ...args);
-    }
-
-    init() {
+    }    init() {
         if (this.initialized) {
             this.log('🔄 Already initialized, skipping duplicate initialization');
             return;
@@ -60,6 +58,15 @@ class MisVordMessaging {
         // Check if we're in a voice channel - if so, don't initialize messaging
         if (this.isVoiceChannel()) {
             this.log('🎙️ Voice channel detected, skipping messaging initialization');
+            return;
+        }
+
+        // Check if required messaging elements exist before initializing
+        const messageContainer = document.getElementById('chat-messages');
+        const messageForm = document.getElementById('message-form');
+        
+        if (!messageContainer && !messageForm) {
+            this.log('ℹ️ No messaging elements found, skipping messaging initialization');
             return;
         }
 
@@ -722,15 +729,10 @@ class MisVordMessaging {
             this.log('🗑️ Removing ' + tempUserMessages.length + ' temporary messages for user ' + userId);
             tempUserMessages.forEach(msg => msg.remove());
         }
-    }
-
-    initMessageForm() {
+    }    initMessageForm() {
         const form = document.getElementById('message-form');
         if (!form) {
-            const path = window.location.pathname;
-            if (path.includes('/app') || path.includes('/server/') || path.includes('/channel/')) {
-                this.error('Message form not found in DOM');
-            }
+            this.log('ℹ️ Message form not found - skipping message form initialization');
             return;
         }
 
@@ -770,13 +772,9 @@ class MisVordMessaging {
             });
 
             textarea.addEventListener('blur', () => this.stopTyping());
-            setTimeout(() => textarea.focus(), 100);
-        } else {
-            const path = window.location.pathname;
-            if (path.includes('/app') || path.includes('/server/') || path.includes('/channel/')) {
-                this.error('Message textarea not found');
+            setTimeout(() => textarea.focus(), 100);            } else {
+                this.log('ℹ️ Message textarea not found - skipping textarea initialization');
             }
-        }
 
         this.log('Message form initialized');
     }
@@ -899,18 +897,13 @@ class MisVordMessaging {
 
             el.innerHTML = '<span class="' + statusClass + '">' + statusText + '</span>';
         });
-    }
-
-    initMessageContainer() {
+    }    initMessageContainer() {
         this.log('💬 Initializing message container...');
         const container = document.getElementById('chat-messages');
         if (container) {
             this.log('✅ Message container found');
         } else {
-            const path = window.location.pathname;
-            if (path.includes('/app') || path.includes('/server/') || path.includes('/channel/')) {
-                this.error('❌ Message container not found');
-            }
+            this.log('ℹ️ Message container not found - skipping message container initialization');
         }
     }
 

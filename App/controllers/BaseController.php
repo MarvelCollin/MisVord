@@ -4,12 +4,17 @@ class BaseController
 {
 
     protected $app;
-    protected $ajaxConfig;
-
-    public function __construct()
+    protected $ajaxConfig;    public function __construct()
     {
-
         $this->app = $GLOBALS['app'] ?? null;
+
+        if (file_exists(__DIR__ . '/../config/db.php')) {
+            require_once __DIR__ . '/../config/db.php';
+        }
+
+        if (file_exists(__DIR__ . '/../database/query.php')) {
+            require_once __DIR__ . '/../database/query.php';
+        }
 
         if (file_exists(__DIR__ . '/../utils/AppLogger.php')) {
             require_once __DIR__ . '/../utils/AppLogger.php';
@@ -69,16 +74,22 @@ class BaseController
         if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
             exit(0);
         }
-    }
-
-    protected function db()
+    }    protected function db()
     {
-        return $this->app ? $this->app->getDatabase() : $GLOBALS['db'];
-    }
-
-    protected function query()
+        if ($this->app && method_exists($this->app, 'getDatabase')) {
+            return $this->app->getDatabase();
+        }
+        
+        require_once __DIR__ . '/../config/db.php';
+        return Database::getInstance();
+    }    protected function query()
     {
-        return $this->app ? $this->app->getQuery() : $GLOBALS['query'];
+        if ($this->app && method_exists($this->app, 'getQuery')) {
+            return $this->app->getQuery();
+        }
+        
+        require_once __DIR__ . '/../database/query.php';
+        return new Query();
     }
 
     protected function config($key = null)
@@ -304,10 +315,17 @@ class BaseController
             'ip_address' => $ip,
             'user_agent' => $userAgent,
             'data' => json_encode($data)
-        ];
-
-        try {
-            $this->db()->insert('activity_logs', $activityData);
+        ];        try {
+            $query = $this->query();
+            
+            if (!$query->tableExists('activity_logs')) {
+                if (function_exists('logger')) {
+                    logger()->warning("Activity logs table does not exist, skipping activity logging");
+                }
+                return;
+            }
+            
+            $result = $query->table('activity_logs')->insert($activityData);
         } catch (Exception $e) {
             if (function_exists('logger')) {
                 logger()->error("Failed to log activity", [

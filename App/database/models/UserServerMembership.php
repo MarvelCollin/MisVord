@@ -4,7 +4,7 @@ require_once __DIR__ . '/Model.php';
 
 class UserServerMembership extends Model {
     protected static $table = 'user_server_memberships';
-    protected $fillable = ['user_id', 'server_id', 'joined_at', 'role'];
+    protected $fillable = ['id', 'user_id', 'server_id', 'role', 'nickname', 'notification_settings', 'created_at', 'updated_at'];
 
     public static function findByUserAndServer($userId, $serverId) {
         $result = static::where('user_id', $userId)
@@ -18,7 +18,7 @@ class UserServerMembership extends Model {
         return $query->table('user_server_memberships usm')
             ->join('users u', 'usm.user_id', '=', 'u.id')
             ->where('usm.server_id', $serverId)
-            ->select('u.*, usm.joined_at, usm.role')
+            ->select('u.*, usm.created_at, usm.role')
             ->get();
     }
 
@@ -27,7 +27,7 @@ class UserServerMembership extends Model {
         return $query->table('user_server_memberships usm')
             ->join('servers s', 'usm.server_id', '=', 's.id')
             ->where('usm.user_id', $userId)
-            ->select('s.*, usm.joined_at, usm.role')
+            ->select('s.*, usm.created_at, usm.role')
             ->get();
     }
 
@@ -46,7 +46,7 @@ class UserServerMembership extends Model {
             'user_id' => $userId,
             'server_id' => $serverId,
             'role' => $role,
-            'joined_at' => date('Y-m-d H:i:s')
+            'created_at' => date('Y-m-d H:i:s')
         ]);
 
         return $membership->save() ? $membership : null;
@@ -63,14 +63,12 @@ class UserServerMembership extends Model {
         try {
             $tableExists = $query->tableExists('user_server_memberships');
 
-            if (!$tableExists) {
-                $query->raw("
+            if (!$tableExists) {                $query->raw("
                     CREATE TABLE IF NOT EXISTS user_server_memberships (
                         id INT AUTO_INCREMENT PRIMARY KEY,
                         user_id INT NOT NULL,
                         server_id INT NOT NULL,
                         role VARCHAR(50) DEFAULT 'member',
-                        joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                         UNIQUE KEY unique_membership (user_id, server_id),

@@ -4,7 +4,7 @@ require_once __DIR__ . '/Model.php';
 
 class User extends Model {
     protected static $table = 'users';
-    protected $fillable = ['username', 'email', 'password_hash', 'avatar_url', 'status', 'display_name', 'bio', 'google_id', 'google_avatar_url'];
+    protected $fillable = ['id', 'username', 'email', 'password', 'google_id', 'avatar_url', 'status', 'created_at', 'updated_at'];
     
     public static function findByEmail($email) {
         $query = new Query();
@@ -22,14 +22,13 @@ class User extends Model {
         $query = new Query();
         $result = $query->table(static::$table)->where('google_id', $googleId)->first();
         return $result ? new static($result) : null;
-    }
-
-    public function verifyPassword($password) {
-        return password_verify($password, $this->password_hash);
-    }
-
-    public function setPassword($password) {
-        $this->password_hash = password_hash($password, PASSWORD_DEFAULT);
+    }    public function verifyPassword($password) {
+        if (empty($this->password)) {
+            return false;
+        }
+        return password_verify($password, $this->password);
+    }    public function setPassword($password) {
+        $this->password = password_hash($password, PASSWORD_DEFAULT);
     }
 
     public function servers() {
@@ -77,13 +76,12 @@ class User extends Model {
         try {
             $tableExists = $query->tableExists('users');
 
-            if (!$tableExists) {
-                $query->raw("
+            if (!$tableExists) {                $query->raw("
                     CREATE TABLE IF NOT EXISTS users (
                         id INT AUTO_INCREMENT PRIMARY KEY,
                         username VARCHAR(255) UNIQUE NOT NULL,
                         email VARCHAR(255) UNIQUE NOT NULL,
-                        password_hash VARCHAR(255),
+                        password VARCHAR(255),
                         avatar_url VARCHAR(500),
                         status ENUM('online', 'away', 'busy', 'offline') DEFAULT 'offline',
                         display_name VARCHAR(255),

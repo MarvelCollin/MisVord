@@ -1,50 +1,62 @@
 // Create LazyLoader as a global object first to ensure backward compatibility
 if (typeof window !== 'undefined' && !window.LazyLoader) {
     window.LazyLoader = {
-    init() {
-        this.setupObserver();
-        document.querySelectorAll('[data-lazyload]').forEach(element => {
-            this.showLoadingState(element);
-        });
-        this.addGlobalLoadingIndicator();
-        this.listenForDataEvents();
-        console.log('🔄 Lazy Loader initialized');
-    },
+        init() {
+            this.setupObserver();
+            document.querySelectorAll('[data-lazyload]').forEach(element => {
+                this.showLoadingState(element);
+            });
+            this.addGlobalLoadingIndicator();
+            this.listenForDataEvents();
+            console.log('🔄 Lazy Loader initialized');
+        },
 
         // Copy all methods from LazyLoader
-    setupObserver() {
+        setupObserver() {
             // Implementation goes here
-        const observer = new MutationObserver(mutations => {
-            mutations.forEach(mutation => {
-                if (mutation.addedNodes && mutation.addedNodes.length > 0) {
-                    mutation.addedNodes.forEach(node => {
-                        if (node.nodeType === Node.ELEMENT_NODE) {
-                            const lazyElements = node.querySelectorAll ? 
-                                node.querySelectorAll('[data-lazyload]') : [];
+            const observer = new MutationObserver(mutations => {
+                mutations.forEach(mutation => {
+                    if (mutation.addedNodes && mutation.addedNodes.length > 0) {
+                        mutation.addedNodes.forEach(node => {
+                            if (node.nodeType === Node.ELEMENT_NODE) {
+                                const lazyElements = node.querySelectorAll ? 
+                                    node.querySelectorAll('[data-lazyload]') : [];
 
-                            lazyElements.forEach(element => {
-                                this.showLoadingState(element);
-                            });
+                                lazyElements.forEach(element => {
+                                    this.showLoadingState(element);
+                                });
 
-                            if (node.hasAttribute && node.hasAttribute('data-lazyload')) {
-                                this.showLoadingState(node);
+                                if (node.hasAttribute && node.hasAttribute('data-lazyload')) {
+                                    this.showLoadingState(node);
+                                }
                             }
-                        }
-                    });
-                }
+                        });
+                    }
+                });
             });
-        });
 
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true
-        });
-    },
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+        },
 
-        // Include the rest of the methods (they'll be loaded dynamically)
+        // Include placeholder methods that will be replaced by the full implementation
         showLoadingState() {
-            // This will be dynamically loaded from the ES module
             console.log('LazyLoader method executed from global object');
+        },
+        
+        triggerDataLoaded(type, isEmpty = false) {
+            console.log(`✅ Data loaded for type: ${type}, isEmpty: ${isEmpty}`);
+            // Basic implementation - will be enhanced by the full LazyLoader
+        },
+        
+        addGlobalLoadingIndicator() {
+            // Basic implementation
+        },
+        
+        listenForDataEvents() {
+            // Basic implementation
         }
     };
     
@@ -253,6 +265,41 @@ const LazyLoader = {
         }
         
         this.updateGlobalLoadingProgress(25);
+    },
+
+    triggerDataLoaded(type, isEmpty = false) {
+        console.log(`✅ Data loaded for type: ${type}, isEmpty: ${isEmpty}`);
+        
+        // Dispatch custom event for data loaded
+        const event = new CustomEvent('LazyLoadComplete', {
+            detail: { 
+                type,
+                isEmpty,
+                timestamp: Date.now()
+            }
+        });
+        
+        document.dispatchEvent(event);
+        
+        // Update loading progress to complete
+        this.updateGlobalLoadingProgress(100);
+        
+        // Hide any relevant loading states
+        const elements = document.querySelectorAll(`[data-lazyload="${type}"]`);
+        elements.forEach(element => {
+            element.classList.remove('content-loading');
+            element.classList.add('content-loaded');
+            
+            const skeletonLoader = element.querySelector('.skeleton-loader');
+            if (skeletonLoader) {
+                skeletonLoader.classList.add('fade-out');
+                setTimeout(() => {
+                    if (skeletonLoader.parentNode === element) {
+                        element.removeChild(skeletonLoader);
+                    }
+                }, 300);
+            }
+        });
     },
 
     listenForDataEvents() {

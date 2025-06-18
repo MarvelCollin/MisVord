@@ -4,7 +4,7 @@ require_once __DIR__ . '/Model.php';
 
 class ChannelMessage extends Model {
     protected static $table = 'channel_messages';
-    protected $fillable = ['channel_id', 'message_id'];
+    protected $fillable = ['id', 'channel_id', 'message_id', 'created_at', 'updated_at'];
     
     public static function findByChannelId($channelId, $limit = null, $offset = null) {
         $query = new Query();

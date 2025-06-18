@@ -4,7 +4,7 @@ require_once __DIR__ . '/Model.php';
 
 class Server extends Model {
     protected static $table = 'servers';
-    protected $fillable = ['name', 'image_url', 'description', 'invite_link', 'group_server_id', 'is_public', 'banner_url', 'category'];
+    protected $fillable = ['id', 'name', 'image_url', 'description', 'invite_link', 'group_server_id', 'is_public', 'banner_url', 'category', 'created_at', 'updated_at'];
     
     public static function findByInviteLink($inviteLink) {
         $query = new Query();
@@ -62,7 +62,7 @@ class Server extends Model {
         return $query->table('user_server_memberships')->insert([
             'user_id' => $userId,
             'server_id' => $this->id,
-            'joined_at' => date('Y-m-d H:i:s')
+            'created_at' => date('Y-m-d H:i:s')
         ]);
     }
 
@@ -124,5 +124,44 @@ class Server extends Model {
 
     public static function initialize() {
         return self::createTable();
+    }
+
+    public function getOwner() {
+        $query = new Query();
+        $result = $query->table('users u')
+            ->join('user_server_memberships usm', 'u.id', '=', 'usm.user_id')
+            ->where('usm.server_id', $this->id)
+            ->where('usm.role', 'owner')
+            ->select('u.*')
+            ->first();
+        return $result ? new User($result) : null;
+    }
+
+    public function getOwnerId() {
+        $query = new Query();
+        $result = $query->table('user_server_memberships')
+            ->where('server_id', $this->id)
+            ->where('role', 'owner')
+            ->select('user_id')
+            ->first();
+        return $result ? $result['user_id'] : null;
+    }
+
+    public function isOwner($userId) {
+        $query = new Query();
+        $result = $query->table('user_server_memberships')
+            ->where('server_id', $this->id)
+            ->where('user_id', $userId)
+            ->where('role', 'owner')
+            ->first();
+        return $result !== null;
+    }
+
+    public function setOwner($userId) {
+        $query = new Query();
+        return $query->table('user_server_memberships')
+            ->where('server_id', $this->id)
+            ->where('user_id', $userId)
+            ->update(['role' => 'owner']);
     }
 }

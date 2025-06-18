@@ -4,7 +4,7 @@ require_once __DIR__ . '/Model.php';
 
 class UserPresence extends Model {
     protected static $table = 'user_presence';
-    protected $fillable = ['user_id', 'status', 'activity_details', 'last_seen'];
+    protected $fillable = ['id', 'user_id', 'status', 'activity_details', 'last_seen', 'created_at', 'updated_at'];
     
     public static function findByUserId($userId) {
         $query = new Query();

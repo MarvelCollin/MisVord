@@ -4,7 +4,7 @@ require_once __DIR__ . '/Model.php';
 
 class GroupServer extends Model {
     protected static $table = 'group_servers';
-    protected $fillable = ['user_id', 'group_name'];
+    protected $fillable = ['id', 'user_id', 'group_name', 'created_at', 'updated_at'];
     
     public static function findByUserId($userId) {
         $query = new Query();

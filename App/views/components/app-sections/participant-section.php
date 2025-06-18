@@ -224,10 +224,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const loadDelay = Math.floor(Math.random() * 400) + 600;
         
         setTimeout(function() {
-            if (window.LazyLoader) {
+            if (window.LazyLoader && typeof window.LazyLoader.triggerDataLoaded === 'function') {
                 const isEmpty = <?php echo empty($members) ? 'true' : 'false'; ?>;
                 window.LazyLoader.triggerDataLoaded('participant-list', isEmpty);
                 console.log('Participant list loaded after ' + loadDelay + 'ms');
+            } else {
+                console.warn('LazyLoader.triggerDataLoaded not available yet');
             }
         }, loadDelay);
     }

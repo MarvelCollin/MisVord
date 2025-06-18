@@ -57,11 +57,30 @@
 
 #logo {
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  height: 3rem;
+}
+
+@media (max-width: 640px) {
+  #logo {
+    height: 2.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  #logo {
+    height: 2rem;
+  }
 }
 
 #logo:hover {
   animation: logoGlow 2s ease-in-out infinite;
   transform: translateY(-2px) scale(1.05);
+}
+
+@media (max-width: 640px) {
+  #logo:hover {
+    transform: translateY(-1px) scale(1.02);
+  }
 }
 
 @keyframes logoGlow {
@@ -88,6 +107,18 @@
   margin-bottom: 1.25rem;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: transform, opacity;
+}
+
+@media (max-width: 640px) {
+  .form-group {
+    margin-bottom: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .form-group {
+    margin-bottom: 0.875rem;
+  }
 }
 
 .auth-form:not(.form-enter) .form-group {
@@ -130,6 +161,29 @@ input {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: border-color, box-shadow, transform;
   position: relative;
+  padding: 0.625rem;
+  font-size: 1rem;
+}
+
+@media (max-width: 640px) {
+  input {
+    padding: 0.75rem;
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  input {
+    padding: 0.625rem;
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 360px) {
+  input {
+    padding: 0.5rem;
+    font-size: 0.875rem;
+  }
 }
 
 input:focus {
@@ -163,6 +217,25 @@ input:focus ~ .input-focus-effect {
   overflow: hidden;
   transform: translateZ(0);
   transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  min-height: 250px;
+}
+
+@media (max-width: 640px) {
+  #formsContainer {
+    min-height: 200px;
+  }
+}
+
+@media (max-width: 480px) {
+  #formsContainer {
+    min-height: 180px;
+  }
+}
+
+@media (max-width: 360px) {
+  #formsContainer {
+    min-height: 160px;
+  }
 }
 
 .auth-form {
@@ -213,6 +286,29 @@ input:focus ~ .input-focus-effect {
 #authTitle {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: transform, opacity;
+  font-size: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+@media (max-width: 640px) {
+  #authTitle {
+    font-size: 1.375rem;
+    margin-bottom: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  #authTitle {
+    font-size: 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+}
+
+@media (max-width: 360px) {
+  #authTitle {
+    font-size: 1.125rem;
+    margin-bottom: 1rem;
+  }
 }
 
 #authContainer {
@@ -283,6 +379,32 @@ button[type="submit"],
   will-change: transform, box-shadow, background;
   transform: translateZ(0);
   cursor: pointer;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+}
+
+@media (max-width: 640px) {
+  button[type="submit"],
+  .btn-google {
+    padding: 0.875rem 1.5rem;
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  button[type="submit"],
+  .btn-google {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 360px) {
+  button[type="submit"],
+  .btn-google {
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+  }
 }
 
 button[type="submit"]::before,
@@ -310,6 +432,13 @@ button[type="submit"] {
   box-shadow: 0 2px 8px rgba(88, 101, 242, 0.2);
 }
 
+@media (max-width: 480px) {
+  button[type="submit"] {
+    padding: 10px 20px;
+    border-radius: 6px;
+  }
+}
+
 button[type="submit"]:hover {
   background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
   transform: translateY(-2px) translateZ(0) scale(1.02);
@@ -328,6 +457,13 @@ button[type="submit"]:active {
   border-radius: 8px;
   padding: 12px 24px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+@media (max-width: 480px) {
+  .btn-google {
+    padding: 10px 20px;
+    border-radius: 6px;
+  }
 }
 
 .btn-google:hover {
@@ -381,6 +517,21 @@ button[type="submit"]:focus {
   border-radius: 0.75rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+@media (max-width: 640px) {
+  .glass-hero {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+}
+
+@media (max-width: 480px) {
+  .glass-hero {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: 0.5rem;
+  }
 }
 
 .dot-loader {
@@ -483,6 +634,24 @@ button[type="submit"]:focus {
   pointer-events: none;
 }
 
+@media (max-width: 640px) {
+  .minimalist-bg {
+    opacity: 0.7;
+  }
+}
+
+@media (max-width: 480px) {
+  .minimalist-bg {
+    opacity: 0.5;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .minimalist-bg {
+    display: none;
+  }
+}
+
 .shape {
   position: absolute;
   border-radius: 50%;
@@ -490,6 +659,21 @@ button[type="submit"]:focus {
   opacity: 0.3;
   filter: blur(60px);
   animation: shape-float 12s ease-in-out infinite;
+}
+
+@media (max-width: 640px) {
+  .shape {
+    filter: blur(40px);
+    opacity: 0.2;
+  }
+}
+
+@media (max-width: 480px) {
+  .shape {
+    filter: blur(30px);
+    opacity: 0.15;
+    animation-duration: 15s;
+  }
 }
 
 .shape-1 {
@@ -740,10 +924,56 @@ button[type="submit"]:focus {
 
 label {
   transition: color 0.3s ease;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+@media (max-width: 480px) {
+  label {
+    font-size: 0.8125rem;
+  }
+}
+
+@media (max-width: 360px) {
+  label {
+    font-size: 0.75rem;
+  }
 }
 
 .form-group:focus-within label {
   color: #5865f2;
+}
+
+.text-sm {
+  font-size: 0.875rem;
+}
+
+@media (max-width: 480px) {
+  .text-sm {
+    font-size: 0.8125rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .text-sm {
+    font-size: 0.75rem;
+  }
+}
+
+.text-xs {
+  font-size: 0.75rem;
+}
+
+@media (max-width: 480px) {
+  .text-xs {
+    font-size: 0.6875rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .text-xs {
+    font-size: 0.625rem;
+  }
 }
 
 .ripple-effect {
@@ -796,5 +1026,40 @@ label {
   .ripple-effect {
     animation: none;
     transition: none;
+  }
+}
+
+.flex.items-center.my-5 {
+  margin-top: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+@media (max-width: 640px) {
+  .flex.items-center.my-5 {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .flex.items-center.my-5 {
+    margin-top: 0.875rem;
+    margin-bottom: 0.875rem;
+  }
+}
+
+.text-center.mt-6 {
+  margin-top: 1.5rem;
+}
+
+@media (max-width: 640px) {
+  .text-center.mt-6 {
+    margin-top: 1.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .text-center.mt-6 {
+    margin-top: 1rem;
   }
 }

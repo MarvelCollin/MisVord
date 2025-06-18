@@ -56,7 +56,7 @@ class UserServerMembershipRepository extends Repository {
         $query = new Query();
         return $query->table('user_server_memberships usm')
             ->join('users u', 'usm.user_id', '=', 'u.id')
-            ->select('u.id, u.username, u.avatar_url, usm.role, usm.joined_at')
+            ->select('u.id, u.username, u.avatar_url, usm.role, usm.created_at')
             ->where('usm.server_id', $serverId)
             ->get();
     }

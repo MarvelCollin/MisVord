@@ -20,11 +20,9 @@ class UserRepository extends Repository {
     public function findByGoogleId($googleId) {
         return User::findByGoogleId($googleId);
     }
-    
-    public function createWithHashedPassword($data) {
+      public function createWithHashedPassword($data) {
         if (isset($data['password'])) {
-            $data['password_hash'] = password_hash($data['password'], PASSWORD_DEFAULT);
-            unset($data['password']);
+            $data['password'] = password_hash($data['password'], PASSWORD_DEFAULT);
         }
         return $this->create($data);
     }

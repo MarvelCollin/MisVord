@@ -70,8 +70,10 @@ $onlineFriends = $GLOBALS['onlineFriends'] ?? [];
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     setTimeout(function() {
-        if (window.LazyLoader) {
+        if (window.LazyLoader && typeof window.LazyLoader.triggerDataLoaded === 'function') {
             window.LazyLoader.triggerDataLoaded('friend-list', <?php echo empty($friends) ? 'true' : 'false'; ?>);
+        } else {
+            console.warn('LazyLoader.triggerDataLoaded not available yet');
         }
     }, 750);
 });

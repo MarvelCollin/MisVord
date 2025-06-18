@@ -4,7 +4,7 @@ require_once __DIR__ . '/Model.php';
 
 class Category extends Model {
     protected static $table = 'categories';
-    protected $fillable = ['name', 'server_id', 'position'];    
+    protected $fillable = ['id', 'name', 'server_id', 'position', 'created_at', 'updated_at'];    
     public static function getForServer($serverId) {
         return static::where('server_id', $serverId)->orderBy('position')->get();
     }

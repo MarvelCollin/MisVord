@@ -407,10 +407,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (channelListContainer && channelContent) {
 
-        const loadDelay = Math.floor(Math.random() * 400) + 500;
-
-        setTimeout(function() {
-            if (window.LazyLoader) {
+        const loadDelay = Math.floor(Math.random() * 400) + 500;        setTimeout(function() {
+            if (window.LazyLoader && typeof window.LazyLoader.triggerDataLoaded === 'function') {
 
                 const contentHtml = channelContent.innerHTML;
 
@@ -435,8 +433,9 @@ document.addEventListener('DOMContentLoaded', function() {
                                 });
                             });
                         }
-                    }
-                }, 300); 
+                    }                }, 300); 
+            } else {
+                console.warn('LazyLoader.triggerDataLoaded not available yet');
             }
         }, loadDelay);
     }

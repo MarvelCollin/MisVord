@@ -8,10 +8,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     window.showToast = showToast;
     window.MisVordAjax = MisVordAjax;
-    
-    if (LazyLoader) {
-        window.LazyLoader = LazyLoader;
-        LazyLoader.init();
+      if (LazyLoader) {
+        // Merge the imported LazyLoader with the global one
+        window.LazyLoader = Object.assign(window.LazyLoader || {}, LazyLoader);
+        window.LazyLoader.init();
     }
 
     initGlobalUI();

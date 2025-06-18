@@ -38,27 +38,26 @@ if (file_exists($tooltipPath)) {
         <div class="w-8 h-0.5 bg-discord-dark rounded my-1"></div>
         <?php endif; ?>
         
-        <?php if (!empty($servers)): ?>
-            <?php foreach ($servers as $server): ?>
+        <?php if (!empty($servers)): ?>            <?php foreach ($servers as $server): ?>
                 <?php 
-                $isActive = (string)$currentServerId === (string)$server['id'];
-                $serverInitials = substr($server['name'] ?? 'S', 0, 1);
-                $serverImage = $server['image_url'] ?? '';
+                $isActive = (string)$currentServerId === (string)$server->id;
+                $serverInitials = substr($server->name ?? 'S', 0, 1);
+                $serverImage = $server->image_url ?? '';
                 ?>
                 
                 <?php
                 $serverContent = '<div class="relative">
-                    <a href="/server/' . $server['id'] . '" class="block group">
+                    <a href="/server/' . $server->id . '" class="block group">
                         <div class="w-12 h-12 overflow-hidden ' . ($isActive ? 'rounded-2xl bg-discord-primary' : 'rounded-full hover:rounded-2xl bg-discord-dark') . ' transition-all duration-200 flex items-center justify-center">
                             ' . (!empty($serverImage) ? 
-                                '<img src="' . htmlspecialchars($serverImage) . '" alt="' . htmlspecialchars($server['name']) . '" class="w-full h-full object-cover">' :
+                                '<img src="' . htmlspecialchars($serverImage) . '" alt="' . htmlspecialchars($server->name) . '" class="w-full h-full object-cover">' :
                                 '<span class="text-white font-bold text-xl">' . htmlspecialchars($serverInitials) . '</span>') . '
                         </div>
                     </a>
                     ' . ($isActive ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-10 bg-white rounded-r-md"></div>' : '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-0 bg-white rounded-r-md group-hover:h-5 transition-all duration-150"></div>') . '
                 </div>';
                 
-                echo tooltip($serverContent, htmlspecialchars($server['name']), 'right', 'mb-2');
+                echo tooltip($serverContent, htmlspecialchars($server->name), 'right', 'mb-2');
             endforeach; ?>
         <?php endif; ?>
         

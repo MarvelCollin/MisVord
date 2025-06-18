@@ -107,13 +107,10 @@ class ServerController extends BaseController
         ]);
 
         $name = $input['name'];
-        $description = $input['description'] ?? '';
-
-        try {
+        $description = $input['description'] ?? '';        try {
             $server = new Server();
             $server->name = $name;
             $server->description = $description;
-            $server->owner_id = $this->getCurrentUserId();
 
             if ($server->save()) {
 
@@ -221,9 +218,7 @@ class ServerController extends BaseController
         $server = $this->serverRepository->find($id);
         if (!$server) {
             return $this->notFound('Server not found');
-        }
-
-        if ($server->owner_id != $this->getCurrentUserId()) {
+        }        if (!$server->isOwner($this->getCurrentUserId())) {
             return $this->forbidden('Only the server owner can delete this server');
         }
 
@@ -267,8 +262,7 @@ class ServerController extends BaseController
         $membership = $this->userServerMembershipRepository->findByUserAndServer($this->getCurrentUserId(), $id);
         if (!$membership) {
             return $this->notFound('You are not a member of this server');
-        } 
-        if ($server->owner_id == $this->getCurrentUserId()) {
+        }        if ($server->isOwner($this->getCurrentUserId())) {
             return $this->validationError(['server' => 'Server owner cannot leave. Transfer ownership first.']);
         }
 
@@ -476,19 +470,21 @@ class ServerController extends BaseController
             ]);
             return $this->serverError('Failed to generate invite link');
         }
-    }
-
-    private function formatServer($server)
+    }    private function formatServer($server)
     {
         return [
             'id' => $server->id,
             'name' => $server->name,
             'description' => $server->description,
-            'owner_id' => $server->owner_id,
             'icon_url' => $server->icon_url ?? null,
             'member_count' => $server->getMemberCount(),
             'created_at' => $server->created_at,
-            'updated_at' => $server->updated_at
+            'updated_at' => $server->updated_at,
+            'owner' => $server->getOwner() ? [
+                'id' => $server->getOwner()->id,
+                'username' => $server->getOwner()->username,
+                'display_name' => $server->getOwner()->display_name
+            ] : null
         ];
     }
 
@@ -502,12 +498,10 @@ class ServerController extends BaseController
             'category_id' => $channel->category_id,
             'created_at' => $channel->created_at
         ];
-    }
-
-    private function canManageServer($server)
+    }    private function canManageServer($server)
     {
 
-        if ($server->owner_id == $this->getCurrentUserId()) {
+        if ($server->isOwner($this->getCurrentUserId())) {
             return true;
         }
 

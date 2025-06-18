@@ -5,7 +5,7 @@ require_once __DIR__ . '/../../utils/AppLogger.php';
 
 class Channel extends Model {
     protected static $table = 'channels';
-    protected $fillable = ['server_id', 'category_id', 'name', 'type', 'position', 'description'];    
+    protected $fillable = ['id', 'name', 'type', 'description', 'server_id', 'category_id', 'parent_id', 'position', 'is_private', 'slug', 'created_at', 'updated_at'];    
     public static function getByServerId($serverId) {
         try {
             $channels = static::where('server_id', $serverId)

@@ -4,7 +4,7 @@ require_once __DIR__ . '/Model.php';
 
 class ServerInvite extends Model {
     protected static $table = 'server_invites';
-    protected $fillable = ['server_id', 'created_by', 'invite_code', 'expires_at', 'max_uses', 'uses'];
+    protected $fillable = ['id', 'server_id', 'inviter_user_id', 'target_user_id', 'invite_link', 'created_at', 'updated_at'];
 
     public static function findByCode($code) {
         $result = static::where('invite_code', $code)->first();

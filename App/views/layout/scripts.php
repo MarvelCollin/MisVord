@@ -17,7 +17,7 @@ $core_scripts = ['core/ui/toast', 'core/ajax/ajax-handler', 'core/socket/global-
 <script src="<?php echo js('main'); ?>?v=<?php echo time(); ?>" type="module"></script>
 
 <?php if (isset($page_js)): ?>
-    <script src="<?php echo js($page_js); ?>?v=<?php echo time(); ?>"></script>
+    <script src="<?php echo js($page_js); ?>?v=<?php echo time(); ?>" type="module"></script>
 <?php endif; ?>
 
 <?php foreach($additional_js as $script): ?>

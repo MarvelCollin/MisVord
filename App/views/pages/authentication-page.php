@@ -40,16 +40,16 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
 
 <?php ob_start(); ?>
 
-<div class="authentication-page w-full p-4 min-h-screen flex items-center justify-center bg-[#202225]">
+<div class="authentication-page w-full min-h-screen flex items-center justify-center bg-[#202225] p-4 sm:p-6 md:p-8">
 
-    <div class="w-full max-w-md p-8 mx-auto rounded-xl shadow-2xl relative z-10 glass-hero transform transition-all duration-700 ease-out bg-[#2f3136]/80 backdrop-filter backdrop-blur-md border border-white/10" id="authContainer">
+    <div class="w-full max-w-md mx-auto rounded-xl shadow-2xl relative z-10 glass-hero transform transition-all duration-700 ease-out bg-[#2f3136]/80 backdrop-filter backdrop-blur-md border border-white/10 p-6 sm:p-8" id="authContainer">
 
-        <div class="flex justify-center mb-8 relative">
-            <img src="<?php echo asset('/landing-page/main-logo.png'); ?>" alt="misvord Logo" class="h-12 transition-all" id="logo">
+        <div class="flex justify-center mb-6 sm:mb-8 relative">
+            <img src="<?php echo asset('/landing-page/main-logo.png'); ?>" alt="misvord Logo" class="h-8 sm:h-10 md:h-12 transition-all" id="logo">
             <div class="absolute bottom-0 left-1/2 transform -translate-x-1/2 h-0.5 bg-gradient-to-r from-discord-blue to-discord-pink w-0" id="logoUnderline"></div>
         </div>
 
-        <h1 class="text-2xl font-bold text-center mb-8 text-white" id="authTitle">
+        <h1 class="text-xl sm:text-2xl font-bold text-center mb-6 sm:mb-8 text-white" id="authTitle">
             <?php if ($mode === 'login'): ?>
                 <span>Welcome back!</span>
             <?php elseif ($mode === 'register'): ?>
@@ -71,9 +71,9 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
             </div>
         <?php endif; ?>
 
-        <div id="formsContainer" class="relative transition-all duration-300 ease-out" style="min-height: 250px;">
+        <div id="formsContainer" class="relative transition-all duration-300 ease-out" style="min-height: 200px;">
 
-            <form action="/login" method="POST" class="space-y-5 <?php echo $mode === 'login' ? 'block' : 'hidden'; ?>" id="loginForm">
+            <form action="/login" method="POST" class="space-y-4 sm:space-y-5 <?php echo $mode === 'login' ? 'block' : 'hidden'; ?>" id="loginForm">
 
                 <div class="form-group">
                     <label for="email" class="block text-sm font-medium text-gray-300 mb-1">Email</label>
@@ -81,7 +81,7 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                         type="email" 
                         id="email" 
                         name="email" 
-                        class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
+                        class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 sm:p-3 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all text-sm sm:text-base" 
                         value="<?php echo $oldInput['email'] ?? ''; ?>" 
                         required
                     >
@@ -97,7 +97,7 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                             type="password" 
                             id="password" 
                             name="password" 
-                            class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
+                            class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 sm:p-3 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all text-sm sm:text-base" 
                             required
                         >
                         <button type="button" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors password-toggle">
@@ -113,30 +113,30 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                     <a href="#" class="text-sm text-discord-blue hover:underline form-toggle" data-form="forgot">Forgot your password?</a>
                 </div>
 
-                <button type="submit" class="w-full py-2.5 bg-discord-blue hover:bg-discord-blue/90 text-white font-medium rounded-md transition-all">
+                <button type="submit" class="w-full py-2.5 sm:py-3 bg-discord-blue hover:bg-discord-blue/90 text-white font-medium rounded-md transition-all text-sm sm:text-base">
                     Log In
                 </button>
 
-                <div class="flex items-center my-5">
+                <div class="flex items-center my-4 sm:my-5">
                     <div class="flex-1 h-px bg-gray-600/50"></div>
-                    <div class="mx-4 text-sm text-gray-400">OR</div>
+                    <div class="mx-4 text-xs sm:text-sm text-gray-400">OR</div>
                     <div class="flex-1 h-px bg-gray-600/50"></div>
                 </div>
 
-                <a href="/auth/google" class="w-full py-2.5 bg-white hover:bg-gray-100 text-gray-800 font-medium rounded-md flex items-center justify-center transition-all">
-                    <i class="fab fa-google w-5 h-5 mr-2 text-[#4285F4]"></i>
+                <a href="/auth/google" class="w-full py-2.5 sm:py-3 bg-white hover:bg-gray-100 text-gray-800 font-medium rounded-md flex items-center justify-center transition-all text-sm sm:text-base">
+                    <i class="fab fa-google w-4 h-4 sm:w-5 sm:h-5 mr-2 text-[#4285F4]"></i>
                     Sign in with Google
                 </a>
 
-                <div class="text-center mt-6">
-                    <p class="text-gray-400 text-sm">
+                <div class="text-center mt-4 sm:mt-6">
+                    <p class="text-gray-400 text-xs sm:text-sm">
                         Need an account? 
                         <a href="#" class="text-discord-blue hover:underline form-toggle" data-form="register">Register</a>
                     </p>
                 </div>
             </form>
 
-            <form action="/register" method="POST" class="space-y-5 <?php echo $mode === 'register' ? 'block' : 'hidden'; ?>" id="registerForm">
+            <form action="/register" method="POST" class="space-y-4 sm:space-y-5 <?php echo $mode === 'register' ? 'block' : 'hidden'; ?>" id="registerForm">
 
                 <div class="form-group">
                     <label for="username" class="block text-sm font-medium text-gray-300 mb-1">Username</label>
@@ -144,7 +144,7 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                         type="text" 
                         id="username" 
                         name="username" 
-                        class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
+                        class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 sm:p-3 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all text-sm sm:text-base" 
                         value="<?php echo $oldInput['username'] ?? ''; ?>" 
                         required
                     >

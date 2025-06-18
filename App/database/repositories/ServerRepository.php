@@ -30,25 +30,28 @@ class ServerRepository extends Repository {
     public function getFormattedServersForUser($userId) {
         return $this->getForUser($userId);
     }
-    
-    public function createWithOwner($data, $ownerId) {
-        $data['owner_id'] = $ownerId;
+      public function createWithOwner($data, $ownerId) {
         $server = $this->create($data);
         
         if ($server && $server->id) {
-            $this->addMember($server->id, $ownerId);
+            $this->addMemberWithRole($server->id, $ownerId, 'owner');
             return $server;
         }
         
         return null;
     }
+      public function addMember($serverId, $userId, $role = 'member') {
+        return $this->addMemberWithRole($serverId, $userId, $role);
+    }
     
-    public function addMember($serverId, $userId) {
+    public function addMemberWithRole($serverId, $userId, $role = 'member') {
         $query = new Query();
         return $query->table('user_server_memberships')->insert([
             'user_id' => $userId,
             'server_id' => $serverId,
-            'joined_at' => date('Y-m-d H:i:s')
+            'role' => $role,
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s')
         ]);
     }
     

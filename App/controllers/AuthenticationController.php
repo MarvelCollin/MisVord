@@ -17,13 +17,13 @@ class AuthenticationController extends BaseController
     public function showLogin()
     {
         if ($this->isAuthenticated()) {
-            $redirect = $_GET['redirect'] ?? '/app';
-
-            if ($this->isApiRoute() || $this->isAjaxRequest()) {
+            $redirect = $_GET['redirect'] ?? '/app';            if ($this->isApiRoute() || $this->isAjaxRequest()) {
                 return $this->success(['redirect' => $redirect], 'Already authenticated');
             }
 
-            header('Location: ' . $redirect);
+            if (!headers_sent()) {
+                header('Location: ' . $redirect);
+            }
             exit;
         }
 
@@ -51,9 +51,17 @@ class AuthenticationController extends BaseController
             'password' => 'required'
         ]);
         $email = $input['email'];
-        $password = $input['password'];
-
-        $user = $this->userRepository->findByEmail($email);
+        $password = $input['password'];        $user = $this->userRepository->findByEmail($email);
+        
+        if ($user) {
+            error_log("DEBUG: User found - ID: " . $user->id . ", Email: " . $user->email);
+            error_log("DEBUG: User password field: " . ($user->password ? 'NOT EMPTY' : 'EMPTY'));
+            error_log("DEBUG: User password hash: " . substr($user->password ?? 'NULL', 0, 20) . "...");
+            error_log("DEBUG: Password verification result: " . ($user->verifyPassword($password) ? 'TRUE' : 'FALSE'));
+        } else {
+            error_log("DEBUG: No user found with email: " . $email);
+        }
+        
         if (!$user || !$user->verifyPassword($password)) {
             $this->logActivity('login_failed', ['email' => $email]);
 
@@ -63,7 +71,10 @@ class AuthenticationController extends BaseController
 
             $_SESSION['errors'] = ['auth' => 'Invalid email or password'];
             $_SESSION['old_input'] = ['email' => $email];
-            header('Location: /login');
+            
+            if (!headers_sent()) {
+                header('Location: /login');
+            }
             exit;
         }
 
@@ -76,9 +87,7 @@ class AuthenticationController extends BaseController
 
         $this->logActivity('login_success', ['user_id' => $user->id]);
 
-        $redirect = $this->getRedirectUrl();
-
-        if ($this->isApiRoute() || $this->isAjaxRequest()) {
+        $redirect = $this->getRedirectUrl();        if ($this->isApiRoute() || $this->isAjaxRequest()) {
             return $this->success([
                 'user' => [
                     'id' => $user->id,
@@ -89,19 +98,22 @@ class AuthenticationController extends BaseController
             ], 'Login successful');
         }
 
-        header('Location: ' . $redirect);
+        if (!headers_sent()) {
+            header('Location: ' . $redirect);
+        }
         exit;
     }
 
     public function showRegister()
     {
         // Redirect if already authenticated
-        if ($this->isAuthenticated()) {
-            if ($this->isApiRoute() || $this->isAjaxRequest()) {
+        if ($this->isAuthenticated()) {            if ($this->isApiRoute() || $this->isAjaxRequest()) {
                 return $this->redirectResponse('/app');
             }
 
-            header('Location: /');
+            if (!headers_sent()) {
+                header('Location: /');
+            }
             exit;
         }
 
@@ -162,14 +174,14 @@ class AuthenticationController extends BaseController
 
             if ($this->isApiRoute() || $this->isAjaxRequest()) {
                 return $this->validationError($errors);
-            }
-
-            $_SESSION['errors'] = $errors;
+            }            $_SESSION['errors'] = $errors;
             $_SESSION['old_input'] = [
                 'username' => $username,
                 'email' => $email
             ];
-            header('Location: /register');
+            if (!headers_sent()) {
+                header('Location: /register');
+            }
             exit;
         }
 
@@ -198,11 +210,12 @@ class AuthenticationController extends BaseController
                             'username' => $user->username,
                             'avatar_url' => $user->avatar_url
                         ],
-                        'redirect' => $redirect
-                    ], 'Registration successful');
+                        'redirect' => $redirect                    ], 'Registration successful');
                 }
 
-                header('Location: ' . $redirect);
+                if (!headers_sent()) {
+                    header('Location: ' . $redirect);
+                }
                 exit;
             } else {
                 throw new Exception('Failed to save user');
@@ -217,14 +230,14 @@ class AuthenticationController extends BaseController
 
             if ($this->isApiRoute() || $this->isAjaxRequest()) {
                 return $this->serverError($errorMessage);
-            }
-
-            $_SESSION['errors'] = ['general' => $errorMessage];
+            }            $_SESSION['errors'] = ['general' => $errorMessage];
             $_SESSION['old_input'] = [
                 'username' => $username,
                 'email' => $email
             ];
-            header('Location: /register');
+            if (!headers_sent()) {
+                header('Location: /register');
+            }
             exit;
         }
     }
@@ -246,13 +259,13 @@ class AuthenticationController extends BaseController
 
         $this->logActivity('logout', ['user_id' => $userId]);
 
-        session_destroy();
-
-        if ($this->isApiRoute() || $this->isAjaxRequest()) {
+        session_destroy();        if ($this->isApiRoute() || $this->isAjaxRequest()) {
             return $this->success(['redirect' => '/'], 'Logged out successfully');
         }
 
-        header('Location: /');
+        if (!headers_sent()) {
+            header('Location: /');
+        }
         exit;
     }
 
@@ -284,10 +297,10 @@ class AuthenticationController extends BaseController
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             if ($this->isApiRoute() || $this->isAjaxRequest()) {
                 return $this->validationError(['email' => 'Invalid email format']);
+            }            $_SESSION['errors'] = ['email' => 'Invalid email format'];
+            if (!headers_sent()) {
+                header('Location: /forgot-password');
             }
-
-            $_SESSION['errors'] = ['email' => 'Invalid email format'];
-            header('Location: /forgot-password');
             exit;
         }
 
@@ -295,10 +308,10 @@ class AuthenticationController extends BaseController
 
         if ($this->isApiRoute() || $this->isAjaxRequest()) {
             return $this->success(['redirect' => '/login'], $message);
+        }        $_SESSION['success'] = $message;
+        if (!headers_sent()) {
+            header('Location: /login');
         }
-
-        $_SESSION['success'] = $message;
-        header('Location: /login');
         exit;
     }
 
@@ -309,12 +322,13 @@ class AuthenticationController extends BaseController
             $name = $googleData['name'] ?? null;
             $googleId = $googleData['id'] ?? null;
 
-            if (!$email || !$googleId) {
-                if ($this->isApiRoute() || $this->isAjaxRequest()) {
+            if (!$email || !$googleId) {                if ($this->isApiRoute() || $this->isAjaxRequest()) {
                     return $this->validationError(['auth' => 'Invalid Google authentication data']);
                 }
                 $_SESSION['errors'] = ['auth' => 'Google authentication failed'];
-                header('Location: /login');
+                if (!headers_sent()) {
+                    header('Location: /login');
+                }
                 exit;
             }
 
@@ -351,20 +365,21 @@ class AuthenticationController extends BaseController
                         'avatar_url' => $user->avatar_url
                     ],
                     'redirect' => $redirect
-                ], 'Google authentication successful');
-            }
+                ], 'Google authentication successful');            }
 
-            header('Location: ' . $redirect);
+            if (!headers_sent()) {
+                header('Location: ' . $redirect);
+            }
             exit;
         } catch (Exception $e) {
             $this->logActivity('google_auth_error', ['error' => $e->getMessage()]);
 
             if ($this->isApiRoute() || $this->isAjaxRequest()) {
                 return $this->serverError('Google authentication failed');
+            }            $_SESSION['errors'] = ['auth' => 'Google authentication failed'];
+            if (!headers_sent()) {
+                header('Location: /login');
             }
-
-            $_SESSION['errors'] = ['auth' => 'Google authentication failed'];
-            header('Location: /login');
             exit;
         }
     }

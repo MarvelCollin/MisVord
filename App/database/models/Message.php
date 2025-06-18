@@ -4,7 +4,7 @@ require_once __DIR__ . '/Model.php';
 
 class Message extends Model {
     protected static $table = 'messages';
-    protected $fillable = ['user_id', 'content', 'type', 'reply_to_id', 'edited_at'];
+    protected $fillable = ['id', 'user_id', 'reply_message_id', 'content', 'sent_at', 'edited_at', 'message_type', 'attachment_url', 'created_at', 'updated_at'];
     
     public function save() {
         if (!isset($this->attributes['sent_at'])) {
@@ -58,13 +58,12 @@ class Message extends Model {
         require_once __DIR__ . '/User.php';
         return User::find($this->user_id);
     }
-    
-    public function replyTo() {
-        if (!$this->reply_to_id) {
+      public function replyTo() {
+        if (!$this->reply_message_id) {
             return null;
         }
         
-        return static::find($this->reply_to_id);
+        return static::find($this->reply_message_id);
     }
     
     public function markAsEdited() {
