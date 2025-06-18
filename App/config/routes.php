@@ -8,6 +8,11 @@ require_once __DIR__ . '/../controllers/GoogleAuthController.php';
 require_once __DIR__ . '/../controllers/ServerSettingsController.php';
 require_once __DIR__ . '/../controllers/NotificationSettingsController.php';
 require_once __DIR__ . '/../controllers/UserProfileController.php';
+require_once __DIR__ . '/../controllers/GroupServerController.php';
+require_once __DIR__ . '/../controllers/RoleController.php';
+require_once __DIR__ . '/../controllers/EmojiController.php';
+require_once __DIR__ . '/../controllers/FriendController.php';
+require_once __DIR__ . '/../controllers/UserPresenceController.php';
 require_once __DIR__ . '/env.php';
 
 class Route {
@@ -23,6 +28,14 @@ class Route {
 
     public static function post($pattern, $handler) {
         self::add($pattern, $handler, 'POST');
+    }
+
+    public static function put($pattern, $handler) {
+        self::add($pattern, $handler, 'PUT');
+    }
+    
+    public static function delete($pattern, $handler) {
+        self::add($pattern, $handler, 'DELETE');
     }
 
     public static function getRoutes() {
@@ -177,6 +190,221 @@ Route::get('/debug/logs', function() {
     
     require_once __DIR__ . '/../public/debug-logs.html';
     exit;
+});
+
+// GroupServer routes
+Route::get('/api/group-servers', function() {
+    $controller = new GroupServerController();
+    $controller->index();
+});
+
+Route::post('/api/group-servers', function() {
+    $controller = new GroupServerController();
+    $controller->create();
+});
+
+Route::post('/api/group-servers/([0-9]+)', function($id) {
+    $controller = new GroupServerController();
+    $controller->update($id);
+});
+
+Route::delete('/api/group-servers/([0-9]+)', function($id) {
+    $controller = new GroupServerController();
+    $controller->delete($id);
+});
+
+Route::get('/api/group-servers/([0-9]+)/servers', function($id) {
+    $controller = new GroupServerController();
+    $controller->getServers($id);
+});
+
+// Role routes
+Route::get('/api/servers/([0-9]+)/roles', function($serverId) {
+    $controller = new RoleController();
+    $controller->getServerRoles($serverId);
+});
+
+Route::post('/api/servers/([0-9]+)/roles', function($serverId) {
+    $controller = new RoleController();
+    $controller->createRole($serverId);
+});
+
+Route::post('/api/roles/([0-9]+)', function($roleId) {
+    $controller = new RoleController();
+    $controller->updateRole($roleId);
+});
+
+Route::delete('/api/roles/([0-9]+)', function($roleId) {
+    $controller = new RoleController();
+    $controller->deleteRole($roleId);
+});
+
+Route::post('/api/roles/([0-9]+)/assign', function($roleId) {
+    $controller = new RoleController();
+    $controller->assignRoleToUser($roleId);
+});
+
+Route::post('/api/roles/([0-9]+)/remove', function($roleId) {
+    $controller = new RoleController();
+    $controller->removeRoleFromUser($roleId);
+});
+
+Route::post('/api/roles/([0-9]+)/permissions', function($roleId) {
+    $controller = new RoleController();
+    $controller->updateRolePermissions($roleId);
+});
+
+Route::get('/api/roles/([0-9]+)/permissions', function($roleId) {
+    $controller = new RoleController();
+    $controller->getRolePermissions($roleId);
+});
+
+// Emoji routes
+Route::get('/api/servers/([0-9]+)/emojis', function($serverId) {
+    $controller = new EmojiController();
+    $controller->getServerEmojis($serverId);
+});
+
+Route::get('/api/servers/([0-9]+)/emojis/top', function($serverId) {
+    $controller = new EmojiController();
+    $controller->getTopServerEmojis($serverId);
+});
+
+Route::post('/api/servers/([0-9]+)/emojis', function($serverId) {
+    $controller = new EmojiController();
+    $controller->createEmoji($serverId);
+});
+
+Route::post('/api/emojis/([0-9]+)', function($emojiId) {
+    $controller = new EmojiController();
+    $controller->updateEmoji($emojiId);
+});
+
+Route::delete('/api/emojis/([0-9]+)', function($emojiId) {
+    $controller = new EmojiController();
+    $controller->deleteEmoji($emojiId);
+});
+
+Route::post('/api/messages/([0-9]+)/reactions', function($messageId) {
+    $controller = new EmojiController();
+    $controller->addEmojiReaction($messageId);
+});
+
+Route::delete('/api/messages/([0-9]+)/reactions', function($messageId) {
+    $controller = new EmojiController();
+    $controller->removeEmojiReaction($messageId);
+});
+
+Route::get('/api/messages/([0-9]+)/reactions', function($messageId) {
+    $controller = new EmojiController();
+    $controller->getMessageReactions($messageId);
+});
+
+Route::get('/api/users/me/emojis/top', function() {
+    $controller = new EmojiController();
+    $controller->getUserTopEmojis();
+});
+
+Route::get('/api/users/([0-9]+)/emojis/top', function($userId) {
+    $controller = new EmojiController();
+    $controller->getUserTopEmojis($userId);
+});
+
+// Friend routes
+Route::get('/api/friends', function() {
+    $controller = new FriendController();
+    $controller->getFriends();
+});
+
+Route::get('/api/friends/online', function() {
+    $controller = new FriendController();
+    $controller->getOnlineFriends();
+});
+
+Route::get('/api/friends/pending', function() {
+    $controller = new FriendController();
+    $controller->getPendingRequests();
+});
+
+Route::get('/api/friends/sent', function() {
+    $controller = new FriendController();
+    $controller->getSentRequests();
+});
+
+Route::post('/api/friends', function() {
+    $controller = new FriendController();
+    $controller->sendFriendRequest();
+});
+
+Route::post('/api/friends/([0-9]+)/accept', function($friendshipId) {
+    $controller = new FriendController();
+    $controller->acceptFriendRequest($friendshipId);
+});
+
+Route::post('/api/friends/([0-9]+)/decline', function($friendshipId) {
+    $controller = new FriendController();
+    $controller->declineFriendRequest($friendshipId);
+});
+
+Route::delete('/api/friends', function() {
+    $controller = new FriendController();
+    $controller->removeFriend();
+});
+
+Route::post('/api/users/block', function() {
+    $controller = new FriendController();
+    $controller->blockUser();
+});
+
+Route::post('/api/users/unblock', function() {
+    $controller = new FriendController();
+    $controller->unblockUser();
+});
+
+Route::get('/api/users/blocked', function() {
+    $controller = new FriendController();
+    $controller->getBlockedUsers();
+});
+
+Route::post('/api/users/find', function() {
+    $controller = new FriendController();
+    $controller->findUsers();
+});
+
+// User Presence routes
+Route::post('/api/presence/status', function() {
+    $controller = new UserPresenceController();
+    $controller->updateStatus();
+});
+
+Route::get('/api/presence/me', function() {
+    $controller = new UserPresenceController();
+    $controller->getStatus();
+});
+
+Route::get('/api/presence/users/([0-9]+)', function($userId) {
+    $controller = new UserPresenceController();
+    $controller->getStatus($userId);
+});
+
+Route::get('/api/presence/online', function() {
+    $controller = new UserPresenceController();
+    $controller->getOnlineUsers();
+});
+
+Route::post('/api/presence/activity', function() {
+    $controller = new UserPresenceController();
+    $controller->setActivity();
+});
+
+Route::delete('/api/presence/activity', function() {
+    $controller = new UserPresenceController();
+    $controller->clearActivity();
+});
+
+Route::post('/api/presence/offline', function() {
+    $controller = new UserPresenceController();
+    $controller->goOffline();
 });
 
 return array_merge(Route::getRoutes(), [

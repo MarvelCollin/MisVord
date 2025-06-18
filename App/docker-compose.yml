@@ -18,7 +18,7 @@ services:
       - ./database:/var/www/html/database:ro
       - ./utils:/var/www/html/utils:ro
       - ./storage:/var/www/html/storage:rw 
-      - ./router.php:/var/www/html/router.php:ro
+      - ./public/router.php:/var/www/html/router.php:ro
       - ./index.php:/var/www/html/index.php:ro
       - ./.htaccess:/var/www/html/.htaccess:ro
       - ./debug.php:/var/www/html/debug.php:ro
