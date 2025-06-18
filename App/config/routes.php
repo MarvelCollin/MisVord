@@ -168,7 +168,6 @@ Route::get('/health', function() {
     ]);
 });
 
-// Debug logs route (only in development)
 Route::get('/debug/logs', function() {
     if (EnvLoader::get('APP_ENV') === 'production') {
         http_response_code(404);
