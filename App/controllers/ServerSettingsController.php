@@ -1,16 +1,22 @@
 <?php
 
-require_once __DIR__ . '/../database/models/Server.php';
-require_once __DIR__ . '/../database/models/ServerInvite.php';
-require_once __DIR__ . '/../database/models/UserServerMembership.php';
-require_once __DIR__ . '/../database/query.php';
+require_once __DIR__ . '/../database/repositories/ServerRepository.php';
+require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
+require_once __DIR__ . '/../database/repositories/ServerInviteRepository.php';
 require_once __DIR__ . '/../config/env.php';
 require_once __DIR__ . '/BaseController.php';
 
 class ServerSettingsController extends BaseController {
 
+    private $serverRepository;
+    private $membershipRepository;
+    private $inviteRepository;
+
     public function __construct() {
         parent::__construct();
+        $this->serverRepository = new ServerRepository();
+        $this->membershipRepository = new UserServerMembershipRepository();
+        $this->inviteRepository = new ServerInviteRepository();
     }
 
     public function updateServerSettings() {
@@ -22,16 +28,14 @@ class ServerSettingsController extends BaseController {
 
         if (!$data || !isset($data['server_id'])) {
             return $this->validationError(['message' => 'Invalid request']);
-        }
-
-        $serverId = $data['server_id'];
-        $server = Server::find($serverId);
+        }        $serverId = $data['server_id'];
+        $server = $this->serverRepository->find($serverId);
 
         if (!$server) {
             return $this->notFound('Server not found');
         }
 
-        if (!UserServerMembership::isOwner($_SESSION['user_id'], $serverId)) {
+        if (!$this->membershipRepository->isOwner($_SESSION['user_id'], $serverId)) {
             return $this->forbidden('You do not have permission to update server settings');
         }
 
@@ -79,16 +83,14 @@ class ServerSettingsController extends BaseController {
 
         if (!isset($matches[1])) {
             return $this->validationError(['message' => 'Server ID not found in URL']);
-        }
-
-        $serverId = $matches[1];
-        $server = Server::find($serverId);
+        }        $serverId = $matches[1];
+        $server = $this->serverRepository->find($serverId);
 
         if (!$server) {
             return $this->notFound('Server not found');
         }
 
-        $membership = UserServerMembership::findByUserAndServer($_SESSION['user_id'], $serverId);
+        $membership = $this->membershipRepository->findByUserAndServer($_SESSION['user_id'], $serverId);
         if (!$membership || ($membership->role !== 'admin' && $membership->role !== 'owner')) {
             return $this->forbidden('You do not have permission to generate invite links');
         }
@@ -99,11 +101,9 @@ class ServerSettingsController extends BaseController {
             $inviteCode = '';
             for ($i = 0; $i < 10; $i++) {
                 $inviteCode .= $characters[rand(0, strlen($characters) - 1)];
-            }
+            }            $this->inviteRepository->deleteOldInvites($serverId);
 
-            ServerInvite::deleteOldInvites($serverId);
-
-            $invite = ServerInvite::create([
+            $invite = $this->inviteRepository->create([
                 'server_id' => $serverId,
                 'inviter_user_id' => $_SESSION['user_id'],
                 'invite_link' => $inviteCode

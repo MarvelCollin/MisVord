@@ -1,37 +1,29 @@
 <?php
 
-require_once __DIR__ . '/../database/query.php';
+require_once __DIR__ . '/../database/repositories/ServerRepository.php';
+require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
 require_once __DIR__ . '/BaseController.php';
 
 class ExploreController extends BaseController {
 
+    private $serverRepository;
+    private $userServerMembershipRepository;
+
     public function __construct() {
         parent::__construct();
-    }
-
-    public function getPublicServers() {
+        $this->serverRepository = new ServerRepository();
+        $this->userServerMembershipRepository = new UserServerMembershipRepository();
+    }    public function getPublicServers() {
         $currentUserId = $_SESSION['user_id'] ?? 0;
         $servers = [];
         $userServerId = [];
 
         try {
-            $query = new Query();
+            $servers = $this->serverRepository->getPublicServersWithMemberCount();
+            $userServerMemberships = $this->userServerMembershipRepository->getServersForUser($currentUserId);
 
-            $servers = $query->table('servers s')
-                ->select('s.*, COUNT(usm.id) as member_count')
-                ->leftJoin('user_server_memberships usm', 's.id', '=', 'usm.server_id')
-                ->where('s.is_public', 1)
-                ->groupBy('s.id')
-                ->orderBy('member_count', 'DESC')
-                ->get();
-
-            $userServers = $query->table('user_server_memberships')
-                ->select('server_id')
-                ->where('user_id', $currentUserId)
-                ->get();
-
-            foreach ($userServers as $server) {
-                $userServerId[] = $server['server_id'];
+            foreach ($userServerMemberships as $membership) {
+                $userServerId[] = $membership['server_id'];
             }
 
         } catch (Exception $e) {
@@ -44,32 +36,17 @@ class ExploreController extends BaseController {
             'servers' => $servers,
             'userServerIds' => $userServerId
         ];
-    }
-
-    public function getFeaturedServers($limit = 3) {
+    }    public function getFeaturedServers($limit = 3) {
         $currentUserId = $_SESSION['user_id'] ?? 0;
         $featuredServers = [];
         $userServerId = [];
 
         try {
-            $query = new Query();
+            $featuredServers = $this->serverRepository->getFeaturedServersWithMemberCount($limit);
+            $userServerMemberships = $this->userServerMembershipRepository->getServersForUser($currentUserId);
 
-            $featuredServers = $query->table('servers s')
-                ->select('s.*, COUNT(usm.id) as member_count')
-                ->leftJoin('user_server_memberships usm', 's.id', '=', 'usm.server_id')
-                ->where('s.is_public', 1)
-                ->groupBy('s.id')
-                ->orderBy('member_count', 'DESC')
-                ->limit($limit)
-                ->get();
-
-            $userServers = $query->table('user_server_memberships')
-                ->select('server_id')
-                ->where('user_id', $currentUserId)
-                ->get();
-
-            foreach ($userServers as $server) {
-                $userServerId[] = $server['server_id'];
+            foreach ($userServerMemberships as $membership) {
+                $userServerId[] = $membership['server_id'];
             }
 
         } catch (Exception $e) {
@@ -82,32 +59,17 @@ class ExploreController extends BaseController {
             'featuredServers' => $featuredServers,
             'userServerIds' => $userServerId
         ];
-    }
-
-    public function getServersByCategory($category) {
+    }    public function getServersByCategory($category) {
         $currentUserId = $_SESSION['user_id'] ?? 0;
         $servers = [];
         $userServerId = [];
 
         try {
-            $query = new Query();
+            $servers = $this->serverRepository->getServersByCategoryWithMemberCount($category);
+            $userServerMemberships = $this->userServerMembershipRepository->getServersForUser($currentUserId);
 
-            $servers = $query->table('servers s')
-                ->select('s.*, COUNT(usm.id) as member_count')
-                ->leftJoin('user_server_memberships usm', 's.id', '=', 'usm.server_id')
-                ->where('s.is_public', 1)
-                ->where('s.category', $category)
-                ->groupBy('s.id')
-                ->orderBy('member_count', 'DESC')
-                ->get();
-
-            $userServers = $query->table('user_server_memberships')
-                ->select('server_id')
-                ->where('user_id', $currentUserId)
-                ->get();
-
-            foreach ($userServers as $server) {
-                $userServerId[] = $server['server_id'];
+            foreach ($userServerMemberships as $membership) {
+                $userServerId[] = $membership['server_id'];
             }
 
         } catch (Exception $e) {
@@ -128,17 +90,10 @@ class ExploreController extends BaseController {
         if (!isset($_SESSION['user_id'])) {
             header('Location: /login');
             exit;
-        }
+        }        $currentUserId = $_SESSION['user_id'];
 
-        $currentUserId = $_SESSION['user_id'];
-
-        // Load user's servers for the sidebar
-        require_once dirname(__DIR__) . '/database/models/Server.php';
-        $userServers = Server::getFormattedServersForUser($currentUserId);
-        $GLOBALS['userServers'] = $userServers;
-
-        // Get servers data
-        $allServersData = $this->getPublicServers();
+        $userServers = $this->serverRepository->getForUser($currentUserId);
+        $GLOBALS['userServers'] = $userServers;        $allServersData = $this->getPublicServers();
         $featuredServersData = $this->getFeaturedServers(3);
 
         $categories = [

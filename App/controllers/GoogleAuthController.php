@@ -1,16 +1,19 @@
 <?php
 
-require_once __DIR__ . '/../database/models/User.php';
+require_once __DIR__ . '/../database/repositories/UserRepository.php';
 
 class GoogleAuthController {
     private $clientId;
     private $clientSecret;
     private $redirectUri;
+    private $userRepository;
 
     public function __construct() {
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
+
+        $this->userRepository = new UserRepository();
 
         $config = require __DIR__ . '/../config/google_oauth.php';
 
@@ -172,33 +175,29 @@ class GoogleAuthController {
         $name = $googleData['name'] ?? null;
         $firstName = $googleData['given_name'] ?? null;
         $lastName = $googleData['family_name'] ?? null;
-        $picture = $googleData['picture'] ?? null;
+        $picture = $googleData['picture'] ?? null;        error_log("Authenticating Google user: email={$email}, name={$name}, picture=" . ($picture ? "provided" : "not provided"));
 
-        error_log("Authenticating Google user: email={$email}, name={$name}, picture=" . ($picture ? "provided" : "not provided"));
-
-        $user = User::findByGoogleId($googleId);
+        $user = $this->userRepository->findByGoogleId($googleId);
 
         if (!$user) {
-
-            $user = User::findByEmail($email);
-
-            if ($user) {
-
+            $user = $this->userRepository->findByEmail($email);            if ($user) {
                 error_log("User found by email, updating Google ID: user_id={$user->id}");
                 $user->google_id = $googleId;
                 $user->avatar_url = $picture;
                 $user->save();
             } else {
-
                 error_log("Creating new user from Google data");
-                $user = new User();
-                $user->username = $name ?? $email;
-                $user->email = $email;
-                $user->google_id = $googleId;
-                $user->avatar_url = $picture;
-                $user->status = 'online';
-
-                if (!$user->save()) {
+                
+                $userData = [
+                    'username' => $name ?? $email,
+                    'email' => $email,
+                    'google_id' => $googleId,
+                    'avatar_url' => $picture,
+                    'status' => 'online'
+                ];
+                
+                $user = $this->userRepository->create($userData);
+                if (!$user) {
                     throw new Exception("Failed to create user account");
                 }
                 error_log("Created new user: user_id={$user->id}");

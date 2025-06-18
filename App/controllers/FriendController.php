@@ -1,12 +1,15 @@
 <?php
 
-require_once __DIR__ . '/../database/models/User.php';
+require_once __DIR__ . '/../database/repositories/UserRepository.php';
 require_once __DIR__ . '/BaseController.php';
 
 class FriendController extends BaseController {
 
+    private $userRepository;
+
     public function __construct() {
         parent::__construct();
+        $this->userRepository = new UserRepository();
     }
 
     /**
@@ -44,11 +47,9 @@ class FriendController extends BaseController {
         $input = $this->sanitize($input);
         
         $this->validate($input, ['username' => 'required']);
+          $username = $input['username'];
         
-        $username = $input['username'];
-        
-        // Find target user
-        $targetUser = User::findByUsername($username);
+        $targetUser = $this->userRepository->findByUsername($username);
         if (!$targetUser) {
             return $this->notFound('User not found');
         }
@@ -179,25 +180,8 @@ class FriendController extends BaseController {
         $query = $_GET['q'] ?? '';
         if (empty($query)) {
             return $this->validationError(['q' => 'Search query is required']);
-        }
-
-        try {
-            // Simple user search implementation
-            $queryBuilder = $this->query();
-            $results = $queryBuilder->table('users')
-                ->where('username', 'LIKE', "%{$query}%")
-                ->where('id', '!=', $this->getCurrentUserId())
-                ->limit(20)
-                ->get();
-
-            $users = [];
-            foreach ($results as $result) {
-                $users[] = [
-                    'id' => $result['id'],
-                    'username' => $result['username'],
-                    'avatar_url' => $result['avatar_url'] ?? null
-                ];
-            }
+        }        try {
+            $users = $this->userRepository->searchByUsername($query, $this->getCurrentUserId(), 20);
 
             $this->logActivity('users_searched', [
                 'query' => $query,
@@ -221,13 +205,10 @@ class FriendController extends BaseController {
      * Get user's friends data (for HomeController compatibility)
      */
     public function getUserFriends() {
-        $this->requireAuth();
-
-        try {
+        $this->requireAuth();        try {
             $currentUserId = $this->getCurrentUserId();
             
-            // Get current user data
-            $currentUser = User::find($currentUserId);
+            $currentUser = $this->userRepository->find($currentUserId);
             
             // TODO: Implement proper friends relationship
             // For now, return empty arrays

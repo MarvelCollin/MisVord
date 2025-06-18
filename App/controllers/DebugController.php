@@ -1,7 +1,14 @@
 <?php
 
+require_once dirname(__DIR__) . '/database/repositories/UserRepository.php';
+
 class DebugController extends BaseController
 {
+    private $userRepository;
+
+    public function __construct() {
+        $this->userRepository = new UserRepository();
+    }
     public function getDatabaseDebugInfo()
     {
         $debugInfo = '';
@@ -43,13 +50,11 @@ class DebugController extends BaseController
             $stmt = $pdo->query("SELECT 1 AS test_connection");
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
             $stmt->closeCursor(); 
-            
-            echo '<div class="bg-green-500 text-white p-3 rounded-md mb-6 text-center">
+              echo '<div class="bg-green-500 text-white p-3 rounded-md mb-6 text-center">
                 Database connection successful! Server: ' . $pdo->getAttribute(PDO::ATTR_SERVER_VERSION) . '
             </div>';
             
-            require_once dirname(__DIR__) . '/database/models/User.php';
-            $tableExists = User::createTable();
+            $tableExists = $this->userRepository->createTable();
             
             echo '<div class="bg-green-500 text-white p-3 rounded-md mb-6 text-center">
                 User table ' . ($tableExists ? 'exists' : 'creation attempted') . '!
@@ -86,14 +91,11 @@ class DebugController extends BaseController
 
         $debugInfo = ob_get_clean();
         return $debugInfo;
-    }
-
-    public function initializeDatabase()
+    }    public function initializeDatabase()
     {
         try {
             require_once dirname(__DIR__) . '/database/query.php';
-            require_once dirname(__DIR__) . '/database/models/User.php';
-            User::initialize();
+            $this->userRepository->initialize();
             return true;
         } catch (Exception $e) {
             log_error("Error initializing database", ['error' => $e->getMessage()]);

@@ -1,15 +1,21 @@
 <?php
 
-require_once __DIR__ . '/../database/models/Channel.php';
-require_once __DIR__ . '/../database/models/ChannelMessage.php';
-require_once __DIR__ . '/../database/models/Server.php';
-require_once __DIR__ . '/../database/models/UserServerMembership.php';
+require_once __DIR__ . '/../database/repositories/ChannelRepository.php';
+require_once __DIR__ . '/../database/repositories/MessageRepository.php';
+require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
 require_once __DIR__ . '/BaseController.php';
 
 class ChannelController extends BaseController {
 
+    private $channelRepository;
+    private $messageRepository;
+    private $membershipRepository;
+
     public function __construct() {
         parent::__construct();
+        $this->channelRepository = new ChannelRepository();
+        $this->messageRepository = new MessageRepository();
+        $this->membershipRepository = new UserServerMembershipRepository();
     }
 
     /**
@@ -23,15 +29,12 @@ class ChannelController extends BaseController {
         
         if (!$serverId) {
             return $this->validationError(['server_id' => 'Server ID is required']);
-        }
-
-        try {
-            // Check if user has access to the server
-            if (!UserServerMembership::isMember($this->getCurrentUserId(), $serverId)) {
+        }        try {
+            if (!$this->membershipRepository->isMember($this->getCurrentUserId(), $serverId)) {
                 return $this->forbidden('You do not have access to this server');
             }
 
-            $channels = Channel::getByServerId($serverId);
+            $channels = $this->channelRepository->getByServerId($serverId);
 
             $this->logActivity('channels_viewed', ['server_id' => $serverId]);
 
@@ -48,11 +51,9 @@ class ChannelController extends BaseController {
         }
     }    /**
      * Get a specific channel
-     */
-    public function show($channelId = null) {
+     */    public function show($channelId = null) {
         $this->requireAuth();
 
-        // Get channel ID from parameter or input
         if (!$channelId) {
             $input = $this->getInput();
             $channelId = $input['channel_id'] ?? null;
@@ -63,13 +64,12 @@ class ChannelController extends BaseController {
         }
 
         try {
-            $channel = Channel::find($channelId);
+            $channel = $this->channelRepository->find($channelId);
             if (!$channel) {
                 return $this->notFound('Channel not found');
             }
 
-            // Check if user has access to the server
-            if (!UserServerMembership::isMember($this->getCurrentUserId(), $channel->server_id)) {
+            if (!$this->membershipRepository->isMember($this->getCurrentUserId(), $channel->server_id)) {
                 return $this->forbidden('You do not have access to this channel');
             }
 
@@ -98,15 +98,12 @@ class ChannelController extends BaseController {
             'name' => 'required',
             'server_id' => 'required',
             'type' => 'required'
-        ]);
-
-        try {
-            // Check if user is owner of the server
-            if (!UserServerMembership::isOwner($this->getCurrentUserId(), $input['server_id'])) {
+        ]);        try {
+            if (!$this->membershipRepository->isOwner($this->getCurrentUserId(), $input['server_id'])) {
                 return $this->forbidden('You do not have permission to create channels');
             }
 
-            $channel = new Channel([
+            $channelData = [
                 'name' => $input['name'],
                 'server_id' => $input['server_id'],
                 'type' => $input['type'],
@@ -114,9 +111,11 @@ class ChannelController extends BaseController {
                 'category_id' => $input['category_id'] ?? null,
                 'created_by' => $this->getCurrentUserId(),
                 'created_at' => date('Y-m-d H:i:s')
-            ]);
+            ];
 
-            if ($channel->save()) {
+            $channel = $this->channelRepository->create($channelData);
+
+            if ($channel) {
                 $this->logActivity('channel_created', [
                     'channel_id' => $channel->id,
                     'server_id' => $input['server_id'],
@@ -152,20 +151,15 @@ class ChannelController extends BaseController {
             'channel_id' => 'required'
         ]);
 
-        $channelId = $input['channel_id'];
-
-        try {
-            $channel = Channel::find($channelId);
+        $channelId = $input['channel_id'];        try {
+            $channel = $this->channelRepository->find($channelId);
             if (!$channel) {
                 return $this->notFound('Channel not found');
             }
 
-            // Check if user is owner of the server
-            if (!UserServerMembership::isOwner($this->getCurrentUserId(), $channel->server_id)) {
+            if (!$this->membershipRepository->isOwner($this->getCurrentUserId(), $channel->server_id)) {
                 return $this->forbidden('You do not have permission to update this channel');
-            }
-
-            $updated = false;
+            }            $updated = false;
             if (isset($input['name'])) {
                 $channel->name = $input['name'];
                 $updated = true;
@@ -181,7 +175,7 @@ class ChannelController extends BaseController {
 
             if ($updated) {
                 $channel->updated_at = date('Y-m-d H:i:s');
-                if ($channel->save()) {
+                if ($this->channelRepository->update($channel->id, (array)$channel)) {
                     $this->logActivity('channel_updated', [
                         'channel_id' => $channelId,
                         'updates' => array_keys(array_filter([
@@ -218,20 +212,17 @@ class ChannelController extends BaseController {
         
         if (!$channelId) {
             return $this->validationError(['channel_id' => 'Channel ID is required']);
-        }
-
-        try {
-            $channel = Channel::find($channelId);
+        }        try {
+            $channel = $this->channelRepository->find($channelId);
             if (!$channel) {
                 return $this->notFound('Channel not found');
             }
 
-            // Check if user is owner of the server
-            if (!UserServerMembership::isOwner($this->getCurrentUserId(), $channel->server_id)) {
+            if (!$this->membershipRepository->isOwner($this->getCurrentUserId(), $channel->server_id)) {
                 return $this->forbidden('You do not have permission to delete this channel');
             }
 
-            if ($channel->delete()) {
+            if ($this->channelRepository->delete($channelId)) {
                 $this->logActivity('channel_deleted', [
                     'channel_id' => $channelId,
                     'server_id' => $channel->server_id
@@ -261,16 +252,14 @@ class ChannelController extends BaseController {
         
         if (!$channelId) {
             return $this->validationError(['channel_id' => 'Channel ID is required']);
-        }
-
-        try {
-            $channel = Channel::find($channelId);
+        }        try {
+            $channel = $this->channelRepository->find($channelId);
             if (!$channel) {
                 return $this->notFound('Channel not found');
             }
 
             // Check if user has access to the server
-            if (!UserServerMembership::isMember($this->getCurrentUserId(), $channel->server_id)) {
+            if (!$this->membershipRepository->isMember($this->getCurrentUserId(), $channel->server_id)) {
                 return $this->forbidden('You do not have access to this channel');
             }
 
@@ -308,28 +297,25 @@ class ChannelController extends BaseController {
         $this->validate($input, [
             'channel_id' => 'required',
             'content' => 'required'
-        ]);
-
-        try {
-            $channel = Channel::find($input['channel_id']);
+        ]);        try {
+            $channel = $this->channelRepository->find($input['channel_id']);
             if (!$channel) {
                 return $this->notFound('Channel not found');
             }
 
-            // Check if user has access to the server
-            if (!UserServerMembership::isMember($this->getCurrentUserId(), $channel->server_id)) {
+            if (!$this->membershipRepository->isMember($this->getCurrentUserId(), $channel->server_id)) {
                 return $this->forbidden('You do not have access to this channel');
             }
 
-            $message = new ChannelMessage([
+            $messageData = [
                 'channel_id' => $input['channel_id'],
                 'user_id' => $this->getCurrentUserId(),
                 'content' => $input['content'],
                 'message_type' => $input['message_type'] ?? 'text',
                 'created_at' => date('Y-m-d H:i:s')
-            ]);
+            ];            $message = $this->messageRepository->create($messageData);
 
-            if ($message->save()) {
+            if ($message) {
                 $this->logActivity('channel_message_sent', [
                     'channel_id' => $input['channel_id'],
                     'message_id' => $message->id
@@ -363,24 +349,21 @@ class ChannelController extends BaseController {
         $this->validate($input, [
             'name' => 'required',
             'server_id' => 'required'
-        ]);
-
-        try {
-            // Check if user is owner of the server
-            if (!UserServerMembership::isOwner($this->getCurrentUserId(), $input['server_id'])) {
+        ]);        try {
+            if (!$this->membershipRepository->isOwner($this->getCurrentUserId(), $input['server_id'])) {
                 return $this->forbidden('You do not have permission to create categories');
             }
 
-            $category = new Channel([
+            $categoryData = [
                 'name' => $input['name'],
                 'server_id' => $input['server_id'],
                 'type' => 'category',
                 'description' => $input['description'] ?? null,
                 'created_by' => $this->getCurrentUserId(),
                 'created_at' => date('Y-m-d H:i:s')
-            ]);
+            ];            $category = $this->channelRepository->create($categoryData);
 
-            if ($category->save()) {
+            if ($category) {
                 $this->logActivity('category_created', [
                     'category_id' => $category->id,
                     'server_id' => $input['server_id'],
@@ -415,11 +398,8 @@ class ChannelController extends BaseController {
         $this->validate($input, [
             'server_id' => 'required',
             'updates' => 'required'
-        ]);
-
-        try {
-            // Check if user is owner of the server
-            if (!UserServerMembership::isOwner($this->getCurrentUserId(), $input['server_id'])) {
+        ]);        try {
+            if (!$this->membershipRepository->isOwner($this->getCurrentUserId(), $input['server_id'])) {
                 return $this->forbidden('You do not have permission to update positions');
             }
 
@@ -430,7 +410,7 @@ class ChannelController extends BaseController {
 
             foreach ($updates as $update) {
                 if (isset($update['id']) && isset($update['position'])) {
-                    $channel = Channel::find($update['id']);
+                    $channel = $this->channelRepository->find($update['id']);
                     if ($channel && $channel->server_id == $input['server_id']) {
                         $channel->position = $update['position'];
                         if ($channel->save()) {
@@ -471,16 +451,13 @@ class ChannelController extends BaseController {
         $this->validate($input, [
             'channel_id' => 'required',
             'position' => 'required'
-        ]);
-
-        try {
-            $channel = Channel::find($input['channel_id']);
+        ]);        try {
+            $channel = $this->channelRepository->find($input['channel_id']);
             if (!$channel) {
                 return $this->notFound('Channel not found');
             }
 
-            // Check if user is owner of the server
-            if (!UserServerMembership::isOwner($this->getCurrentUserId(), $channel->server_id)) {
+            if (!$this->membershipRepository->isOwner($this->getCurrentUserId(), $channel->server_id)) {
                 return $this->forbidden('You do not have permission to update channel position');
             }
 
@@ -516,16 +493,13 @@ class ChannelController extends BaseController {
         $this->validate($input, [
             'category_id' => 'required',
             'position' => 'required'
-        ]);
-
-        try {
-            $category = Channel::find($input['category_id']);
+        ]);        try {
+            $category = $this->channelRepository->find($input['category_id']);
             if (!$category || $category->type !== 'category') {
                 return $this->notFound('Category not found');
             }
 
-            // Check if user is owner of the server
-            if (!UserServerMembership::isOwner($this->getCurrentUserId(), $category->server_id)) {
+            if (!$this->membershipRepository->isOwner($this->getCurrentUserId(), $category->server_id)) {
                 return $this->forbidden('You do not have permission to update category position');
             }
 
@@ -561,21 +535,17 @@ class ChannelController extends BaseController {
         
         if (!$channelId) {
             return $this->validationError(['channel_id' => 'Channel ID is required']);
-        }
-
-        try {
-            $channel = Channel::find($channelId);
+        }        try {
+            $channel = $this->channelRepository->find($channelId);
             if (!$channel) {
                 return $this->notFound('Channel not found');
             }
 
-            // Check if user has access to the server
-            if (!UserServerMembership::isMember($this->getCurrentUserId(), $channel->server_id)) {
+            if (!$this->membershipRepository->isMember($this->getCurrentUserId(), $channel->server_id)) {
                 return $this->forbidden('You do not have access to this channel');
             }
 
-            // Get server members as channel participants
-            $participants = UserServerMembership::getServerMembers($channel->server_id);
+            $participants = $this->membershipRepository->getServerMembers($channel->server_id);
 
             $this->logActivity('channel_participants_viewed', [
                 'channel_id' => $channelId,

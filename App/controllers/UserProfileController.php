@@ -1,14 +1,18 @@
 <?php
 
-require_once __DIR__ . '/../database/models/UserServerMembership.php';
-require_once __DIR__ . '/../database/models/Server.php';
-require_once __DIR__ . '/../database/query.php';
+require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
+require_once __DIR__ . '/../database/repositories/ServerRepository.php';
 require_once __DIR__ . '/BaseController.php';
 
 class UserProfileController extends BaseController {
 
+    private $userServerMembershipRepository;
+    private $serverRepository;
+
     public function __construct() {
         parent::__construct();
+        $this->userServerMembershipRepository = new UserServerMembershipRepository();
+        $this->serverRepository = new ServerRepository();
     }
 
     public function updatePerServerProfile() {
@@ -22,20 +26,15 @@ class UserProfileController extends BaseController {
             return $this->validationError(['message' => 'Invalid request']);
         }
 
-        $serverId = $data['server_id'];
-        $userId = $_SESSION['user_id'];
+        $serverId = $data['server_id'];        $userId = $_SESSION['user_id'];
         $nickname = trim($data['nickname'] ?? '');
 
-        $membership = UserServerMembership::findByUserAndServer($userId, $serverId);
+        $membership = $this->userServerMembershipRepository->findByUserAndServer($userId, $serverId);
         if (!$membership) {
             return $this->forbidden('You are not a member of this server');
         }
 
-        $query = new Query();
-        $result = $query->table('user_server_memberships')
-            ->where('user_id', $userId)
-            ->where('server_id', $serverId)
-            ->update(['nickname' => $nickname]);
+        $result = $this->userServerMembershipRepository->update($membership->id, ['nickname' => $nickname]);
 
         if ($result) {
             return $this->successResponse([
@@ -49,11 +48,9 @@ class UserProfileController extends BaseController {
     public function getPerServerProfile($serverId) {
         if (!isset($_SESSION['user_id'])) {
             return $this->unauthorized();
-        }
+        }        $userId = $_SESSION['user_id'];
 
-        $userId = $_SESSION['user_id'];
-
-        $membership = UserServerMembership::findByUserAndServer($userId, $serverId);
+        $membership = $this->userServerMembershipRepository->findByUserAndServer($userId, $serverId);
         if (!$membership) {
             return $this->forbidden('You are not a member of this server');
         }

@@ -1,33 +1,38 @@
 <?php
 
-require_once __DIR__ . '/../database/models/Message.php';
-require_once __DIR__ . '/../database/models/Channel.php';
-require_once __DIR__ . '/../database/models/UserServerMembership.php';
-require_once __DIR__ . '/../database/models/User.php';
+require_once __DIR__ . '/../database/repositories/MessageRepository.php';
+require_once __DIR__ . '/../database/repositories/ChannelRepository.php';
+require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
+require_once __DIR__ . '/../database/repositories/UserRepository.php';
 require_once __DIR__ . '/../utils/WebSocketClient.php';
 require_once __DIR__ . '/BaseController.php';
 
 class MessageController extends BaseController {
     
+    private $messageRepository;
+    private $channelRepository;
+    private $userServerMembershipRepository;
+    private $userRepository;
+    
     public function __construct() {
         parent::__construct();
-        Message::initialize();
+        $this->messageRepository = new MessageRepository();
+        $this->channelRepository = new ChannelRepository();
+        $this->userServerMembershipRepository = new UserServerMembershipRepository();
+        $this->userRepository = new UserRepository();
     }
 
     /**
      * Get messages for a channel
-     */
-    public function getMessages($channelId) {
+     */    public function getMessages($channelId) {
         $this->requireAuth();
 
-        $channel = Channel::find($channelId);
+        $channel = $this->channelRepository->find($channelId);
         if (!$channel) {
             return $this->notFound('Channel not found');
-        }
-
-        // Check if user has access to this channel
-        if ($channel->server_id != 0) { // Not a DM channel
-            $membership = UserServerMembership::findByUserAndServer($this->getCurrentUserId(), $channel->server_id);
+        }        // Check if user has access to this channel
+        if ($channel->server_id != 0) {
+            $membership = $this->userServerMembershipRepository->findByUserAndServer($this->getCurrentUserId(), $channel->server_id);
             if (!$membership) {
                 return $this->forbidden('You are not a member of this server');
             }
@@ -37,7 +42,7 @@ class MessageController extends BaseController {
         $offset = $_GET['offset'] ?? 0;
 
         try {
-            $messages = Message::getForChannel($channelId, $limit, $offset);
+            $messages = $this->messageRepository->getForChannel($channelId, $limit, $offset);
             $formattedMessages = array_map([$this, 'formatMessage'], $messages);
 
             $this->logActivity('messages_loaded', [
@@ -79,16 +84,13 @@ class MessageController extends BaseController {
 
         if (empty($content)) {
             return $this->validationError(['content' => 'Message content cannot be empty']);
-        }
-
-        // Check if channel exists and user has access
-        $channel = Channel::find($channelId);
+        }        // Check if channel exists and user has access
+        $channel = $this->channelRepository->find($channelId);
         if (!$channel) {
-            return $this->notFound('Channel not found');
-        }
+            return $this->notFound('Channel not found');        }
 
-        if ($channel->server_id != 0) { // Not a DM channel
-            $membership = UserServerMembership::findByUserAndServer($this->getCurrentUserId(), $channel->server_id);
+        if ($channel->server_id != 0) {
+            $membership = $this->userServerMembershipRepository->findByUserAndServer($this->getCurrentUserId(), $channel->server_id);
             if (!$membership) {
                 return $this->forbidden('You are not a member of this server');
             }
@@ -133,11 +135,10 @@ class MessageController extends BaseController {
 
     /**
      * Update a message
-     */
-    public function update($id) {
+     */    public function update($id) {
         $this->requireAuth();
         
-        $message = Message::find($id);
+        $message = $this->messageRepository->find($id);
         if (!$message) {
             return $this->notFound('Message not found');
         }
@@ -193,10 +194,9 @@ class MessageController extends BaseController {
     /**
      * Delete a message
      */
-    public function delete($id) {
-        $this->requireAuth();
+    public function delete($id) {        $this->requireAuth();
         
-        $message = Message::find($id);
+        $message = $this->messageRepository->find($id);
         if (!$message) {
             return $this->notFound('Message not found');
         }
@@ -239,52 +239,36 @@ class MessageController extends BaseController {
     /**
      * Search messages in a channel
      */
-    public function search($channelId) {
-        $this->requireAuth();
+    public function search($channelId) {        $this->requireAuth();
         
-        $channel = Channel::find($channelId);
+        $channel = $this->channelRepository->find($channelId);
         if (!$channel) {
             return $this->notFound('Channel not found');
         }
 
         // Check access
         if ($channel->server_id != 0) {
-            $membership = UserServerMembership::findByUserAndServer($this->getCurrentUserId(), $channel->server_id);
+            $membership = $this->userServerMembershipRepository->findByUserAndServer($this->getCurrentUserId(), $channel->server_id);
             if (!$membership) {
                 return $this->forbidden('You are not a member of this server');
             }
-        }
-
-        $query = $_GET['q'] ?? '';
-        if (empty($query)) {
+        }$searchQuery = $_GET['q'] ?? '';
+        if (empty($searchQuery)) {
             return $this->validationError(['q' => 'Search query is required']);
         }        try {
-            // For now, use a simple search implementation
-            // TODO: Implement proper search method in Message model
-            $query = $this->query();
-            $results = $query->table('messages')
-                ->where('channel_id', $channelId)
-                ->where('content', 'LIKE', "%{$query}%")
-                ->orderBy('created_at', 'DESC')
-                ->limit(50)
-                ->get();
-            
-            $messages = [];
-            foreach ($results as $result) {
-                $messages[] = new Message($result);
-            }
+            $messages = $this->messageRepository->searchInChannel($channelId, $searchQuery, 50);
             
             $formattedMessages = array_map([$this, 'formatMessage'], $messages);
 
             $this->logActivity('messages_searched', [
                 'channel_id' => $channelId,
-                'query' => $query,
+                'query' => $searchQuery,
                 'result_count' => count($messages)
             ]);
 
             return $this->success([
                 'channel_id' => $channelId,
-                'query' => $query,
+                'query' => $searchQuery,
                 'messages' => $formattedMessages
             ]);
         } catch (Exception $e) {
@@ -301,7 +285,7 @@ class MessageController extends BaseController {
      */
     private function formatMessage($message) {
         // Get user information
-        $user = User::find($message->user_id);
+        $user = $this->userRepository->find($message->user_id);
         
         return [
             'id' => $message->id,
@@ -355,33 +339,16 @@ class MessageController extends BaseController {
             return $this->forbidden('Debug methods not allowed in production');
         }
 
-        $this->requireAuth();
-
-        try {
-            $query = new Query();
+        $this->requireAuth();        try {
+            $recentMessages = $this->messageRepository->getRecentMessages(10);
             
-            // Get message storage statistics
-            $stats = [
-                'total_messages' => $query->table('messages')->count(),
-                'channel_messages' => $query->table('channel_messages')->count(),
-                'recent_messages' => $query->table('messages')
-                    ->where('created_at', '>=', date('Y-m-d H:i:s', strtotime('-24 hours')))
-                    ->count(),
-                'user_message_count' => $query->table('messages')
-                    ->where('user_id', $this->getCurrentUserId())
-                    ->count()
-            ];
-
-            // Get sample recent messages
-            $recentMessages = $query->table('messages')
-                ->orderBy('created_at', 'DESC')
-                ->limit(10)
-                ->get();
-
-            $this->logActivity('debug_message_storage_accessed');
-
-            return $this->success([
-                'stats' => $stats,
+            $this->logActivity('debug_message_storage_accessed');            return $this->success([
+                'stats' => [
+                    'total_messages' => 'N/A',
+                    'channel_messages' => 'N/A', 
+                    'recent_messages' => count($recentMessages),
+                    'user_message_count' => 'N/A'
+                ],
                 'recent_messages' => $recentMessages,
                 'timestamp' => date('Y-m-d H:i:s')
             ]);

@@ -1,36 +1,40 @@
 <?php
 
+require_once __DIR__ . '/../database/repositories/ServerRepository.php';
+require_once __DIR__ . '/../database/repositories/ChannelRepository.php';
+require_once __DIR__ . '/BaseController.php';
+
 class SettingsController extends BaseController
 {
+    private $serverRepository;
+    private $channelRepository;
+
+    public function __construct() {
+        parent::__construct();
+        $this->serverRepository = new ServerRepository();
+        $this->channelRepository = new ChannelRepository();
+    }
     public function prepareSettingsData()
     {
-        // Check authentication
         if (!isset($_SESSION['user_id'])) {
             header('Location: /login');
             exit;
         }
 
-        // Get parameters from URL
         $serverId = $_GET['server_id'] ?? null;
         $channelId = $_GET['channel_id'] ?? null;
         $section = $_GET['section'] ?? 'overview';
 
-        // Load server and channel data if IDs are provided
         $server = null;
-        $channel = null;
-
-        if ($serverId) {
-            require_once dirname(__DIR__) . '/database/models/Server.php';
-            $server = Server::find($serverId);
+        $channel = null;        if ($serverId) {
+            $server = $this->serverRepository->find($serverId);
         }
 
         if ($channelId) {
-            require_once dirname(__DIR__) . '/database/models/Channel.php';
-            $channel = Channel::find($channelId);
+            $channel = $this->channelRepository->find($channelId);
         }
 
-        // Redirect if server or channel not found
-        if (!$server || ($channelId && !$channel)) {
+         if (!$server || ($channelId && !$channel)) {
             header('Location: /home');
             exit;
         }

@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/Repository.php';
 require_once __DIR__ . '/../models/ServerInvite.php';
+require_once __DIR__ . '/../query.php';
 
 class ServerInviteRepository extends Repository {
     public function __construct() {
@@ -41,8 +42,14 @@ class ServerInviteRepository extends Repository {
         }
         return null;
     }
-    
-    public function getServerInvites($serverId) {
+      public function getServerInvites($serverId) {
         return $this->getAllBy('server_id', $serverId);
+    }
+    
+    public function deleteOldInvites($serverId) {
+        $query = new Query();
+        return $query->table('server_invites')
+            ->where('server_id', $serverId)
+            ->delete();
     }
 }

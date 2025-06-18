@@ -1,14 +1,21 @@
 <?php
 
 require_once __DIR__ . '/BaseController.php';
-require_once __DIR__ . '/../database/models/Server.php';
-require_once __DIR__ . '/../database/models/User.php';
-require_once __DIR__ . '/../database/query.php';
+require_once __DIR__ . '/../database/repositories/ServerRepository.php';
+require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
+require_once __DIR__ . '/../database/repositories/UserRepository.php';
 
 class HomeController extends BaseController
 {
+    private $serverRepository;
+    private $userServerMembershipRepository;
+    private $userRepository;
+    
     public function __construct() {
         parent::__construct();
+        $this->serverRepository = new ServerRepository();
+        $this->userServerMembershipRepository = new UserServerMembershipRepository();
+        $this->userRepository = new UserRepository();
     }
 
     public function index()
@@ -16,27 +23,14 @@ class HomeController extends BaseController
         $this->requireAuth();
 
         $currentUserId = $this->getCurrentUserId();
-        $this->logActivity('home_page_accessed');
-
-        try {
-            // Get user servers
-            $userServers = Server::getFormattedServersForUser($currentUserId);
+        $this->logActivity('home_page_accessed');        try {
+            $userServers = $this->serverRepository->getForUser($currentUserId);
             $this->logActivity('servers_loaded', ['count' => count($userServers)]);
 
-            // Get user server memberships
-            $query = new Query();
-            $memberships = $query->table('user_server_memberships')
-                ->where('user_id', $currentUserId)
-                ->get();
-            $this->logActivity('memberships_loaded', ['count' => count($memberships)]);
-
-            // Get friend data
-            require_once __DIR__ . '/FriendController.php';
+            $memberships = $this->userServerMembershipRepository->getServersForUser($currentUserId);
+            $this->logActivity('memberships_loaded', ['count' => count($memberships)]);            require_once __DIR__ . '/FriendController.php';
             $friendController = new FriendController();
-            $friendData = $friendController->getUserFriends();
-
-            // Set global variables for view
-            $GLOBALS['userServers'] = $userServers;
+            $friendData = $friendController->getUserFriends();            $GLOBALS['userServers'] = $userServers;
             $GLOBALS['currentUser'] = $friendData['currentUser'];
             $GLOBALS['friends'] = $friendData['friends'];
             $GLOBALS['onlineFriends'] = $friendData['onlineFriends'];
@@ -49,10 +43,8 @@ class HomeController extends BaseController
             ];
         } catch (Exception $e) {
             $this->logActivity('home_load_error', [
-                'error' => $e->getMessage()
-            ]);
+                'error' => $e->getMessage()            ]);
             
-            // Return minimal data on error
             $GLOBALS['userServers'] = [];
             $GLOBALS['currentUser'] = null;
             $GLOBALS['friends'] = [];

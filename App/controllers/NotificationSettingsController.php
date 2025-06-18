@@ -1,14 +1,18 @@
 <?php
 
-require_once __DIR__ . '/../database/models/UserServerMembership.php';
-require_once __DIR__ . '/../database/models/Server.php';
-require_once __DIR__ . '/../database/query.php';
+require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
+require_once __DIR__ . '/../database/repositories/ServerRepository.php';
 require_once __DIR__ . '/BaseController.php';
 
 class NotificationSettingsController extends BaseController {
 
+    private $userServerMembershipRepository;
+    private $serverRepository;
+
     public function __construct() {
         parent::__construct();
+        $this->userServerMembershipRepository = new UserServerMembershipRepository();
+        $this->serverRepository = new ServerRepository();
     }
 
     public function updateServerNotificationSettings() {
@@ -20,12 +24,10 @@ class NotificationSettingsController extends BaseController {
 
         if (!$data || !isset($data['server_id'])) {
             return $this->validationError(['message' => 'Invalid request']);
-        }
-
-        $serverId = $data['server_id'];
+        }        $serverId = $data['server_id'];
         $userId = $_SESSION['user_id'];
 
-        $membership = UserServerMembership::findByUserAndServer($userId, $serverId);
+        $membership = $this->userServerMembershipRepository->findByUserAndServer($userId, $serverId);
         if (!$membership) {
             return $this->forbidden('You are not a member of this server');
         }
@@ -42,15 +44,8 @@ class NotificationSettingsController extends BaseController {
             'muted' => $muted,
             'suppress_everyone' => $suppressEveryone,
             'suppress_roles' => $suppressRoles
-        ];
-
-        $query = new Query();
-
-        try {
-            $result = $query->table('user_server_memberships')
-                ->where('user_id', $userId)
-                ->where('server_id', $serverId)
-                ->update(['notification_settings' => json_encode($notificationSettings)]);
+        ];        try {
+            $result = $this->userServerMembershipRepository->updateNotificationSettings($userId, $serverId, $notificationSettings);
 
             if ($result) {
                 return $this->successResponse([
@@ -71,38 +66,16 @@ class NotificationSettingsController extends BaseController {
 
         $userId = $_SESSION['user_id'];
 
-        $membership = UserServerMembership::findByUserAndServer($userId, $serverId);
-        if (!$membership) {
+        $membership = $this->userServerMembershipRepository->findByUserAndServer($userId, $serverId);        if (!$membership) {
             return $this->forbidden('You are not a member of this server');
         }
-
+        
         try {
-            $query = new Query();
-            $result = $query->table('user_server_memberships')
-                ->select('notification_settings')
-                ->where('user_id', $userId)
-                ->where('server_id', $serverId)
-                ->first();
-
-            if ($result && !empty($result['notification_settings'])) {
-                $settings = json_decode($result['notification_settings'], true);
-                return $this->successResponse([
-                    'notification_settings' => $settings
-                ]);
-            } else {
-
-                $defaultSettings = [
-                    'all_messages' => false,
-                    'mentions_only' => true,
-                    'muted' => false,
-                    'suppress_everyone' => false,
-                    'suppress_roles' => false
-                ];
-
-                return $this->successResponse([
-                    'notification_settings' => $defaultSettings
-                ]);
-            }
+            $settings = $this->userServerMembershipRepository->getNotificationSettings($userId, $serverId);
+            
+            return $this->successResponse([
+                'notification_settings' => $settings
+            ]);
         } catch (Exception $e) {
             return $this->serverError('Error retrieving notification settings: ' . $e->getMessage());
         }

@@ -1,48 +1,55 @@
 <?php
 
-require_once __DIR__ . '/../database/models/Server.php';
-require_once __DIR__ . '/../database/models/Channel.php';
-require_once __DIR__ . '/../database/models/Message.php';
-require_once __DIR__ . '/../database/models/UserServerMembership.php';
+require_once __DIR__ . '/../database/repositories/ServerRepository.php';
+require_once __DIR__ . '/../database/repositories/ChannelRepository.php';
+require_once __DIR__ . '/../database/repositories/MessageRepository.php';
+require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
+require_once __DIR__ . '/../database/repositories/ServerInviteRepository.php';
 require_once __DIR__ . '/BaseController.php';
 
-class ServerController extends BaseController {
+class ServerController extends BaseController {    private $serverRepository;
+    private $channelRepository;
+    private $messageRepository;
+    private $userServerMembershipRepository;
+    private $inviteRepository;
 
     public function __construct() {
         parent::__construct();
+        $this->serverRepository = new ServerRepository();
+        $this->channelRepository = new ChannelRepository();
+        $this->messageRepository = new MessageRepository();
+        $this->userServerMembershipRepository = new UserServerMembershipRepository();
+        $this->inviteRepository = new ServerInviteRepository();
     }
 
     /**
      * Show server page with channels and messages
-     */
-    public function show($id) {
+     */    public function show($id) {
         $this->requireAuth();
 
-        $server = Server::find($id);
+        $server = $this->serverRepository->find($id);
         if (!$server) {
             return $this->notFound('Server not found');
         }
 
-        // Check if user is a member of this server
-        $membership = UserServerMembership::findByUserAndServer($this->getCurrentUserId(), $id);
+        $membership = $this->userServerMembershipRepository->findByUserAndServer($this->getCurrentUserId(), $id);
         if (!$membership) {
             return $this->forbidden('You are not a member of this server');
         }
 
         try {
             // Get server channels
-            $channels = Channel::getByServerId($id);
+            $channels = $this->channelRepository->getByServerId($id);
             
             // Handle active channel if specified
             $activeChannelId = $_GET['channel'] ?? null;
             $activeChannel = null;
             $channelMessages = [];
-            
-            if ($activeChannelId) {
-                $activeChannel = Channel::find($activeChannelId);
+              if ($activeChannelId) {
+                $activeChannel = $this->channelRepository->find($activeChannelId);
                 if ($activeChannel && $activeChannel->server_id == $id) {
                     try {
-                        $channelMessages = Message::getForChannel($activeChannelId, 50, 0);
+                        $channelMessages = $this->messageRepository->getForChannel($activeChannelId, 50, 0);
                         $this->logActivity('channel_messages_loaded', [
                             'channel_id' => $activeChannelId,
                             'message_count' => count($channelMessages)
@@ -152,11 +159,10 @@ class ServerController extends BaseController {
 
     /**
      * Update server settings
-     */
-    public function update($id) {
+     */    public function update($id) {
         $this->requireAuth();
         
-        $server = Server::find($id);
+        $server = $this->serverRepository->find($id);
         if (!$server) {
             return $this->notFound('Server not found');
         }
@@ -215,14 +221,13 @@ class ServerController extends BaseController {
     public function delete() {
         $this->requireAuth();
         
-        $input = $this->getInput();
-        $id = $input['server_id'] ?? null;
+        $input = $this->getInput();        $id = $input['server_id'] ?? null;
         
         if (!$id) {
             return $this->validationError(['server_id' => 'Server ID is required']);
         }
         
-        $server = Server::find($id);
+        $server = $this->serverRepository->find($id);
         if (!$server) {
             return $this->notFound('Server not found');
         }
@@ -233,12 +238,7 @@ class ServerController extends BaseController {
         }
         
         try {
-            // For now, we'll use a direct query to delete the server
-            // TODO: Implement proper delete method in Server model
-            $query = new Query();
-            $deleted = $query->table('servers')
-                ->where('id', $id)
-                ->delete();
+            $deleted = $this->serverRepository->delete($id);
                 
             if ($deleted) {
                 $this->logActivity('server_deleted', [
@@ -273,27 +273,24 @@ class ServerController extends BaseController {
 
     /**
      * Leave a server
-     */
-    public function leave($id) {
+     */    public function leave($id) {
         $this->requireAuth();
         
-        $server = Server::find($id);
+        $server = $this->serverRepository->find($id);
         if (!$server) {
             return $this->notFound('Server not found');
-        }
-
-        // Check if user is a member
-        $membership = UserServerMembership::findByUserAndServer($this->getCurrentUserId(), $id);
+        }        // Check if user is a member
+        $membership = $this->userServerMembershipRepository->findByUserAndServer($this->getCurrentUserId(), $id);
         if (!$membership) {
             return $this->notFound('You are not a member of this server');
-        }        // Prevent owner from leaving (they must transfer ownership first)
+        }// Prevent owner from leaving (they must transfer ownership first)
         if ($server->owner_id == $this->getCurrentUserId()) {
             return $this->validationError(['server' => 'Server owner cannot leave. Transfer ownership first.']);
         }
         
         try {
             // Use removeMember method from Server model
-            if ($server->removeMember($this->getCurrentUserId())) {
+            if ($this->userServerMembershipRepository->removeMembership($this->getCurrentUserId(), $id)) {
                 $this->logActivity('server_left', [
                     'server_id' => $id,
                     'server_name' => $server->name
@@ -317,10 +314,9 @@ class ServerController extends BaseController {
      */
     public function getUserServers() {
         $this->requireAuth();        try {
-            $servers = Server::getForUser($this->getCurrentUserId());
-            $formattedServers = array_map([$this, 'formatServer'], $servers);
+            $servers = $this->serverRepository->getFormattedServersForUser($this->getCurrentUserId());
 
-            return $this->success(['servers' => $formattedServers]);
+            return $this->success(['servers' => $servers]);
         } catch (Exception $e) {
             $this->logActivity('user_servers_error', [
                 'error' => $e->getMessage()
@@ -341,12 +337,11 @@ class ServerController extends BaseController {
             return $this->notFound('Invalid invite code');
         }try {
             // Find invite by code
-            $invite = ServerInvite::findByInviteCode($code);
+            $invite = $this->inviteRepository->findByCode($code);
             if (!$invite) {
-                return $this->notFound('Invite not found or expired');
-            }
+                return $this->notFound('Invite not found or expired');            }
 
-            $server = Server::find($invite->server_id);
+            $server = $this->serverRepository->find($invite->server_id);
             if (!$server) {
                 return $this->notFound('Server not found');
             }
@@ -393,15 +388,13 @@ class ServerController extends BaseController {
         
         if (!$serverId) {
             return $this->validationError(['server_id' => 'Server ID is required']);
-        }
-
-        try {
+        }        try {
             // Check if user has access to the server
-            if (!UserServerMembership::isMember($this->getCurrentUserId(), $serverId)) {
+            if (!$this->userServerMembershipRepository->isMember($this->getCurrentUserId(), $serverId)) {
                 return $this->forbidden('You do not have access to this server');
             }
 
-            $channels = Channel::getByServerId($serverId);
+            $channels = $this->channelRepository->getByServerId($serverId);
 
             $this->logActivity('server_channels_viewed', ['server_id' => $serverId]);
 
@@ -418,8 +411,7 @@ class ServerController extends BaseController {
         }
     }    /**
      * Get server details
-     */
-    public function getServerDetails($serverId = null) {
+     */    public function getServerDetails($serverId = null) {
         $this->requireAuth();
 
         // Get server ID from parameter or input
@@ -433,13 +425,11 @@ class ServerController extends BaseController {
         }
 
         try {
-            $server = Server::find($serverId);
+            $server = $this->serverRepository->find($serverId);
             if (!$server) {
                 return $this->notFound('Server not found');
-            }
-
-            // Check if user has access to the server
-            if (!UserServerMembership::isMember($this->getCurrentUserId(), $serverId)) {
+            }            // Check if user has access to the server
+            if (!$this->userServerMembershipRepository->isMember($this->getCurrentUserId(), $serverId)) {
                 return $this->forbidden('You do not have access to this server');
             }
 
@@ -467,22 +457,18 @@ class ServerController extends BaseController {
         
         if (!$serverId) {
             return $this->validationError(['server_id' => 'Server ID is required']);
-        }
-
-        try {
-            $server = Server::find($serverId);
+        }        try {
+            $server = $this->serverRepository->find($serverId);
             if (!$server) {
                 return $this->notFound('Server not found');
             }
 
             // Check if user is owner or has permission
-            if (!UserServerMembership::isOwner($this->getCurrentUserId(), $serverId)) {
+            if (!$this->userServerMembershipRepository->isOwner($this->getCurrentUserId(), $serverId)) {
                 return $this->forbidden('You do not have permission to generate invite links');
-            }            // Generate invite code
+            }// Generate invite code
             $inviteCode = bin2hex(random_bytes(8));
-            $inviteUrl = $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['HTTP_HOST'] . '/join/' . $inviteCode;
-
-            $invite = ServerInvite::create([
+            $inviteUrl = $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['HTTP_HOST'] . '/join/' . $inviteCode;            $invite = $this->inviteRepository->create([
                 'server_id' => $serverId,
                 'inviter_user_id' => $this->getCurrentUserId(),
                 'invite_link' => $inviteUrl

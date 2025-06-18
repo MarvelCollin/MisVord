@@ -31,8 +31,24 @@ class MessageRepository extends Repository {
     public function markAsEdited($messageId) {
         return $this->update($messageId, ['edited_at' => date('Y-m-d H:i:s')]);
     }
-    
-    public function getReplies($messageId) {
+      public function getReplies($messageId) {
         return $this->getAllBy('reply_to_id', $messageId);
+    }
+    
+    public function searchInChannel($channelId, $searchQuery, $limit = 50) {
+        $query = new Query();
+        $results = $query->table('messages')
+            ->where('channel_id', $channelId)
+            ->where('content', 'LIKE', "%{$searchQuery}%")
+            ->orderBy('created_at', 'DESC')
+            ->limit($limit)
+            ->get();
+        
+        $messages = [];
+        foreach ($results as $result) {
+            $messages[] = new Message($result);
+        }
+        
+        return $messages;
     }
 }

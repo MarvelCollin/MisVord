@@ -1,13 +1,15 @@
 <?php
 
-require_once __DIR__ . '/../database/models/User.php';
+require_once __DIR__ . '/../database/repositories/UserRepository.php';
 require_once __DIR__ . '/BaseController.php';
 
 class AuthenticationController extends BaseController {
     
+    private $userRepository;
+    
     public function __construct() {
         parent::__construct();
-        User::initialize();
+        $this->userRepository = new UserRepository();
     }
 
     /**
@@ -54,13 +56,10 @@ class AuthenticationController extends BaseController {
         $this->validate($input, [
             'email' => 'required',
             'password' => 'required'
-        ]);
-
-        $email = $input['email'];
+        ]);        $email = $input['email'];
         $password = $input['password'];
 
-        // Find user and verify password
-        $user = User::findByEmail($email);
+        $user = $this->userRepository->findByEmail($email);
         if (!$user || !$user->verifyPassword($password)) {
             $this->logActivity('login_failed', ['email' => $email]);
             
@@ -153,19 +152,17 @@ class AuthenticationController extends BaseController {
         $password = $input['password'];
         $passwordConfirm = $input['password_confirm'];
         
-        $errors = [];
-
-        // Validate username
+        $errors = [];        // Validate username
         if (strlen($username) < 3) {
             $errors['username'] = 'Username must be at least 3 characters';
-        } elseif (User::findByUsername($username)) {
+        } elseif ($this->userRepository->findByUsername($username)) {
             $errors['username'] = 'Username already exists';
         }
 
         // Validate email
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $errors['email'] = 'Invalid email format';
-        } elseif (User::findByEmail($email)) {
+        } elseif ($this->userRepository->findByEmail($email)) {
             $errors['email'] = 'Email already registered';
         }
 
@@ -258,11 +255,10 @@ class AuthenticationController extends BaseController {
      */
     public function logout() {
         $userId = $this->getCurrentUserId();
-        
-        // Update user status if logged in
+          // Update user status if logged in
         if ($userId) {
             try {
-                $user = User::find($userId);
+                $user = $this->userRepository->find($userId);
                 if ($user) {
                     $user->status = 'offline';
                     $user->save();
@@ -350,14 +346,12 @@ class AuthenticationController extends BaseController {
                 if ($this->isApiRoute() || $this->isAjaxRequest()) {
                     return $this->validationError(['auth' => 'Invalid Google authentication data']);
                 }
-                
-                $_SESSION['errors'] = ['auth' => 'Google authentication failed'];
+                  $_SESSION['errors'] = ['auth' => 'Google authentication failed'];
                 header('Location: /login');
                 exit;
             }
             
-            // Find or create user
-            $user = User::findByEmail($email);
+            $user = $this->userRepository->findByEmail($email);
             
             if (!$user) {
                 // Create new user from Google data
@@ -426,7 +420,7 @@ class AuthenticationController extends BaseController {
         $originalUsername = $username;
         $counter = 1;
         
-        while (User::findByUsername($username)) {
+        while ($this->userRepository->findByUsername($username)) {
             $username = $originalUsername . $counter;
             $counter++;
         }

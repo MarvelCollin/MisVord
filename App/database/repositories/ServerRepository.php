@@ -69,4 +69,39 @@ class ServerRepository extends Repository {
         $server = $this->find($serverId);
         return $server ? $server->generateInviteLink() : false;
     }
+    
+    public function getPublicServersWithMemberCount() {
+        $query = new Query();
+        return $query->table('servers s')
+            ->select('s.*, COUNT(usm.id) as member_count')
+            ->leftJoin('user_server_memberships usm', 's.id', '=', 'usm.server_id')
+            ->where('s.is_public', 1)
+            ->groupBy('s.id')
+            ->orderBy('member_count', 'DESC')
+            ->get();
+    }
+    
+    public function getFeaturedServersWithMemberCount($limit = 3) {
+        $query = new Query();
+        return $query->table('servers s')
+            ->select('s.*, COUNT(usm.id) as member_count')
+            ->leftJoin('user_server_memberships usm', 's.id', '=', 'usm.server_id')
+            ->where('s.is_public', 1)
+            ->groupBy('s.id')
+            ->orderBy('member_count', 'DESC')
+            ->limit($limit)
+            ->get();
+    }
+    
+    public function getServersByCategoryWithMemberCount($category) {
+        $query = new Query();
+        return $query->table('servers s')
+            ->select('s.*, COUNT(usm.id) as member_count')
+            ->leftJoin('user_server_memberships usm', 's.id', '=', 'usm.server_id')
+            ->where('s.is_public', 1)
+            ->where('s.category', $category)
+            ->groupBy('s.id')
+            ->orderBy('member_count', 'DESC')
+            ->get();
+    }
 }
