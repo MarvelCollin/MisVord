@@ -1,0 +1,302 @@
+/* Scramble Text Animation Styles */
+
+/* Base scramble character styles */
+.scramble-char {
+    display: inline-block;
+    transition: all 0.1s ease-out;
+    position: relative;
+    cursor: pointer;
+    user-select: none;
+}
+
+.scramble-char.space {
+    width: 0.5em;
+}
+
+.scramble-char.revealed {
+    color: #FFFFFF;
+}
+
+.scramble-char.floating {
+    animation: gentleFloat 4s ease-in-out infinite;
+    filter: drop-shadow(0 0 4px rgba(88, 101, 242, 0.4));
+}
+
+.scramble-char.floating:nth-child(3n) {
+    animation-delay: -0.5s;
+    animation-duration: 4.5s;
+}
+
+.scramble-char.floating:nth-child(3n+1) {
+    animation-delay: -1.5s;
+    animation-duration: 5s;
+}
+
+.scramble-char.floating:nth-child(3n+2) {
+    animation-delay: -2.5s;
+    animation-duration: 5.5s;
+}
+
+.scramble-char.breathing {
+    animation: breathingGlow 3s ease-in-out infinite;
+}
+
+.scramble-char.breathing:nth-child(odd) {
+    animation-delay: -1s;
+}
+
+.scramble-char.shimmer {
+    animation: shimmerEffect 5s ease-in-out infinite;
+}
+
+/* Sparkle and particle effects */
+.sparkle, .magic-particle, .explosion-fragment, .completion-sparkle, .scramble-spark, .celebration-particle, .floating-particle {
+    position: absolute;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+/* Animation keyframes */
+@keyframes gentleFloat {
+    0% {
+        transform: translateY(0px) translateX(0px) rotate(0deg) scale(1);
+    }
+    25% {
+        transform: translateY(-8px) translateX(4px) rotate(2deg) scale(1.05);
+        text-shadow: 0 0 15px rgba(88, 101, 242, 0.7);
+    }
+    50% {
+        transform: translateY(-4px) translateX(-5px) rotate(-2deg) scale(1.1);
+        text-shadow: 0 0 20px rgba(88, 101, 242, 0.9);
+    }
+    75% {
+        transform: translateY(6px) translateX(3px) rotate(1deg) scale(1.05);
+        text-shadow: 0 0 15px rgba(88, 101, 242, 0.7);
+    }
+    100% {
+        transform: translateY(0px) translateX(0px) rotate(0deg) scale(1);
+    }
+}
+
+@keyframes sparkleEffect {
+    0% {
+        transform: translate(-50%, -50%) scale(0) rotate(0deg);
+        opacity: 1;
+    }
+    50% {
+        transform: translate(calc(-50% + var(--end-x, 0px) * 0.5), calc(-50% + var(--end-y, 0px) * 0.5)) scale(1) rotate(180deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(calc(-50% + var(--end-x, 0px)), calc(-50% + var(--end-y, 0px))) scale(0) rotate(360deg);
+        opacity: 0;
+    }
+}
+
+@keyframes magicParticle {
+    0% {
+        transform: scale(0) rotate(0deg);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1) rotate(180deg);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(0) rotate(360deg);
+        opacity: 0;
+    }
+}
+
+@keyframes explosionFragment {
+    0% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(calc(-50% + var(--end-x, 0px)), calc(-50% + var(--end-y, 0px))) scale(0);
+        opacity: 0;
+    }
+}
+
+@keyframes completionSparkle {
+    0% {
+        transform: translate(-50%, -50%) scale(0) rotate(0deg);
+        opacity: 1;
+    }
+    50% {
+        transform: translate(calc(-50% + var(--end-x, 0px) * 0.5), calc(-50% + var(--end-y, 0px) * 0.5)) scale(1) rotate(180deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(calc(-50% + var(--end-x, 0px)), calc(-50% + var(--end-y, 0px))) scale(0) rotate(360deg);
+        opacity: 0;
+    }
+}
+
+@keyframes finalGlowPulse {
+    0% {
+        filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.3));
+    }
+    25% {
+        filter: drop-shadow(0 5px 25px rgba(88, 101, 242, 0.5)) drop-shadow(0 0 40px rgba(255, 255, 255, 0.3));
+    }
+    50% {
+        filter: drop-shadow(0 5px 35px rgba(88, 101, 242, 0.7)) drop-shadow(0 0 60px rgba(255, 255, 255, 0.5));
+        transform: scale(1.02);
+    }
+    75% {
+        filter: drop-shadow(0 5px 25px rgba(88, 101, 242, 0.5)) drop-shadow(0 0 40px rgba(255, 255, 255, 0.3));
+    }
+    100% {
+        filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.3));
+        transform: scale(1);
+    }
+}
+
+@keyframes scrambleSpark {
+    0% {
+        transform: translate(-50%, -50%) scale(0) rotate(0deg);
+        opacity: 1;
+    }
+    50% {
+        transform: translate(calc(-50% + var(--end-x, 0px) * 0.5), calc(-50% + var(--end-y, 0px) * 0.5)) scale(1) rotate(180deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(calc(-50% + var(--end-x, 0px)), calc(-50% + var(--end-y, 0px))) scale(0) rotate(360deg);
+        opacity: 0;
+    }
+}
+
+@keyframes celebrationBounce {
+    0% { 
+        transform: translateY(0) scale(1); 
+    }
+    30% { 
+        transform: translateY(-8px) scale(1.1); 
+    }
+    50% { 
+        transform: translateY(-12px) scale(1.15); 
+    }
+    70% { 
+        transform: translateY(-6px) scale(1.05); 
+    }
+    100% { 
+        transform: translateY(0) scale(1); 
+    }
+}
+
+@keyframes celebrationBurst {
+    0% {
+        transform: translate(-50%, -50%) scale(0);
+        opacity: 1;
+    }
+    20% {
+        transform: translate(calc(-50% + var(--end-x, 0px) * 0.3), calc(-50% + var(--end-y, 0px) * 0.3)) scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(calc(-50% + var(--end-x, 0px)), calc(-50% + var(--end-y, 0px))) scale(0);
+        opacity: 0;
+    }
+}
+
+@keyframes breathingGlow {
+    0% {
+        text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+        color: #FFFFFF;
+    }
+    25% {
+        text-shadow: 0 0 20px rgba(255, 255, 255, 0.7), 
+                     0 0 35px rgba(88, 101, 242, 0.6);
+        color: #e6f0ff;
+    }
+    50% {
+        text-shadow: 0 0 30px rgba(255, 255, 255, 1),
+                     0 0 60px rgba(88, 101, 242, 1),
+                     0 0 90px rgba(88, 101, 242, 0.7);
+        color: #d0e6ff;
+    }
+    75% {
+        text-shadow: 0 0 20px rgba(255, 255, 255, 0.7),
+                     0 0 35px rgba(88, 101, 242, 0.6);
+        color: #e6f0ff;
+    }
+    100% {
+        text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+        color: #FFFFFF;
+    }
+}
+
+@keyframes shimmerEffect {
+    0% { 
+        filter: hue-rotate(0deg) brightness(1) contrast(1);
+        color: #ffffff; 
+    }
+    25% { 
+        filter: hue-rotate(90deg) brightness(1.2) contrast(1.1);
+        color: #e0f0ff; 
+    }
+    50% { 
+        filter: hue-rotate(180deg) brightness(1.4) contrast(1.2);
+        color: #c0e0ff; 
+    }
+    75% { 
+        filter: hue-rotate(270deg) brightness(1.2) contrast(1.1);
+        color: #e0f0ff; 
+    }
+    100% { 
+        filter: hue-rotate(360deg) brightness(1) contrast(1);
+        color: #ffffff; 
+    }
+}
+
+@keyframes floatingParticle {
+    0% {
+        transform: translateY(0) translateX(0) scale(0);
+        opacity: 0;
+    }
+    10% {
+        transform: translateY(-10px) translateX(var(--end-x, 0px)) scale(1);
+        opacity: 0.7;
+    }
+    90% {
+        transform: translateY(var(--end-y, -100px)) translateX(calc(var(--end-x, 0px) * 2)) scale(1);
+        opacity: 0.7;
+    }
+    100% {
+        transform: translateY(calc(var(--end-y, -100px) - 20px)) translateX(calc(var(--end-x, 0px) * 2)) scale(0);
+        opacity: 0;
+    }
+}
+
+/* Add a persistent highlight effect to make characters more noticeable */
+.hero-section .scramble-char.revealed {
+    position: relative;
+}
+
+.hero-section .scramble-char.revealed::after {
+    content: '';
+    position: absolute;
+    top: -15%;
+    left: -10%;
+    width: 120%;
+    height: 130%;
+    background: radial-gradient(circle, rgba(88, 101, 242, 0.2) 0%, rgba(88, 101, 242, 0) 70%);
+    z-index: -1;
+    border-radius: 50%;
+    animation: pulseHighlight 3s infinite alternate ease-in-out;
+    pointer-events: none;
+}
+
+@keyframes pulseHighlight {
+    0% {
+        opacity: 0.3;
+        transform: scale(0.9);
+    }
+    100% {
+        opacity: 0.7;
+        transform: scale(1.1);
+    }
+}

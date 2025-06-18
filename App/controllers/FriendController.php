@@ -593,4 +593,22 @@ class FriendController extends BaseController
             return $this->serverError('An error occurred while searching users: ' . $e->getMessage());
         }
     }
+
+    public function getPendingRequestsCount()
+    {
+        $this->requireAuth();
+        
+        $userId = $this->getCurrentUserId();
+        
+        try {
+            $pendingRequests = $this->friendListRepository->getPendingRequests($userId);
+            $count = count($pendingRequests);
+            
+            return $this->success([
+                'count' => $count
+            ], 'Pending friend requests count retrieved successfully');
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while retrieving pending requests count: ' . $e->getMessage());
+        }
+    }
 }

@@ -36,3 +36,97 @@
     transform: scale(40, 40);
   }
 }
+
+/* Skeleton loading animations */
+.skeleton {
+    background-color: #2b2d31;
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+}
+
+.skeleton::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(90, 90, 90, 0.2), transparent);
+    animation: skeleton-loading 1.5s infinite;
+}
+
+@keyframes skeleton-loading {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+.skeleton-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+}
+
+.skeleton-text {
+    height: 16px;
+    margin-bottom: 8px;
+    width: 70%;
+}
+
+.skeleton-text-sm {
+    height: 12px;
+    width: 50%;
+}
+
+.skeleton-item {
+    display: flex;
+    padding: 8px;
+    margin-bottom: 8px;
+    border-radius: 4px;
+    background-color: #232428;
+}
+
+/* Responsive styles for tabs */
+@media (max-width: 768px) {
+    .tab-content {
+        padding: 0.5rem;
+    }
+    
+    button[data-tab] {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+    
+    .flex.space-x-4 {
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 640px) {
+    .modal {
+        width: 90%;
+        max-width: 350px;
+    }
+    
+    #dm-friends-list {
+        max-height: 40vh;
+    }
+    
+    .h-12.bg-discord-background.border-b.border-gray-800.flex.items-center.px-4 {
+        padding: 0.5rem;
+        height: auto;
+        flex-wrap: wrap;
+    }
+    
+    button[data-tab="add-friend"] {
+        margin-top: 0.5rem;
+        width: 100%;
+        text-align: center;
+    }
+}

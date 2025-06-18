@@ -331,6 +331,11 @@ Route::get('/api/friends/sent', function() {
     $controller->getSentRequests();
 });
 
+Route::get('/api/friends/pending/count', function() {
+    $controller = new FriendController();
+    $controller->getPendingRequestsCount();
+});
+
 Route::post('/api/friends', function() {
     $controller = new FriendController();
     $controller->sendFriendRequest();

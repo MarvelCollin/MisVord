@@ -37,13 +37,12 @@ if (file_exists($tooltipPath)) {
                 <i class="fas fa-gift"></i>
             </div>
             <span class="font-medium">Nitro</span>
-            <span class="ml-auto text-xs bg-discord-blurple text-white px-1.5 py-0.5 rounded-md">1 WEEK FREE</span>
         </div>
     </div>
 
     <div class="px-4 mt-1 flex items-center justify-between">
         <h3 class="uppercase text-discord-lighter font-semibold text-xs tracking-wider">Direct Messages</h3>
-        <button class="text-discord-lighter hover:text-white text-lg">
+        <button class="text-discord-lighter hover:text-white text-lg" id="new-direct-message-btn">
             <i class="fas fa-plus"></i>
         </button>
     </div>
@@ -102,3 +101,5 @@ if (file_exists($tooltipPath)) {
 
     <?php include dirname(__DIR__) . '/common/user-profile.php'; ?>
 </div>
+
+<?php include dirname(__DIR__) . '/home/new-direct-modal.php'; ?>

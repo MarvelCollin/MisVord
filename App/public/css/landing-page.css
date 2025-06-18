@@ -53,11 +53,10 @@ html {
 }
 
 body {
-  font-family: "Inter", "Segoe UI", -apple-system, BlinkMacSystemFont,
-    sans-serif;
+  font-family: 'Inter', sans-serif;
+  background-color: #202225;
   line-height: 1.6;
   color: var(--discord-white);
-  background: var(--discord-darker);
   overflow-x: hidden;
   overflow-y: auto;
 }
@@ -133,9 +132,10 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-xl);
   position: relative;
   overflow: hidden;
+  background-color: #18191C;
+  z-index: 0;
 }
 
 .hero-container {
@@ -225,12 +225,10 @@ body {
 }
 
 .hero-title {
-  font-size: clamp(3rem, 6vw, 5.5rem);
-  font-weight: 800;
-  line-height: 1.1;
-  margin-bottom: 0;
-  color: var(--discord-white);
-  animation: fadeInUp 0.8s ease-out 0.2s both;
+  color: #ffffff;
+  text-shadow: 0 0 15px rgba(88, 101, 242, 0.6);
+  position: relative;
+  z-index: 2;
 }
 
 .hero-description {
@@ -567,4 +565,138 @@ body {
     transform: scale(0) rotate(360deg);
     opacity: 0;
   }
+}
+
+.hero-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+.parallax-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.bg-gradient {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #18191C 0%, #202225 50%, #18191C 100%);
+}
+
+.stars-layer {
+  z-index: 1;
+}
+
+.star {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background-color: white;
+}
+
+.star.small {
+  width: 1px;
+  height: 1px;
+  animation: twinkle 4s infinite alternate;
+}
+
+.star.medium {
+  width: 2px;
+  height: 2px;
+  animation: twinkle 6s infinite alternate;
+}
+
+.star.large {
+  width: 3px;
+  height: 3px;
+  animation: twinkle-bright 8s infinite alternate;
+}
+
+.nebula {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(40px);
+  opacity: 0.2;
+  z-index: 0;
+}
+
+.nebula-1 {
+  width: 200px;
+  height: 200px;
+  background-color: rgba(88, 101, 242, 0.4);
+  top: 20%;
+  right: 20%;
+  animation: float 20s infinite alternate ease-in-out;
+}
+
+.nebula-2 {
+  width: 300px;
+  height: 300px;
+  background-color: rgba(235, 69, 158, 0.3);
+  bottom: 10%;
+  left: 10%;
+  animation: float 25s infinite alternate-reverse ease-in-out;
+}
+
+.nebula-3 {
+  width: 150px;
+  height: 150px;
+  background-color: rgba(87, 242, 135, 0.2);
+  top: 30%;
+  left: 25%;
+  animation: float 15s infinite alternate ease-in-out;
+}
+
+@keyframes twinkle {
+  0%, 100% {
+    opacity: 0.3;
+    box-shadow: none;
+  }
+  50% {
+    opacity: 0.8;
+    box-shadow: 0 0 2px rgba(255, 255, 255, 0.4);
+  }
+}
+
+@keyframes twinkle-bright {
+  0%, 100% {
+    opacity: 0.5;
+    box-shadow: none;
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 4px rgba(255, 255, 255, 0.8), 0 0 8px rgba(88, 101, 242, 0.6);
+  }
+}
+
+@keyframes float {
+  0% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(30px, -20px);
+  }
+  100% {
+    transform: translate(-10px, 25px);
+  }
+}
+
+.glass-hero {
+  background: rgba(24, 25, 28, 0.6);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 }

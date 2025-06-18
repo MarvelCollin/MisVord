@@ -13,8 +13,31 @@ $additional_js = [];
 ob_start();
 ?>
 
-<!-- Simple Hero Section with Scramble Text Only -->
 <section class="hero-section min-h-screen flex items-center justify-center">
+    <div class="hero-background">
+        <div class="bg-gradient"></div>
+        
+        <div class="parallax-layer stars-layer" data-depth="0.1">
+            <?php for ($i = 0; $i < 50; $i++): ?>
+                <div class="star small" style="top: <?= rand(5, 95) ?>%; left: <?= rand(5, 95) ?>%;"></div>
+            <?php endfor; ?>
+            
+            <?php for ($i = 0; $i < 30; $i++): ?>
+                <div class="star medium" style="top: <?= rand(5, 95) ?>%; left: <?= rand(5, 95) ?>%;"></div>
+            <?php endfor; ?>
+            
+            <?php for ($i = 0; $i < 15; $i++): ?>
+                <div class="star large" style="top: <?= rand(5, 95) ?>%; left: <?= rand(5, 95) ?>%;"></div>
+            <?php endfor; ?>
+        </div>
+        
+        <div class="parallax-layer nebulas-layer" data-depth="0.2">
+            <div class="nebula nebula-1"></div>
+            <div class="nebula nebula-2"></div>
+            <div class="nebula nebula-3"></div>
+        </div>
+    </div>
+
     <div class="text-center">
         <h1 class="hero-title scramble-text text-6xl md:text-8xl font-bold mb-8" data-text="IMAGINE A PLACE...">
             IMAGINE A PLACE...
@@ -64,10 +87,12 @@ $content = ob_get_clean();
     
     <link rel="stylesheet" href="<?php echo css('global'); ?>?v=<?php echo time(); ?>">
     <link rel="stylesheet" href="<?php echo css('landing-page'); ?>?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="<?php echo css('scramble-text'); ?>?v=<?php echo time(); ?>">
 </head>
 <body class="<?php echo $body_class; ?>">
     <?php echo $content; ?>
     
     <script src="<?php echo js('sections/scramble-text'); ?>?v=<?php echo time(); ?>"></script>
+    <script src="<?php echo js('pages/landing-page'); ?>?v=<?php echo time(); ?>"></script>
 </body>
 </html>
