@@ -181,6 +181,120 @@ export class GlobalSocketManager {
         this.socket.on('typing-stop', (data) => {
             this.dispatchEvent('typingStop', data);
         });
+
+        // Group server events
+        this.socket.on('group-server-created', (data) => {
+            this.log('📁 Group server created:', data);
+            this.dispatchEvent('groupServerCreated', data);
+        });
+
+        this.socket.on('group-server-updated', (data) => {
+            this.log('📝 Group server updated:', data);
+            this.dispatchEvent('groupServerUpdated', data);
+        });
+
+        this.socket.on('group-server-deleted', (data) => {
+            this.log('🗑️ Group server deleted:', data);
+            this.dispatchEvent('groupServerDeleted', data);
+        });
+
+        // Role events
+        this.socket.on('role-created', (data) => {
+            this.log('👑 Role created:', data);
+            this.dispatchEvent('roleCreated', data);
+        });
+
+        this.socket.on('role-updated', (data) => {
+            this.log('👑 Role updated:', data);
+            this.dispatchEvent('roleUpdated', data);
+        });
+
+        this.socket.on('role-deleted', (data) => {
+            this.log('👑 Role deleted:', data);
+            this.dispatchEvent('roleDeleted', data);
+        });
+
+        this.socket.on('user-role-assigned', (data) => {
+            this.log('�� User role assigned:', data);
+            this.dispatchEvent('userRoleAssigned', data);
+        });
+
+        this.socket.on('user-role-removed', (data) => {
+            this.log('👤 User role removed:', data);
+            this.dispatchEvent('userRoleRemoved', data);
+        });
+
+        this.socket.on('role-received', (data) => {
+            this.log('👑 Role received:', data);
+            this.dispatchEvent('roleReceived', data);
+        });
+
+        this.socket.on('role-removed', (data) => {
+            this.log('👑 Role removed:', data);
+            this.dispatchEvent('roleRemoved', data);
+        });
+
+        this.socket.on('role-permissions-updated', (data) => {
+            this.log('🔒 Role permissions updated:', data);
+            this.dispatchEvent('rolePermissionsUpdated', data);
+        });
+
+        // Emoji events
+        this.socket.on('emoji-created', (data) => {
+            this.log('😀 Emoji created:', data);
+            this.dispatchEvent('emojiCreated', data);
+        });
+
+        this.socket.on('emoji-updated', (data) => {
+            this.log('😀 Emoji updated:', data);
+            this.dispatchEvent('emojiUpdated', data);
+        });
+
+        this.socket.on('emoji-deleted', (data) => {
+            this.log('😀 Emoji deleted:', data);
+            this.dispatchEvent('emojiDeleted', data);
+        });
+
+        this.socket.on('reaction-added', (data) => {
+            this.log('👍 Reaction added:', data);
+            this.dispatchEvent('reactionAdded', data);
+        });
+
+        this.socket.on('reaction-removed', (data) => {
+            this.log('👎 Reaction removed:', data);
+            this.dispatchEvent('reactionRemoved', data);
+        });
+
+        // Friend events
+        this.socket.on('friend-request-received', (data) => {
+            this.log('👋 Friend request received:', data);
+            this.dispatchEvent('friendRequestReceived', data);
+        });
+
+        this.socket.on('friend-request-accepted', (data) => {
+            this.log('✅ Friend request accepted:', data);
+            this.dispatchEvent('friendRequestAccepted', data);
+        });
+
+        this.socket.on('friend-request-declined', (data) => {
+            this.log('❌ Friend request declined:', data);
+            this.dispatchEvent('friendRequestDeclined', data);
+        });
+
+        this.socket.on('friend-removed', (data) => {
+            this.log('💔 Friend removed:', data);
+            this.dispatchEvent('friendRemoved', data);
+        });
+
+        this.socket.on('user-blocked', (data) => {
+            this.log('🚫 User blocked:', data);
+            this.dispatchEvent('userBlocked', data);
+        });
+
+        this.socket.on('user-unblocked', (data) => {
+            this.log('✅ User unblocked:', data);
+            this.dispatchEvent('userUnblocked', data);
+        });
     }
 
     /**

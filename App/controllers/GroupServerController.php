@@ -16,115 +16,163 @@ class GroupServerController extends BaseController {
     }
     
     public function index() {
+        $this->requireAuth();
+        
         $userId = $this->getCurrentUserId();
-        
-        if (!$userId) {
-            return $this->json(['error' => 'Unauthorized'], 401);
-        }
-        
         $groups = $this->groupServerRepository->getWithServersCount($userId);
-        return $this->json(['groups' => $groups]);
+        
+        return $this->success($groups, 'Group servers retrieved successfully');
     }
     
     public function create() {
+        $this->requireAuth();
+        
         $userId = $this->getCurrentUserId();
+        $input = $this->getInput();
         
-        if (!$userId) {
-            return $this->json(['error' => 'Unauthorized'], 401);
+        // Validate input
+        $this->validate($input, [
+            'group_name' => 'required'
+        ]);
+        
+        try {
+            $group = $this->groupServerRepository->createForUser($userId, $input['group_name']);
+            
+            if (!$group) {
+                return $this->serverError('Failed to create group server');
+            }
+            
+            // Notify via socket if needed
+            $this->broadcastViaSocket('group-server-created', [
+                'group' => $group->toArray(),
+                'user_id' => $userId
+            ]);
+            
+            // Log activity
+            $this->logActivity('group_server_created', [
+                'group_id' => $group->id,
+                'group_name' => $group->group_name
+            ]);
+            
+            return $this->success($group->toArray(), 'Group server created successfully');
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while creating the group server: ' . $e->getMessage());
         }
-        
-        $data = $this->getRequestBody();
-        
-        if (!isset($data['group_name']) || empty($data['group_name'])) {
-            return $this->json(['error' => 'Group name is required'], 400);
-        }
-        
-        $group = $this->groupServerRepository->createForUser($userId, $data['group_name']);
-        
-        if (!$group) {
-            return $this->json(['error' => 'Failed to create group'], 500);
-        }
-        
-        return $this->json(['group' => $group->toArray(), 'message' => 'Group created successfully']);
     }
     
     public function update($id) {
+        $this->requireAuth();
+        
         $userId = $this->getCurrentUserId();
+        $input = $this->getInput();
         
-        if (!$userId) {
-            return $this->json(['error' => 'Unauthorized'], 401);
+        // Validate input
+        $this->validate($input, [
+            'group_name' => 'required'
+        ]);
+        
+        try {
+            $group = $this->groupServerRepository->find($id);
+            
+            if (!$group) {
+                return $this->notFound('Group server not found');
+            }
+            
+            if ($group->user_id != $userId) {
+                return $this->forbidden('You do not have permission to update this group server');
+            }
+            
+            $updated = $this->groupServerRepository->updateName($id, $input['group_name']);
+            
+            if (!$updated) {
+                return $this->serverError('Failed to update group server');
+            }
+            
+            // Notify via socket
+            $this->broadcastViaSocket('group-server-updated', [
+                'group' => $updated->toArray(),
+                'user_id' => $userId
+            ]);
+            
+            // Log activity
+            $this->logActivity('group_server_updated', [
+                'group_id' => $id,
+                'group_name' => $input['group_name']
+            ]);
+            
+            return $this->success($updated->toArray(), 'Group server updated successfully');
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while updating the group server: ' . $e->getMessage());
         }
-        
-        $group = $this->groupServerRepository->find($id);
-        
-        if (!$group) {
-            return $this->json(['error' => 'Group not found'], 404);
-        }
-        
-        if ($group->user_id != $userId) {
-            return $this->json(['error' => 'You do not have permission to update this group'], 403);
-        }
-        
-        $data = $this->getRequestBody();
-        
-        if (!isset($data['group_name']) || empty($data['group_name'])) {
-            return $this->json(['error' => 'Group name is required'], 400);
-        }
-        
-        $updated = $this->groupServerRepository->updateName($id, $data['group_name']);
-        
-        if (!$updated) {
-            return $this->json(['error' => 'Failed to update group'], 500);
-        }
-        
-        return $this->json(['message' => 'Group updated successfully', 'group' => $updated->toArray()]);
     }
     
     public function delete($id) {
+        $this->requireAuth();
+        
         $userId = $this->getCurrentUserId();
         
-        if (!$userId) {
-            return $this->json(['error' => 'Unauthorized'], 401);
+        try {
+            $group = $this->groupServerRepository->find($id);
+            
+            if (!$group) {
+                return $this->notFound('Group server not found');
+            }
+            
+            if ($group->user_id != $userId) {
+                return $this->forbidden('You do not have permission to delete this group server');
+            }
+            
+            $groupData = $group->toArray(); // Save for notification
+            
+            $deleted = $this->groupServerRepository->deleteWithServers($id);
+            
+            if (!$deleted) {
+                return $this->serverError('Failed to delete group server');
+            }
+            
+            // Notify via socket
+            $this->broadcastViaSocket('group-server-deleted', [
+                'group_id' => $id,
+                'user_id' => $userId,
+                'group_data' => $groupData
+            ]);
+            
+            // Log activity
+            $this->logActivity('group_server_deleted', [
+                'group_id' => $id,
+                'group_name' => $group->group_name
+            ]);
+            
+            return $this->success(null, 'Group server and associated servers deleted successfully');
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while deleting the group server: ' . $e->getMessage());
         }
-        
-        $group = $this->groupServerRepository->find($id);
-        
-        if (!$group) {
-            return $this->json(['error' => 'Group not found'], 404);
-        }
-        
-        if ($group->user_id != $userId) {
-            return $this->json(['error' => 'You do not have permission to delete this group'], 403);
-        }
-        
-        $deleted = $this->groupServerRepository->deleteWithServers($id);
-        
-        if (!$deleted) {
-            return $this->json(['error' => 'Failed to delete group'], 500);
-        }
-        
-        return $this->json(['message' => 'Group and associated servers deleted successfully']);
     }
     
     public function getServers($id) {
+        $this->requireAuth();
+        
         $userId = $this->getCurrentUserId();
         
-        if (!$userId) {
-            return $this->json(['error' => 'Unauthorized'], 401);
+        try {
+            $group = $this->groupServerRepository->find($id);
+            
+            if (!$group) {
+                return $this->notFound('Group server not found');
+            }
+            
+            if ($group->user_id != $userId) {
+                return $this->forbidden('You do not have permission to view this group server');
+            }
+            
+            $servers = $this->serverRepository->getAllBy('group_server_id', $id);
+            
+            return $this->success([
+                'group' => $group->toArray(),
+                'servers' => $servers
+            ], 'Servers retrieved successfully');
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while retrieving servers: ' . $e->getMessage());
         }
-        
-        $group = $this->groupServerRepository->find($id);
-        
-        if (!$group) {
-            return $this->json(['error' => 'Group not found'], 404);
-        }
-        
-        if ($group->user_id != $userId) {
-            return $this->json(['error' => 'You do not have permission to view this group'], 403);
-        }
-        
-        $servers = $this->serverRepository->getAllBy('group_server_id', $id);
-        
-        return $this->json(['servers' => $servers]);
     }
 } 

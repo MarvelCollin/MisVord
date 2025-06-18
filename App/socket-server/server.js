@@ -21,6 +21,106 @@ const app = express();
 app.use(cors());
 app.use(express.json()); 
 
+// Add a new endpoint for PHP server to emit events
+app.post('/emit', (req, res) => {
+  try {
+    const { event, data } = req.body;
+    
+    if (!event) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Missing event parameter' 
+      });
+    }
+    
+    console.log(`📤 Server-to-socket event: ${event}`, data);
+    
+    // Handle special events
+    if (event === 'notify-user') {
+      const { userId, event: userEvent, data: userData } = data;
+      
+      if (!userId || !userEvent) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Missing required parameters for notify-user' 
+        });
+      }
+      
+      // Find all socket connections for this user
+      const userSockets = Array.from(connectedUsers.entries())
+        .filter(([socketId, user]) => user.userId === userId.toString())
+        .map(([socketId]) => socketId);
+      
+      if (userSockets.length === 0) {
+        console.log(`⚠️ No active sockets found for user ${userId}`);
+      } else {
+        console.log(`🔔 Notifying user ${userId} on ${userSockets.length} socket(s)`);
+        
+        userSockets.forEach(socketId => {
+          io.to(socketId).emit(userEvent, userData);
+        });
+      }
+      
+      return res.json({ success: true, notified: userSockets.length });
+    }
+    
+    // Handle broadcast to room
+    if (event === 'broadcast-to-room') {
+      const { room, event: roomEvent, data: roomData } = data;
+      
+      if (!room || !roomEvent) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Missing required parameters for broadcast-to-room' 
+        });
+      }
+      
+      console.log(`📢 Broadcasting to room ${room}: ${roomEvent}`);
+      io.to(room).emit(roomEvent, roomData);
+      
+      return res.json({ success: true, room });
+    }
+    
+    // Default broadcast to all
+    if (event === 'broadcast') {
+      const { event: broadcastEvent, data: broadcastData } = data;
+      
+      if (!broadcastEvent) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Missing required parameters for broadcast' 
+        });
+      }
+      
+      console.log(`📢 Broadcasting to all: ${broadcastEvent}`);
+      io.emit(broadcastEvent, broadcastData);
+      
+      return res.json({ success: true });
+    }
+    
+    // Fallback - just emit the event as is
+    io.emit(event, data);
+    res.json({ success: true });
+    
+  } catch (error) {
+    console.error('❌ Error processing emit request:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
+// Add health check endpoint for WebSocketClient
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+    connections: io.engine.clientsCount
+  });
+});
+
 const server = http.createServer(app);
 
 const PORT = process.env.SOCKET_PORT || 1002;

@@ -1,98 +1,103 @@
 <?php
 
 class WebSocketClient {
-    
-    private $serverUrl;
-    private $socketPort;
+    private $host;
+    private $port;
+    private $path;
+    private $timeout;
     private $debug;
     
-    public function __construct() {
-        $this->socketPort = $_ENV['SOCKET_PORT'] ?? 1002;
-        $this->serverUrl = "http://localhost:{$this->socketPort}";
-        $this->debug = $_ENV['DEBUG'] ?? false;
+    public function __construct($host = 'localhost', $port = 1002, $path = '/socket.io', $timeout = 5, $debug = false) {
+        $this->host = $host;
+        $this->port = $port;
+        $this->path = $path;
+        $this->timeout = $timeout;
+        $this->debug = $debug;
     }
     
-    /**
-     * Send a message to a channel via WebSocket
-     */
-    public function sendMessage($channelId, $content, $userInfo = []) {
-        try {
-            $data = [
-                'event' => 'new-channel-message',
-                'data' => [
-                    'channelId' => $channelId,
-                    'content' => $content,
-                    'user_id' => $userInfo['userId'] ?? null,
-                    'username' => $userInfo['username'] ?? 'Unknown',
-                    'avatar_url' => $userInfo['avatar_url'] ?? null,
-                    'timestamp' => date('Y-m-d H:i:s'),
-                    'sent_at' => date('Y-m-d H:i:s'),
-                    'message_type' => 'text'
-                ]
-            ];
-            
-            return $this->broadcast($data['event'], $data['data']);
-        } catch (Exception $e) {
-            log_error("WebSocketClient::sendMessage error", ['error' => $e->getMessage()]);
-            return false;
-        }
+    public function emit($event, $data) {
+        $payload = json_encode([
+            'event' => $event,
+            'data' => $data,
+            'timestamp' => time(),
+            'source' => 'php-server'
+        ]);
+        
+        return $this->sendRequest($payload);
     }
     
-    /**
-     * Broadcast an event to WebSocket server
-     */
+    public function notifyUser($userId, $event, $data) {
+        return $this->emit('notify-user', [
+            'userId' => $userId,
+            'event' => $event,
+            'data' => $data
+        ]);
+    }
+    
     public function broadcast($event, $data) {
+        return $this->emit('broadcast', [
+            'event' => $event,
+            'data' => $data
+        ]);
+    }
+    
+    public function broadcastToRoom($room, $event, $data) {
+        return $this->emit('broadcast-to-room', [
+            'room' => $room,
+            'event' => $event,
+            'data' => $data
+        ]);
+    }
+    
+    private function sendRequest($payload) {
+        $url = "http://{$this->host}:{$this->port}/emit";
+        
+        $options = [
+            'http' => [
+                'header' => "Content-type: application/json\r\n",
+                'method' => 'POST',
+                'content' => $payload,
+                'timeout' => $this->timeout
+            ]
+        ];
+        
+        $context = stream_context_create($options);
+        
         try {
-            $postData = json_encode([
-                'event' => $event,
-                'data' => $data
-            ]);
+            $result = @file_get_contents($url, false, $context);
             
-            $ch = curl_init($this->serverUrl . '/broadcast');
-            curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, [
-                'Content-Type: application/json',
-                'Content-Length: ' . strlen($postData)
-            ]);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 5);
-            
-            $response = curl_exec($ch);
-            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
-            
-            if ($this->debug) {
-                log_debug("WebSocket broadcast response", [
-                    'response' => $response,
-                    'http_code' => $httpCode
-                ]);
+            if ($result === false) {
+                $this->log("Socket request failed: " . error_get_last()['message']);
+                return false;
             }
             
-            return $httpCode === 200;
+            $response = json_decode($result, true);
+            
+            if ($response && isset($response['success']) && $response['success']) {
+                $this->log("Socket request successful: " . json_encode($response));
+                return true;
+            } else {
+                $this->log("Socket request failed with response: " . json_encode($response));
+                return false;
+            }
         } catch (Exception $e) {
-            log_error("WebSocket broadcast error", ['error' => $e->getMessage()]);
+            $this->log("Socket request exception: " . $e->getMessage());
             return false;
         }
     }
     
-    /**
-     * Test WebSocket connection
-     */
-    public function testConnection() {
-        try {
-            $ch = curl_init($this->serverUrl . '/health');
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 3);
-            
-            $response = curl_exec($ch);
-            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
-            
-            return $httpCode === 200;
-        } catch (Exception $e) {
-            log_error("WebSocket test connection error", ['error' => $e->getMessage()]);
-            return false;
+    private function log($message) {
+        if ($this->debug) {
+            if (function_exists('logger')) {
+                logger()->debug("[WebSocketClient] " . $message);
+            } else {
+                error_log("[WebSocketClient] " . $message);
+            }
         }
+    }
+    
+    public function setDebug($debug) {
+        $this->debug = $debug;
+        return $this;
     }
 }

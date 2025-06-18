@@ -50,8 +50,8 @@ if (preg_match('/\\.(?:css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|webp|map)$
     }
 
     $searchPaths = [
-        __DIR__ . '/',                  
-        dirname(__DIR__) . '/public/',  
+        __DIR__ . '/',
+        dirname(__DIR__) . '/public/',
         dirname(__DIR__) . '/',           ];    
 
     // Try to find and serve the static file
@@ -68,7 +68,8 @@ if (preg_match('/\\.(?:css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|webp|map)$
 }
 
 // Handle web routes through config/web.php
-$webConfigPath = dirname(__DIR__) . '/config/web.php';
+$webConfigPath = APP_ROOT . '/config/web.php';
+
 if (file_exists($webConfigPath)) {
     require_once $webConfigPath;
 } else {

@@ -4,6 +4,7 @@ class BaseController
 {
 
     protected $app;
+    protected $ajaxConfig;
 
     public function __construct()
     {
@@ -14,20 +15,66 @@ class BaseController
             require_once __DIR__ . '/../utils/AppLogger.php';
         }
 
+        if (file_exists(__DIR__ . '/../config/ajax.php')) {
+            $this->ajaxConfig = require_once __DIR__ . '/../config/ajax.php';
+        } else {
+            $this->ajaxConfig = ['enabled' => true];
+        }
+
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
 
         if ($this->isApiRoute() || $this->isAjaxRequest()) {
             header('Content-Type: application/json');
+            
+            // Apply CORS headers if enabled
+            if ($this->ajaxConfig['cors']['enabled'] ?? false) {
+                $this->applyCorsHeaders();
+            }
         }
 
         if (function_exists('logger')) {
             logger()->debug("Controller instantiated", [
                 'controller' => get_class($this),
                 'request_uri' => $_SERVER['REQUEST_URI'] ?? '',
-                'request_method' => $_SERVER['REQUEST_METHOD'] ?? 'GET'
+                'request_method' => $_SERVER['REQUEST_METHOD'] ?? 'GET',
+                'is_ajax' => $this->isAjaxRequest() ? 'yes' : 'no'
             ]);
+        }
+    }
+
+    protected function applyCorsHeaders() {
+        $cors = $this->ajaxConfig['cors'] ?? [];
+        
+        // Allow origins
+        $origin = $_SERVER['HTTP_ORIGIN'] ?? '*';
+        $allowedOrigins = $cors['allowed_origins'] ?? ['*'];
+        
+        if (in_array('*', $allowedOrigins) || in_array($origin, $allowedOrigins)) {
+            header("Access-Control-Allow-Origin: $origin");
+        }
+        
+        // Allow methods
+        $allowedMethods = implode(', ', $cors['allowed_methods'] ?? ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']);
+        header("Access-Control-Allow-Methods: $allowedMethods");
+        
+        // Allow headers
+        $allowedHeaders = implode(', ', $cors['allowed_headers'] ?? ['Content-Type', 'X-Requested-With']);
+        header("Access-Control-Allow-Headers: $allowedHeaders");
+        
+        // Support credentials
+        if ($cors['supports_credentials'] ?? true) {
+            header("Access-Control-Allow-Credentials: true");
+        }
+        
+        // Max age
+        $maxAge = $cors['max_age'] ?? 86400;
+        header("Access-Control-Max-Age: $maxAge");
+        
+        // Handle preflight requests
+        if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+            exit(0);
         }
     }
 
@@ -59,7 +106,7 @@ class BaseController
     protected function requireAuth()
     {
         if (!$this->isAuthenticated()) {
-            if ($this->isApiRoute()) {
+            if ($this->isApiRoute() || $this->isAjaxRequest()) {
                 $this->jsonResponse(['error' => 'Unauthorized'], 401);
             } else {
                 header('Location: /login');
@@ -248,46 +295,135 @@ class BaseController
 
     protected function logActivity($action, $data = [])
     {
-        if (function_exists('logger')) {
-            logger()->info("Controller action: {$action}", array_merge([
-                'controller' => get_class($this),
-                'user_id' => $this->getCurrentUserId(),
-                'ip' => $_SERVER['REMOTE_ADDR'] ?? '',
-                'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? ''
-            ], $data));
+        if (!$this->isAuthenticated()) {
+            return;
+        }
+
+        $userId = $this->getCurrentUserId();
+        $timestamp = date('Y-m-d H:i:s');
+        $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+        $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? 'unknown';
+
+        $activityData = [
+            'user_id' => $userId,
+            'action' => $action,
+            'timestamp' => $timestamp,
+            'ip_address' => $ip,
+            'user_agent' => $userAgent,
+            'data' => json_encode($data)
+        ];
+
+        try {
+            $this->db()->insert('activity_logs', $activityData);
+        } catch (Exception $e) {
+            if (function_exists('logger')) {
+                logger()->error("Failed to log activity", [
+                    'error' => $e->getMessage(),
+                    'activity' => $activityData
+                ]);
+            }
         }
     }
 
     protected function uploadImage($file, $folder = 'uploads')
     {
-
-        if (!isset($file['tmp_name']) || $file['error'] !== UPLOAD_ERR_OK) {
-            throw new Exception('Invalid file upload');
+        if (!$file || !isset($file['tmp_name']) || empty($file['tmp_name'])) {
+            throw new Exception('No file uploaded');
         }
 
-        $allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
-        $finfo = finfo_open(FILEINFO_MIME_TYPE);
-        $mimeType = finfo_file($finfo, $file['tmp_name']);
-        finfo_close($finfo);
-
-        if (!in_array($mimeType, $allowedTypes)) {
-            throw new Exception('Invalid file type. Only JPG, PNG, and GIF are allowed.');
+        $targetDir = dirname(__DIR__) . "/public/assets/{$folder}/";
+        if (!is_dir($targetDir)) {
+            mkdir($targetDir, 0755, true);
         }
 
-        $uploadDir = __DIR__ . '/../public/uploads/' . $folder;
-        if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0755, true);
-        }
+        $filename = uniqid() . '_' . basename($file['name']);
+        $targetFile = $targetDir . $filename;
 
-        $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
-        $filename = uniqid() . '.' . $extension;
-        $filepath = $uploadDir . '/' . $filename;
-
-        if (move_uploaded_file($file['tmp_name'], $filepath)) {
-
-            return '/uploads/' . $folder . '/' . $filename;
-        } else {
+        if (!move_uploaded_file($file['tmp_name'], $targetFile)) {
             throw new Exception('Failed to upload file');
+        }
+
+        return "/assets/{$folder}/{$filename}";
+    }
+    
+    protected function notifyViaSocket($userId, $event, $data)
+    {
+        if (!($this->ajaxConfig['socket']['enabled'] ?? true)) {
+            return false;
+        }
+        
+        try {
+            require_once __DIR__ . '/../utils/WebSocketClient.php';
+            
+            $socketConfig = $this->ajaxConfig['socket'] ?? [
+                'host' => 'localhost',
+                'port' => 1002,
+                'path' => '/socket.io'
+            ];
+            
+            $client = new WebSocketClient(
+                $socketConfig['host'],
+                $socketConfig['port'],
+                $socketConfig['path']
+            );
+            
+            return $client->emit('notify-user', [
+                'userId' => $userId,
+                'event' => $event,
+                'data' => $data
+            ]);
+        } catch (Exception $e) {
+            if (function_exists('logger')) {
+                logger()->error("Socket notification failed", [
+                    'error' => $e->getMessage(),
+                    'userId' => $userId,
+                    'event' => $event
+                ]);
+            }
+            return false;
+        }
+    }
+    
+    protected function broadcastViaSocket($event, $data, $room = null)
+    {
+        if (!($this->ajaxConfig['socket']['enabled'] ?? true)) {
+            return false;
+        }
+        
+        try {
+            require_once __DIR__ . '/../utils/WebSocketClient.php';
+            
+            $socketConfig = $this->ajaxConfig['socket'] ?? [
+                'host' => 'localhost',
+                'port' => 1002,
+                'path' => '/socket.io'
+            ];
+            
+            $client = new WebSocketClient(
+                $socketConfig['host'],
+                $socketConfig['port'],
+                $socketConfig['path']
+            );
+            
+            $payload = [
+                'event' => $event,
+                'data' => $data
+            ];
+            
+            if ($room) {
+                $payload['room'] = $room;
+                return $client->emit('broadcast-to-room', $payload);
+            }
+            
+            return $client->emit('broadcast', $payload);
+        } catch (Exception $e) {
+            if (function_exists('logger')) {
+                logger()->error("Socket broadcast failed", [
+                    'error' => $e->getMessage(),
+                    'event' => $event
+                ]);
+            }
+            return false;
         }
     }
 }

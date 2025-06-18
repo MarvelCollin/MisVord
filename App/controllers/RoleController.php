@@ -22,250 +22,360 @@ class RoleController extends BaseController {
     }
     
     public function getServerRoles($serverId) {
+        $this->requireAuth();
+        
         $userId = $this->getCurrentUserId();
         
-        if (!$userId) {
-            return $this->json(['error' => 'Unauthorized'], 401);
+        try {
+            if (!$this->userServerMembershipRepository->isMember($userId, $serverId)) {
+                return $this->forbidden('You are not a member of this server');
+            }
+            
+            $roles = $this->roleRepository->getForServer($serverId);
+            return $this->success($roles, 'Server roles retrieved successfully');
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while retrieving server roles: ' . $e->getMessage());
         }
-        
-        if (!$this->userServerMembershipRepository->isMember($userId, $serverId)) {
-            return $this->json(['error' => 'You are not a member of this server'], 403);
-        }
-        
-        $roles = $this->roleRepository->getForServer($serverId);
-        return $this->json(['roles' => $roles]);
     }
     
     public function createRole($serverId) {
+        $this->requireAuth();
+        
         $userId = $this->getCurrentUserId();
+        $input = $this->getInput();
         
-        if (!$userId) {
-            return $this->json(['error' => 'Unauthorized'], 401);
+        try {
+            if (!$this->userServerMembershipRepository->isOwner($userId, $serverId)) {
+                return $this->forbidden('Only server owners can create roles');
+            }
+            
+            // Validate input
+            $this->validate($input, [
+                'role_name' => 'required'
+            ]);
+            
+            $roleName = $input['role_name'];
+            $roleColor = $input['role_color'] ?? null;
+            
+            $role = $this->roleRepository->createRole($serverId, $roleName, $roleColor);
+            
+            if (!$role) {
+                return $this->serverError('Failed to create role');
+            }
+            
+            // Notify via socket
+            $this->broadcastViaSocket('role-created', [
+                'role' => $role->toArray(),
+                'server_id' => $serverId
+            ], 'server-' . $serverId);
+            
+            // Log activity
+            $this->logActivity('role_created', [
+                'role_id' => $role->id,
+                'role_name' => $role->role_name,
+                'server_id' => $serverId
+            ]);
+            
+            return $this->success($role->toArray(), 'Role created successfully');
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while creating the role: ' . $e->getMessage());
         }
-        
-        if (!$this->userServerMembershipRepository->isOwner($userId, $serverId)) {
-            return $this->json(['error' => 'Only server owners can create roles'], 403);
-        }
-        
-        $data = $this->getRequestBody();
-        
-        if (!isset($data['role_name']) || empty($data['role_name'])) {
-            return $this->json(['error' => 'Role name is required'], 400);
-        }
-        
-        $roleName = $data['role_name'];
-        $roleColor = isset($data['role_color']) ? $data['role_color'] : null;
-        
-        $role = $this->roleRepository->createRole($serverId, $roleName, $roleColor);
-        
-        if (!$role) {
-            return $this->json(['error' => 'Failed to create role'], 500);
-        }
-        
-        return $this->json([
-            'message' => 'Role created successfully',
-            'role' => $role->toArray()
-        ]);
     }
     
     public function updateRole($roleId) {
+        $this->requireAuth();
+        
         $userId = $this->getCurrentUserId();
+        $input = $this->getInput();
         
-        if (!$userId) {
-            return $this->json(['error' => 'Unauthorized'], 401);
+        try {
+            $role = $this->roleRepository->find($roleId);
+            
+            if (!$role) {
+                return $this->notFound('Role not found');
+            }
+            
+            if (!$this->userServerMembershipRepository->isOwner($userId, $role->server_id)) {
+                return $this->forbidden('Only server owners can update roles');
+            }
+            
+            // Validate input
+            $this->validate($input, [
+                'role_name' => 'required'
+            ]);
+            
+            $roleName = $input['role_name'];
+            $roleColor = $input['role_color'] ?? null;
+            
+            $updated = $this->roleRepository->updateRole($roleId, $roleName, $roleColor);
+            
+            if (!$updated) {
+                return $this->serverError('Failed to update role');
+            }
+            
+            // Notify via socket
+            $this->broadcastViaSocket('role-updated', [
+                'role' => $updated->toArray(),
+                'server_id' => $role->server_id
+            ], 'server-' . $role->server_id);
+            
+            // Log activity
+            $this->logActivity('role_updated', [
+                'role_id' => $roleId,
+                'role_name' => $roleName,
+                'server_id' => $role->server_id
+            ]);
+            
+            return $this->success($updated->toArray(), 'Role updated successfully');
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while updating the role: ' . $e->getMessage());
         }
-        
-        $role = $this->roleRepository->find($roleId);
-        
-        if (!$role) {
-            return $this->json(['error' => 'Role not found'], 404);
-        }
-        
-        if (!$this->userServerMembershipRepository->isOwner($userId, $role->server_id)) {
-            return $this->json(['error' => 'Only server owners can update roles'], 403);
-        }
-        
-        $data = $this->getRequestBody();
-        
-        if (!isset($data['role_name']) || empty($data['role_name'])) {
-            return $this->json(['error' => 'Role name is required'], 400);
-        }
-        
-        $roleName = $data['role_name'];
-        $roleColor = isset($data['role_color']) ? $data['role_color'] : null;
-        
-        $updated = $this->roleRepository->updateRole($roleId, $roleName, $roleColor);
-        
-        if (!$updated) {
-            return $this->json(['error' => 'Failed to update role'], 500);
-        }
-        
-        return $this->json([
-            'message' => 'Role updated successfully',
-            'role' => $updated->toArray()
-        ]);
     }
     
     public function deleteRole($roleId) {
+        $this->requireAuth();
+        
         $userId = $this->getCurrentUserId();
         
-        if (!$userId) {
-            return $this->json(['error' => 'Unauthorized'], 401);
+        try {
+            $role = $this->roleRepository->find($roleId);
+            
+            if (!$role) {
+                return $this->notFound('Role not found');
+            }
+            
+            if (!$this->userServerMembershipRepository->isOwner($userId, $role->server_id)) {
+                return $this->forbidden('Only server owners can delete roles');
+            }
+            
+            $serverId = $role->server_id; // Save for notification
+            $roleData = $role->toArray(); // Save for notification
+            
+            $deleted = $this->roleRepository->delete($roleId);
+            
+            if (!$deleted) {
+                return $this->serverError('Failed to delete role');
+            }
+            
+            // Notify via socket
+            $this->broadcastViaSocket('role-deleted', [
+                'role_id' => $roleId,
+                'server_id' => $serverId,
+                'role_data' => $roleData
+            ], 'server-' . $serverId);
+            
+            // Log activity
+            $this->logActivity('role_deleted', [
+                'role_id' => $roleId,
+                'role_name' => $role->role_name,
+                'server_id' => $serverId
+            ]);
+            
+            return $this->success(null, 'Role deleted successfully');
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while deleting the role: ' . $e->getMessage());
         }
-        
-        $role = $this->roleRepository->find($roleId);
-        
-        if (!$role) {
-            return $this->json(['error' => 'Role not found'], 404);
-        }
-        
-        if (!$this->userServerMembershipRepository->isOwner($userId, $role->server_id)) {
-            return $this->json(['error' => 'Only server owners can delete roles'], 403);
-        }
-        
-        $deleted = $this->roleRepository->delete($roleId);
-        
-        if (!$deleted) {
-            return $this->json(['error' => 'Failed to delete role'], 500);
-        }
-        
-        return $this->json(['message' => 'Role deleted successfully']);
     }
     
     public function assignRoleToUser($roleId) {
+        $this->requireAuth();
+        
         $userId = $this->getCurrentUserId();
+        $input = $this->getInput();
         
-        if (!$userId) {
-            return $this->json(['error' => 'Unauthorized'], 401);
+        try {
+            $role = $this->roleRepository->find($roleId);
+            
+            if (!$role) {
+                return $this->notFound('Role not found');
+            }
+            
+            if (!$this->userServerMembershipRepository->isOwner($userId, $role->server_id)) {
+                return $this->forbidden('Only server owners can assign roles');
+            }
+            
+            // Validate input
+            $this->validate($input, [
+                'user_id' => 'required'
+            ]);
+            
+            $targetUserId = $input['user_id'];
+            
+            if (!$this->userServerMembershipRepository->isMember($targetUserId, $role->server_id)) {
+                return $this->error('User is not a member of this server', 400);
+            }
+            
+            $assigned = $this->roleRepository->assignRoleToUser($roleId, $targetUserId);
+            
+            if (!$assigned) {
+                return $this->serverError('Failed to assign role');
+            }
+            
+            // Notify via socket
+            $this->broadcastViaSocket('user-role-assigned', [
+                'role_id' => $roleId,
+                'user_id' => $targetUserId,
+                'server_id' => $role->server_id,
+                'role_data' => $role->toArray()
+            ], 'server-' . $role->server_id);
+            
+            // Also notify the specific user
+            $this->notifyViaSocket($targetUserId, 'role-received', [
+                'role_id' => $roleId,
+                'server_id' => $role->server_id,
+                'role_data' => $role->toArray()
+            ]);
+            
+            // Log activity
+            $this->logActivity('role_assigned', [
+                'role_id' => $roleId,
+                'role_name' => $role->role_name,
+                'user_id' => $targetUserId,
+                'server_id' => $role->server_id
+            ]);
+            
+            return $this->success(null, 'Role assigned successfully');
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while assigning the role: ' . $e->getMessage());
         }
-        
-        $role = $this->roleRepository->find($roleId);
-        
-        if (!$role) {
-            return $this->json(['error' => 'Role not found'], 404);
-        }
-        
-        if (!$this->userServerMembershipRepository->isOwner($userId, $role->server_id)) {
-            return $this->json(['error' => 'Only server owners can assign roles'], 403);
-        }
-        
-        $data = $this->getRequestBody();
-        
-        if (!isset($data['user_id']) || empty($data['user_id'])) {
-            return $this->json(['error' => 'User ID is required'], 400);
-        }
-        
-        $targetUserId = $data['user_id'];
-        
-        if (!$this->userServerMembershipRepository->isMember($targetUserId, $role->server_id)) {
-            return $this->json(['error' => 'User is not a member of this server'], 400);
-        }
-        
-        $assigned = $this->roleRepository->assignRoleToUser($roleId, $targetUserId);
-        
-        if (!$assigned) {
-            return $this->json(['error' => 'Failed to assign role'], 500);
-        }
-        
-        return $this->json(['message' => 'Role assigned successfully']);
     }
     
     public function removeRoleFromUser($roleId) {
+        $this->requireAuth();
+        
         $userId = $this->getCurrentUserId();
+        $input = $this->getInput();
         
-        if (!$userId) {
-            return $this->json(['error' => 'Unauthorized'], 401);
+        try {
+            $role = $this->roleRepository->find($roleId);
+            
+            if (!$role) {
+                return $this->notFound('Role not found');
+            }
+            
+            if (!$this->userServerMembershipRepository->isOwner($userId, $role->server_id)) {
+                return $this->forbidden('Only server owners can remove roles');
+            }
+            
+            // Validate input
+            $this->validate($input, [
+                'user_id' => 'required'
+            ]);
+            
+            $targetUserId = $input['user_id'];
+            
+            $removed = $this->roleRepository->removeRoleFromUser($roleId, $targetUserId);
+            
+            if (!$removed) {
+                return $this->serverError('Failed to remove role');
+            }
+            
+            // Notify via socket
+            $this->broadcastViaSocket('user-role-removed', [
+                'role_id' => $roleId,
+                'user_id' => $targetUserId,
+                'server_id' => $role->server_id
+            ], 'server-' . $role->server_id);
+            
+            // Also notify the specific user
+            $this->notifyViaSocket($targetUserId, 'role-removed', [
+                'role_id' => $roleId,
+                'server_id' => $role->server_id
+            ]);
+            
+            // Log activity
+            $this->logActivity('role_removed', [
+                'role_id' => $roleId,
+                'role_name' => $role->role_name,
+                'user_id' => $targetUserId,
+                'server_id' => $role->server_id
+            ]);
+            
+            return $this->success(null, 'Role removed successfully');
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while removing the role: ' . $e->getMessage());
         }
-        
-        $role = $this->roleRepository->find($roleId);
-        
-        if (!$role) {
-            return $this->json(['error' => 'Role not found'], 404);
-        }
-        
-        if (!$this->userServerMembershipRepository->isOwner($userId, $role->server_id)) {
-            return $this->json(['error' => 'Only server owners can remove roles'], 403);
-        }
-        
-        $data = $this->getRequestBody();
-        
-        if (!isset($data['user_id']) || empty($data['user_id'])) {
-            return $this->json(['error' => 'User ID is required'], 400);
-        }
-        
-        $targetUserId = $data['user_id'];
-        
-        $removed = $this->roleRepository->removeRoleFromUser($roleId, $targetUserId);
-        
-        if (!$removed) {
-            return $this->json(['error' => 'Failed to remove role'], 500);
-        }
-        
-        return $this->json(['message' => 'Role removed successfully']);
     }
     
     public function updateRolePermissions($roleId) {
+        $this->requireAuth();
+        
         $userId = $this->getCurrentUserId();
+        $input = $this->getInput();
         
-        if (!$userId) {
-            return $this->json(['error' => 'Unauthorized'], 401);
+        try {
+            $role = $this->roleRepository->find($roleId);
+            
+            if (!$role) {
+                return $this->notFound('Role not found');
+            }
+            
+            if (!$this->userServerMembershipRepository->isOwner($userId, $role->server_id)) {
+                return $this->forbidden('Only server owners can update role permissions');
+            }
+            
+            // Validate input
+            $this->validate($input, [
+                'channel_id' => 'required'
+            ]);
+            
+            $channelId = $input['channel_id'];
+            $permissions = [
+                'can_read' => isset($input['can_read']) ? (bool)$input['can_read'] : false,
+                'can_write' => isset($input['can_write']) ? (bool)$input['can_write'] : false,
+                'can_manage' => isset($input['can_manage']) ? (bool)$input['can_manage'] : false,
+                'can_delete' => isset($input['can_delete']) ? (bool)$input['can_delete'] : false
+            ];
+            
+            $permission = $this->rolePermissionRepository->createOrUpdate($roleId, $channelId, $permissions);
+            
+            if (!$permission) {
+                return $this->serverError('Failed to update role permissions');
+            }
+            
+            // Notify via socket
+            $this->broadcastViaSocket('role-permissions-updated', [
+                'role_id' => $roleId,
+                'channel_id' => $channelId,
+                'permissions' => $permission->toArray(),
+                'server_id' => $role->server_id
+            ], 'server-' . $role->server_id);
+            
+            // Log activity
+            $this->logActivity('role_permissions_updated', [
+                'role_id' => $roleId,
+                'channel_id' => $channelId,
+                'server_id' => $role->server_id,
+                'permissions' => $permissions
+            ]);
+            
+            return $this->success($permission->toArray(), 'Role permissions updated successfully');
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while updating role permissions: ' . $e->getMessage());
         }
-        
-        $role = $this->roleRepository->find($roleId);
-        
-        if (!$role) {
-            return $this->json(['error' => 'Role not found'], 404);
-        }
-        
-        if (!$this->userServerMembershipRepository->isOwner($userId, $role->server_id)) {
-            return $this->json(['error' => 'Only server owners can update role permissions'], 403);
-        }
-        
-        $data = $this->getRequestBody();
-        
-        if (!isset($data['channel_id']) || empty($data['channel_id'])) {
-            return $this->json(['error' => 'Channel ID is required'], 400);
-        }
-        
-        $channelId = $data['channel_id'];
-        $permissions = [
-            'can_read' => isset($data['can_read']) ? (bool)$data['can_read'] : false,
-            'can_write' => isset($data['can_write']) ? (bool)$data['can_write'] : false,
-            'can_manage' => isset($data['can_manage']) ? (bool)$data['can_manage'] : false,
-            'can_delete' => isset($data['can_delete']) ? (bool)$data['can_delete'] : false
-        ];
-        
-        $permission = $this->rolePermissionRepository->createOrUpdate($roleId, $channelId, $permissions);
-        
-        if (!$permission) {
-            return $this->json(['error' => 'Failed to update role permissions'], 500);
-        }
-        
-        return $this->json([
-            'message' => 'Role permissions updated successfully',
-            'permissions' => $permission->toArray()
-        ]);
     }
     
     public function getRolePermissions($roleId) {
+        $this->requireAuth();
+        
         $userId = $this->getCurrentUserId();
         
-        if (!$userId) {
-            return $this->json(['error' => 'Unauthorized'], 401);
+        try {
+            $role = $this->roleRepository->find($roleId);
+            
+            if (!$role) {
+                return $this->notFound('Role not found');
+            }
+            
+            if (!$this->userServerMembershipRepository->isMember($userId, $role->server_id)) {
+                return $this->forbidden('You are not a member of this server');
+            }
+            
+            $permissions = $this->rolePermissionRepository->getForRole($roleId);
+            
+            return $this->success($permissions, 'Role permissions retrieved successfully');
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while retrieving role permissions: ' . $e->getMessage());
         }
-        
-        $role = $this->roleRepository->find($roleId);
-        
-        if (!$role) {
-            return $this->json(['error' => 'Role not found'], 404);
-        }
-        
-        if (!$this->userServerMembershipRepository->isMember($userId, $role->server_id)) {
-            return $this->json(['error' => 'You are not a member of this server'], 403);
-        }
-        
-        $permissions = $this->rolePermissionRepository->getForRole($roleId);
-        
-        return $this->json(['permissions' => $permissions]);
     }
 } 
