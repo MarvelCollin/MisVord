@@ -5,753 +5,551 @@ require_once __DIR__ . '/../database/models/Channel.php';
 require_once __DIR__ . '/../database/models/Message.php';
 require_once __DIR__ . '/../database/models/UserServerMembership.php';
 require_once __DIR__ . '/BaseController.php';
-require_once __DIR__ . '/../utils/AppLogger.php';
 
 class ServerController extends BaseController {
 
+    public function __construct() {
+        parent::__construct();
+    }
+
+    /**
+     * Show server page with channels and messages
+     */
     public function show($id) {
-        if (!isset($_SESSION['user_id'])) {
-            $this->redirectToLogin();
-            return;
-        }
+        $this->requireAuth();
 
         $server = Server::find($id);
         if (!$server) {
-            $this->redirect('/404');
-            return;
+            return $this->notFound('Server not found');
         }
 
-        $membership = UserServerMembership::findByUserAndServer($_SESSION['user_id'], $id);
+        // Check if user is a member of this server
+        $membership = UserServerMembership::findByUserAndServer($this->getCurrentUserId(), $id);
         if (!$membership) {
-            $this->redirect('/404');
-            return;
+            return $this->forbidden('You are not a member of this server');
         }
 
-        $channels = Channel::getByServerId($id);
-        $GLOBALS['serverChannels'] = $channels;
-
-        $activeChannelId = $_GET['channel'] ?? null;
-        if ($activeChannelId) {
-            $activeChannel = Channel::find($activeChannelId);
-            if ($activeChannel && $activeChannel->server_id == $id) {
-                $GLOBALS['activeChannelId'] = $activeChannelId;
-
-                try {
-                    $messages = Message::getForChannel($activeChannelId, 50, 0);
-                    $GLOBALS['channelMessages'] = $messages;
-                    log_debug("ServerController: Loaded messages for channel", [
-                        'channel_id' => $activeChannelId,
-                        'message_count' => count($messages)
-                    ]);
-                } catch (Exception $e) {
-                    log_error("ServerController: Error loading messages", [
-                        'error' => $e->getMessage(),
-                        'channel_id' => $activeChannelId
-                    ]);
-                    $GLOBALS['channelMessages'] = [];
+        try {
+            // Get server channels
+            $channels = Channel::getByServerId($id);
+            
+            // Handle active channel if specified
+            $activeChannelId = $_GET['channel'] ?? null;
+            $activeChannel = null;
+            $channelMessages = [];
+            
+            if ($activeChannelId) {
+                $activeChannel = Channel::find($activeChannelId);
+                if ($activeChannel && $activeChannel->server_id == $id) {
+                    try {
+                        $channelMessages = Message::getForChannel($activeChannelId, 50, 0);
+                        $this->logActivity('channel_messages_loaded', [
+                            'channel_id' => $activeChannelId,
+                            'message_count' => count($channelMessages)
+                        ]);
+                    } catch (Exception $e) {
+                        $this->logActivity('channel_messages_error', [
+                            'channel_id' => $activeChannelId,
+                            'error' => $e->getMessage()
+                        ]);
+                    }
                 }
             }
-        } else if (!empty($channels)) {
-            $firstChannel = $channels[0];
-            $this->redirect("/server/$id?channel={$firstChannel['id']}");
-            return;
-        }
 
-        $GLOBALS['currentServer'] = $server;
-
-        $this->view('pages/server-page', [
-            'title' => htmlspecialchars($server->name),
-            'currentServer' => $server,
-            'activeChannelId' => $activeChannelId ?? null,
-            'channels' => $channels,
-            'messages' => $GLOBALS['channelMessages'] ?? []        ]);
-    }
-
-    public function create() {
-        try {
-            logger()->info("Starting server creation process");
-
-            if (!isset($_SESSION['user_id'])) {
-                logger()->warning("Server creation failed: User not authenticated");
-                return $this->unauthorized();
-            }
-
-            logger()->debug("Authenticated user", ['user_id' => $_SESSION['user_id']]);
-
-            $postData = $_POST;
-            logger()->debug("Server creation POST data received", $postData);
-
-            if (isset($_FILES['image_file'])) {
-                logger()->debug("Image file received", [
-                    'filename' => $_FILES['image_file']['name'],
-                    'size' => $_FILES['image_file']['size']
+            // For API/AJAX requests, return JSON
+            if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                return $this->success([
+                    'server' => $this->formatServer($server),
+                    'channels' => array_map([$this, 'formatChannel'], $channels),
+                    'active_channel' => $activeChannel ? $this->formatChannel($activeChannel) : null,
+                    'messages' => $channelMessages
                 ]);
-            } else {
-                logger()->debug("No image file received");
             }
 
-            $name = $_POST['name'] ?? '';
-            $description = $_POST['description'] ?? '';
-            $isPublic = isset($_POST['is_public']) ? (bool)$_POST['is_public'] : true;  
+            // For regular requests, set globals and render view
+            $GLOBALS['server'] = $server;
+            $GLOBALS['serverChannels'] = $channels;
+            $GLOBALS['activeChannelId'] = $activeChannelId;
+            $GLOBALS['channelMessages'] = $channelMessages;
 
-            logger()->debug("Server creation details", [
-                'name' => $name,
-                'description_length' => strlen($description),
-                'is_public' => $isPublic
+            $this->logActivity('server_view', ['server_id' => $id]);
+            
+            require_once __DIR__ . '/../views/pages/server-page.php';
+            
+        } catch (Exception $e) {
+            $this->logActivity('server_view_error', [
+                'server_id' => $id,
+                'error' => $e->getMessage()
             ]);
-
-            if (empty($name)) {
-                logger()->warning("Server creation failed: Empty name");
-                return $this->validationError(['name' => 'Server name is required']);
-            }
-
-            logger()->debug("Checking for duplicate server name", ['name' => $name]);
-            $existingServer = Server::findByName($name);
-            if ($existingServer) {
-                log_error("Server creation failed: Name already exists", [
-                    'server_name' => $_POST['server_name']
-                ]);                return $this->validationError(['name' => 'Server with this name already exists']);
+            
+            if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                return $this->serverError('Failed to load server');
             }
             
-            log_debug("Creating new Server object", [
-                'server_name' => $name,
-                'user_id' => $_SESSION['user_id']
-            ]);
+            $this->redirect('/404');
+        }
+    }
+
+    /**
+     * Create a new server
+     */
+    public function create() {
+        $this->requireAuth();
+        
+        $input = $this->getInput();
+        $input = $this->sanitize($input);
+        
+        // Validate input
+        $this->validate($input, [
+            'name' => 'required'
+        ]);
+
+        $name = $input['name'];
+        $description = $input['description'] ?? '';
+
+        try {
             $server = new Server();
             $server->name = $name;
             $server->description = $description;
-            $server->is_public = $isPublic;
-
-            $imageUrl = null;
-            if (isset($_FILES['image_file']) && $_FILES['image_file']['error'] === UPLOAD_ERR_OK) {
-                log_debug("Attempting to upload server image");
-                $imageUrl = $this->uploadImage($_FILES['image_file'], 'servers');
-                if ($imageUrl === false) {
-                    log_error("Server creation failed: Image upload failed");
-                    return $this->serverError('Failed to upload server image');
-                }
-                log_info("Image uploaded successfully", ['image_url' => $imageUrl]);
-                $server->image_url = $imageUrl;
-            }
-
-            $query = new Query();
-            $pdo = $query->getPdo();
-
-            $server->invite_link = $this->generateUniqueInviteCode();
-
-            $transactionActive = false;
-
-            try {
-
-                if ($pdo->inTransaction()) {
-                    log_debug("Transaction already active - using existing transaction");
-                } else {
-                    log_debug("Starting new transaction");
-                    $pdo->beginTransaction();
-                    $transactionActive = true;
-                }
-
-                log_debug("Saving server to database within transaction");
-                if (!$server->save()) {                    log_error("Server creation failed: Could not save server");
-                    if ($transactionActive) {
-                        log_debug("Rolling back transaction");
-                        $pdo->rollBack();
-                        $transactionActive = false;
-                    }
-                    return $this->serverError('Failed to create server');
-                }
-                log_info("Server saved with ID", ['server_id' => $server->id]);
-
-                log_debug("Adding user as server owner", [
-                    'user_id' => $_SESSION['user_id'],
-                    'server_id' => $server->id
+            $server->owner_id = $this->getCurrentUserId();
+            
+            if ($server->save()) {
+                // Add owner as member
+                $membership = new UserServerMembership();
+                $membership->user_id = $this->getCurrentUserId();
+                $membership->server_id = $server->id;
+                $membership->role = 'owner';
+                $membership->save();
+                
+                // Create default general channel
+                $generalChannel = new Channel();
+                $generalChannel->name = 'general';
+                $generalChannel->type = 'text';
+                $generalChannel->server_id = $server->id;
+                $generalChannel->created_by = $this->getCurrentUserId();
+                $generalChannel->save();
+                
+                $this->logActivity('server_created', [
+                    'server_id' => $server->id,
+                    'server_name' => $name
                 ]);
 
-                try {
-
-                    $stmt = $pdo->prepare("
-                        INSERT INTO user_server_memberships 
-                        (user_id, server_id, role) 
-                        VALUES (?, ?, 'owner')
-                    ");
-                    $membershipInserted = $stmt->execute([$_SESSION['user_id'], $server->id]);
-
-                    if (!$membershipInserted) {
-                        throw new Exception("Direct server membership insertion failed");
-                    }
-
-                    log_debug("Membership created with PDO directly");
-                } catch (Exception $e) {
-                    log_error("Error creating membership with PDO directly", [
-                        'error' => $e->getMessage()
-                    ]);
-
-                    $membershipInserted = $query->table('user_server_memberships')
-                        ->insert([
-                            'user_id' => $_SESSION['user_id'],
-                            'server_id' => $server->id,
-                            'role' => 'owner'
-
-                        ]);
-
-                    log_debug("Membership created with query builder", [
-                        'success' => $membershipInserted
-                    ]);
-                }                if (!$membershipInserted) {
-                    log_error("Failed to create membership record, rolling back transaction");
-                    if ($transactionActive) {
-                        log_debug("Rolling back transaction");
-                        $pdo->rollBack();
-                        $transactionActive = false;
-                    }
-                    return $this->serverError('Failed to assign server ownership');
-                }
-
-                log_debug("Creating default channels for server", ['server_id' => $server->id]);
-                $channelsCreated = $this->createDefaultChannels($server->id);
-                log_debug("Default channels created", ['success' => $channelsCreated]);
-
-                if (!$channelsCreated) {
-                    log_error("Failed to create default channels, rolling back transaction");
-                    if ($transactionActive) {
-                        log_debug("Rolling back transaction");
-                        $pdo->rollBack();
-                        $transactionActive = false;
-                    }
-                    return $this->serverError('Failed to create default channels');
-                }
-
-                if ($transactionActive) {
-                    log_debug("Committing transaction");
-                    $pdo->commit();
-                    $transactionActive = false;
-                }
-
-                $membership = UserServerMembership::findByUserAndServer($_SESSION['user_id'], $server->id);
-                if (!$membership) {
-                    log_error("ERROR: Membership not found after successful transaction - this should never happen");
-                } else {
-                    log_info("SUCCESS: User membership verified", ['role' => $membership->role]);
-                }
-
-                log_info("Server creation completed successfully");
-                return $this->successResponse([
-                    'success' => true,
-                    'server_id' => (string)$server->id,
-                    'server' => [
-                        'id' => (string)$server->id,
-                        'name' => $server->name,
-                        'description' => $server->description,
-                        'image_url' => $server->image_url,
-                        'is_public' => $server->is_public ? true : false,
-                        'invite_link' => $server->invite_link
-                    ]
+                return $this->success([
+                    'server' => $this->formatServer($server),
+                    'redirect' => "/servers/{$server->id}"
                 ], 'Server created successfully');
-
-            } catch (Exception $e) {
-
-                if ($transactionActive) {
-                    log_debug("Rolling back transaction due to exception");
-                    try {
-                        $pdo->rollBack();
-                    } catch (Exception $rollbackEx) {
-                        log_error("Error during rollback", ['error' => $rollbackEx->getMessage()]);                    }
-                    $transactionActive = false;
-                }                log_error("Server creation error", [
-                    'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString()
-                ]);
-                return $this->serverError('Server creation failed: ' . $e->getMessage());
+            } else {
+                throw new Exception('Failed to save server');
             }
-        } catch (Exception $generalException) {
-            log_error("Unexpected error during server creation", [
-                'error' => $generalException->getMessage(),
-                'trace' => $generalException->getTraceAsString()
+        } catch (Exception $e) {
+            $this->logActivity('server_create_error', [
+                'server_name' => $name,
+                'error' => $e->getMessage()
             ]);
-            return $this->serverError('An unexpected error occurred');
+            return $this->serverError('Failed to create server');
         }
     }
 
-    private function createDefaultChannels($serverId) {
-        log_debug("Starting createDefaultChannels for server", ['server_id' => $serverId]);
-
-        if (empty($serverId) || !is_numeric($serverId)) {
-            log_error("Invalid serverId", ['server_id' => $serverId]);
-            return false;
-        }
-
-        try {
-            log_debug("Attempting to create a Query object");
-            $query = new Query();
-            log_debug("Query object created successfully");
-
-            $generalChannelData = [
-                'server_id' => $serverId,
-                'name' => 'general',
-                'type' => 'text',
-                'description' => 'General discussion',
-                'position' => 0
-            ];
-
-            log_debug("Creating general text channel");
-            $generalChannelId = $query->table('channels')->insert($generalChannelData);
-            log_debug("General text channel created", ['channel_id' => $generalChannelId]);
-
-            log_info("Default general channel created successfully");
-            return true;
-        } catch (Exception $e) {            log_error("Error creating default channels", [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            return false;
-        }
-    }
-
-    private function generateUniqueInviteCode() {
-        return bin2hex(random_bytes(8)); 
-    }
-
-    public function showInvite($inviteCode) {
-        log_debug("showInvite called", ['invite_code' => $inviteCode]);
-
-        $server = Server::findByInviteLink($inviteCode);
-
-        if (!$server) {
-            log_warning("Invalid invite link", ['invite_code' => $inviteCode]);
-
-            $GLOBALS['inviteServer'] = null;
-            $GLOBALS['inviteCode'] = $inviteCode;
-            require_once __DIR__ . '/../views/pages/accept-invite.php';
-            return;
-        }
-
-        log_debug("Found server for invite", ['server_name' => $server->name]);
-
-        if (isset($_SESSION['user_id'])) {
-
-            if (UserServerMembership::isMember($_SESSION['user_id'], $server->id)) {
-                header("Location: /server/{$server->id}");
-                exit;
-            }
-        }
-
-        $GLOBALS['inviteServer'] = $server;
-        $GLOBALS['inviteCode'] = $inviteCode;
-        require_once __DIR__ . '/../views/pages/accept-invite.php';
-    }
-
-    public function join($inviteCode) {        log_debug("join method called", ['invite_code' => $inviteCode]);
-        log_debug("Session data", [
-            'user_id' => $_SESSION['user_id'] ?? 'not set',
-            'pending_invite' => $_SESSION['pending_invite'] ?? 'not set',
-            'login_redirect' => $_SESSION['login_redirect'] ?? 'not set'
-        ]);
-
-        if (!isset($_SESSION['user_id'])) {
-            log_info("User not logged in - redirecting to login with return URL");
-
-            $_SESSION['pending_invite'] = $inviteCode;
-
-            if ($this->isAjaxRequest()) {
-                return $this->unauthorized('Please log in to accept this invitation');
-            }
-
-            header('Location: /login?redirect=/join/' . urlencode($inviteCode));
-            exit;
-        }
-
-        log_debug("User is logged in, processing invite", [
-            'invite_code' => $inviteCode,
-            'user_id' => $_SESSION['user_id']
-        ]);
-
-        if (empty($inviteCode)) {
-            log_warning("Empty invite code provided");
-            $errorMessage = 'Invalid invite link';
-
-            if ($this->isAjaxRequest()) {
-                return $this->validationError(['invite' => $errorMessage]);
-            }
-
-            $_SESSION['error'] = $errorMessage;
-            header('Location: /app');
-            exit;
-        }
-
-        $server = Server::findByInviteLink($inviteCode);
-
-        if (!$server) {
-            log_warning("Server not found for invite code", ['invite_code' => $inviteCode]);
-            $errorMessage = 'Invalid or expired invite link';
-
-            if ($this->isAjaxRequest()) {
-                return $this->validationError(['invite' => $errorMessage]);
-            }
-
-            $_SESSION['error'] = $errorMessage;
-            header('Location: /app');
-            exit;        }
+    /**
+     * Update server settings
+     */
+    public function update($id) {
+        $this->requireAuth();
         
-        log_debug("Found server for invite", [
-            'server_id' => $server->id,
-            'server_name' => $server->name
-        ]);
-
-        if (UserServerMembership::isMember($_SESSION['user_id'], $server->id)) {
-            log_debug("User is already a member of this server");
-            if ($this->isAjaxRequest()) {
-                return $this->successResponse([
-                    'server' => [
-                        'id' => $server->id,
-                        'name' => $server->name
-                    ],
-                    'redirect' => "/server/{$server->id}"
-                ], 'Already a member of this server');
-            }
-
-            header('Location: /server/' . $server->id);
-            exit;
-        }
-
-        log_debug("Attempting to join server", [
-            'server_id' => $server->id,
-            'user_id' => $_SESSION['user_id']
-        ]);
-        $joined = UserServerMembership::create($_SESSION['user_id'], $server->id, 'member');
-
-        if (!$joined) {
-            log_error("Failed to join server", [
-                'user_id' => $_SESSION['user_id'],
-                'server_id' => $server->id
-            ]);
-
-            if ($this->isAjaxRequest()) {
-                return $this->serverError('Failed to join the server. Please try again.');
-            }
-
-            $_SESSION['error'] = 'Failed to join server. Please try again.';
-            header('Location: /app');
-            exit;
-        }
-
-        log_info("Successfully joined server", ['server_id' => $server->id]);
-
-        if (isset($_SESSION['pending_invite'])) {
-            log_debug("Clearing pending_invite from session");
-            unset($_SESSION['pending_invite']);
-        }
-
-        if ($this->isAjaxRequest()) {
-            return $this->successResponse([
-                'server' => [
-                    'id' => $server->id,
-                    'name' => $server->name
-                ],
-                'redirect' => "/server/{$server->id}"
-            ], 'Successfully joined server');
-        }
-
-        $_SESSION['success'] = "You've successfully joined " . $server->name;
-        log_debug("Redirecting to server page", ['url' => "/server/{$server->id}"]);
-        header('Location: /server/' . $server->id);
-        exit;
-    }
-
-    public function leave($serverId) {
-        if (!isset($_SESSION['user_id'])) {
-            return $this->unauthorized();
-        }
-
-        $server = Server::find($serverId);
-
+        $server = Server::find($id);
         if (!$server) {
             return $this->notFound('Server not found');
         }
 
-        if (!UserServerMembership::isMember($_SESSION['user_id'], $serverId)) {
-            return $this->validationError(['server' => 'You are not a member of this server']);
+        // Check if user is the owner or has admin permissions
+        if (!$this->canManageServer($server)) {
+            return $this->forbidden('You do not have permission to edit this server');
         }
 
-        if (UserServerMembership::isOwner($_SESSION['user_id'], $serverId)) {
-            return $this->validationError(['server' => 'Server owners cannot leave their server. Transfer ownership first or delete the server.']);
+        $input = $this->getInput();
+        $input = $this->sanitize($input);
+        
+        $errors = [];
+        
+        // Validate name if provided
+        if (isset($input['name'])) {
+            if (empty($input['name'])) {
+                $errors['name'] = 'Server name is required';
+            } else {
+                $server->name = $input['name'];
+            }
         }
 
-        if (UserServerMembership::delete($_SESSION['user_id'], $serverId)) {
-            return $this->successResponse([], 'You have left the server');
-        } else {
-            return $this->serverError('Failed to leave the server');
+        // Update description if provided
+        if (isset($input['description'])) {
+            $server->description = $input['description'];
+        }
+
+        if (!empty($errors)) {
+            return $this->validationError($errors);
+        }
+
+        try {
+            if ($server->save()) {
+                $this->logActivity('server_updated', [
+                    'server_id' => $id,
+                    'changes' => array_keys($input)
+                ]);
+
+                return $this->success([
+                    'server' => $this->formatServer($server)
+                ], 'Server updated successfully');
+            } else {
+                throw new Exception('Failed to save server');
+            }
+        } catch (Exception $e) {
+            $this->logActivity('server_update_error', [
+                'server_id' => $id,
+                'error' => $e->getMessage()
+            ]);
+            return $this->serverError('Failed to update server');
+        }
+    }    /**
+     * Delete a server
+     */
+    public function delete() {
+        $this->requireAuth();
+        
+        $input = $this->getInput();
+        $id = $input['server_id'] ?? null;
+        
+        if (!$id) {
+            return $this->validationError(['server_id' => 'Server ID is required']);
+        }
+        
+        $server = Server::find($id);
+        if (!$server) {
+            return $this->notFound('Server not found');
+        }
+
+        // Only owner can delete server
+        if ($server->owner_id != $this->getCurrentUserId()) {
+            return $this->forbidden('Only the server owner can delete this server');
+        }
+        
+        try {
+            // For now, we'll use a direct query to delete the server
+            // TODO: Implement proper delete method in Server model
+            $query = new Query();
+            $deleted = $query->table('servers')
+                ->where('id', $id)
+                ->delete();
+                
+            if ($deleted) {
+                $this->logActivity('server_deleted', [
+                    'server_id' => $id,
+                    'server_name' => $server->name
+                ]);
+
+                return $this->success(['redirect' => '/app'], 'Server deleted successfully');
+            } else {
+                throw new Exception('Failed to delete server');
+            }
+        } catch (Exception $e) {
+            $this->logActivity('server_delete_error', [
+                'server_id' => $id,
+                'error' => $e->getMessage()
+            ]);
+            return $this->serverError('Failed to delete server');
         }
     }
 
-    public function showChannel($serverId, $channelId) {
-        if (!isset($_SESSION['user_id'])) {
-            if ($this->isAjaxRequest()) {
-                return $this->unauthorized();
-            }
+    /**
+     * Join a server via invite
+     */
+    public function join($inviteCode) {
+        $this->requireAuth();
+        
+        // TODO: Implement server invite system
+        // For now, this is a placeholder
+        
+        return $this->notFound('Server invite not found');
+    }
 
-            header('Location: /login');
-            exit;
+    /**
+     * Leave a server
+     */
+    public function leave($id) {
+        $this->requireAuth();
+        
+        $server = Server::find($id);
+        if (!$server) {
+            return $this->notFound('Server not found');
         }
 
-        $server = Server::find($serverId);
-        if (!$server) {
-            if ($this->isAjaxRequest()) {
+        // Check if user is a member
+        $membership = UserServerMembership::findByUserAndServer($this->getCurrentUserId(), $id);
+        if (!$membership) {
+            return $this->notFound('You are not a member of this server');
+        }        // Prevent owner from leaving (they must transfer ownership first)
+        if ($server->owner_id == $this->getCurrentUserId()) {
+            return $this->validationError(['server' => 'Server owner cannot leave. Transfer ownership first.']);
+        }
+        
+        try {
+            // Use removeMember method from Server model
+            if ($server->removeMember($this->getCurrentUserId())) {
+                $this->logActivity('server_left', [
+                    'server_id' => $id,
+                    'server_name' => $server->name
+                ]);
+
+                return $this->success(['redirect' => '/app'], 'Left server successfully');
+            } else {
+                throw new Exception('Failed to leave server');
+            }
+        } catch (Exception $e) {
+            $this->logActivity('server_leave_error', [
+                'server_id' => $id,
+                'error' => $e->getMessage()
+            ]);
+            return $this->serverError('Failed to leave server');
+        }
+    }
+
+    /**
+     * Get user's servers
+     */
+    public function getUserServers() {
+        $this->requireAuth();        try {
+            $servers = Server::getForUser($this->getCurrentUserId());
+            $formattedServers = array_map([$this, 'formatServer'], $servers);
+
+            return $this->success(['servers' => $formattedServers]);
+        } catch (Exception $e) {
+            $this->logActivity('user_servers_error', [
+                'error' => $e->getMessage()
+            ]);
+            return $this->serverError('Failed to load servers');
+        }
+    }    /**
+     * Show server invite page
+     */
+    public function showInvite($code = null) {
+        // Get code from parameter or input
+        if (!$code) {
+            $input = $this->getInput();
+            $code = $input['code'] ?? null;
+        }
+        
+        if (!$code) {
+            return $this->notFound('Invalid invite code');
+        }try {
+            // Find invite by code
+            $invite = ServerInvite::findByInviteCode($code);
+            if (!$invite) {
+                return $this->notFound('Invite not found or expired');
+            }
+
+            $server = Server::find($invite->server_id);
+            if (!$server) {
                 return $this->notFound('Server not found');
             }
 
-            header('Location: /app');
-            exit;
-        }
-
-        if (!$server->isMember($_SESSION['user_id'])) {
-            if ($this->isAjaxRequest()) {
-                return $this->forbidden('You are not a member of this server');
-            }
-
-            header('Location: /app');
-            exit;
-        }
-
-        require_once __DIR__ . '/../database/models/Channel.php';
-        $channel = Channel::find($channelId);
-
-        if (!$channel || $channel->server_id != $serverId) {
-            if ($this->isAjaxRequest()) {
-                return $this->notFound('Channel not found in this server');
-            }
-
-            header("Location: /server/{$serverId}");
-            exit;
-        }
-
-        if ($this->isAjaxRequest()) {
-            $messages = $channel->messages();
-            return $this->successResponse([
-                'server' => [
-                    'id' => $server->id,
-                    'name' => $server->name
-                ],
-                'channel' => [
-                    'id' => $channel->id,
-                    'name' => $channel->name,
-                    'type' => $channel->type
-                ],
-                'messages' => $messages
+            $this->logActivity('invite_viewed', [
+                'invite_code' => $code,
+                'server_id' => $server->id
             ]);
-        }
 
-        $GLOBALS['currentServer'] = $server;
-        $GLOBALS['currentChannel'] = $channel;
-
-        require_once __DIR__ . '/../views/pages/server-page.php';
-    }
-
-    public function listServers() {
-        if (!isset($_SESSION['user_id'])) {
-            return $this->unauthorized();
-        }
-
-        try {
-
-            $servers = Server::getForUser($_SESSION['user_id']);
-
-            $formattedServers = [];
-            foreach ($servers as $server) {
-                $formattedServers[] = [
-                    'id' => (string)$server->id,
-                    'name' => $server->name,
-                    'image_url' => $server->image_url,
-                    'description' => $server->description,
-                    'invite_link' => $server->invite_link,
-                    'is_public' => $server->is_public
-                ];
+            // For API requests, return JSON
+            if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                return $this->success([
+                    'server' => $server,
+                    'invite' => $invite
+                ]);
             }
 
-            return $this->successResponse(['servers' => $formattedServers]);
+            // For web requests, set global variables and render view
+            $GLOBALS['server'] = $server;
+            $GLOBALS['invite'] = $invite;
+            
+            return [
+                'server' => $server,
+                'invite' => $invite
+            ];
         } catch (Exception $e) {
-            log_error("Error getting server list", ['message' => $e->getMessage()]);
-            return $this->serverError('An error occurred while fetching servers');
+            $this->logActivity('invite_view_error', [
+                'invite_code' => $code,
+                'error' => $e->getMessage()
+            ]);
+            return $this->serverError('Failed to load invite');
         }
-    }
+    }    /**
+     * Get server channels
+     */
+    public function getServerChannels($serverId = null) {
+        $this->requireAuth();
 
-    public function getServerDetails($id) {
-        if (!isset($_SESSION['user_id'])) {
-            return $this->unauthorized();
-        }
-
-        $server = Server::find($id);
-
-        if (!$server) {
-            return $this->notFound('Server not found');
-        }
-
-        if (!UserServerMembership::isMember($_SESSION['user_id'], $server->id)) {
-            return $this->forbidden('You are not a member of this server');
-        }
-
-        $categories = Category::getForServer($server->id);
-
-        $inviteLink = $server->invite_link;
-
-        log_debug("Server invite link", [
-            'server_id' => $server->id,
-            'invite_link' => $inviteLink ?? 'null'
-        ]);
-
-        return $this->successResponse([
-            'server' => [
-                'id' => (string)$server->id,
-                'name' => $server->name,
-                'description' => $server->description,
-                'image_url' => $server->image_url,
-                'is_public' => (bool)$server->is_public,
-                'invite_link' => $inviteLink
-            ],
-            'categories' => $categories
-        ]);
-    }
-
-    public function getServerChannels($id) {
-        log_debug("getServerChannels called", ['server_id' => $id]);
-
-        if (!isset($_SESSION['user_id'])) {
-            if ($this->isAjaxRequest()) {
-                return $this->unauthorized();
-            }
-
-            header('Location: /login');
-            exit;
-        }
-
-        $serverId = is_numeric($id) ? intval($id) : 0;
+        // Get server ID from parameter or input
         if (!$serverId) {
-            log_error("Invalid server ID provided", ['server_id' => $id]);
-            return $this->validationError(['server' => 'Invalid server ID']);
+            $input = $this->getInput();
+            $serverId = $input['server_id'] ?? null;
         }
-
-        $server = Server::find($serverId);
-        if (!$server) {
-            log_error("Server not found", ['server_id' => $id]);
-            return $this->notFound('Server not found');
-        }
-
-        if (!UserServerMembership::isMember($_SESSION['user_id'], $serverId)) {
-            log_error("User is not a member of server", [
-                'user_id' => $_SESSION['user_id'], 
-                'server_id' => $id
-            ]);
-            return $this->forbidden('You are not a member of this server');
+        
+        if (!$serverId) {
+            return $this->validationError(['server_id' => 'Server ID is required']);
         }
 
         try {
-            $query = new Query();
-
-            $channels = $query->table('channels')
-                ->where('server_id', $serverId)
-                ->orderBy('position')
-                ->get();
-
-            $categories = $query->table('categories')
-                ->where('server_id', $serverId)
-                ->orderBy('position')
-                ->get();
-
-            if (!empty($channels)) {
-                foreach ($channels as $key => $channel) {
-
-                    foreach ($channel as $field => $value) {
-                        if (is_numeric($value)) {
-                            $channels[$key][$field] = (string)$value;
-                        }
-                    }
-
-                    if (isset($channel['is_private'])) {
-
-                        $channels[$key]['is_private'] = (bool)$channel['is_private'];
-                    } else {
-
-                        $channels[$key]['is_private'] = false;
-                    }
-
-                    if (!isset($channel['type_name'])) {
-                        $type = $channel['type'] ?? '1';
-                        if ($type === '1' || $type === 1) {
-                            $channels[$key]['type_name'] = 'text';
-                        } else if ($type === '2' || $type === 2) {
-                            $channels[$key]['type_name'] = 'voice';
-                        } else {
-                            $channels[$key]['type_name'] = 'text';
-                        }
-                    }
-                }
+            // Check if user has access to the server
+            if (!UserServerMembership::isMember($this->getCurrentUserId(), $serverId)) {
+                return $this->forbidden('You do not have access to this server');
             }
 
-            if ($this->isAjaxRequest()) {
-                $responseData = [
-                    'categories' => $categories,
-                    'uncategorizedChannels' => array_filter($channels, function($channel) {
-                        return !isset($channel['category_id']) || empty($channel['category_id']);
-                    })
-                ];
+            $channels = Channel::getByServerId($serverId);
 
-                foreach ($categories as $key => $category) {
-                    $categoryId = $category['id'];
-                    $categoryChannels = array_filter($channels, function($channel) use ($categoryId) {
-                        return isset($channel['category_id']) && $channel['category_id'] == $categoryId;
-                    });
+            $this->logActivity('server_channels_viewed', ['server_id' => $serverId]);
 
-                    $responseData['categories'][$key]['channels'] = array_values($categoryChannels);
-                }
-
-                return $this->successResponse($responseData);
-            } else {
-                return [
-                    'channels' => $channels,
-                    'categories' => $categories
-                ];
-            }
+            return $this->success([
+                'channels' => $channels,
+                'server_id' => $serverId
+            ]);
         } catch (Exception $e) {
-            log_error("Error fetching channels for server", [
-                'server_id' => $id, 
-                'message' => $e->getMessage()
+            $this->logActivity('server_channels_error', [
+                'server_id' => $serverId,
+                'error' => $e->getMessage()
+            ]);
+            return $this->serverError('Failed to load server channels');
+        }
+    }    /**
+     * Get server details
+     */
+    public function getServerDetails($serverId = null) {
+        $this->requireAuth();
+
+        // Get server ID from parameter or input
+        if (!$serverId) {
+            $input = $this->getInput();
+            $serverId = $input['server_id'] ?? null;
+        }
+        
+        if (!$serverId) {
+            return $this->validationError(['server_id' => 'Server ID is required']);
+        }
+
+        try {
+            $server = Server::find($serverId);
+            if (!$server) {
+                return $this->notFound('Server not found');
+            }
+
+            // Check if user has access to the server
+            if (!UserServerMembership::isMember($this->getCurrentUserId(), $serverId)) {
+                return $this->forbidden('You do not have access to this server');
+            }
+
+            $this->logActivity('server_details_viewed', ['server_id' => $serverId]);
+
+            return $this->success(['server' => $server]);
+        } catch (Exception $e) {
+            $this->logActivity('server_details_error', [
+                'server_id' => $serverId,
+                'error' => $e->getMessage()
+            ]);
+            return $this->serverError('Failed to load server details');
+        }
+    }    /**
+     * Generate invite link
+     */
+    public function generateInviteLink($serverId = null) {
+        $this->requireAuth();
+
+        // Get server ID from parameter or input
+        if (!$serverId) {
+            $input = $this->getInput();
+            $serverId = $input['server_id'] ?? null;
+        }
+        
+        if (!$serverId) {
+            return $this->validationError(['server_id' => 'Server ID is required']);
+        }
+
+        try {
+            $server = Server::find($serverId);
+            if (!$server) {
+                return $this->notFound('Server not found');
+            }
+
+            // Check if user is owner or has permission
+            if (!UserServerMembership::isOwner($this->getCurrentUserId(), $serverId)) {
+                return $this->forbidden('You do not have permission to generate invite links');
+            }            // Generate invite code
+            $inviteCode = bin2hex(random_bytes(8));
+            $inviteUrl = $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['HTTP_HOST'] . '/join/' . $inviteCode;
+
+            $invite = ServerInvite::create([
+                'server_id' => $serverId,
+                'inviter_user_id' => $this->getCurrentUserId(),
+                'invite_link' => $inviteUrl
             ]);
 
-            if ($this->isAjaxRequest()) {
-                return $this->serverError('Failed to load channels');
+            if ($invite) {
+                $this->logActivity('invite_generated', [
+                    'server_id' => $serverId,
+                    'invite_code' => $inviteCode
+                ]);
+
+                return $this->success([
+                    'invite_code' => $inviteCode,
+                    'invite_url' => $inviteUrl
+                ]);
             } else {
-                return [
-                    'channels' => [],
-                    'categories' => []
-                ];
+                return $this->serverError('Failed to generate invite');
             }
-        }
-    }
-
-    public function generateInviteLink($serverId) {
-        if (!isset($_SESSION['user_id'])) {
-            return $this->unauthorized();
-        }
-
-        $server = Server::find($serverId);
-        if (!$server) {
-            return $this->notFound('Server not found');
-        }
-
-        $membership = UserServerMembership::findByUserAndServer($_SESSION['user_id'], $serverId);
-        if (!$membership || !in_array($membership->role, ['admin', 'moderator', 'owner'])) {
-            return $this->forbidden('You do not have permission to create invite links');
-        }        try {
-            $inviteCode = $server->generateInviteLink();
-
-            return $this->successResponse([
-                'invite_code' => $inviteCode,
-                'invite_url' => $_SERVER['HTTP_HOST'] . "/join/$inviteCode",
-                'expires_at' => null 
-            ]);
-
         } catch (Exception $e) {
-            log_error("Error generating invite link", ['message' => $e->getMessage()]);
+            $this->logActivity('invite_generation_error', [
+                'server_id' => $serverId,
+                'error' => $e->getMessage()
+            ]);
             return $this->serverError('Failed to generate invite link');
         }
+    }
+
+    /**
+     * Format server data for API response
+     */
+    private function formatServer($server) {
+        return [
+            'id' => $server->id,
+            'name' => $server->name,
+            'description' => $server->description,
+            'owner_id' => $server->owner_id,
+            'icon_url' => $server->icon_url ?? null,
+            'member_count' => $server->getMemberCount(),
+            'created_at' => $server->created_at,
+            'updated_at' => $server->updated_at
+        ];
+    }
+
+    /**
+     * Format channel data for API response
+     */
+    private function formatChannel($channel) {
+        return [
+            'id' => $channel->id,
+            'name' => $channel->name,
+            'type' => $channel->type,
+            'server_id' => $channel->server_id,
+            'category_id' => $channel->category_id,
+            'created_at' => $channel->created_at
+        ];
+    }
+
+    /**
+     * Check if user can manage server
+     */
+    private function canManageServer($server) {
+        // Check if user is the owner
+        if ($server->owner_id == $this->getCurrentUserId()) {
+            return true;
+        }
+        
+        // TODO: Check for admin role permissions
+        return false;
     }
 }

@@ -12,7 +12,6 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-// Page configuration
 $page_title = 'MisVord - Server';
 $body_class = 'bg-discord-dark text-white overflow-hidden';
 $page_css = 'server-page';
@@ -30,7 +29,6 @@ $contentType = 'server';
 $currentServer = $GLOBALS['currentServer'] ?? null;
 $data_page = 'server';
 
-// Log server information if available
 if (isset($GLOBALS['currentServer'])) {    log_debug("Current server data", [
         'id' => $GLOBALS['currentServer']->id,
         'name' => $GLOBALS['currentServer']->name
@@ -49,25 +47,24 @@ if (isset($GLOBALS['currentServer'])) {    log_debug("Current server data", [
 <!-- Preload important scripts -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Handle create server button click
+
     const createServerBtn = document.querySelector('[data-action="create-server"]');
     const modal = document.getElementById('create-server-modal');
     const closeBtn = document.getElementById('close-server-modal');
-    
+
     if (createServerBtn && modal) {
         createServerBtn.addEventListener('click', function(e) {
             e.preventDefault();
             modal.classList.remove('hidden');
         });
     }
-    
+
     if (closeBtn && modal) {
         closeBtn.addEventListener('click', function() {
             modal.classList.add('hidden');
         });
     }
-    
-    // Close modal when clicking outside
+
     if (modal) {
         modal.addEventListener('click', function(e) {
             if (e.target === modal) {

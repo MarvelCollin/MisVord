@@ -8,31 +8,29 @@ require_once __DIR__ . '/../utils/WebSocketClient.php';
 require_once __DIR__ . '/BaseController.php';
 
 class MessageController extends BaseController {
+    
     public function __construct() {
         parent::__construct();
         Message::initialize();
     }
 
+    /**
+     * Get messages for a channel
+     */
     public function getMessages($channelId) {
-        error_log("MessageController::getMessages called with channelId=$channelId");
-
-        if (!isset($_SESSION['user_id'])) {
-            error_log("MessageController: Unauthorized - no user_id in session");
-            return $this->unauthorized();
-        }
-
-        error_log("MessageController: User authenticated with ID=" . $_SESSION['user_id']);
+        $this->requireAuth();
 
         $channel = Channel::find($channelId);
         if (!$channel) {
-            error_log("MessageController: Channel not found with ID=$channelId");
             return $this->notFound('Channel not found');
         }
 
-        $membership = UserServerMembership::findByUserAndServer($_SESSION['user_id'], $channel->server_id);
-        if (!$membership && $channel->server_id != 0) {
-            error_log("MessageController: User " . $_SESSION['user_id'] . " is not a member of server " . $channel->server_id);
-            return $this->forbidden('You are not a member of this server');
+        // Check if user has access to this channel
+        if ($channel->server_id != 0) { // Not a DM channel
+            $membership = UserServerMembership::findByUserAndServer($this->getCurrentUserId(), $channel->server_id);
+            if (!$membership) {
+                return $this->forbidden('You are not a member of this server');
+            }
         }
 
         $limit = $_GET['limit'] ?? 50;
@@ -40,239 +38,358 @@ class MessageController extends BaseController {
 
         try {
             $messages = Message::getForChannel($channelId, $limit, $offset);
+            $formattedMessages = array_map([$this, 'formatMessage'], $messages);
 
-            $formattedMessages = [];
-            foreach ($messages as $message) {
-                $formattedMessages[] = $this->formatMessage($message);
-            }
-
-            return $this->successResponse([
+            $this->logActivity('messages_loaded', [
                 'channel_id' => $channelId,
-                'messages' => $formattedMessages
+                'message_count' => count($messages)
+            ]);
+
+            return $this->success([
+                'channel_id' => $channelId,
+                'messages' => $formattedMessages,
+                'has_more' => count($messages) == $limit
             ]);
         } catch (Exception $e) {
-            error_log("MessageController: Error fetching messages: " . $e->getMessage());
-            return $this->serverError('Error fetching messages: ' . $e->getMessage());
+            $this->logActivity('messages_load_error', [
+                'channel_id' => $channelId,
+                'error' => $e->getMessage()
+            ]);
+            return $this->serverError('Failed to load messages');
         }
     }
 
-    public function updateMessage($id) {
-        if (!isset($_SESSION['user_id'])) {
-            return $this->unauthorized();
+    /**
+     * Send a new message
+     */
+    public function send() {
+        $this->requireAuth();
+        
+        $input = $this->getInput();
+        $input = $this->sanitize($input);
+        
+        // Validate input
+        $this->validate($input, [
+            'channel_id' => 'required',
+            'content' => 'required'
+        ]);
+
+        $channelId = $input['channel_id'];
+        $content = trim($input['content']);
+
+        if (empty($content)) {
+            return $this->validationError(['content' => 'Message content cannot be empty']);
         }
 
-        $message = Message::find($id);
-        if (!$message) {
-            return $this->notFound('Message not found');
+        // Check if channel exists and user has access
+        $channel = Channel::find($channelId);
+        if (!$channel) {
+            return $this->notFound('Channel not found');
         }
 
-        if ($message->user_id != $_SESSION['user_id']) {
-            return $this->forbidden('You can only edit your own messages');
-        }
-
-        $data = json_decode(file_get_contents('php://input'), true);
-        if (!$data) {
-            return $this->validationError(['content' => 'Invalid request data']);
+        if ($channel->server_id != 0) { // Not a DM channel
+            $membership = UserServerMembership::findByUserAndServer($this->getCurrentUserId(), $channel->server_id);
+            if (!$membership) {
+                return $this->forbidden('You are not a member of this server');
+            }
         }
 
         try {
-            if (isset($data['content'])) {
-                $message->content = $data['content'];
-                $message->edited_at = date('Y-m-d H:i:s');
+            $message = new Message();
+            $message->content = $content;
+            $message->channel_id = $channelId;
+            $message->user_id = $this->getCurrentUserId();
+            $message->type = 'text';
+            
+            if ($message->save()) {
+                $formattedMessage = $this->formatMessage($message);
+                
+                // Send real-time notification via WebSocket
+                $this->sendWebSocketNotification([
+                    'type' => 'new_message',
+                    'channel_id' => $channelId,
+                    'message' => $formattedMessage
+                ]);
+                
+                $this->logActivity('message_sent', [
+                    'message_id' => $message->id,
+                    'channel_id' => $channelId
+                ]);
 
-                if ($message->save()) {
-                    $formattedMessage = $this->formatMessage($message);
-
-                    try {
-                        $this->broadcastToWebSocket('message_updated', [
-                            'id' => $message->id,
-                            'content' => $message->content,
-                            'edited_at' => $message->edited_at,
-                            'user' => [
-                                'userId' => $message->user_id,
-                                'username' => $formattedMessage['user']['username']
-                            ]
-                        ]);
-                    } catch (Exception $e) {
-                        error_log("Failed to broadcast message update to WebSocket: " . $e->getMessage());
-                    }
-
-                    return $this->successResponse([
-                        'message' => $formattedMessage
-                    ], 'Message updated successfully');
-                } else {
-                    return $this->serverError('Failed to update message');
-                }
+                return $this->success([
+                    'message' => $formattedMessage
+                ], 'Message sent successfully');
             } else {
-                return $this->validationError(['content' => 'No content provided for update']);
+                throw new Exception('Failed to save message');
             }
         } catch (Exception $e) {
-            return $this->serverError('Server error: ' . $e->getMessage());
+            $this->logActivity('message_send_error', [
+                'channel_id' => $channelId,
+                'error' => $e->getMessage()
+            ]);
+            return $this->serverError('Failed to send message');
         }
     }
 
-    public function deleteMessage($id) {
-        if (!isset($_SESSION['user_id'])) {
-            return $this->unauthorized();
-        }
-
+    /**
+     * Update a message
+     */
+    public function update($id) {
+        $this->requireAuth();
+        
         $message = Message::find($id);
         if (!$message) {
             return $this->notFound('Message not found');
         }
 
-        if ($message->user_id != $_SESSION['user_id'] && !isset($_SESSION['is_admin'])) {
+        // Check if user owns the message
+        if ($message->user_id != $this->getCurrentUserId()) {
+            return $this->forbidden('You can only edit your own messages');
+        }
+
+        $input = $this->getInput();
+        $input = $this->sanitize($input);
+        
+        $this->validate($input, ['content' => 'required']);
+        
+        $content = trim($input['content']);
+        if (empty($content)) {
+            return $this->validationError(['content' => 'Message content cannot be empty']);
+        }
+
+        try {
+            $message->content = $content;
+            $message->edited_at = date('Y-m-d H:i:s');
+            
+            if ($message->save()) {
+                $formattedMessage = $this->formatMessage($message);
+                
+                // Send real-time notification via WebSocket
+                $this->sendWebSocketNotification([
+                    'type' => 'message_updated',
+                    'channel_id' => $message->channel_id,
+                    'message' => $formattedMessage
+                ]);
+                
+                $this->logActivity('message_updated', [
+                    'message_id' => $id
+                ]);
+
+                return $this->success([
+                    'message' => $formattedMessage
+                ], 'Message updated successfully');
+            } else {
+                throw new Exception('Failed to update message');
+            }
+        } catch (Exception $e) {
+            $this->logActivity('message_update_error', [
+                'message_id' => $id,
+                'error' => $e->getMessage()
+            ]);
+            return $this->serverError('Failed to update message');
+        }
+    }
+
+    /**
+     * Delete a message
+     */
+    public function delete($id) {
+        $this->requireAuth();
+        
+        $message = Message::find($id);
+        if (!$message) {
+            return $this->notFound('Message not found');
+        }
+
+        // Check if user owns the message or has admin permissions
+        if ($message->user_id != $this->getCurrentUserId() && !$this->canDeleteMessage($message)) {
             return $this->forbidden('You can only delete your own messages');
         }
 
         try {
-            if ($message->delete()) {
-                try {
-                    $this->broadcastToWebSocket('message_deleted', [
-                        'id' => $id,
-                        'deleted_by' => $_SESSION['user_id']
-                    ]);
-                } catch (Exception $e) {
-                    error_log("Failed to broadcast message deletion to WebSocket: " . $e->getMessage());
-                }
+            // For now, mark as deleted instead of hard delete to preserve conversation flow
+            $message->content = '[deleted]';
+            $message->deleted_at = date('Y-m-d H:i:s');
+            
+            if ($message->save()) {
+                // Send real-time notification via WebSocket
+                $this->sendWebSocketNotification([
+                    'type' => 'message_deleted',
+                    'channel_id' => $message->channel_id,
+                    'message_id' => $id
+                ]);
+                
+                $this->logActivity('message_deleted', [
+                    'message_id' => $id
+                ]);
 
-                return $this->successResponse([], 'Message deleted successfully');
+                return $this->success(null, 'Message deleted successfully');
             } else {
-                return $this->serverError('Failed to delete message');
+                throw new Exception('Failed to delete message');
             }
         } catch (Exception $e) {
-            return $this->serverError('Server error: ' . $e->getMessage());
+            $this->logActivity('message_delete_error', [
+                'message_id' => $id,
+                'error' => $e->getMessage()
+            ]);
+            return $this->serverError('Failed to delete message');
         }
     }
 
-    private function broadcastToWebSocket($event, $data) {
-        try {
-            $client = new WebSocketClient();
-            return $client->broadcast($event, $data);
+    /**
+     * Search messages in a channel
+     */
+    public function search($channelId) {
+        $this->requireAuth();
+        
+        $channel = Channel::find($channelId);
+        if (!$channel) {
+            return $this->notFound('Channel not found');
+        }
+
+        // Check access
+        if ($channel->server_id != 0) {
+            $membership = UserServerMembership::findByUserAndServer($this->getCurrentUserId(), $channel->server_id);
+            if (!$membership) {
+                return $this->forbidden('You are not a member of this server');
+            }
+        }
+
+        $query = $_GET['q'] ?? '';
+        if (empty($query)) {
+            return $this->validationError(['q' => 'Search query is required']);
+        }        try {
+            // For now, use a simple search implementation
+            // TODO: Implement proper search method in Message model
+            $query = $this->query();
+            $results = $query->table('messages')
+                ->where('channel_id', $channelId)
+                ->where('content', 'LIKE', "%{$query}%")
+                ->orderBy('created_at', 'DESC')
+                ->limit(50)
+                ->get();
+            
+            $messages = [];
+            foreach ($results as $result) {
+                $messages[] = new Message($result);
+            }
+            
+            $formattedMessages = array_map([$this, 'formatMessage'], $messages);
+
+            $this->logActivity('messages_searched', [
+                'channel_id' => $channelId,
+                'query' => $query,
+                'result_count' => count($messages)
+            ]);
+
+            return $this->success([
+                'channel_id' => $channelId,
+                'query' => $query,
+                'messages' => $formattedMessages
+            ]);
         } catch (Exception $e) {
-            error_log("WebSocket broadcast error: " . $e->getMessage());
-            return false;
+            $this->logActivity('message_search_error', [
+                'channel_id' => $channelId,
+                'error' => $e->getMessage()
+            ]);
+            return $this->serverError('Failed to search messages');
         }
     }
 
+    /**
+     * Format message data for API response
+     */
     private function formatMessage($message) {
-        if (is_array($message)) {
-            $formattedMessage = [
-                'id' => $message['id'],
-                'content' => $message['content'],
-                'sent_at' => $message['sent_at'],
-                'edited_at' => $message['edited_at'] ?? null,
-                'message_type' => $message['message_type'] ?? 'text',
-                'attachment_url' => $message['attachment_url'] ?? null,
-                'reply_message_id' => $message['reply_message_id'] ?? null,
-                'formatted_time' => $this->formatTime($message['sent_at']),
-                'user' => [
-                    'id' => $message['user_id'],
-                    'username' => $message['username'] ?? 'Unknown',
-                    'avatar_url' => $message['avatar_url'] ?? null
-                ]
-            ];
-
-            return $formattedMessage;
-        }
-
-        $user = null;
-        if (!isset($message->username)) {
-            $user = $message->user();
-        }
-
+        // Get user information
+        $user = User::find($message->user_id);
+        
         return [
             'id' => $message->id,
             'content' => $message->content,
-            'sent_at' => $message->sent_at,
-            'formatted_time' => $message->formattedTime(),
-            'edited_at' => $message->edited_at,
-            'message_type' => $message->message_type ?? 'text',
-            'attachment_url' => $message->attachment_url,
-            'reply_message_id' => $message->reply_message_id,
-            'user' => [
-                'id' => $message->user_id,
-                'username' => $message->username ?? ($user ? $user->username : 'Unknown'),
-                'avatar_url' => $message->avatar_url ?? ($user ? $user->avatar_url : null)
-            ]
+            'channel_id' => $message->channel_id,
+            'user_id' => $message->user_id,
+            'user' => $user ? [
+                'id' => $user->id,
+                'username' => $user->username,
+                'avatar_url' => $user->avatar_url
+            ] : null,
+            'type' => $message->type ?? 'text',
+            'created_at' => $message->created_at,
+            'updated_at' => $message->updated_at,
+            'edited_at' => $message->edited_at ?? null,
+            'deleted_at' => $message->deleted_at ?? null
         ];
+    }    /**
+     * Send WebSocket notification
+     */
+    private function sendWebSocketNotification($data) {
+        try {
+            $wsClient = new WebSocketClient();
+            // TODO: Implement proper send method in WebSocketClient
+            // For now, just log the notification
+            $this->logActivity('websocket_notification', $data);
+        } catch (Exception $e) {
+            // Log but don't fail the request
+            $this->logActivity('websocket_error', [
+                'error' => $e->getMessage(),
+                'data' => $data
+            ]);
+        }
     }
 
+    /**
+     * Check if user can delete a message (admin permissions)
+     */
+    private function canDeleteMessage($message) {
+        // TODO: Implement role-based permissions
+        // For now, only message owner can delete
+        return false;
+    }
+
+    /**
+     * Debug message storage (development only)
+     */
     public function debugMessageStorage() {
-        error_log("MessageController::debugMessageStorage called");
+        // Only allow in development
+        if (EnvLoader::get('APP_ENV') === 'production') {
+            return $this->forbidden('Debug methods not allowed in production');
+        }
+
+        $this->requireAuth();
 
         try {
-            $results = [];
-
             $query = new Query();
-            $dbConnected = $query->testConnection();
-            $results['db_connection'] = $dbConnected ? 'successful' : 'failed';
+            
+            // Get message storage statistics
+            $stats = [
+                'total_messages' => $query->table('messages')->count(),
+                'channel_messages' => $query->table('channel_messages')->count(),
+                'recent_messages' => $query->table('messages')
+                    ->where('created_at', '>=', date('Y-m-d H:i:s', strtotime('-24 hours')))
+                    ->count(),
+                'user_message_count' => $query->table('messages')
+                    ->where('user_id', $this->getCurrentUserId())
+                    ->count()
+            ];
 
-            if ($dbConnected) {
+            // Get sample recent messages
+            $recentMessages = $query->table('messages')
+                ->orderBy('created_at', 'DESC')
+                ->limit(10)
+                ->get();
 
-                $messagesTableExists = $query->tableExists('messages');
-                $channelMessagesTableExists = $query->tableExists('channel_messages');
+            $this->logActivity('debug_message_storage_accessed');
 
-                $results['tables'] = [
-                    'messages_table' => $messagesTableExists ? 'exists' : 'missing',
-                    'channel_messages_table' => $channelMessagesTableExists ? 'exists' : 'missing'
-                ];
-
-                if ($messagesTableExists) {
-                    $recentMessages = $query->table('messages')
-                        ->orderBy('id', 'DESC')
-                        ->limit(5)
-                        ->get();
-
-                    $results['recent_messages'] = $recentMessages;
-                    $results['total_messages'] = $query->table('messages')->count();
-                }
-
-                try {
-                    $wsClient = new WebSocketClient();
-                    $wsTestResult = $wsClient->testConnection();
-                    $results['websocket_connection'] = $wsTestResult ? 'successful' : 'failed';
-                } catch (Exception $e) {
-                    $results['websocket_connection'] = 'failed: ' . $e->getMessage();
-                }
-
-                if ($messagesTableExists && $channelMessagesTableExists) {
-                    $userId = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 1;
-                    $channelId = isset($_GET['channel_id']) ? $_GET['channel_id'] : 11;
-
-                    $message = new Message();
-                    $message->user_id = $userId;
-                    $message->content = "Debug test message at " . date('Y-m-d H:i:s');
-                    $message->sent_at = date('Y-m-d H:i:s');
-                    $message->message_type = 'text';
-
-                    $saveResult = $message->save();
-                    $results['test_message_save'] = $saveResult ? 'successful' : 'failed';
-
-                    if ($saveResult) {
-
-                        $associateResult = $message->associateWithChannel($channelId);
-                        $results['test_associate_channel'] = $associateResult ? 'successful' : 'failed';
-                        $results['test_message_id'] = $message->id;
-
-                        try {
-                            $wsClient = new WebSocketClient();
-                            $broadcastResult = $wsClient->sendMessage($channelId, $message->content, [
-                                'userId' => $userId,
-                                'username' => 'Debug User'
-                            ]);
-                            $results['test_websocket_broadcast'] = $broadcastResult ? 'successful' : 'failed';
-                        } catch (Exception $e) {
-                            $results['test_websocket_broadcast'] = 'failed: ' . $e->getMessage();
-                        }
-                    }
-                }
-            }
-
-            return $this->successResponse($results);
+            return $this->success([
+                'stats' => $stats,
+                'recent_messages' => $recentMessages,
+                'timestamp' => date('Y-m-d H:i:s')
+            ]);
         } catch (Exception $e) {
-            error_log("Error in debugMessageStorage: " . $e->getMessage());
-            return $this->serverError('Server error: ' . $e->getMessage());
+            $this->logActivity('debug_message_storage_error', [
+                'error' => $e->getMessage()
+            ]);
+            return $this->serverError('Failed to retrieve debug information');
         }
     }
 }

@@ -7,7 +7,6 @@ if (!function_exists('asset')) {
     require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
 }
 
-// Determine authentication mode from URL
 $mode = 'login'; 
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
@@ -17,15 +16,12 @@ if ($path === '/register') {
     $mode = 'forgot-password';
 }
 
-// Get flash messages and form data
 $errors = $_SESSION['errors'] ?? [];
 $oldInput = $_SESSION['old_input'] ?? [];
 $success = $_SESSION['success'] ?? null;
 
-// Clear flash data
 unset($_SESSION['errors'], $_SESSION['old_input'], $_SESSION['success']);
 
-// Page configuration
 $page_title = ucfirst($mode) . ' - misvord';
 $body_class = 'bg-[#202225] authentication-page overflow-hidden flex items-center justify-center min-h-screen';
 $page_css = 'authentication-page';
@@ -33,7 +29,6 @@ $page_js = 'authentication-page';
 $additional_js = ['main', 'pages/authentication-page'];
 $data_page = 'auth';
 
-// Get debug info if needed (only in development mode)
 $debugInfo = '';
 if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
     require_once dirname(dirname(__DIR__)) . '/controllers/DebugController.php';
@@ -43,19 +38,17 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
 }
 ?>
 
-
 <?php ob_start(); ?>
 
 <div class="w-full p-4 min-h-screen flex items-center justify-center bg-[#202225]">
-    
+
     <div class="w-full max-w-md p-8 mx-auto rounded-xl shadow-2xl relative z-10 glass-hero transform transition-all duration-700 ease-out bg-[#2f3136]/80 backdrop-filter backdrop-blur-md border border-white/10" id="authContainer">
-        
+
         <div class="flex justify-center mb-8 relative">
             <img src="<?php echo asset('/landing-page/main-logo.png'); ?>" alt="misvord Logo" class="h-12 transition-all" id="logo">
             <div class="absolute bottom-0 left-1/2 transform -translate-x-1/2 h-0.5 bg-gradient-to-r from-discord-blue to-discord-pink w-0" id="logoUnderline"></div>
         </div>
-        
-        
+
         <h1 class="text-2xl font-bold text-center mb-8 text-white" id="authTitle">
             <?php if ($mode === 'login'): ?>
                 <span>Welcome back!</span>
@@ -65,26 +58,23 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                 <span>Reset Password</span>
             <?php endif; ?>
         </h1>
-        
-        
+
         <?php if (isset($success)): ?>
             <div class="bg-green-500 text-white p-3 rounded-md mb-6 text-center animate-pulse">
                 <?php echo $success; ?>
             </div>
         <?php endif; ?>
-        
-        
+
         <?php if (isset($errors['auth'])): ?>
             <div class="bg-red-500 text-white p-3 rounded-md mb-6 text-center animate-pulse">
                 <?php echo $errors['auth']; ?>
             </div>
         <?php endif; ?>
-        
-        
+
         <div id="formsContainer" class="relative transition-all duration-300 ease-out" style="min-height: 250px;">
-            
+
             <form action="/login" method="POST" class="space-y-5 <?php echo $mode === 'login' ? 'block' : 'hidden'; ?>" id="loginForm">
-                
+
                 <div class="form-group">
                     <label for="email" class="block text-sm font-medium text-gray-300 mb-1">Email</label>
                     <input 
@@ -99,8 +89,7 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                         <p class="text-red-500 text-sm mt-1"><?php echo $errors['email']; ?></p>
                     <?php endif; ?>
                 </div>
-                
-                
+
                 <div class="form-group">
                     <label for="password" class="block text-sm font-medium text-gray-300 mb-1">Password</label>
                     <div class="relative">
@@ -119,31 +108,26 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                         <p class="text-red-500 text-sm mt-1"><?php echo $errors['password']; ?></p>
                     <?php endif; ?>
                 </div>
-                
-                
+
                 <div class="text-right">
                     <a href="#" class="text-sm text-discord-blue hover:underline form-toggle" data-form="forgot">Forgot your password?</a>
                 </div>
-                
-                
+
                 <button type="submit" class="w-full py-2.5 bg-discord-blue hover:bg-discord-blue/90 text-white font-medium rounded-md transition-all">
                     Log In
                 </button>
-                
-                
+
                 <div class="flex items-center my-5">
                     <div class="flex-1 h-px bg-gray-600/50"></div>
                     <div class="mx-4 text-sm text-gray-400">OR</div>
                     <div class="flex-1 h-px bg-gray-600/50"></div>
                 </div>
-                
-                
+
                 <a href="/auth/google" class="w-full py-2.5 bg-white hover:bg-gray-100 text-gray-800 font-medium rounded-md flex items-center justify-center transition-all">
                     <i class="fab fa-google w-5 h-5 mr-2 text-[#4285F4]"></i>
                     Sign in with Google
                 </a>
-                
-                
+
                 <div class="text-center mt-6">
                     <p class="text-gray-400 text-sm">
                         Need an account? 
@@ -151,10 +135,9 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                     </p>
                 </div>
             </form>
-        
-            
+
             <form action="/register" method="POST" class="space-y-5 <?php echo $mode === 'register' ? 'block' : 'hidden'; ?>" id="registerForm">
-                
+
                 <div class="form-group">
                     <label for="username" class="block text-sm font-medium text-gray-300 mb-1">Username</label>
                     <input 
@@ -169,8 +152,7 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                         <p class="text-red-500 text-sm mt-1"><?php echo $errors['username']; ?></p>
                     <?php endif; ?>
                 </div>
-                
-                
+
                 <div class="form-group">
                     <label for="reg_email" class="block text-sm font-medium text-gray-300 mb-1">Email</label>
                     <input 
@@ -185,8 +167,7 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                         <p class="text-red-500 text-sm mt-1"><?php echo $errors['email']; ?></p>
                     <?php endif; ?>
                 </div>
-                
-                
+
                 <div class="form-group">
                     <label for="reg_password" class="block text-sm font-medium text-gray-300 mb-1">Password</label>
                     <div class="relative">
@@ -208,8 +189,7 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                         <div class="h-full bg-discord-blue rounded" style="width: 0%"></div>
                     </div>
                 </div>
-                
-                
+
                 <div class="form-group">
                     <label for="password_confirm" class="block text-sm font-medium text-gray-300 mb-1">Confirm Password</label>
                     <div class="relative">
@@ -229,26 +209,22 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                     <?php endif; ?>
                     <div class="text-green-500 text-xs mt-1 hidden" id="passwordsMatch">Passwords match <i class="fa-solid fa-check"></i></div>
                 </div>
-                
-                
+
                 <button type="submit" class="w-full py-2.5 bg-discord-blue hover:bg-discord-blue/90 text-white font-medium rounded-md transition-all">
                     Register
                 </button>
-                
-                
+
                 <div class="flex items-center my-5">
                     <div class="flex-1 h-px bg-gray-600/50"></div>
                     <div class="mx-4 text-sm text-gray-400">OR</div>
                     <div class="flex-1 h-px bg-gray-600/50"></div>
                 </div>
-                
-                
+
                 <a href="/auth/google" class="w-full py-2.5 bg-white hover:bg-gray-100 text-gray-800 font-medium rounded-md flex items-center justify-center transition-all">
                     <i class="fab fa-google w-5 h-5 mr-2 text-[#4285F4]"></i>
                     Sign up with Google
                 </a>
-                
-                
+
                 <div class="text-center mt-6">
                     <p class="text-gray-400 text-sm">
                         Already have an account? 
@@ -256,14 +232,12 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                     </p>
                 </div>
             </form>
-                
-            
+
             <form action="/forgot-password" method="POST" class="space-y-5 <?php echo $mode === 'forgot-password' ? 'block' : 'hidden'; ?>" id="forgotForm">
                 <p class="text-gray-300 text-sm mb-6">
                     Enter your email address and we'll send you a link to reset your password.
                 </p>
-                
-                
+
                 <div class="form-group">
                     <label for="forgot_email" class="block text-sm font-medium text-gray-300 mb-1">Email</label>
                     <input 
@@ -278,13 +252,11 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                         <p class="text-red-500 text-sm mt-1"><?php echo $errors['email']; ?></p>
                     <?php endif; ?>
                 </div>
-                
-                
+
                 <button type="submit" class="w-full py-2.5 bg-discord-blue hover:bg-discord-blue/90 text-white font-medium rounded-md transition-all">
                     Send Reset Link
                 </button>
-                
-                
+
                 <div class="text-center mt-6">
                     <a href="#" class="text-discord-blue hover:underline text-sm form-toggle" data-form="login">Back to Login</a>
                 </div>
@@ -299,4 +271,3 @@ $content = ob_get_clean();
 
 include dirname(dirname(__DIR__)) . '/views/layout/main-app.php';
 ?>
-

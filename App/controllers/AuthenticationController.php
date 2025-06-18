@@ -4,99 +4,92 @@ require_once __DIR__ . '/../database/models/User.php';
 require_once __DIR__ . '/BaseController.php';
 
 class AuthenticationController extends BaseController {
+    
     public function __construct() {
         parent::__construct();
         User::initialize();
     }
 
+    /**
+     * Show login page or return login view data
+     */
     public function showLogin() {
-        if (isset($_SESSION['user_id'])) {
-
-            if (!$this->isAjaxRequest()) {
-
-                $redirect = $_GET['redirect'] ?? '/app';
-                header('Location: ' . $redirect);
-                exit;
+        // Redirect if already authenticated
+        if ($this->isAuthenticated()) {
+            $redirect = $_GET['redirect'] ?? '/app';
+            
+            if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                return $this->success(['redirect' => $redirect], 'Already authenticated');
             }
-
-            return $this->redirectResponse('/app');
+            
+            header('Location: ' . $redirect);
+            exit;
         }
 
+        // Store redirect URL for after login
         if (isset($_GET['redirect'])) {
             $_SESSION['login_redirect'] = $_GET['redirect'];
         }
 
-        if (!$this->isAjaxRequest()) {
-            require_once __DIR__ . '/../views/pages/authentication-page.php';
-            return;
+        // Return view for AJAX/API requests
+        if ($this->isApiRoute() || $this->isAjaxRequest()) {
+            return $this->success([
+                'view' => 'login',
+                'csrf_token' => $_SESSION['csrf_token'] ?? ''
+            ]);
         }
 
-        return $this->successResponse([
-            'view' => 'login',
-            'csrf_token' => $_SESSION['csrf_token'] ?? ''
-        ]);
+        // Render login page
+        require_once __DIR__ . '/../views/pages/authentication-page.php';
     }
 
+    /**
+     * Handle user login
+     */
     public function login() {
-        $email = $_POST['email'] ?? '';
-        $password = $_POST['password'] ?? '';
-        $errors = [];
+        $input = $this->getInput();
+        $input = $this->sanitize($input);
+        
+        // Validate input
+        $this->validate($input, [
+            'email' => 'required',
+            'password' => 'required'
+        ]);
 
-        if (empty($email)) {
-            $errors['email'] = 'Email is required';
-        }
+        $email = $input['email'];
+        $password = $input['password'];
 
-        if (empty($password)) {
-            $errors['password'] = 'Password is required';
-        }
-
-        if (!empty($errors)) {
-            if ($this->isAjaxRequest()) {
-                return $this->validationError($errors);
-            }
-
-            $_SESSION['errors'] = $errors;
-            $_SESSION['old_input'] = ['email' => $email];
-            header('Location: /login');
-            exit;
-        }
-
+        // Find user and verify password
         $user = User::findByEmail($email);
-
         if (!$user || !$user->verifyPassword($password)) {
-            $loginError = ['auth' => 'Invalid email or password'];
-
-            if ($this->isAjaxRequest()) {
-                return $this->validationError($loginError);
+            $this->logActivity('login_failed', ['email' => $email]);
+            
+            if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                return $this->error('Invalid email or password', 401);
             }
-
-            $_SESSION['errors'] = $loginError;
+            
+            $_SESSION['errors'] = ['auth' => 'Invalid email or password'];
             $_SESSION['old_input'] = ['email' => $email];
             header('Location: /login');
             exit;
         }
 
+        // Set session data
         $_SESSION['user_id'] = $user->id;
         $_SESSION['username'] = $user->username;
         $_SESSION['avatar_url'] = $user->avatar_url;
 
+        // Update user status
         $user->status = 'online';
         $user->save();
 
-        $redirect = '/app';
+        $this->logActivity('login_success', ['user_id' => $user->id]);
 
-        if (isset($_SESSION['pending_invite'])) {
+        // Determine redirect URL
+        $redirect = $this->getRedirectUrl();
 
-            $redirect = '/join/' . $_SESSION['pending_invite'];
-            unset($_SESSION['pending_invite']);
-        } elseif (isset($_SESSION['login_redirect'])) {
-
-            $redirect = $_SESSION['login_redirect'];
-            unset($_SESSION['login_redirect']);
-        }
-
-        if ($this->isAjaxRequest()) {
-            return $this->successResponse([
+        if ($this->isApiRoute() || $this->isAjaxRequest()) {
+            return $this->success([
                 'user' => [
                     'id' => $user->id,
                     'username' => $user->username,
@@ -110,66 +103,86 @@ class AuthenticationController extends BaseController {
         exit;
     }
 
+    /**
+     * Show registration page or return registration view data
+     */
     public function showRegister() {
-        if (isset($_SESSION['user_id'])) {
-            if (!$this->isAjaxRequest()) {
-                header('Location: /');
-                exit;
+        // Redirect if already authenticated
+        if ($this->isAuthenticated()) {
+            if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                return $this->redirectResponse('/app');
             }
-
-            return $this->redirectResponse('/app');
+            
+            header('Location: /');
+            exit;
         }
 
+        // Store redirect URL for after registration
         if (isset($_GET['redirect'])) {
             $_SESSION['login_redirect'] = $_GET['redirect'];
         }
 
-        if (!$this->isAjaxRequest()) {
-            require_once __DIR__ . '/../views/pages/authentication-page.php';
-            return;
+        // Return view for AJAX/API requests
+        if ($this->isApiRoute() || $this->isAjaxRequest()) {
+            return $this->success([
+                'view' => 'register',
+                'csrf_token' => $_SESSION['csrf_token'] ?? ''
+            ]);
         }
 
-        return $this->successResponse([
-            'view' => 'register',
-            'csrf_token' => $_SESSION['csrf_token'] ?? ''
-        ]);
+        // Render registration page
+        require_once __DIR__ . '/../views/pages/authentication-page.php';
     }
 
-    public function register() {
-        $username = $_POST['username'] ?? '';
-        $email = $_POST['email'] ?? '';
-        $password = $_POST['password'] ?? '';
-        $password_confirm = $_POST['password_confirm'] ?? '';
+    /**
+     * Handle user registration
+     */    public function register() {
+        $input = $this->getInput();
+        $input = $this->sanitize($input);
+        
+        // Validate input
+        $this->validate($input, [
+            'username' => 'required',
+            'email' => 'required',
+            'password' => 'required',
+            'password_confirm' => 'required'
+        ]);
+
+        $username = $input['username'];
+        $email = $input['email'];
+        $password = $input['password'];
+        $passwordConfirm = $input['password_confirm'];
+        
         $errors = [];
 
-        if (empty($username)) {
-            $errors['username'] = 'Username is required';
-        } elseif (strlen($username) < 3) {
+        // Validate username
+        if (strlen($username) < 3) {
             $errors['username'] = 'Username must be at least 3 characters';
         } elseif (User::findByUsername($username)) {
             $errors['username'] = 'Username already exists';
         }
 
-        if (empty($email)) {
-            $errors['email'] = 'Email is required';
-        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        // Validate email
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $errors['email'] = 'Invalid email format';
         } elseif (User::findByEmail($email)) {
             $errors['email'] = 'Email already registered';
         }
 
-        if (empty($password)) {
-            $errors['password'] = 'Password is required';
-        } elseif (strlen($password) < 6) {
+        // Validate password
+        if (strlen($password) < 6) {
             $errors['password'] = 'Password must be at least 6 characters';
         }
 
-        if ($password !== $password_confirm) {
+        if ($password !== $passwordConfirm) {
             $errors['password_confirm'] = 'Passwords do not match';
         }
 
+        // Handle validation errors
         if (!empty($errors)) {
-            if ($this->isAjaxRequest()) {
+            $this->logActivity('registration_failed', ['email' => $email, 'errors' => array_keys($errors)]);
+            
+            if ($this->isApiRoute() || $this->isAjaxRequest()) {
                 return $this->validationError($errors);
             }
 
@@ -182,69 +195,55 @@ class AuthenticationController extends BaseController {
             exit;
         }
 
+        // Create new user
         try {
             $user = new User();
             $user->username = $username;
             $user->email = $email;
             $user->setPassword($password);
-            $user->status = 'online';            log_debug("Attempting to save user", [
-                'username' => $username,
+            $user->status = 'online';
+            
+            $this->logActivity('registration_attempt', ['username' => $username, 'email' => $email]);
+            
+            if ($user->save()) {
+                // Set session data
+                $_SESSION['user_id'] = $user->id;
+                $_SESSION['username'] = $user->username;
+                $_SESSION['avatar_url'] = $user->avatar_url;
+                
+                $this->logActivity('registration_success', ['user_id' => $user->id]);
+                
+                $redirect = $this->getRedirectUrl();
+                
+                if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                    return $this->success([
+                        'user' => [
+                            'id' => $user->id,
+                            'username' => $user->username,
+                            'avatar_url' => $user->avatar_url
+                        ],
+                        'redirect' => $redirect
+                    ], 'Registration successful');
+                }
+                
+                header('Location: ' . $redirect);
+                exit;
+            } else {
+                throw new Exception('Failed to save user');
+            }
+        } catch (Exception $e) {
+            $this->logActivity('registration_error', [
                 'email' => $email,
-                'status' => 'online'
+                'error' => $e->getMessage()
             ]);
-
-            if (!$user->save()) {
-                log_error("Failed to save user - Save method returned false");
-                throw new Exception("Failed to save user to database");
-            }
-
-            log_info("User successfully registered", [
-                'user_id' => $user->id,
-                'username' => $user->username
-            ]);
-            $_SESSION['success'] = "Registration successful! Welcome to misvord, {$user->username}!";
-            $_SESSION['user_id'] = $user->id;
-            $_SESSION['username'] = $user->username;
-
-            $redirect = '/app';
-
-            if (isset($_SESSION['pending_invite'])) {
-
-                $redirect = '/join/' . $_SESSION['pending_invite'];
-                unset($_SESSION['pending_invite']);
-            } elseif (isset($_SESSION['login_redirect'])) {
-
-                $redirect = $_SESSION['login_redirect'];
-                unset($_SESSION['login_redirect']);
-            }
-
-            if ($this->isAjaxRequest()) {
-                return $this->successResponse([
-                    'user' => [
-                        'id' => $user->id,
-                        'username' => $user->username
-                    ],
-                    'redirect' => $redirect
-                ], 'Registration successful');
-            }
-
-            header('Location: ' . $redirect);
-            exit;
-        } catch (Exception $e) {            log_error("Registration error", [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-
-            $errorMessage = 'Registration failed: ' . $e->getMessage();
-
-            if ($this->isAjaxRequest()) {
+            
+            $errorMessage = 'Registration failed. Please try again.';
+            
+            if ($this->isApiRoute() || $this->isAjaxRequest()) {
                 return $this->serverError($errorMessage);
             }
-
-            $_SESSION['errors'] = [
-                'auth' => $errorMessage,
-                'debug_info' => 'See server logs for more details'
-            ];
+            
+            $_SESSION['errors'] = ['general' => $errorMessage];
             $_SESSION['old_input'] = [
                 'username' => $username,
                 'email' => $email
@@ -254,148 +253,184 @@ class AuthenticationController extends BaseController {
         }
     }
 
+    /**
+     * Handle user logout
+     */
     public function logout() {
-        if (isset($_SESSION['user_id'])) {
-            $user = User::find($_SESSION['user_id']);
-            if ($user) {
-                $user->status = 'offline';
-                $user->save();
+        $userId = $this->getCurrentUserId();
+        
+        // Update user status if logged in
+        if ($userId) {
+            try {
+                $user = User::find($userId);
+                if ($user) {
+                    $user->status = 'offline';
+                    $user->save();
+                }
+            } catch (Exception $e) {
+                // Log error but don't prevent logout
+                $this->logActivity('logout_error', ['error' => $e->getMessage()]);
             }
         }
-
-        session_unset();
+        
+        $this->logActivity('logout', ['user_id' => $userId]);
+        
+        // Clear session
         session_destroy();
-
-        if ($this->isAjaxRequest()) {
-            return $this->successResponse(['redirect' => '/'], 'Logged out successfully');
+        
+        if ($this->isApiRoute() || $this->isAjaxRequest()) {
+            return $this->success(['redirect' => '/'], 'Logged out successfully');
         }
-
+        
         header('Location: /');
         exit;
     }
 
+    /**
+     * Show forgot password page
+     */
     public function showForgotPassword() {
-        if (isset($_SESSION['user_id'])) {
-            if (!$this->isAjaxRequest()) {
-                header('Location: /');
-                exit;
-            }
-
+        if ($this->isAuthenticated()) {
             return $this->redirectResponse('/app');
         }
 
-        if (!$this->isAjaxRequest()) {
-            require_once __DIR__ . '/../views/pages/authentication-page.php';
-            return;
+        if ($this->isApiRoute() || $this->isAjaxRequest()) {
+            return $this->success([
+                'view' => 'forgot_password',
+                'csrf_token' => $_SESSION['csrf_token'] ?? ''
+            ]);
         }
 
-        return $this->successResponse([
-            'view' => 'forgot-password',
-            'csrf_token' => $_SESSION['csrf_token'] ?? ''
-        ]);
+        require_once __DIR__ . '/../views/pages/authentication-page.php';
     }
 
+    /**
+     * Handle forgot password request
+     */
     public function forgotPassword() {
-        $email = $_POST['email'] ?? '';
-        $errors = [];
-
-        if (empty($email)) {
-            $errors['email'] = 'Email is required';
-        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $errors['email'] = 'Invalid email format';
-        } elseif (!User::findByEmail($email)) {
-            $errors['email'] = 'No account found with this email';
-        }
-
-        if (!empty($errors)) {
-            if ($this->isAjaxRequest()) {
-                return $this->validationError($errors);
+        $input = $this->getInput();
+        $input = $this->sanitize($input);
+        
+        $this->validate($input, ['email' => 'required']);
+        
+        $email = $input['email'];
+        
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                return $this->validationError(['email' => 'Invalid email format']);
             }
-
-            $_SESSION['errors'] = $errors;
-            $_SESSION['old_input'] = ['email' => $email];
+            
+            $_SESSION['errors'] = ['email' => 'Invalid email format'];
             header('Location: /forgot-password');
             exit;
         }
 
-        $message = 'If an account exists with that email, you will receive password reset instructions.';
-
-        if ($this->isAjaxRequest()) {
-            return $this->successResponse(['redirect' => '/login'], $message);
+        // Always return success for security (don't reveal if email exists)
+        $message = 'If an account with that email exists, you will receive password reset instructions.';
+        
+        if ($this->isApiRoute() || $this->isAjaxRequest()) {
+            return $this->success(['redirect' => '/login'], $message);
         }
-
+        
         $_SESSION['success'] = $message;
         header('Location: /login');
         exit;
     }
 
+    /**
+     * Handle Google OAuth authentication
+     */
     public function googleAuth($googleData) {
-        $googleId = $googleData['id'] ?? null;
-        $email = $googleData['email'] ?? null;
-        $name = $googleData['name'] ?? null;
-        $avatar = $googleData['picture'] ?? null;
-
-        if (!$googleId || !$email) {
-            $errorMessage = 'Unable to authenticate with Google';
-
-            if ($this->isAjaxRequest()) {
-                return $this->validationError(['auth' => $errorMessage]);
+        try {
+            $email = $googleData['email'] ?? null;
+            $name = $googleData['name'] ?? null;
+            $googleId = $googleData['id'] ?? null;
+            
+            if (!$email || !$googleId) {
+                if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                    return $this->validationError(['auth' => 'Invalid Google authentication data']);
+                }
+                
+                $_SESSION['errors'] = ['auth' => 'Google authentication failed'];
+                header('Location: /login');
+                exit;
             }
-
-            $_SESSION['errors'] = ['auth' => $errorMessage];
+            
+            // Find or create user
+            $user = User::findByEmail($email);
+            
+            if (!$user) {
+                // Create new user from Google data
+                $user = new User();
+                $user->email = $email;
+                $user->username = $this->generateUniqueUsername($name ?? $email);
+                $user->google_id = $googleId;
+                $user->status = 'online';
+                $user->save();
+                
+                $this->logActivity('google_registration', ['user_id' => $user->id, 'email' => $email]);
+            } else {
+                // Update existing user
+                $user->google_id = $googleId;
+                $user->status = 'online';
+                $user->save();
+                
+                $this->logActivity('google_login', ['user_id' => $user->id]);
+            }
+            
+            // Set session
+            $_SESSION['user_id'] = $user->id;
+            $_SESSION['username'] = $user->username;
+            $_SESSION['avatar_url'] = $user->avatar_url;
+            
+            $redirect = $this->getRedirectUrl();
+            
+            if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                return $this->success([
+                    'user' => [
+                        'id' => $user->id,
+                        'username' => $user->username,
+                        'avatar_url' => $user->avatar_url
+                    ],
+                    'redirect' => $redirect
+                ], 'Google authentication successful');
+            }
+            
+            header('Location: ' . $redirect);
+            exit;
+            
+        } catch (Exception $e) {
+            $this->logActivity('google_auth_error', ['error' => $e->getMessage()]);
+            
+            if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                return $this->serverError('Google authentication failed');
+            }
+            
+            $_SESSION['errors'] = ['auth' => 'Google authentication failed'];
             header('Location: /login');
             exit;
         }
-
-        $user = User::findByGoogleId($googleId);
-
-        if (!$user) {
-            $user = User::findByEmail($email);
-
-            if ($user) {
-                $user->google_id = $googleId;
-                $user->avatar_url = $avatar;
-                $user->save();
-            } else {
-                $user = new User();
-                $user->username = $name;
-                $user->email = $email;
-                $user->google_id = $googleId;
-                $user->avatar_url = $avatar;
-                $user->status = 'online';
-                $user->save();
-            }
-        } else {
-            if ($user->avatar_url != $avatar) {
-                $user->avatar_url = $avatar;
-                $user->save();
-            }
-        }
-
-        $_SESSION['user_id'] = $user->id;
-        $_SESSION['username'] = $user->username;
-        $_SESSION['avatar_url'] = $user->avatar_url;
-
-        $user->status = 'online';
-        $user->save();
-
-        if ($this->isAjaxRequest()) {
-            return $this->successResponse([
-                'user' => [
-                    'id' => $user->id,
-                    'username' => $user->username,
-                    'avatar_url' => $user->avatar_url
-                ],
-                'redirect' => '/app'
-            ], 'Google authentication successful');
-        }
-
-        header('Location: /app');
-        exit;
     }
 
-    protected function isAjaxRequest() {
-        return !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
-               strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
+    /**
+     * Generate unique username from name or email
+     */
+    private function generateUniqueUsername($name) {
+        $username = strtolower(trim($name));
+        $username = preg_replace('/[^a-z0-9_]/', '', $username);
+        
+        if (empty($username)) {
+            $username = 'user';
+        }
+        
+        $originalUsername = $username;
+        $counter = 1;
+        
+        while (User::findByUsername($username)) {
+            $username = $originalUsername . $counter;
+            $counter++;
+        }
+        
+        return $username;
     }
 }

@@ -37,11 +37,9 @@ if ($path === '//') {
     $path = '/';
 }
 
-// API Routes - handle them before delegating to public router
 if (strpos($path, '/api/') === 0) {
     logger()->debug("API route detected", ['path' => $path, 'method' => $method]);
     
-    // For API routes, we still want to log errors but not display them
     error_reporting(E_ALL);
     ini_set('display_errors', 0);
     

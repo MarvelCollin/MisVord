@@ -1,20 +1,16 @@
 <?php
-// Accept invite page
+
 $page_title = "Join Server - MiscVord";
 
-// Check if we have server information
 $server = $GLOBALS['inviteServer'] ?? null;
 $inviteCode = $GLOBALS['inviteCode'] ?? null;
 
-// Additional JS needed for this page
 $additional_js = ['pages/accept-invite'];
 
-// Ensure we have a session
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Set up content for layout
 ob_start();
 ?>
     <div class="min-h-screen bg-discord-dark flex flex-col">
@@ -22,7 +18,7 @@ ob_start();
         <nav class="bg-discord-light p-4">
             <div class="container mx-auto flex justify-between items-center">
                 <a href="/" class="text-white font-bold text-xl">MiscVord</a>
-                
+
                 <div class="space-x-4">
                     <?php if (isset($_SESSION['user_id'])): ?>
                         <a href="/app" class="text-white hover:underline">Go to App</a>
@@ -48,15 +44,15 @@ ob_start();
                             </div>
                         <?php endif; ?>
                         <h2 class="text-2xl font-bold text-white"><?php echo htmlspecialchars($server->name); ?></h2>
-                        
+
                         <?php if ($server->description): ?>
                             <p class="text-gray-300 mt-2"><?php echo htmlspecialchars($server->description); ?></p>
                         <?php endif; ?>
                     </div>
-                    
+
                     <div class="text-gray-300 mb-6">
                         <p class="mb-2">You've been invited to join this server!</p>
-                        
+
                         <?php if (!isset($_SESSION['user_id'])): ?>
                             <div class="bg-discord-dark p-3 rounded mt-4 text-center">
                                 <p class="text-yellow-400 mb-2">
@@ -103,9 +99,7 @@ ob_start();
 <?php
 $content = ob_get_clean();
 
-// Set body class for the layout
 $body_class = 'bg-discord-dark text-white min-h-screen';
 
-// Include the main layout
 include dirname(__DIR__) . '/layout/main-app.php';
 ?>

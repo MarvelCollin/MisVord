@@ -4,7 +4,7 @@ class Database {
     private static $instance = null;
     private $pdo;    private function __construct() {
         try {
-            // Load environment variables
+
             require_once __DIR__ . '/env.php';
 
             $host = EnvLoader::get('DB_HOST', 'localhost');

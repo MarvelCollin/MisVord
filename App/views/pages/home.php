@@ -7,17 +7,14 @@ if (!function_exists('asset')) {
     require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
 }
 
-// Use controller to handle business logic
 require_once dirname(dirname(__DIR__)) . '/controllers/HomeController.php';
 $homeController = new HomeController();
 $homeData = $homeController->index();
 
-// Extract data for the view
 $currentUserId = $homeData['currentUserId'];
 $userServers = $homeData['userServers'];
 $memberships = $homeData['memberships'];
 
-// Page configuration
 $page_title = 'misvord - Home';
 $body_class = 'bg-discord-dark text-white overflow-hidden';
 $page_css = 'home-page';
@@ -50,33 +47,31 @@ $contentType = 'home';
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Handle create server button click ONLY
+
     const createServerBtn = document.querySelector('[data-action="create-server"]');
     const modal = document.getElementById('create-server-modal');
     const closeBtn = document.getElementById('close-server-modal');
-    
+
     if (createServerBtn && modal) {
         createServerBtn.addEventListener('click', function(e) {
             e.preventDefault();
             modal.classList.remove('hidden');
         });
     }
-    
+
     if (closeBtn && modal) {
         closeBtn.addEventListener('click', function() {
             modal.classList.add('hidden');
         });
     }
-    
-    // Close modal when clicking outside
+
     if (modal) {
         modal.addEventListener('click', function(e) {
             if (e.target === modal) {
                 modal.classList.add('hidden');
             }
         });
-        
-        // Prevent closing when clicking inside modal content
+
         const modalContent = modal.querySelector('.bg-discord-background');
         if (modalContent) {
             modalContent.addEventListener('click', function(e) {

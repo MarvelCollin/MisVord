@@ -14,27 +14,21 @@ class UserActivityController extends BaseController {
         $activeUsers = [];
 
         try {
-            $query = new Query();
-
-            $sql = "
+            $query = new Query();            $sql = "
                 SELECT DISTINCT u.id, u.username, u.avatar, u.status, a.type, a.name, a.image_url, a.start_time
                 FROM users u
                 JOIN user_activities a ON u.id = a.user_id
-                JOIN friend_list fl ON (u.id = fl.user_id2 AND fl.user_id = ?) 
-                                    OR (u.id = fl.user_id AND fl.user_id2 = ?)
+                JOIN friend_list fl ON (u.id = fl.user_id2 AND fl.user_id = {$currentUserId}) 
+                                    OR (u.id = fl.user_id AND fl.user_id2 = {$currentUserId})
                 WHERE fl.status = 'accepted'
-                AND u.id != ?
+                AND u.id != {$currentUserId}
                 AND u.status = 'online'
                 GROUP BY u.id, u.username, u.avatar, u.status, a.type, a.name, a.image_url, a.start_time
                 ORDER BY a.start_time DESC
                 LIMIT 5
             ";
 
-            $activeUsers = $query->rawQuery($sql, [
-                $currentUserId,
-                $currentUserId,
-                $currentUserId
-            ]);
+            $activeUsers = $query->rawQuery($sql);
 
         } catch (Exception $e) {
             error_log("Error fetching active users: " . $e->getMessage());

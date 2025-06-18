@@ -7,19 +7,16 @@ if (!function_exists('asset')) {
     require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
 }
 
-// Use controller to handle business logic
 require_once dirname(dirname(__DIR__)) . '/controllers/ExploreController.php';
 $exploreController = new ExploreController();
 $exploreData = $exploreController->prepareExploreData();
 
-// Extract data for the view
 $userServers = $exploreData['userServers'];
 $servers = $exploreData['servers'];
 $userServerId = $exploreData['userServerIds'];
 $featuredServers = $exploreData['featuredServers'];
 $categories = $exploreData['categories'];
 
-// Page configuration
 $page_title = 'misvord - Explore Servers';
 $body_class = 'bg-discord-dark text-white';
 $page_css = 'explore-servers';
@@ -32,7 +29,7 @@ $additional_js = ['server-dropdown.js'];
 <div class="flex min-h-screen">
     <!-- Side Navigation -->
     <?php include dirname(dirname(__DIR__)) . '/views/components/app-sections/server-sidebar.php'; ?>
-    
+
     <!-- Main Content -->
     <div class="flex-1 bg-discord-background overflow-y-auto">
         <div class="p-6 max-w-7xl mx-auto">
@@ -40,7 +37,7 @@ $additional_js = ['server-dropdown.js'];
                 <h1 class="text-2xl font-bold mb-2">Explore Servers</h1>
                 <p class="text-discord-lighter">Find and join communities on misvord</p>
             </div>
-            
+
             <!-- Search and Filter -->
             <div class="mb-6 flex flex-wrap gap-4">
                 <div class="relative flex-1 min-w-[200px]">
@@ -48,7 +45,7 @@ $additional_js = ['server-dropdown.js'];
                            class="w-full bg-discord-dark text-white rounded-md px-4 py-2 pl-10 focus:outline-none focus:ring-2 focus:ring-discord-primary">
                     <i class="fas fa-search absolute left-3 top-3 text-discord-lighter"></i>
                 </div>
-                
+
                 <div class="flex gap-2">
                     <select id="category-filter" class="bg-discord-dark text-white rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-discord-primary">
                         <option value="">All Categories</option>
@@ -56,13 +53,13 @@ $additional_js = ['server-dropdown.js'];
                             <option value="<?php echo $key; ?>"><?php echo $name; ?></option>
                         <?php endforeach; ?>
                     </select>
-                    
+
                     <button id="sort-btn" class="bg-discord-dark text-white rounded-md px-4 py-2 focus:outline-none hover:bg-discord-light">
                         <i class="fas fa-sort-amount-down mr-2"></i>Sort
                     </button>
                 </div>
             </div>
-            
+
             <!-- Featured Servers -->
             <div class="mb-8">
                 <h2 class="text-lg font-bold mb-4">Featured Servers</h2>
@@ -76,7 +73,7 @@ $additional_js = ['server-dropdown.js'];
                                 <?php if (!empty($server['banner_url'])): ?>
                                     <img src="<?php echo htmlspecialchars($server['banner_url']); ?>" alt="<?php echo htmlspecialchars($server['name']); ?>" class="w-full h-full object-cover">
                                 <?php endif; ?>
-                                
+
                                 <div class="absolute bottom-0 transform translate-y-1/2 left-4">
                                     <div class="w-16 h-16 rounded-2xl bg-discord-dark p-1">
                                         <?php if (!empty($server['image_url'])): ?>
@@ -89,7 +86,7 @@ $additional_js = ['server-dropdown.js'];
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div class="p-4 pt-10">
                                 <h3 class="font-bold text-lg mb-1"><?php echo htmlspecialchars($server['name']); ?></h3>
                                 <?php if (!empty($server['description'])): ?>
@@ -97,7 +94,7 @@ $additional_js = ['server-dropdown.js'];
                                 <?php else: ?>
                                     <p class="text-discord-lighter text-sm mb-3">No description available</p>
                                 <?php endif; ?>
-                                
+
                                 <div class="flex items-center text-xs text-discord-lighter mb-4">
                                     <div class="flex items-center mr-4">
                                         <i class="fas fa-user-group mr-1"></i>
@@ -108,7 +105,7 @@ $additional_js = ['server-dropdown.js'];
                                         <span><?php echo rand(5, 50); ?> online</span>
                                     </div>
                                 </div>
-                                
+
                                 <?php if ($isMember): ?>
                                     <a href="/server/<?php echo $server['id']; ?>" class="block w-full bg-discord-green/30 text-discord-green text-center py-2 rounded-md hover:bg-discord-green/40 transition-colors">
                                         <i class="fas fa-check mr-2"></i>Joined
@@ -121,7 +118,7 @@ $additional_js = ['server-dropdown.js'];
                             </div>
                         </div>
                     <?php endforeach; ?>
-                    
+
                     <?php if (empty($featuredServers)): ?>
                         <div class="col-span-3 bg-discord-dark rounded-lg p-8 text-center">
                             <i class="fas fa-server text-4xl text-discord-lighter mb-4"></i>
@@ -131,7 +128,7 @@ $additional_js = ['server-dropdown.js'];
                     <?php endif; ?>
                 </div>
             </div>
-            
+
             <!-- All Available Servers -->
             <div>
                 <h2 class="text-lg font-bold mb-4">All Servers</h2>
@@ -151,7 +148,7 @@ $additional_js = ['server-dropdown.js'];
                                             </div>
                                         <?php endif; ?>
                                     </div>
-                                    
+
                                     <div>
                                         <h3 class="font-bold server-name"><?php echo htmlspecialchars($server['name']); ?></h3>
                                         <div class="flex items-center text-xs text-discord-lighter mt-1">
@@ -161,13 +158,13 @@ $additional_js = ['server-dropdown.js'];
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 <?php if (!empty($server['description'])): ?>
                                     <p class="text-discord-lighter text-sm mb-3 line-clamp-2 server-description"><?php echo htmlspecialchars($server['description']); ?></p>
                                 <?php else: ?>
                                     <p class="text-discord-lighter text-sm mb-3">No description available</p>
                                 <?php endif; ?>
-                                
+
                                 <?php if ($isMember): ?>
                                     <a href="/server/<?php echo $server['id']; ?>" class="block w-full bg-discord-green/30 text-discord-green text-center py-1.5 text-sm rounded-md hover:bg-discord-green/40 transition-colors">
                                         <i class="fas fa-check mr-1"></i>Joined
@@ -180,7 +177,7 @@ $additional_js = ['server-dropdown.js'];
                             </div>
                         </div>
                     <?php endforeach; ?>
-                    
+
                     <?php if (empty($servers)): ?>
                         <div class="col-span-4 bg-discord-dark rounded-lg p-8 text-center">
                             <i class="fas fa-search text-4xl text-discord-lighter mb-4"></i>
@@ -200,4 +197,4 @@ $additional_js = ['server-dropdown.js'];
 <?php 
 $content = ob_get_clean(); 
 include dirname(dirname(__DIR__)) . '/views/layout/main-app.php';
-?> 
+?>

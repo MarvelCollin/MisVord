@@ -8,22 +8,22 @@ class EnvLoader {
         }
 
         if ($envPath === null) {
-            // Try multiple possible .env file locations
+
             $possiblePaths = [
-                dirname(__DIR__) . '/.env',                    // Standard: config/../.env
-                dirname(__FILE__, 2) . '/.env',                // Alternative: same as above
-                (defined('APP_ROOT') ? APP_ROOT : '') . '/.env', // Using APP_ROOT if defined
-                getcwd() . '/.env',                            // Current working directory
-                $_SERVER['DOCUMENT_ROOT'] . '/../.env',        // Web context fallback
+                dirname(__DIR__) . '/.env',                    
+                dirname(__FILE__, 2) . '/.env',                
+                (defined('APP_ROOT') ? APP_ROOT : '') . '/.env', 
+                getcwd() . '/.env',                            
+                $_SERVER['DOCUMENT_ROOT'] . '/../.env',        
             ];
-            
+
             foreach ($possiblePaths as $path) {
                 if (!empty($path) && file_exists($path)) {
                     $envPath = $path;
                     break;
                 }
             }
-            
+
             if (!$envPath) {
                 error_log("Warning: .env file not found in any of the expected locations:");
                 error_log("Attempted paths: " . implode(', ', array_filter($possiblePaths)));
@@ -52,31 +52,25 @@ class EnvLoader {
             return;
         }
 
-        // Remove BOM if present
         $content = preg_replace('/^\xEF\xBB\xBF/', '', $content);
-        
-        // Handle different line endings
+
         $content = str_replace(["\r\n", "\r"], "\n", $content);
         $lines = explode("\n", $content);
 
         foreach ($lines as $line) {
             $line = trim($line);
-            
-            // Skip empty lines and comments
+
             if (empty($line) || strpos($line, '#') === 0 || strpos($line, '//') === 0) {
                 continue;
             }
 
-            // Parse key=value pairs
             if (strpos($line, '=') !== false) {
                 list($key, $value) = explode('=', $line, 2);
                 $key = trim($key);
                 $value = trim($value);
-                
-                // Remove quotes from value
+
                 $value = trim($value, '"\'');
-                
-                // Store in our array and set in environment
+
                 self::$envVars[$key] = $value;
                 putenv("$key=$value");
                 $_ENV[$key] = $value;
@@ -87,10 +81,9 @@ class EnvLoader {
         self::$loaded = true;
         error_log("✅ Environment variables loaded successfully from: " . $envPath);
     }    public static function get($key, $default = null) {
-        // Ensure .env is loaded
+
         self::load();
-        
-        // Enhanced Docker environment variable detection
+
         $isDocker = (
             getenv('IS_DOCKER') === 'true' || 
             isset($_SERVER['IS_DOCKER']) || 
@@ -98,40 +91,38 @@ class EnvLoader {
             isset($_SERVER['CONTAINER']) ||
             file_exists('/.dockerenv')
         );
-        
-        // In Docker, prioritize container environment variables over .env file
+
         if ($isDocker) {
-            // Try multiple sources for Docker environment variables
+
             $dockerSources = [
                 $_SERVER[$key] ?? null,
                 getenv($key),
                 $_ENV[$key] ?? null
             ];
-            
+
             foreach ($dockerSources as $value) {
                 if ($value !== false && $value !== null && $value !== '') {
                     error_log("EnvLoader Debug - Found $key in Docker environment: " . substr($value, 0, 10) . "...");
                     return $value;
                 }
             }
-            
+
             error_log("EnvLoader Debug - $key not found in Docker environment, checking .env file");
         }
-        
-        // Try .env file and other sources
+
         $value = self::$envVars[$key] ?? $_ENV[$key] ?? $_SERVER[$key] ?? getenv($key);
-        
+
         if ($value !== false && $value !== null && $value !== '') {
             if ($isDocker) {
                 error_log("EnvLoader Debug - Found $key in .env file: " . substr($value, 0, 10) . "...");
             }
             return $value;
         }
-        
+
         if ($isDocker) {
             error_log("EnvLoader Debug - $key not found anywhere, using default: " . ($default ?? 'null'));
         }
-        
+
         return $default;
     }
 
@@ -145,7 +136,6 @@ class EnvLoader {
     }
 }
 
-// Auto-load environment variables when this file is included
 EnvLoader::load();
 
 $dbConfig = [
