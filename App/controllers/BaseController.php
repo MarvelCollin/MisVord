@@ -2,9 +2,10 @@
 
 class BaseController
 {
-
     protected $app;
-    protected $ajaxConfig;    public function __construct()
+    protected $ajaxConfig;
+
+    public function __construct()
     {
         $this->app = $GLOBALS['app'] ?? null;
 
@@ -430,42 +431,11 @@ class BaseController
             return $client->emit('broadcast', $payload);
         } catch (Exception $e) {
             if (function_exists('logger')) {
-                logger()->error("Socket broadcast failed", [
-                    'error' => $e->getMessage(),
+                logger()->error("Socket broadcast failed", [                    'error' => $e->getMessage(),
                     'event' => $event
                 ]);
             }
             return false;
         }
-    }
-
-    protected function notifyUserOnline($userId)
-    {
-        require_once __DIR__ . '/SocketController.php';
-        $socketController = new SocketController();
-        
-        $currentTime = new DateTime();
-        $timestamp = $currentTime->format('Y-m-d H:i:s');
-        
-        $socketController->emitCustomEvent('update-presence', [
-            'userId' => $userId,
-            'status' => 'online',
-            'timestamp' => $timestamp
-        ]);
-    }
-    
-    protected function notifyUserOffline($userId)
-    {
-        require_once __DIR__ . '/SocketController.php';
-        $socketController = new SocketController();
-        
-        $currentTime = new DateTime();
-        $timestamp = $currentTime->format('Y-m-d H:i:s');
-        
-        $socketController->emitCustomEvent('update-presence', [
-            'userId' => $userId,
-            'status' => 'offline',
-            'timestamp' => $timestamp
-        ]);
     }
 }

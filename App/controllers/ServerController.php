@@ -348,21 +348,59 @@ class ServerController extends BaseController
             ]);
             return $this->serverError('Failed to leave server');
         }
-    }
-
+    }    /**
+     * Get all servers for the current user (used by server sidebar)
+     */
     public function getUserServers()
     {
         $this->requireAuth();
+        
+        $currentUserId = $this->getCurrentUserId();
+        
         try {
-            $servers = $this->serverRepository->getFormattedServersForUser($this->getCurrentUserId());
-
-            return $this->success(['servers' => $servers]);
-        } catch (Exception $e) {
-            $this->logActivity('user_servers_error', [
-                'error' => $e->getMessage()
-            ]);
-            return $this->serverError('Failed to load servers');
+            $userServers = $this->serverRepository->getForUser($currentUserId);
+            $memberships = $this->userServerMembershipRepository->getServersForUser($currentUserId);
+            
+            if (function_exists('logger')) {
+                logger()->debug("User servers loaded for sidebar", [
+                    'user_id' => $currentUserId,
+                    'server_count' => count($userServers),
+                    'membership_count' => count($memberships)
+                ]);
+            }
+            
+            // Set globals for use by views
+            $GLOBALS['userServers'] = $userServers;
+            
+            return [
+                'userServers' => $userServers,
+                'memberships' => $memberships,
+                'currentUserId' => $currentUserId
+            ];
+        } catch (Exception $e) {            if (function_exists('logger')) {
+                logger()->error("Failed to get user servers", [
+                    'user_id' => $currentUserId,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+            }
+            
+            $GLOBALS['userServers'] = [];
+            
+            return [
+                'userServers' => [],
+                'memberships' => [],
+                'currentUserId' => $currentUserId
+            ];
         }
+    }
+
+    /**
+     * Initialize sidebar data
+     */
+    public function initSidebar()
+    {
+        return $this->getUserServers();
     }
 
     public function showInvite($code = null)

@@ -5,17 +5,14 @@ require_once __DIR__ . '/../controllers/ServerController.php';
 require_once __DIR__ . '/../controllers/ChannelController.php';
 require_once __DIR__ . '/../controllers/MessageController.php';
 require_once __DIR__ . '/../controllers/GoogleAuthController.php';
-require_once __DIR__ . '/../controllers/ServerSettingsController.php';
-require_once __DIR__ . '/../controllers/NotificationSettingsController.php';
-require_once __DIR__ . '/../controllers/UserProfileController.php';
-require_once __DIR__ . '/../controllers/GroupServerController.php';
 require_once __DIR__ . '/../controllers/RoleController.php';
 require_once __DIR__ . '/../controllers/EmojiController.php';
 require_once __DIR__ . '/../controllers/FriendController.php';
-require_once __DIR__ . '/../controllers/UserPresenceController.php';
 require_once __DIR__ . '/../controllers/NitroController.php';
-require_once __DIR__ . '/../controllers/SocketController.php';
 require_once __DIR__ . '/../controllers/HealthController.php';
+require_once __DIR__ . '/../controllers/HomeController.php';
+require_once __DIR__ . '/../controllers/ExploreController.php';
+require_once __DIR__ . '/../controllers/SettingsController.php';
 require_once __DIR__ . '/env.php';
 
 class Route {
@@ -82,18 +79,12 @@ Route::get('/logout', function() {
     $controller->logout();
 });
 
-Route::post('/api/socket/emit', function() {
-    $controller = new SocketController();
-    $controller->handleSocketRequest();
-});
-
 Route::get('/server/([0-9]+)', function($id) {
     require_once __DIR__ . '/../controllers/ServerController.php';
     $controller = new ServerController();
     $controller->show($id);
 });
 
-// Legacy URL support - redirect /servers/{id} to /server/{id}
 Route::get('/servers/([0-9]+)', function($id) {
     $channel = $_GET['channel'] ?? null;
     $redirectUrl = "/server/{$id}";
@@ -104,7 +95,6 @@ Route::get('/servers/([0-9]+)', function($id) {
     exit;
 });
 
-// Debug route to check server existence
 Route::get('/debug/server/([0-9]+)', function($id) {
     try {
         require_once __DIR__ . '/../controllers/ServerController.php';
@@ -252,33 +242,6 @@ Route::get('/debug/logs', function() {
     exit;
 });
 
-// GroupServer routes
-Route::get('/api/group-servers', function() {
-    $controller = new GroupServerController();
-    $controller->index();
-});
-
-Route::post('/api/group-servers', function() {
-    $controller = new GroupServerController();
-    $controller->create();
-});
-
-Route::post('/api/group-servers/([0-9]+)', function($id) {
-    $controller = new GroupServerController();
-    $controller->update($id);
-});
-
-Route::delete('/api/group-servers/([0-9]+)', function($id) {
-    $controller = new GroupServerController();
-    $controller->delete($id);
-});
-
-Route::get('/api/group-servers/([0-9]+)/servers', function($id) {
-    $controller = new GroupServerController();
-    $controller->getServers($id);
-});
-
-// Role routes
 Route::get('/api/servers/([0-9]+)/roles', function($serverId) {
     $controller = new RoleController();
     $controller->getServerRoles($serverId);
@@ -436,103 +399,7 @@ Route::post('/api/users/find', function() {
     $controller->findUsers();
 });
 
-// User Presence routes
-Route::post('/api/presence/status', function() {
-    $controller = new UserPresenceController();
-    $controller->updateStatus();
-});
-
-Route::get('/api/presence/me', function() {
-    $controller = new UserPresenceController();
-    $controller->getStatus();
-});
-
-Route::get('/api/presence/users/([0-9]+)', function($userId) {
-    $controller = new UserPresenceController();
-    $controller->getStatus($userId);
-});
-
-Route::get('/api/presence/online', function() {
-    $controller = new UserPresenceController();
-    $controller->getOnlineUsers();
-});
-
-Route::post('/api/presence/activity', function() {
-    $controller = new UserPresenceController();
-    $controller->setActivity();
-});
-
-Route::delete('/api/presence/activity', function() {
-    $controller = new UserPresenceController();
-    $controller->clearActivity();
-});
-
-Route::post('/api/presence/offline', function() {
-    $controller = new UserPresenceController();
-    $controller->goOffline();
-});
-
 return array_merge(Route::getRoutes(), [
     '404' => 'pages/404.php'
 ]);
 
-// Temporary test route without authentication
-Route::get('/test/server/([0-9]+)', function($id) {
-    try {
-        require_once __DIR__ . '/../controllers/ServerController.php';
-        $controller = new ServerController();
-        
-        // Temporarily bypass authentication for testing
-        $_SESSION['user_id'] = 1; // Fake user session for testing
-        $_SESSION['username'] = 'testuser';
-        
-        $controller->show($id);
-    } catch (Exception $e) {
-        header('Content-Type: application/json');
-        http_response_code(500);
-        echo json_encode([
-            'status' => 'error',
-            'message' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
-        ]);
-    }
-});
-
-// Debug session endpoint
-Route::get('/debug-session', function() {
-    if ($_SERVER['HTTP_HOST'] === 'localhost:8000' || $_SERVER['HTTP_HOST'] === 'localhost:1001') {
-        session_start();
-        echo "<h3>Session Debug</h3>";
-        echo "Session ID: " . session_id() . "<br>";
-        echo "User ID: " . ($_SESSION['user_id'] ?? 'not_set') . "<br>";
-        echo "Authenticated: " . (($_SESSION['authenticated'] ?? false) ? 'yes' : 'no') . "<br>";
-        echo "All Session Data: <pre>" . print_r($_SESSION, true) . "</pre>";
-    } else {
-        http_response_code(404);
-        echo "Not found";
-    }
-});
-
-// Temporary test login endpoint (remove in production)
-Route::get('/test-login/([0-9]+)', function($userId) {
-    if ($_SERVER['HTTP_HOST'] === 'localhost:8000' || $_SERVER['HTTP_HOST'] === 'localhost:1001') {
-        session_start();
-        $_SESSION['user_id'] = (int)$userId;
-        $_SESSION['authenticated'] = true;
-        // Set session cookie parameters for better persistence
-        session_set_cookie_params([
-            'lifetime' => 3600,
-            'path' => '/',
-            'domain' => '',
-            'secure' => false,
-            'httponly' => true,
-            'samesite' => 'Lax'
-        ]);
-        echo "Logged in as user ID: $userId. Session ID: " . session_id() . "<br>";
-        echo "<a href='/server/1?channel=1'>Go to server</a><br>";
-        echo "<a href='/server/1?channel=1&debug=true'>Go to server (debug mode)</a>";
-    } else {
-        http_response_code(404);
-        echo "Not found";
-    }
-});

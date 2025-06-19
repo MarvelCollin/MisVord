@@ -4,7 +4,7 @@ require_once __DIR__ . '/Model.php';
 
 class UserRole extends Model {
     protected static $table = 'user_roles';
-    protected $fillable = ['id', 'user_id', 'role_id', 'created_at', 'updated_at'];
+    protected $fillable = ['user_id', 'role_id', 'created_at', 'updated_at'];
     
     public static function findByUserAndRole($userId, $roleId) {
         $query = new Query();
@@ -31,3 +31,5 @@ class UserRole extends Model {
         return array_map(function($data) { return new static($data); }, $results);
     }
 }
+
+

@@ -5,8 +5,8 @@ require_once __DIR__ . '/../models/FriendList.php';
 require_once __DIR__ . '/../query.php';
 
 class FriendListRepository extends Repository {
-    public function __construct() {
-        parent::__construct(FriendList::class);
+    protected function getModelClass() {
+        return FriendList::class;
     }
     
     public function findRelationship($userId1, $userId2) {

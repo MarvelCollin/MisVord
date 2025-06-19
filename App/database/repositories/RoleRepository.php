@@ -5,8 +5,8 @@ require_once __DIR__ . '/../models/Role.php';
 require_once __DIR__ . '/../query.php';
 
 class RoleRepository extends Repository {
-    public function __construct() {
-        parent::__construct(Role::class);
+    protected function getModelClass() {
+        return Role::class;
     }
     
     public function getForServer($serverId) {

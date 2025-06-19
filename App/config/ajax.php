@@ -26,12 +26,13 @@ return [
         'method_not_allowed' => 405,
         'validation_error' => 422,
         'server_error' => 500
-    ],
-    'socket' => [
+    ],    'socket' => [
         'enabled' => true,
-        'host' => 'localhost',
-        'port' => 1002,
-        'path' => '/socket.io'
+        'host' => getenv('SOCKET_HOST') ?: 'localhost',
+        'port' => getenv('SOCKET_PORT') ?: 1002,
+        'path' => getenv('SOCKET_BASE_PATH') ?: '/socket.io',
+        'timeout' => 5,
+        'debug' => getenv('APP_ENV') !== 'production'
     ],
     'cache' => [
         'enabled' => true,

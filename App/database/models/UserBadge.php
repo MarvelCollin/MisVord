@@ -4,7 +4,7 @@ require_once __DIR__ . '/Model.php';
 
 class UserBadge extends Model {
     protected static $table = 'user_badges';
-    protected $fillable = ['id', 'user_id', 'badge_id', 'acquired_at', 'created_at', 'updated_at'];
+    protected $fillable = ['user_id', 'badge_id', 'acquired_at', 'created_at', 'updated_at'];
     
     public static function findByUserAndBadge($userId, $badgeId) {
         $query = new Query();
@@ -26,3 +26,5 @@ class UserBadge extends Model {
         return array_map(function($data) { return new static($data); }, $results);
     }
 }
+
+

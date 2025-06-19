@@ -429,11 +429,8 @@ class MisVordMessaging {
                 reconnectionAttempts: this.config.reconnectAttempts,
                 timeout: 20000,
                 forceNew: true
-            });
-
-            this.registerSocketEvents();
+            });            this.registerSocketEvents();
             this.trackConnection('SOCKET_CREATED', { url: socketUrl });
-            window.misVordSocket = this.socket;
             this.updateStatus('connecting');
         } catch (error) {
             this.trackError('SOCKET_INIT_FAILED', error);

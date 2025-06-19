@@ -4,7 +4,7 @@ require_once __DIR__ . '/Model.php';
 
 class ServerEmoji extends Model {
     protected static $table = 'server_emojis';
-    protected $fillable = ['id', 'server_id', 'name', 'image_url', 'is_animated', 'created_by_user_id', 'created_at', 'updated_at'];
+    protected $fillable = ['server_id', 'name', 'image_url', 'is_animated', 'created_by_user_id', 'created_at', 'updated_at'];
     
     public static function getForServer($serverId) {
         $query = new Query();
@@ -79,3 +79,5 @@ class ServerEmoji extends Model {
         return self::createTable();
     }
 } 
+
+

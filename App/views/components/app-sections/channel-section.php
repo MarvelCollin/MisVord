@@ -3,10 +3,10 @@ if (!isset($currentServer) || empty($currentServer)) {
     return;
 }
 
-require_once dirname(dirname(dirname(__DIR__))) . '/controllers/ChannelSectionController.php';
+require_once dirname(dirname(dirname(__DIR__))) . '/controllers/ChannelController.php';
 
-$channelSectionController = new ChannelSectionController();
-$channelData = $channelSectionController->getServerChannels($currentServer->id ?? 0);
+$channelController = new ChannelController();
+$channelData = $channelController->getServerChannels($currentServer->id ?? 0);
 
 $currentServerId = $currentServer->id ?? 0;
 $currentUserId = $_SESSION['user_id'] ?? 0;

@@ -4,7 +4,7 @@ require_once __DIR__ . '/Model.php';
 
 class User extends Model {
     protected static $table = 'users';
-    protected $fillable = ['id', 'username', 'discriminator', 'email', 'password', 'google_id', 'avatar_url', 'status', 'created_at', 'updated_at'];
+    protected $fillable = ['username', 'discriminator', 'email', 'password', 'google_id', 'avatar_url', 'status', 'created_at', 'updated_at'];
     
     public static function findByEmail($email) {
         $query = new Query();
@@ -120,3 +120,5 @@ class User extends Model {
         return self::createTable();
     }
 }
+
+

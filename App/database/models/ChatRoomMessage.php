@@ -4,7 +4,7 @@ require_once __DIR__ . '/Model.php';
 
 class ChatRoomMessage extends Model {
     protected static $table = 'chat_room_messages';
-    protected $fillable = ['id', 'room_id', 'message_id', 'created_at', 'updated_at'];
+    protected $fillable = ['room_id', 'message_id', 'created_at', 'updated_at'];
     
     public static function findByRoomId($roomId, $limit = null, $offset = null) {
         $query = new Query();
@@ -30,3 +30,5 @@ class ChatRoomMessage extends Model {
         return $result ? new Message($result) : null;
     }
 }
+
+

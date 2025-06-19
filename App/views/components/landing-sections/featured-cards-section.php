@@ -22,7 +22,8 @@ if (!function_exists('asset')) {
         </div>
         
         <div class="cards-container relative h-[500px] perspective-1000 flex items-center justify-center">
-            <div class="card-wrapper absolute inset-0 flex items-center justify-center">                <!-- Card 1 -->
+            <div class="card-wrapper absolute inset-0 flex items-center justify-center">
+                <!-- Card 1 -->
                 <div class="feature-card" data-card-index="0" data-tooltip="Connect through text messages, share files, and build conversations with your community">
                     <div class="card-inner">
                         <!-- Front face - Icon only -->

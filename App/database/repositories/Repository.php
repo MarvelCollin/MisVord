@@ -4,21 +4,24 @@ require_once __DIR__ . '/../query.php';
 
 abstract class Repository {
     protected $model;
+    protected $modelClass;
     
-    public function __construct($model) {
-        $this->model = $model;
+    public function __construct() {
+        $this->modelClass = $this->getModelClass();
     }
     
+    abstract protected function getModelClass();
+    
     public function find($id) {
-        return $this->model::find($id);
+        return $this->modelClass::find($id);
     }
     
     public function all() {
-        return $this->model::all();
+        return $this->modelClass::all();
     }
     
     public function create($data) {
-        $instance = new $this->model($data);
+        $instance = new $this->modelClass($data);
         return $instance->save() ? $instance : null;
     }
     
@@ -38,44 +41,41 @@ abstract class Repository {
     }
     
     public function where($column, $operator = null, $value = null) {
-        return $this->model::where($column, $operator, $value);
-    }
-      public function findBy($field, $value) {
+        return $this->modelClass::where($column, $operator, $value);
+    }    public function findBy($field, $value) {
         $query = new Query();
-        $result = $query->table($this->model::getTable())->where($field, $value)->first();
-        return $result ? new $this->model($result) : null;
+        $result = $query->table($this->modelClass::getTable())->where($field, $value)->first();
+        return $result ? new $this->modelClass($result) : null;
     }
-    
-    public function getAllBy($field, $value) {
+      public function getAllBy($field, $value) {
         $query = new Query();
-        $results = $query->table($this->model::getTable())->where($field, $value)->get();
+        $results = $query->table($this->modelClass::getTable())->where($field, $value)->get();
         return array_map(function($result) {
-            return new $this->model($result);
+            return new $this->modelClass($result);
         }, $results);
     }
     
     public function whereIn($field, array $values) {
         $query = new Query();
-        return $query->table($this->model::getTable())->whereIn($field, $values);
+        return $query->table($this->modelClass::getTable())->whereIn($field, $values);
     }
     
     public function whereNull($field) {
         $query = new Query();
-        return $query->table($this->model::getTable())->whereNull($field);
+        return $query->table($this->modelClass::getTable())->whereNull($field);
     }
     
     public function orderBy($column, $direction = 'ASC') {
         $query = new Query();
-        return $query->table($this->model::getTable())->orderBy($column, $direction);
+        return $query->table($this->modelClass::getTable())->orderBy($column, $direction);
     }
     
     public function limit($limit) {
         $query = new Query();
-        return $query->table($this->model::getTable())->limit($limit);
+        return $query->table($this->modelClass::getTable())->limit($limit);
     }
-    
-    public function count($column = '*') {
+      public function count($column = '*') {
         $query = new Query();
-        return $query->table($this->model::getTable())->count($column);
+        return $query->table($this->modelClass::getTable())->count($column);
     }
 }

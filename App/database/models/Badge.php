@@ -4,7 +4,7 @@ require_once __DIR__ . '/Model.php';
 
 class Badge extends Model {
     protected static $table = 'badges';
-    protected $fillable = ['id', 'name', 'description', 'icon_url', 'badge_type', 'is_rare', 'created_at', 'updated_at'];
+    protected $fillable = ['name', 'description', 'icon_url', 'badge_type', 'is_rare', 'created_at', 'updated_at'];
     
     public static function findByType($type) {
         $query = new Query();
@@ -24,3 +24,5 @@ class Badge extends Model {
         return array_map(function($data) { return new static($data); }, $results);
     }
 }
+
+

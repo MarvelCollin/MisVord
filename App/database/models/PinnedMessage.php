@@ -4,7 +4,7 @@ require_once __DIR__ . '/Model.php';
 
 class PinnedMessage extends Model {
     protected static $table = 'pinned_messages';
-    protected $fillable = ['id', 'message_id', 'pinned_by_user_id', 'pinned_at', 'created_at', 'updated_at'];
+    protected $fillable = ['message_id', 'pinned_by_user_id', 'pinned_at', 'created_at', 'updated_at'];
     
     public static function findByMessageId($messageId) {
         $query = new Query();
@@ -25,3 +25,5 @@ class PinnedMessage extends Model {
         return array_map(function($data) { return new static($data); }, $results);
     }
 }
+
+

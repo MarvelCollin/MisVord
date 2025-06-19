@@ -5,8 +5,8 @@ require_once __DIR__ . '/../models/Channel.php';
 require_once __DIR__ . '/../query.php';
 
 class ChannelRepository extends Repository {
-    public function __construct() {
-        parent::__construct(Channel::class);
+    protected function getModelClass() {
+        return Channel::class;
     }
     
     public function getByServerId($serverId) {

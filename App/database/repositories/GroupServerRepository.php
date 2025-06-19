@@ -5,8 +5,8 @@ require_once __DIR__ . '/../models/GroupServer.php';
 require_once __DIR__ . '/../query.php';
 
 class GroupServerRepository extends Repository {
-    public function __construct() {
-        parent::__construct(GroupServer::class);
+    protected function getModelClass() {
+        return GroupServer::class;
     }
     
     public function getForUser($userId) {

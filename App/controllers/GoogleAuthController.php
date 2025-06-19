@@ -22,11 +22,11 @@ class GoogleAuthController
         $this->clientId = $config['client_id'];
         $this->clientSecret = $config['client_secret'];
         $this->redirectUri = $config['redirect_uri'];
-
+        
         error_log("GoogleAuthController initialized with: clientId={$this->clientId}, redirectUri={$this->redirectUri}");
     }
-
-    public function redirect()
+    
+    public function redirectToGoogle()
     {
 
         $state = bin2hex(random_bytes(16));

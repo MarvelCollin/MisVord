@@ -4,7 +4,7 @@ require_once __DIR__ . '/Model.php';
 
 class ChatParticipant extends Model {
     protected static $table = 'chat_participants';
-    protected $fillable = ['id', 'chat_room_id', 'user_id', 'created_at', 'updated_at'];
+    protected $fillable = ['chat_room_id', 'user_id', 'created_at', 'updated_at'];
     
     public static function findByRoomAndUser($roomId, $userId) {
         $query = new Query();
@@ -23,3 +23,5 @@ class ChatParticipant extends Model {
         return array_map(function($data) { return new static($data); }, $results);
     }
 }
+
+

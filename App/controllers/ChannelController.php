@@ -556,4 +556,86 @@ class ChannelController extends BaseController
             return $this->serverError('Failed to load channel participants');
         }
     }
+
+    /**
+     * Get server channels data for the channel section component
+     */
+    public function getServerChannels($serverId)
+    {
+        $this->requireAuth();
+        
+        $currentUserId = $this->getCurrentUserId();
+        
+        try {
+            // Check if user has access to the server
+            if (!$this->membershipRepository->isMember($currentUserId, $serverId)) {
+                if (function_exists('logger')) {
+                    logger()->warning("User attempted to access server channels without membership", [
+                        'user_id' => $currentUserId,
+                        'server_id' => $serverId
+                    ]);
+                }
+                return [
+                    'activeChannelId' => null,
+                    'channels' => [],
+                    'categories' => []
+                ];
+            }
+
+            // Get channels for the server
+            $channels = $this->channelRepository->getByServerId($serverId);
+              // Get categories (you may need to add this to CategoryRepository)
+            $categories = [];
+            if (class_exists('CategoryRepository')) {
+                require_once __DIR__ . '/../database/repositories/CategoryRepository.php';
+                $categoryRepository = new CategoryRepository();
+                $categories = $categoryRepository->getForServer($serverId);
+            }
+            
+            // Determine active channel ID from request
+            $activeChannelId = $_GET['channel'] ?? null;
+            
+            // If no channel specified, use the first available channel
+            if (!$activeChannelId && !empty($channels)) {
+                $activeChannelId = $channels[0]['id'] ?? null;
+            }
+            
+            // Set globals for use by other components
+            $GLOBALS['serverChannels'] = $channels;
+            $GLOBALS['serverCategories'] = $categories;
+            $GLOBALS['activeChannelId'] = $activeChannelId;
+            
+            if (function_exists('logger')) {
+                logger()->debug("Server channels loaded", [
+                    'server_id' => $serverId,
+                    'user_id' => $currentUserId,
+                    'channel_count' => count($channels),
+                    'category_count' => count($categories),
+                    'active_channel_id' => $activeChannelId
+                ]);
+            }
+            
+            return [
+                'activeChannelId' => $activeChannelId,
+                'channels' => $channels,
+                'categories' => $categories
+            ];
+            
+        } catch (Exception $e) {
+            if (function_exists('logger')) {
+                logger()->error("Failed to get server channels", [
+                    'server_id' => $serverId,
+                    'user_id' => $currentUserId,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+            }
+            
+            return [
+                'activeChannelId' => null,
+                'channels' => [],
+                'categories' => []
+            ];
+        }
+    }
 }

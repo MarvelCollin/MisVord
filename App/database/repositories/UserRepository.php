@@ -5,8 +5,8 @@ require_once __DIR__ . '/../models/User.php';
 require_once __DIR__ . '/../query.php';
 
 class UserRepository extends Repository {
-    public function __construct() {
-        parent::__construct(User::class);
+    protected function getModelClass() {
+        return User::class;
     }
     
     public function findByEmail($email) {

@@ -5,8 +5,8 @@ require_once __DIR__ . '/../models/UserServerMembership.php';
 require_once __DIR__ . '/../query.php';
 
 class UserServerMembershipRepository extends Repository {
-    public function __construct() {
-        parent::__construct(UserServerMembership::class);
+    protected function getModelClass() {
+        return UserServerMembership::class;
     }
     
     public function findByUserAndServer($userId, $serverId) {

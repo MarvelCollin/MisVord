@@ -1,8 +1,8 @@
 <?php
-require_once dirname(dirname(dirname(__DIR__))) . '/controllers/ServerSidebarController.php';
+require_once dirname(dirname(dirname(__DIR__))) . '/controllers/ServerController.php';
 
-$serverSidebarController = new ServerSidebarController();
-$serverData = $serverSidebarController->initSidebar();
+$serverController = new ServerController();
+$serverData = $serverController->initSidebar();
 
 $currentUserId = $_SESSION['user_id'] ?? 0;
 $servers = $GLOBALS['userServers'] ?? [];

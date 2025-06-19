@@ -4,7 +4,7 @@ require_once __DIR__ . '/Model.php';
 
 class MessageReaction extends Model {
     protected static $table = 'message_reactions';
-    protected $fillable = ['id', 'message_id', 'user_id', 'emoji', 'created_at', 'updated_at'];
+    protected $fillable = ['message_id', 'user_id', 'emoji', 'created_at', 'updated_at'];
     
     public static function findByMessageAndUser($messageId, $userId, $emoji) {
         $query = new Query();
@@ -25,3 +25,5 @@ class MessageReaction extends Model {
         return array_map(function($data) { return new static($data); }, $results);
     }
 }
+
+

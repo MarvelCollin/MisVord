@@ -5,8 +5,8 @@ require_once __DIR__ . '/../models/ServerEmoji.php';
 require_once __DIR__ . '/../query.php';
 
 class ServerEmojiRepository extends Repository {
-    public function __construct() {
-        parent::__construct(ServerEmoji::class);
+    protected function getModelClass() {
+        return ServerEmoji::class;
     }
     
     public function getForServer($serverId) {

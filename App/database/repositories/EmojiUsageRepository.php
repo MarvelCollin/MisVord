@@ -5,8 +5,8 @@ require_once __DIR__ . '/../models/EmojiUsage.php';
 require_once __DIR__ . '/../query.php';
 
 class EmojiUsageRepository extends Repository {
-    public function __construct() {
-        parent::__construct(EmojiUsage::class);
+    protected function getModelClass() {
+        return EmojiUsage::class;
     }
     
     public function findByEmojiAndMessage($emojiId, $messageId) {

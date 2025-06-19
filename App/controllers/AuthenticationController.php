@@ -76,14 +76,11 @@ class AuthenticationController extends BaseController
                 header('Location: /login');
             }
             exit;
-        }
-
-        $_SESSION['user_id'] = $user->id;
+        }        $_SESSION['user_id'] = $user->id;
         $_SESSION['username'] = $user->username;
         $_SESSION['discriminator'] = $user->discriminator;
         $_SESSION['avatar_url'] = $user->avatar_url;
 
-        $this->notifyUserOnline($user->id);
         $this->logActivity('login_success', ['user_id' => $user->id]);
 
         $redirect = $this->getRedirectUrl();        if ($this->isApiRoute() || $this->isAjaxRequest()) {
@@ -194,13 +191,11 @@ class AuthenticationController extends BaseController
 
             $this->logActivity('registration_attempt', ['username' => $username, 'email' => $email]);
 
-            if ($user->save()) {
-                $_SESSION['user_id'] = $user->id;
+            if ($user->save()) {                $_SESSION['user_id'] = $user->id;
                 $_SESSION['username'] = $user->username;
                 $_SESSION['discriminator'] = $user->discriminator;
                 $_SESSION['avatar_url'] = $user->avatar_url;
 
-                $this->notifyUserOnline($user->id);
                 $this->logActivity('registration_success', ['user_id' => $user->id]);
 
                 $redirect = $this->getRedirectUrl();
@@ -246,15 +241,11 @@ class AuthenticationController extends BaseController
     }
 
     public function logout()
-    {
-        $userId = $this->getCurrentUserId();
-        if ($userId) {
-            $this->notifyUserOffline($userId);
-        }
-
+    {        $userId = $this->getCurrentUserId();
+        
         $this->logActivity('logout', ['user_id' => $userId]);
 
-        session_destroy();        if ($this->isApiRoute() || $this->isAjaxRequest()) {
+        session_destroy();if ($this->isApiRoute() || $this->isAjaxRequest()) {
             return $this->success(['redirect' => '/'], 'Logged out successfully');
         }
 
@@ -330,20 +321,17 @@ class AuthenticationController extends BaseController
             $user = $this->userRepository->findByEmail($email);
 
             if (!$user) {
-                $user = new User();
-                $user->email = $email;
+                $user = new User();                $user->email = $email;
                 $user->username = $this->generateUniqueUsername($name ?? $email);
                 $user->discriminator = User::generateDiscriminator();
                 $user->google_id = $googleId;
                 $user->save();
 
-                $this->notifyUserOnline($user->id);
                 $this->logActivity('google_registration', ['user_id' => $user->id, 'email' => $email]);
             } else {
                 $user->google_id = $googleId;
                 $user->save();
 
-                $this->notifyUserOnline($user->id);
                 $this->logActivity('google_login', ['user_id' => $user->id]);
             }
 

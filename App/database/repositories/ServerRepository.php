@@ -5,8 +5,8 @@ require_once __DIR__ . '/../models/Server.php';
 require_once __DIR__ . '/../query.php';
 
 class ServerRepository extends Repository {
-    public function __construct() {
-        parent::__construct(Server::class);
+    protected function getModelClass() {
+        return Server::class;
     }
     
     public function findByInviteLink($inviteLink) {

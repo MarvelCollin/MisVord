@@ -5,8 +5,8 @@ require_once __DIR__ . '/../models/RolePermission.php';
 require_once __DIR__ . '/../query.php';
 
 class RolePermissionRepository extends Repository {
-    public function __construct() {
-        parent::__construct(RolePermission::class);
+    protected function getModelClass() {
+        return RolePermission::class;
     }
     
     public function getForRole($roleId) {

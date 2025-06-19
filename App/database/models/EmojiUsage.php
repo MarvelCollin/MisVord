@@ -4,7 +4,7 @@ require_once __DIR__ . '/Model.php';
 
 class EmojiUsage extends Model {
     protected static $table = 'emoji_usage';
-    protected $fillable = ['id', 'server_emoji_id', 'unicode_emoji', 'user_id', 'message_id', 'count', 'created_at', 'updated_at'];
+    protected $fillable = ['server_emoji_id', 'unicode_emoji', 'user_id', 'message_id', 'count', 'created_at', 'updated_at'];
     
     public static function findByEmojiAndMessage($emojiId, $messageId) {
         $query = new Query();
@@ -82,3 +82,5 @@ class EmojiUsage extends Model {
         return self::createTable();
     }
 } 
+
+

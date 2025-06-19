@@ -4,7 +4,7 @@ require_once __DIR__ . '/Model.php';
 
 class Role extends Model {
     protected static $table = 'roles';
-    protected $fillable = ['id', 'server_id', 'role_name', 'role_color', 'created_at', 'updated_at'];
+    protected $fillable = ['server_id', 'role_name', 'role_color', 'created_at', 'updated_at'];
     
     public static function getForServer($serverId) {
         $query = new Query();
@@ -73,3 +73,5 @@ class Role extends Model {
         return self::createTable();
     }
 } 
+
+

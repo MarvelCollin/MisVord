@@ -4,7 +4,7 @@ require_once __DIR__ . '/Model.php';
 
 class UserServerMembership extends Model {
     protected static $table = 'user_server_memberships';
-    protected $fillable = ['id', 'user_id', 'server_id', 'role', 'nickname', 'notification_settings', 'created_at', 'updated_at'];
+    protected $fillable = ['user_id', 'server_id', 'role', 'nickname', 'notification_settings', 'created_at', 'updated_at'];
 
     public static function findByUserAndServer($userId, $serverId) {
         $result = static::where('user_id', $userId)
@@ -93,3 +93,5 @@ class UserServerMembership extends Model {
         return self::createTable();
     }
 }
+
+

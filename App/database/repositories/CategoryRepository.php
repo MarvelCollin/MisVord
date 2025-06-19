@@ -4,8 +4,8 @@ require_once __DIR__ . '/Repository.php';
 require_once __DIR__ . '/../models/Category.php';
 
 class CategoryRepository extends Repository {
-    public function __construct() {
-        parent::__construct(Category::class);
+    protected function getModelClass() {
+        return Category::class;
     }
     
     public function getForServer($serverId) {

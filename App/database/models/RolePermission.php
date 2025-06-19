@@ -4,7 +4,7 @@ require_once __DIR__ . '/Model.php';
 
 class RolePermission extends Model {
     protected static $table = 'role_permissions';
-    protected $fillable = ['id', 'role_id', 'channel_id', 'can_delete', 'can_manage', 'can_write', 'can_read', 'created_at', 'updated_at'];
+    protected $fillable = ['role_id', 'channel_id', 'can_delete', 'can_manage', 'can_write', 'can_read', 'created_at', 'updated_at'];
     
     public static function getForRole($roleId) {
         $query = new Query();
@@ -73,3 +73,5 @@ class RolePermission extends Model {
         return self::createTable();
     }
 } 
+
+

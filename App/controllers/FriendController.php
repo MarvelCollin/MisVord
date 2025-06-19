@@ -4,21 +4,14 @@ require_once __DIR__ . '/../database/repositories/UserRepository.php';
 require_once __DIR__ . '/BaseController.php';
 require_once __DIR__ . '/../database/repositories/FriendListRepository.php';
 require_once __DIR__ . '/../utils/AppLogger.php';
-require_once __DIR__ . '/SocketController.php';
 
 class FriendController extends BaseController
-{
-
-    private $userRepository;
-    private $friendListRepository;
-    private $socketController;
-
-    public function __construct()
+{    private $userRepository;
+    private $friendListRepository;    public function __construct()
     {
         parent::__construct();
         $this->userRepository = new UserRepository();
         $this->friendListRepository = new FriendListRepository();
-        $this->socketController = new SocketController();
     }
 
     public function index()
@@ -203,11 +196,10 @@ class FriendController extends BaseController
 
             $currentUser = $this->userRepository->find($currentUserId);
 
-            $friends = $this->friendListRepository->getUserFriends($currentUserId);
-            $onlineFriends = [];
+            $friends = $this->friendListRepository->getUserFriends($currentUserId);            $onlineFriends = [];
               foreach ($friends as &$friend) {
-                $presence = $this->socketController->getUserPresence($friend['id']);
-                $friend['status'] = $presence && isset($presence['status']) ? $presence['status'] : 'offline';
+                // Set default offline status since socket functionality is removed
+                $friend['status'] = 'offline';
                 
                 if ($friend['status'] !== 'offline') {
                     $onlineFriends[] = $friend;
@@ -239,13 +231,12 @@ class FriendController extends BaseController
         
         $userId = $this->getCurrentUserId();
         
-        try {
-            $friends = $this->friendListRepository->getUserFriends($userId);
+        try {            $friends = $this->friendListRepository->getUserFriends($userId);
               foreach ($friends as &$friend) {
-                $presence = $this->socketController->getUserPresence($friend['id']);
-                $friend['status'] = $presence && isset($presence['status']) ? $presence['status'] : 'offline';
-                $friend['activity'] = $presence && isset($presence['activity']) ? $presence['activity'] : null;
-                $friend['last_seen'] = $presence && isset($presence['lastSeen']) ? $presence['lastSeen'] : null;
+                // Set default offline status and null activity since socket functionality is removed
+                $friend['status'] = 'offline';
+                $friend['activity'] = null;
+                $friend['last_seen'] = null;
             }
             
             $this->logActivity('friends_viewed');
@@ -263,16 +254,10 @@ class FriendController extends BaseController
         $userId = $this->getCurrentUserId();
           try {
             $friends = $this->friendListRepository->getUserFriends($userId);
-            $onlineFriends = [];
-            
+            $onlineFriends = [];            
             foreach ($friends as $friend) {
-                $presence = $this->socketController->getUserPresence($friend['id']);
-                if ($presence && isset($presence['status']) && $presence['status'] !== 'offline') {
-                    $friend['status'] = $presence['status'];
-                    $friend['activity'] = $presence['activity'] ?? null;
-                    $friend['last_seen'] = $presence['lastSeen'] ?? null;
-                    $onlineFriends[] = $friend;
-                }
+                // Since socket functionality is removed, no users will be online
+                // This will return an empty array
             }
             
             $this->logActivity('online_friends_viewed');

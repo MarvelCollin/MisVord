@@ -4,7 +4,7 @@ require_once __DIR__ . '/Model.php';
 
 class FriendList extends Model {
     protected static $table = 'friend_list';
-    protected $fillable = ['id', 'user_id', 'user_id2', 'status', 'created_at', 'updated_at'];
+    protected $fillable = ['user_id', 'user_id2', 'status', 'created_at', 'updated_at'];
     
     public static function findRelationship($userId1, $userId2) {
         $query = new Query();
@@ -98,3 +98,5 @@ class FriendList extends Model {
         return self::createTable();
     }
 } 
+
+

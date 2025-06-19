@@ -2,7 +2,8 @@
 
 class EnvLoader {
     private static $loaded = false;
-    private static $envVars = [];    public static function load($envPath = null) {
+    private static $envVars = [];
+    private static $loadedPath = null;public static function load($envPath = null) {
         if (self::$loaded) {
             return;
         }
@@ -79,6 +80,7 @@ class EnvLoader {
         }
 
         self::$loaded = true;
+        self::$loadedPath = $envPath;
         error_log("✅ Environment variables loaded successfully from: " . $envPath);
     }    public static function get($key, $default = null) {
 
@@ -133,6 +135,21 @@ class EnvLoader {
 
     public static function isLoaded() {
         return self::$loaded;
+    }
+    
+    public static function getLoadedPath() {
+        return self::$loadedPath;
+    }
+    
+    public static function debug() {
+        return [
+            'loaded' => self::$loaded,
+            'loaded_path' => self::$loadedPath,
+            'env_vars_count' => count(self::$envVars),
+            'app_env' => self::get('APP_ENV'),
+            'db_host' => self::get('DB_HOST'),
+            'socket_port' => self::get('SOCKET_PORT'),
+        ];
     }
 }
 

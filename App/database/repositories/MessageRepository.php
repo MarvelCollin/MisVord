@@ -5,8 +5,8 @@ require_once __DIR__ . '/../models/Message.php';
 require_once __DIR__ . '/../query.php';
 
 class MessageRepository extends Repository {
-    public function __construct() {
-        parent::__construct(Message::class);
+    protected function getModelClass() {
+        return Message::class;
     }
     
     public function getForChannel($channelId, $limit = 50, $offset = 0) {
