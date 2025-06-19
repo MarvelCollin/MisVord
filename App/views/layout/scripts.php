@@ -10,6 +10,17 @@ $core_scripts = ['core/ui/toast', 'core/ajax/ajax-handler', 'core/socket/global-
 
 <script src="<?php echo js('lib/socket.io.min'); ?>?v=<?php echo time(); ?>"></script>
 
+<script>
+// Set up global configuration from meta tags
+(function() {
+    const socketHost = document.querySelector('meta[name="socket-host"]')?.content;
+    const socketPort = document.querySelector('meta[name="socket-port"]')?.content;
+    
+    if (socketHost) window.SOCKET_HOST = socketHost;
+    if (socketPort) window.SOCKET_PORT = parseInt(socketPort);
+})();
+</script>
+
 <script src="<?php echo js('utils/socket-status'); ?>?v=<?php echo time(); ?>"></script>
 
 <script src="<?php echo js('utils/lazy-loader'); ?>?v=<?php echo time(); ?>" type="module"></script>

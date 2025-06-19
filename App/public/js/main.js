@@ -1,4 +1,5 @@
-import { showToast, MisVordAjax, GlobalSocketManager } from './core/index.js';
+import { showToast, MisVordAjax } from './core/index.js';
+import globalSocketManager from './core/socket/global-socket-manager.js';
 import * as Components from './components/index.js';
 import * as Utils from './utils/index.js';
 import { LazyLoader } from './utils/lazy-loader.js';
@@ -13,7 +14,7 @@ if (typeof window !== 'undefined' && !window.logger) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    logger.info('general', 'MisVord application initialized');
+    window.logger.info('general', 'MisVord application initialized');
 
     window.showToast = showToast;
     window.MisVordAjax = MisVordAjax;
@@ -124,29 +125,26 @@ window.misvord = {
 };
 
 function initGlobalSocketManager() {
-    logger.info('socket', 'Initializing global socket manager...');
+    window.logger.info('socket', 'Initializing global socket manager...');
 
     const userData = getUserDataFromPage();
     
     if (userData && userData.user_id) {
-        logger.info('socket', 'User authenticated, initializing socket connection for:', userData.username);
+        window.logger.info('socket', 'User authenticated, initializing socket connection for:', userData.username);
         
-        const socketManager = new GlobalSocketManager();
+        globalSocketManager.init(userData);
         
-        socketManager.init(userData);
-        
-        window.globalSocketManager = socketManager;
+        window.globalSocketManager = globalSocketManager;
           window.addEventListener('globalSocketReady', function(event) {
-            logger.info('socket', 'Global socket manager ready:', event.detail);
+            window.logger.info('socket', 'Global socket manager ready:', event.detail);
             
             window.dispatchEvent(new CustomEvent('misVordGlobalReady', {
                 detail: { socketManager: event.detail.manager }
             }));
         });    } else {
-        logger.info('socket', 'Guest user detected, socket connection disabled');
+        window.logger.info('socket', 'Guest user detected, socket connection disabled');
         
-        const socketManager = new GlobalSocketManager();
-        window.globalSocketManager = socketManager;
+        window.globalSocketManager = globalSocketManager;
     }
 }
 
@@ -201,7 +199,7 @@ function getUserDataFromPage() {
             };
         }
     }    
-    logger.debug('general', 'User data extracted from page:', userData);
+    window.logger.debug('general', 'User data extracted from page:', userData);
     return userData;
 }
 

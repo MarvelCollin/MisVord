@@ -1,8 +1,8 @@
 if (typeof window !== 'undefined' && !window.LazyLoader) {
     const safeLog = {
         debug: (module, ...args) => {
-            if (typeof logger !== 'undefined') {
-                logger.debug(module, ...args);
+            if (typeof window.logger !== 'undefined') {
+                window.logger.debug(module, ...args);
             } else {
                 console.log(`[${module.toUpperCase()}]`, ...args);
             }
@@ -77,8 +77,8 @@ if (typeof window !== 'undefined' && !window.LazyLoader) {
 const LazyLoader = {
     safeLog: {
         debug: (module, ...args) => {
-            if (typeof logger !== 'undefined') {
-                logger.debug(module, ...args);
+            if (typeof window.logger !== 'undefined') {
+                window.logger.debug(module, ...args);
             } else {
                 console.log(`[${module.toUpperCase()}]`, ...args);
             }

@@ -1,5 +1,5 @@
  document.addEventListener('DOMContentLoaded', function() {
-    logger.info('messaging', 'Chat section initializing...');
+    window.logger.info('messaging', 'Chat section initializing...');
 
     window.MisVordDebug = {
         initialized: false,

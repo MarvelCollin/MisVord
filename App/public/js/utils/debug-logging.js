@@ -1,21 +1,21 @@
 const safeLog = {
     info: (module, ...args) => {
-        if (typeof logger !== 'undefined') {
-            logger.info(module, ...args);
+        if (typeof window.logger !== 'undefined') {
+            window.logger.info(module, ...args);
         } else {
             console.log(`[${module.toUpperCase()}]`, ...args);
         }
     },
     debug: (module, ...args) => {
-        if (typeof logger !== 'undefined') {
-            logger.debug(module, ...args);
+        if (typeof window.logger !== 'undefined') {
+            window.logger.debug(module, ...args);
         } else {
             console.log(`[${module.toUpperCase()}]`, ...args);
         }
     },
     error: (module, ...args) => {
-        if (typeof logger !== 'undefined') {
-            logger.error(module, ...args);
+        if (typeof window.logger !== 'undefined') {
+            window.logger.error(module, ...args);
         } else {
             console.error(`[${module.toUpperCase()}]`, ...args);
         }

@@ -3,19 +3,34 @@ import { showToast } from '../../core/ui/toast.js';
 
 export class AuthManager {
     constructor() {
-        this.init();
-    }    init() {
-        logger.info('auth', 'Auth manager initialized');
+        // Skip initialization on auth pages to prevent errors
+        const isAuthPage = document.body && document.body.getAttribute('data-page') === 'auth';
+        
+        if (!isAuthPage) {
+            this.init();
+        }
+    }
+    
+    init() {
+        if (typeof window !== 'undefined' && window.logger) {
+            window.logger.info('auth', 'Auth manager initialized');
+        }
+        
         document.addEventListener('DOMContentLoaded', () => {
             if (document.body.getAttribute('data-page') === 'auth') {
-                logger.debug('auth', 'Auth page detected, skipping auth component initialization');
+                if (window.logger) {
+                    window.logger.debug('auth', 'Auth page detected, skipping auth component initialization');
+                }
                 return;
             }
             this.initAuthForms();
         });
-    }initAuthForms() {
-
-        logger.debug('auth', 'Auth forms will use traditional submission (no AJAX)');
+    }
+    
+    initAuthForms() {
+        if (window.logger) {
+            window.logger.debug('auth', 'Auth forms will use traditional submission (no AJAX)');
+        }
 
         this.initFormSwitchLinks();
 
@@ -50,25 +65,38 @@ export class AuthManager {
                 firstInput.focus();
             }
         }
-    }    handleLogin(e) {
+    }
+    
+    handleLogin(e) {
         e.preventDefault();
 
         const form = e.target;
-        this.clearFormErrors(form);        MisVordAjax.submitForm(form, {
+        this.clearFormErrors(form);
+        
+        MisVordAjax.submitForm(form, {
             onSuccess: (response) => {
-                logger.info('auth', 'Login response received:', response);
-                  if (response.success) {
+                if (window.logger) {
+                    window.logger.info('auth', 'Login response received:', response);
+                }
+                  
+                if (response.success) {
                     showToast('Login successful. Redirecting...', 'success');
 
                     const redirectUrl = response.redirect || '/app';
-                    logger.debug('auth', 'Redirecting to:', redirectUrl);
+                    if (window.logger) {
+                        window.logger.debug('auth', 'Redirecting to:', redirectUrl);
+                    }
 
                     setTimeout(() => {
-                        logger.debug('auth', 'Executing redirect...');
+                        if (window.logger) {
+                            window.logger.debug('auth', 'Executing redirect...');
+                        }
                         window.location.replace(redirectUrl);
                     }, 500);
                 } else {
-                    logger.warn('auth', 'Login response success was false');
+                    if (window.logger) {
+                        window.logger.warn('auth', 'Login response success was false');
+                    }
                 }
             },
             onError: (error) => {
@@ -80,7 +108,9 @@ export class AuthManager {
                 }
             }
         });
-    }    handleRegister(e) {
+    }
+    
+    handleRegister(e) {
         e.preventDefault();
 
         const form = e.target;
@@ -94,21 +124,32 @@ export class AuthManager {
                 password_confirm: 'Passwords do not match'
             });
             return;
-        }        MisVordAjax.submitForm(form, {
+        }
+        
+        MisVordAjax.submitForm(form, {
             onSuccess: (response) => {
-                logger.info('auth', 'Register response received:', response);
-                  if (response.success) {
+                if (window.logger) {
+                    window.logger.info('auth', 'Register response received:', response);
+                }
+                  
+                if (response.success) {
                     showToast('Registration successful. Redirecting...', 'success');
 
                     const redirectUrl = response.redirect || '/app';
-                    logger.debug('auth', 'Redirecting to:', redirectUrl);
+                    if (window.logger) {
+                        window.logger.debug('auth', 'Redirecting to:', redirectUrl);
+                    }
 
                     setTimeout(() => {
-                        logger.debug('auth', 'Executing redirect...');
+                        if (window.logger) {
+                            window.logger.debug('auth', 'Executing redirect...');
+                        }
                         window.location.replace(redirectUrl);
                     }, 500);
                 } else {
-                    logger.warn('auth', 'Register response success was false');
+                    if (window.logger) {
+                        window.logger.warn('auth', 'Register response success was false');
+                    }
                 }
             },
             onError: (error) => {
@@ -119,7 +160,8 @@ export class AuthManager {
                     showToast(error.data.message, 'error');
                 }
             }
-        });    }
+        });
+    }
 
     handleForgotPassword(e) {
         e.preventDefault();
@@ -187,4 +229,6 @@ export class AuthManager {
     }
 }
 
-export const authManager = new AuthManager();
+// Only create the authManager instance if we're not on the auth page
+const isAuthPage = document.body && document.body.getAttribute('data-page') === 'auth';
+export const authManager = !isAuthPage ? new AuthManager() : null;

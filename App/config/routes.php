@@ -15,6 +15,7 @@ require_once __DIR__ . '/../controllers/FriendController.php';
 require_once __DIR__ . '/../controllers/UserPresenceController.php';
 require_once __DIR__ . '/../controllers/NitroController.php';
 require_once __DIR__ . '/../controllers/SocketController.php';
+require_once __DIR__ . '/../controllers/HealthController.php';
 require_once __DIR__ . '/env.php';
 
 class Route {
@@ -204,12 +205,13 @@ Route::get('/debug/messages', function() {
 });
 
 Route::get('/health', function() {
-    header('Content-Type: application/json');
-    echo json_encode([
-        'status' => 'OK',
-        'timestamp' => date('Y-m-d H:i:s'),
-        'server' => 'misvord-app'
-    ]);
+    $controller = new HealthController();
+    $controller->check();
+});
+
+Route::get('/health/socket', function() {
+    $controller = new HealthController();
+    $controller->socketStatus();
 });
 
 Route::get('/debug/logs', function() {

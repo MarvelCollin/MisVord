@@ -441,15 +441,14 @@ class BaseController
 
     protected function notifyUserOnline($userId)
     {
-        require_once __DIR__ . '/../database/repositories/UserPresenceRepository.php';
-        $presenceRepo = new UserPresenceRepository();
-        $presenceRepo->updateStatus($userId, 'online');
+        require_once __DIR__ . '/SocketController.php';
+        $socketController = new SocketController();
         
         $currentTime = new DateTime();
         $timestamp = $currentTime->format('Y-m-d H:i:s');
         
-        $this->broadcastViaSocket('user-status-change', [
-            'user_id' => $userId,
+        $socketController->emitCustomEvent('update-presence', [
+            'userId' => $userId,
             'status' => 'online',
             'timestamp' => $timestamp
         ]);
@@ -457,15 +456,14 @@ class BaseController
     
     protected function notifyUserOffline($userId)
     {
-        require_once __DIR__ . '/../database/repositories/UserPresenceRepository.php';
-        $presenceRepo = new UserPresenceRepository();
-        $presenceRepo->updateStatus($userId, 'offline');
+        require_once __DIR__ . '/SocketController.php';
+        $socketController = new SocketController();
         
         $currentTime = new DateTime();
         $timestamp = $currentTime->format('Y-m-d H:i:s');
         
-        $this->broadcastViaSocket('user-status-change', [
-            'user_id' => $userId,
+        $socketController->emitCustomEvent('update-presence', [
+            'userId' => $userId,
             'status' => 'offline',
             'timestamp' => $timestamp
         ]);

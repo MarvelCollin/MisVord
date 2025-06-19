@@ -45,7 +45,7 @@ window.DISABLE_MESSAGING = true;
 })();
 
 document.addEventListener('DOMContentLoaded', function() {
-    logger.info('general', 'Landing page loaded - initializing scramble text');
+    window.logger.info('general', 'Landing page loaded - initializing scramble text');
     initScrambleText();
 });
 

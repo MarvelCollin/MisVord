@@ -78,7 +78,7 @@ const AjaxHandler = {
             options.onSuccess(response);
         }
     },    handleErrorResponse: function(error, options = {}) {
-        logger.error('ajax', 'API Error:', error);
+        window.logger.error('ajax', 'API Error:', error);
 
         if (options.onError) {
             options.onError(error);

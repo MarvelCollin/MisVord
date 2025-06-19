@@ -38,7 +38,10 @@ services:
       - DB_CHARSET=utf8mb4
       - IS_VPS=${IS_VPS:-true} 
       - USE_HTTPS=${USE_HTTPS:-true} 
-      - DOMAIN=${DOMAIN:-marvelcollin.my.id}      - PORT=1001 
+      - DOMAIN=${DOMAIN:-marvelcollin.my.id}
+      - PORT=1001 
+      - SOCKET_HOST=${SOCKET_HOST:-localhost}
+      - SOCKET_PORT=${SOCKET_PORT:-1002}
       - VIDEOSDK_API_KEY=${VIDEOSDK_API_KEY}
       - VIDEOSDK_SECRET_KEY=${VIDEOSDK_SECRET_KEY}
       - VIDEOSDK_TOKEN=${VIDEOSDK_TOKEN}

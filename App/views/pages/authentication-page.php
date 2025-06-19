@@ -27,6 +27,7 @@ $body_class = 'bg-discord-dark text-white';
 $page_css = 'authentication-page';
 $page_js = 'pages/authentication-simple';
 $additional_js = [];
+$head_scripts = ['logger-init'];
 $data_page = 'auth';
 
 $debugInfo = '';

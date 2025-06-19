@@ -37,22 +37,22 @@ class MisVordMessaging {
         // Wait for global socket manager to be ready
         this.globalSocketManager = null;
         this.waitingForGlobalSocket = false;        window.MisVordMessaging = this;
-        logger.debug('messaging', 'MisVordMessaging instance created and registered globally (using global socket manager)');
+        window.logger.debug('messaging', 'MisVordMessaging instance created and registered globally (using global socket manager)');
     }
 
     log(...args) {
-        logger.debug('messaging', ...args);
+        window.logger.debug('messaging', ...args);
     }
 
     error(...args) {
-        logger.error('messaging', ...args);
+        window.logger.error('messaging', ...args);
     }init() {        if (this.initialized) {
-            logger.debug('messaging', 'Already initialized, skipping duplicate initialization');
+            window.logger.debug('messaging', 'Already initialized, skipping duplicate initialization');
             return;
         }
         
         if (this.isVoiceChannel()) {
-            logger.debug('messaging', 'Voice channel detected, skipping messaging initialization');
+            window.logger.debug('messaging', 'Voice channel detected, skipping messaging initialization');
             return;
         }
 
@@ -60,11 +60,11 @@ class MisVordMessaging {
         const messageForm = document.getElementById('message-form');
         
         if (!messageContainer && !messageForm) {
-            logger.debug('messaging', 'No messaging elements found, skipping messaging initialization');
+            window.logger.debug('messaging', 'No messaging elements found, skipping messaging initialization');
             return;
         }
 
-        logger.info('messaging', 'Initializing messaging system with global socket manager...');
+        window.logger.info('messaging', 'Initializing messaging system with global socket manager...');
         this.logSystemInfo();
 
         try {

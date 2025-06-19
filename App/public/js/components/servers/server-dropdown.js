@@ -1,9 +1,13 @@
 import { showToast } from '../../core/ui/toast.js';
 
-logger.info('server', 'server-dropdown.js loaded successfully - UPDATED VERSION');
+if (typeof window !== 'undefined' && window.logger) {
+    window.logger.info('server', 'server-dropdown.js loaded successfully - UPDATED VERSION');
+}
 window.SERVER_DROPDOWN_VERSION = '2.0';
 document.addEventListener('DOMContentLoaded', function() {
-    logger.debug('server', 'server-dropdown.js DOMContentLoaded triggered - UPDATED VERSION');
+    if (typeof window !== 'undefined' && window.logger) {
+        window.logger.debug('server', 'server-dropdown.js DOMContentLoaded triggered - UPDATED VERSION');
+    }
     
     const isServerPage = document.getElementById('server-dropdown-btn') !== null;
     

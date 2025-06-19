@@ -99,7 +99,7 @@ function initServerFormSubmission() {
                 if (loadingIndicator) {
                     loadingIndicator.remove();
                 }
-                logger.error('server', 'Error creating server:', error);
+                window.logger.error('server', 'Error creating server:', error);
                 alert('An error occurred while creating the server');
             });
         });
@@ -135,7 +135,7 @@ if (typeof window !== 'undefined') {
                 }
             })
             .catch(error => {
-                logger.error('server', 'Error navigating to server:', error);
+                window.logger.error('server', 'Error navigating to server:', error);
                 window.location.href = '/servers/' + serverId;
             });
     };
@@ -190,7 +190,7 @@ if (typeof window !== 'undefined') {
                 }
             })
             .catch(error => {
-                logger.error('server', 'Error loading server content:', error);
+                window.logger.error('server', 'Error loading server content:', error);
                 window.location.href = '/servers/' + serverId;
             });
     }

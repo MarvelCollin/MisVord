@@ -681,4 +681,7 @@ class GlobalSocketManager {
 
 // Create and export a singleton instance
 const globalSocketManager = new GlobalSocketManager();
+
+// Export both named and default exports for compatibility
+export { GlobalSocketManager };
 export default globalSocketManager;

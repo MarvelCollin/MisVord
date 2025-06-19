@@ -1,6 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {    if (document.getElementById('videoContainer')) {
         waitForVideoSDK(() => {
-            logger.info('voice', "VideoSDK ready. Click 'Join Call' to create and join a meeting.");
+            window.logger.info('voice', "VideoSDK ready. Click 'Join Call' to create and join a meeting.");
         });
     }
 });
@@ -27,12 +27,12 @@ function waitForVideoSDK(callback, maxAttempts = 50) {
     let attempts = 0;
     const checkSDK = () => {
         attempts++;        if (typeof VideoSDK !== 'undefined' && VideoSDK.config && VideoSDK.initMeeting) {
-            logger.debug('voice', "VideoSDK loaded successfully");
+            window.logger.debug('voice', "VideoSDK loaded successfully");
             callback();
         } else if (attempts < maxAttempts) {
             setTimeout(checkSDK, 100);
         } else {
-            logger.error('voice', "VideoSDK failed to load after", maxAttempts * 100, "ms");
+            window.logger.error('voice', "VideoSDK failed to load after", maxAttempts * 100, "ms");
             alert("Failed to load VideoSDK. Please refresh the page.");
         }
     };
@@ -41,7 +41,7 @@ function waitForVideoSDK(callback, maxAttempts = 50) {
 
 async function createMeetingRoom() {
     try {
-        logger.info('voice', "Creating new meeting room...");
+        window.logger.info('voice', "Creating new meeting room...");
         
         const response = await fetch('https://api.videosdk.live/v2/rooms', {
             method: 'POST',
@@ -54,16 +54,16 @@ async function createMeetingRoom() {
         
         if (response.ok) {
             const data = await response.json();
-            logger.debug('voice', "Meeting room created:", data);
+            window.logger.debug('voice', "Meeting room created:", data);
             meetingCreated = true;
             return data.roomId;
         } else {
             const errorText = await response.text();
-            logger.error('voice', "Failed to create meeting room:", response.status, errorText);
+            window.logger.error('voice', "Failed to create meeting room:", response.status, errorText);
             return null;
         }
     } catch (error) {
-        logger.error('voice', "Error creating meeting room:", error);
+        window.logger.error('voice', "Error creating meeting room:", error);
         return null;
     }
 }
@@ -85,10 +85,10 @@ async function initializeMeeting() {
             pollEnabled: false,
             whiteBoardEnabled: false,
             raiseHandEnabled: false
-        });        logger.debug('voice', "Meeting initialized:", meeting);
+        });        window.logger.debug('voice', "Meeting initialized:", meeting);
 
         meeting.on("meeting-joined", () => {
-            logger.info('voice', "Meeting Joined");
+            window.logger.info('voice', "Meeting Joined");
             document.getElementById("joinBtn").disabled = true;
             document.getElementById("leaveBtn").disabled = false;
             document.getElementById("micBtn").disabled = false;
@@ -99,7 +99,7 @@ async function initializeMeeting() {
         });
 
         meeting.on("meeting-left", () => {
-            logger.info('voice', "Meeting Left");
+            window.logger.info('voice', "Meeting Left");
             document.getElementById("joinBtn").disabled = false;
             document.getElementById("leaveBtn").disabled = true;
             document.getElementById("micBtn").disabled = true;
@@ -111,17 +111,17 @@ async function initializeMeeting() {
         });
 
         meeting.on("participant-joined", (participant) => {
-            logger.debug('voice', "Participant Joined: ", participant);
+            window.logger.debug('voice', "Participant Joined: ", participant);
             addParticipant(participant);
         });
 
         meeting.on("participant-left", (participant) => {
-            logger.debug('voice', "Participant Left: ", participant);
+            window.logger.debug('voice', "Participant Left: ", participant);
             removeParticipant(participant);
         });
 
         meeting.on("presenter-changed", (presenterId) => {
-            logger.debug('voice', "Presenter changed: ", presenterId);
+            window.logger.debug('voice', "Presenter changed: ", presenterId);
         });
 
         meeting.on("error", async (error) => {

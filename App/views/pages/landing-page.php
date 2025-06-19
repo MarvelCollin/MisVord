@@ -16,21 +16,20 @@ ob_start();
 <section class="hero-section scroll-section min-h-screen flex items-center justify-center">
     <div class="hero-background">
         <div class="bg-gradient"></div>
-        
         <div class="parallax-layer stars-layer" data-depth="0.1">
             <?php for ($i = 0; $i < 50; $i++): ?>
-                <div class="star small" style="top: <?= rand(5, 95) ?>%; left: <?= rand(5, 95) ?>%;"></div>
+                <div class="star small" style="top: <?php echo rand(5, 95) . '%; left: ' . rand(5, 95); ?>%;"></div>
             <?php endfor; ?>
-            
+
             <?php for ($i = 0; $i < 30; $i++): ?>
-                <div class="star medium" style="top: <?= rand(5, 95) ?>%; left: <?= rand(5, 95) ?>%;"></div>
+                <div class="star medium" style="top: <?php echo rand(5, 95) . '%; left: ' . rand(5, 95); ?>%;"></div>
             <?php endfor; ?>
-            
+
             <?php for ($i = 0; $i < 15; $i++): ?>
-                <div class="star large" style="top: <?= rand(5, 95) ?>%; left: <?= rand(5, 95) ?>%;"></div>
+                <div class="star large" style="top: <?php echo rand(5, 95) . '%; left: ' . rand(5, 95); ?>%;"></div>
             <?php endfor; ?>
         </div>
-        
+
         <div class="parallax-layer nebulas-layer" data-depth="0.2">
             <div class="nebula nebula-1"></div>
             <div class="nebula nebula-2"></div>
@@ -43,7 +42,7 @@ ob_start();
             IMAGINE A PLACE...
         </h1>
     </div>
-    
+
     <div class="scroll-down-indicator">
         <div class="arrow"></div>
     </div>
@@ -54,17 +53,18 @@ $content = ob_get_clean();
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo htmlspecialchars($page_title); ?></title>
-    
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    
+
     <script>
         tailwind.config = {
             theme: {
@@ -92,19 +92,21 @@ $content = ob_get_clean();
             }
         }
     </script>
-    
+
     <link rel="stylesheet" href="<?php echo css('global'); ?>?v=<?php echo time(); ?>">
     <link rel="stylesheet" href="<?php echo css('landing-page'); ?>?v=<?php echo time(); ?>">
     <link rel="stylesheet" href="<?php echo css('scramble-text'); ?>?v=<?php echo time(); ?>">
-    <link rel="stylesheet" href="<?php echo css('featured-cards'); ?>?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="<?php echo css('featured-cards-clean'); ?>?v=<?php echo time(); ?>">
 </head>
+
 <body class="<?php echo $body_class; ?>">
     <?php echo $content; ?>
     <?php include dirname(dirname(__DIR__)) . '/views/components/landing-sections/featured-cards-section.php'; ?>
-    
+
     <script src="<?php echo js('sections/parallax-scroll'); ?>?v=<?php echo time(); ?>"></script>
     <script src="<?php echo js('sections/scramble-text'); ?>?v=<?php echo time(); ?>"></script>
     <script src="<?php echo js('sections/featured-cards'); ?>?v=<?php echo time(); ?>"></script>
     <script src="<?php echo js('pages/landing-page'); ?>?v=<?php echo time(); ?>"></script>
 </body>
+
 </html>

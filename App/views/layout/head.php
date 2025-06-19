@@ -21,6 +21,10 @@ $cache_version = time();
 <meta name="user-authenticated" content="false">
 <?php endif; ?>
 
+<!-- Socket Configuration -->
+<meta name="socket-host" content="<?php echo htmlspecialchars($_ENV['SOCKET_HOST'] ?? 'localhost'); ?>">
+<meta name="socket-port" content="<?php echo htmlspecialchars($_ENV['SOCKET_PORT'] ?? '1002'); ?>">
+
 <title><?php echo htmlspecialchars($page_title); ?></title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -86,7 +90,7 @@ $cache_version = time();
 
 <?php if (isset($head_scripts) && is_array($head_scripts)): ?>
     <?php foreach ($head_scripts as $script): ?>
-        <script src="<?php echo $script; ?>?v=<?php echo $cache_version; ?>"></script>
+        <script src="<?php echo js($script); ?>?v=<?php echo $cache_version; ?>"></script>
     <?php endforeach; ?>
 <?php endif; ?>
 
