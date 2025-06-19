@@ -4,6 +4,24 @@ if (!isset($contentType)) {
 }
 
 $currentServer = $currentServer ?? $GLOBALS['currentServer'] ?? null;
+
+// Check if we're viewing a server based on the URL
+$serverIdFromUrl = null;
+if (isset($_SERVER['REQUEST_URI']) && preg_match('/\/server\/(\d+)/', $_SERVER['REQUEST_URI'], $matches)) {
+    $serverIdFromUrl = $matches[1];
+    
+    // If we have a server ID from URL but no current server object, load it through the controller
+    if ($serverIdFromUrl && !$currentServer) {
+        require_once dirname(dirname(dirname(__DIR__))) . '/controllers/ServerController.php';
+        $tempServerController = new ServerController();
+        // This will redirect if necessary and set the GLOBALS
+        $tempServerController->show($serverIdFromUrl);
+        // After the controller runs, we should have the server in GLOBALS
+        $currentServer = $GLOBALS['currentServer'] ?? null;
+        $contentType = 'server';
+    }
+}
+
 $additional_js[] = 'components/app-layout';
 ?>
 

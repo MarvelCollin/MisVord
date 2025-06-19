@@ -418,7 +418,13 @@ class ServerController extends BaseController
 
     public function getServerChannels($serverId = null)
     {
-        $this->requireAuth();
+        // Check if the request is authenticated
+        if (!isset($_SESSION['user_id'])) {
+            // Send a clear error for API requests
+            return $this->unauthorized('Authentication required');
+        }
+
+        // No need to call requireAuth since we've already checked for auth
 
         if (!$serverId) {
             $input = $this->getInput();
@@ -429,19 +435,54 @@ class ServerController extends BaseController
             return $this->validationError(['server_id' => 'Server ID is required']);
         }
         try {
+            // Create CSRF token if it doesn't exist
+            if (!isset($_SESSION['csrf_token'])) {
+                $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+            }
 
             if (!$this->userServerMembershipRepository->isMember($this->getCurrentUserId(), $serverId)) {
                 return $this->forbidden('You do not have access to this server');
             }
 
             $channels = $this->channelRepository->getByServerId($serverId);
+            $categories = $this->categoryRepository->getForServer($serverId);
+            
+            // Structure the response properly
+            $responseData = [
+                'channels' => $channels,
+                'categories' => $categories,
+                'server_id' => $serverId
+            ];
+            
+            // If we need to structure by categories for the channel loader JS
+            $categoryStructured = [];
+            foreach ($categories as $category) {
+                $categoryChannels = array_filter($channels, function($ch) use ($category) {
+                    return isset($ch['category_id']) && $ch['category_id'] == $category['id'];
+                });
+                
+                $categoryStructured[] = [
+                    'id' => $category['id'],
+                    'name' => $category['name'],
+                    'channels' => array_values($categoryChannels)
+                ];
+            }
+            
+            // Add uncategorized channels
+            $uncategorizedChannels = array_filter($channels, function($ch) {
+                return !isset($ch['category_id']) || empty($ch['category_id']);
+            });
+            
+            if (!empty($uncategorizedChannels)) {
+                $responseData['uncategorized'] = array_values($uncategorizedChannels);
+            }
+            
+            // Add the category structure for the channel loader
+            $responseData['categoryStructure'] = $categoryStructured;
 
             $this->logActivity('server_channels_viewed', ['server_id' => $serverId]);
 
-            return $this->success([
-                'channels' => $channels,
-                'server_id' => $serverId
-            ]);
+            return $this->success($responseData);
         } catch (Exception $e) {
             $this->logActivity('server_channels_error', [
                 'server_id' => $serverId,

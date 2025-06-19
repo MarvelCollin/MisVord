@@ -24,10 +24,12 @@ $additional_js = [
     'components/servers/server-dropdown',
     'components/servers/channel-redirect',
     'components/channels/channel-manager',
-    'components/messaging/messaging'
+    'components/messaging/messaging',
+    'pages/server-page'
 ];
 $contentType = 'server';
 $data_page = 'server';
+$body_attributes = 'data-initial-load="true"';
 
 if (isset($GLOBALS['currentServer'])) {    log_debug("Current server data", [
         'id' => $GLOBALS['currentServer']->id,

@@ -9,120 +9,117 @@ function initFeaturedCards() {
     const cards = featuredSection.querySelectorAll('.feature-card');
     const sectionTitle = featuredSection.querySelector('.section-title');
     const sectionSubtitle = featuredSection.querySelector('.section-subtitle');
+    const cardWrapper = featuredSection.querySelector('.card-wrapper');
     
     if (sectionTitle) sectionTitle.classList.add('revealed');
     if (sectionSubtitle) sectionSubtitle.classList.add('revealed');
     
-    // Make sure all cards have data-card-index
+    // Set wrapper state to track when cursor is within the wrapper
+    if (cardWrapper) {
+        cardWrapper._isActive = false;
+        cardWrapper.setAttribute('data-stable', 'true');
+    }
+    
     cards.forEach((card, index) => {
         card.setAttribute('data-card-index', index);
+        card._isHovered = false;
+        card.setAttribute('data-fixed-position', 'true');
     });
     
-    // Initial responsive layout setup
     handleResponsiveLayout();
     
-    // Stagger the card reveals
+    // Position cards once and stabilize them
     setTimeout(() => {
         cards.forEach((card, index) => {
             card.classList.add('revealed');
             card.style.opacity = '1';
             
-            // Only apply positioning for desktop
             if (window.innerWidth > 768) {
-                setTimeout(() => {
-                    resetCardPosition(card, index);
-                }, index * 50); // Staggered positioning
-            }            // Add hover-to-flip functionality for desktop/tablet
-            if (window.innerWidth > 480) {
-                let hoverTimeout;
-                  card.addEventListener('mouseenter', (e) => {
-                    // Show tooltip immediately
-                    showTooltip(card, e);
-                    
-                    // Start flip timer
-                    hoverTimeout = setTimeout(() => {
-                        // Check if any other card is currently flipped
-                        const currentlyFlipped = featuredSection.querySelector('.feature-card.flipped');
-                        
-                        // If another card is flipped, unflip it first
-                        if (currentlyFlipped && currentlyFlipped !== card) {
-                            currentlyFlipped.classList.remove('flipped');
-                            const flippedIndex = parseInt(currentlyFlipped.getAttribute('data-card-index'));
-                            setTimeout(() => {
-                                resetCardPosition(currentlyFlipped, flippedIndex);
-                                currentlyFlipped.style.zIndex = getCardZIndex(flippedIndex);
-                            }, 300);
-                        }
-                        
-                        // Flip this card
-                        card.classList.add('flipped');
-                        card.style.zIndex = '100';
-                        
-                        // Position it slightly forward for better visibility
-                        setTimeout(() => {
-                            const baseTransform = getBaseCardTransform(index);
-                            card.style.transform = baseTransform + ' translateZ(30px) scale(1.05)';
-                        }, 100);
-                    }, 800); // Flip after 800ms of hover
-                });
-                
-                card.addEventListener('mouseleave', () => {
-                    // Clear hover timer
-                    clearTimeout(hoverTimeout);
-                    
-                    // Hide tooltip
-                    hideTooltip();
-                    
-                    // Unflip the card
-                    if (card.classList.contains('flipped')) {
-                        card.classList.remove('flipped');
-                        setTimeout(() => {
-                            resetCardPosition(card, index);
-                            card.style.zIndex = getCardZIndex(index);
-                        }, 300);
-                    }
-                });
-                
-                card.addEventListener('mousemove', (e) => {
-                    // Update tooltip position while hovering
-                    if (card.matches(':hover')) {                        updateTooltipPosition(e);
-                    }
-                });
+                const baseTransform = getBaseCardTransform(index);
+                card.style.transform = baseTransform;
+                card.style.transition = 'transform 0.5s cubic-bezier(0.23, 1, 0.32, 1)';
+            } else {
+                card.style.transform = 'none';
             }
         });
-    }, 100);    const cardWrapper = featuredSection.querySelector('.card-wrapper');
-    if (cardWrapper && window.innerWidth > 768) {
-        cardWrapper.addEventListener('mouseenter', () => {
-            cards.forEach((card, cardIndex) => {
-                if (!card.classList.contains('flipped') && !card.matches(':hover')) {
-                    const baseTransform = getBaseCardTransform(cardIndex);
-                    card.style.transform = baseTransform + ' scale(1.02) translateY(-3px)';
+        
+        // Mark cards as stable after initial positioning
+        setTimeout(() => {
+            cards.forEach(card => {
+                card.setAttribute('data-stable', 'true');
+            });
+        }, 600);
+    }, 100);
+    
+    // Add mouse event listeners for cards
+    if (window.innerWidth > 480) {
+        cards.forEach((card, index) => {
+            let hoverTimeout;
+            
+            card.addEventListener('mouseenter', (e) => {
+                if (cardWrapper && cardWrapper._isActive) return;
+                
+                card._isHovered = true;
+                showTooltip(card, e);
+                clearTimeout(hoverTimeout);
+                
+                hoverTimeout = setTimeout(() => {
+                    if (!card._isHovered) return;
+                    
+                    const currentlyFlipped = featuredSection.querySelector('.feature-card.flipped');
+                    if (currentlyFlipped && currentlyFlipped !== card) {
+                        currentlyFlipped.classList.remove('flipped');
+                    }
+                    
+                    card.classList.add('flipped');
+                    card.style.zIndex = '100';
+                }, 800);
+            });
+            
+            card.addEventListener('mouseleave', () => {
+                card._isHovered = false;
+                clearTimeout(hoverTimeout);
+                hideTooltip();
+                
+                if (card.classList.contains('flipped')) {
+                    card.classList.remove('flipped');
+                    setTimeout(() => {
+                        card.style.zIndex = getCardZIndex(index);
+                    }, 300);
                 }
             });
+            
+            card.addEventListener('mousemove', (e) => {
+                if (card._isHovered) {
+                    updateTooltipPosition(e);
+                }
+            });
+        });
+    }
+
+    // Add wrapper mouse events
+    if (cardWrapper && window.innerWidth > 768) {
+        cardWrapper.addEventListener('mouseenter', () => {
+            cardWrapper._isActive = true;
+            cardWrapper.classList.add('hover-lock');
         });
         
         cardWrapper.addEventListener('mouseleave', () => {
-            cards.forEach((card, cardIndex) => {
-                if (!card.classList.contains('flipped')) {
-                    resetCardPosition(card, cardIndex);
-                }
-            });
-            // Also hide tooltip when leaving the entire card area
+            cardWrapper._isActive = false;
+            cardWrapper.classList.remove('hover-lock');
             hideTooltip();
         });
     }
     
-    setTimeout(() => {
-        repositionCards();
-    }, 500);
-      // Handle window resize for responsive card positioning
     window.addEventListener('resize', debounce(() => {
-        cards.forEach((card, index) => {
-            // Reset flipped state on resize
+        if (cardWrapper) cardWrapper._isActive = false;
+        
+        cards.forEach((card) => {
             card.classList.remove('flipped');
-            resetCardPosition(card, index);
-            card.style.zIndex = getCardZIndex(index);
+            card._isHovered = false;
         });
+        
+        handleResponsiveLayout();
     }, 200));
 }
 
@@ -564,50 +561,66 @@ function createClickRipple(card) {
 }
 function showTooltip(card, event) {
     const tooltip = document.getElementById('modern-tooltip');
-    const tooltipContent = tooltip.querySelector('.modern-tooltip-content');
-    const tooltipText = card.getAttribute('data-tooltip');
+    if (!tooltip) return;
     
-    if (!tooltipText || !tooltip || !tooltipContent) return;
+    const text = card.getAttribute('data-tooltip');
+    if (!text) return;
     
-    tooltipContent.textContent = tooltipText;
+    const content = tooltip.querySelector('.modern-tooltip-content');
+    if (content) {
+        content.textContent = text;
+    }
+    
     tooltip.classList.add('show');
-    
     updateTooltipPosition(event);
+    
+    // Lock tooltip position
+    if (card.getAttribute('data-tooltip-locked') !== 'true') {
+        card.setAttribute('data-tooltip-locked', 'true');
+        document.body._tooltipCard = card;
+    }
 }
 
 function hideTooltip() {
     const tooltip = document.getElementById('modern-tooltip');
-    if (tooltip) {
-        tooltip.classList.remove('show');
-        tooltip.style.visibility = 'hidden';
+    if (!tooltip) return;
+    
+    tooltip.classList.remove('show');
+    tooltip.style.visibility = 'hidden';
+    
+    if (document.body._tooltipCard) {
+        document.body._tooltipCard.setAttribute('data-tooltip-locked', 'false');
+        document.body._tooltipCard = null;
     }
 }
 
 function updateTooltipPosition(event) {
     const tooltip = document.getElementById('modern-tooltip');
-    if (!tooltip) return;
+    if (!tooltip || !tooltip.classList.contains('show')) return;
     
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
     
-    // Set initial position to get dimensions
-    tooltip.style.left = '0px';
-    tooltip.style.top = '0px';
+    // Fixed position
+    const x = Math.round(event.clientX);
+    const y = Math.round(event.clientY);
+    
     tooltip.style.visibility = 'visible';
     
     const rect = tooltip.getBoundingClientRect();
+    const tooltipWidth = rect.width;
+    const tooltipHeight = rect.height;
     
-    let left = event.clientX - rect.width / 2;
-    let top = event.clientY - rect.height - 15;
+    // Position calculations
+    let left = x - tooltipWidth / 2;
+    let top = y - tooltipHeight - 15;
     
-    // Prevent tooltip from going off screen horizontally
-    if (left < 10) left = 10;
-    if (left + rect.width > viewportWidth - 10) left = viewportWidth - rect.width - 10;
+    // Ensure tooltip stays within viewport bounds
+    if (left < 20) left = 20;
+    if (left + tooltipWidth > viewportWidth - 20) left = viewportWidth - tooltipWidth - 20;
     
-    // Prevent tooltip from going off screen vertically
-    if (top < 10) {
-        top = event.clientY + 15; // Show below cursor instead
-        // Update arrow to point up
+    if (top < 20) {
+        top = y + 15;
         const arrow = tooltip.querySelector('.modern-tooltip-arrow');
         if (arrow) {
             arrow.style.top = '-8px';
@@ -616,7 +629,6 @@ function updateTooltipPosition(event) {
             arrow.style.borderBottom = '8px solid rgba(0, 0, 0, 0.95)';
         }
     } else {
-        // Reset arrow to point down
         const arrow = tooltip.querySelector('.modern-tooltip-arrow');
         if (arrow) {
             arrow.style.top = 'auto';
@@ -626,25 +638,24 @@ function updateTooltipPosition(event) {
         }
     }
     
-    tooltip.style.left = left + 'px';
-    tooltip.style.top = top + 'px';
+    // Apply rounded coordinates to prevent subpixel rendering issues
+    tooltip.style.left = `${Math.round(left)}px`;
+    tooltip.style.top = `${Math.round(top)}px`;
 }
 
 function getCardZIndex(index) {
-    // Center card (index 2) has highest z-index, then adjacent cards, then outer cards
     switch(index) {
-        case 2: return "7"; // Center card
+        case 2: return "7"; 
         case 1:
-        case 3: return "6"; // Adjacent cards
+        case 3: return "6"; 
         case 0:
-        case 4: return "5"; // Outer cards
+        case 4: return "5"; 
         default: return "5";
     }
 }
 
 function getBaseCardTransform(index) {
-    // Create a V-shape arrangement with more dramatic angles and increased vertical separation
-    const spacing = Math.min(window.innerWidth / 8, 100); // Smaller horizontal spacing for more compact layout
+    const spacing = Math.min(window.innerWidth / 8, 100); 
     
     if (window.innerWidth >= 1400) {
         switch (index) {
@@ -692,26 +703,34 @@ function getBaseCardTransform(index) {
                 return '';
         }
     } else {
-        // For mobile, create a grid layout with minimal transform
         return 'translateX(0) translateY(0) rotateY(0) rotateX(0)';
     }
 }
 function resetCardPosition(card, index) {
+    if (!card) return;
+    
+    // Skip repositioning if card is being interacted with
+    if (card._isHovered || 
+        card.classList.contains('flipped') || 
+        card.getAttribute('data-fixed-position') === 'true' ||
+        card.closest('.card-wrapper')?._isActive) {
+        return;
+    }
+    
     if (window.innerWidth < 768) {
-        // In mobile view, position cards in a grid layout
         card.style.transform = 'translateX(0) translateY(0)';
         return;
     }
     
     const baseTransform = getBaseCardTransform(index);
     card.style.transform = baseTransform;
-    card.style.transition = 'all 0.5s cubic-bezier(0.23, 1, 0.32, 1)';
 }
 
 function repositionCards() {
     const cards = document.querySelectorAll('.feature-card.revealed');
     
     cards.forEach(card => {
+        if (card._isHovered || card.getAttribute('data-fixed-position') === 'true') return;
         const cardIndex = parseInt(card.getAttribute('data-card-index'));
         resetCardPosition(card, cardIndex);
     });
@@ -762,27 +781,34 @@ function handleResponsiveLayout() {
     if (!featuredSection) return;
     
     const cards = featuredSection.querySelectorAll('.feature-card');
+    const cardWrapper = featuredSection.querySelector('.card-wrapper');
     const isMobile = window.innerWidth <= 768;
-    const isTablet = window.innerWidth <= 1024 && window.innerWidth > 768;
     
-    if (isMobile) {
-        // Reset all cards for mobile view
-        cards.forEach((card, index) => {
+    // Lock the wrapper during layout changes
+    if (cardWrapper) {
+        cardWrapper.setAttribute('data-stable', 'false');
+        setTimeout(() => {
+            cardWrapper.setAttribute('data-stable', 'true');
+        }, 600);
+    }
+    
+    cards.forEach((card, index) => {
+        card.setAttribute('data-stable', 'false');
+        
+        if (isMobile) {
             card.style.transform = 'none';
             card.style.zIndex = '10';
             card.classList.remove('flipped');
-        });
-    } else if (isTablet) {
-        // Adjust for tablet view
-        cards.forEach((card, index) => {
-            resetCardPosition(card, index);
-        });
-    } else {
-        // Desktop view - normal positioning
-        cards.forEach((card, index) => {
-            resetCardPosition(card, index);
-        });
-    }
+        } else {
+            const baseTransform = getBaseCardTransform(index);
+            card.style.transform = baseTransform;
+            card.style.zIndex = getCardZIndex(index);
+        }
+        
+        setTimeout(() => {
+            card.setAttribute('data-stable', 'true');
+        }, 500);
+    });
 }
 
 // Add window resize listener

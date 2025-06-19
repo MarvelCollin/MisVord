@@ -55,7 +55,16 @@
     flex-wrap: nowrap;
     max-width: 1200px;
     margin: 0 auto;
-    transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+    transition: none;
+}
+
+.card-wrapper.hover-lock {
+    pointer-events: none;
+}
+
+.card-wrapper.hover-lock .feature-card {
+    pointer-events: auto;
+    transition: transform 0.8s cubic-bezier(0.23, 1, 0.32, 1), z-index 0s;
 }
 
 .feature-card {
@@ -63,7 +72,7 @@
     width: 180px;
     height: 180px;
     transform-style: preserve-3d;
-    transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
+    transition: none;
     will-change: transform, opacity;
     z-index: 10;
     opacity: 0;
@@ -210,7 +219,7 @@
 }
 
 .card-inner:hover {
-    transform: translateY(-8px) scale(1.02);
+    transform: none;
     box-shadow: 
         0 25px 50px rgba(0, 0, 0, 0.5),
         0 0 40px rgba(88, 101, 242, 0.3);
@@ -247,10 +256,7 @@
 }
 
 .feature-card:hover .card-icon {
-    transform: scale(1.1) rotateY(15deg);
-    box-shadow: 
-        0 0 35px rgba(88, 101, 242, 0.8),
-        inset 0 2px 15px rgba(255, 255, 255, 0.3);
+    transform: none;
 }
 
 .card-icon i {
@@ -299,11 +305,11 @@
 
 .feature-card.flipped .card-inner {
     transform: rotateY(180deg);
+    transition: transform 0.8s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 .feature-card:hover:not(.flipped) {
-    transform: translateY(-5px) scale(1.05) !important;
-    filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.5));
+    transform: none !important;
 }
 
 .card-back {
@@ -766,7 +772,7 @@
 }
 
 .feature-card:hover .card-icon {
-    transform: scale(1.1);
+    transform: none;
 }
 
 .card-description {
@@ -1124,20 +1130,21 @@
 /* Modern Tooltip Styles */
 .modern-tooltip {
     position: fixed;
-    z-index: 100000;
     pointer-events: none;
     opacity: 0;
-    transform: translateY(10px) scale(0.9);
-    transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-    max-width: 280px;
-    padding: 0;
-    top: 0;
-    left: 0;
+    visibility: hidden;
+    z-index: 1000;
+    max-width: 300px;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.5));
+    transform: translateZ(0);
+    isolation: isolate;
+    will-change: transform, opacity;
 }
 
 .modern-tooltip.show {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    visibility: visible;
 }
 
 .modern-tooltip-content {
@@ -1274,4 +1281,48 @@
 .floating-orb-3 {
     animation: floatingOrbs 20s ease-in-out infinite;
     animation-delay: 10s;
+}
+
+.feature-card[data-fixed-position="true"] {
+    transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1) !important;
+}
+
+@media screen and (max-width: 768px) {
+    .feature-card:hover .card-inner {
+        transform: none !important;
+    }
+    
+    .feature-card.flipped .card-inner {
+        transform: rotateY(180deg) !important;
+    }
+}
+
+.feature-card[data-stable="true"] {
+    transition: transform 0.8s cubic-bezier(0.23, 1, 0.32, 1) !important;
+}
+
+.card-wrapper[data-stable="true"] {
+    transition: none !important;
+}
+
+.card-wrapper[data-stable="true"] .feature-card:not(.flipped):not(:hover) {
+    transition: none !important;
+}
+
+/* Prevent any transition on wrapper while it's in stable state */
+.card-wrapper[data-stable="true"]::before,
+.card-wrapper[data-stable="true"]::after {
+    transition: none !important;
+}
+
+/* Disable all animations when in stable mode */
+@media (prefers-reduced-motion: reduce), (hover: none) {
+    .card-wrapper, 
+    .feature-card, 
+    .card-inner,
+    .card-face,
+    .modern-tooltip {
+        transition: none !important;
+        animation: none !important;
+    }
 }

@@ -1,17 +1,15 @@
 <?php
+require_once dirname(dirname(dirname(__DIR__))) . '/controllers/ServerSidebarController.php';
+
+$serverSidebarController = new ServerSidebarController();
+$serverData = $serverSidebarController->initSidebar();
 
 $currentUserId = $_SESSION['user_id'] ?? 0;
 $servers = $GLOBALS['userServers'] ?? [];
 
-
-if (empty($servers) && $currentUserId) {
-    log_warning("No servers found in GLOBALS for user", ['user_id' => $currentUserId]);
-}
-
 $currentServerId = isset($currentServer) ? $currentServer->id : null;
 $currentPath = $_SERVER['REQUEST_URI'] ?? '';
 $isHomePage = !str_contains($currentPath, '/server/');
-
 
 $tooltipPath = dirname(dirname(__DIR__)) . '/components/common/tooltip.php';
 if (file_exists($tooltipPath)) {
@@ -80,7 +78,8 @@ if (file_exists($tooltipPath)) {
         ?>
     </div>
     
-    <?php    log_debug("Server sidebar debug", [
+    <?php
+    log_debug("Server sidebar debug", [
         'contentType' => $contentType ?? 'undefined',
         'currentServer' => isset($currentServer) ? 'set' : 'not set',
         'currentServer_type' => isset($currentServer) ? gettype($currentServer) : 'N/A'
@@ -157,7 +156,6 @@ if (file_exists($tooltipPath)) {
 </div>
 
 <script>
-
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Server sidebar loaded with servers:', <?php echo json_encode($servers); ?>);
     console.log('Current user ID:', <?php echo $currentUserId; ?>);

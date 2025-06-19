@@ -3,14 +3,70 @@ import { MisVordAjax } from "../../core/ajax/ajax-handler.js";
 
 export class ChannelLoader {
   constructor() {
+    this.channelData = null;
     this.init();
   }
 
   init() {
+    this.hasInitialized = false;
+    
     document.addEventListener("DOMContentLoaded", () => {
       console.log("Channel loader initialized for dynamic updates");
       this.setupDynamicChannelLoading();
+      
+      // Check if we're in a server page
+      if (window.location.pathname.includes('/server/')) {
+        // Don't automatically load channels on first init if we have data-initial-load attribute
+        if (document.body.hasAttribute('data-initial-load')) {
+          console.log("Using server-rendered channels, skipping initial channel fetch");
+          
+          // Just set up event handlers on existing elements
+          const container = document.querySelector('.channel-list-container');
+          if (container) {
+            this.setupChannelEvents(container);
+          }
+          
+          // Mark as initialized to prevent double loading
+          this.hasInitialized = true;
+        } else {
+          const serverId = window.location.pathname.split('/server/')[1].split('/')[0];
+          // Initial load of channels from the current URL
+          if (serverId && !this.hasInitialized) {
+            this.refreshChannelsForServer(serverId);
+            this.hasInitialized = true;
+          }
+        }
+      }
     });
+    
+    // Ensure channels persist during navigation
+    window.addEventListener('beforeunload', () => {
+      // Save channel data to sessionStorage if we have it
+      if (this.channelData) {
+        sessionStorage.setItem('channelData', JSON.stringify(this.channelData));
+      }
+    });
+    
+    // Check for cached channel data
+    const cachedChannels = sessionStorage.getItem('channelData');
+    if (cachedChannels) {
+      try {
+        this.channelData = JSON.parse(cachedChannels);
+        
+        // Apply cached data to the UI if we're in a server page
+        if (window.location.pathname.includes('/server/')) {
+          setTimeout(() => {
+            const container = document.querySelector('.channel-list-container');
+            if (container) {
+              this.renderChannels(container, this.channelData);
+            }
+          }, 100);
+        }
+      } catch (e) {
+        console.error("Error parsing cached channels", e);
+        sessionStorage.removeItem('channelData');
+      }
+    }
   }
 
   setupDynamicChannelLoading() {
@@ -30,12 +86,29 @@ export class ChannelLoader {
     try {
       console.log(`Refreshing channels for server ${serverId}`);
 
+      const container = document.querySelector('.channel-list-container');
+      const originalHtml = container ? container.innerHTML : '';
+      
+      const skipApiCall = document.body.hasAttribute('data-initial-load');
+      if (skipApiCall) {
+        console.log('Using pre-rendered channel content for initial load');
+        document.body.removeAttribute('data-initial-load');
+        
+        if (container) {
+          this.setupChannelEvents(container);
+        }
+        return;
+      }
+
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+      const options = csrfToken ? { headers: { 'X-CSRF-Token': csrfToken } } : {};
+
       const response = await MisVordAjax.get(
-        `/api/servers/${serverId}/channels`
+        `/api/servers/${serverId}/channels`,
+        options
       );
 
       if (response && response.success) {
-        const container = document.querySelector('.channel-list-container');
         if (container) {
           this.renderChannels(container, response.data);
           console.log(`Channels refreshed for server ${serverId}`);
@@ -45,11 +118,24 @@ export class ChannelLoader {
           "Failed to refresh channels:",
           response?.message || "Unknown error"
         );
-        showToast("Failed to refresh channels", "error");
+        
+        // Don't toast errors for initial page load, and keep existing content
+        if (originalHtml && originalHtml.indexOf('No channels found') === -1) {
+          console.log('Keeping existing channel content due to API error');
+          return; // Preserve the original content
+        }
+        
+        // Only show toast if error is unexpected
+        if (response?.error?.code !== 401) {
+          showToast("Failed to refresh channels", "error");
+        }
       }
     } catch (error) {
       console.error("Error refreshing channels:", error);
-      showToast("Error refreshing channels", "error");
+      // Don't show error toasts for common network issues
+      if (error.name !== 'AbortError') {
+        showToast("Error refreshing channels", "error");
+      }
     }
   }
 
@@ -64,22 +150,115 @@ export class ChannelLoader {
   }
 
   renderChannels(container, data) {
-    if (!data || !data.categories || data.categories.length === 0) {
+    if (!data) {
       container.innerHTML =
         '<div class="text-gray-400 text-center p-4">No channels found</div>';
       return;
     }
-
+    
+    this.channelData = data; // Store for caching
     let html = "";
-
-    data.categories.forEach((category) => {
-      html += this.renderCategory(category);
-    });
-
+    
+    // If we have a category structure, use that
+    if (data.categoryStructure && data.categoryStructure.length > 0) {
+      data.categoryStructure.forEach((category) => {
+        html += this.renderCategory(category);
+      });
+      
+      // Add uncategorized channels separately
+      if (data.uncategorized && data.uncategorized.length > 0) {
+        html += this.renderUncategorizedChannels(data.uncategorized);
+      }
+    } 
+    // Fall back to the old structure 
+    else if (data.categories && data.categories.length > 0) {
+      data.categories.forEach((category) => {
+        // Find channels for this category
+        const categoryChannels = data.channels.filter(
+          (ch) => ch.category_id === category.id
+        );
+        
+        html += this.renderCategory({
+          id: category.id,
+          name: category.name,
+          channels: categoryChannels
+        });
+      });
+      
+      // Handle uncategorized channels
+      const uncategorized = data.channels.filter(
+        (ch) => !ch.category_id || ch.category_id === null
+      );
+      
+      if (uncategorized.length > 0) {
+        html += this.renderUncategorizedChannels(uncategorized);
+      }
+    }
+    // Fallback if there are no categories but there are channels
+    else if (data.channels && data.channels.length > 0) {
+      html = this.renderUncategorizedChannels(data.channels);
+    }
+    // No channels found
+    else {
+      html = '<div class="text-gray-400 text-center p-4">No channels found</div>';
+    }
+    
     container.innerHTML = html;
-
+    console.log("Channel rendering complete, setting up events");
     this.setupChannelEvents(container);
   }
+  
+  renderUncategorizedChannels(channels) {
+    if (!channels || channels.length === 0) return "";
+    
+    // Separate text and voice channels
+    const textChannels = channels.filter(
+      (ch) => ch.type === 'text' || ch.type === 1 || ch.type_name === 'text'
+    );
+    
+    const voiceChannels = channels.filter(
+      (ch) => ch.type === 'voice' || ch.type === 2 || ch.type_name === 'voice'
+    );
+    
+    let html = "";
+    
+    // Render text channels
+    if (textChannels.length > 0) {
+      html += `
+        <div class="my-4">
+          <div class="text-gray-400 flex items-center justify-between mb-1 px-1">
+            <div class="font-semibold uppercase text-xs">Text Channels</div>
+            <button class="text-xs hover:text-gray-300" onclick="openCreateChannelModal('text')">
+              <i class="fas fa-plus"></i>
+            </button>
+          </div>
+          <div class="uncategorized-channels pl-2">
+            ${textChannels.map(channel => this.renderChannel(channel)).join('')}
+          </div>
+        </div>
+      `;
+    }
+    
+    // Render voice channels
+    if (voiceChannels.length > 0) {
+      html += `
+        <div class="my-4">
+          <div class="text-gray-400 flex items-center justify-between mb-1 px-1">
+            <div class="font-semibold uppercase text-xs">Voice Channels</div>
+            <button class="text-xs hover:text-gray-300" onclick="openCreateChannelModal('voice')">
+              <i class="fas fa-plus"></i>
+            </button>
+          </div>
+          <div class="voice-channels pl-2">
+            ${voiceChannels.map(channel => this.renderChannel(channel)).join('')}
+          </div>
+        </div>
+      `;
+    }
+    
+    return html;
+  }
+
   renderCategory(category) {
     let channels = "";
 

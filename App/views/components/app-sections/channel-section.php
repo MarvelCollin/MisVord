@@ -3,12 +3,16 @@ if (!isset($currentServer) || empty($currentServer)) {
     return;
 }
 
+require_once dirname(dirname(dirname(__DIR__))) . '/controllers/ChannelSectionController.php';
+
+$channelSectionController = new ChannelSectionController();
+$channelData = $channelSectionController->getServerChannels($currentServer->id ?? 0);
+
 $currentServerId = $currentServer->id ?? 0;
 $currentUserId = $_SESSION['user_id'] ?? 0;
-$activeChannelId = $_GET['channel'] ?? null;
-
-$channels = $GLOBALS['serverChannels'] ?? [];
-$categories = $GLOBALS['serverCategories'] ?? [];
+$activeChannelId = $channelData['activeChannelId'];
+$channels = $channelData['channels'];
+$categories = $channelData['categories'];
 
 $debugMode = isset($_GET['debug']) && $_GET['debug'] === 'true';
 if ($debugMode) {

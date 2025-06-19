@@ -1,11 +1,35 @@
 document.addEventListener('DOMContentLoaded', function() {
-
-    initializeChannelClickHandlers();
-
-    initializeServerModals();
-
-    window.logger.info('server', 'Server page JS initialized');
+    initServerPage();
 });
+
+function initServerPage() {
+    console.log('Server page initialized');
+    
+    // Get the server ID from the URL
+    const path = window.location.pathname;
+    const matches = path.match(/\/server\/(\d+)/);
+    
+    // Don't trigger channel refresh if we have data-initial-load attribute
+    // The channel-loader.js will handle it
+    if (!document.body.hasAttribute('data-initial-load') && matches && matches[1]) {
+        const serverId = matches[1];
+        console.log(`Loading server page for server ID: ${serverId}`);
+        
+        // Trigger an immediate channel refresh
+        document.dispatchEvent(
+            new CustomEvent("RefreshChannels", {
+                detail: {
+                    serverId: serverId
+                }
+            })
+        );
+    } else if (document.body.hasAttribute('data-initial-load')) {
+        console.log("Using server-rendered channels, skipping refresh event");
+    }
+    
+    // Initialize channel click handlers for server-rendered content
+    initializeChannelClickHandlers();
+}
 
 function initializeChannelClickHandlers() {
     const channelItems = document.querySelectorAll('.channel-item');

@@ -6,14 +6,52 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function initServerManager() {
-
+    ensureServerDataLoaded();
     initCreateServerForm();
-
     initJoinServerForm();
-
     initLeaveServerButtons();
-
     initServerSettingsForm();
+}
+
+function ensureServerDataLoaded() {
+    const isServerPage = window.location.pathname.includes('/server/');
+    if (isServerPage) {
+        const serverId = window.location.pathname.split('/server/')[1].split('/')[0];
+        
+        if (serverId) {
+            const serverContainer = document.querySelector('.server-list-container');
+            
+            // Check if we need to load server data
+            if (serverContainer && serverContainer.children.length === 0) {
+                MisVordAjax.get(`/api/servers/${serverId}`, {
+                    onSuccess: function(response) {
+                        if (response.success) {
+                            // Server data loaded
+                            console.log('Server data loaded successfully');
+                            
+                            // Fix for channel list not showing
+                            MisVordAjax.get(`/api/servers/${serverId}/channels`, {
+                                onSuccess: function(channelResponse) {
+                                    if (channelResponse.success) {
+                                        console.log('Channels loaded successfully');
+                                        if (typeof window.channelLoader !== 'undefined' && 
+                                            typeof window.channelLoader.renderChannels === 'function') {
+                                            const container = document.querySelector('.channel-list-container');
+                                            if (container) {
+                                                window.channelLoader.renderChannels(container, channelResponse.data);
+                                            }
+                                        }
+                                    }
+                                },
+                                showToast: false
+                            });
+                        }
+                    },
+                    showToast: false
+                });
+            }
+        }
+    }
 }
 
 function initCreateServerForm() {
