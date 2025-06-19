@@ -2,24 +2,25 @@
 
 require_once __DIR__ . '/../database/repositories/ServerRepository.php';
 require_once __DIR__ . '/../database/repositories/ChannelRepository.php';
+require_once __DIR__ . '/../database/repositories/CategoryRepository.php';
 require_once __DIR__ . '/../database/repositories/MessageRepository.php';
 require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
 require_once __DIR__ . '/../database/repositories/ServerInviteRepository.php';
 require_once __DIR__ . '/BaseController.php';
 
 class ServerController extends BaseController
-{
-    private $serverRepository;
+{    private $serverRepository;
     private $channelRepository;
+    private $categoryRepository;
     private $messageRepository;
     private $userServerMembershipRepository;
     private $inviteRepository;
 
     public function __construct()
-    {
-        parent::__construct();
+    {        parent::__construct();
         $this->serverRepository = new ServerRepository();
         $this->channelRepository = new ChannelRepository();
+        $this->categoryRepository = new CategoryRepository();
         $this->messageRepository = new MessageRepository();
         $this->userServerMembershipRepository = new UserServerMembershipRepository();
         $this->inviteRepository = new ServerInviteRepository();
@@ -27,70 +28,125 @@ class ServerController extends BaseController
 
         public function show($id)
     {
-        $this->requireAuth();
-
-        $server = $this->serverRepository->find($id);
-        if (!$server) {
-            return $this->notFound('Server not found');
-        }
-
-        $membership = $this->userServerMembershipRepository->findByUserAndServer($this->getCurrentUserId(), $id);
-        if (!$membership) {
-            return $this->forbidden('You are not a member of this server');
-        }
-
         try {
+            // Log entry into method
+            if (function_exists('logger')) {
+                logger()->debug("ServerController::show called", [
+                    'server_id' => $id,
+                    'user_id' => $_SESSION['user_id'] ?? 'not_set',
+                    'session_id' => session_id(),
+                    'request_uri' => $_SERVER['REQUEST_URI'] ?? ''
+                ]);
+            }
+            
+            $this->requireAuth();
+            
+            // Log after auth check
+            if (function_exists('logger')) {
+                logger()->debug("Authentication passed", [
+                    'server_id' => $id,
+                    'user_id' => $_SESSION['user_id']
+                ]);
+            }
+            
+            $server = $this->serverRepository->find($id);
+            if (!$server) {
+                return $this->notFound('Server not found');
+            }
 
+            $membership = $this->userServerMembershipRepository->findByUserAndServer($this->getCurrentUserId(), $id);
+            if (!$membership) {
+                return $this->forbidden('You are not a member of this server');
+            }            try {
             $channels = $this->channelRepository->getByServerId($id);
+            $categories = $this->categoryRepository->getForServer($id);
+            
+            // Debug logging
+            if (function_exists('logger')) {
+                logger()->debug("Loaded server data", [
+                    'server_id' => $id,
+                    'channels_count' => count($channels),
+                    'categories_count' => count($categories),
+                    'channels' => $channels,
+                    'categories' => $categories
+                ]);
+            }
 
-            $activeChannelId = $_GET['channel'] ?? null;
-            $activeChannel = null;
-            $channelMessages = [];
-            if ($activeChannelId) {
-                $activeChannel = $this->channelRepository->find($activeChannelId);
-                if ($activeChannel && $activeChannel->server_id == $id) {
-                    try {
-                        $channelMessages = $this->messageRepository->getForChannel($activeChannelId, 50, 0);
-                        $this->logActivity('channel_messages_loaded', [
-                            'channel_id' => $activeChannelId,
-                            'message_count' => count($channelMessages)
-                        ]);
-                    } catch (Exception $e) {
-                        $this->logActivity('channel_messages_error', [
-                            'channel_id' => $activeChannelId,
-                            'error' => $e->getMessage()
-                        ]);
+                $activeChannelId = $_GET['channel'] ?? null;
+                $activeChannel = null;
+                $channelMessages = [];            // If no channel is specified, default to the first text channel and redirect
+                if (!$activeChannelId && !empty($channels)) {
+                    $defaultChannelId = null;
+                    foreach ($channels as $channel) {
+                        if ($channel['type'] === 'text' || $channel['type'] === 0 || $channel['type_name'] === 'text') {
+                            $defaultChannelId = $channel['id'];
+                            break;
+                        }
+                    }
+                      if ($defaultChannelId) {
+                        // Redirect to include the default channel in the URL
+                        $this->redirect("/server/{$id}?channel={$defaultChannelId}");
+                        return;
                     }
                 }
-            }
+                
+                if ($activeChannelId) {
+                    $activeChannel = $this->channelRepository->find($activeChannelId);
+                    if ($activeChannel && $activeChannel->server_id == $id) {
+                        try {
+                            $channelMessages = $this->messageRepository->getForChannel($activeChannelId, 50, 0);
+                            $this->logActivity('channel_messages_loaded', [
+                                'channel_id' => $activeChannelId,
+                                'message_count' => count($channelMessages)
+                            ]);
+                        } catch (Exception $e) {
+                            $this->logActivity('channel_messages_error', [
+                                'channel_id' => $activeChannelId,
+                                'error' => $e->getMessage()
+                            ]);
+                        }
+                    }
+                }
 
-            if ($this->isApiRoute() || $this->isAjaxRequest()) {
-                return $this->success([
-                    'server' => $this->formatServer($server),
-                    'channels' => array_map([$this, 'formatChannel'], $channels),
-                    'active_channel' => $activeChannel ? $this->formatChannel($activeChannel) : null,
-                    'messages' => $channelMessages
+                if ($this->isApiRoute() || $this->isAjaxRequest()) {                    return $this->success([
+                        'server' => $this->formatServer($server),
+                        'channels' => array_map([$this, 'formatChannel'], $channels),
+                        'categories' => $categories,
+                        'active_channel' => $activeChannel ? $this->formatChannel($activeChannel) : null,
+                        'messages' => $channelMessages
+                    ]);
+                }            $GLOBALS['server'] = $server;
+                $GLOBALS['currentServer'] = $server;
+                $GLOBALS['serverChannels'] = $channels;
+                $GLOBALS['serverCategories'] = $categories;
+                $GLOBALS['activeChannelId'] = $activeChannelId;
+                $GLOBALS['channelMessages'] = $channelMessages;
+
+                $this->logActivity('server_view', ['server_id' => $id]);
+
+                require_once __DIR__ . '/../views/pages/server-page.php';
+            } catch (Exception $e) {
+                $this->logActivity('server_view_error', [
+                    'server_id' => $id,
+                    'error' => $e->getMessage()
                 ]);
-            }            $GLOBALS['server'] = $server;
-            $GLOBALS['currentServer'] = $server;
-            $GLOBALS['serverChannels'] = $channels;
-            $GLOBALS['activeChannelId'] = $activeChannelId;
-            $GLOBALS['channelMessages'] = $channelMessages;
 
-            $this->logActivity('server_view', ['server_id' => $id]);
+                if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                    return $this->serverError('Failed to load server');
+                }
 
-            require_once __DIR__ . '/../views/pages/server-page.php';
-        } catch (Exception $e) {
-            $this->logActivity('server_view_error', [
-                'server_id' => $id,
-                'error' => $e->getMessage()
-            ]);
-
-            if ($this->isApiRoute() || $this->isAjaxRequest()) {
-                return $this->serverError('Failed to load server');
+                $this->redirect('/404');
             }
-
-            $this->redirect('/404');
+        } catch (Exception $e) {
+            // Log unexpected errors
+            if (function_exists('logger')) {
+                logger()->error("Unexpected error in ServerController::show", [
+                    'server_id' => $id,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+            }
+            return $this->serverError('An unexpected error occurred');
         }
     }
 

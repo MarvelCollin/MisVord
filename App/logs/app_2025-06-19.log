@@ -57,3 +57,41 @@
 [2025-06-19 09:46:12] DEBUG [45e7c1] DB Query: SELECT * FROM users WHERE  email = ? LIMIT 1 - Duration: 54.93ms - Context: {"bindings":["authtest_1750301172@example.com"],"found":true,"db_query":"SELECT * FROM users WHERE  email = ? LIMIT 1","db_duration":0.054934024810791016}
 [2025-06-19 09:46:12] DEBUG [45e7c1] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
 [2025-06-19 09:46:12] INFO [45e7c1] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-19 10:45:17] DEBUG [d2001d] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-19 10:45:17] INFO [d2001d] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-19 10:45:17] DEBUG [d2001d] DB Query: SELECT * FROM servers WHERE  id = ? LIMIT 1 - Duration: 42.08ms - Context: {"bindings":["1"],"found":true,"db_query":"SELECT * FROM servers WHERE  id = ? LIMIT 1","db_duration":0.042076826095581055}
+[2025-06-19 10:46:17] DEBUG [9640bb] Controller instantiated - Context: {"controller":"ServerController","request_uri":"/server/1?channel=1","request_method":"GET","is_ajax":"no"}
+[2025-06-19 10:46:17] DEBUG [973d9a] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-19 10:46:17] INFO [973d9a] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-19 10:46:17] DEBUG [973d9a] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-19 10:46:17] INFO [973d9a] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-19 10:46:20] DEBUG [ce2ac5] Controller instantiated - Context: {"controller":"ServerController","request_uri":"/server/1?channel=1&id=d448f717-1664-41de-aa89-9c174b015a12&vscodeBrowserReqId=1750322780898","request_method":"GET","is_ajax":"no"}
+[2025-06-19 10:46:20] DEBUG [ced952] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-19 10:46:20] INFO [ced952] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-19 10:46:21] DEBUG [ced952] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-19 10:46:21] INFO [ced952] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-19 10:47:58] DEBUG [e40998] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-19 10:47:58] INFO [e40998] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-19 10:47:58] DEBUG [e40998] DB Query: SELECT * FROM servers WHERE  id = ? LIMIT 1 - Duration: 48.03ms - Context: {"bindings":["1"],"found":true,"db_query":"SELECT * FROM servers WHERE  id = ? LIMIT 1","db_duration":0.048027992248535156}
+[2025-06-19 10:48:02] DEBUG [230162] Controller instantiated - Context: {"controller":"ServerController","request_uri":"/server/1?channel=1&id=d6db206b-2ea1-41d0-b05f-8980a88852c4&vscodeBrowserReqId=1750322882171","request_method":"GET","is_ajax":"no"}
+[2025-06-19 10:48:02] DEBUG [23bcba] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-19 10:48:02] INFO [23bcba] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-19 10:48:02] DEBUG [23bcba] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-19 10:48:02] INFO [23bcba] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-19 10:48:07] DEBUG [77d81f] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-19 10:48:07] INFO [77d81f] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-19 10:48:07] DEBUG [77d81f] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-19 10:48:07] INFO [77d81f] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-19 10:54:09] DEBUG [1ca46d] Controller instantiated - Context: {"controller":"ServerController","request_uri":"/server/1?channel=1&id=d6db206b-2ea1-41d0-b05f-8980a88852c4&vscodeBrowserReqId=1750323249769","request_method":"GET","is_ajax":"no"}
+[2025-06-19 10:54:09] DEBUG [1ca46d] ServerController::show called - Context: {"server_id":"1","user_id":"not_set","session_id":"bpf03nv3c87hi5p2jl59rckcvm","request_uri":"/server/1?channel=1&id=d6db206b-2ea1-41d0-b05f-8980a88852c4&vscodeBrowserReqId=1750323249769"}
+[2025-06-19 10:54:09] DEBUG [1d8819] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-19 10:54:09] INFO [1d8819] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-19 10:54:09] DEBUG [1d8819] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-19 10:54:10] INFO [1d8819] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-19 11:00:48] DEBUG [043c7d] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-19 11:00:48] INFO [043c7d] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-19 11:00:48] DEBUG [043c7d] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-19 11:00:48] INFO [043c7d] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-19 11:01:44] DEBUG [869189] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-19 11:01:44] INFO [869189] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-19 11:01:44] DEBUG [869189] DB Query: SELECT * FROM servers WHERE  id = ? LIMIT 1 - Duration: 47.81ms - Context: {"bindings":["1"],"found":true,"db_query":"SELECT * FROM servers WHERE  id = ? LIMIT 1","db_duration":0.04780888557434082}

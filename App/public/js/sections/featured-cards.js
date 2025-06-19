@@ -32,68 +32,96 @@ function initFeaturedCards() {
                 setTimeout(() => {
                     resetCardPosition(card, index);
                 }, index * 50); // Staggered positioning
-            }
-            
-            // Add flip functionality only for desktop/tablet
+            }            // Add hover-to-flip functionality for desktop/tablet
             if (window.innerWidth > 480) {
-                card.addEventListener('click', () => {
-                    // Don't allow flipping other cards when one is flipped
-                    const flippedCards = featuredSection.querySelectorAll('.feature-card.flipped');
-                    flippedCards.forEach(flippedCard => {
-                        if (flippedCard !== card) {
-                            flippedCard.classList.remove('flipped');
-                            const cardIndex = parseInt(flippedCard.getAttribute('data-card-index'));
+                let hoverTimeout;
+                  card.addEventListener('mouseenter', (e) => {
+                    // Show tooltip immediately
+                    showTooltip(card, e);
+                    
+                    // Start flip timer
+                    hoverTimeout = setTimeout(() => {
+                        // Check if any other card is currently flipped
+                        const currentlyFlipped = featuredSection.querySelector('.feature-card.flipped');
+                        
+                        // If another card is flipped, unflip it first
+                        if (currentlyFlipped && currentlyFlipped !== card) {
+                            currentlyFlipped.classList.remove('flipped');
+                            const flippedIndex = parseInt(currentlyFlipped.getAttribute('data-card-index'));
                             setTimeout(() => {
-                                resetCardPosition(flippedCard, cardIndex);
-                                flippedCard.style.zIndex = cardIndex === 2 ? "7" : cardIndex === 1 || cardIndex === 3 ? "6" : "5";
+                                resetCardPosition(currentlyFlipped, flippedIndex);
+                                currentlyFlipped.style.zIndex = getCardZIndex(flippedIndex);
                             }, 300);
                         }
-                    });
-                    
-                    // Toggle flip class
-                    card.classList.toggle('flipped');
-                      // Increase z-index when flipped and position it forward
-                    if (card.classList.contains('flipped')) {
+                        
+                        // Flip this card
+                        card.classList.add('flipped');
                         card.style.zIndex = '100';
-                        // Move card slightly forward when flipped for better visibility
-                        const baseTransform = getBaseCardTransform(index);
-                        card.style.transform = baseTransform + ' translateZ(50px)';
-                    } else {
+                        
+                        // Position it slightly forward for better visibility
+                        setTimeout(() => {
+                            const baseTransform = getBaseCardTransform(index);
+                            card.style.transform = baseTransform + ' translateZ(30px) scale(1.05)';
+                        }, 100);
+                    }, 800); // Flip after 800ms of hover
+                });
+                
+                card.addEventListener('mouseleave', () => {
+                    // Clear hover timer
+                    clearTimeout(hoverTimeout);
+                    
+                    // Hide tooltip
+                    hideTooltip();
+                    
+                    // Unflip the card
+                    if (card.classList.contains('flipped')) {
+                        card.classList.remove('flipped');
                         setTimeout(() => {
                             resetCardPosition(card, index);
-                            card.style.zIndex = index === 2 ? "7" : index === 1 || index === 3 ? "6" : "5";
+                            card.style.zIndex = getCardZIndex(index);
                         }, 300);
                     }
                 });
-            }
-            
-            // Reset flip state when mouse leaves the card (for non-mobile)
-            card.addEventListener('mouseleave', () => {
-                if (window.innerWidth >= 768) {
-                    // Let the click handler manage the flipped state
-                    if (!card.classList.contains('flipped')) {
-                        resetCardPosition(card, index);
-                        setTimeout(() => {
-                            card.style.zIndex = index === 2 ? "7" : index === 1 || index === 3 ? "6" : "5";
-                        }, 300);
+                
+                card.addEventListener('mousemove', (e) => {
+                    // Update tooltip position while hovering
+                    if (card.matches(':hover')) {                        updateTooltipPosition(e);
                     }
+                });
+            }
+        });
+    }, 100);    const cardWrapper = featuredSection.querySelector('.card-wrapper');
+    if (cardWrapper && window.innerWidth > 768) {
+        cardWrapper.addEventListener('mouseenter', () => {
+            cards.forEach((card, cardIndex) => {
+                if (!card.classList.contains('flipped') && !card.matches(':hover')) {
+                    const baseTransform = getBaseCardTransform(cardIndex);
+                    card.style.transform = baseTransform + ' scale(1.02) translateY(-3px)';
                 }
             });
         });
-    }, 100);
+        
+        cardWrapper.addEventListener('mouseleave', () => {
+            cards.forEach((card, cardIndex) => {
+                if (!card.classList.contains('flipped')) {
+                    resetCardPosition(card, cardIndex);
+                }
+            });
+            // Also hide tooltip when leaving the entire card area
+            hideTooltip();
+        });
+    }
     
-    // Force initial positioning after page loads
     setTimeout(() => {
         repositionCards();
     }, 500);
-    
-    // Handle window resize for responsive card positioning
+      // Handle window resize for responsive card positioning
     window.addEventListener('resize', debounce(() => {
         cards.forEach((card, index) => {
             // Reset flipped state on resize
             card.classList.remove('flipped');
             resetCardPosition(card, index);
-            card.style.zIndex = index === 2 ? "7" : index === 1 || index === 3 ? "6" : "5";
+            card.style.zIndex = getCardZIndex(index);
         });
     }, 200));
 }
@@ -534,6 +562,86 @@ function createClickRipple(card) {
     
     setTimeout(() => ripple.remove(), 1200);
 }
+function showTooltip(card, event) {
+    const tooltip = document.getElementById('modern-tooltip');
+    const tooltipContent = tooltip.querySelector('.modern-tooltip-content');
+    const tooltipText = card.getAttribute('data-tooltip');
+    
+    if (!tooltipText || !tooltip || !tooltipContent) return;
+    
+    tooltipContent.textContent = tooltipText;
+    tooltip.classList.add('show');
+    
+    updateTooltipPosition(event);
+}
+
+function hideTooltip() {
+    const tooltip = document.getElementById('modern-tooltip');
+    if (tooltip) {
+        tooltip.classList.remove('show');
+        tooltip.style.visibility = 'hidden';
+    }
+}
+
+function updateTooltipPosition(event) {
+    const tooltip = document.getElementById('modern-tooltip');
+    if (!tooltip) return;
+    
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    
+    // Set initial position to get dimensions
+    tooltip.style.left = '0px';
+    tooltip.style.top = '0px';
+    tooltip.style.visibility = 'visible';
+    
+    const rect = tooltip.getBoundingClientRect();
+    
+    let left = event.clientX - rect.width / 2;
+    let top = event.clientY - rect.height - 15;
+    
+    // Prevent tooltip from going off screen horizontally
+    if (left < 10) left = 10;
+    if (left + rect.width > viewportWidth - 10) left = viewportWidth - rect.width - 10;
+    
+    // Prevent tooltip from going off screen vertically
+    if (top < 10) {
+        top = event.clientY + 15; // Show below cursor instead
+        // Update arrow to point up
+        const arrow = tooltip.querySelector('.modern-tooltip-arrow');
+        if (arrow) {
+            arrow.style.top = '-8px';
+            arrow.style.bottom = 'auto';
+            arrow.style.borderTop = 'none';
+            arrow.style.borderBottom = '8px solid rgba(0, 0, 0, 0.95)';
+        }
+    } else {
+        // Reset arrow to point down
+        const arrow = tooltip.querySelector('.modern-tooltip-arrow');
+        if (arrow) {
+            arrow.style.top = 'auto';
+            arrow.style.bottom = '-8px';
+            arrow.style.borderTop = '8px solid rgba(0, 0, 0, 0.95)';
+            arrow.style.borderBottom = 'none';
+        }
+    }
+    
+    tooltip.style.left = left + 'px';
+    tooltip.style.top = top + 'px';
+}
+
+function getCardZIndex(index) {
+    // Center card (index 2) has highest z-index, then adjacent cards, then outer cards
+    switch(index) {
+        case 2: return "7"; // Center card
+        case 1:
+        case 3: return "6"; // Adjacent cards
+        case 0:
+        case 4: return "5"; // Outer cards
+        default: return "5";
+    }
+}
+
 function getBaseCardTransform(index) {
     // Create a V-shape arrangement with more dramatic angles and increased vertical separation
     const spacing = Math.min(window.innerWidth / 8, 100); // Smaller horizontal spacing for more compact layout

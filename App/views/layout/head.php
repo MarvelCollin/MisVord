@@ -96,4 +96,10 @@ $cache_version = time();
 
 <!-- Lazyload components preload -->
 <script src="<?php echo js('utils/lazy-loader'); ?>?v=<?php echo $cache_version; ?>" type="module"></script>
+<?php 
+// Only load channel-loader on server pages where dynamic channel updates might be needed
+$current_path = $_SERVER['REQUEST_URI'] ?? '';
+if (strpos($current_path, '/server/') !== false): 
+?>
 <script src="<?php echo js('components/channels/channel-loader'); ?>?v=<?php echo $cache_version; ?>" type="module"></script>
+<?php endif; ?>

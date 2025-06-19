@@ -46,7 +46,7 @@ class MisVordMessaging {
 
     error(...args) {
         window.logger.error('messaging', ...args);
-    }init() {        if (this.initialized) {
+    }    init() {        if (this.initialized) {
             window.logger.debug('messaging', 'Already initialized, skipping duplicate initialization');
             return;
         }
@@ -58,9 +58,10 @@ class MisVordMessaging {
 
         const messageContainer = document.getElementById('chat-messages');
         const messageForm = document.getElementById('message-form');
+        const messageInput = document.getElementById('message-input');
         
-        if (!messageContainer && !messageForm) {
-            window.logger.debug('messaging', 'No messaging elements found, skipping messaging initialization');
+        if (!messageContainer && !messageForm && !messageInput) {
+            window.logger.debug('messaging', 'No messaging elements found, skipping messaging initialization (this is normal for server pages without selected channels)');
             return;
         }
 

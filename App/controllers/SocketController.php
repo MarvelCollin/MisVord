@@ -261,9 +261,7 @@ class SocketController extends BaseController {
                 'data' => $data
             ]);
         }
-    }
-    
-    public function handleSocketRequest() {
+    }    public function handleSocketRequest() {
         $this->requireAuth();
         
         $input = $this->getInput();

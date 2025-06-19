@@ -22,6 +22,7 @@ $page_js = 'pages/app';
 $head_scripts = ['logger-init'];
 $additional_js = [
     'components/servers/server-dropdown',
+    'components/servers/channel-redirect',
     'components/channels/channel-manager',
     'components/messaging/messaging'
 ];

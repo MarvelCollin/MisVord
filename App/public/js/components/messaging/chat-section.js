@@ -40,9 +40,7 @@
                 recentLogs: this.logs.slice(-10)
             };
         }
-    };
-
-    const messageInput = document.getElementById('message-input');
+    };    const messageInput = document.getElementById('message-input');
     const characterCount = document.querySelector('.character-count');
     const sendButton = document.getElementById('send-button');
 
@@ -55,7 +53,7 @@
     });
 
     if (messageInput && sendButton) {
-        window.MisVordDebug.log('Message input and send button found');
+        window.MisVordDebug.log('Message input and send button found - initializing chat interface');
 
         messageInput.addEventListener('input', function(e) {
             this.style.height = 'auto';
@@ -78,13 +76,19 @@
             window.MisVordDebug.log('Message input focused');
         }, 500);
     } else {
-        window.MisVordDebug.error('Critical elements missing', {
+        window.MisVordDebug.log('Chat interface not available', {
             messageInput: !!messageInput,
-            sendButton: !!sendButton
+            sendButton: !!sendButton,
+            reason: 'No active channel selected or channel is voice-only'
         });
-    }
-
-    // Get meta tags for channel and user data
+        
+        // Check if we're on a server page without a selected channel
+        const currentPath = window.location.pathname;
+        const serverMatch = currentPath.match(/^\/servers\/(\d+)$/);
+        if (serverMatch && !window.location.search.includes('channel=')) {
+            window.MisVordDebug.log('Server page detected without channel parameter - this is expected behavior');
+        }
+    }    // Get meta tags for channel and user data
     const getMeta = (name) => {
         const meta = document.querySelector(`meta[name="${name}"]`);
         return meta ? meta.getAttribute('content') : null;
@@ -96,6 +100,7 @@
 
     window.MisVordDebug.log('Socket connection data', { channelId, userId, username });
 
+    // Always create socket data element for potential messaging system use
     const socketData = document.createElement('div');
     socketData.id = 'socket-data';
     socketData.setAttribute('data-channel-id', channelId);

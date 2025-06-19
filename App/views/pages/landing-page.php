@@ -38,7 +38,7 @@ ob_start();
     </div>
 
     <div class="text-center">
-        <h1 class="hero-title scramble-text text-6xl md:text-8xl font-bold mb-8" data-text="IMAGINE A PLACE...">
+        <h1 class="hero-title floating scramble-text text-6xl md:text-8xl font-bold mb-8" data-text="IMAGINE A PLACE...">
             IMAGINE A PLACE...
         </h1>
     </div>

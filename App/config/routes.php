@@ -93,6 +93,53 @@ Route::get('/server/([0-9]+)', function($id) {
     $controller->show($id);
 });
 
+// Legacy URL support - redirect /servers/{id} to /server/{id}
+Route::get('/servers/([0-9]+)', function($id) {
+    $channel = $_GET['channel'] ?? null;
+    $redirectUrl = "/server/{$id}";
+    if ($channel) {
+        $redirectUrl .= "?channel={$channel}";
+    }
+    header("Location: {$redirectUrl}", true, 301);
+    exit;
+});
+
+// Debug route to check server existence
+Route::get('/debug/server/([0-9]+)', function($id) {
+    try {
+        require_once __DIR__ . '/../controllers/ServerController.php';
+        require_once __DIR__ . '/../database/repositories/ServerRepository.php';
+        
+        $serverRepo = new ServerRepository();
+        $server = $serverRepo->find($id);
+        
+        header('Content-Type: application/json');
+        if ($server) {
+            echo json_encode([
+                'status' => 'found',
+                'server' => [
+                    'id' => $server->id,
+                    'name' => $server->name,
+                    'description' => $server->description
+                ]
+            ]);
+        } else {
+            echo json_encode([
+                'status' => 'not_found',
+                'server_id' => $id
+            ]);
+        }
+    } catch (Exception $e) {
+        header('Content-Type: application/json');
+        http_response_code(500);
+        echo json_encode([
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ]);
+    }
+    exit;
+});
+
 Route::get('/join/([a-zA-Z0-9]+)', function($code) {
     require_once __DIR__ . '/../controllers/ServerController.php';
     $controller = new ServerController();
@@ -428,3 +475,64 @@ Route::post('/api/presence/offline', function() {
 return array_merge(Route::getRoutes(), [
     '404' => 'pages/404.php'
 ]);
+
+// Temporary test route without authentication
+Route::get('/test/server/([0-9]+)', function($id) {
+    try {
+        require_once __DIR__ . '/../controllers/ServerController.php';
+        $controller = new ServerController();
+        
+        // Temporarily bypass authentication for testing
+        $_SESSION['user_id'] = 1; // Fake user session for testing
+        $_SESSION['username'] = 'testuser';
+        
+        $controller->show($id);
+    } catch (Exception $e) {
+        header('Content-Type: application/json');
+        http_response_code(500);
+        echo json_encode([
+            'status' => 'error',
+            'message' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+    }
+});
+
+// Debug session endpoint
+Route::get('/debug-session', function() {
+    if ($_SERVER['HTTP_HOST'] === 'localhost:8000' || $_SERVER['HTTP_HOST'] === 'localhost:1001') {
+        session_start();
+        echo "<h3>Session Debug</h3>";
+        echo "Session ID: " . session_id() . "<br>";
+        echo "User ID: " . ($_SESSION['user_id'] ?? 'not_set') . "<br>";
+        echo "Authenticated: " . (($_SESSION['authenticated'] ?? false) ? 'yes' : 'no') . "<br>";
+        echo "All Session Data: <pre>" . print_r($_SESSION, true) . "</pre>";
+    } else {
+        http_response_code(404);
+        echo "Not found";
+    }
+});
+
+// Temporary test login endpoint (remove in production)
+Route::get('/test-login/([0-9]+)', function($userId) {
+    if ($_SERVER['HTTP_HOST'] === 'localhost:8000' || $_SERVER['HTTP_HOST'] === 'localhost:1001') {
+        session_start();
+        $_SESSION['user_id'] = (int)$userId;
+        $_SESSION['authenticated'] = true;
+        // Set session cookie parameters for better persistence
+        session_set_cookie_params([
+            'lifetime' => 3600,
+            'path' => '/',
+            'domain' => '',
+            'secure' => false,
+            'httponly' => true,
+            'samesite' => 'Lax'
+        ]);
+        echo "Logged in as user ID: $userId. Session ID: " . session_id() . "<br>";
+        echo "<a href='/server/1?channel=1'>Go to server</a><br>";
+        echo "<a href='/server/1?channel=1&debug=true'>Go to server (debug mode)</a>";
+    } else {
+        http_response_code(404);
+        echo "Not found";
+    }
+});

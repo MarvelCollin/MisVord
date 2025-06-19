@@ -532,18 +532,14 @@ easeOutCubic(t) {
 }
 
 slowScrambleFastReveal(t) {
-    // Characters scramble for 85% of the time, then reveal quickly in the last 15%
     if (t < 0.85) {
-        // Very slow reveal during scrambling phase
-        return Math.pow(t / 0.85, 4) * 0.3; // Only reveal 30% of characters during 85% of time
+        return Math.pow(t / 0.85, 4) * 0.3;
     } else {
-        // Fast reveal in the final 15%
         const fastPhase = (t - 0.85) / 0.15;
         return 0.3 + (1 - 0.3) * this.easeOutCubic(fastPhase);
     }
 }
 
-// Adding missing functions that were causing errors
 
 createCelebrationBurst(span) {
     const burstCount = 6;

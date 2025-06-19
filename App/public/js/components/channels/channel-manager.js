@@ -398,3 +398,10 @@ function createCategoryAtPosition(name, serverId, position = null) {
         });
     });
 }
+
+if (typeof window !== 'undefined') {
+    window.refreshChannelList = refreshChannelList;
+    window.renderChannelList = renderChannelList;
+    window.createChannelAtPosition = createChannelAtPosition;
+    window.openCreateChannelModal = openCreateChannelModal;
+}

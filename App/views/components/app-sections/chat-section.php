@@ -189,8 +189,18 @@ $additional_js[] = 'components/messaging/chat-section';
         </form>
     </div>
     <?php else: ?>
-        <div class="flex-1 bg-discord-background flex items-center justify-center text-white text-lg">
-            Select a channel to start chatting
+        <div class="flex-1 bg-discord-background flex flex-col items-center justify-center text-white">
+            <div class="text-center max-w-md">
+                <i class="fas fa-hashtag text-6xl text-gray-600 mb-4"></i>
+                <h2 class="text-2xl font-semibold mb-2">Welcome to <?php echo htmlspecialchars($currentServer->name ?? 'this server'); ?>!</h2>
+                <p class="text-gray-400 mb-4">Select a channel from the sidebar to start chatting with other members.</p>
+                <?php if (!empty($channels)): ?>
+                    <button class="bg-discord-primary hover:bg-discord-primary-dark text-white px-4 py-2 rounded transition-colors" 
+                            onclick="document.querySelector('.channel-item')?.click()">
+                        Go to first channel
+                    </button>
+                <?php endif; ?>
+            </div>
         </div>
     <?php endif; ?>
 </div>

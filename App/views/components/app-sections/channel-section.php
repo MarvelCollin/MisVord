@@ -89,47 +89,29 @@ function getChannelIcon($channelType) {
 ?>
 
 <style>
-
-#channel-loading {
-    opacity: 1;
-    transition: opacity 0.3s ease-in-out;
-    position: absolute; 
-    top: 0;
-    left: 0;
-    right: 0;
-    background-color: #2f3136; 
-    z-index: 10;
+.channel-item {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
 }
 
-#channel-loading.hidden {
-    opacity: 0;
-    pointer-events: none;
+.channel-item:hover {
+    background-color: rgba(79, 84, 92, 0.16);
 }
 
-.channel-item, 
-.force-visible,
-.channels-loaded .channel-item {
-    display: flex !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    pointer-events: auto !important;
+.category-header {
+    cursor: pointer;
+    transition: color 0.2s ease;
 }
 
-.channels-loaded .channels-container:not(.hidden) {
-    display: block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    max-height: none !important;
-    overflow: visible !important;
+.category-channels.hidden {
+    display: none;
 }
 </style>
 
 <!-- Channel container wrapper - always visible -->
 <div class="channel-wrapper h-full w-full relative">
-    <meta name="server-id" content="<?php echo $currentServerId; ?>">
-
-    <!-- Channel list container with lazy loading -->
-    <div class="channel-list-container space-y-0 overflow-y-auto scrollbar-thin scrollbar-thumb-discord-light scrollbar-track-transparent" data-lazyload="channel-list">
+    <meta name="server-id" content="<?php echo $currentServerId; ?>">    <!-- Channel list container with lazy loading -->
+    <div class="channel-list-container space-y-0 overflow-y-auto scrollbar-thin scrollbar-thumb-discord-light scrollbar-track-transparent" data-server-id="<?php echo $currentServerId; ?>">
         <!-- Hidden input with server ID for JS -->
         <input type="hidden" id="current-server-id" value="<?php echo $currentServerId; ?>">
 
@@ -279,163 +261,48 @@ function getChannelIcon($channelType) {
         </div>
         <?php endif; ?>
 
-        <?php endif; ?>
-    </div>
+        <?php endif; ?>    </div>
 </div>
 
-<!-- Server-side rendered channel list (hidden) -->
-<div id="channel-container" class="hidden"></div>
-
-<!-- Script to handle the channel lazy loading -->
+<!-- Script to handle channel navigation -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-
-    const loadingIndicator = document.getElementById('channel-loading');
-    const channelListContainer = document.querySelector('.channel-list-container');
-
-    const serverId = document.querySelector('meta[name="server-id"]')?.getAttribute('content');
-    if (!serverId) {
-
-        if (loadingIndicator) loadingIndicator.classList.add('hidden');
-        return;
-    }
-
-    if (window.LazyLoader) {
-        channelListContainer.classList.add('lazy-loaded');
-        channelListContainer.setAttribute('aria-busy', 'false');
-    }
-
-    let channelsInitialized = false;
-
-    setTimeout(function() {
-        if (typeof window.loadChannels === 'function') {
-            initializeChannels(serverId);
-        } else {
-
-            document.addEventListener('channelLoaderLoaded', function() {
-                initializeChannels(serverId);
-            }, { once: true });
-
-            setTimeout(function() {
-                if (typeof window.loadChannels === 'function') {
-                    initializeChannels(serverId);
-                } else {
-
-                    if (loadingIndicator) loadingIndicator.classList.add('hidden');
+    // Add click handlers to channel items
+    document.querySelectorAll('.channel-item').forEach(item => {
+        item.addEventListener('click', function() {
+            const channelId = this.getAttribute('data-channel-id');
+            const channelType = this.getAttribute('data-channel-type');
+            
+            if (channelId && channelType === 'text') {
+                const serverId = document.querySelector('#current-server-id')?.value;
+                if (serverId) {
+                    window.location.href = `/server/${serverId}?channel=${channelId}`;
                 }
-            }, 2000);
-        }
-    }, 200);
-
-    function initializeChannels(serverId) {
-        if (channelsInitialized) return; 
-        channelsInitialized = true;
-
-        try {
-            console.log('Initializing channels for server:', serverId);
-
-            if (loadingIndicator) {
-                loadingIndicator.classList.add('hidden');
             }
-
-            document.querySelectorAll('.channel-item').forEach(item => {
-                item.style.cssText = 'display: flex !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important;';
-            });
-
-            if (channelListContainer) {
-                channelListContainer.classList.add('channels-loaded');
-            }
-        } catch (error) {
-            console.error('Error initializing channels:', error);
-
-            if (loadingIndicator) loadingIndicator.classList.add('hidden');
-        }
-    }
-});
-
-function toggleCategory(element) {
-    const categoryId = element.getAttribute('data-category-id');
-    const channelsContainer = document.getElementById(`category-${categoryId}-channels`);
-
-    if (!channelsContainer) return;
-
-    const icon = element.querySelector('i');
-
-    if (channelsContainer.classList.contains('hidden')) {
-        channelsContainer.classList.remove('hidden');
-        icon.classList.replace('fa-chevron-right', 'fa-chevron-down');
-        document.cookie = `category_${categoryId}=expanded; path=/;`;
-    } else {
-        channelsContainer.classList.add('hidden');
-        icon.classList.replace('fa-chevron-down', 'fa-chevron-right');
-        document.cookie = `category_${categoryId}=collapsed; path=/;`;
-    }
-
-    setTimeout(() => {
-        const channelItems = channelsContainer.querySelectorAll('.channel-item');
-        channelItems.forEach(item => {
-            item.style.cssText = 'display: flex !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important;';
         });
-    }, 10);
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-
-    const channelListContainer = document.querySelector('.channel-list-container');
-    const channelContent = document.querySelector('#channel-container');
-
-    if (channelListContainer && channelContent) {
-
-        const loadDelay = Math.floor(Math.random() * 400) + 500;        setTimeout(function() {
-            if (window.LazyLoader && typeof window.LazyLoader.triggerDataLoaded === 'function') {
-
-                const contentHtml = channelContent.innerHTML;
-
-                window.LazyLoader.triggerDataLoaded('channel-list', false);
-                console.log('Channel list loaded after ' + loadDelay + 'ms');
-
-                setTimeout(function() {
-
-                    if (!channelListContainer.querySelector('.channel-item')) {
-                        const hiddenOriginalContent = channelListContainer.querySelector('.original-content');
-                        if (hiddenOriginalContent) {
-                            hiddenOriginalContent.remove();
-                        }
-
-                        channelListContainer.innerHTML += contentHtml;
-
-                        if (typeof toggleCategory === 'function') {
-                            document.querySelectorAll('[onclick*="toggleCategory"]').forEach(el => {
-                                el.addEventListener('click', function() {
-                                    const categoryId = this.getAttribute('data-category-id');
-                                    toggleCategory(this);
-                                });
-                            });
-                        }
-                    }                }, 300); 
-            } else {
-                console.warn('LazyLoader.triggerDataLoaded not available yet');
+    });
+    
+    // Add click handlers to category headers
+    document.querySelectorAll('.category-header').forEach(header => {
+        header.addEventListener('click', function(e) {
+            if (!e.target.matches('button, i.fa-plus')) {
+                const category = header.parentElement;
+                const channels = category.querySelector('.category-channels');
+                const icon = header.querySelector('i.fa-chevron-down, i.fa-chevron-right');
+                
+                if (channels && icon) {
+                    channels.classList.toggle('hidden');
+                    
+                    if (channels.classList.contains('hidden')) {
+                        icon.classList.remove('fa-chevron-down');
+                        icon.classList.add('fa-chevron-right');
+                    } else {
+                        icon.classList.remove('fa-chevron-right');
+                        icon.classList.add('fa-chevron-down');
+                    }
+                }
             }
-        }, loadDelay);
-    }
+        });
+    });
 });
-
-if (typeof window.toggleCategory !== 'function') {
-    window.toggleCategory = function(element) {
-        const categoryId = element.getAttribute('data-category-id');
-        const channelsContainer = document.getElementById(`category-${categoryId}-channels`);
-
-        if (!channelsContainer) return;
-
-        const icon = element.querySelector('i');
-
-        if (channelsContainer.classList.contains('hidden')) {
-            channelsContainer.classList.remove('hidden');
-            if (icon) icon.classList.replace('fa-chevron-right', 'fa-chevron-down');
-        } else {
-            channelsContainer.classList.add('hidden');
-            if (icon) icon.classList.replace('fa-chevron-down', 'fa-chevron-right');
-        }
-    };
-}
 </script>

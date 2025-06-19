@@ -76,7 +76,7 @@ function initServerFormSubmission() {
                             }
                             window.navigateToServer(serverId);
                         } else {
-                            window.location.href = '/servers/' + serverId;
+                            window.location.href = '/server/' + serverId;
                         }
                     } else {
                         window.location.href = '/app';
@@ -126,17 +126,16 @@ if (typeof window !== 'undefined') {
                             if (serverContent) {
                                 loadServerContent(serverId, serverContent);
                             }
-                        }, 100);
-                    } else {
-                        window.location.href = '/servers/' + serverId;
+                        }, 100);                    } else {
+                        window.location.href = '/server/' + serverId;
                     }
                 } else {
-                    window.location.href = '/servers/' + serverId;
+                    window.location.href = '/server/' + serverId;
                 }
             })
             .catch(error => {
                 window.logger.error('server', 'Error navigating to server:', error);
-                window.location.href = '/servers/' + serverId;
+                window.location.href = '/server/' + serverId;
             });
     };
     
@@ -163,7 +162,7 @@ if (typeof window !== 'undefined') {
     function loadServerContent(serverId, container) {
         container.innerHTML = '<div class="flex items-center justify-center h-full"><div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-discord-blue"></div></div>';
         
-        fetch('/servers/' + serverId)
+        fetch('/server/' + serverId)
             .then(response => response.text())
             .then(html => {
                 const parser = new DOMParser();
@@ -183,15 +182,14 @@ if (typeof window !== 'undefined') {
                             }
                         }
                     });
-                    
-                    history.pushState({serverId: serverId}, 'Server - ' + serverId, '/servers/' + serverId);
+                      history.pushState({serverId: serverId}, 'Server - ' + serverId, '/server/' + serverId);
                 } else {
-                    window.location.href = '/servers/' + serverId;
+                    window.location.href = '/server/' + serverId;
                 }
             })
             .catch(error => {
                 window.logger.error('server', 'Error loading server content:', error);
-                window.location.href = '/servers/' + serverId;
+                window.location.href = '/server/' + serverId;
             });
     }
 } 
