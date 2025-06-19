@@ -21,6 +21,7 @@ $page_title = 'misvord - Explore Servers';
 $body_class = 'bg-discord-dark text-white';
 $page_css = 'explore-servers';
 $page_js = 'pages/explore-servers';
+$head_scripts = ['logger-init'];
 $additional_js = ['components/servers/server-dropdown'];
 ?>
 

@@ -91,12 +91,10 @@ $content = ob_get_clean();
                 }
             }
         }
-    </script>
-
-    <link rel="stylesheet" href="<?php echo css('global'); ?>?v=<?php echo time(); ?>">
+    </script>    <link rel="stylesheet" href="<?php echo css('global'); ?>?v=<?php echo time(); ?>">
     <link rel="stylesheet" href="<?php echo css('landing-page'); ?>?v=<?php echo time(); ?>">
     <link rel="stylesheet" href="<?php echo css('scramble-text'); ?>?v=<?php echo time(); ?>">
-    <link rel="stylesheet" href="<?php echo css('featured-cards-clean'); ?>?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="<?php echo css('featured-cards'); ?>?v=<?php echo time(); ?>">>
 </head>
 
 <body class="<?php echo $body_class; ?>">

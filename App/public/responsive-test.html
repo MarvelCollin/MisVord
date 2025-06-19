@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Responsive Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #000; color: white; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #333; }
+        .breakpoint-indicator { position: fixed; top: 10px; right: 10px; background: #5865F2; padding: 5px 10px; border-radius: 5px; }
+        .breakpoint-indicator::before { content: 'Desktop'; }
+        
+        @media (max-width: 1400px) {
+            .breakpoint-indicator::before { content: '1400px'; }
+        }
+        @media (max-width: 1200px) {
+            .breakpoint-indicator::before { content: '1200px'; }
+        }
+        @media (max-width: 1024px) {
+            .breakpoint-indicator::before { content: '1024px'; }
+        }
+        @media (max-width: 900px) {
+            .breakpoint-indicator::before { content: '900px'; }
+        }
+        @media (max-width: 768px) {
+            .breakpoint-indicator::before { content: '768px'; }
+        }
+        @media (max-width: 480px) {
+            .breakpoint-indicator::before { content: '480px'; }
+        }
+        @media (max-width: 375px) {
+            .breakpoint-indicator::before { content: '375px'; }
+        }
+        @media (max-width: 320px) {
+            .breakpoint-indicator::before { content: '320px'; }
+        }
+    </style>
+</head>
+<body>
+    <div class="breakpoint-indicator"></div>
+    
+    <h1>Responsive Testing Page</h1>
+    
+    <div class="test-section">
+        <h2>1. Fixed Issues</h2>
+        <ul>
+            <li>✅ Fixed 404 error for `featured-cards-clean.css` (renamed to `featured-cards.css`)</li>
+            <li>✅ Fixed missing `>` in CSS link tag</li>
+            <li>✅ Fixed URL generation to use correct port (8000 instead of 1001)</li>
+        </ul>
+    </div>
+    
+    <div class="test-section">
+        <h2>2. Hero Section Responsive Features</h2>
+        <ul>
+            <li>✅ Added responsive font sizes for hero title (6xl → 4.5rem → 4rem → 3rem → 2.5rem → 2rem)</li>
+            <li>✅ Optimized star animations for mobile (disabled on mobile for performance)</li>
+            <li>✅ Reduced nebula sizes on smaller screens</li>
+            <li>✅ Added landscape mobile optimizations</li>
+            <li>✅ Added accessibility features (prefers-reduced-motion)</li>
+        </ul>
+    </div>
+    
+    <div class="test-section">
+        <h2>3. Featured Cards Responsive Features</h2>
+        <ul>
+            <li>✅ Added responsive grid layout: 5 in row → 4 in row → 3 in row → 2×2+1 → single column</li>
+            <li>✅ Card sizes adjust per breakpoint: 160px → 140px → 130px → 120px → 100%</li>
+            <li>✅ Grid layout on mobile (2×2 grid with 5th card centered)</li>
+            <li>✅ Single column on very small screens (480px)</li>
+            <li>✅ Disabled intensive animations on mobile</li>
+            <li>✅ Touch-friendly interactions</li>
+        </ul>
+    </div>
+    
+    <div class="test-section">
+        <h2>4. Performance Optimizations</h2>
+        <ul>
+            <li>✅ Disabled parallax on mobile devices</li>
+            <li>✅ Reduced star count on mobile</li>
+            <li>✅ Hardware acceleration for high-DPI displays</li>
+            <li>✅ Debounced resize handlers</li>
+            <li>✅ Simplified animations on touch devices</li>
+        </ul>
+    </div>
+    
+    <div class="test-section">
+        <h2>5. Test Instructions</h2>
+        <ol>
+            <li>Resize browser window to test breakpoints</li>
+            <li>Check that featured cards adapt layout at each breakpoint</li>
+            <li>Verify hero title scales appropriately</li>
+            <li>Test on actual mobile device for touch interactions</li>
+            <li>Check that animations are smooth or disabled appropriately</li>
+        </ol>
+    </div>
+    
+    <div class="test-section">
+        <h2>6. Current Breakpoints</h2>
+        <ul>
+            <li><strong>Desktop:</strong> 1400px+ (5 cards, full animations)</li>
+            <li><strong>Large Desktop:</strong> 1200px-1399px (5 cards, smaller)</li>
+            <li><strong>Medium Desktop:</strong> 1024px-1199px (5 cards, reduced)</li>
+            <li><strong>Small Desktop:</strong> 900px-1023px (5 cards, wrapped)</li>
+            <li><strong>Tablet:</strong> 768px-899px (2×2+1 grid)</li>
+            <li><strong>Mobile:</strong> 480px-767px (2×2+1 grid, smaller)</li>
+            <li><strong>Small Mobile:</strong> 320px-479px (single column)</li>
+        </ul>
+    </div>
+    
+    <p><a href="/" style="color: #5865F2;">← Back to Landing Page</a></p>
+</body>
+</html>

@@ -108,16 +108,11 @@ export class ChannelLoader {
                 </div>
             </div>
         `;
-    }
-
-    renderChannel(channel) {
-        const icon = channel.type === 'text' ? 'fa-hashtag' : 'fa-volume-up';
-        
+    }    renderChannel(channel) {
         return `
             <div class="channel-item flex items-center px-2 py-1 rounded hover:bg-gray-700 cursor-pointer text-gray-400 hover:text-white" 
                 data-channel-id="${channel.id}" 
                 data-channel-type="${channel.type}">
-                <i class="fas ${icon} text-sm mr-2"></i>
                 <span>${channel.name}</span>
             </div>
         `;

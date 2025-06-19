@@ -205,6 +205,37 @@ body {
   transform: translateY(-2px);
 }
 
+@media (max-width: 1200px) {
+  .hero-title {
+    font-size: 4.5rem;
+  }
+}
+
+@media (max-width: 1024px) {
+  .hero-title {
+    font-size: 4rem;
+  }
+  
+  .hero-section {
+    padding: 2rem 1rem;
+  }
+  
+  .nebula-1 {
+    width: 150px;
+    height: 150px;
+  }
+  
+  .nebula-2 {
+    width: 200px;
+    height: 200px;
+  }
+  
+  .nebula-3 {
+    width: 100px;
+    height: 100px;
+  }
+}
+
 @media (max-width: 768px) {
   .hero-content-wrapper {
     grid-template-columns: 1fr;
@@ -220,6 +251,125 @@ body {
   .hero-actions a {
     width: 100%;
     max-width: 300px;
+  }
+  
+  .hero-title {
+    font-size: 3rem;
+    line-height: 1.1;
+    margin-bottom: 2rem;
+  }
+  
+  .hero-section {
+    padding: 1rem;
+    min-height: 100vh;
+  }
+  
+  .scroll-down-indicator {
+    bottom: 20px;
+  }
+  
+  .scroll-down-indicator .arrow {
+    width: 25px;
+    height: 25px;
+  }
+  
+  /* Reduce or disable intensive animations on mobile */
+  .star {
+    animation: none !important;
+  }
+  
+  .star.large {
+    animation: twinkle-simple 4s infinite alternate;
+  }
+  
+  .nebula {
+    animation: none !important;
+    opacity: 0.1;
+  }
+  
+  /* Simplify hero title animations on mobile */
+  .scramble-text .char.floating {
+    animation: none !important;
+  }
+  
+  .scramble-text .char.revealed {
+    animation: simple-reveal 0.5s ease-out;
+  }
+  
+  /* Reduce motion for users with motion preference */
+  @media (prefers-reduced-motion: reduce) {
+    .star, .nebula, .scramble-text .char {
+      animation: none !important;
+    }
+    
+    .scroll-down-indicator {
+      animation: none !important;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-title {
+    font-size: 2.5rem;
+    line-height: 1.1;
+    padding: 0 1rem;
+  }
+  
+  .hero-section {
+    padding: 0.5rem;
+  }
+  
+  .star.large {
+    width: 2px;
+    height: 2px;
+  }
+  
+  .star.medium {
+    width: 1.5px;
+    height: 1.5px;
+  }
+  
+  .nebula-1, .nebula-2, .nebula-3 {
+    width: 80px;
+    height: 80px;
+  }
+  
+  .scroll-down-indicator {
+    bottom: 15px;
+  }
+  
+  .scroll-down-indicator .arrow {
+    width: 20px;
+    height: 20px;
+    border-width: 2px;
+  }
+}
+
+@media (max-width: 375px) {
+  .hero-title {
+    font-size: 2.2rem;
+    padding: 0 0.5rem;
+    word-wrap: break-word;
+  }
+  
+  .hero-section {
+    padding: 0.5rem 0.25rem;
+  }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+  .hero-section {
+    min-height: 80vh;
+    padding: 1rem;
+  }
+  
+  .hero-title {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .scroll-down-indicator {
+    bottom: 10px;
   }
 }
 
@@ -738,5 +888,25 @@ body {
   }
   60% {
     transform: translateY(-10px) translateX(-50%);
+  }
+}
+
+@keyframes simple-reveal {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes twinkle-simple {
+  0%, 100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.7;
   }
 }

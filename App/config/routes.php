@@ -87,26 +87,6 @@ Route::post('/api/socket/emit', function() {
     $controller->handleSocketRequest();
 });
 
-Route::post('/api/socket/notify-user', function() {
-    $controller = new SocketController();
-    $input = $controller->getInput();
-    if (!isset($input['user_id']) || !isset($input['event']) || !isset($input['data'])) {
-        return $controller->error('Missing required parameters', 400);
-    }
-    $result = $controller->notifyUser($input['user_id'], $input['event'], $input['data']);
-    return $controller->success(['success' => $result], 'Socket notification sent');
-});
-
-Route::post('/api/socket/broadcast', function() {
-    $controller = new SocketController();
-    $input = $controller->getInput();
-    if (!isset($input['event']) || !isset($input['data'])) {
-        return $controller->error('Missing required parameters', 400);
-    }
-    $result = $controller->broadcast($input['event'], $input['data']);
-    return $controller->success(['success' => $result], 'Socket broadcast sent');
-});
-
 Route::get('/server/([0-9]+)', function($id) {
     require_once __DIR__ . '/../controllers/ServerController.php';
     $controller = new ServerController();

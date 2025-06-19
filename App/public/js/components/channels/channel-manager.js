@@ -202,18 +202,8 @@ function createChannelElement(channel) {
     channelEl.id = `channel-${channel.id}`;
     channelEl.dataset.channelId = channel.id;
 
-    let isTextChannel = true; 
-
-    if (channel.type === 2 || channel.type === '2' || 
-        (channel.type_name && (channel.type_name === 'voice' || channel.type_name === '2'))) {
-        isTextChannel = false;
-    }
-
-    const iconClass = isTextChannel ? 'fa-hashtag' : 'fa-volume-up';
-
     channelEl.innerHTML = `
         <div class="channel-icon mr-2 text-gray-400">
-            <i class="fas ${iconClass}"></i>
         </div>
         <div class="channel-name text-gray-300 hover:text-white flex-grow">
             ${channel.name}

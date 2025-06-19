@@ -2,7 +2,9 @@ import { MisVordAjax } from '../core/ajax/ajax-handler.js';
 import { showToast } from '../core/ui/toast.js';
 
 document.addEventListener('DOMContentLoaded', function() {
-    window.logger.info('general', 'App page initialized');
+    if (typeof window !== 'undefined' && window.logger) {
+        window.logger.info('general', 'App page initialized');
+    }
 
     initServerCreationModal();
 

@@ -20,6 +20,7 @@ $body_class = 'bg-discord-dark text-white';
 $page_css = 'app';
 $page_js = 'pages/app';
 $additional_js = ['components/servers/server-dropdown'];
+$head_scripts = ['logger-init'];
 $contentType = 'home';
 ?>
 

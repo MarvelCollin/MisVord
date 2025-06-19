@@ -21,6 +21,7 @@ $page_title = 'misvord - Settings';
 $body_class = 'bg-discord-dark text-white';
 $page_css = 'settings-page';
 $page_js = 'pages/settings-page';
+$head_scripts = ['logger-init'];
 $additional_js = ['components/servers/server-dropdown'];
 
 ob_start();

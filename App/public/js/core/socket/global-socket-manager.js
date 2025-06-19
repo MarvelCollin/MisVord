@@ -2,6 +2,16 @@ import socketClient from './socket-client.js';
 import socketApi from '../../utils/socket-api.js';
 import { showToast } from '../ui/toast.js';
 
+// Ensure logger is available
+if (typeof window !== 'undefined' && !window.logger) {
+    window.logger = {
+        info: (module, ...args) => console.log(`[${module.toUpperCase()}]`, ...args),
+        debug: (module, ...args) => console.log(`[${module.toUpperCase()}]`, ...args),
+        warn: (module, ...args) => console.warn(`[${module.toUpperCase()}]`, ...args),
+        error: (module, ...args) => console.error(`[${module.toUpperCase()}]`, ...args)
+    };
+}
+
 /**
  * GlobalSocketManager
  * Manages WebSocket connections and events for the MisVord application
@@ -50,6 +60,22 @@ class GlobalSocketManager {
             } catch (error) {
                 this.error('Could not assign to window.GlobalSocketManager:', error);
             }
+        }
+    }
+
+    log(message, ...args) {
+        if (this.debug && typeof window !== 'undefined' && window.logger) {
+            window.logger.info('socket', message, ...args);
+        } else if (this.debug) {
+            console.log(`[SOCKET] ${message}`, ...args);
+        }
+    }
+
+    error(message, ...args) {
+        if (typeof window !== 'undefined' && window.logger) {
+            window.logger.error('socket', message, ...args);
+        } else {
+            console.error(`[SOCKET ERROR] ${message}`, ...args);
         }
     }
 

@@ -13,33 +13,87 @@ function initFeaturedCards() {
     if (sectionTitle) sectionTitle.classList.add('revealed');
     if (sectionSubtitle) sectionSubtitle.classList.add('revealed');
     
+    // Make sure all cards have data-card-index
     cards.forEach((card, index) => {
-        card.classList.add('revealed');
-        card.style.opacity = '1';
-        
-        setTimeout(() => {
-            resetCardPosition(card, index);
-        }, 100);
-        
-        card.addEventListener('mouseenter', () => {
-            if (window.innerWidth >= 768) {
-                card.style.transform = 'translateY(-5px)';
-                card.style.zIndex = '100';
-            }
-        });
-        
-        card.addEventListener('mouseleave', () => {
-            resetCardPosition(card, index);
-            setTimeout(() => {
-                card.style.zIndex = index === 2 ? "7" : index === 1 || index === 3 ? "6" : "5";
-            }, 300);
-        });
+        card.setAttribute('data-card-index', index);
     });
+    
+    // Initial responsive layout setup
+    handleResponsiveLayout();
+    
+    // Stagger the card reveals
+    setTimeout(() => {
+        cards.forEach((card, index) => {
+            card.classList.add('revealed');
+            card.style.opacity = '1';
+            
+            // Only apply positioning for desktop
+            if (window.innerWidth > 768) {
+                setTimeout(() => {
+                    resetCardPosition(card, index);
+                }, index * 50); // Staggered positioning
+            }
+            
+            // Add flip functionality only for desktop/tablet
+            if (window.innerWidth > 480) {
+                card.addEventListener('click', () => {
+                    // Don't allow flipping other cards when one is flipped
+                    const flippedCards = featuredSection.querySelectorAll('.feature-card.flipped');
+                    flippedCards.forEach(flippedCard => {
+                        if (flippedCard !== card) {
+                            flippedCard.classList.remove('flipped');
+                            const cardIndex = parseInt(flippedCard.getAttribute('data-card-index'));
+                            setTimeout(() => {
+                                resetCardPosition(flippedCard, cardIndex);
+                                flippedCard.style.zIndex = cardIndex === 2 ? "7" : cardIndex === 1 || cardIndex === 3 ? "6" : "5";
+                            }, 300);
+                        }
+                    });
+                    
+                    // Toggle flip class
+                    card.classList.toggle('flipped');
+                      // Increase z-index when flipped and position it forward
+                    if (card.classList.contains('flipped')) {
+                        card.style.zIndex = '100';
+                        // Move card slightly forward when flipped for better visibility
+                        const baseTransform = getBaseCardTransform(index);
+                        card.style.transform = baseTransform + ' translateZ(50px)';
+                    } else {
+                        setTimeout(() => {
+                            resetCardPosition(card, index);
+                            card.style.zIndex = index === 2 ? "7" : index === 1 || index === 3 ? "6" : "5";
+                        }, 300);
+                    }
+                });
+            }
+            
+            // Reset flip state when mouse leaves the card (for non-mobile)
+            card.addEventListener('mouseleave', () => {
+                if (window.innerWidth >= 768) {
+                    // Let the click handler manage the flipped state
+                    if (!card.classList.contains('flipped')) {
+                        resetCardPosition(card, index);
+                        setTimeout(() => {
+                            card.style.zIndex = index === 2 ? "7" : index === 1 || index === 3 ? "6" : "5";
+                        }, 300);
+                    }
+                }
+            });
+        });
+    }, 100);
+    
+    // Force initial positioning after page loads
+    setTimeout(() => {
+        repositionCards();
+    }, 500);
     
     // Handle window resize for responsive card positioning
     window.addEventListener('resize', debounce(() => {
         cards.forEach((card, index) => {
+            // Reset flipped state on resize
+            card.classList.remove('flipped');
             resetCardPosition(card, index);
+            card.style.zIndex = index === 2 ? "7" : index === 1 || index === 3 ? "6" : "5";
         });
     }, 200));
 }
@@ -481,74 +535,62 @@ function createClickRipple(card) {
     setTimeout(() => ripple.remove(), 1200);
 }
 function getBaseCardTransform(index) {
-    const spacing = Math.min(window.innerWidth / 6, 150);
+    // Create a V-shape arrangement with more dramatic angles and increased vertical separation
+    const spacing = Math.min(window.innerWidth / 8, 100); // Smaller horizontal spacing for more compact layout
     
     if (window.innerWidth >= 1400) {
         switch (index) {
             case 0:
-                return `translateX(-${spacing * 2}px) translateY(0)`;
+                return `translateX(-${spacing * 2}px) translateY(60px) rotateY(-20deg) rotateX(5deg)`;
             case 1:
-                return `translateX(-${spacing}px) translateY(0)`;
+                return `translateX(-${spacing}px) translateY(30px) rotateY(-10deg) rotateX(3deg)`;
             case 2:
-                return 'translateX(0) translateY(-15px) scale(1.05)';
+                return 'translateX(0) translateY(-10px) rotateY(0) rotateX(0) scale(1.1)';
             case 3:
-                return `translateX(${spacing}px) translateY(0)`;
+                return `translateX(${spacing}px) translateY(30px) rotateY(10deg) rotateX(3deg)`;
             case 4:
-                return `translateX(${spacing * 2}px) translateY(0)`;
+                return `translateX(${spacing * 2}px) translateY(60px) rotateY(20deg) rotateX(5deg)`;
             default:
                 return '';
         }
     } else if (window.innerWidth >= 1200) {
         switch (index) {
             case 0:
-                return `translateX(-${spacing * 1.8}px) translateY(0)`;
+                return `translateX(-${spacing * 1.8}px) translateY(50px) rotateY(-18deg) rotateX(4deg)`;
             case 1:
-                return `translateX(-${spacing * 0.9}px) translateY(0)`;
+                return `translateX(-${spacing * 0.9}px) translateY(25px) rotateY(-9deg) rotateX(2deg)`;
             case 2:
-                return 'translateX(0) translateY(-15px) scale(1.05)';
+                return 'translateX(0) translateY(-8px) rotateY(0) rotateX(0) scale(1.08)';
             case 3:
-                return `translateX(${spacing * 0.9}px) translateY(0)`;
+                return `translateX(${spacing * 0.9}px) translateY(25px) rotateY(9deg) rotateX(2deg)`;
             case 4:
-                return `translateX(${spacing * 1.8}px) translateY(0)`;
-            default:
-                return '';
-        }
-    } else if (window.innerWidth >= 1024) {
-        switch (index) {
-            case 0:
-                return `translateX(-${spacing * 1.6}px) translateY(0)`;
-            case 1:
-                return `translateX(-${spacing * 0.8}px) translateY(0)`;
-            case 2:
-                return 'translateX(0) translateY(-10px) scale(1.05)';
-            case 3:
-                return `translateX(${spacing * 0.8}px) translateY(0)`;
-            case 4:
-                return `translateX(${spacing * 1.6}px) translateY(0)`;
+                return `translateX(${spacing * 1.8}px) translateY(50px) rotateY(18deg) rotateX(4deg)`;
             default:
                 return '';
         }
     } else if (window.innerWidth >= 768) {
         switch (index) {
             case 0:
-                return `translateX(-${spacing * 1.2}px) translateY(0)`;
+                return `translateX(-${spacing * 1.5}px) translateY(40px) rotateY(-15deg) rotateX(3deg)`;
             case 1:
-                return `translateX(-${spacing * 0.6}px) translateY(0)`;
+                return `translateX(-${spacing * 0.75}px) translateY(20px) rotateY(-7deg) rotateX(1deg)`;
             case 2:
-                return 'translateX(0) translateY(-10px) scale(1.05)';
+                return 'translateX(0) translateY(-5px) rotateY(0) rotateX(0) scale(1.05)';
             case 3:
-                return `translateX(${spacing * 0.6}px) translateY(0)`;
+                return `translateX(${spacing * 0.75}px) translateY(20px) rotateY(7deg) rotateX(1deg)`;
             case 4:
-                return `translateX(${spacing * 1.2}px) translateY(0)`;
+                return `translateX(${spacing * 1.5}px) translateY(40px) rotateY(15deg) rotateX(3deg)`;
             default:
                 return '';
         }
     } else {
-        return 'translateX(0) translateY(0)';
+        // For mobile, create a grid layout with minimal transform
+        return 'translateX(0) translateY(0) rotateY(0) rotateX(0)';
     }
 }
 function resetCardPosition(card, index) {
-    if (window.innerWidth < 1200) {
+    if (window.innerWidth < 768) {
+        // In mobile view, position cards in a grid layout
         card.style.transform = 'translateX(0) translateY(0)';
         return;
     }
@@ -605,3 +647,35 @@ document.addEventListener('keydown', function(event) {
 });
 
 console.log('Enhanced Featured Cards loaded at ' + new Date().toISOString());
+
+// Enhanced responsive handling for featured cards
+function handleResponsiveLayout() {
+    const featuredSection = document.getElementById('featured-cards');
+    if (!featuredSection) return;
+    
+    const cards = featuredSection.querySelectorAll('.feature-card');
+    const isMobile = window.innerWidth <= 768;
+    const isTablet = window.innerWidth <= 1024 && window.innerWidth > 768;
+    
+    if (isMobile) {
+        // Reset all cards for mobile view
+        cards.forEach((card, index) => {
+            card.style.transform = 'none';
+            card.style.zIndex = '10';
+            card.classList.remove('flipped');
+        });
+    } else if (isTablet) {
+        // Adjust for tablet view
+        cards.forEach((card, index) => {
+            resetCardPosition(card, index);
+        });
+    } else {
+        // Desktop view - normal positioning
+        cards.forEach((card, index) => {
+            resetCardPosition(card, index);
+        });
+    }
+}
+
+// Add window resize listener
+window.addEventListener('resize', debounce(handleResponsiveLayout, 100));

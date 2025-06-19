@@ -81,10 +81,19 @@ function js($path) {
 
 function getBaseUrl() {
     if (php_sapi_name() === 'cli') {
-        return 'http://localhost:1001/public';
+        return 'http://localhost:8000/public';
     }
 
-    $host = $_SERVER['HTTP_HOST'] ?? 'localhost:1001';
+    // Get the actual host and port from the request
+    $host = $_SERVER['HTTP_HOST'] ?? 'localhost:8000';
+    
+    // If no port is specified in HTTP_HOST, check SERVER_PORT
+    if (!strpos($host, ':') && isset($_SERVER['SERVER_PORT'])) {
+        $port = $_SERVER['SERVER_PORT'];
+        if ($port != '80' && $port != '443') {
+            $host .= ':' . $port;
+        }
+    }
 
     $useHttps = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
 

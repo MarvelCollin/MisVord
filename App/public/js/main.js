@@ -1,17 +1,21 @@
+// Import the full logger implementation first
+import { logger } from './logger.js';
+
+// Initialize logger first to ensure it's available to all imported modules
+if (typeof window !== 'undefined' && !window.logger) {
+    window.logger = {
+        info: (module, ...args) => console.log(`[${module.toUpperCase()}]`, ...args),
+        debug: (module, ...args) => console.log(`[${module.toUpperCase()}]`, ...args),
+        warn: (module, ...args) => console.warn(`[${module.toUpperCase()}]`, ...args),
+        error: (module, ...args) => console.error(`[${module.toUpperCase()}]`, ...args)
+    };
+}
+
 import { showToast, MisVordAjax } from './core/index.js';
 import globalSocketManager from './core/socket/global-socket-manager.js';
 import * as Components from './components/index.js';
 import * as Utils from './utils/index.js';
 import { LazyLoader } from './utils/lazy-loader.js';
-
-if (typeof window !== 'undefined' && !window.logger) {
-    window.logger = {
-        info: (...args) => console.log('[INFO]', ...args),
-        debug: (...args) => console.log('[DEBUG]', ...args),
-        warn: (...args) => console.warn('[WARN]', ...args),
-        error: (...args) => console.error('[ERROR]', ...args)
-    };
-}
 
 document.addEventListener('DOMContentLoaded', function() {
     window.logger.info('general', 'MisVord application initialized');

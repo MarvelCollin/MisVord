@@ -161,17 +161,11 @@ function getChannelIcon($channelType) {
                         $channelType = getChannelType($channel);
                         $channelIcon = getChannelIcon($channelType);
                         $isActive = $activeChannelId == $channel['id'];
-                    ?>
-                    <div class="channel-item flex items-center justify-between py-1 px-2 rounded text-gray-400 hover:text-gray-300 hover:bg-discord-lighten <?php echo $isActive ? 'bg-discord-lighten text-white' : ''; ?>" 
+                    ?>                    <div class="channel-item flex items-center justify-between py-1 px-2 rounded text-gray-400 hover:text-gray-300 hover:bg-discord-lighten <?php echo $isActive ? 'bg-discord-lighten text-white' : ''; ?>" 
                          data-channel-id="<?php echo $channel['id']; ?>"
                          data-channel-type="<?php echo htmlspecialchars($channelType); ?>">
                         <div class="flex items-center w-full">
                             <span class="drag-handle mr-1 opacity-0 hover:opacity-50"><i class="fas fa-grip-lines fa-xs"></i></span>
-                            <?php if ($channelIcon === 'hashtag'): ?>
-                                <span class="channel-hash mr-1">#</span>
-                            <?php else: ?>
-                                <i class="fas fa-<?php echo $channelIcon; ?> channel-hash mr-1"></i>
-                            <?php endif; ?>
                             <span class="channel-name text-sm truncate"><?php echo htmlspecialchars($channel['name']); ?></span>
 
                             <div class="ml-auto flex items-center">
@@ -210,17 +204,11 @@ function getChannelIcon($channelType) {
                     $channelType = getChannelType($channel);
                     $channelIcon = getChannelIcon($channelType);
                     $isActive = $activeChannelId == $channel['id'];
-                ?>
-                <div class="channel-item flex items-center justify-between py-1 px-2 rounded text-gray-400 hover:text-gray-300 hover:bg-discord-lighten <?php echo $isActive ? 'bg-discord-lighten text-white' : ''; ?>" 
+                ?>                <div class="channel-item flex items-center justify-between py-1 px-2 rounded text-gray-400 hover:text-gray-300 hover:bg-discord-lighten <?php echo $isActive ? 'bg-discord-lighten text-white' : ''; ?>" 
                      data-channel-id="<?php echo $channel['id']; ?>"
                      data-channel-type="<?php echo htmlspecialchars($channelType); ?>">
                     <div class="flex items-center w-full">
                         <span class="drag-handle mr-1 opacity-0 hover:opacity-50"><i class="fas fa-grip-lines fa-xs"></i></span>
-                        <?php if ($channelIcon === 'hashtag'): ?>
-                            <span class="channel-hash mr-1">#</span>
-                        <?php else: ?>
-                            <i class="fas fa-<?php echo $channelIcon; ?> channel-hash mr-1"></i>
-                        <?php endif; ?>
                         <span class="channel-name text-sm truncate"><?php echo htmlspecialchars($channel['name']); ?></span>
                         <?php if (($channel['is_private'] ?? false) === true): ?>
                             <i class="fas fa-lock ml-auto text-xs" title="Private channel"></i>
@@ -235,10 +223,9 @@ function getChannelIcon($channelType) {
             </div>
         </div>
         <?php else: ?>
-        <!-- No categories, simple channel list -->
-        <div class="my-4">
+        <!-- No categories, simple channel list -->        <div class="my-4">
             <div class="text-gray-400 flex items-center justify-between mb-1 px-1">
-                <div class="font-semibold uppercase text-xs">Text Channels</div>
+                <div class="font-semibold uppercase text-xs">Channels</div>
             </div>
 
             <div class="uncategorized-channels pl-2">
@@ -246,17 +233,11 @@ function getChannelIcon($channelType) {
                     $isActive = $activeChannelId == $channel['id'];
                     $channelType = getChannelType($channel);
                     $channelIcon = getChannelIcon($channelType);
-                ?>
-                <div class="channel-item flex items-center justify-between py-1 px-2 rounded text-gray-400 hover:text-gray-300 hover:bg-discord-lighten <?php echo $isActive ? 'bg-discord-lighten text-white' : ''; ?>" 
+                ?>                <div class="channel-item flex items-center justify-between py-1 px-2 rounded text-gray-400 hover:text-gray-300 hover:bg-discord-lighten <?php echo $isActive ? 'bg-discord-lighten text-white' : ''; ?>" 
                      data-channel-id="<?php echo $channel['id']; ?>"
                      data-channel-type="<?php echo htmlspecialchars($channelType); ?>">
                     <div class="flex items-center w-full">
                         <span class="drag-handle mr-1 opacity-40 hover:opacity-100"><i class="fas fa-grip-lines fa-xs"></i></span>
-                        <?php if ($channelIcon === 'hashtag'): ?>
-                            <span class="channel-hash mr-1">#</span>
-                        <?php else: ?>
-                            <i class="fas fa-<?php echo $channelIcon; ?> channel-hash mr-1"></i>
-                        <?php endif; ?>
                         <span class="channel-name text-sm truncate"><?php echo htmlspecialchars($channel['name']); ?></span>
                         <?php if (($channel['is_private'] ?? false) === true): ?>
                             <i class="fas fa-lock ml-auto text-xs" title="Private channel"></i>
@@ -281,13 +262,11 @@ function getChannelIcon($channelType) {
                     $isActive = $activeChannelId == $channel['id'];
                     $channelType = getChannelType($channel);
                     $channelIcon = getChannelIcon($channelType);
-                ?>
-                <div class="channel-item flex items-center justify-between py-1 px-2 rounded text-gray-400 hover:text-gray-300 hover:bg-discord-lighten <?php echo $isActive ? 'bg-discord-lighten text-white' : ''; ?>" 
+                ?>                <div class="channel-item flex items-center justify-between py-1 px-2 rounded text-gray-400 hover:text-gray-300 hover:bg-discord-lighten <?php echo $isActive ? 'bg-discord-lighten text-white' : ''; ?>" 
                      data-channel-id="<?php echo $channel['id']; ?>"
                      data-channel-type="<?php echo htmlspecialchars($channelType); ?>">
                     <div class="flex items-center w-full">
                         <span class="drag-handle mr-1 opacity-0 hover:opacity-50"><i class="fas fa-grip-lines fa-xs"></i></span>
-                        <i class="fas fa-<?php echo $channelIcon; ?> channel-hash mr-1"></i>
                         <span class="channel-name text-sm truncate"><?php echo htmlspecialchars($channel['name']); ?></span>
                         <?php if (($channel['is_private'] ?? false) === true): ?>
                             <i class="fas fa-lock ml-auto text-xs" title="Private channel"></i>

@@ -679,8 +679,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     return;
                 }
-                
-                console.log("Channel form processing response data", data);
+                  console.log("Channel form processing response data", data);
                 if (data && data.success) {
                     closeCreateChannelModal();
                     form.reset();
@@ -692,25 +691,24 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     
                     try {
-                        if (data.redirect) {
-                            console.log("Redirecting to:", data.redirect);
-                            setTimeout(function() {
-                                window.location.href = data.redirect;
-                            }, 500);
-                        } else if (data.data && data.data.redirect) {
-                            console.log("Redirecting to:", data.data.redirect);
-                            setTimeout(function() {
-                                window.location.href = data.data.redirect;
-                            }, 500);
+                        if (typeof refreshChannelList === 'function') {
+                            refreshChannelList();
+                            console.log("Channel list refreshed via AJAX");
+                        } else if (typeof window.channelLoader !== 'undefined' && window.channelLoader.loadChannelData) {
+                            const channelContainer = document.querySelector('.channel-list-container');
+                            if (channelContainer) {
+                                channelContainer.setAttribute('data-server-id', formData.get('server_id'));
+                                window.channelLoader.loadChannelData(channelContainer);
+                                console.log("Channel list refreshed via channel loader");
+                            }
                         } else {
-                            console.log("No redirect URL found, reloading page");
+                            console.log("No AJAX refresh method available, falling back to page reload");
                             setTimeout(function() {
                                 window.location.reload();
                             }, 500);
                         }
                     } catch (navError) {
                         console.error("Navigation error:", navError);
-                        
                         setTimeout(function() {
                             window.location.reload();
                         }, 1000);

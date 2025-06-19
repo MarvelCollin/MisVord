@@ -12,17 +12,20 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
+$currentServer = $GLOBALS['server'] ?? $GLOBALS['currentServer'] ?? null;
+$serverName = $currentServer ? $currentServer->name : 'Unknown Server';
+
 $page_title = 'misvord - ' . $serverName;
 $body_class = 'bg-discord-dark text-white';
 $page_css = 'app';
 $page_js = 'pages/app';
+$head_scripts = ['logger-init'];
 $additional_js = [
     'components/servers/server-dropdown',
     'components/channels/channel-manager',
     'components/messaging/messaging'
 ];
 $contentType = 'server';
-$currentServer = $GLOBALS['currentServer'] ?? null;
 $data_page = 'server';
 
 if (isset($GLOBALS['currentServer'])) {    log_debug("Current server data", [

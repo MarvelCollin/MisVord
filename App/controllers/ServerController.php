@@ -71,9 +71,8 @@ class ServerController extends BaseController
                     'active_channel' => $activeChannel ? $this->formatChannel($activeChannel) : null,
                     'messages' => $channelMessages
                 ]);
-            }
-
-            $GLOBALS['server'] = $server;
+            }            $GLOBALS['server'] = $server;
+            $GLOBALS['currentServer'] = $server;
             $GLOBALS['serverChannels'] = $channels;
             $GLOBALS['activeChannelId'] = $activeChannelId;
             $GLOBALS['channelMessages'] = $channelMessages;

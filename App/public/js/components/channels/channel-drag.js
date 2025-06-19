@@ -706,12 +706,21 @@ function showCreateChannelModal(serverId, categoryId, position) {
                 method: 'POST',
                 body: formData
             })
-            .then(response => response.json())
-            .then(data => {
+            .then(response => response.json())            .then(data => {
                 if (data.success) {
                     console.log('Channel created at position:', position);
                     modal.remove();
-                    window.location.reload(); 
+                    if (typeof refreshChannelList === 'function') {
+                        refreshChannelList();
+                    } else if (typeof window.channelLoader !== 'undefined' && window.channelLoader.loadChannelData) {
+                        const channelContainer = document.querySelector('.channel-list-container');
+                        if (channelContainer) {
+                            channelContainer.setAttribute('data-server-id', serverId);
+                            window.channelLoader.loadChannelData(channelContainer);
+                        }
+                    } else {
+                        window.location.reload();
+                    }
                 } else {
                     alert(data.message || 'Failed to create channel');
                 }
