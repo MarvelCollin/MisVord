@@ -1,0 +1,59 @@
+[2025-06-19 09:40:51] INFO [3903fd] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-19 09:40:51"}
+[2025-06-19 09:40:51] DEBUG [3903fd] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-19 09:40:51] INFO [3903fd] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-19 09:40:51] DEBUG [3903fd] DB Query: SELECT * FROM users LIMIT 5 - Duration: 51.03ms - Context: {"bindings":[],"result_count":2,"db_query":"SELECT * FROM users LIMIT 5","db_duration":0.051026105880737305}
+[2025-06-19 09:41:11] INFO [7ee22d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-19 09:41:11"}
+[2025-06-19 09:41:11] DEBUG [7ee22d] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-19 09:41:11] INFO [7ee22d] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-19 09:41:12] DEBUG [7ee22d] DB Query: SELECT * FROM users WHERE  email = ? LIMIT 1 - Duration: 43.25ms - Context: {"bindings":["kolin@gmail.com"],"found":true,"db_query":"SELECT * FROM users WHERE  email = ? LIMIT 1","db_duration":0.04324793815612793}
+[2025-06-19 09:41:35] INFO [fcb92f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-19 09:41:35"}
+[2025-06-19 09:41:35] DEBUG [fcb92f] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-19 09:41:35] INFO [fcb92f] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-19 09:41:35] DEBUG [fcb92f] DB Query: INSERT INTO users (`username`, `email`, `password`, `discriminator`, `updated_at`, `created_at`) VAL... - Duration: 53.95ms - Context: {"table":"users","data":{"username":"testuser_1750300895","email":"test_1750300895@example.com","password":"$2y$10$Y0MUDNtf8/NR1wk6.rBS0OQv89JJu76BOhh4y8ovjt90euNtpHpiO","discriminator":"1234","updated_at":"2025-06-19 09:41:35","created_at":"2025-06-19 09:41:35"},"insert_id":"3","affected_rows":1,"db_query":"INSERT INTO users (`username`, `email`, `password`, `discriminator`, `updated_at`, `created_at`) VALUES (?, ?, ?, ?, ?, ?)","db_duration":0.05395388603210449}
+[2025-06-19 09:41:35] DEBUG [fcb92f] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-19 09:41:35] INFO [fcb92f] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-19 09:41:36] DEBUG [fcb92f] DB Query: SELECT * FROM users WHERE  id = ? LIMIT 1 - Duration: 49.05ms - Context: {"bindings":["3"],"found":true,"db_query":"SELECT * FROM users WHERE  id = ? LIMIT 1","db_duration":0.04904890060424805}
+[2025-06-19 09:42:02] INFO [aa860e] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-19 09:42:02"}
+[2025-06-19 09:42:02] DEBUG [aa860e] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-19 09:42:02] INFO [aa860e] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-19 09:42:02] DEBUG [aa860e] DB Query: SELECT * FROM users WHERE  email = ? LIMIT 1 - Duration: 43.22ms - Context: {"bindings":["kolin@gmail.com"],"found":true,"db_query":"SELECT * FROM users WHERE  email = ? LIMIT 1","db_duration":0.04322099685668945}
+[2025-06-19 09:42:25] INFO [1b66eb] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-19 09:42:25"}
+[2025-06-19 09:42:47] INFO [7b56fc] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-19 09:42:47"}
+[2025-06-19 09:42:47] DEBUG [7b56fc] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-19 09:42:47] INFO [7b56fc] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-19 09:42:47] DEBUG [7b56fc] DB Query: INSERT INTO users (`username`, `email`, `password`, `discriminator`, `updated_at`, `created_at`) VAL... - Duration: 59.70ms - Context: {"table":"users","data":{"username":"testuser_1750300967","email":"test_1750300967@example.com","password":"$2y$10$7QGKrCMTjgwdhrk/6se59.BzPVFcNhA7ghvXb.x2dMdZGvWF4wb3m","discriminator":"1234","updated_at":"2025-06-19 09:42:47","created_at":"2025-06-19 09:42:47"},"insert_id":"4","affected_rows":1,"db_query":"INSERT INTO users (`username`, `email`, `password`, `discriminator`, `updated_at`, `created_at`) VALUES (?, ?, ?, ?, ?, ?)","db_duration":0.05969595909118652}
+[2025-06-19 09:42:47] DEBUG [7b56fc] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-19 09:42:47] INFO [7b56fc] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-19 09:42:48] DEBUG [7b56fc] DB Query: SELECT * FROM users WHERE  id = ? LIMIT 1 - Duration: 51.28ms - Context: {"bindings":["4"],"found":true,"db_query":"SELECT * FROM users WHERE  id = ? LIMIT 1","db_duration":0.05127596855163574}
+[2025-06-19 09:43:12] INFO [011658] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-19 09:43:12"}
+[2025-06-19 09:43:12] DEBUG [011658] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-19 09:43:12] INFO [011658] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-19 09:43:12] DEBUG [011658] DB Query: INSERT INTO users (`username`, `email`, `password`, `discriminator`, `updated_at`, `created_at`) VAL... - Duration: 57.65ms - Context: {"table":"users","data":{"username":"logintest_1750300992","email":"logintest_1750300992@example.com","password":"$2y$10$CaeqOkgYsr90CQLEBFzxHuxDkVdYt6eqtLUzjLHvtRAswQWSgAg/6","discriminator":"1234","updated_at":"2025-06-19 09:43:12","created_at":"2025-06-19 09:43:12"},"insert_id":"5","affected_rows":1,"db_query":"INSERT INTO users (`username`, `email`, `password`, `discriminator`, `updated_at`, `created_at`) VALUES (?, ?, ?, ?, ?, ?)","db_duration":0.05764603614807129}
+[2025-06-19 09:43:12] DEBUG [011658] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-19 09:43:12] INFO [011658] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-19 09:43:12] DEBUG [011658] DB Query: SELECT * FROM users WHERE  email = ? LIMIT 1 - Duration: 44.13ms - Context: {"bindings":["logintest_1750300992@example.com"],"found":true,"db_query":"SELECT * FROM users WHERE  email = ? LIMIT 1","db_duration":0.04413104057312012}
+[2025-06-19 09:43:12] DEBUG [011658] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-19 09:43:12] INFO [011658] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-19 09:43:59] INFO [fd1d10] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-19 09:43:59"}
+[2025-06-19 09:43:59] DEBUG [fd1d10] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-19 09:43:59] INFO [fd1d10] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-19 09:43:59] DEBUG [fd1d10] DB Query: SELECT * FROM users WHERE  email = ? LIMIT 1 - Duration: 45.47ms - Context: {"bindings":["kolin@gmail.com"],"found":true,"db_query":"SELECT * FROM users WHERE  email = ? LIMIT 1","db_duration":0.04546999931335449}
+[2025-06-19 09:44:28] INFO [cac055] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-19 09:44:28"}
+[2025-06-19 09:44:28] DEBUG [cac055] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-19 09:44:28] INFO [cac055] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-19 09:44:28] DEBUG [cac055] DB Query: SELECT * FROM users WHERE  email = ? LIMIT 1 - Duration: 49.53ms - Context: {"bindings":["kolin@gmail.com"],"found":true,"db_query":"SELECT * FROM users WHERE  email = ? LIMIT 1","db_duration":0.04953122138977051}
+[2025-06-19 09:45:12] INFO [85358f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-19 09:45:12"}
+[2025-06-19 09:45:12] DEBUG [85358f] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-19 09:45:12] INFO [85358f] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-19 09:45:12] DEBUG [85358f] DB Query: SELECT * FROM users WHERE  email = ? LIMIT 1 - Duration: 48.75ms - Context: {"bindings":["kolin@gmail.com"],"found":true,"db_query":"SELECT * FROM users WHERE  email = ? LIMIT 1","db_duration":0.048750877380371094}
+[2025-06-19 09:45:12] DEBUG [85358f] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-19 09:45:12] INFO [85358f] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-19 09:46:12] INFO [45e7c1] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-19 09:46:12"}
+[2025-06-19 09:46:12] DEBUG [45e7c1] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-19 09:46:12] INFO [45e7c1] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-19 09:46:12] DEBUG [45e7c1] DB Query: INSERT INTO users (`username`, `email`, `password`, `discriminator`, `updated_at`, `created_at`) VAL... - Duration: 56.20ms - Context: {"table":"users","data":{"username":"authtest_1750301172","email":"authtest_1750301172@example.com","password":"$2y$10$Q95iR5QXXj1tJv9KGav8XeyS4m7ESnSIJwmoIZpbw9aq.JeRgBzIC","discriminator":"1234","updated_at":"2025-06-19 09:46:12","created_at":"2025-06-19 09:46:12"},"insert_id":"6","affected_rows":1,"db_query":"INSERT INTO users (`username`, `email`, `password`, `discriminator`, `updated_at`, `created_at`) VALUES (?, ?, ?, ?, ?, ?)","db_duration":0.05620312690734863}
+[2025-06-19 09:46:12] DEBUG [45e7c1] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-19 09:46:12] INFO [45e7c1] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-19 09:46:12] DEBUG [45e7c1] DB Query: SELECT * FROM users WHERE  email = ? LIMIT 1 - Duration: 54.93ms - Context: {"bindings":["authtest_1750301172@example.com"],"found":true,"db_query":"SELECT * FROM users WHERE  email = ? LIMIT 1","db_duration":0.054934024810791016}
+[2025-06-19 09:46:12] DEBUG [45e7c1] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-19 09:46:12] INFO [45e7c1] Database connected successfully - Context: {"database":"misvord"}

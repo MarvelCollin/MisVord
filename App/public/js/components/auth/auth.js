@@ -5,17 +5,17 @@ export class AuthManager {
     constructor() {
         this.init();
     }    init() {
-        console.log('Auth manager initialized');
+        logger.info('auth', 'Auth manager initialized');
         document.addEventListener('DOMContentLoaded', () => {
             if (document.body.getAttribute('data-page') === 'auth') {
-                console.log('Auth page detected, skipping auth component initialization');
+                logger.debug('auth', 'Auth page detected, skipping auth component initialization');
                 return;
             }
             this.initAuthForms();
         });
     }initAuthForms() {
 
-        console.log('🔄 Auth forms will use traditional submission (no AJAX)');
+        logger.debug('auth', 'Auth forms will use traditional submission (no AJAX)');
 
         this.initFormSwitchLinks();
 
@@ -56,19 +56,19 @@ export class AuthManager {
         const form = e.target;
         this.clearFormErrors(form);        MisVordAjax.submitForm(form, {
             onSuccess: (response) => {
-                console.log('🎉 Login response received:', response);
+                logger.info('auth', 'Login response received:', response);
                   if (response.success) {
                     showToast('Login successful. Redirecting...', 'success');
 
                     const redirectUrl = response.redirect || '/app';
-                    console.log('🔄 Redirecting to:', redirectUrl);
+                    logger.debug('auth', 'Redirecting to:', redirectUrl);
 
                     setTimeout(() => {
-                        console.log('🚀 Executing redirect...');
+                        logger.debug('auth', 'Executing redirect...');
                         window.location.replace(redirectUrl);
                     }, 500);
                 } else {
-                    console.log('❌ Login response success was false');
+                    logger.warn('auth', 'Login response success was false');
                 }
             },
             onError: (error) => {
@@ -96,19 +96,19 @@ export class AuthManager {
             return;
         }        MisVordAjax.submitForm(form, {
             onSuccess: (response) => {
-                console.log('🎉 Register response received:', response);
+                logger.info('auth', 'Register response received:', response);
                   if (response.success) {
                     showToast('Registration successful. Redirecting...', 'success');
 
                     const redirectUrl = response.redirect || '/app';
-                    console.log('🔄 Redirecting to:', redirectUrl);
+                    logger.debug('auth', 'Redirecting to:', redirectUrl);
 
                     setTimeout(() => {
-                        console.log('🚀 Executing redirect...');
+                        logger.debug('auth', 'Executing redirect...');
                         window.location.replace(redirectUrl);
                     }, 500);
                 } else {
-                    console.log('❌ Register response success was false');
+                    logger.warn('auth', 'Register response success was false');
                 }
             },
             onError: (error) => {

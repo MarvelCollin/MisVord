@@ -107,13 +107,21 @@ class ServerController extends BaseController
         ]);
 
         $name = $input['name'];
-        $description = $input['description'] ?? '';        try {
+        $description = $input['description'] ?? '';
+        
+        try {
             $server = new Server();
             $server->name = $name;
             $server->description = $description;
+            
+            if (isset($_FILES['server_icon']) && $_FILES['server_icon']['error'] === UPLOAD_ERR_OK) {
+                $imageUrl = $this->uploadImage($_FILES['server_icon'], 'servers');
+                if ($imageUrl !== false) {
+                    $server->image_url = $imageUrl;
+                }
+            }
 
             if ($server->save()) {
-
                 $membership = new UserServerMembership();
                 $membership->user_id = $this->getCurrentUserId();
                 $membership->server_id = $server->id;
@@ -476,7 +484,7 @@ class ServerController extends BaseController
             'id' => $server->id,
             'name' => $server->name,
             'description' => $server->description,
-            'icon_url' => $server->icon_url ?? null,
+            'image_url' => $server->image_url ?? null,
             'member_count' => $server->getMemberCount(),
             'created_at' => $server->created_at,
             'updated_at' => $server->updated_at,

@@ -1,25 +1,21 @@
-document.addEventListener("DOMContentLoaded", () => {
-    if (document.getElementById('videoContainer')) {
+document.addEventListener("DOMContentLoaded", () => {    if (document.getElementById('videoContainer')) {
         waitForVideoSDK(() => {
-            console.log("VideoSDK ready. Click 'Join Call' to create and join a meeting.");
+            logger.info('voice', "VideoSDK ready. Click 'Join Call' to create and join a meeting.");
         });
     }
 });
 
-// Fallback for window load event
 window.addEventListener("load", () => {
     if (document.getElementById('videoContainer') && !meeting) {
         waitForVideoSDK(initializeMeeting);
     }
 });
 
-// Get meta tags
 const getMeta = (name) => {
     const meta = document.querySelector(`meta[name="${name}"]`);
     return meta ? meta.getAttribute('content') : null;
 };
 
-// Global variables
 let meeting;
 let meetingCreated = false;
 const authToken = getMeta('videosdk-token');
@@ -30,14 +26,13 @@ const channelId = getMeta('channel-id');
 function waitForVideoSDK(callback, maxAttempts = 50) {
     let attempts = 0;
     const checkSDK = () => {
-        attempts++;
-        if (typeof VideoSDK !== 'undefined' && VideoSDK.config && VideoSDK.initMeeting) {
-            console.log("VideoSDK loaded successfully");
+        attempts++;        if (typeof VideoSDK !== 'undefined' && VideoSDK.config && VideoSDK.initMeeting) {
+            logger.debug('voice', "VideoSDK loaded successfully");
             callback();
         } else if (attempts < maxAttempts) {
             setTimeout(checkSDK, 100);
         } else {
-            console.error("VideoSDK failed to load after", maxAttempts * 100, "ms");
+            logger.error('voice', "VideoSDK failed to load after", maxAttempts * 100, "ms");
             alert("Failed to load VideoSDK. Please refresh the page.");
         }
     };
@@ -46,7 +41,7 @@ function waitForVideoSDK(callback, maxAttempts = 50) {
 
 async function createMeetingRoom() {
     try {
-        console.log("Creating new meeting room...");
+        logger.info('voice', "Creating new meeting room...");
         
         const response = await fetch('https://api.videosdk.live/v2/rooms', {
             method: 'POST',
@@ -59,16 +54,16 @@ async function createMeetingRoom() {
         
         if (response.ok) {
             const data = await response.json();
-            console.log("Meeting room created:", data);
+            logger.debug('voice', "Meeting room created:", data);
             meetingCreated = true;
             return data.roomId;
         } else {
             const errorText = await response.text();
-            console.error("Failed to create meeting room:", response.status, errorText);
+            logger.error('voice', "Failed to create meeting room:", response.status, errorText);
             return null;
         }
     } catch (error) {
-        console.error("Error creating meeting room:", error);
+        logger.error('voice', "Error creating meeting room:", error);
         return null;
     }
 }
@@ -90,12 +85,10 @@ async function initializeMeeting() {
             pollEnabled: false,
             whiteBoardEnabled: false,
             raiseHandEnabled: false
-        });
-
-        console.log("Meeting initialized:", meeting);
+        });        logger.debug('voice', "Meeting initialized:", meeting);
 
         meeting.on("meeting-joined", () => {
-            console.log("Meeting Joined");
+            logger.info('voice', "Meeting Joined");
             document.getElementById("joinBtn").disabled = true;
             document.getElementById("leaveBtn").disabled = false;
             document.getElementById("micBtn").disabled = false;
@@ -106,7 +99,7 @@ async function initializeMeeting() {
         });
 
         meeting.on("meeting-left", () => {
-            console.log("Meeting Left");
+            logger.info('voice', "Meeting Left");
             document.getElementById("joinBtn").disabled = false;
             document.getElementById("leaveBtn").disabled = true;
             document.getElementById("micBtn").disabled = true;
@@ -118,17 +111,17 @@ async function initializeMeeting() {
         });
 
         meeting.on("participant-joined", (participant) => {
-            console.log("Participant Joined: ", participant);
+            logger.debug('voice', "Participant Joined: ", participant);
             addParticipant(participant);
         });
 
         meeting.on("participant-left", (participant) => {
-            console.log("Participant Left: ", participant);
+            logger.debug('voice', "Participant Left: ", participant);
             removeParticipant(participant);
         });
 
         meeting.on("presenter-changed", (presenterId) => {
-            console.log("Presenter changed: ", presenterId);
+            logger.debug('voice', "Presenter changed: ", presenterId);
         });
 
         meeting.on("error", async (error) => {
@@ -227,18 +220,14 @@ function removeParticipant(participant) {
   if (participantListElement) participantListElement.remove();
 }
 
-// Add event listeners when the DOM is loaded
 document.addEventListener("DOMContentLoaded", () => {
-    // Join button
     const joinBtn = document.getElementById("joinBtn");
     if (joinBtn) {
         joinBtn.addEventListener("click", async () => {
             try {
-                // Disable button to prevent multiple clicks
                 joinBtn.disabled = true;
                 joinBtn.innerHTML = "Creating Meeting...";
                 
-                // First, create a new meeting room
                 const newMeetingId = await createMeetingRoom();
                 
                 if (!newMeetingId) {
@@ -248,13 +237,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     return;
                 }
                 
-                // Update meeting ID with the newly created one
                 meetingId = newMeetingId;
                 console.log("Using meeting ID:", meetingId);
                 
                 joinBtn.innerHTML = "Joining...";
                 
-                // Initialize meeting with new ID
                 await initializeMeeting();
                 
                 if (meeting) {
@@ -281,7 +268,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Leave button
     const leaveBtn = document.getElementById("leaveBtn");
     if (leaveBtn) {
         leaveBtn.addEventListener("click", () => {
@@ -291,7 +277,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Mic button
     const micBtn = document.getElementById("micBtn");
     if (micBtn) {
         micBtn.addEventListener("click", () => {

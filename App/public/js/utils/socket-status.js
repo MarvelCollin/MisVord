@@ -1,24 +1,14 @@
-/**
- * Global Socket Status Utility
- * This utility provides functions to check and monitor the global WebSocket connection status
- */
-
 window.SocketStatus = {
-    /**
-     * Get comprehensive status of all socket-related systems
-     */
     getFullStatus() {
         return {
             timestamp: new Date().toISOString(),
             
-            // Global Socket Manager
             globalSocketManager: {
                 available: !!window.globalSocketManager,
                 ready: window.globalSocketManager ? window.globalSocketManager.isReady() : false,
                 status: window.globalSocketManager ? window.globalSocketManager.getStatus() : null
             },
             
-            // MisVord Messaging
             misVordMessaging: {
                 available: !!window.MisVordMessaging,
                 initialized: window.MisVordMessaging ? window.MisVordMessaging.initialized : false,
@@ -26,13 +16,11 @@ window.SocketStatus = {
                 authenticated: window.MisVordMessaging ? window.MisVordMessaging.authenticated : false
             },
             
-            // Raw Socket.IO
             socketIO: {
                 available: typeof io !== 'undefined',
                 version: typeof io !== 'undefined' && io.version ? io.version : 'unknown'
             },
             
-            // Page Information
             page: {
                 url: window.location.href,
                 pathname: window.location.pathname,
@@ -41,7 +29,6 @@ window.SocketStatus = {
                 username: document.querySelector('meta[name="username"]')?.content || null
             },
             
-            // Debug Information
             debug: {
                 misVordDebug: !!window.MisVordDebug,
                 debugInfo: window.MisVordDebug ? window.MisVordDebug.getDebugInfo() : null,
@@ -51,9 +38,6 @@ window.SocketStatus = {
         };
     },
     
-    /**
-     * Get simple status summary
-     */
     getSimpleStatus() {
         const full = this.getFullStatus();
         return {
@@ -65,9 +49,6 @@ window.SocketStatus = {
         };
     },
     
-    /**
-     * Determine overall system status
-     */
     getOverallStatus(fullStatus) {
         if (!fullStatus.page.userAuthenticated) {
             return 'guest';
@@ -88,9 +69,6 @@ window.SocketStatus = {
         return 'initializing';
     },
     
-    /**
-     * Monitor connection status and log changes
-     */
     startMonitoring(intervalMs = 5000) {
         if (this.monitoringInterval) {
             clearInterval(this.monitoringInterval);
@@ -104,7 +82,6 @@ window.SocketStatus = {
             if (!lastStatus || JSON.stringify(currentStatus) !== JSON.stringify(lastStatus)) {
                 console.log('🔄 Socket Status Change:', currentStatus);
                 
-                // Dispatch event for other components to listen to
                 window.dispatchEvent(new CustomEvent('socketStatusChanged', {
                     detail: { previous: lastStatus, current: currentStatus }
                 }));
@@ -117,9 +94,6 @@ window.SocketStatus = {
         return this.monitoringInterval;
     },
     
-    /**
-     * Stop monitoring
-     */
     stopMonitoring() {
         if (this.monitoringInterval) {
             clearInterval(this.monitoringInterval);
@@ -128,9 +102,6 @@ window.SocketStatus = {
         }
     },
     
-    /**
-     * Print status to console in a readable format
-     */
     printStatus() {
         const status = this.getFullStatus();
         console.group('🌐 MisVord Socket Status Report');
@@ -150,14 +121,12 @@ window.SocketStatus = {
     }
 };
 
-// Auto-start monitoring in development/debug mode
 if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
     document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
             console.log('🔍 Auto-starting socket status monitoring for development...');
             window.SocketStatus.startMonitoring(3000);
             
-            // Print initial status after a delay to let everything initialize
             setTimeout(() => {
                 window.SocketStatus.printStatus();
             }, 2000);
@@ -165,7 +134,6 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
     });
 }
 
-// Make it accessible from console for debugging
 if (typeof window !== 'undefined') {
     window.checkSockets = () => window.SocketStatus.printStatus();
 }

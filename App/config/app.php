@@ -8,7 +8,7 @@ require_once __DIR__ . '/helpers.php';
 
 require_once __DIR__ . '/../utils/AppLogger.php';
 
-define('APP_NAME', 'MiscVord');
+define('APP_NAME', 'MisVord');
 define('APP_VERSION', '1.0.0');
 
 date_default_timezone_set('Asia/Jakarta');

@@ -1,11 +1,10 @@
 import { showToast } from '../../core/ui/toast.js';
 
-console.log('server-dropdown.js loaded successfully - UPDATED VERSION');
+logger.info('server', 'server-dropdown.js loaded successfully - UPDATED VERSION');
 window.SERVER_DROPDOWN_VERSION = '2.0';
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('server-dropdown.js DOMContentLoaded triggered - UPDATED VERSION');
+    logger.debug('server', 'server-dropdown.js DOMContentLoaded triggered - UPDATED VERSION');
     
-    // Check if we're on a server page by looking for server elements
     const isServerPage = document.getElementById('server-dropdown-btn') !== null;
     
     if (isServerPage) {

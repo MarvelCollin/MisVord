@@ -17,7 +17,7 @@ function initAuth() {
         formToggles: document.querySelectorAll('.form-toggle')
     };
 
-    console.log('Auth elements loaded:', {
+    logger.debug('auth', 'Auth elements loaded:', {
         authContainer: !!elements.authContainer,
         formsContainer: !!elements.formsContainer,
         loginForm: !!elements.loginForm,

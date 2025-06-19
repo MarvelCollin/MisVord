@@ -1,4 +1,4 @@
-console.log('🔧 Loading simple authentication page handler...');
+logger.debug('auth', 'Loading simple authentication page handler...');
 
 (function() {
     'use strict';
@@ -7,9 +7,8 @@ console.log('🔧 Loading simple authentication page handler...');
         return;
     }
     window.authPageInitialized = true;
-    
-    function initAuthPage() {
-        console.log('🚀 Simple auth page initialized');
+      function initAuthPage() {
+        logger.info('auth', 'Simple auth page initialized');
         
         const loginForm = document.getElementById('loginForm');
         const registerForm = document.getElementById('registerForm');
@@ -17,12 +16,12 @@ console.log('🔧 Loading simple authentication page handler...');
         const authTitle = document.getElementById('authTitle');
         
         if (!loginForm || !registerForm || !forgotForm) {
-            console.error('❌ Could not find required form elements');
+            logger.error('auth', 'Could not find required form elements');
             return;
         }
         
         let currentForm = getCurrentForm();
-        console.log('📋 Current form:', currentForm);
+        logger.debug('auth', 'Current form:', currentForm);
         
         function getCurrentForm() {
             if (!loginForm.classList.contains('hidden')) return 'login';

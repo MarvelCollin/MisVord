@@ -1,10 +1,7 @@
-// Minimal landing page script - only scramble text functionality
 window.LANDING_PAGE_MODE = true;
 window.DISABLE_MESSAGING = true;
 
-// Block WebSocket and messaging functionality
 (function() {
-    // Define GlobalSocketManager as read-only
     Object.defineProperty(window, 'GlobalSocketManager', {
         value: {
             init: () => false,
@@ -41,16 +38,14 @@ window.DISABLE_MESSAGING = true;
         configurable: false
     });
 
-    // Block WebSocket
     const OriginalWebSocket = window.WebSocket;
     window.WebSocket = function() {
         throw new Error('WebSocket disabled on landing page');
     };
 })();
 
-// Simple scramble text implementation
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Landing page loaded - initializing scramble text');
+    logger.info('general', 'Landing page loaded - initializing scramble text');
     initScrambleText();
 });
 
@@ -72,7 +67,6 @@ function initScrambleText() {
         
         const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?";
         
-        // Clear element and create character spans
         element.innerHTML = '';
         const spans = [];
 
@@ -97,7 +91,6 @@ function initScrambleText() {
             spans.push(span);
         }
 
-        // Start animation after a delay
         setTimeout(() => {
             startScrambleAnimation(spans, chars, originalText);
         }, 500 + (index * 300));
@@ -116,16 +109,14 @@ function startScrambleAnimation(spans, chars, originalText) {
         const revealCount = Math.floor(progress * spans.length);
 
         spans.forEach((span, index) => {
-            if (originalText[index] === ' ') return; // Skip spaces
+            if (originalText[index] === ' ') return; 
 
             if (index < revealCount && !span.classList.contains('revealed')) {
-                // Reveal final character
                 span.textContent = span.dataset.finalChar;
                 span.classList.add('revealed');
                 span.style.opacity = '1';
                 span.style.color = '#FFFFFF';
             } else if (index >= revealCount) {
-                // Show random character
                 if (counter % 2 === 0) {
                     const randomChar = chars[Math.floor(Math.random() * chars.length)];
                     span.textContent = randomChar;
@@ -138,7 +129,6 @@ function startScrambleAnimation(spans, chars, originalText) {
         if (progress >= 1) {
             clearInterval(scrambleInterval);
             
-            // Final cleanup - ensure all characters are revealed
             spans.forEach((span, index) => {
                 if (originalText[index] !== ' ') {
                     span.textContent = span.dataset.finalChar;

@@ -1,5 +1,14 @@
-// Create LazyLoader as a global object first to ensure backward compatibility
 if (typeof window !== 'undefined' && !window.LazyLoader) {
+    const safeLog = {
+        debug: (module, ...args) => {
+            if (typeof logger !== 'undefined') {
+                logger.debug(module, ...args);
+            } else {
+                console.log(`[${module.toUpperCase()}]`, ...args);
+            }
+        }
+    };
+
     window.LazyLoader = {
         init() {
             this.setupObserver();
@@ -8,12 +17,10 @@ if (typeof window !== 'undefined' && !window.LazyLoader) {
             });
             this.addGlobalLoadingIndicator();
             this.listenForDataEvents();
-            console.log('🔄 Lazy Loader initialized');
+            safeLog.debug('ui', 'Lazy Loader initialized');
         },
 
-        // Copy all methods from LazyLoader
         setupObserver() {
-            // Implementation goes here
             const observer = new MutationObserver(mutations => {
                 mutations.forEach(mutation => {
                     if (mutation.addedNodes && mutation.addedNodes.length > 0) {
@@ -41,26 +48,22 @@ if (typeof window !== 'undefined' && !window.LazyLoader) {
             });
         },
 
-        // Include placeholder methods that will be replaced by the full implementation
         showLoadingState() {
             console.log('LazyLoader method executed from global object');
         },
         
         triggerDataLoaded(type, isEmpty = false) {
-            console.log(`✅ Data loaded for type: ${type}, isEmpty: ${isEmpty}`);
-            // Basic implementation - will be enhanced by the full LazyLoader
+            safeLog.debug('ui', `Data loaded for type: ${type}, isEmpty: ${isEmpty}`);
         },
         
         addGlobalLoadingIndicator() {
-            // Basic implementation
         },
         
         listenForDataEvents() {
-            // Basic implementation
         }
     };
     
-    console.log('🔄 LazyLoader assigned to window object for backward compatibility');
+    safeLog.debug('ui', 'LazyLoader assigned to window object for backward compatibility');
     
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
@@ -71,8 +74,17 @@ if (typeof window !== 'undefined' && !window.LazyLoader) {
     }
 }
 
-// Now define LazyLoader for ES module implementation
 const LazyLoader = {
+    safeLog: {
+        debug: (module, ...args) => {
+            if (typeof logger !== 'undefined') {
+                logger.debug(module, ...args);
+            } else {
+                console.log(`[${module.toUpperCase()}]`, ...args);
+            }
+        }
+    },
+
     init() {
         this.setupObserver();
         document.querySelectorAll('[data-lazyload]').forEach(element => {
@@ -80,9 +92,8 @@ const LazyLoader = {
         });
         this.addGlobalLoadingIndicator();
         this.listenForDataEvents();
-        console.log('🔄 Lazy Loader initialized');
+        this.safeLog.debug('ui', 'Lazy Loader initialized');
         
-        // Update global object with full implementation
         if (typeof window !== 'undefined' && window.LazyLoader) {
             Object.assign(window.LazyLoader, this);
         }
@@ -270,7 +281,6 @@ const LazyLoader = {
     triggerDataLoaded(type, isEmpty = false) {
         console.log(`✅ Data loaded for type: ${type}, isEmpty: ${isEmpty}`);
         
-        // Dispatch custom event for data loaded
         const event = new CustomEvent('LazyLoadComplete', {
             detail: { 
                 type,
@@ -281,10 +291,8 @@ const LazyLoader = {
         
         document.dispatchEvent(event);
         
-        // Update loading progress to complete
         this.updateGlobalLoadingProgress(100);
         
-        // Hide any relevant loading states
         const elements = document.querySelectorAll(`[data-lazyload="${type}"]`);
         elements.forEach(element => {
             element.classList.remove('content-loading');
@@ -334,9 +342,8 @@ const LazyLoader = {
 };
 
 if (typeof window !== 'undefined') {
-    // Update the global LazyLoader with all methods
     window.LazyLoader = Object.assign(window.LazyLoader || {}, LazyLoader);
-    console.log('🔄 LazyLoader assigned to window object');
+    LazyLoader.safeLog.debug('ui', 'LazyLoader assigned to window object');
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
@@ -347,6 +354,5 @@ if (typeof window !== 'undefined') {
     }
 }
 
-// Export for ES modules
 export { LazyLoader };
 

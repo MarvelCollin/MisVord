@@ -17,7 +17,7 @@ ob_start();
     <div class="min-h-screen bg-discord-dark flex flex-col">
         <nav class="bg-discord-light p-4">
             <div class="container mx-auto flex justify-between items-center">
-                <a href="/" class="text-white font-bold text-xl">MiscVord</a>
+                <a href="/" class="text-white font-bold text-xl">MisVord</a>
 
                 <div class="space-x-4">
                     <?php if (isset($_SESSION['user_id'])): ?>

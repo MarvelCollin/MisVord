@@ -1,18 +1,40 @@
-console.log('🚀 Scripts loading started');
+const safeLog = {
+    info: (module, ...args) => {
+        if (typeof logger !== 'undefined') {
+            logger.info(module, ...args);
+        } else {
+            console.log(`[${module.toUpperCase()}]`, ...args);
+        }
+    },
+    debug: (module, ...args) => {
+        if (typeof logger !== 'undefined') {
+            logger.debug(module, ...args);
+        } else {
+            console.log(`[${module.toUpperCase()}]`, ...args);
+        }
+    },
+    error: (module, ...args) => {
+        if (typeof logger !== 'undefined') {
+            logger.error(module, ...args);
+        } else {
+            console.error(`[${module.toUpperCase()}]`, ...args);
+        }
+    }
+};
+
+safeLog.info('general', 'Scripts loading started');
 
 document.addEventListener('DOMContentLoaded', function() {
     document.body.classList.add('page-loaded');
     
-    console.log('📦 Available modules check:');
-    console.log('- LazyLoader:', typeof window.LazyLoader);
-    console.log('- showToast:', typeof window.showToast);
-    console.log('- MisVordAjax:', typeof window.MisVordAjax);
-    
-    function handleLazyLoaderReady() {
-        console.log('✅ LazyLoader is available globally');
+    safeLog.debug('general', 'Available modules check:');
+    safeLog.debug('general', '- LazyLoader:', typeof window.LazyLoader);
+    safeLog.debug('general', '- showToast:', typeof window.showToast);
+    safeLog.debug('general', '- MisVordAjax:', typeof window.MisVordAjax);    function handleLazyLoaderReady() {
+        safeLog.info('ui', 'LazyLoader is available globally');
         
         const lazyElements = document.querySelectorAll('[data-lazyload]');
-        console.log(`Found ${lazyElements.length} elements with data-lazyload attribute:`, 
+        safeLog.debug('ui', `Found ${lazyElements.length} elements with data-lazyload attribute:`, 
             Array.from(lazyElements).map(el => ({
                 type: el.getAttribute('data-lazyload'),
                 hasSkeletonChild: !!el.querySelector('.skeleton-loader'),
@@ -25,17 +47,17 @@ document.addEventListener('DOMContentLoaded', function() {
         handleLazyLoaderReady();
     } else {
         window.addEventListener('MainModulesReady', function(event) {
-            console.log('MainModulesReady event received', event.detail);
+            safeLog.debug('general', 'MainModulesReady event received', event.detail);
             handleLazyLoaderReady();
         });
         
         setTimeout(function() {
             if (window.LazyLoader) {
-                console.log('✅ LazyLoader is available globally (fallback check)');
+                safeLog.info('ui', 'LazyLoader is available globally (fallback check)');
                 handleLazyLoaderReady();
             } else {
-                console.error('❌ LazyLoader is NOT available globally - skeleton loading will not work');
-                console.log('Available global objects:', Object.keys(window).filter(key => key.includes('Lazy') || key.includes('Ajax')));
+                safeLog.error('ui', 'LazyLoader is NOT available globally - skeleton loading will not work');
+                safeLog.debug('ui', 'Available global objects:', Object.keys(window).filter(key => key.includes('Lazy') || key.includes('Ajax')));
             }
         }, 2000);
     }

@@ -23,10 +23,11 @@ class User extends Model {
         $result = $query->table(static::$table)->where('google_id', $googleId)->first();
         return $result ? new static($result) : null;
     }    public function verifyPassword($password) {
-        if (empty($this->password)) {
+        // Use isset and check for null instead of empty() due to magic method behavior
+        if (!isset($this->attributes['password']) || $this->attributes['password'] === null || $this->attributes['password'] === '') {
             return false;
         }
-        return password_verify($password, $this->password);
+        return password_verify($password, $this->attributes['password']);
     }    public function setPassword($password) {
         $this->password = password_hash($password, PASSWORD_DEFAULT);
     }

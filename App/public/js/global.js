@@ -108,7 +108,7 @@ function createRippleEffect(event) {
 
 function initSocketConnection() {
 
-    console.log('Socket functionality disabled');
+    logger.warn('socket', 'Socket functionality disabled');
 }
 
 function connectSocket(socketUrl, userId, username) {

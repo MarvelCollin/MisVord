@@ -13,6 +13,7 @@ require_once __DIR__ . '/../controllers/RoleController.php';
 require_once __DIR__ . '/../controllers/EmojiController.php';
 require_once __DIR__ . '/../controllers/FriendController.php';
 require_once __DIR__ . '/../controllers/UserPresenceController.php';
+require_once __DIR__ . '/../controllers/NitroController.php';
 require_once __DIR__ . '/env.php';
 
 class Route {
@@ -53,6 +54,10 @@ Route::get('/settings', 'pages/settings.php');
 Route::get('/call', 'pages/call.php');
 Route::get('/dev', 'pages/dev.php');
 Route::get('/forgot-password', 'pages/authentication-page.php');
+Route::get('/nitro', function() {
+    $controller = new NitroController();
+    $controller->index();
+});
 Route::get('/404', 'pages/404.php');
 
 Route::post('/login', function() {
@@ -106,13 +111,13 @@ Route::get('/api/servers/([0-9]+)/channels', function($serverId) {
 });
 
 Route::post('/api/servers/create', function() {
-    require_once __DIR__ . '/../controllers/api/ServerController.php';
+    require_once __DIR__ . '/../controllers/ServerController.php';
     $controller = new ServerController();
     return $controller->create();
 });
 
 Route::post('/servers/create', function() {
-    require_once __DIR__ . '/../controllers/api/ServerController.php';
+    require_once __DIR__ . '/../controllers/ServerController.php';
     $controller = new ServerController();
     return $controller->create();
 });

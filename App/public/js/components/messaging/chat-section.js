@@ -1,7 +1,7 @@
  document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 Chat section initializing...');
+    logger.info('messaging', 'Chat section initializing...');
 
-    window.MiscVordDebug = {
+    window.MisVordDebug = {
         initialized: false,
         messagingAvailable: false,
         errors: [],
@@ -14,7 +14,7 @@
                 data: data || {}
             };
             this.logs.push(logEntry);
-            console.log(`[MiscVordDebug] ${message}`, data);
+            console.log(`[MisVordDebug] ${message}`, data);
             if (this.logs.length > 50) this.logs.shift();
         }, 
         error: function(message, error) {
@@ -25,7 +25,7 @@
                 stack: error ? error.stack : 'No stack trace'
             };
             this.errors.push(errorEntry);
-            console.error(`[MiscVordDebug] ${message}`, error);
+            console.error(`[MisVordDebug] ${message}`, error);
             if (this.errors.length > 20) this.errors.shift();
         },
 
@@ -35,7 +35,7 @@
                 messagingAvailable: this.messagingAvailable,
                 socketAvailable: typeof io !== 'undefined',
                 globalSocketManager: !!window.globalSocketManager,
-                miscVordMessaging: !!window.MiscVordMessaging,
+                MisVordMessaging: !!window.MisVordMessaging,
                 recentErrors: this.errors.slice(-5),
                 recentLogs: this.logs.slice(-10)
             };
@@ -46,7 +46,7 @@
     const characterCount = document.querySelector('.character-count');
     const sendButton = document.getElementById('send-button');
 
-    window.MiscVordDebug.log('Chat elements check', {
+    window.MisVordDebug.log('Chat elements check', {
         messageInput: !!messageInput,
         characterCount: !!characterCount,
         sendButton: !!sendButton,
@@ -55,7 +55,7 @@
     });
 
     if (messageInput && sendButton) {
-        window.MiscVordDebug.log('Message input and send button found');
+        window.MisVordDebug.log('Message input and send button found');
 
         messageInput.addEventListener('input', function(e) {
             this.style.height = 'auto';
@@ -75,10 +75,10 @@
         sendButton.disabled = true;
         setTimeout(() => {
             messageInput.focus();
-            window.MiscVordDebug.log('Message input focused');
+            window.MisVordDebug.log('Message input focused');
         }, 500);
     } else {
-        window.MiscVordDebug.error('Critical elements missing', {
+        window.MisVordDebug.error('Critical elements missing', {
             messageInput: !!messageInput,
             sendButton: !!sendButton
         });
@@ -94,7 +94,7 @@
     const userId = getMeta('user-id');
     const username = getMeta('username');
 
-    window.MiscVordDebug.log('Socket connection data', { channelId, userId, username });
+    window.MisVordDebug.log('Socket connection data', { channelId, userId, username });
 
     const socketData = document.createElement('div');
     socketData.id = 'socket-data';
@@ -103,14 +103,14 @@
     socketData.setAttribute('data-username', username);
     socketData.style.display = 'none';
     document.body.appendChild(socketData);
-    window.MiscVordDebug.log('Socket data element created and added to DOM');
+    window.MisVordDebug.log('Socket data element created and added to DOM');
 
     if (typeof io !== 'undefined') {
-        window.MiscVordDebug.log('Socket.IO is available');
+        window.MisVordDebug.log('Socket.IO is available');
         
-        window.addEventListener('miscVordGlobalReady', function(event) {
-            window.MiscVordDebug.log('Global socket manager is ready:', event.detail);
-            window.MiscVordDebug.initialized = true;
+        window.addEventListener('MisVordGlobalReady', function(event) {
+            window.MisVordDebug.log('Global socket manager is ready:', event.detail);
+            window.MisVordDebug.initialized = true;
             
             // Update status indicator
             const socketStatus = document.querySelector('.socket-status');
@@ -120,8 +120,8 @@
         });
 
         if (window.globalSocketManager) {
-            window.MiscVordDebug.log('Global socket manager already available');
-            window.MiscVordDebug.initialized = true;
+            window.MisVordDebug.log('Global socket manager already available');
+            window.MisVordDebug.initialized = true;
             
             const socketStatus = document.querySelector('.socket-status');
             if (socketStatus && window.globalSocketManager.isReady()) {
@@ -130,7 +130,7 @@
         }
 
     } else {
-        window.MiscVordDebug.error('Socket.IO not available - messaging disabled');
+        window.MisVordDebug.error('Socket.IO not available - messaging disabled');
 
         const socketStatus = document.querySelector('.socket-status');
         if (socketStatus) {
@@ -149,7 +149,7 @@
         if (hasMessages) {
             setTimeout(() => {
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                window.MiscVordDebug.log('Auto-scrolled to bottom on page load');
+                window.MisVordDebug.log('Auto-scrolled to bottom on page load');
             }, 100);
         }
 
@@ -166,5 +166,5 @@
         });
     }
 
-    window.MiscVordDebug.log('Chat section initialization complete');
+    window.MisVordDebug.log('Chat section initialization complete');
 }); 

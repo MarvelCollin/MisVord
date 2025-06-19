@@ -1,7 +1,3 @@
-/**
- * Toast notification system
- */
-
 let toastContainer = null;
 
 function createToastContainer() {
@@ -42,19 +38,16 @@ export function showToast(message, type = 'info', duration = 5000) {
         </div>
     `;
     
-    // Add close functionality
     const closeBtn = toast.querySelector('.toast-close');
     closeBtn.addEventListener('click', () => removeToast(toast));
     
     container.appendChild(toast);
     
-    // Animate in
     setTimeout(() => {
         toast.classList.add('translate-x-0');
         toast.classList.remove('translate-x-full');
     }, 10);
     
-    // Auto remove after duration
     if (duration > 0) {
         setTimeout(() => removeToast(toast), duration);
     }

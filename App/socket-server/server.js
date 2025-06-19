@@ -214,7 +214,7 @@ const server = http.createServer(app);
 const PORT = process.env.SOCKET_PORT || 1002;
 const BASE_PATH = process.env.SOCKET_BASE_PATH || '/socket.io';
 const SUBPATH = process.env.SOCKET_SUBPATH || '';
-const CORS_ALLOWED_ORIGINS = (process.env.CORS_ALLOWED_ORIGINS || 'http:
+const CORS_ALLOWED_ORIGINS = (process.env.CORS_ALLOWED_ORIGINS || 'http://localhost:1001');
 
 const dbConfig = {
   host: process.env.DB_HOST || 'localhost', 

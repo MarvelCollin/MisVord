@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     initializeServerModals();
 
-    console.log('Server page JS initialized');
+    logger.info('server', 'Server page JS initialized');
 });
 
 function initializeChannelClickHandlers() {

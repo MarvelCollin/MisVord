@@ -1,26 +1,24 @@
 import { showToast } from '../core/ui/toast.js';
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log("Accept Invite page loaded");
+    logger.info('general', "Accept Invite page loaded");
 
     const inviteCode = window.location.pathname.split('/').pop();
-    console.log("Invite code from URL:", inviteCode);
+    logger.debug('general', "Invite code from URL:", inviteCode);
 
-    const joinServerBtn = document.getElementById('join-server-btn');
-
-    if (joinServerBtn) {
-        console.log("Join server button found");
+    const joinServerBtn = document.getElementById('join-server-btn');    if (joinServerBtn) {
+        logger.debug('general', "Join server button found");
 
         joinServerBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            console.log("Join server button clicked");
+            logger.info('general', "Join server button clicked");
 
             joinServerBtn.textContent = 'Joining...';
             joinServerBtn.disabled = true;
 
             showToast('Joining server...', 'info');
 
-            console.log("Sending request to join server with code:", inviteCode);
+            logger.debug('general', "Sending request to join server with code:", inviteCode);
 
             fetch(`/api/servers/join/${inviteCode}`, {
                 method: 'POST',
@@ -28,25 +26,24 @@ document.addEventListener('DOMContentLoaded', function() {
                     'Content-Type': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest'
                 }
-            })
-            .then(response => {
-                console.log("Response received:", response.status);
+            })            .then(response => {
+                logger.debug('ajax', "Response received:", response.status);
 
                 const contentType = response.headers.get('content-type');
                 if (contentType && contentType.includes('application/json')) {
                     if (!response.ok) {
-                        console.error("Error response:", response.status);
+                        logger.error('ajax', "Error response:", response.status);
                         throw new Error('Failed to join server');
                     }
                     return response.json();
                 } else {
-                    console.log("Non-JSON response, likely a redirect. Following it...");
+                    logger.debug('ajax', "Non-JSON response, likely a redirect. Following it...");
                     window.location.href = response.url;
                     throw new Error('redirect_handled');
                 }
             })
             .then(data => {
-                console.log("Parsed response data:", data);
+                logger.debug('ajax', "Parsed response data:", data);
 
                 if (data.success) {
 
@@ -78,8 +75,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 showToast(error.message || 'Failed to join server. Please try again.', 'error');
             });
-        });
-    } else {
-        console.log("Join server button not found - user might not be logged in");
+        });    } else {
+        logger.warn('general', "Join server button not found - user might not be logged in");
     }
 });

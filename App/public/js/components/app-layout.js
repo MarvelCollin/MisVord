@@ -100,7 +100,6 @@ function loadFriendsForDM() {
     
     if (!friendsList) return;
     
-    // Show skeleton loaders
     friendsList.innerHTML = generateSkeletonItems(5);
     
     fetch('/api/friends')
@@ -283,7 +282,6 @@ function loadAllFriends() {
     const container = document.getElementById('all-friends-container');
     if (!container) return;
     
-    // Show skeleton loaders
     container.innerHTML = generateSkeletonFriends(5);
     
     fetch('/api/friends')
@@ -369,7 +367,6 @@ function loadPendingRequests() {
     const pendingContainer = document.getElementById('pending-requests');
     if (!pendingContainer) return;
 
-    // Show skeleton loader
     pendingContainer.innerHTML = generateSkeletonPending();
     
     fetch('/api/friends/pending')
@@ -504,7 +501,6 @@ function loadBlockedUsers() {
     const container = document.getElementById('blocked-users-container');
     if (!container) return;
     
-    // Show skeleton loader
     container.innerHTML = generateSkeletonItems(3);
     
     fetch('/api/users/blocked')

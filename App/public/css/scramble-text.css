@@ -271,7 +271,6 @@
     }
 }
 
-/* Add a persistent highlight effect to make characters more noticeable */
 .hero-section .scramble-char.revealed {
     position: relative;
 }

@@ -32,36 +32,28 @@ export class GlobalSocketManager {
         this.isGuest = false;
 
         // Safely assign to window, checking if it's already defined
-        if (!window.GlobalSocketManager || typeof window.GlobalSocketManager !== 'function') {
-            try {
+        if (!window.GlobalSocketManager || typeof window.GlobalSocketManager !== 'function') {            try {
                 window.GlobalSocketManager = this;
-                this.log('✅ GlobalSocketManager instance created and registered globally');
+                logger.debug('socket', 'GlobalSocketManager instance created and registered globally');
             } catch (error) {
-                this.log('⚠️ Could not assign to window.GlobalSocketManager (read-only), but instance created');
+                logger.warn('socket', 'Could not assign to window.GlobalSocketManager (read-only), but instance created');
             }
         } else {
-            this.log('⚠️ GlobalSocketManager already exists on window, using new instance');
+            logger.warn('socket', 'GlobalSocketManager already exists on window, using new instance');
         }
-    }
-
-    log(...args) {
-        if (this.debug) {
-            console.log('[GlobalSocketManager]', ...args);
-        }
+    }    log(...args) {
+        logger.debug('socket', ...args);
     }
 
     error(...args) {
-        console.error('[GlobalSocketManager]', ...args);
+        logger.error('socket', ...args);
     }
 
-    init(userData = null) {
-        if (this.initialized) {
-            this.log('🔄 Already initialized, skipping duplicate initialization');
+    init(userData = null) {        if (this.initialized) {
+            logger.debug('socket', 'Already initialized, skipping duplicate initialization');
             return;
-        }
-
-        if (!userData || !userData.user_id) {
-            this.log('👤 Guest user detected, socket connection disabled');
+        }if (!userData || !userData.user_id) {
+            logger.info('socket', 'Guest user detected, socket connection disabled');
             this.isGuest = true;
             return;
         }
@@ -69,7 +61,7 @@ export class GlobalSocketManager {
         this.userId = userData.user_id;
         this.username = userData.username;
 
-        this.log('🚀 Initializing global WebSocket connection for user:', this.username);
+        logger.info('socket', 'Initializing global WebSocket connection for user:', this.username);
         this.logSystemInfo();
 
         try {
@@ -433,12 +425,10 @@ export class GlobalSocketManager {
         this.activityLog.push(activityData);
         this.log('🏃 Activity tracked:', activityData);
 
-        // Keep only last 100 activities
         if (this.activityLog.length > 100) {
             this.activityLog.shift();
         }
 
-        // Send to server if connected
         if (this.socket && this.connected && this.authenticated) {
             this.socket.emit('user-activity', activityData);
         }
@@ -539,9 +529,6 @@ export class GlobalSocketManager {
         this.error('🔴 Error tracked:', errorInfo);
     }
 
-    /**
-     * Log system information
-     */
     logSystemInfo() {
         this.log('📊 System Information:', {
             userAgent: navigator.userAgent,
@@ -553,9 +540,6 @@ export class GlobalSocketManager {
         });
     }
 
-    /**
-     * Get current status
-     */
     getStatus() {
         return {
             initialized: this.initialized,

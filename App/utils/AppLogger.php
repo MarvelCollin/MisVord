@@ -2,7 +2,7 @@
 
 /**
  * Application Logger
- * Provides centralized logging for the MiscVord application
+ * Provides centralized logging for the MisVord application
  * Supports multiple log levels and outputs to both file and display
  */
 class AppLogger {

@@ -35,42 +35,35 @@ class MisVordMessaging {
 
         // Wait for global socket manager to be ready
         this.globalSocketManager = null;
-        this.waitingForGlobalSocket = false;
-
-        window.MisVordMessaging = this;
-        this.log('✅ MisVordMessaging instance created and registered globally (using global socket manager)');
+        this.waitingForGlobalSocket = false;        window.MisVordMessaging = this;
+        logger.debug('messaging', 'MisVordMessaging instance created and registered globally (using global socket manager)');
     }
 
     log(...args) {
-        if (this.debug) {
-            console.log('[MisVordMessaging]', ...args);
-        }
+        logger.debug('messaging', ...args);
     }
 
     error(...args) {
-        console.error('[MisVordMessaging]', ...args);
-    }    init() {
-        if (this.initialized) {
-            this.log('🔄 Already initialized, skipping duplicate initialization');
+        logger.error('messaging', ...args);
+    }init() {        if (this.initialized) {
+            logger.debug('messaging', 'Already initialized, skipping duplicate initialization');
             return;
         }
         
-        // Check if we're in a voice channel - if so, don't initialize messaging
         if (this.isVoiceChannel()) {
-            this.log('🎙️ Voice channel detected, skipping messaging initialization');
+            logger.debug('messaging', 'Voice channel detected, skipping messaging initialization');
             return;
         }
 
-        // Check if required messaging elements exist before initializing
         const messageContainer = document.getElementById('chat-messages');
         const messageForm = document.getElementById('message-form');
         
         if (!messageContainer && !messageForm) {
-            this.log('ℹ️ No messaging elements found, skipping messaging initialization');
+            logger.debug('messaging', 'No messaging elements found, skipping messaging initialization');
             return;
         }
 
-        this.log('🚀 Initializing messaging system with global socket manager...');
+        logger.info('messaging', 'Initializing messaging system with global socket manager...');
         this.logSystemInfo();
 
         try {

@@ -1,6 +1,6 @@
 <?php
 // 404 Page
-$page_title = 'MiscVord - Page Not Found';
+$page_title = 'MisVord - Page Not Found';
 $body_class = 'bg-discord-dark text-white flex flex-col h-screen';
 
 // Set up content for layout

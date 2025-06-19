@@ -32,12 +32,14 @@ if (file_exists($tooltipPath)) {
             <span class="font-medium">Friends</span>
         </div>
 
-        <div class="flex items-center p-2 rounded hover:bg-discord-light text-discord-lighter hover:text-white cursor-pointer mt-1 relative">
-            <div class="w-8 h-8 rounded-full bg-discord-background flex items-center justify-center mr-3">
-                <i class="fas fa-gift"></i>
+        <a href="/nitro" class="block w-full">
+            <div class="flex items-center p-2 rounded hover:bg-discord-light text-discord-lighter hover:text-white cursor-pointer mt-1 relative">
+                <div class="w-8 h-8 rounded-full bg-discord-background flex items-center justify-center mr-3">
+                    <i class="fas fa-gift"></i>
+                </div>
+                <span class="font-medium">Nitro</span>
             </div>
-            <span class="font-medium">Nitro</span>
-        </div>
+        </a>
     </div>
 
     <div class="px-4 mt-1 flex items-center justify-between">

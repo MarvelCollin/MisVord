@@ -84,7 +84,7 @@ $additional_js[] = 'components/app-layout';
                     <div class="tab-content hidden" id="add-friend-tab">
                         <div class="flex-1 p-4 overflow-y-auto bg-discord-background">
                             <h2 class="text-white font-bold text-lg mb-2">Add Friend</h2>
-                            <p class="text-gray-400 text-sm mb-4">You can add friends with their MiscVord username.</p>
+                            <p class="text-gray-400 text-sm mb-4">You can add friends with their MisVord username.</p>
                             
                             <div class="bg-discord-dark p-3 rounded">
                                 <div class="border-b border-gray-700 pb-4">

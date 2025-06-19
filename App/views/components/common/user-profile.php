@@ -17,7 +17,7 @@ if ($hasTooltip) {
 <div class="p-2 bg-discord-darker flex items-center mt-auto">
     <div class="relative">        <?php if ($hasTooltip): ?>
             <?php
-                $userAvatar = ($currentUser && isset($currentUser->avatar_url)) ? $currentUser->avatar_url : 'https://ui-avatars.com/api/?name=' . urlencode(($currentUser && isset($currentUser->username)) ? $currentUser->username : ($_SESSION['username'] ?? 'U')) . '&background=random';
+                $userAvatar = ($currentUser && isset($currentUser->avatar_url) && $currentUser->avatar_url) ? $currentUser->avatar_url : asset('/common/main-logo.png');
                 $userName = ($currentUser && isset($currentUser->username)) ? $currentUser->username : ($_SESSION['username'] ?? 'User');
                 $userDiscriminator = ($currentUser && isset($currentUser->discriminator)) ? $currentUser->discriminator : ($_SESSION['discriminator'] ?? '0000');
                 
@@ -29,7 +29,7 @@ if ($hasTooltip) {
                 echo tooltip($userAvatarContent, htmlspecialchars($userName) . '#' . htmlspecialchars($userDiscriminator), 'top');
             ?>        <?php else: ?>
             <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden mr-2">
-                <img src="<?php echo ($currentUser && isset($currentUser->avatar_url)) ? htmlspecialchars($currentUser->avatar_url) : 'https://ui-avatars.com/api/?name=' . urlencode(($currentUser && isset($currentUser->username)) ? $currentUser->username : ($_SESSION['username'] ?? 'U')) . '&background=random'; ?>" 
+                <img src="<?php echo ($currentUser && isset($currentUser->avatar_url) && $currentUser->avatar_url) ? htmlspecialchars($currentUser->avatar_url) : asset('/common/main-logo.png'); ?>" 
                      alt="Avatar" class="w-full h-full object-cover">
             </div>
         <?php endif; ?>

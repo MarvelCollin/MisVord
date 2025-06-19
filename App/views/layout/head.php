@@ -3,14 +3,14 @@ if (!function_exists('css')) {
     require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
 }
 
-$page_title = $page_title ?? $title ?? 'MiscVord';
+$page_title = $page_title ?? $title ?? 'MisVord';
 $page_description = $page_description ?? 'A modern Discord-like communication platform';
 $cache_version = time();
 ?>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="<?php echo htmlspecialchars($page_description); ?>">
-<meta name="author" content="MiscVord Team">
+<meta name="author" content="MisVord Team">
 <meta name="robots" content="index, follow">
 
 <?php if (isset($_SESSION['user_id'])): ?>

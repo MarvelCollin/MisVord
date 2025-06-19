@@ -3,13 +3,21 @@ import * as Components from './components/index.js';
 import * as Utils from './utils/index.js';
 import { LazyLoader } from './utils/lazy-loader.js';
 
+if (typeof window !== 'undefined' && !window.logger) {
+    window.logger = {
+        info: (...args) => console.log('[INFO]', ...args),
+        debug: (...args) => console.log('[DEBUG]', ...args),
+        warn: (...args) => console.warn('[WARN]', ...args),
+        error: (...args) => console.error('[ERROR]', ...args)
+    };
+}
+
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('MisVord application initialized');
+    logger.info('general', 'MisVord application initialized');
 
     window.showToast = showToast;
     window.MisVordAjax = MisVordAjax;
       if (LazyLoader) {
-        // Merge the imported LazyLoader with the global one
         window.LazyLoader = Object.assign(window.LazyLoader || {}, LazyLoader);
         window.LazyLoader.init();
     }
@@ -115,56 +123,36 @@ window.misvord = {
     autosizeTextarea
 };
 
-/**
- * Initialize the global socket manager for real-time features
- * This will be called on every page load to establish WebSocket connection
- * for authenticated users and track all user activity globally
- */
 function initGlobalSocketManager() {
-    console.log('🌐 Initializing global socket manager...');
+    logger.info('socket', 'Initializing global socket manager...');
 
-    // Get user data from the page
     const userData = getUserDataFromPage();
     
     if (userData && userData.user_id) {
-        console.log('👤 User authenticated, initializing socket connection for:', userData.username);
+        logger.info('socket', 'User authenticated, initializing socket connection for:', userData.username);
         
-        // Create global socket manager instance
         const socketManager = new GlobalSocketManager();
         
-        // Initialize with user data
         socketManager.init(userData);
         
-        // Make it available globally for other components
         window.globalSocketManager = socketManager;
-        
-        // Listen for global socket events
-        window.addEventListener('globalSocketReady', function(event) {
-            console.log('✅ Global socket manager ready:', event.detail);
+          window.addEventListener('globalSocketReady', function(event) {
+            logger.info('socket', 'Global socket manager ready:', event.detail);
             
-            // Dispatch custom event for other components
             window.dispatchEvent(new CustomEvent('misVordGlobalReady', {
                 detail: { socketManager: event.detail.manager }
             }));
-        });
+        });    } else {
+        logger.info('socket', 'Guest user detected, socket connection disabled');
         
-    } else {
-        console.log('👤 Guest user detected, socket connection disabled');
-        
-        // Still create a minimal instance for API compatibility, but it won't connect
         const socketManager = new GlobalSocketManager();
         window.globalSocketManager = socketManager;
     }
 }
 
-/**
- * Extract user data from the current page
- * This looks for user data in various places (meta tags, data attributes, etc.)
- */
 function getUserDataFromPage() {
     let userData = null;
     
-    // Method 1: Look for data attributes on body or html
     const bodyUserId = document.body.getAttribute('data-user-id');
     const bodyUsername = document.body.getAttribute('data-username');
     
@@ -175,7 +163,6 @@ function getUserDataFromPage() {
         };
     }
     
-    // Method 2: Look for meta tags
     if (!userData) {
         const userIdMeta = document.querySelector('meta[name="user-id"]');
         const usernameMeta = document.querySelector('meta[name="username"]');
@@ -188,7 +175,6 @@ function getUserDataFromPage() {
         }
     }
     
-    // Method 3: Look for hidden inputs or data elements
     if (!userData) {
         const socketData = document.getElementById('socket-data');
         if (socketData) {
@@ -204,7 +190,6 @@ function getUserDataFromPage() {
         }
     }
     
-    // Method 4: Look for hidden form inputs
     if (!userData) {
         const userIdInput = document.querySelector('input[data-user-id]');
         const usernameInput = document.querySelector('input[data-username]');
@@ -215,9 +200,8 @@ function getUserDataFromPage() {
                 username: usernameInput.getAttribute('data-username')
             };
         }
-    }
-    
-    console.log('🔍 User data extracted from page:', userData);
+    }    
+    logger.debug('general', 'User data extracted from page:', userData);
     return userData;
 }
 
