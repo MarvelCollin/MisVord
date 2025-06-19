@@ -5,6 +5,7 @@ class CreateUsersTableMigration {
         $migration->createTable('users', function($table) {
             $table->id();
             $table->string('username');
+            $table->string('discriminator', 4);
             $table->string('email');
             $table->string('password');
             $table->string('google_id', 255, true); 

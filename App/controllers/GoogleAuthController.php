@@ -199,9 +199,9 @@ class GoogleAuthController
                 $userData = [
                     'username' => $name ?? $email,
                     'email' => $email,
+                    'discriminator' => User::generateDiscriminator(),
                     'google_id' => $googleId,
-                    'avatar_url' => $picture,
-                    'status' => 'online'
+                    'avatar_url' => $picture
                 ];
 
                 $user = $this->userRepository->create($userData);
@@ -221,9 +221,9 @@ class GoogleAuthController
 
         $_SESSION['user_id'] = $user->id;
         $_SESSION['username'] = $user->username;
+        $_SESSION['discriminator'] = $user->discriminator;
         $_SESSION['avatar_url'] = $user->avatar_url;
 
-        $user->status = 'online';
         $user->save();
 
         error_log("User authenticated successfully: user_id={$user->id}, username={$user->username}");

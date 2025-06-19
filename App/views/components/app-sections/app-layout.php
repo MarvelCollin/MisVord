@@ -10,6 +10,7 @@ $additional_js[] = 'components/app-layout';
 <div class="flex h-screen" 
      data-user-id="<?php echo htmlspecialchars($_SESSION['user_id']); ?>" 
      data-username="<?php echo htmlspecialchars($_SESSION['username']); ?>"
+     data-discriminator="<?php echo htmlspecialchars($_SESSION['discriminator'] ?? '0000'); ?>"
      id="app-container">
 
     <?php include dirname(__DIR__) . '/app-sections/server-sidebar.php'; ?>

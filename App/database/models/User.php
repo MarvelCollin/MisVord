@@ -4,7 +4,7 @@ require_once __DIR__ . '/Model.php';
 
 class User extends Model {
     protected static $table = 'users';
-    protected $fillable = ['id', 'username', 'email', 'password', 'google_id', 'avatar_url', 'status', 'created_at', 'updated_at'];
+    protected $fillable = ['id', 'username', 'discriminator', 'email', 'password', 'google_id', 'avatar_url', 'status', 'created_at', 'updated_at'];
     
     public static function findByEmail($email) {
         $query = new Query();
@@ -69,6 +69,14 @@ class User extends Model {
 
         return array_merge($friends1, $friends2);
     }
+    
+    public function getDisplayName() {
+        return $this->username . '#' . $this->discriminator;
+    }
+    
+    public static function generateDiscriminator() {
+        return str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
+    }
 
     public static function createTable() {
         $query = new Query();
@@ -79,7 +87,8 @@ class User extends Model {
             if (!$tableExists) {                $query->raw("
                     CREATE TABLE IF NOT EXISTS users (
                         id INT AUTO_INCREMENT PRIMARY KEY,
-                        username VARCHAR(255) UNIQUE NOT NULL,
+                        username VARCHAR(255) NOT NULL,
+                        discriminator VARCHAR(4) NOT NULL,
                         email VARCHAR(255) UNIQUE NOT NULL,
                         password VARCHAR(255),
                         avatar_url VARCHAR(500),

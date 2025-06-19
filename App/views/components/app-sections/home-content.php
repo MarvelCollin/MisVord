@@ -70,7 +70,7 @@ $onlineFriends = $GLOBALS['onlineFriends'] ?? [];
                                 <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-background <?php echo $statusColor; ?>"></span>
                             </div>
                             <div>
-                                <div class="font-medium text-white"><?php echo htmlspecialchars($friend['username']); ?></div>
+                                <div class="font-medium text-white"><?php echo htmlspecialchars($friend['username']); ?><?php if (isset($friend['discriminator'])): ?><span class="text-gray-400 text-xs ml-1">#<?php echo htmlspecialchars($friend['discriminator']); ?></span><?php endif; ?></div>
                                 <div class="text-xs text-gray-400"><?php echo htmlspecialchars($statusText); ?></div>
                             </div>
                         </div>

@@ -203,8 +203,17 @@ class FriendController extends BaseController
 
             $currentUser = $this->userRepository->find($currentUserId);
 
-            $friends = [];
+            $friends = $this->friendListRepository->getUserFriends($currentUserId);
             $onlineFriends = [];
+            
+            foreach ($friends as &$friend) {
+                $presence = $this->userPresenceRepository->findByUserId($friend['id']);
+                $friend['status'] = $presence ? $presence->status : 'offline';
+                
+                if ($friend['status'] !== 'offline') {
+                    $onlineFriends[] = $friend;
+                }
+            }
 
             $this->logActivity('friends_data_retrieved');
             return [

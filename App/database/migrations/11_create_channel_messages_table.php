@@ -5,12 +5,12 @@ class CreateChannelMessagesTableMigration {
         
         $migration->createTable('channel_messages', function($table) {
             $table->id();
-            $table->integer('channel_id')->notNull();
-            $table->integer('message_id')->notNull();
+            $table->integer('channel_id');
+            $table->integer('message_id');
             $table->timestamps();
-            $table->unique(['channel_id', 'message_id'], 'unique_channel_message');
         });
         
+        $migration->raw("ALTER TABLE channel_messages ADD CONSTRAINT unique_channel_message UNIQUE (channel_id, message_id)");
         
         $migration->alterTable('channel_messages', function($table) {
             $table->foreignKey('channel_id', 'channels', 'id', 'CASCADE');

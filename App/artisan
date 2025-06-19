@@ -8,7 +8,7 @@
 
 // Define constants
 define('APP_ROOT', __DIR__);
-define('MIGRATIONS_PATH', __DIR__ . '/migrations');
+define('MIGRATIONS_PATH', __DIR__ . '/database/migrations');
 
 // Include necessary files
 require_once __DIR__ . '/config/helpers.php';

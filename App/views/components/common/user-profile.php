@@ -19,13 +19,14 @@ if ($hasTooltip) {
             <?php
                 $userAvatar = ($currentUser && isset($currentUser->avatar_url)) ? $currentUser->avatar_url : 'https://ui-avatars.com/api/?name=' . urlencode(($currentUser && isset($currentUser->username)) ? $currentUser->username : ($_SESSION['username'] ?? 'U')) . '&background=random';
                 $userName = ($currentUser && isset($currentUser->username)) ? $currentUser->username : ($_SESSION['username'] ?? 'User');
+                $userDiscriminator = ($currentUser && isset($currentUser->discriminator)) ? $currentUser->discriminator : ($_SESSION['discriminator'] ?? '0000');
                 
                 $userAvatarContent = '<div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden mr-2">
                     <img src="' . htmlspecialchars($userAvatar) . '" 
                          alt="Avatar" class="w-full h-full object-cover">
                 </div>';
                 
-                echo tooltip($userAvatarContent, htmlspecialchars($userName), 'top');
+                echo tooltip($userAvatarContent, htmlspecialchars($userName) . '#' . htmlspecialchars($userDiscriminator), 'top');
             ?>        <?php else: ?>
             <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden mr-2">
                 <img src="<?php echo ($currentUser && isset($currentUser->avatar_url)) ? htmlspecialchars($currentUser->avatar_url) : 'https://ui-avatars.com/api/?name=' . urlencode(($currentUser && isset($currentUser->username)) ? $currentUser->username : ($_SESSION['username'] ?? 'U')) . '&background=random'; ?>" 
@@ -51,7 +52,7 @@ if ($hasTooltip) {
     
     <div class="flex-1">
         <div class="text-sm text-white font-medium truncate"><?php echo htmlspecialchars(($currentUser && isset($currentUser->username)) ? $currentUser->username : ($_SESSION['username'] ?? 'User')); ?></div>
-        <div class="text-xs text-discord-lighter truncate">#<?php echo htmlspecialchars($_SESSION['tag'] ?? rand(1000, 9999)); ?></div>
+        <div class="text-xs text-discord-lighter truncate">#<?php echo htmlspecialchars($_SESSION['discriminator'] ?? rand(1000, 9999)); ?></div>
     </div>
     
     <div class="flex space-x-1">

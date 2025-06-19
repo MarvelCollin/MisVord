@@ -495,7 +495,7 @@ class MigrationRunner {
 
         $this->pdo = $pdo;
         $this->migration = new Migration($pdo);
-        $this->migrationsPath = $migrationsPath ?? $basePath . '/migrations';
+        $this->migrationsPath = $migrationsPath ?? $basePath . '/database/migrations';
     }    public function run() {
         $this->migration->createMigrationTable();
         echo "- Migration tracking table ready\n";

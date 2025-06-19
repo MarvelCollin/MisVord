@@ -437,4 +437,30 @@ class BaseController
             return false;
         }
     }
+
+    protected function notifyUserOnline($userId)
+    {
+        require_once __DIR__ . '/../database/repositories/UserPresenceRepository.php';
+        $presenceRepo = new UserPresenceRepository();
+        $presenceRepo->updateStatus($userId, 'online');
+        
+        $this->broadcastViaSocket('user-status-change', [
+            'user_id' => $userId,
+            'status' => 'online',
+            'timestamp' => date('Y-m-d H:i:s')
+        ]);
+    }
+    
+    protected function notifyUserOffline($userId)
+    {
+        require_once __DIR__ . '/../database/repositories/UserPresenceRepository.php';
+        $presenceRepo = new UserPresenceRepository();
+        $presenceRepo->updateStatus($userId, 'offline');
+        
+        $this->broadcastViaSocket('user-status-change', [
+            'user_id' => $userId,
+            'status' => 'offline',
+            'timestamp' => date('Y-m-d H:i:s')
+        ]);
+    }
 }

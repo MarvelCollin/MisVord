@@ -80,11 +80,10 @@ class AuthenticationController extends BaseController
 
         $_SESSION['user_id'] = $user->id;
         $_SESSION['username'] = $user->username;
+        $_SESSION['discriminator'] = $user->discriminator;
         $_SESSION['avatar_url'] = $user->avatar_url;
 
-        $user->status = 'online';
-        $user->save();
-
+        $this->notifyUserOnline($user->id);
         $this->logActivity('login_success', ['user_id' => $user->id]);
 
         $redirect = $this->getRedirectUrl();        if ($this->isApiRoute() || $this->isAjaxRequest()) {
@@ -92,6 +91,7 @@ class AuthenticationController extends BaseController
                 'user' => [
                     'id' => $user->id,
                     'username' => $user->username,
+                    'discriminator' => $user->discriminator,
                     'avatar_url' => $user->avatar_url
                 ],
                 'redirect' => $redirect
@@ -190,24 +190,27 @@ class AuthenticationController extends BaseController
             $user->username = $username;
             $user->email = $email;
             $user->setPassword($password);
-            $user->status = 'online';
+            $user->discriminator = User::generateDiscriminator();
 
             $this->logActivity('registration_attempt', ['username' => $username, 'email' => $email]);
 
             if ($user->save()) {
                 $_SESSION['user_id'] = $user->id;
                 $_SESSION['username'] = $user->username;
+                $_SESSION['discriminator'] = $user->discriminator;
                 $_SESSION['avatar_url'] = $user->avatar_url;
 
+                $this->notifyUserOnline($user->id);
                 $this->logActivity('registration_success', ['user_id' => $user->id]);
 
                 $redirect = $this->getRedirectUrl();
 
                 if ($this->isApiRoute() || $this->isAjaxRequest()) {
-                    return $this->success([
+                                            return $this->success([
                         'user' => [
                             'id' => $user->id,
                             'username' => $user->username,
+                            'discriminator' => $user->discriminator,
                             'avatar_url' => $user->avatar_url
                         ],
                         'redirect' => $redirect                    ], 'Registration successful');
@@ -246,15 +249,7 @@ class AuthenticationController extends BaseController
     {
         $userId = $this->getCurrentUserId();
         if ($userId) {
-            try {
-                $user = $this->userRepository->find($userId);
-                if ($user) {
-                    $user->status = 'offline';
-                    $user->save();
-                }
-            } catch (Exception $e) {
-                $this->logActivity('logout_error', ['error' => $e->getMessage()]);
-            }
+            $this->notifyUserOffline($userId);
         }
 
         $this->logActivity('logout', ['user_id' => $userId]);
@@ -338,21 +333,23 @@ class AuthenticationController extends BaseController
                 $user = new User();
                 $user->email = $email;
                 $user->username = $this->generateUniqueUsername($name ?? $email);
+                $user->discriminator = User::generateDiscriminator();
                 $user->google_id = $googleId;
-                $user->status = 'online';
                 $user->save();
 
+                $this->notifyUserOnline($user->id);
                 $this->logActivity('google_registration', ['user_id' => $user->id, 'email' => $email]);
             } else {
                 $user->google_id = $googleId;
-                $user->status = 'online';
                 $user->save();
 
+                $this->notifyUserOnline($user->id);
                 $this->logActivity('google_login', ['user_id' => $user->id]);
             }
 
             $_SESSION['user_id'] = $user->id;
             $_SESSION['username'] = $user->username;
+            $_SESSION['discriminator'] = $user->discriminator;
             $_SESSION['avatar_url'] = $user->avatar_url;
 
             $redirect = $this->getRedirectUrl();
@@ -362,6 +359,7 @@ class AuthenticationController extends BaseController
                     'user' => [
                         'id' => $user->id,
                         'username' => $user->username,
+                        'discriminator' => $user->discriminator,
                         'avatar_url' => $user->avatar_url
                     ],
                     'redirect' => $redirect
