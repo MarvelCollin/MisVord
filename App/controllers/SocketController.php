@@ -106,22 +106,62 @@ class SocketController extends BaseController {
     public function broadcastToChannel($channelId, $event, $data) {
         return $this->broadcastToRoom('channel-' . $channelId, $event, $data);
     }
-    
-    public function updateUserStatus($userId, $status, $activityDetails = null) {
-        $currentTime = new DateTime();
-        $timestamp = $currentTime->format('Y-m-d H:i:s');
-        
-        $data = [
-            'user_id' => $userId,
-            'status' => $status,
-            'timestamp' => $timestamp
-        ];
-        
-        if ($activityDetails !== null) {
-            $data['activity_details'] = $activityDetails;
+      public function updateUserStatus($userId, $status, $activityDetails = null) {
+        if (!$this->isSocketEnabled()) {
+            return false;
         }
-        
-        return $this->broadcast('user-status-changed', $data);
+
+        try {
+            $result = $this->socketClient->updateUserPresence($userId, $status, $activityDetails);
+            $this->logSocketEvent('update-user-status', [
+                'userId' => $userId,
+                'status' => $status,
+                'success' => $result
+            ]);
+            return $result;
+        } catch (Exception $e) {
+            $this->logSocketError('update-user-status', $e, [
+                'userId' => $userId,
+                'status' => $status
+            ]);
+            return false;
+        }
+    }
+
+    public function getOnlineUsers() {
+        if (!$this->isSocketEnabled()) {
+            return [];
+        }
+
+        try {
+            $result = $this->socketClient->getOnlineUsers();
+            $this->logSocketEvent('get-online-users', [
+                'success' => $result !== false
+            ]);
+            return $result ? $result['users'] : [];        } catch (Exception $e) {
+            $this->logSocketError('get-online-users', $e, []);
+            return [];
+        }
+    }
+
+    public function getUserPresence($userId) {
+        if (!$this->isSocketEnabled()) {
+            return null;
+        }
+
+        try {
+            $result = $this->socketClient->getUserPresence($userId);
+            $this->logSocketEvent('get-user-presence', [
+                'userId' => $userId,
+                'success' => $result !== false
+            ]);
+            return $result;
+        } catch (Exception $e) {
+            $this->logSocketError('get-user-presence', $e, [
+                'userId' => $userId
+            ]);
+            return null;
+        }
     }
     
     public function notifyFriendRequest($recipientId, $senderId, $senderName) {

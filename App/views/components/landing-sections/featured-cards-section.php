@@ -6,9 +6,14 @@ if (!function_exists('asset')) {
 
 <section id="featured-cards" class="featured-cards-section scroll-section min-h-screen relative flex items-center justify-center overflow-hidden py-16">
     <div class="container mx-auto px-4 relative z-10">
-        <h2 class="text-4xl md:text-7xl font-bold text-white text-center mb-24 opacity-0 transform translate-y-10 transition-all duration-700 section-title">
-            Everything You Need
-        </h2>
+        <div class="text-center mb-16">
+            <h2 class="text-5xl md:text-8xl font-bold text-white mb-6 opacity-0 transform translate-y-10 transition-all duration-700 section-title relative">
+                Everything You Need
+            </h2>
+            <p class="text-lg md:text-xl text-white/70 max-w-2xl mx-auto opacity-0 transform translate-y-5 transition-all duration-700 section-subtitle">
+                Discover powerful features designed to bring communities together
+            </p>
+        </div>
         
         <div class="cards-container relative h-[600px] perspective-1000 flex items-center justify-center">
             <div class="card-wrapper absolute inset-0 flex items-center justify-center">

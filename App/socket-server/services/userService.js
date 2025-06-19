@@ -1,18 +1,22 @@
-const db = require('../config/database');
-
 const connectedUsers = new Map();
 const userStatus = new Map();
+const userPresence = new Map();
+const activityDetails = new Map();
 
 function addConnectedUser(socketId, userData) {
-  connectedUsers.set(socketId, {
-    userId: userData.userId.toString(),
+  const userId = userData.userId.toString();
+  const user = {
+    userId,
     username: userData.username,
-    joinTime: Date.now()
-  });
+    socketId,
+    joinTime: Date.now(),
+    lastActivity: Date.now()
+  };
   
-  updateUserStatus(userData.userId, 'online');
+  connectedUsers.set(socketId, user);
+  updateUserPresence(userId, 'online', userData.username);
   
-  return connectedUsers.get(socketId);
+  return user;
 }
 
 function removeConnectedUser(socketId) {
@@ -24,7 +28,9 @@ function removeConnectedUser(socketId) {
       .some(u => u.userId === user.userId);
     
     if (!userStillConnected) {
-      updateUserStatus(user.userId, 'offline');
+      updateUserPresence(user.userId, 'offline', user.username);
+      userPresence.delete(user.userId);
+      activityDetails.delete(user.userId);
     }
     
     return user;
@@ -49,50 +55,90 @@ function updateUserStatus(userId, status) {
   });
 }
 
+function updateUserPresence(userId, status, username = null, activity = null) {
+  const userIdStr = userId.toString();
+  const currentTime = Date.now();
+  
+  userPresence.set(userIdStr, {
+    userId: userIdStr,
+    username,
+    status,
+    lastSeen: currentTime,
+    lastActivity: currentTime
+  });
+  
+  if (activity !== null) {
+    activityDetails.set(userIdStr, activity);
+  }
+  
+  updateUserStatus(userId, status);
+}
+
+function getUserPresence(userId) {
+  const presence = userPresence.get(userId.toString());
+  const activity = activityDetails.get(userId.toString());
+  
+  if (!presence) {
+    return { status: 'offline', lastSeen: null, activity: null };
+  }
+  
+  return {
+    ...presence,
+    activity
+  };
+}
+
+function getAllOnlineUsers() {
+  const online = [];
+  for (const [userId, presence] of userPresence.entries()) {
+    if (presence.status !== 'offline') {
+      online.push({
+        ...presence,
+        activity: activityDetails.get(userId) || null
+      });
+    }
+  }
+  return online;
+}
+
+function updateUserActivity(userId, activity) {
+  const userIdStr = userId.toString();
+  if (activity === null) {
+    activityDetails.delete(userIdStr);
+  } else {
+    activityDetails.set(userIdStr, activity);
+  }
+  
+  const presence = userPresence.get(userIdStr);
+  if (presence) {
+    presence.lastActivity = Date.now();
+  }
+}
+
 function getUserStatus(userId) {
   return userStatus.get(userId.toString()) || { status: 'offline', lastUpdated: null };
 }
 
-async function saveUserStatus(userId, status) {
-  try {
-    const timestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
-    
-    const sql = `
-      INSERT INTO user_presence (user_id, status, last_seen) 
-      VALUES (?, ?, ?) 
-      ON DUPLICATE KEY UPDATE 
-      status = VALUES(status), 
-      last_seen = VALUES(last_seen)
-    `;
-    
-    await db.query(sql, [userId, status, timestamp]);
-    return true;
-  } catch (error) {
-    console.error('❌ Error saving user status:', error);
-    return false;
-  }
-}
-
-async function getUserById(userId) {
-  try {
-    const sql = 'SELECT id, username, discriminator, avatar_url FROM users WHERE id = ?';
-    const users = await db.query(sql, [userId]);
-    return users[0] || null;
-  } catch (error) {
-    console.error('❌ Error fetching user:', error);
-    return null;
-  }
+function getUserById(userId) {
+  return new Promise((resolve) => {
+    resolve(null);
+  });
 }
 
 module.exports = {
   connectedUsers,
   userStatus,
+  userPresence,
+  activityDetails,
   addConnectedUser,
   removeConnectedUser,
   getConnectedUser,
   getUserSockets,
   updateUserStatus,
+  updateUserPresence,
+  getUserPresence,
+  getAllOnlineUsers,
+  updateUserActivity,
   getUserStatus,
-  saveUserStatus,
   getUserById
-}; 
+};

@@ -89,7 +89,7 @@ class SocketApi {
             data.activity_details = activityDetails;
         }
 
-        return this.broadcast('user-status-changed', data);
+        return this.broadcast('user-presence-changed', data);
     }
 
     async notifyTyping(channelId, userId, username, isTyping = true) {

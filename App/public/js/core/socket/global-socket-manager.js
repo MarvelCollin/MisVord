@@ -149,16 +149,9 @@ class GlobalSocketManager {
             this.error('❌ Authentication failed:', data);
             this.authenticated = false;
             this.trackConnection('AUTH_FAILED', data);
-        });
-
-        this.socket.on('user-status-changed', (data) => {
-            this.log('👤 User status changed:', data);
-            this.dispatchEvent('userStatusChanged', data);
-        });
-
-        this.socket.on('user-status-change', (data) => {
-            this.log('👤 User status change:', data);
-            this.dispatchEvent('userStatusChanged', data);
+        });        this.socket.on('user-presence-changed', (data) => {
+            this.log('👤 User presence changed:', data);
+            this.dispatchEvent('userPresenceChanged', data);
         });
 
         this.socket.on('user-activity-changed', (data) => {
@@ -322,9 +315,28 @@ class GlobalSocketManager {
         this.socket.emit('authenticate', authData);
 
         return Promise.resolve();
-    }
+    }    initPresenceTracking() {
+        socketClient.on('presence-changed', (data) => {
+            this.handlePresenceUpdate(data);
+        });
 
-    initPresenceTracking() {
+        socketClient.on('presence-update-success', (data) => {
+            this.presenceData.status = data.status;
+            if (data.activityDetails !== undefined) {
+                this.presenceData.activity = data.activityDetails;
+            }
+            this.log('✅ Presence updated successfully:', data);
+        });
+
+        socketClient.on('activity-update-success', (data) => {
+            this.presenceData.activity = data.activityDetails;
+            this.log('✅ Activity updated successfully:', data);
+        });
+
+        socketClient.on('online-users-received', (data) => {
+            this.handleOnlineUsersUpdate(data.users);
+        });
+
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') {
                 this.updatePresence('online');
@@ -350,6 +362,8 @@ class GlobalSocketManager {
         document.addEventListener('click', resetActivityTimer);
 
         resetActivityTimer();
+        this.updatePresence('online');
+        this.getOnlineUsers();
     }
 
     initActivityTracking() {
@@ -387,50 +401,76 @@ class GlobalSocketManager {
             });
             this.currentPage = newPage;
         }
-    }
-
-    updatePresence(status, activity = null) {
-        if (!this.socket || !this.connected || !this.authenticated) {
+    }    updatePresence(status, activity = null) {
+        if (!socketClient || !socketClient.connected || !socketClient.authenticated) {
+            this.log('⚠️ Cannot update presence: socket not ready');
             return Promise.resolve();
         }
 
-        this.presenceData.status = status;
-        this.presenceData.activity = activity;
-        this.presenceData.lastSeen = Date.now();
-
-        this.socket.emit('status-change', {
-            status: status,
-            activity_details: activity
-        });
-        
-        this.log('👤 Presence updated:', this.presenceData);
+        const result = socketClient.updatePresence(status, activity);
+        if (result) {
+            this.presenceData.status = status;
+            this.presenceData.activity = activity;
+            this.presenceData.lastSeen = Date.now();
+            this.log('👤 Presence update sent:', { status, activity });
+        }
 
         return Promise.resolve();
     }
 
     setActivity(activityDetails) {
-        if (!this.socket || !this.connected || !this.authenticated) {
+        if (!socketClient || !socketClient.connected || !socketClient.authenticated) {
+            this.log('⚠️ Cannot set activity: socket not ready');
             return Promise.resolve(false);
         }
         
-        this.socket.emit('set-activity', {
-            activity_details: activityDetails
-        });
+        const result = socketClient.updateActivity(activityDetails);
+        if (result) {
+            this.presenceData.activity = activityDetails;
+            this.log('🎮 Activity update sent:', activityDetails);
+        }
         
-        this.presenceData.activity = activityDetails;
-        this.log('🎮 Activity set:', activityDetails);
-        return Promise.resolve(true);
+        return Promise.resolve(result);
     }
     
     clearActivity() {
-        if (!this.socket || !this.connected || !this.authenticated) {
-            return Promise.resolve(false);
+        return this.setActivity(null);
+    }
+
+    getOnlineUsers() {
+        if (!socketClient || !socketClient.connected || !socketClient.authenticated) {
+            this.log('⚠️ Cannot get online users: socket not ready');
+            return Promise.resolve([]);
         }
-        
-        this.socket.emit('clear-activity');
-        this.presenceData.activity = null;
-        this.log('🎮 Activity cleared');
-        return Promise.resolve(true);
+
+        const result = socketClient.getOnlineUsers();
+        if (result) {
+            this.log('👥 Requested online users list');
+        }
+
+        return Promise.resolve(result);
+    }
+
+    getUserPresence(userId) {
+        if (!socketClient || !socketClient.connected || !socketClient.authenticated) {
+            this.log('⚠️ Cannot get user presence: socket not ready');
+            return Promise.resolve(null);
+        }
+
+        const result = socketClient.getUserPresence(userId);
+        if (result) {
+            this.log('👤 Requested presence for user:', userId);
+        }
+
+        return Promise.resolve(result);
+    }
+
+    handlePresenceUpdate(data) {
+        this.log('👤 Received presence update:', data);
+        this.dispatchEvent('presenceChanged', data);
+    }    handleOnlineUsersUpdate(users) {
+        this.log('👥 Received online users update:', users);
+        this.dispatchEvent('onlineUsersChanged', { users });
     }
 
     trackActivity(action, data = {}) {

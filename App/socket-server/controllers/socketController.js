@@ -14,6 +14,9 @@ function setupSocketHandlers(io) {
     socket.on('stop-typing', (data) => handleStopTyping(io, socket, data));
     socket.on('heartbeat', () => handleHeartbeat(socket));
     socket.on('update-presence', (data) => handleUpdatePresence(io, socket, data));
+    socket.on('update-activity', (data) => handleUpdateActivity(io, socket, data));
+    socket.on('get-online-users', () => handleGetOnlineUsers(socket));
+    socket.on('get-user-presence', (data) => handleGetUserPresence(socket, data));
   });
 }
 
@@ -37,7 +40,7 @@ function handleAuthentication(io, socket, data) {
       socketId: socket.id 
     });
     
-    broadcastUserStatus(io, userId, 'online', username);
+    broadcastUserPresenceUpdate(io, userId, 'online', username);
   } catch (error) {
     console.error('❌ Authentication error:', error);
     socket.emit('authentication-failed', { error: 'Authentication failed' });
@@ -55,8 +58,7 @@ function handleDisconnect(io, socket) {
         .some(u => u.userId === user.userId);
       
       if (!userStillConnected) {
-        broadcastUserStatus(io, user.userId, 'offline');
-        userService.saveUserStatus(user.userId, 'offline').catch(console.error);
+        broadcastUserPresenceUpdate(io, user.userId, 'offline', user.username);
       }
     } else {
       console.log(`👋 Socket disconnected: ${socket.id}`);
@@ -239,36 +241,102 @@ function handleUpdatePresence(io, socket, data) {
     const user = userService.getConnectedUser(socket.id);
     
     if (!user || !status) {
+      socket.emit('presence-update-failed', { error: 'Invalid presence data' });
       return;
     }
     
-    userService.updateUserStatus(user.userId, status);
-    userService.saveUserStatus(user.userId, status).catch(console.error);
+    if (!['online', 'away', 'dnd', 'offline'].includes(status)) {
+      socket.emit('presence-update-failed', { error: 'Invalid status value' });
+      return;
+    }
     
-    broadcastUserStatus(io, user.userId, status, user.username, activityDetails);
+    userService.updateUserPresence(user.userId, status, user.username, activityDetails);
+    
+    broadcastUserPresenceUpdate(io, user.userId, status, user.username, activityDetails);
+    
+    socket.emit('presence-updated', {
+      status,
+      activityDetails,
+      timestamp: Date.now()
+    });
   } catch (error) {
     console.error('❌ Update presence error:', error);
+    socket.emit('presence-update-failed', { error: 'Failed to update presence' });
   }
 }
 
-function broadcastUserStatus(io, userId, status, username = null, activityDetails = null) {
+function handleUpdateActivity(io, socket, data) {
+  try {
+    const { activityDetails } = data;
+    const user = userService.getConnectedUser(socket.id);
+    
+    if (!user) {
+      socket.emit('activity-update-failed', { error: 'User not found' });
+      return;
+    }
+    
+    userService.updateUserActivity(user.userId, activityDetails);
+    
+    const presence = userService.getUserPresence(user.userId);
+    
+    broadcastUserPresenceUpdate(io, user.userId, presence.status, user.username, activityDetails);
+    
+    socket.emit('activity-updated', {
+      activityDetails,
+      timestamp: Date.now()
+    });
+  } catch (error) {
+    console.error('❌ Update activity error:', error);
+    socket.emit('activity-update-failed', { error: 'Failed to update activity' });
+  }
+}
+
+function handleGetOnlineUsers(socket) {
+  try {
+    const onlineUsers = userService.getAllOnlineUsers();
+    socket.emit('online-users', { users: onlineUsers });
+  } catch (error) {
+    console.error('❌ Get online users error:', error);
+    socket.emit('online-users-failed', { error: 'Failed to get online users' });
+  }
+}
+
+function handleGetUserPresence(socket, data) {
+  try {
+    const { userId } = data;
+    
+    if (!userId) {
+      socket.emit('user-presence-failed', { error: 'User ID required' });
+      return;
+    }
+    
+    const presence = userService.getUserPresence(userId);
+    socket.emit('user-presence', { userId, ...presence });
+  } catch (error) {
+    console.error('❌ Get user presence error:', error);
+    socket.emit('user-presence-failed', { error: 'Failed to get user presence' });
+  }
+}
+
+function broadcastUserPresenceUpdate(io, userId, status, username = null, activityDetails = null) {
   const timestamp = new Date().toISOString();
   
-  const statusData = {
+  const presenceData = {
     user_id: userId,
     status,
     timestamp
   };
   
   if (username) {
-    statusData.username = username;
+    presenceData.username = username;
   }
   
-  if (activityDetails) {
-    statusData.activity_details = activityDetails;
+  if (activityDetails !== null && activityDetails !== undefined) {
+    presenceData.activity_details = activityDetails;
   }
   
-  io.emit('user-status-changed', statusData);
+  io.emit('user-presence-changed', presenceData);
+  console.log(`📡 Broadcasting presence update for user ${userId}: ${status}`);
 }
 
 module.exports = {

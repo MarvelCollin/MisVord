@@ -61,7 +61,6 @@ class SocketClient {
     
     return this.connectionPromise;
   }
-
   setupEventListeners() {
     this.socket.on('connect', () => this.handleConnect());
     this.socket.on('disconnect', (reason) => this.handleDisconnect(reason));
@@ -72,6 +71,12 @@ class SocketClient {
     this.socket.on('authentication-failed', (data) => this.handleAuthenticationFailed(data));
     
     this.socket.on('heartbeat-response', () => this.handleHeartbeatResponse());
+    
+    this.socket.on('user-presence-changed', (data) => this.handlePresenceChanged(data));
+    this.socket.on('presence-updated', (data) => this.handlePresenceUpdated(data));
+    this.socket.on('activity-updated', (data) => this.handleActivityUpdated(data));
+    this.socket.on('online-users', (data) => this.handleOnlineUsers(data));
+    this.socket.on('user-presence', (data) => this.handleUserPresence(data));
   }
 
   handleConnect() {
@@ -161,6 +166,31 @@ class SocketClient {
 
   handleHeartbeatResponse() {
     this.log('Heartbeat response received');
+  }
+
+  handlePresenceChanged(data) {
+    this.log('User presence changed:', data);
+    this.emit('presence-changed', data);
+  }
+
+  handlePresenceUpdated(data) {
+    this.log('Presence updated:', data);
+    this.emit('presence-update-success', data);
+  }
+
+  handleActivityUpdated(data) {
+    this.log('Activity updated:', data);
+    this.emit('activity-update-success', data);
+  }
+
+  handleOnlineUsers(data) {
+    this.log('Online users received:', data);
+    this.emit('online-users-received', data);
+  }
+
+  handleUserPresence(data) {
+    this.log('User presence received:', data);
+    this.emit('user-presence-received', data);
   }
 
   /**s
@@ -362,11 +392,49 @@ class SocketClient {
    */
   updatePresence(status, activityDetails = null) {
     if (!this.connected || !this.authenticated) {
-      return Promise.reject(new Error('Socket not connected or authenticated'));
+      this.error('Cannot update presence: not connected or authenticated');
+      return false;
     }
-    
-    this.socket.emit('update-presence', { status, activityDetails });
-    return Promise.resolve();
+
+    this.socket.emit('update-presence', {
+      status,
+      activityDetails
+    });
+
+    return true;
+  }
+
+  updateActivity(activityDetails) {
+    if (!this.connected || !this.authenticated) {
+      this.error('Cannot update activity: not connected or authenticated');
+      return false;
+    }
+
+    this.socket.emit('update-activity', {
+      activityDetails
+    });
+
+    return true;
+  }
+
+  getOnlineUsers() {
+    if (!this.connected || !this.authenticated) {
+      this.error('Cannot get online users: not connected or authenticated');
+      return false;
+    }
+
+    this.socket.emit('get-online-users');
+    return true;
+  }
+
+  getUserPresence(userId) {
+    if (!this.connected || !this.authenticated) {
+      this.error('Cannot get user presence: not connected or authenticated');
+      return false;
+    }
+
+    this.socket.emit('get-user-presence', { userId });
+    return true;
   }
 
   /**
@@ -468,4 +536,4 @@ class SocketClient {
 
 // Create and export a singleton instance
 const socketClient = new SocketClient();
-export default socketClient; 
+export default socketClient;
