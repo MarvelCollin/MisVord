@@ -16,16 +16,18 @@ class UserPresenceRepository extends Repository {
     public function updateStatus($userId, $status) {
         $presence = $this->findByUserId($userId);
         
+        $currentTime = new DateTime();
+        
         if ($presence) {
             return $this->update($presence->id, [
                 'status' => $status,
-                'last_seen' => date('Y-m-d H:i:s')
+                'last_seen' => $currentTime
             ]);
         } else {
             return $this->create([
                 'user_id' => $userId,
                 'status' => $status,
-                'last_seen' => date('Y-m-d H:i:s')
+                'last_seen' => $currentTime
             ]);
         }
     }
@@ -33,26 +35,31 @@ class UserPresenceRepository extends Repository {
     public function updateActivity($userId, $activityDetails) {
         $presence = $this->findByUserId($userId);
         
+        $currentTime = new DateTime();
+        
         if ($presence) {
             return $this->update($presence->id, [
                 'activity_details' => $activityDetails,
-                'last_seen' => date('Y-m-d H:i:s')
+                'last_seen' => $currentTime
             ]);
         } else {
             return $this->create([
                 'user_id' => $userId,
                 'activity_details' => $activityDetails,
                 'status' => 'online',
-                'last_seen' => date('Y-m-d H:i:s')
+                'last_seen' => $currentTime
             ]);
         }
     }
     
     public function updatePresence($userId, $status, $activityDetails = null) {
         $presence = $this->findByUserId($userId);
+        
+        $currentTime = new DateTime();
+        
         $data = [
             'status' => $status,
-            'last_seen' => date('Y-m-d H:i:s')
+            'last_seen' => $currentTime
         ];
         
         if ($activityDetails !== null) {
@@ -100,11 +107,13 @@ class UserPresenceRepository extends Repository {
     public function markOffline($userId) {
         $presence = $this->findByUserId($userId);
         
+        $currentTime = new DateTime();
+        
         if ($presence) {
             return $this->update($presence->id, [
                 'status' => 'offline',
                 'activity_details' => null,
-                'last_seen' => date('Y-m-d H:i:s')
+                'last_seen' => $currentTime
             ]);
         }
         

@@ -4,15 +4,18 @@ require_once __DIR__ . '/BaseController.php';
 require_once __DIR__ . '/../database/repositories/UserPresenceRepository.php';
 require_once __DIR__ . '/../database/repositories/UserRepository.php';
 require_once __DIR__ . '/../utils/AppLogger.php';
+require_once __DIR__ . '/SocketController.php';
 
 class UserPresenceController extends BaseController {
     private $userPresenceRepository;
     private $userRepository;
+    private $socketController;
     
     public function __construct() {
         parent::__construct();
         $this->userPresenceRepository = new UserPresenceRepository();
         $this->userRepository = new UserRepository();
+        $this->socketController = new SocketController();
     }
     
     public function updateStatus() {
@@ -42,13 +45,7 @@ class UserPresenceController extends BaseController {
             
             $user = $this->userRepository->find($userId);
             
-            $this->broadcastViaSocket('user-status-changed', [
-                'user_id' => $userId,
-                'username' => $user->username,
-                'status' => $status,
-                'activity_details' => $activityDetails,
-                'timestamp' => date('Y-m-d H:i:s')
-            ]);
+            $this->socketController->updateUserStatus($userId, $status, $activityDetails);
             
             $this->logActivity('status_updated', [
                 'status' => $status,
@@ -137,11 +134,12 @@ class UserPresenceController extends BaseController {
             
             $user = $this->userRepository->find($userId);
             $presence = $this->userPresenceRepository->findByUserId($userId);
+            $status = $presence ? $presence->status : 'online';
             
-            $this->broadcastViaSocket('user-activity-changed', [
+            $this->socketController->broadcast('user-activity-changed', [
                 'user_id' => $userId,
                 'username' => $user->username,
-                'status' => $presence ? $presence->status : 'online',
+                'status' => $status,
                 'activity_details' => $activityDetails,
                 'timestamp' => date('Y-m-d H:i:s')
             ]);
@@ -178,7 +176,7 @@ class UserPresenceController extends BaseController {
                 
                 $user = $this->userRepository->find($userId);
                 
-                $this->broadcastViaSocket('user-activity-changed', [
+                $this->socketController->broadcast('user-activity-changed', [
                     'user_id' => $userId,
                     'username' => $user->username,
                     'status' => $presence->status,
@@ -209,13 +207,7 @@ class UserPresenceController extends BaseController {
             
             $user = $this->userRepository->find($userId);
             
-            $this->broadcastViaSocket('user-status-changed', [
-                'user_id' => $userId,
-                'username' => $user->username,
-                'status' => 'offline',
-                'activity_details' => null,
-                'timestamp' => date('Y-m-d H:i:s')
-            ]);
+            $this->socketController->updateUserStatus($userId, 'offline');
             
             $this->logActivity('went_offline');
             

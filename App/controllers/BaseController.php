@@ -304,7 +304,8 @@ class BaseController
         }
 
         $userId = $this->getCurrentUserId();
-        $timestamp = date('Y-m-d H:i:s');
+        $currentTime = new DateTime();
+        $timestamp = $currentTime->format('Y-m-d H:i:s');
         $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
         $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? 'unknown';
 
@@ -444,10 +445,13 @@ class BaseController
         $presenceRepo = new UserPresenceRepository();
         $presenceRepo->updateStatus($userId, 'online');
         
+        $currentTime = new DateTime();
+        $timestamp = $currentTime->format('Y-m-d H:i:s');
+        
         $this->broadcastViaSocket('user-status-change', [
             'user_id' => $userId,
             'status' => 'online',
-            'timestamp' => date('Y-m-d H:i:s')
+            'timestamp' => $timestamp
         ]);
     }
     
@@ -457,10 +461,13 @@ class BaseController
         $presenceRepo = new UserPresenceRepository();
         $presenceRepo->updateStatus($userId, 'offline');
         
+        $currentTime = new DateTime();
+        $timestamp = $currentTime->format('Y-m-d H:i:s');
+        
         $this->broadcastViaSocket('user-status-change', [
             'user_id' => $userId,
             'status' => 'offline',
-            'timestamp' => date('Y-m-d H:i:s')
+            'timestamp' => $timestamp
         ]);
     }
 }

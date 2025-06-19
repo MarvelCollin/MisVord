@@ -43,7 +43,7 @@ if (!function_exists('asset')) {
 
     <div class="container mx-auto px-4 relative z-10 h-screen flex flex-col justify-center">
         <div class="text-center max-w-4xl mx-auto glass-hero p-10 md:p-16 rounded-3xl">
-            <h1 id="heroTitle" class="text-4xl md:text-7xl font-bold text-white mb-6 leading-tight">
+            <h1 id="heroTitle" class="text-4xl md:text-7xl font-bold text-white mb-6 leading-tight scramble-text" data-text="IMAGINE A PLACE...">
                 IMAGINE A PLACE...
             </h1>
 

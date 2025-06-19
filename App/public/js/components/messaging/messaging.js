@@ -1,4 +1,5 @@
 import { showToast } from '../../core/ui/toast.js';
+import socketApi from '../../utils/socket-api.js';
 
 class MisVordMessaging {
     constructor() {
@@ -1084,41 +1085,56 @@ class MisVordMessaging {
     }
 
     handleTyping() {
-        const channelId = this.getActiveChannelId();
-        
-        // Use global socket manager if available
-        if (this.globalSocketManager && this.globalSocketManager.isReady() && channelId) {
-            if (this.globalSocketManager.socket) {
-                this.globalSocketManager.socket.emit('typing', { channelId });
+        if (!this.typingTimeout) {
+            const channelId = this.getActiveChannelId();
+            const userId = this.getUserId();
+            const username = this.getUsername();
+            
+            if (channelId && userId && username) {
+                socketApi.notifyTyping(channelId, userId, username, true)
+                    .then(response => {
+                        if (!response.success) {
+                            this.log('Failed to send typing notification:', response.error);
+                        }
+                    })
+                    .catch(error => {
+                        this.error('Error sending typing notification:', error);
+                    });
+                
+                this.typingTimeout = setTimeout(() => {
+                    this.stopTyping();
+                    this.typingTimeout = null;
+                }, 5000);
             }
-        } else if (this.socket && this.connected && channelId) {
-            this.socket.emit('typing', { channelId });
-        }
-
-        if (this.typingTimeout) {
+        } else {
             clearTimeout(this.typingTimeout);
+            this.typingTimeout = setTimeout(() => {
+                this.stopTyping();
+                this.typingTimeout = null;
+            }, 5000);
         }
-
-        this.typingTimeout = setTimeout(() => {
-            this.stopTyping();
-        }, 3000);
     }
-
+    
     stopTyping() {
+        const channelId = this.getActiveChannelId();
+        const userId = this.getUserId();
+        const username = this.getUsername();
+        
+        if (channelId && userId && username) {
+            socketApi.notifyTyping(channelId, userId, username, false)
+                .then(response => {
+                    if (!response.success) {
+                        this.log('Failed to send stop typing notification:', response.error);
+                    }
+                })
+                .catch(error => {
+                    this.error('Error sending stop typing notification:', error);
+                });
+        }
+        
         if (this.typingTimeout) {
             clearTimeout(this.typingTimeout);
             this.typingTimeout = null;
-        }
-
-        const channelId = this.getActiveChannelId();
-        
-        // Use global socket manager if available
-        if (this.globalSocketManager && this.globalSocketManager.isReady() && channelId) {
-            if (this.globalSocketManager.socket) {
-                this.globalSocketManager.socket.emit('stop-typing', { channelId });
-            }
-        } else if (this.socket && this.connected && channelId) {
-            this.socket.emit('stop-typing', { channelId });
         }
     }
 

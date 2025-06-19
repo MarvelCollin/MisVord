@@ -1,6 +1,12 @@
+import socketClient from './socket-client.js';
+import socketApi from '../../utils/socket-api.js';
 import { showToast } from '../ui/toast.js';
 
-export class GlobalSocketManager {
+/**
+ * GlobalSocketManager
+ * Manages WebSocket connections and events for the MisVord application
+ */
+class GlobalSocketManager {
     constructor() {
         this.config = {
             socketPort: 1002,
@@ -28,58 +34,66 @@ export class GlobalSocketManager {
             status: 'online',
             activity: null,
             lastSeen: Date.now()
-        };        this.debug = this.config.debug;
+        };
+        this.debug = this.config.debug;
         this.isGuest = false;
 
-        // Safely assign to window, checking if it's already defined
-        if (!window.GlobalSocketManager || typeof window.GlobalSocketManager !== 'function') {            try {
+        this.eventHandlers = {};
+        
+        this.currentUser = null;
+        this.activeChannels = new Set();
+
+        // Register globally for legacy code
+        if (!window.GlobalSocketManager) {
+            try {
                 window.GlobalSocketManager = this;
-                logger.debug('socket', 'GlobalSocketManager instance created and registered globally');
             } catch (error) {
-                logger.warn('socket', 'Could not assign to window.GlobalSocketManager (read-only), but instance created');
+                this.error('Could not assign to window.GlobalSocketManager:', error);
             }
-        } else {
-            logger.warn('socket', 'GlobalSocketManager already exists on window, using new instance');
         }
-    }    log(...args) {
-        logger.debug('socket', ...args);
     }
 
-    error(...args) {
-        logger.error('socket', ...args);
-    }
-
-    init(userData = null) {        if (this.initialized) {
-            logger.debug('socket', 'Already initialized, skipping duplicate initialization');
-            return;
-        }if (!userData || !userData.user_id) {
-            logger.info('socket', 'Guest user detected, socket connection disabled');
+    /**
+     * Initialize the socket manager
+     * @param {Object} userData - User data for authentication
+     * @returns {Promise} - Resolves when initialization is complete
+     */
+    init(userData = null) {
+        if (this.initialized) {
+            this.log('Already initialized, skipping duplicate initialization');
+            return Promise.resolve();
+        }
+        if (!userData || !userData.user_id) {
+            this.log('Guest user detected, socket connection disabled');
             this.isGuest = true;
-            return;
+            return Promise.resolve();
         }
 
         this.userId = userData.user_id;
         this.username = userData.username;
 
-        logger.info('socket', 'Initializing global WebSocket connection for user:', this.username);
+        this.log('Initializing global WebSocket connection for user:', this.username);
         this.logSystemInfo();
 
-        try {
-            this.initSocket();
-            this.initPresenceTracking();
-            this.initActivityTracking();
+        return this.initSocket()
+            .then(() => {
+                this.initPresenceTracking();
+                this.initActivityTracking();
 
-            setInterval(() => this.sendHeartbeat(), this.config.heartbeatInterval);
+                setInterval(() => this.sendHeartbeat(), this.config.heartbeatInterval);
 
-            this.log('✅ Global socket manager initialized successfully');
-            this.initialized = true;
+                this.log('✅ Global socket manager initialized successfully');
+                this.initialized = true;
 
-            this.dispatchEvent('globalSocketReady', { manager: this });
+                this.dispatchEvent('globalSocketReady', { manager: this });
 
-        } catch (error) {
-            this.error('❌ Failed to initialize global socket manager:', error);
-            this.trackError('GLOBAL_INIT_FAILED', error);
-        }
+                return this.initialized;
+            })
+            .catch(error => {
+                this.error('❌ Failed to initialize global socket manager:', error);
+                this.trackError('GLOBAL_INIT_FAILED', error);
+                throw error;
+            });
     }
 
     initSocket() {
@@ -99,6 +113,8 @@ export class GlobalSocketManager {
         });
 
         this.setupSocketEventHandlers();
+
+        return Promise.resolve();
     }
 
     setupSocketEventHandlers() {
@@ -290,7 +306,7 @@ export class GlobalSocketManager {
     authenticate() {
         if (!this.socket || !this.connected) {
             this.error('❌ Cannot authenticate: not connected');
-            return;
+            return Promise.resolve();
         }
 
         this.log('🔐 Authenticating user...');
@@ -304,6 +320,8 @@ export class GlobalSocketManager {
 
         this.log('📤 Sending authentication data:', authData);
         this.socket.emit('authenticate', authData);
+
+        return Promise.resolve();
     }
 
     initPresenceTracking() {
@@ -373,7 +391,7 @@ export class GlobalSocketManager {
 
     updatePresence(status, activity = null) {
         if (!this.socket || !this.connected || !this.authenticated) {
-            return;
+            return Promise.resolve();
         }
 
         this.presenceData.status = status;
@@ -386,11 +404,13 @@ export class GlobalSocketManager {
         });
         
         this.log('👤 Presence updated:', this.presenceData);
+
+        return Promise.resolve();
     }
 
     setActivity(activityDetails) {
         if (!this.socket || !this.connected || !this.authenticated) {
-            return false;
+            return Promise.resolve(false);
         }
         
         this.socket.emit('set-activity', {
@@ -399,18 +419,18 @@ export class GlobalSocketManager {
         
         this.presenceData.activity = activityDetails;
         this.log('🎮 Activity set:', activityDetails);
-        return true;
+        return Promise.resolve(true);
     }
     
     clearActivity() {
         if (!this.socket || !this.connected || !this.authenticated) {
-            return false;
+            return Promise.resolve(false);
         }
         
         this.socket.emit('clear-activity');
         this.presenceData.activity = null;
         this.log('🎮 Activity cleared');
-        return true;
+        return Promise.resolve(true);
     }
 
     trackActivity(action, data = {}) {
@@ -447,30 +467,32 @@ export class GlobalSocketManager {
     joinChannel(channelId) {
         if (!this.socket || !this.connected || !this.authenticated) {
             this.error('❌ Cannot join channel: not connected or authenticated');
-            return false;
+            return Promise.resolve(false);
         }
 
         this.socket.emit('join-channel', channelId);
         this.trackActivity('CHANNEL_JOIN', { channelId });
         this.log('🏠 Joined channel:', channelId);
-        return true;
+        this.activeChannels.add(channelId);
+        return Promise.resolve(true);
     }
     
     leaveChannel(channelId) {
         if (!this.socket || !this.connected || !this.authenticated) {
-            return false;
+            return Promise.resolve(false);
         }
 
         this.socket.emit('leave-channel', channelId);
         this.trackActivity('CHANNEL_LEAVE', { channelId });
         this.log('🚪 Left channel:', channelId);
-        return true;
+        this.activeChannels.delete(channelId);
+        return Promise.resolve(true);
     }
 
     sendMessage(channelId, content, messageType = 'text') {
         if (!this.socket || !this.connected || !this.authenticated) {
             this.error('❌ Cannot send message: not connected or authenticated');
-            return false;
+            return Promise.resolve(false);
         }
 
         const messageData = {
@@ -484,7 +506,7 @@ export class GlobalSocketManager {
         this.socket.emit('channel-message', messageData);
         this.trackActivity('MESSAGE_SENT', { channelId, messageType });
         this.log('📤 Message sent:', messageData);
-        return messageData.tempId;
+        return Promise.resolve(messageData.tempId);
     }
 
     dispatchEvent(eventName, detail = {}) {
@@ -564,6 +586,59 @@ export class GlobalSocketManager {
             this.updatePresence('offline');
             this.trackActivity('MANUAL_DISCONNECT');
             this.socket.disconnect();
-            this.log('👋 Manually disconnected from WebSocket server');        }
+            this.log('👋 Manually disconnected from WebSocket server');
+        }
+        this.initialized = false;
+        this.currentUser = null;
+        this.activeChannels.clear();
+    }
+
+    on(event, callback) {
+        if (!this.eventHandlers[event]) {
+            this.eventHandlers[event] = [];
+        }
+        
+        this.eventHandlers[event].push(callback);
+        return this;
+    }
+
+    off(event, callback) {
+        if (!this.eventHandlers[event]) {
+            return this;
+        }
+        
+        if (!callback) {
+            delete this.eventHandlers[event];
+        } else {
+            const index = this.eventHandlers[event].indexOf(callback);
+            
+            if (index !== -1) {
+                this.eventHandlers[event].splice(index, 1);
+            }
+            
+            if (this.eventHandlers[event].length === 0) {
+                delete this.eventHandlers[event];
+            }
+        }
+        
+        return this;
+    }
+
+    triggerEvent(event, data) {
+        if (this.eventHandlers[event]) {
+            this.eventHandlers[event].forEach(callback => {
+                try {
+                    callback(data);
+                } catch (error) {
+                    this.error(`Error in event handler for ${event}:`, error);
+                }
+            });
+        }
+        
+        return this;
     }
 }
+
+// Create and export a singleton instance
+const globalSocketManager = new GlobalSocketManager();
+export default globalSocketManager;

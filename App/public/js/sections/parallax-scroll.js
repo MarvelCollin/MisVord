@@ -244,47 +244,105 @@ function initCardAnimations() {
 }
 
 function initSnapScroll() {
-    const sections = document.querySelectorAll('.scroll-section, .hero-section, .feature-cards-section');
+    const sections = document.querySelectorAll('.scroll-section');
+    if (sections.length === 0) {
+        console.log("No scroll sections found for snap scroll");
+        return;
+    }
+    
+    console.log(`Found ${sections.length} scroll sections for snap scroll`);
+    
     let isScrolling = false;
     let currentSection = 0;
-    
-    // Disable default scroll behavior
-    window.addEventListener('wheel', function(e) {
-        if (isScrolling) return;
-        
-        isScrolling = true;
-        
-        if (e.deltaY > 0 && currentSection < sections.length - 1) {
-            // Scroll down
-            currentSection++;
-        } else if (e.deltaY < 0 && currentSection > 0) {
-            // Scroll up
-            currentSection--;
-        }
-        
-        sections[currentSection].scrollIntoView({ behavior: 'smooth' });
-        
-        setTimeout(() => {
-            isScrolling = false;
-        }, 1000);
-        
-        e.preventDefault();
-    }, { passive: false });
-    
-    // Handle touch events for mobile
     let touchStartY = 0;
+    let scrollTimeout;
     
-    window.addEventListener('touchstart', function(e) {
+    // Find the initial section based on scroll position
+    function updateCurrentSection() {
+        const scrollPosition = window.scrollY;
+        let foundCurrentSection = false;
+        
+        sections.forEach((section, index) => {
+            const rect = section.getBoundingClientRect();
+            // If the section is mostly in view, set it as current
+            if (rect.top <= window.innerHeight * 0.3 && rect.bottom >= window.innerHeight * 0.5) {
+                currentSection = index;
+                foundCurrentSection = true;
+            }
+        });
+        
+        // Default to first section if none are in view
+        if (!foundCurrentSection && sections.length > 0) {
+            currentSection = 0;
+        }
+    }
+    
+    // Initial check for current section
+    updateCurrentSection();
+    
+    // Enhanced wheel handler with better debounce
+    function wheelHandler(e) {
+        // Don't interfere with normal scrolling when not in snap scroll mode
+        if (window.innerWidth < 768 || isScrolling) return;
+        
+        // Clear any pending scroll
+        clearTimeout(scrollTimeout);
+        
+        // Debounce scroll events
+        scrollTimeout = setTimeout(() => {
+            isScrolling = true;
+            
+            // Determine scroll direction
+            if (e.deltaY > 0 && currentSection < sections.length - 1) {
+                // Scroll down
+                currentSection++;
+            } else if (e.deltaY < 0 && currentSection > 0) {
+                // Scroll up
+                currentSection--;
+            }
+            
+            // Scroll to section with smooth behavior
+            scrollToSection(currentSection);
+            
+            // Prevent default scroll
+            e.preventDefault();
+        }, 50);
+    }
+    
+    // Scroll to the specified section index
+    function scrollToSection(index) {
+        if (index >= 0 && index < sections.length) {
+            console.log(`Scrolling to section ${index}`);
+            sections[index].scrollIntoView({ behavior: 'smooth' });
+            
+            // Trigger any reveal functions for this section
+            const sectionId = sections[index].id;
+            if (sectionId === 'featured-cards') {
+                console.log("Scrolled to featured cards section, triggering reveal");
+                const featuredCardsEvent = new Event('featuredCardsVisible');
+                document.dispatchEvent(featuredCardsEvent);
+            }
+            
+            setTimeout(() => {
+                isScrolling = false;
+            }, 800); // Allow enough time for the scroll animation to complete
+        }
+    }
+    
+    // Handle touch events for mobile with improved detection
+    function touchStartHandler(e) {
         touchStartY = e.touches[0].clientY;
-    }, { passive: true });
+    }
     
-    window.addEventListener('touchend', function(e) {
-        if (isScrolling) return;
+    function touchEndHandler(e) {
+        // Don't interfere with normal scrolling on mobile
+        if (window.innerWidth < 768 || isScrolling) return;
         
         const touchEndY = e.changedTouches[0].clientY;
         const diff = touchStartY - touchEndY;
         
-        if (Math.abs(diff) < 50) return;
+        // Require more significant swipe for mobile
+        if (Math.abs(diff) < 80) return;
         
         isScrolling = true;
         
@@ -296,12 +354,41 @@ function initSnapScroll() {
             currentSection--;
         }
         
-        sections[currentSection].scrollIntoView({ behavior: 'smooth' });
+        scrollToSection(currentSection);
+    }
+    
+    // Update current section on regular scroll
+    function scrollHandler() {
+        if (!isScrolling) {
+            updateCurrentSection();
+        }
+    }
+    
+    // Add event listeners if we have sections
+    if (sections.length > 0) {
+        // Use passive: false to allow preventDefault
+        window.addEventListener('wheel', wheelHandler, { passive: false });
+        window.addEventListener('touchstart', touchStartHandler, { passive: true });
+        window.addEventListener('touchend', touchEndHandler, { passive: true });
+        window.addEventListener('scroll', scrollHandler, { passive: true });
         
-        setTimeout(() => {
-            isScrolling = false;
-        }, 1000);
-    }, { passive: true });
+        // Make sure scroll-to-hash still works
+        if (window.location.hash) {
+            setTimeout(() => {
+                const targetElement = document.querySelector(window.location.hash);
+                if (targetElement) {
+                    targetElement.scrollIntoView({ behavior: 'smooth' });
+                    
+                    // Find which section contains the hash target
+                    sections.forEach((section, index) => {
+                        if (section.contains(targetElement)) {
+                            currentSection = index;
+                        }
+                    });
+                }
+            }, 300);
+        }
+    }
 }
 
 function initScrollIndicator() {

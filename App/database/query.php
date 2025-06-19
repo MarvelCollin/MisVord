@@ -783,7 +783,9 @@ class Query {
     public function execute($statement, $params = []) {
         foreach ($params as $key => $value) {
             if (is_object($value)) {
-                if (method_exists($value, '__toString')) {
+                if ($value instanceof DateTime) {
+                    $params[$key] = $value->format('Y-m-d H:i:s');
+                } else if (method_exists($value, '__toString')) {
                     $params[$key] = (string)$value;
                 } else {
                     $params[$key] = null;

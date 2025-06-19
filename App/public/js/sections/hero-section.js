@@ -412,8 +412,48 @@ function initCommunityProgressionAnimations() {
 }
 
 function initTornadoEffects() {
+    const parallaxHero = document.getElementById('parallax-hero');
+    const parallaxLayers = document.querySelectorAll('.parallax-layer');
     const tornadoObjects = document.querySelectorAll('.tornado-object');
-
+    
+    if (!parallaxHero) return;
+    
+    // Initialize parallax effect
+    function handleParallax(e) {
+        const mouseX = e.clientX / window.innerWidth;
+        const mouseY = e.clientY / window.innerHeight;
+        
+        parallaxLayers.forEach(layer => {
+            const depthX = layer.getAttribute('data-depth') || 0.2;
+            const depthY = layer.getAttribute('data-depth-y') || depthX;
+            const moveX = (mouseX - 0.5) * 2 * 30 * depthX;
+            const moveY = (mouseY - 0.5) * 2 * 30 * depthY;
+            
+            layer.style.transform = `translate3d(${moveX}px, ${moveY}px, 0)`;
+        });
+    }
+    
+    // Add mousemove listener for parallax effect
+    parallaxHero.addEventListener('mousemove', handleParallax);
+    
+    // Mobile tilt-based parallax
+    window.addEventListener('deviceorientation', (e) => {
+        if (!e.gamma || !e.beta) return;
+        
+        const tiltX = Math.min(Math.max(e.gamma, -20), 20) / 20;
+        const tiltY = Math.min(Math.max(e.beta - 45, -20), 20) / 20;
+        
+        parallaxLayers.forEach(layer => {
+            const depthX = layer.getAttribute('data-depth') || 0.2;
+            const depthY = layer.getAttribute('data-depth-y') || depthX;
+            const moveX = tiltX * 30 * depthX;
+            const moveY = tiltY * 30 * depthY;
+            
+            layer.style.transform = `translate3d(${moveX}px, ${moveY}px, 0)`;
+        });
+    });
+    
+    // Handle tornado objects animation
     tornadoObjects.forEach(obj => {
         const top = obj.dataset.top;
         const left = obj.dataset.left;

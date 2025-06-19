@@ -49,8 +49,6 @@ ob_start();
     </div>
 </section>
 
-<?php include_once dirname(dirname(__DIR__)) . '/views/components/landing-sections/feature-cards-section.php'; ?>
-
 <?php
 $content = ob_get_clean();
 ?>
@@ -82,6 +80,9 @@ $content = ob_get_clean();
                             'darker': '#18191C',
                             'light': '#42464D',
                             'lighter': '#B9BBBE',
+                        },
+                        backgroundImage: {
+                            'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
                         }
                     }
                 },
@@ -95,13 +96,15 @@ $content = ob_get_clean();
     <link rel="stylesheet" href="<?php echo css('global'); ?>?v=<?php echo time(); ?>">
     <link rel="stylesheet" href="<?php echo css('landing-page'); ?>?v=<?php echo time(); ?>">
     <link rel="stylesheet" href="<?php echo css('scramble-text'); ?>?v=<?php echo time(); ?>">
-    <link rel="stylesheet" href="<?php echo css('feature-cards'); ?>?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="<?php echo css('featured-cards'); ?>?v=<?php echo time(); ?>">
 </head>
 <body class="<?php echo $body_class; ?>">
     <?php echo $content; ?>
+    <?php include dirname(dirname(__DIR__)) . '/views/components/landing-sections/featured-cards-section.php'; ?>
     
-    <script src="<?php echo js('sections/scramble-text'); ?>?v=<?php echo time(); ?>"></script>
     <script src="<?php echo js('sections/parallax-scroll'); ?>?v=<?php echo time(); ?>"></script>
+    <script src="<?php echo js('sections/scramble-text'); ?>?v=<?php echo time(); ?>"></script>
+    <script src="<?php echo js('sections/featured-cards'); ?>?v=<?php echo time(); ?>"></script>
     <script src="<?php echo js('pages/landing-page'); ?>?v=<?php echo time(); ?>"></script>
 </body>
 </html>
