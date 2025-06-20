@@ -4,7 +4,7 @@ require_once __DIR__ . '/Model.php';
 
 class User extends Model {
     protected static $table = 'users';
-    protected $fillable = ['username', 'discriminator', 'email', 'password', 'google_id', 'avatar_url', 'status', 'created_at', 'updated_at'];
+    protected $fillable = ['id', 'username', 'discriminator', 'email', 'password', 'google_id', 'avatar_url', 'status', 'created_at', 'updated_at'];
     
     public static function findByEmail($email) {
         $query = new Query();
@@ -23,12 +23,33 @@ class User extends Model {
         $result = $query->table(static::$table)->where('google_id', $googleId)->first();
         return $result ? new static($result) : null;
     }    public function verifyPassword($password) {
+        // Debug password verification
+        if (function_exists('logger')) {
+            logger()->debug("verifyPassword called", [
+                'has_password_in_db' => isset($this->attributes['password']) && !empty($this->attributes['password']),
+                'password_hash_from_db' => isset($this->attributes['password']) ? substr($this->attributes['password'], 0, 20) . '...' : 'null',
+                'input_password' => $password
+            ]);
+        }
+        
         // Use isset and check for null instead of empty() due to magic method behavior
         if (!isset($this->attributes['password']) || $this->attributes['password'] === null || $this->attributes['password'] === '') {
+            if (function_exists('logger')) {
+                logger()->warning("No password set in database for user");
+            }
             return false;
         }
-        return password_verify($password, $this->attributes['password']);
-    }    public function setPassword($password) {
+        
+        $result = password_verify($password, $this->attributes['password']);
+        
+        if (function_exists('logger')) {
+            logger()->debug("Password verification result", [
+                'result' => $result ? 'success' : 'failed'
+            ]);
+        }
+        
+        return $result;
+    }public function setPassword($password) {
         $this->password = password_hash($password, PASSWORD_DEFAULT);
     }
 

@@ -1,4 +1,6 @@
 <?php
+require_once dirname(dirname(__DIR__)) . '/config/session.php';
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -28,10 +30,8 @@ $additional_js = ['components/servers/server-dropdown'];
 <?php ob_start(); ?>
 
 <div class="flex min-h-screen">
-    <!-- Side Navigation -->
     <?php include dirname(dirname(__DIR__)) . '/views/components/app-sections/server-sidebar.php'; ?>
 
-    <!-- Main Content -->
     <div class="flex-1 bg-discord-background overflow-y-auto">
         <div class="p-6 max-w-7xl mx-auto">
             <div class="mb-8">
@@ -39,7 +39,6 @@ $additional_js = ['components/servers/server-dropdown'];
                 <p class="text-discord-lighter">Find and join communities on misvord</p>
             </div>
 
-            <!-- Search and Filter -->
             <div class="mb-6 flex flex-wrap gap-4">
                 <div class="relative flex-1 min-w-[200px]">
                     <input type="text" id="server-search" placeholder="Search servers" 
@@ -61,7 +60,6 @@ $additional_js = ['components/servers/server-dropdown'];
                 </div>
             </div>
 
-            <!-- Featured Servers -->
             <div class="mb-8">
                 <h2 class="text-lg font-bold mb-4">Featured Servers</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="featured-servers">
@@ -130,7 +128,6 @@ $additional_js = ['components/servers/server-dropdown'];
                 </div>
             </div>
 
-            <!-- All Available Servers -->
             <div>
                 <h2 class="text-lg font-bold mb-4">All Servers</h2>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="all-servers">

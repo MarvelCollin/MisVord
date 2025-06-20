@@ -1,0 +1,460 @@
+[2025-06-20 06:29:01] INFO [db8707] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 06:29:01"}
+[2025-06-20 06:29:04] DEBUG [db8707] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 06:29:04] INFO [db8707] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 06:29:04] DEBUG [db8707] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 06:29:04] INFO [db8707] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 07:21:12] INFO [8da4fa] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 07:21:12"}
+[2025-06-20 07:23:25] INFO [dbc713] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 07:23:25"}
+[2025-06-20 07:23:25] DEBUG [dbc713] Controller instantiated - Context: {"controller":"AuthenticationController","request_uri":"","request_method":"GET","is_ajax":"no"}
+[2025-06-20 07:23:25] DEBUG [dbc713] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 07:23:25] INFO [dbc713] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 07:23:25] DEBUG [dbc713] DB Query: SELECT * FROM users WHERE  email = ? LIMIT 1 - Duration: 49.28ms - Context: {"bindings":["test@example.com"],"found":false,"db_query":"SELECT * FROM users WHERE  email = ? LIMIT 1","db_duration":0.04927515983581543}
+[2025-06-20 07:23:58] INFO [e0184b] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 07:23:58"}
+[2025-06-20 07:24:18] INFO [28ed13] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 07:24:18"}
+[2025-06-20 07:24:18] DEBUG [28ed13] Controller instantiated - Context: {"controller":"AuthenticationController","request_uri":"","request_method":"GET","is_ajax":"no"}
+[2025-06-20 07:24:18] DEBUG [28ed13] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 07:24:18] INFO [28ed13] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 07:24:18] DEBUG [28ed13] DB Query: SELECT * FROM users WHERE  email = ? LIMIT 1 - Duration: 45.37ms - Context: {"bindings":["kolin@gmail.com"],"found":true,"db_query":"SELECT * FROM users WHERE  email = ? LIMIT 1","db_duration":0.045374155044555664}
+[2025-06-20 07:24:18] WARNING [28ed13] PHP Warning: session_start(): Session cannot be started after headers have already been sent - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\controllers\\AuthenticationController.php","line":107,"severity":2}
+[2025-06-20 07:24:25] INFO [9e37a0] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 07:24:25"}
+[2025-06-20 09:01:57] INFO [5b123d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 09:01:57"}
+[2025-06-20 09:01:57] DEBUG [5b123d] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 09:01:57] INFO [5b123d] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 09:01:57] DEBUG [5b123d] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 09:01:57] INFO [5b123d] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 09:02:59] INFO [3eb049] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 09:02:59"}
+[2025-06-20 09:02:59] DEBUG [3eb049] Controller instantiated - Context: {"controller":"AuthenticationController","request_uri":"/login","request_method":"POST","is_ajax":"no"}
+[2025-06-20 09:02:59] DEBUG [3eb049] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 09:02:59] INFO [3eb049] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 09:03:00] DEBUG [3eb049] DB Query: SELECT * FROM users WHERE  email = ? LIMIT 1 - Duration: 58.02ms - Context: {"bindings":["kolin@gmail.com"],"found":true,"db_query":"SELECT * FROM users WHERE  email = ? LIMIT 1","db_duration":0.05801510810852051}
+[2025-06-20 09:10:20] INFO [c5555b] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 09:10:20"}
+[2025-06-20 09:10:20] DEBUG [c5555b] Controller instantiated - Context: {"controller":"AuthenticationController","request_uri":"/login","request_method":"POST","is_ajax":"no"}
+[2025-06-20 09:10:20] DEBUG [c5555b] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 09:10:20] INFO [c5555b] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 09:10:20] DEBUG [c5555b] DB Query: SELECT * FROM users WHERE  email = ? LIMIT 1 - Duration: 45.01ms - Context: {"bindings":["kolin@gmail.com"],"found":true,"db_query":"SELECT * FROM users WHERE  email = ? LIMIT 1","db_duration":0.04500913619995117}
+[2025-06-20 09:10:20] INFO [c846af] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 09:10:20"}
+[2025-06-20 09:10:20] DEBUG [c846af] Controller instantiated - Context: {"controller":"HomeController","request_uri":"/app","request_method":"GET","is_ajax":"no"}
+[2025-06-20 09:10:20] INFO [c8de01] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 09:10:20"}
+[2025-06-20 09:10:20] DEBUG [c8de01] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 09:10:20] INFO [c8de01] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 09:10:20] DEBUG [c8de01] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 09:10:20] INFO [c8de01] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 09:10:20] INFO [cd7e19] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 09:10:20"}
+[2025-06-20 09:10:20] DEBUG [cd7e19] Controller instantiated - Context: {"controller":"HomeController","request_uri":"/app","request_method":"GET","is_ajax":"no"}
+[2025-06-20 09:10:20] INFO [ce3381] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 09:10:20"}
+[2025-06-20 09:10:20] DEBUG [ce3381] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 09:10:20] INFO [ce3381] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 09:10:21] DEBUG [ce3381] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 09:10:21] INFO [ce3381] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 09:10:55] INFO [fccd4d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 09:10:55"}
+[2025-06-20 09:10:55] DEBUG [fccd4d] Controller instantiated - Context: {"controller":"AuthenticationController","request_uri":"/login","request_method":"POST","is_ajax":"no"}
+[2025-06-20 09:10:55] DEBUG [fccd4d] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 09:10:55] INFO [fccd4d] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 09:10:55] DEBUG [fccd4d] DB Query: SELECT * FROM users WHERE  email = ? LIMIT 1 - Duration: 44.66ms - Context: {"bindings":["kolin@gmail.com"],"found":true,"db_query":"SELECT * FROM users WHERE  email = ? LIMIT 1","db_duration":0.04465913772583008}
+[2025-06-20 09:10:56] INFO [0024c4] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 09:10:56"}
+[2025-06-20 09:10:56] DEBUG [0024c4] Controller instantiated - Context: {"controller":"HomeController","request_uri":"/app","request_method":"GET","is_ajax":"no"}
+[2025-06-20 09:10:56] INFO [009d89] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 09:10:56"}
+[2025-06-20 09:10:56] DEBUG [009d89] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 09:10:56] INFO [009d89] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 09:10:56] DEBUG [009d89] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 09:10:56] INFO [009d89] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 09:10:56] INFO [05187d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 09:10:56"}
+[2025-06-20 09:10:56] DEBUG [05187d] Controller instantiated - Context: {"controller":"HomeController","request_uri":"/app","request_method":"GET","is_ajax":"no"}
+[2025-06-20 09:10:56] INFO [059807] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 09:10:56"}
+[2025-06-20 09:10:56] DEBUG [059807] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 09:10:56] INFO [059807] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 09:10:56] DEBUG [059807] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 09:10:56] INFO [059807] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 10:12:50] INFO [28572e] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 10:12:50"}
+[2025-06-20 10:12:50] DEBUG [28572e] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 10:12:50] INFO [28572e] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 10:12:50] DEBUG [28572e] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 10:12:50] INFO [28572e] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 10:12:50] INFO [2da38e] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 10:12:50"}
+[2025-06-20 10:12:50] DEBUG [2da38e] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 10:12:50] INFO [2da38e] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 10:12:51] DEBUG [2da38e] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 10:12:51] INFO [2da38e] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 10:12:51] INFO [32388e] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 10:12:51"}
+[2025-06-20 10:12:51] DEBUG [32388e] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 10:12:51] INFO [32388e] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 10:12:51] DEBUG [32388e] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 10:12:51] INFO [32388e] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 10:12:51] INFO [36ee33] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 10:12:51"}
+[2025-06-20 10:12:51] DEBUG [36ee33] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 10:12:51] INFO [36ee33] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 10:12:51] DEBUG [36ee33] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 10:12:51] INFO [36ee33] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:00:08] INFO [891b60] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 13:00:08"}
+[2025-06-20 13:00:08] DEBUG [891b60] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:00:08] INFO [891b60] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:00:08] DEBUG [891b60] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:00:08] INFO [891b60] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:02:59] INFO [39067f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 13:02:59"}
+[2025-06-20 13:03:07] INFO [b8cd56] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 13:03:07"}
+[2025-06-20 13:03:21] INFO [99cfa9] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 13:03:21"}
+[2025-06-20 13:03:33] INFO [592a3d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 13:03:33"}
+[2025-06-20 13:03:33] DEBUG [592a3d] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:03:33] INFO [592a3d] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:03:33] DEBUG [592a3d] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:03:33] INFO [592a3d] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:03:42] INFO [e12d0c] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 13:03:42"}
+[2025-06-20 13:03:42] DEBUG [e12d0c] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:03:42] INFO [e12d0c] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:03:42] DEBUG [e12d0c] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:03:42] INFO [e12d0c] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:04:21] INFO [5a65d9] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 13:04:21"}
+[2025-06-20 13:04:21] DEBUG [5a65d9] Controller instantiated - Context: {"controller":"AuthenticationController","request_uri":"/login","request_method":"POST","is_ajax":"no"}
+[2025-06-20 13:04:21] DEBUG [5a65d9] login method called - Context: {"session_status":2,"is_authenticated":false,"user_id":"not_set","request_method":"POST"}
+[2025-06-20 13:04:21] DEBUG [5a65d9] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:04:21] INFO [5a65d9] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:04:21] DEBUG [5a65d9] DB Query: SELECT * FROM users WHERE  email = ? LIMIT 1 - Duration: 51.00ms - Context: {"bindings":["kolin@gmail.com"],"found":true,"db_query":"SELECT * FROM users WHERE  email = ? LIMIT 1","db_duration":0.05100393295288086}
+[2025-06-20 13:05:43] INFO [72261a] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 13:05:43"}
+[2025-06-20 13:05:43] DEBUG [72261a] Controller instantiated - Context: {"controller":"AuthenticationController","request_uri":"/login","request_method":"POST","is_ajax":"no"}
+[2025-06-20 13:05:43] DEBUG [72261a] login method called - Context: {"session_status":2,"is_authenticated":false,"user_id":"not_set","request_method":"POST"}
+[2025-06-20 13:05:43] DEBUG [72261a] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:05:43] INFO [72261a] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:05:43] DEBUG [72261a] DB Query: SELECT * FROM users WHERE  email = ? LIMIT 1 - Duration: 47.07ms - Context: {"bindings":["kolin@gmail.com"],"found":true,"db_query":"SELECT * FROM users WHERE  email = ? LIMIT 1","db_duration":0.047074079513549805}
+[2025-06-20 13:05:43] DEBUG [72261a] verifyPassword called - Context: {"has_password_in_db":true,"password_hash_from_db":"$2y$10$z0X4ViarYNytN...","input_password":"123"}
+[2025-06-20 13:05:43] DEBUG [72261a] Password verification result - Context: {"result":"failed"}
+[2025-06-20 13:06:01] INFO [954c86] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 13:06:01"}
+[2025-06-20 13:06:01] DEBUG [954c86] Controller instantiated - Context: {"controller":"AuthenticationController","request_uri":"/login","request_method":"POST","is_ajax":"no"}
+[2025-06-20 13:06:01] DEBUG [954c86] login method called - Context: {"session_status":2,"is_authenticated":false,"user_id":"not_set","request_method":"POST"}
+[2025-06-20 13:06:01] DEBUG [954c86] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:06:01] INFO [954c86] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:06:01] DEBUG [954c86] DB Query: SELECT * FROM users WHERE  email = ? LIMIT 1 - Duration: 50.97ms - Context: {"bindings":["kolin@gmail.com"],"found":true,"db_query":"SELECT * FROM users WHERE  email = ? LIMIT 1","db_duration":0.05096602439880371}
+[2025-06-20 13:06:01] DEBUG [954c86] verifyPassword called - Context: {"has_password_in_db":true,"password_hash_from_db":"$2y$10$z0X4ViarYNytN...","input_password":"password"}
+[2025-06-20 13:06:01] DEBUG [954c86] Password verification result - Context: {"result":"failed"}
+[2025-06-20 13:06:16] INFO [8e63ef] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 13:06:16"}
+[2025-06-20 13:06:16] DEBUG [8e63ef] Controller instantiated - Context: {"controller":"AuthenticationController","request_uri":"/login","request_method":"POST","is_ajax":"no"}
+[2025-06-20 13:06:16] DEBUG [8e63ef] login method called - Context: {"session_status":2,"is_authenticated":false,"user_id":"not_set","request_method":"POST"}
+[2025-06-20 13:06:16] DEBUG [8e63ef] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:06:16] INFO [8e63ef] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:06:17] DEBUG [8e63ef] DB Query: SELECT * FROM users WHERE  email = ? LIMIT 1 - Duration: 46.68ms - Context: {"bindings":["kolin@gmail.com"],"found":true,"db_query":"SELECT * FROM users WHERE  email = ? LIMIT 1","db_duration":0.046679019927978516}
+[2025-06-20 13:06:17] DEBUG [8e63ef] verifyPassword called - Context: {"has_password_in_db":true,"password_hash_from_db":"$2y$10$z0X4ViarYNytN...","input_password":"123456"}
+[2025-06-20 13:06:17] DEBUG [8e63ef] Password verification result - Context: {"result":"failed"}
+[2025-06-20 13:06:51] INFO [b3888d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 13:06:51"}
+[2025-06-20 13:06:51] DEBUG [b3888d] Controller instantiated - Context: {"controller":"AuthenticationController","request_uri":"/register","request_method":"POST","is_ajax":"no"}
+[2025-06-20 13:06:51] DEBUG [b3888d] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:06:51] INFO [b3888d] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:06:51] DEBUG [b3888d] DB Query: SELECT * FROM users WHERE  username = ? LIMIT 1 - Duration: 48.56ms - Context: {"bindings":["testuser"],"found":false,"db_query":"SELECT * FROM users WHERE  username = ? LIMIT 1","db_duration":0.04855704307556152}
+[2025-06-20 13:06:51] DEBUG [b3888d] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:06:51] INFO [b3888d] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:06:51] DEBUG [b3888d] DB Query: SELECT * FROM users WHERE  email = ? LIMIT 1 - Duration: 51.64ms - Context: {"bindings":["test@example.com"],"found":false,"db_query":"SELECT * FROM users WHERE  email = ? LIMIT 1","db_duration":0.0516359806060791}
+[2025-06-20 13:06:51] DEBUG [b3888d] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:06:51] INFO [b3888d] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:06:51] DEBUG [b3888d] DB Query: INSERT INTO users (`username`, `email`, `password`, `discriminator`, `updated_at`, `created_at`) VAL... - Duration: 60.27ms - Context: {"table":"users","data":{"username":"testuser","email":"test@example.com","password":"$2y$10$1s.xRciyrk2.XgD0gzBWD.Y69pfv0zTmXG74gN8BSaRiyxJmVj.8q","discriminator":"4694","updated_at":"2025-06-20 13:06:51","created_at":"2025-06-20 13:06:51"},"insert_id":"4","affected_rows":1,"db_query":"INSERT INTO users (`username`, `email`, `password`, `discriminator`, `updated_at`, `created_at`) VALUES (?, ?, ?, ?, ?, ?)","db_duration":0.06026887893676758}
+[2025-06-20 13:06:51] DEBUG [b3888d] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:06:51] INFO [b3888d] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:06:51] WARNING [b3888d] Activity logs table does not exist, skipping activity logging
+[2025-06-20 13:07:15] INFO [35f3d5] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 13:07:15"}
+[2025-06-20 13:07:15] DEBUG [35f3d5] Controller instantiated - Context: {"controller":"AuthenticationController","request_uri":"/login","request_method":"POST","is_ajax":"no"}
+[2025-06-20 13:07:15] DEBUG [35f3d5] login method called - Context: {"session_status":2,"is_authenticated":false,"user_id":"not_set","request_method":"POST"}
+[2025-06-20 13:07:15] DEBUG [35f3d5] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:07:15] INFO [35f3d5] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:07:15] DEBUG [35f3d5] DB Query: SELECT * FROM users WHERE  email = ? LIMIT 1 - Duration: 48.07ms - Context: {"bindings":["test@example.com"],"found":true,"db_query":"SELECT * FROM users WHERE  email = ? LIMIT 1","db_duration":0.04807400703430176}
+[2025-06-20 13:07:15] DEBUG [35f3d5] verifyPassword called - Context: {"has_password_in_db":true,"password_hash_from_db":"$2y$10$1s.xRciyrk2.X...","input_password":"password123"}
+[2025-06-20 13:07:15] DEBUG [35f3d5] Password verification result - Context: {"result":"success"}
+[2025-06-20 13:07:15] DEBUG [35f3d5] Session variables set after login - Context: {"user_id":null,"username":"testuser","session_id":"gr0si3fotgsi55lsgmc7tan9f9","is_authenticated":false}
+[2025-06-20 13:07:15] DEBUG [35f3d5] Session after write_close and restart - Context: {"user_id":"not_set","is_authenticated":false,"session_status":2}
+[2025-06-20 13:23:13] INFO [106881] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 13:23:13"}
+[2025-06-20 13:23:13] DEBUG [106881] Controller instantiated - Context: {"controller":"AuthenticationController","request_uri":"/login","request_method":"POST","is_ajax":"no"}
+[2025-06-20 13:23:13] DEBUG [106881] login method called - Context: {"session_status":2,"is_authenticated":false,"user_id":"not_set","request_method":"POST"}
+[2025-06-20 13:23:13] DEBUG [106881] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:23:13] INFO [106881] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:23:13] DEBUG [106881] DB Query: SELECT * FROM users WHERE  email = ? LIMIT 1 - Duration: 48.85ms - Context: {"bindings":["kolina@gmail.com"],"found":true,"db_query":"SELECT * FROM users WHERE  email = ? LIMIT 1","db_duration":0.04884600639343262}
+[2025-06-20 13:23:13] DEBUG [106881] verifyPassword called - Context: {"has_password_in_db":true,"password_hash_from_db":"$2y$10$eYXCavqWbEaJQ...","input_password":"Miawmiaw123@"}
+[2025-06-20 13:23:13] DEBUG [106881] Password verification result - Context: {"result":"success"}
+[2025-06-20 13:23:13] DEBUG [106881] Session variables set after login - Context: {"user_id":null,"username":"kolina","session_id":"3dqemud7ca80eea869thjs5q7r","is_authenticated":false}
+[2025-06-20 13:23:13] DEBUG [106881] Session after write_close and restart - Context: {"user_id":"not_set","is_authenticated":false,"session_status":2}
+[2025-06-20 13:23:47] INFO [3e89d1] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 13:23:47"}
+[2025-06-20 13:23:47] DEBUG [3e89d1] Controller instantiated - Context: {"controller":"AuthenticationController","request_uri":"/login","request_method":"POST","is_ajax":"no"}
+[2025-06-20 13:23:47] DEBUG [3e89d1] login method called - Context: {"session_status":2,"is_authenticated":false,"user_id":"not_set","request_method":"POST"}
+[2025-06-20 13:23:47] DEBUG [3e89d1] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:23:47] INFO [3e89d1] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:23:48] DEBUG [3e89d1] DB Query: SELECT * FROM users WHERE  email = ? LIMIT 1 - Duration: 49.04ms - Context: {"bindings":["kolina@gmail.com"],"found":true,"db_query":"SELECT * FROM users WHERE  email = ? LIMIT 1","db_duration":0.04904294013977051}
+[2025-06-20 13:23:48] DEBUG [3e89d1] verifyPassword called - Context: {"has_password_in_db":true,"password_hash_from_db":"$2y$10$eYXCavqWbEaJQ...","input_password":"Miawmiaw123@"}
+[2025-06-20 13:23:48] DEBUG [3e89d1] Password verification result - Context: {"result":"success"}
+[2025-06-20 13:23:48] DEBUG [3e89d1] Session variables set after login - Context: {"user_id":null,"username":"kolina","session_id":"gcu2naopp79vrdgtbic1hql3sc","is_authenticated":false}
+[2025-06-20 13:23:48] DEBUG [3e89d1] Session after write_close and restart - Context: {"user_id":"not_set","is_authenticated":false,"session_status":2}
+[2025-06-20 13:23:48] INFO [426191] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 13:23:48"}
+[2025-06-20 13:24:49] INFO [1130df] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 13:24:49"}
+[2025-06-20 13:25:01] INFO [d0b82a] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 13:25:01"}
+[2025-06-20 13:25:22] INFO [276acd] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 13:25:22"}
+[2025-06-20 13:25:42] INFO [646d04] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 13:25:42"}
+[2025-06-20 13:26:17] INFO [986caa] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 13:26:17"}
+[2025-06-20 13:26:43] INFO [33d646] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 13:26:43"}
+[2025-06-20 13:28:23] INFO [7c3823] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 13:28:23"}
+[2025-06-20 13:28:52] INFO [415f5c] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 13:28:52"}
+[2025-06-20 13:29:04] INFO [09d074] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 13:29:04"}
+[2025-06-20 13:29:14] INFO [a65740] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 13:29:14"}
+[2025-06-20 13:29:24] INFO [4b7fb3] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 13:29:24"}
+[2025-06-20 13:29:24] DEBUG [4b7fb3] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:29:24] INFO [4b7fb3] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:29:24] DEBUG [4b7fb3] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:29:24] INFO [4b7fb3] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:29:34] INFO [e52d22] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 13:29:34"}
+[2025-06-20 13:29:34] DEBUG [e52d22] Controller instantiated - Context: {"controller":"HomeController","request_uri":"/app","request_method":"GET","is_ajax":"no"}
+[2025-06-20 13:29:34] DEBUG [e52d22] HomeController index called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"request_uri":"/app"}
+[2025-06-20 13:29:34] DEBUG [e52d22] requireAuth called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"session_data":[]}
+[2025-06-20 13:29:34] WARNING [e52d22] User not authenticated, redirecting to login - Context: {"session_data":[],"request_uri":"/app"}
+[2025-06-20 13:30:08] INFO [00cc0e] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 13:30:08"}
+[2025-06-20 13:30:08] DEBUG [00cc0e] Controller instantiated - Context: {"controller":"AuthenticationController","request_uri":"/login","request_method":"POST","is_ajax":"no"}
+[2025-06-20 13:30:08] DEBUG [00cc0e] login method called - Context: {"session_status":2,"is_authenticated":false,"user_id":"not_set","request_method":"POST"}
+[2025-06-20 13:30:08] DEBUG [00cc0e] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:30:08] INFO [00cc0e] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:30:08] DEBUG [00cc0e] DB Query: SELECT * FROM users WHERE  email = ? LIMIT 1 - Duration: 47.15ms - Context: {"bindings":["kolina@gmail.com"],"found":true,"db_query":"SELECT * FROM users WHERE  email = ? LIMIT 1","db_duration":0.047148942947387695}
+[2025-06-20 13:30:08] DEBUG [00cc0e] verifyPassword called - Context: {"has_password_in_db":true,"password_hash_from_db":"$2y$10$eYXCavqWbEaJQ...","input_password":"Miawmiaw123@"}
+[2025-06-20 13:30:08] DEBUG [00cc0e] Password verification result - Context: {"result":"success"}
+[2025-06-20 13:30:08] DEBUG [00cc0e] Session variables set after login - Context: {"user_id":null,"username":"kolina","session_id":"3m0hhv9as6npqoj5ue29finbnt","is_authenticated":false}
+[2025-06-20 13:30:08] DEBUG [00cc0e] Session after write_close and restart - Context: {"user_id":"not_set","is_authenticated":false,"session_status":2}
+[2025-06-20 13:30:17] INFO [96c714] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 13:30:17"}
+[2025-06-20 13:30:17] DEBUG [96c714] Controller instantiated - Context: {"controller":"HomeController","request_uri":"/app","request_method":"GET","is_ajax":"no"}
+[2025-06-20 13:30:17] DEBUG [96c714] HomeController index called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"request_uri":"/app"}
+[2025-06-20 13:30:17] DEBUG [96c714] requireAuth called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"session_data":{"user_id":null,"username":"kolina","discriminator":"2200","avatar_url":null}}
+[2025-06-20 13:30:17] WARNING [96c714] User not authenticated, redirecting to login - Context: {"session_data":{"user_id":null,"username":"kolina","discriminator":"2200","avatar_url":null},"request_uri":"/app"}
+[2025-06-20 13:31:04] INFO [8c6de1] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 13:31:04"}
+[2025-06-20 13:31:04] DEBUG [8c6de1] Controller instantiated - Context: {"controller":"AuthenticationController","request_uri":"/login","request_method":"POST","is_ajax":"no"}
+[2025-06-20 13:31:04] DEBUG [8c6de1] login method called - Context: {"session_status":2,"is_authenticated":false,"user_id":"not_set","request_method":"POST"}
+[2025-06-20 13:31:04] DEBUG [8c6de1] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:31:04] INFO [8c6de1] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:31:04] DEBUG [8c6de1] DB Query: SELECT * FROM users WHERE  email = ? LIMIT 1 - Duration: 47.01ms - Context: {"bindings":["kolina@gmail.com"],"found":true,"db_query":"SELECT * FROM users WHERE  email = ? LIMIT 1","db_duration":0.047009944915771484}
+[2025-06-20 13:31:04] DEBUG [8c6de1] verifyPassword called - Context: {"has_password_in_db":true,"password_hash_from_db":"$2y$10$eYXCavqWbEaJQ...","input_password":"Miawmiaw123@"}
+[2025-06-20 13:31:05] DEBUG [8c6de1] Password verification result - Context: {"result":"success"}
+[2025-06-20 13:31:05] DEBUG [8c6de1] Session variables set after login - Context: {"user_id":null,"username":"kolina","session_id":"e1th04o7sb2s9pb1l7gd36mos5","is_authenticated":false}
+[2025-06-20 13:31:15] INFO [303404] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 13:31:15"}
+[2025-06-20 13:31:15] DEBUG [303404] Controller instantiated - Context: {"controller":"HomeController","request_uri":"/app","request_method":"GET","is_ajax":"no"}
+[2025-06-20 13:31:15] DEBUG [303404] HomeController index called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"request_uri":"/app"}
+[2025-06-20 13:31:15] DEBUG [303404] requireAuth called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"session_data":{"user_id":null,"username":"kolina","discriminator":"2200","avatar_url":null}}
+[2025-06-20 13:31:15] WARNING [303404] User not authenticated, redirecting to login - Context: {"session_data":{"user_id":null,"username":"kolina","discriminator":"2200","avatar_url":null},"request_uri":"/app"}
+[2025-06-20 13:31:24] INFO [ca7b2d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 13:31:24"}
+[2025-06-20 13:31:24] DEBUG [ca7b2d] Controller instantiated - Context: {"controller":"AuthenticationController","request_uri":"/login","request_method":"POST","is_ajax":"no"}
+[2025-06-20 13:31:24] DEBUG [ca7b2d] login method called - Context: {"session_status":2,"is_authenticated":false,"user_id":"not_set","request_method":"POST"}
+[2025-06-20 13:31:24] DEBUG [ca7b2d] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:31:24] INFO [ca7b2d] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:31:24] DEBUG [ca7b2d] DB Query: SELECT * FROM users WHERE  email = ? LIMIT 1 - Duration: 49.05ms - Context: {"bindings":["kolina@gmail.com"],"found":true,"db_query":"SELECT * FROM users WHERE  email = ? LIMIT 1","db_duration":0.04904603958129883}
+[2025-06-20 13:31:24] DEBUG [ca7b2d] verifyPassword called - Context: {"has_password_in_db":true,"password_hash_from_db":"$2y$10$eYXCavqWbEaJQ...","input_password":"Miawmiaw123@"}
+[2025-06-20 13:31:24] DEBUG [ca7b2d] Password verification result - Context: {"result":"success"}
+[2025-06-20 13:31:24] DEBUG [ca7b2d] Session variables set after login - Context: {"user_id":null,"username":"kolina","session_id":"qe7n8ur1auokda48st5rvfvrfj","is_authenticated":false}
+[2025-06-20 13:31:35] INFO [7f28a3] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 13:31:35"}
+[2025-06-20 13:31:36] DEBUG [7f28a3] Controller instantiated - Context: {"controller":"AuthenticationController","request_uri":"/login","request_method":"POST","is_ajax":"no"}
+[2025-06-20 13:31:36] DEBUG [7f28a3] login method called - Context: {"session_status":2,"is_authenticated":false,"user_id":"not_set","request_method":"POST"}
+[2025-06-20 13:31:36] DEBUG [7f28a3] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:31:36] INFO [7f28a3] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:31:36] DEBUG [7f28a3] DB Query: SELECT * FROM users WHERE  email = ? LIMIT 1 - Duration: 56.81ms - Context: {"bindings":["kolina@gmail.com"],"found":true,"db_query":"SELECT * FROM users WHERE  email = ? LIMIT 1","db_duration":0.05680513381958008}
+[2025-06-20 13:31:36] DEBUG [7f28a3] verifyPassword called - Context: {"has_password_in_db":true,"password_hash_from_db":"$2y$10$eYXCavqWbEaJQ...","input_password":"Miawmiaw123@"}
+[2025-06-20 13:31:36] DEBUG [7f28a3] Password verification result - Context: {"result":"success"}
+[2025-06-20 13:31:36] DEBUG [7f28a3] Session variables set after login - Context: {"user_id":null,"username":"kolina","session_id":"5uvct3uskrjvenl4tfh223lde8","is_authenticated":false}
+[2025-06-20 13:32:19] INFO [3adeb5] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 13:32:19"}
+[2025-06-20 13:32:19] DEBUG [3adeb5] Controller instantiated - Context: {"controller":"AuthenticationController","request_uri":"/login","request_method":"POST","is_ajax":"no"}
+[2025-06-20 13:32:19] DEBUG [3adeb5] login method called - Context: {"session_status":2,"is_authenticated":false,"user_id":"not_set","request_method":"POST"}
+[2025-06-20 13:32:19] DEBUG [3adeb5] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:32:19] INFO [3adeb5] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:32:19] DEBUG [3adeb5] DB Query: SELECT * FROM users WHERE  email = ? LIMIT 1 - Duration: 42.72ms - Context: {"bindings":["kolina@gmail.com"],"found":true,"db_query":"SELECT * FROM users WHERE  email = ? LIMIT 1","db_duration":0.04271578788757324}
+[2025-06-20 13:32:19] DEBUG [3adeb5] verifyPassword called - Context: {"has_password_in_db":true,"password_hash_from_db":"$2y$10$eYXCavqWbEaJQ...","input_password":"Miawmiaw123@"}
+[2025-06-20 13:32:19] DEBUG [3adeb5] Password verification result - Context: {"result":"success"}
+[2025-06-20 13:32:19] DEBUG [3adeb5] Session variables set after login - Context: {"user_id":null,"username":"kolina","session_id":"sch3m2eqka90j6aimpmgbcvg9k","is_authenticated":false}
+[2025-06-20 13:32:27] INFO [b0f9b2] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 13:32:27"}
+[2025-06-20 13:32:27] DEBUG [b0f9b2] Controller instantiated - Context: {"controller":"HomeController","request_uri":"/app","request_method":"GET","is_ajax":"no"}
+[2025-06-20 13:32:27] DEBUG [b0f9b2] HomeController index called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"request_uri":"/app"}
+[2025-06-20 13:32:27] DEBUG [b0f9b2] requireAuth called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"session_data":{"user_id":null,"username":"kolina","discriminator":"2200","avatar_url":null}}
+[2025-06-20 13:32:27] WARNING [b0f9b2] User not authenticated, redirecting to login - Context: {"session_data":{"user_id":null,"username":"kolina","discriminator":"2200","avatar_url":null},"request_uri":"/app"}
+[2025-06-20 13:39:20] INFO [83f901] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 13:39:20"}
+[2025-06-20 13:39:20] DEBUG [83f901] Controller instantiated - Context: {"controller":"AuthenticationController","request_uri":"/login","request_method":"POST","is_ajax":"no"}
+[2025-06-20 13:39:20] DEBUG [83f901] login method called - Context: {"session_status":2,"is_authenticated":false,"user_id":"not_set","request_method":"POST"}
+[2025-06-20 13:39:20] DEBUG [83f901] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:39:20] INFO [83f901] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:39:20] DEBUG [83f901] DB Query: SELECT * FROM users WHERE  email = ? LIMIT 1 - Duration: 47.73ms - Context: {"bindings":["kolina@gmail.com"],"found":true,"db_query":"SELECT * FROM users WHERE  email = ? LIMIT 1","db_duration":0.0477290153503418}
+[2025-06-20 13:39:20] DEBUG [83f901] verifyPassword called - Context: {"has_password_in_db":true,"password_hash_from_db":"$2y$10$eYXCavqWbEaJQ...","input_password":"Miawmiaw123@"}
+[2025-06-20 13:39:20] DEBUG [83f901] Password verification result - Context: {"result":"success"}
+[2025-06-20 13:39:20] DEBUG [83f901] User object before setting session - Context: {"user_id":2,"user_attributes":"no attributes property","user_object_dump":[]}
+[2025-06-20 13:39:20] DEBUG [83f901] Session variables set after login - Context: {"user_id":2,"username":"kolina","session_id":"l6kia3dtkg9rko5aro0g0m7812","is_authenticated":true}
+[2025-06-20 13:39:20] DEBUG [83f901] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:39:20] INFO [83f901] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:39:20] WARNING [83f901] Activity logs table does not exist, skipping activity logging
+[2025-06-20 13:39:46] INFO [27635d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 13:39:46"}
+[2025-06-20 13:39:46] DEBUG [27635d] Controller instantiated - Context: {"controller":"AuthenticationController","request_uri":"/login","request_method":"POST","is_ajax":"no"}
+[2025-06-20 13:39:46] DEBUG [27635d] login method called - Context: {"session_status":2,"is_authenticated":false,"user_id":"not_set","request_method":"POST"}
+[2025-06-20 13:39:46] DEBUG [27635d] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:39:46] INFO [27635d] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:39:46] DEBUG [27635d] DB Query: SELECT * FROM users WHERE  email = ? LIMIT 1 - Duration: 55.34ms - Context: {"bindings":["kolina@gmail.com"],"found":true,"db_query":"SELECT * FROM users WHERE  email = ? LIMIT 1","db_duration":0.0553431510925293}
+[2025-06-20 13:39:46] DEBUG [27635d] verifyPassword called - Context: {"has_password_in_db":true,"password_hash_from_db":"$2y$10$eYXCavqWbEaJQ...","input_password":"Miawmiaw123@"}
+[2025-06-20 13:39:46] DEBUG [27635d] Password verification result - Context: {"result":"success"}
+[2025-06-20 13:39:46] DEBUG [27635d] User object before setting session - Context: {"user_id":2,"user_username":"kolina","user_discriminator":"2200","user_avatar_url":null,"user_class":"User","user_reflection":{"table":"users","fillable":["id","username","discriminator","email","password","google_id","avatar_url","status","created_at","updated_at"],"attributes":{"id":2,"username":"kolina","discriminator":"2200","email":"kolina@gmail.com","password":"$2y$10$eYXCavqWbEaJQtLItWXDSuaF1HDH7WY5TVqtZUbLS5gK8Pth0UEoC","google_id":null,"avatar_url":null,"status":"offline","created_at":"2025-06-19 23:29:16","updated_at":"2025-06-19 23:29:16"}}}
+[2025-06-20 13:39:46] DEBUG [27635d] Session variables set after login - Context: {"user_id":2,"username":"kolina","session_id":"iafq7dnqgr6cfssetg3ltbh4i7","is_authenticated":true}
+[2025-06-20 13:39:46] DEBUG [27635d] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:39:46] INFO [27635d] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:39:46] WARNING [27635d] Activity logs table does not exist, skipping activity logging
+[2025-06-20 13:40:01] INFO [137715] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 13:40:01"}
+[2025-06-20 13:40:01] DEBUG [137715] Controller instantiated - Context: {"controller":"HomeController","request_uri":"/app","request_method":"GET","is_ajax":"no"}
+[2025-06-20 13:40:01] DEBUG [137715] HomeController index called - Context: {"session_status":2,"user_id":2,"is_authenticated":true,"request_uri":"/app"}
+[2025-06-20 13:40:01] DEBUG [137715] requireAuth called - Context: {"session_status":2,"user_id":2,"is_authenticated":true,"session_data":{"user_id":2,"username":"kolina","discriminator":"2200","avatar_url":null}}
+[2025-06-20 13:40:01] DEBUG [137715] User authenticated successfully - Context: {"user_id":2}
+[2025-06-20 13:40:01] DEBUG [137715] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:40:01] INFO [137715] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:40:01] WARNING [137715] Activity logs table does not exist, skipping activity logging
+[2025-06-20 13:40:01] DEBUG [137715] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:40:01] INFO [137715] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:40:01] DEBUG [137715] DB Query: SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.... - Duration: 48.00ms - Context: {"bindings":[2],"result_count":0,"db_query":"SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.user_id = ?","db_duration":0.04799914360046387}
+[2025-06-20 13:40:01] DEBUG [137715] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:40:01] INFO [137715] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:40:01] WARNING [137715] Activity logs table does not exist, skipping activity logging
+[2025-06-20 13:40:01] DEBUG [137715] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:40:01] INFO [137715] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:40:01] DEBUG [137715] DB Query: SELECT s.*, usm.created_at, usm.role FROM user_server_memberships usm INNER JOIN servers s ON usm.se... - Duration: 61.74ms - Context: {"bindings":[2],"result_count":0,"db_query":"SELECT s.*, usm.created_at, usm.role FROM user_server_memberships usm INNER JOIN servers s ON usm.server_id = s.id WHERE  usm.user_id = ?","db_duration":0.06174492835998535}
+[2025-06-20 13:40:01] DEBUG [137715] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:40:01] INFO [137715] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:40:01] WARNING [137715] Activity logs table does not exist, skipping activity logging
+[2025-06-20 13:40:01] DEBUG [137715] Controller instantiated - Context: {"controller":"FriendController","request_uri":"/app","request_method":"GET","is_ajax":"no"}
+[2025-06-20 13:40:01] DEBUG [137715] requireAuth called - Context: {"session_status":2,"user_id":2,"is_authenticated":true,"session_data":{"user_id":2,"username":"kolina","discriminator":"2200","avatar_url":null}}
+[2025-06-20 13:40:01] DEBUG [137715] User authenticated successfully - Context: {"user_id":2}
+[2025-06-20 13:40:01] DEBUG [137715] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:40:01] INFO [137715] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:40:01] DEBUG [137715] DB Query: SELECT * FROM users WHERE  id = ? LIMIT 1 - Duration: 50.64ms - Context: {"bindings":[2],"found":true,"db_query":"SELECT * FROM users WHERE  id = ? LIMIT 1","db_duration":0.05063605308532715}
+[2025-06-20 13:40:01] DEBUG [137715] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:40:01] INFO [137715] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:40:01] DEBUG [137715] DB Query: SELECT u.*, fl.id as friendship_id FROM friend_list fl INNER JOIN users u ON fl.user_id2 = u.id WHER... - Duration: 47.30ms - Context: {"bindings":[2,"accepted"],"result_count":0,"db_query":"SELECT u.*, fl.id as friendship_id FROM friend_list fl INNER JOIN users u ON fl.user_id2 = u.id WHERE  fl.user_id = ? AND fl.status = ?","db_duration":0.047302961349487305}
+[2025-06-20 13:40:01] DEBUG [137715] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:40:01] INFO [137715] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:40:01] DEBUG [137715] DB Query: SELECT u.*, fl.id as friendship_id FROM friend_list fl INNER JOIN users u ON fl.user_id = u.id WHERE... - Duration: 48.07ms - Context: {"bindings":[2,"accepted"],"result_count":0,"db_query":"SELECT u.*, fl.id as friendship_id FROM friend_list fl INNER JOIN users u ON fl.user_id = u.id WHERE  fl.user_id2 = ? AND fl.status = ?","db_duration":0.048074960708618164}
+[2025-06-20 13:40:01] DEBUG [137715] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:40:01] INFO [137715] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:40:01] WARNING [137715] Activity logs table does not exist, skipping activity logging
+[2025-06-20 13:40:01] DEBUG [137715] Controller instantiated - Context: {"controller":"ServerController","request_uri":"/app","request_method":"GET","is_ajax":"no"}
+[2025-06-20 13:40:01] DEBUG [137715] requireAuth called - Context: {"session_status":2,"user_id":2,"is_authenticated":true,"session_data":{"user_id":2,"username":"kolina","discriminator":"2200","avatar_url":null}}
+[2025-06-20 13:40:01] DEBUG [137715] User authenticated successfully - Context: {"user_id":2}
+[2025-06-20 13:40:01] DEBUG [137715] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:40:01] INFO [137715] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:40:01] DEBUG [137715] DB Query: SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.... - Duration: 50.75ms - Context: {"bindings":[2],"result_count":0,"db_query":"SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.user_id = ?","db_duration":0.05075216293334961}
+[2025-06-20 13:40:01] DEBUG [137715] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:40:02] INFO [137715] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:40:02] DEBUG [137715] DB Query: SELECT s.*, usm.created_at, usm.role FROM user_server_memberships usm INNER JOIN servers s ON usm.se... - Duration: 45.98ms - Context: {"bindings":[2],"result_count":0,"db_query":"SELECT s.*, usm.created_at, usm.role FROM user_server_memberships usm INNER JOIN servers s ON usm.server_id = s.id WHERE  usm.user_id = ?","db_duration":0.04597806930541992}
+[2025-06-20 13:40:02] DEBUG [137715] User servers loaded for sidebar - Context: {"user_id":2,"server_count":0,"membership_count":0}
+[2025-06-20 13:40:02] DEBUG [137715] Server sidebar debug - Context: {"contentType":"home","currentServer":"not set","currentServer_type":"N/A"}
+[2025-06-20 13:40:02] DEBUG [137715] Controller instantiated - Context: {"controller":"FriendController","request_uri":"/app","request_method":"GET","is_ajax":"no"}
+[2025-06-20 13:40:02] DEBUG [137715] requireAuth called - Context: {"session_status":2,"user_id":2,"is_authenticated":true,"session_data":{"user_id":2,"username":"kolina","discriminator":"2200","avatar_url":null}}
+[2025-06-20 13:40:02] DEBUG [137715] User authenticated successfully - Context: {"user_id":2}
+[2025-06-20 13:40:02] DEBUG [137715] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:40:02] INFO [137715] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:40:02] DEBUG [137715] DB Query: SELECT * FROM users WHERE  id = ? LIMIT 1 - Duration: 50.97ms - Context: {"bindings":[2],"found":true,"db_query":"SELECT * FROM users WHERE  id = ? LIMIT 1","db_duration":0.05097198486328125}
+[2025-06-20 13:40:02] DEBUG [137715] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:40:02] INFO [137715] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:40:02] DEBUG [137715] DB Query: SELECT u.*, fl.id as friendship_id FROM friend_list fl INNER JOIN users u ON fl.user_id2 = u.id WHER... - Duration: 56.76ms - Context: {"bindings":[2,"accepted"],"result_count":0,"db_query":"SELECT u.*, fl.id as friendship_id FROM friend_list fl INNER JOIN users u ON fl.user_id2 = u.id WHERE  fl.user_id = ? AND fl.status = ?","db_duration":0.05675983428955078}
+[2025-06-20 13:40:02] DEBUG [137715] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:40:02] INFO [137715] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:40:02] DEBUG [137715] DB Query: SELECT u.*, fl.id as friendship_id FROM friend_list fl INNER JOIN users u ON fl.user_id = u.id WHERE... - Duration: 60.64ms - Context: {"bindings":[2,"accepted"],"result_count":0,"db_query":"SELECT u.*, fl.id as friendship_id FROM friend_list fl INNER JOIN users u ON fl.user_id = u.id WHERE  fl.user_id2 = ? AND fl.status = ?","db_duration":0.06063508987426758}
+[2025-06-20 13:40:02] DEBUG [137715] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:40:02] INFO [137715] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:40:02] WARNING [137715] Activity logs table does not exist, skipping activity logging
+[2025-06-20 13:40:13] INFO [d80143] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 13:40:13"}
+[2025-06-20 13:40:13] DEBUG [d80143] Controller instantiated - Context: {"controller":"HomeController","request_uri":"/app","request_method":"GET","is_ajax":"no"}
+[2025-06-20 13:40:13] DEBUG [d80143] HomeController index called - Context: {"session_status":2,"user_id":2,"is_authenticated":true,"request_uri":"/app"}
+[2025-06-20 13:40:13] DEBUG [d80143] requireAuth called - Context: {"session_status":2,"user_id":2,"is_authenticated":true,"session_data":{"user_id":2,"username":"kolina","discriminator":"2200","avatar_url":null}}
+[2025-06-20 13:40:13] DEBUG [d80143] User authenticated successfully - Context: {"user_id":2}
+[2025-06-20 13:40:13] DEBUG [d80143] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:40:13] INFO [d80143] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:40:13] WARNING [d80143] Activity logs table does not exist, skipping activity logging
+[2025-06-20 13:40:13] DEBUG [d80143] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:40:13] INFO [d80143] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:40:13] DEBUG [d80143] DB Query: SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.... - Duration: 49.79ms - Context: {"bindings":[2],"result_count":0,"db_query":"SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.user_id = ?","db_duration":0.04978799819946289}
+[2025-06-20 13:40:13] DEBUG [d80143] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:40:13] INFO [d80143] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:40:13] WARNING [d80143] Activity logs table does not exist, skipping activity logging
+[2025-06-20 13:40:13] DEBUG [d80143] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:40:13] INFO [d80143] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:40:13] DEBUG [d80143] DB Query: SELECT s.*, usm.created_at, usm.role FROM user_server_memberships usm INNER JOIN servers s ON usm.se... - Duration: 47.70ms - Context: {"bindings":[2],"result_count":0,"db_query":"SELECT s.*, usm.created_at, usm.role FROM user_server_memberships usm INNER JOIN servers s ON usm.server_id = s.id WHERE  usm.user_id = ?","db_duration":0.04770398139953613}
+[2025-06-20 13:40:13] DEBUG [d80143] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:40:13] INFO [d80143] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:40:13] WARNING [d80143] Activity logs table does not exist, skipping activity logging
+[2025-06-20 13:40:13] DEBUG [d80143] Controller instantiated - Context: {"controller":"FriendController","request_uri":"/app","request_method":"GET","is_ajax":"no"}
+[2025-06-20 13:40:13] DEBUG [d80143] requireAuth called - Context: {"session_status":2,"user_id":2,"is_authenticated":true,"session_data":{"user_id":2,"username":"kolina","discriminator":"2200","avatar_url":null}}
+[2025-06-20 13:40:13] DEBUG [d80143] User authenticated successfully - Context: {"user_id":2}
+[2025-06-20 13:40:13] DEBUG [d80143] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:40:13] INFO [d80143] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:40:13] DEBUG [d80143] DB Query: SELECT * FROM users WHERE  id = ? LIMIT 1 - Duration: 48.75ms - Context: {"bindings":[2],"found":true,"db_query":"SELECT * FROM users WHERE  id = ? LIMIT 1","db_duration":0.04875302314758301}
+[2025-06-20 13:40:13] DEBUG [d80143] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:40:13] INFO [d80143] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:40:14] DEBUG [d80143] DB Query: SELECT u.*, fl.id as friendship_id FROM friend_list fl INNER JOIN users u ON fl.user_id2 = u.id WHER... - Duration: 42.76ms - Context: {"bindings":[2,"accepted"],"result_count":0,"db_query":"SELECT u.*, fl.id as friendship_id FROM friend_list fl INNER JOIN users u ON fl.user_id2 = u.id WHERE  fl.user_id = ? AND fl.status = ?","db_duration":0.04276013374328613}
+[2025-06-20 13:40:14] DEBUG [d80143] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:40:14] INFO [d80143] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:40:14] DEBUG [d80143] DB Query: SELECT u.*, fl.id as friendship_id FROM friend_list fl INNER JOIN users u ON fl.user_id = u.id WHERE... - Duration: 50.61ms - Context: {"bindings":[2,"accepted"],"result_count":0,"db_query":"SELECT u.*, fl.id as friendship_id FROM friend_list fl INNER JOIN users u ON fl.user_id = u.id WHERE  fl.user_id2 = ? AND fl.status = ?","db_duration":0.050608158111572266}
+[2025-06-20 13:40:14] DEBUG [d80143] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:40:14] INFO [d80143] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:40:14] WARNING [d80143] Activity logs table does not exist, skipping activity logging
+[2025-06-20 13:40:14] DEBUG [d80143] Controller instantiated - Context: {"controller":"ServerController","request_uri":"/app","request_method":"GET","is_ajax":"no"}
+[2025-06-20 13:40:14] DEBUG [d80143] requireAuth called - Context: {"session_status":2,"user_id":2,"is_authenticated":true,"session_data":{"user_id":2,"username":"kolina","discriminator":"2200","avatar_url":null}}
+[2025-06-20 13:40:14] DEBUG [d80143] User authenticated successfully - Context: {"user_id":2}
+[2025-06-20 13:40:14] DEBUG [d80143] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:40:14] INFO [d80143] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:40:14] DEBUG [d80143] DB Query: SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.... - Duration: 60.02ms - Context: {"bindings":[2],"result_count":0,"db_query":"SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.user_id = ?","db_duration":0.06002402305603027}
+[2025-06-20 13:40:14] DEBUG [d80143] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:40:14] INFO [d80143] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:40:14] DEBUG [d80143] DB Query: SELECT s.*, usm.created_at, usm.role FROM user_server_memberships usm INNER JOIN servers s ON usm.se... - Duration: 49.62ms - Context: {"bindings":[2],"result_count":0,"db_query":"SELECT s.*, usm.created_at, usm.role FROM user_server_memberships usm INNER JOIN servers s ON usm.server_id = s.id WHERE  usm.user_id = ?","db_duration":0.04961895942687988}
+[2025-06-20 13:40:14] DEBUG [d80143] User servers loaded for sidebar - Context: {"user_id":2,"server_count":0,"membership_count":0}
+[2025-06-20 13:40:14] DEBUG [d80143] Server sidebar debug - Context: {"contentType":"home","currentServer":"not set","currentServer_type":"N/A"}
+[2025-06-20 13:40:14] DEBUG [d80143] Controller instantiated - Context: {"controller":"FriendController","request_uri":"/app","request_method":"GET","is_ajax":"no"}
+[2025-06-20 13:40:14] DEBUG [d80143] requireAuth called - Context: {"session_status":2,"user_id":2,"is_authenticated":true,"session_data":{"user_id":2,"username":"kolina","discriminator":"2200","avatar_url":null}}
+[2025-06-20 13:40:14] DEBUG [d80143] User authenticated successfully - Context: {"user_id":2}
+[2025-06-20 13:40:14] DEBUG [d80143] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:40:14] INFO [d80143] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:40:14] DEBUG [d80143] DB Query: SELECT * FROM users WHERE  id = ? LIMIT 1 - Duration: 49.82ms - Context: {"bindings":[2],"found":true,"db_query":"SELECT * FROM users WHERE  id = ? LIMIT 1","db_duration":0.04981589317321777}
+[2025-06-20 13:40:14] DEBUG [d80143] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:40:14] INFO [d80143] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:40:14] DEBUG [d80143] DB Query: SELECT u.*, fl.id as friendship_id FROM friend_list fl INNER JOIN users u ON fl.user_id2 = u.id WHER... - Duration: 45.52ms - Context: {"bindings":[2,"accepted"],"result_count":0,"db_query":"SELECT u.*, fl.id as friendship_id FROM friend_list fl INNER JOIN users u ON fl.user_id2 = u.id WHERE  fl.user_id = ? AND fl.status = ?","db_duration":0.045520782470703125}
+[2025-06-20 13:40:14] DEBUG [d80143] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:40:14] INFO [d80143] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:40:14] DEBUG [d80143] DB Query: SELECT u.*, fl.id as friendship_id FROM friend_list fl INNER JOIN users u ON fl.user_id = u.id WHERE... - Duration: 43.20ms - Context: {"bindings":[2,"accepted"],"result_count":0,"db_query":"SELECT u.*, fl.id as friendship_id FROM friend_list fl INNER JOIN users u ON fl.user_id = u.id WHERE  fl.user_id2 = ? AND fl.status = ?","db_duration":0.04320192337036133}
+[2025-06-20 13:40:14] DEBUG [d80143] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:40:14] INFO [d80143] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:40:14] WARNING [d80143] Activity logs table does not exist, skipping activity logging
+[2025-06-20 13:40:31] INFO [f7ef98] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 13:40:31"}
+[2025-06-20 13:40:55] INFO [7ead98] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 13:40:55"}
+[2025-06-20 13:41:28] INFO [84a0d0] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 13:41:28"}
+[2025-06-20 13:41:28] DEBUG [84a0d0] Controller instantiated - Context: {"controller":"HomeController","request_uri":"/app","request_method":"GET","is_ajax":"no"}
+[2025-06-20 13:41:28] DEBUG [84a0d0] HomeController index called - Context: {"session_status":2,"user_id":2,"is_authenticated":true,"request_uri":"/app"}
+[2025-06-20 13:41:28] DEBUG [84a0d0] requireAuth called - Context: {"session_status":2,"user_id":2,"is_authenticated":true,"session_data":{"user_id":2,"username":"kolina","discriminator":"2200","avatar_url":null}}
+[2025-06-20 13:41:28] DEBUG [84a0d0] User authenticated successfully - Context: {"user_id":2}
+[2025-06-20 13:41:28] DEBUG [84a0d0] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:41:28] INFO [84a0d0] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:41:28] WARNING [84a0d0] Activity logs table does not exist, skipping activity logging
+[2025-06-20 13:41:28] INFO [84a0d0] Home page data prepared successfully - Context: {"user_id":2}
+[2025-06-20 13:41:28] DEBUG [84a0d0] Controller instantiated - Context: {"controller":"ServerController","request_uri":"/app","request_method":"GET","is_ajax":"no"}
+[2025-06-20 13:41:28] DEBUG [84a0d0] requireAuth called - Context: {"session_status":2,"user_id":2,"is_authenticated":true,"session_data":{"user_id":2,"username":"kolina","discriminator":"2200","avatar_url":null}}
+[2025-06-20 13:41:28] DEBUG [84a0d0] User authenticated successfully - Context: {"user_id":2}
+[2025-06-20 13:41:28] DEBUG [84a0d0] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:41:28] INFO [84a0d0] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:41:28] DEBUG [84a0d0] DB Query: SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.... - Duration: 49.46ms - Context: {"bindings":[2],"result_count":0,"db_query":"SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.user_id = ?","db_duration":0.04945993423461914}
+[2025-06-20 13:41:28] DEBUG [84a0d0] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:41:28] INFO [84a0d0] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:41:28] DEBUG [84a0d0] DB Query: SELECT s.*, usm.created_at, usm.role FROM user_server_memberships usm INNER JOIN servers s ON usm.se... - Duration: 50.49ms - Context: {"bindings":[2],"result_count":0,"db_query":"SELECT s.*, usm.created_at, usm.role FROM user_server_memberships usm INNER JOIN servers s ON usm.server_id = s.id WHERE  usm.user_id = ?","db_duration":0.05048799514770508}
+[2025-06-20 13:41:28] DEBUG [84a0d0] User servers loaded for sidebar - Context: {"user_id":2,"server_count":0,"membership_count":0}
+[2025-06-20 13:41:28] DEBUG [84a0d0] Server sidebar debug - Context: {"contentType":"home","currentServer":"not set","currentServer_type":"N/A"}
+[2025-06-20 13:41:28] DEBUG [84a0d0] Controller instantiated - Context: {"controller":"FriendController","request_uri":"/app","request_method":"GET","is_ajax":"no"}
+[2025-06-20 13:41:28] DEBUG [84a0d0] requireAuth called - Context: {"session_status":2,"user_id":2,"is_authenticated":true,"session_data":{"user_id":2,"username":"kolina","discriminator":"2200","avatar_url":null}}
+[2025-06-20 13:41:28] DEBUG [84a0d0] User authenticated successfully - Context: {"user_id":2}
+[2025-06-20 13:41:28] DEBUG [84a0d0] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:41:28] INFO [84a0d0] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:41:28] DEBUG [84a0d0] DB Query: SELECT * FROM users WHERE  id = ? LIMIT 1 - Duration: 55.62ms - Context: {"bindings":[2],"found":true,"db_query":"SELECT * FROM users WHERE  id = ? LIMIT 1","db_duration":0.055616140365600586}
+[2025-06-20 13:41:28] DEBUG [84a0d0] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:41:28] INFO [84a0d0] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:41:28] DEBUG [84a0d0] DB Query: SELECT u.*, fl.id as friendship_id FROM friend_list fl INNER JOIN users u ON fl.user_id2 = u.id WHER... - Duration: 52.33ms - Context: {"bindings":[2,"accepted"],"result_count":0,"db_query":"SELECT u.*, fl.id as friendship_id FROM friend_list fl INNER JOIN users u ON fl.user_id2 = u.id WHERE  fl.user_id = ? AND fl.status = ?","db_duration":0.05232501029968262}
+[2025-06-20 13:41:28] DEBUG [84a0d0] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:41:28] INFO [84a0d0] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:41:28] DEBUG [84a0d0] DB Query: SELECT u.*, fl.id as friendship_id FROM friend_list fl INNER JOIN users u ON fl.user_id = u.id WHERE... - Duration: 51.20ms - Context: {"bindings":[2,"accepted"],"result_count":0,"db_query":"SELECT u.*, fl.id as friendship_id FROM friend_list fl INNER JOIN users u ON fl.user_id = u.id WHERE  fl.user_id2 = ? AND fl.status = ?","db_duration":0.05120205879211426}
+[2025-06-20 13:41:28] DEBUG [84a0d0] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:41:28] INFO [84a0d0] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:41:28] WARNING [84a0d0] Activity logs table does not exist, skipping activity logging
+[2025-06-20 13:41:44] INFO [8a9f25] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 13:41:44"}
+[2025-06-20 13:41:44] DEBUG [8a9f25] Controller instantiated - Context: {"controller":"AuthenticationController","request_uri":"/login","request_method":"POST","is_ajax":"no"}
+[2025-06-20 13:41:44] DEBUG [8a9f25] login method called - Context: {"session_status":2,"is_authenticated":false,"user_id":"not_set","request_method":"POST"}
+[2025-06-20 13:41:44] DEBUG [8a9f25] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:41:44] INFO [8a9f25] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:41:44] DEBUG [8a9f25] DB Query: SELECT * FROM users WHERE  email = ? LIMIT 1 - Duration: 45.98ms - Context: {"bindings":["kolina@gmail.com"],"found":true,"db_query":"SELECT * FROM users WHERE  email = ? LIMIT 1","db_duration":0.04598283767700195}
+[2025-06-20 13:41:44] DEBUG [8a9f25] verifyPassword called - Context: {"has_password_in_db":true,"password_hash_from_db":"$2y$10$eYXCavqWbEaJQ...","input_password":"Miawmiaw123@"}
+[2025-06-20 13:41:44] DEBUG [8a9f25] Password verification result - Context: {"result":"success"}
+[2025-06-20 13:41:44] DEBUG [8a9f25] User object before setting session - Context: {"user_id":2,"user_username":"kolina","user_discriminator":"2200","user_avatar_url":null,"user_class":"User","user_reflection":{"table":"users","fillable":["id","username","discriminator","email","password","google_id","avatar_url","status","created_at","updated_at"],"attributes":{"id":2,"username":"kolina","discriminator":"2200","email":"kolina@gmail.com","password":"$2y$10$eYXCavqWbEaJQtLItWXDSuaF1HDH7WY5TVqtZUbLS5gK8Pth0UEoC","google_id":null,"avatar_url":null,"status":"offline","created_at":"2025-06-19 23:29:16","updated_at":"2025-06-19 23:29:16"}}}
+[2025-06-20 13:41:44] DEBUG [8a9f25] Session variables set after login - Context: {"user_id":2,"username":"kolina","session_id":"3p931k42840rnlqrobt33906vr","is_authenticated":true}
+[2025-06-20 13:41:44] DEBUG [8a9f25] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 13:41:44] INFO [8a9f25] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 13:41:44] WARNING [8a9f25] Activity logs table does not exist, skipping activity logging
+[2025-06-20 13:41:44] INFO [8e8e37] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 13:41:44"}

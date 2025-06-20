@@ -10,225 +10,295 @@ function initFeaturedCards() {
     const sectionTitle = featuredSection.querySelector('.section-title');
     const sectionSubtitle = featuredSection.querySelector('.section-subtitle');
 
-    if (sectionTitle) sectionTitle.classList.add('revealed');
-    if (sectionSubtitle) sectionSubtitle.classList.add('revealed');
+    
+    if (sectionTitle) {
+        animateTitle(sectionTitle);
+    }
+    if (sectionSubtitle) {
+        setTimeout(() => {
+            sectionSubtitle.classList.add('revealed');
+        }, 300);
+    }
 
+    
     cards.forEach((card, index) => {
         card.setAttribute('data-card-index', index);
         card._isHovered = false;
+        card._isFlipped = false;
+        
+        setupDynamicDescription(card);
+        addEnhancedCardParticles(card);
+        setupCardMouseTracking(card);
+        
+        
+        card.style.opacity = '1';
+        card.style.visibility = 'visible';
+        card.style.willChange = 'transform, filter';
     });
 
+    
     setTimeout(() => {
         cards.forEach((card, index) => {
-            card.classList.add('revealed');
-            card.style.opacity = '1';
-
-            if (window.innerWidth > 768) {
-                const vShapeTransform = getVShapeTransform(index);
-                card.style.transform = vShapeTransform;
-            }
+            setTimeout(() => {
+                card.classList.add('revealed');
+                if (window.innerWidth > 768) {
+                    const vShapeTransform = getVShapeTransform(index);
+                    card.style.transform = vShapeTransform;
+                }
+            }, index * 150);
         });
-    }, 200);
+    }, 500);
 
+    
     if (window.innerWidth > 768) {
-        initDesktopInteractions(cards);
+        initEnhancedDesktopInteractions(cards);
     } else {
-        initMobileInteractions(cards);
+        initEnhancedMobileInteractions(cards);
     }
 
+    
     window.addEventListener('resize', debounce(() => {
         handleResponsiveLayout(cards);
     }, 200));
 }
 
-function getVShapeTransform(index) {
-    const spacing = Math.min(window.innerWidth / 8, 100);
+function animateTitle(titleElement) {
+    titleElement.style.opacity = '1';
+    titleElement.style.transform = 'translateY(0)';
+    titleElement.style.display = 'block';
+    titleElement.style.visibility = 'visible';
+    titleElement.classList.add('revealed');
+    
+    
+    splitTextIntoChars(titleElement);
+}
 
-    if (window.innerWidth >= 1400) {
-        switch (index) {
-            case 0:
-                return `translateX(-${spacing * 2}px) translateY(60px) rotateY(-15deg) rotateX(5deg)`;
-            case 1:
-                return `translateX(-${spacing}px) translateY(30px) rotateY(-8deg) rotateX(3deg)`;
-            case 2:
-                return 'translateX(0) translateY(0) rotateY(0) rotateX(0) scale(1.1)';
-            case 3:
-                return `translateX(${spacing}px) translateY(30px) rotateY(8deg) rotateX(3deg)`;
-            case 4:
-                return `translateX(${spacing * 2}px) translateY(60px) rotateY(15deg) rotateX(5deg)`;
-            default:
-                return '';
+function splitTextIntoChars(element) {
+    const text = element.textContent;
+    element.innerHTML = '';
+    
+    for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        if (char === ' ') {
+            element.appendChild(document.createTextNode(' '));
+        } else {
+            const span = document.createElement('span');
+            span.textContent = char;
+            span.className = 'char';
+            span.style.transitionDelay = `${i * 0.03}s`;
+            span.style.opacity = '1';
+            span.style.transform = 'translateY(0)';
+            element.appendChild(span);
         }
-    } else if (window.innerWidth >= 1200) {
-        switch (index) {
-            case 0:
-                return `translateX(-${spacing * 1.6}px) translateY(25px) rotateY(-10deg) rotateX(1deg)`;
-            case 1:
-                return `translateX(-${spacing * 0.8}px) translateY(12px) rotateY(-5deg) rotateX(0.5deg)`;
-            case 2:
-                return 'translateX(0) translateY(-3px) rotateY(0) rotateX(0) scale(1.04)';
-            case 3:
-                return `translateX(${spacing * 0.8}px) translateY(12px) rotateY(5deg) rotateX(0.5deg)`;
-            case 4:
-                return `translateX(${spacing * 1.6}px) translateY(25px) rotateY(10deg) rotateX(1deg)`;
-            default:
-                return '';
-        }
-    } else if (window.innerWidth >= 768) {
-        switch (index) {
-            case 0:
-                return `translateX(-${spacing * 1.2}px) translateY(20px) rotateY(-8deg) rotateX(0.5deg)`;
-            case 1:
-                return `translateX(-${spacing * 0.6}px) translateY(10px) rotateY(-4deg) rotateX(0.2deg)`;
-            case 2:
-                return 'translateX(0) translateY(0px) rotateY(0) rotateX(0) scale(1.01)';
-            case 3:
-                return `translateX(${spacing * 0.6}px) translateY(10px) rotateY(4deg) rotateX(0.2deg)`;
-            case 4:
-                return `translateX(${spacing * 1.2}px) translateY(20px) rotateY(8deg) rotateX(0.5deg)`;
-            default:
-                return '';
-        }
-    } else {
-        return 'translateX(0) translateY(0) rotateY(0) rotateX(0)';
     }
 }
 
-function initDesktopInteractions(cards) {
+function setupDynamicDescription(card) {
+    const tooltipContent = card.getAttribute('data-tooltip');
+    const backFace = card.querySelector('.card-back');
+    const descriptionElement = backFace.querySelector('.card-description');
+    
+    if (tooltipContent && descriptionElement) {
+        descriptionElement.textContent = tooltipContent;
+    }
+}
+
+function addEnhancedCardParticles(card) {
+    const particlesContainer = document.createElement('div');
+    particlesContainer.className = 'card-particles enhanced';
+    
+    
+    for (let i = 0; i < 8; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'card-particle';
+        particle.style.left = (10 + Math.random() * 80) + '%';
+        particle.style.animationDelay = Math.random() * 3 + 's';
+        particle.style.animationDuration = (2 + Math.random() * 2) + 's';
+        
+        
+        const size = 1 + Math.random() * 2;
+        particle.style.width = size + 'px';
+        particle.style.height = size + 'px';
+        
+        particlesContainer.appendChild(particle);
+    }
+    
+    card.appendChild(particlesContainer);
+}
+
+function setupCardMouseTracking(card) {
+    card.addEventListener('mousemove', (e) => {
+        if (window.innerWidth <= 768) return;
+        
+        const rect = card.getBoundingClientRect();
+        const x = ((e.clientX - rect.left) / rect.width) * 100;
+        const y = ((e.clientY - rect.top) / rect.height) * 100;
+        
+        card.style.setProperty('--mouse-x', x + '%');
+        card.style.setProperty('--mouse-y', y + '%');
+        
+        
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+        const rotateX = ((e.clientY - rect.top - centerY) / centerY) * 5;
+        const rotateY = ((e.clientX - rect.left - centerX) / centerX) * 5;
+        
+        if (card._isHovered && !card._isFlipped) {
+            card.style.transform = `${getVShapeTransform(parseInt(card.dataset.cardIndex))} 
+                                   rotateX(${-rotateX}deg) rotateY(${rotateY}deg) 
+                                   translateZ(20px)`;
+        }
+    });
+}
+
+function getVShapeTransform(index) {
+    const spacing = Math.min(window.innerWidth / 8, 100);
+
+    switch (index) {
+        case 0:
+            return `translateX(-${spacing * 2}px) translateY(20px)`;
+        case 1:
+            return `translateX(-${spacing}px) translateY(10px)`;
+        case 2:
+            return `translateX(0px) translateY(0px)`;
+        case 3:
+            return `translateX(${spacing}px) translateY(10px)`;
+        case 4:
+            return `translateX(${spacing * 2}px) translateY(20px)`;
+        default:
+            return 'translateX(0px) translateY(0px)';
+    }
+}
+
+function initEnhancedDesktopInteractions(cards) {
     cards.forEach((card, index) => {
         let hoverTimeout;
+        let flipTimeout;
 
         card.addEventListener('mouseenter', (e) => {
             card._isHovered = true;
-            showTooltip(card, e);
+            
+            
+            card.style.transition = 'all 0.4s cubic-bezier(0.23, 1, 0.32, 1)';
+            card.style.transform = `${getVShapeTransform(index)} translateY(-15px) scale(1.05)`;
+            card.style.filter = 'drop-shadow(0 25px 50px rgba(255, 107, 53, 0.4))';
+            card.style.zIndex = '200';
+            
+            
+            const particles = card.querySelector('.card-particles');
+            if (particles) {
+                particles.classList.add('active');
+            }
 
+            
             hoverTimeout = setTimeout(() => {
                 if (!card._isHovered) return;
 
                 const currentlyFlipped = document.querySelector('.feature-card.flipped');
                 if (currentlyFlipped && currentlyFlipped !== card) {
-                    currentlyFlipped.classList.remove('flipped');
+                    resetCard(currentlyFlipped);
                 }
 
-                card.classList.add('flipped');
-                card.style.zIndex = '100';
-            }, 600);
+                flipCard(card, true);
+            }, 800);
         });
 
         card.addEventListener('mouseleave', () => {
             card._isHovered = false;
             clearTimeout(hoverTimeout);
-            hideTooltip();
+            clearTimeout(flipTimeout);
 
-            if (card.classList.contains('flipped')) {
-                card.classList.remove('flipped');
-                setTimeout(() => {
-                    card.style.zIndex = getCardZIndex(index);
-                    if (window.innerWidth > 768) {
-                        card.style.transform = getVShapeTransform(index);
-                    }
-                }, 300);
+            
+            const particles = card.querySelector('.card-particles');
+            if (particles) {
+                particles.classList.remove('active');
             }
-        });
 
-        card.addEventListener('mousemove', (e) => {
-            if (card._isHovered) {
-                updateTooltipPosition(e);
-            }
+            
+            setTimeout(() => {
+                resetCard(card, index);
+            }, 100);
         });
     });
 }
 
-function initMobileInteractions(cards) {
+function initEnhancedMobileInteractions(cards) {
     cards.forEach((card, index) => {
         card.addEventListener('click', (event) => {
-            const isFlipped = card.classList.contains('flipped');
+            event.preventDefault();
+            
+            const isFlipped = card._isFlipped;
 
-            cards.forEach(c => c.classList.remove('flipped'));
+            
+            cards.forEach(c => resetCard(c));
 
             if (!isFlipped) {
-                card.classList.add('flipped');
+                flipCard(card, true);
+                
+                
+                const particles = card.querySelector('.card-particles');
+                if (particles) {
+                    particles.classList.add('active');
+                }
             }
         });
     });
 }
 
-function showTooltip(card, event) {
-    const tooltip = document.getElementById('modern-tooltip');
-    if (!tooltip) return;
-
-    const text = card.getAttribute('data-tooltip');
-    if (!text) return;
-
-    const content = tooltip.querySelector('.modern-tooltip-content');
-    if (content) {
-        content.textContent = text;
-    }
-
-    tooltip.classList.add('show');
-    updateTooltipPosition(event);
-
-    if (card.getAttribute('data-tooltip-locked') !== 'true') {
-        card.setAttribute('data-tooltip-locked', 'true');
-        document.body._tooltipCard = card;
-    }
-}
-
-function hideTooltip() {
-    const tooltip = document.getElementById('modern-tooltip');
-    if (!tooltip) return;
-
-    tooltip.classList.remove('show');
-    tooltip.style.visibility = 'hidden';
-
-    if (document.body._tooltipCard) {
-        document.body._tooltipCard.setAttribute('data-tooltip-locked', 'false');
-        document.body._tooltipCard = null;
-    }
-}
-
-function updateTooltipPosition(event) {
-    const tooltip = document.getElementById('modern-tooltip');
-    if (!tooltip || !tooltip.classList.contains('show')) return;
-
-    const viewportWidth = window.innerWidth;
-
-    const x = Math.round(event.clientX);
-    const y = Math.round(event.clientY);
-
-    tooltip.style.visibility = 'visible';
-
-    const rect = tooltip.getBoundingClientRect();
-    const tooltipWidth = rect.width;
-    const tooltipHeight = rect.height;
-
-    let left = x - tooltipWidth / 2;
-    let top = y - tooltipHeight - 15;
-
-    if (left < 20) left = 20;
-    if (left + tooltipWidth > viewportWidth - 20) left = viewportWidth - tooltipWidth - 20;
-
-    if (top < 20) {
-        top = y + 15;
-        const arrow = tooltip.querySelector('.modern-tooltip-arrow');
-        if (arrow) {
-            arrow.style.top = '-8px';
-            arrow.style.bottom = 'auto';
-            arrow.style.borderTop = 'none';
-            arrow.style.borderBottom = '8px solid rgba(0, 0, 0, 0.95)';
+function flipCard(card, shouldFlip) {
+    card._isFlipped = shouldFlip;
+    
+    if (shouldFlip) {
+        card.classList.add('flipped');
+        card.style.transform = `${card.style.transform} rotateY(180deg)`;
+        
+        
+        const cardInner = card.querySelector('.card-inner');
+        if (cardInner) {
+            cardInner.style.transition = 'transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
         }
     } else {
-        const arrow = tooltip.querySelector('.modern-tooltip-arrow');
-        if (arrow) {
-            arrow.style.top = 'auto';
-            arrow.style.bottom = '-8px';
-            arrow.style.borderTop = '8px solid rgba(0, 0, 0, 0.95)';
-            arrow.style.borderBottom = 'none';
+        card.classList.remove('flipped');
+        const cardInner = card.querySelector('.card-inner');
+        if (cardInner) {
+            cardInner.style.transition = 'transform 0.4s cubic-bezier(0.23, 1, 0.32, 1)';
         }
     }
+}
 
-    tooltip.style.left = `${Math.round(left)}px`;
-    tooltip.style.top = `${Math.round(top)}px`;
+function resetCard(card, index = null) {
+    if (!card) return;
+    
+    const cardIndex = index !== null ? index : parseInt(card.dataset.cardIndex);
+    
+    card._isHovered = false;
+    card._isFlipped = false;
+    card.classList.remove('flipped');
+    
+    
+    const particles = card.querySelector('.card-particles');
+    if (particles) {
+        particles.classList.remove('active');
+    }
+    
+    
+    card.style.transition = 'all 0.5s cubic-bezier(0.23, 1, 0.32, 1)';
+    
+    if (window.innerWidth > 768) {
+        card.style.transform = getVShapeTransform(cardIndex);
+        card.style.filter = 'drop-shadow(0 15px 35px rgba(0, 0, 0, 0.4))';
+    } else {
+        card.style.transform = 'none';
+        card.style.filter = 'drop-shadow(0 10px 25px rgba(0, 0, 0, 0.3))';
+    }
+    
+    card.style.zIndex = getCardZIndex(cardIndex);
+    
+    
+    const cardInner = card.querySelector('.card-inner');
+    if (cardInner) {
+        cardInner.style.transition = 'transform 0.4s cubic-bezier(0.23, 1, 0.32, 1)';
+    }
 }
 
 function getCardZIndex(index) {
@@ -249,49 +319,40 @@ function handleResponsiveLayout(cards) {
     const isMobile = window.innerWidth <= 768;
 
     cards.forEach((card, index) => {
+        
         clearTimeout(card._stabilizeTimeout);
         card.classList.remove('hover-locked');
 
+        
+        resetCard(card, index);
+
         if (isMobile) {
+            
             card.style.transform = 'none';
             card.style.zIndex = '10';
-            card.classList.remove('flipped');
-            card.style.filter = 'drop-shadow(0 15px 35px rgba(0, 0, 0, 0.4))';
+            card.style.filter = 'drop-shadow(0 10px 25px rgba(0, 0, 0, 0.3))';
+            card.style.willChange = 'transform';
         } else {
+            
             const vShapeTransform = getVShapeTransform(index);
             card.style.transform = vShapeTransform;
             card.style.zIndex = getCardZIndex(index);
             card.style.filter = 'drop-shadow(0 15px 35px rgba(0, 0, 0, 0.4))';
+            card.style.willChange = 'transform, filter';
         }
 
-        card.style.transition = 'transform 0.3s ease, filter 0.3s ease';
+        card.style.transition = 'transform 0.4s cubic-bezier(0.23, 1, 0.32, 1), filter 0.4s ease';
+        
+        
+        setupDynamicDescription(card);
     });
-}
 
-function resetCardPosition(card, index) {
-    if (!card) return;
-
-    if (card._isHovered ||
-        card.classList.contains('flipped') ||
-        card.classList.contains('hover-locked')) {
-        return;
+    
+    if (isMobile) {
+        initEnhancedMobileInteractions(cards);
+    } else {
+        initEnhancedDesktopInteractions(cards);
     }
-
-    if (window.innerWidth < 768) {
-        card.style.transform = 'translateX(0) translateY(0)';
-        return;
-    }
-
-    stabilizeCard(card, index);
-}
-
-function stabilizeCard(card, index) {
-    if (card._isHovered || card.classList.contains('flipped')) return;
-
-    const vShapeTransform = getVShapeTransform(index);
-    card.style.transform = vShapeTransform;
-    card.style.filter = 'drop-shadow(0 15px 35px rgba(0, 0, 0, 0.4))';
-    card.style.transition = 'transform 0.3s ease, filter 0.3s ease';
 }
 
 function debounce(func, wait) {
@@ -314,21 +375,21 @@ function isElementInViewport(el) {
     );
 }
 
-document.addEventListener('keydown', function(event) {
-    if (event.key.toLowerCase() === 'd') {
-        const featuredSection = document.getElementById('featured-cards');
-        if (featuredSection) {
-            console.log("Debug mode toggled");
-            featuredSection.classList.toggle('debug-visible');
 
-            if (featuredSection.classList.contains('debug-visible')) {
-                const cards = featuredSection.querySelectorAll('.feature-card');
-                cards.forEach((card, i) => {
-                    console.log(`Card ${i} - revealed: ${card.classList.contains('revealed')}, opacity: ${card.style.opacity}, transform: ${card.style.transform}`);
-                });
+function addPassiveEventListener(element, event, handler) {
+    element.addEventListener(event, handler, { passive: true });
+}
+
+
+if ('PerformanceObserver' in window) {
+    const observer = new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) {
+            if (entry.entryType === 'paint') {
+                console.log(`${entry.name}: ${entry.startTime}ms`);
             }
         }
-    }
-});
+    });
+    observer.observe({ entryTypes: ['paint'] });
+}
 
-console.log('Enhanced Featured Cards loaded at ' + new Date().toISOString());
+console.log('Optimized Enhanced Featured Cards (No Tooltips) loaded at ' + new Date().toISOString());

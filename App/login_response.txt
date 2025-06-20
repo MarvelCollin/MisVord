@@ -1,84 +1,90 @@
-<?php
-require_once dirname(dirname(__DIR__)) . '/config/session.php';
 
-// Session should already be started in index.php
-// Only start if absolutely necessary and safe to do so
-if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
-    session_start();
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="A modern Discord-like communication platform">
+<meta name="author" content="MisVord Team">
+<meta name="robots" content="index, follow">
 
-if (!function_exists('asset')) {
-    require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
-}
+<meta name="user-authenticated" content="false">
 
-$mode = 'login'; 
-$path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+<!-- Socket Configuration -->
+<meta name="socket-host" content="localhost">
+<meta name="socket-port" content="1002">
 
-if ($path === '/register') {
-    $mode = 'register';
-} elseif ($path === '/forgot-password') {
-    $mode = 'forgot-password';
-}
+<title>misvord - Login or Register</title>
 
-$errors = $_SESSION['errors'] ?? [];
-$oldInput = $_SESSION['old_input'] ?? [];
-$success = $_SESSION['success'] ?? null;
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com">
+<link rel="preconnect" href="https://cdn.tailwindcss.com">
 
-unset($_SESSION['errors'], $_SESSION['old_input'], $_SESSION['success']);
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
-$page_title = 'misvord - Login or Register';
-$body_class = 'bg-discord-dark text-white';
-$page_css = 'authentication-page';
-$page_js = 'pages/authentication-simple';
-$additional_js = [];
-$head_scripts = ['logger-init'];
-$data_page = 'auth';
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
 
-$debugInfo = '';
-if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
-    require_once dirname(dirname(__DIR__)) . '/controllers/DebugController.php';
-    $debugController = new DebugController();
-    $debugInfo = $debugController->getDatabaseDebugInfo();
-    $debugController->initializeDatabase();
-}
-?>
+<script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    discord: {
+                        'primary': '#5865F2',
+                        'green': '#3BA55C',
+                        'yellow': '#FAA61A',
+                        'red': '#ED4245',
+                        'background': '#36393F',
+                        'dark': '#202225',
+                        'darker': '#18191C',
+                        'light': '#42464D',
+                        'lighter': '#B9BBBE',
+                    }
+                }
+            },
+            fontFamily: {
+                sans: ['Inter', 'sans-serif']
+            }
+        }
+    }
+</script>
 
-<?php ob_start(); ?>
+<link rel="stylesheet" href="http://localhost:8000\/public/css/global.css?v=1750400965">
+<link rel="stylesheet" href="http://localhost:8000\/public/css/lazy-loading.css?v=1750400965">
 
+    <link rel="stylesheet" href="http://localhost:8000\/public/css/authentication-page.css?v=1750400965">
+
+
+
+
+
+            <script src="http://localhost:8000\/public/js/logger-init.js?v=1750400965"></script>
+    
+<!-- Lazyload components preload -->
+<script src="http://localhost:8000\/public/js/utils/lazy-loader.js?v=1750400965" type="module"></script>
+</head>
+<body class="bg-discord-dark text-white" >
+    
 <div class="authentication-page w-full min-h-screen flex items-center justify-center bg-[#202225] p-4 sm:p-6 md:p-8">
 
     <div class="w-full max-w-md mx-auto rounded-xl shadow-2xl relative z-10 glass-hero transform transition-all duration-700 ease-out bg-[#2f3136]/80 backdrop-filter backdrop-blur-md border border-white/10 p-6 sm:p-8" id="authContainer">
 
         <div class="flex justify-center mb-6 sm:mb-8 relative">
-            <img src="<?php echo asset('/landing-page/main-logo.svg'); ?>" alt="misvord Logo" class="h-8 sm:h-10 md:h-12 transition-all" id="logo">
+            <img src="http://localhost:8000/public/assets/landing-page/main-logo.svg" alt="misvord Logo" class="h-8 sm:h-10 md:h-12 transition-all" id="logo">
             <div class="absolute bottom-0 left-1/2 transform -translate-x-1/2 h-0.5 bg-gradient-to-r from-discord-blue to-discord-pink w-0" id="logoUnderline"></div>
         </div>
 
         <h1 class="text-xl sm:text-2xl font-bold text-center mb-6 sm:mb-8 text-white" id="authTitle">
-            <?php if ($mode === 'login'): ?>
-                <span>Welcome back!</span>
-            <?php elseif ($mode === 'register'): ?>
-                <span>Create an account</span>
-            <?php else: ?>
-                <span>Reset Password</span>
-            <?php endif; ?>
-        </h1>
+                            <span>Welcome back!</span>
+                    </h1>
 
-        <?php if (isset($success)): ?>
-            <div class="bg-green-500 text-white p-3 rounded-md mb-6 text-center animate-pulse">
-                <?php echo $success; ?>
-            </div>
-        <?php endif; ?>
-
-        <?php if (isset($errors['auth'])): ?>
-            <div class="bg-red-500 text-white p-3 rounded-md mb-6 text-center animate-pulse">
-                <?php echo $errors['auth']; ?>
-            </div>
-        <?php endif; ?>
-
+        
+        
         <div id="formsContainer" class="relative transition-all duration-300 ease-out" style="min-height: 200px;">
 
-            <form action="/login" method="POST" class="space-y-4 sm:space-y-5 <?php echo $mode === 'login' ? 'block' : 'hidden'; ?>" id="loginForm">
+            <form action="/login" method="POST" class="space-y-4 sm:space-y-5 block" id="loginForm">
 
                 <div class="form-group">
                     <label for="email" class="block text-sm font-medium text-gray-300 mb-1">Email</label>
@@ -87,13 +93,10 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                         id="email" 
                         name="email" 
                         class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 sm:p-3 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all text-sm sm:text-base" 
-                        value="<?php echo $oldInput['email'] ?? ''; ?>" 
+                        value="" 
                         required
                     >
-                    <?php if (isset($errors['email'])): ?>
-                        <p class="text-red-500 text-sm mt-1"><?php echo $errors['email']; ?></p>
-                    <?php endif; ?>
-                </div>
+                                    </div>
 
                 <div class="form-group">
                     <label for="password" class="block text-sm font-medium text-gray-300 mb-1">Password</label>
@@ -109,10 +112,7 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                             <i class="fa-solid fa-eye"></i>
                         </button>
                     </div>
-                    <?php if (isset($errors['password'])): ?>
-                        <p class="text-red-500 text-sm mt-1"><?php echo $errors['password']; ?></p>
-                    <?php endif; ?>
-                </div>
+                                    </div>
 
                 <div class="text-right">
                     <a href="#" class="text-sm text-discord-blue hover:underline form-toggle" data-form="forgot">Forgot your password?</a>
@@ -141,7 +141,7 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                 </div>
             </form>
 
-            <form action="/register" method="POST" class="space-y-4 sm:space-y-5 <?php echo $mode === 'register' ? 'block' : 'hidden'; ?>" id="registerForm">
+            <form action="/register" method="POST" class="space-y-4 sm:space-y-5 hidden" id="registerForm">
 
                 <div class="form-group">
                     <label for="username" class="block text-sm font-medium text-gray-300 mb-1">Username</label>
@@ -150,13 +150,10 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                         id="username" 
                         name="username" 
                         class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 sm:p-3 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all text-sm sm:text-base" 
-                        value="<?php echo $oldInput['username'] ?? ''; ?>" 
+                        value="" 
                         required
                     >
-                    <?php if (isset($errors['username'])): ?>
-                        <p class="text-red-500 text-sm mt-1"><?php echo $errors['username']; ?></p>
-                    <?php endif; ?>
-                </div>
+                                    </div>
 
                 <div class="form-group">
                     <label for="reg_email" class="block text-sm font-medium text-gray-300 mb-1">Email</label>
@@ -165,13 +162,10 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                         id="reg_email" 
                         name="email" 
                         class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
-                        value="<?php echo $oldInput['email'] ?? ''; ?>" 
+                        value="" 
                         required
                     >
-                    <?php if (isset($errors['email'])): ?>
-                        <p class="text-red-500 text-sm mt-1"><?php echo $errors['email']; ?></p>
-                    <?php endif; ?>
-                </div>
+                                    </div>
 
                 <div class="form-group">
                     <label for="reg_password" class="block text-sm font-medium text-gray-300 mb-1">Password</label>
@@ -187,10 +181,7 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                             <i class="fa-solid fa-eye"></i>
                         </button>
                     </div>
-                    <?php if (isset($errors['password'])): ?>
-                        <p class="text-red-500 text-sm mt-1"><?php echo $errors['password']; ?></p>
-                    <?php endif; ?>
-                    <div class="mt-1 h-1 bg-gray-700 rounded hidden" id="passwordStrength">
+                                        <div class="mt-1 h-1 bg-gray-700 rounded hidden" id="passwordStrength">
                         <div class="h-full bg-discord-blue rounded" style="width: 0%"></div>
                     </div>
                 </div>
@@ -209,10 +200,7 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                             <i class="fa-solid fa-eye"></i>
                         </button>
                     </div>
-                    <?php if (isset($errors['password_confirm'])): ?>
-                        <p class="text-red-500 text-sm mt-1"><?php echo $errors['password_confirm']; ?></p>
-                    <?php endif; ?>
-                    <div class="text-green-500 text-xs mt-1 hidden" id="passwordsMatch">Passwords match <i class="fa-solid fa-check"></i></div>
+                                        <div class="text-green-500 text-xs mt-1 hidden" id="passwordsMatch">Passwords match <i class="fa-solid fa-check"></i></div>
                 </div>
 
                 <button type="submit" class="w-full py-2.5 bg-discord-blue hover:bg-discord-blue/90 text-white font-medium rounded-md transition-all">
@@ -238,7 +226,7 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                 </div>
             </form>
 
-            <form action="/forgot-password" method="POST" class="space-y-5 <?php echo $mode === 'forgot-password' ? 'block' : 'hidden'; ?>" id="forgotForm">
+            <form action="/forgot-password" method="POST" class="space-y-5 hidden" id="forgotForm">
                 <p class="text-gray-300 text-sm mb-6">
                     Enter your email address and we'll send you a link to reset your password.
                 </p>
@@ -250,13 +238,10 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                         id="forgot_email" 
                         name="email" 
                         class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
-                        value="<?php echo $oldInput['email'] ?? ''; ?>" 
+                        value="" 
                         required
                     >
-                    <?php if (isset($errors['email'])): ?>
-                        <p class="text-red-500 text-sm mt-1"><?php echo $errors['email']; ?></p>
-                    <?php endif; ?>
-                </div>
+                                    </div>
 
                 <button type="submit" class="w-full py-2.5 bg-discord-blue hover:bg-discord-blue/90 text-white font-medium rounded-md transition-all">
                     Send Reset Link
@@ -270,9 +255,33 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
     </div>
 </div>
 
-<?php 
+    
+        
+    
+<script src="http://localhost:8000\/public/js/lib/socket.io.min.js?v=1750400965"></script>
 
-$content = ob_get_clean(); 
+<script>
+// Set up global configuration from meta tags
+(function() {
+    const socketHost = document.querySelector('meta[name="socket-host"]')?.content;
+    const socketPort = document.querySelector('meta[name="socket-port"]')?.content;
+    
+    if (socketHost) window.SOCKET_HOST = socketHost;
+    if (socketPort) window.SOCKET_PORT = parseInt(socketPort);
+})();
+</script>
 
-include dirname(dirname(__DIR__)) . '/views/layout/main-app.php';
-?>
+<script src="http://localhost:8000\/public/js/utils/socket-status.js?v=1750400965"></script>
+
+<script src="http://localhost:8000\/public/js/utils/lazy-loader.js?v=1750400965" type="module"></script>
+<script src="http://localhost:8000\/public/js/utils/debug-logging.js?v=1750400965" type="module"></script>
+<script src="http://localhost:8000\/public/js/main.js?v=1750400965" type="module"></script>
+
+    <script src="http://localhost:8000\/public/js/pages/authentication-simple.js?v=1750400965" type="module"></script>
+
+    
+        
+    <!-- CSRF token for AJAX calls -->
+    <meta name="csrf-token" content="">
+</body>
+</html>

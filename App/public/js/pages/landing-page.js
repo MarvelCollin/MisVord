@@ -71,7 +71,6 @@ function initScrollTransition() {
 // Enhanced responsive handling for landing page
 function handleLandingPageResize() {
     const isMobile = window.innerWidth <= 768;
-    const isTablet = window.innerWidth <= 1024 && window.innerWidth > 768;
     
     // Disable certain animations on mobile for better performance
     if (isMobile) {

@@ -3,6 +3,7 @@
 require_once __DIR__ . '/../database/repositories/ChannelRepository.php';
 require_once __DIR__ . '/../database/repositories/MessageRepository.php';
 require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
+require_once __DIR__ . '/../database/repositories/CategoryRepository.php';
 require_once __DIR__ . '/BaseController.php';
 
 class ChannelController extends BaseController
@@ -11,6 +12,7 @@ class ChannelController extends BaseController
     private $channelRepository;
     private $messageRepository;
     private $membershipRepository;
+    private $categoryRepository;
 
     public function __construct()
     {
@@ -18,6 +20,7 @@ class ChannelController extends BaseController
         $this->channelRepository = new ChannelRepository();
         $this->messageRepository = new MessageRepository();
         $this->membershipRepository = new UserServerMembershipRepository();
+        $this->categoryRepository = new CategoryRepository();
     }
 
     public function index()
@@ -583,14 +586,8 @@ class ChannelController extends BaseController
             }
 
             // Get channels for the server
-            $channels = $this->channelRepository->getByServerId($serverId);
-              // Get categories (you may need to add this to CategoryRepository)
-            $categories = [];
-            if (class_exists('CategoryRepository')) {
-                require_once __DIR__ . '/../database/repositories/CategoryRepository.php';
-                $categoryRepository = new CategoryRepository();
-                $categories = $categoryRepository->getForServer($serverId);
-            }
+            $channels = $this->channelRepository->getByServerId($serverId);            // Get categories
+            $categories = $this->categoryRepository->getForServer($serverId);
             
             // Determine active channel ID from request
             $activeChannelId = $_GET['channel'] ?? null;

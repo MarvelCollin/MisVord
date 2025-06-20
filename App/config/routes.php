@@ -48,6 +48,24 @@ Route::get('/home', 'pages/home.php');
 Route::get('/app', 'pages/home.php');
 Route::get('/login', 'pages/authentication-page.php');
 Route::get('/register', 'pages/authentication-page.php');
+
+// Debug route to test authentication
+Route::get('/debug-auth', function() {
+    session_start();
+    header('Content-Type: application/json');
+    
+    $response = [
+        'session_status' => session_status(),
+        'session_id' => session_id(),
+        'session_data' => $_SESSION,
+        'user_id' => $_SESSION['user_id'] ?? null,
+        'is_authenticated' => isset($_SESSION['user_id']) && $_SESSION['user_id'] !== null,
+        'php_session_id' => session_id()
+    ];
+    
+    echo json_encode($response, JSON_PRETTY_PRINT);
+    exit;
+});
 Route::get('/explore-servers', 'pages/explore-servers.php');
 Route::get('/settings', 'pages/settings.php');
 Route::get('/call', 'pages/call.php');

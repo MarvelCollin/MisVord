@@ -9,7 +9,8 @@
 				"-S",
 				"localhost:8000",
 				"-t",
-				"public"
+				"public",
+				"public/router.php"
 			],
 			"group": "build",
 			"isBackground": true,

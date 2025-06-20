@@ -183,7 +183,7 @@ function setupFriendSocketListeners() {
         return;
     }
 
-    const socket = window.globalSocketManager.getSocket();
+    const socket = window.globalSocketManager.socket;
     if (!socket) return;
 
     socket.on('friend-request', handleFriendRequest);
@@ -411,12 +411,11 @@ function createOutgoingRequestItem(user) {
 }
 
 function acceptFriendRequest(userId) {
-    if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
-        window.logger?.warn('home', 'Socket not ready for friend request acceptance');
+    if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {        window.logger?.warn('home', 'Socket not ready for friend request acceptance');
         return;
     }
 
-    const socket = window.globalSocketManager.getSocket();
+    const socket = window.globalSocketManager.socket;
     if (socket) {
         socket.emit('friend-request-response', { userId, action: 'accept' });
 
@@ -435,7 +434,7 @@ function ignoreFriendRequest(userId) {
         return;
     }
 
-    const socket = window.globalSocketManager.getSocket();
+    const socket = window.globalSocketManager.socket;
     if (socket) {
         socket.emit('friend-request-response', { userId, action: 'ignore' });
 
@@ -454,7 +453,7 @@ function cancelFriendRequest(userId) {
         return;
     }
 
-    const socket = window.globalSocketManager.getSocket();
+    const socket = window.globalSocketManager.socket;
     if (socket) {
         socket.emit('friend-request-response', { userId, action: 'cancel' });
 

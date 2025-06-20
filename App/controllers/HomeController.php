@@ -17,38 +17,58 @@ class HomeController extends BaseController
         $this->serverRepository = new ServerRepository();
         $this->userServerMembershipRepository = new UserServerMembershipRepository();
         $this->userRepository = new UserRepository();
-    }
-
-    public function index()
+    }    public function index()
     {
+        // Debug session state when accessing home
+        if (function_exists('logger')) {
+            logger()->debug("HomeController index called", [
+                'session_status' => session_status(),
+                'user_id' => $_SESSION['user_id'] ?? 'not_set',
+                'is_authenticated' => $this->isAuthenticated(),
+                'request_uri' => $_SERVER['REQUEST_URI'] ?? ''
+            ]);
+        }
+        
         $this->requireAuth();
 
         $currentUserId = $this->getCurrentUserId();
         $this->logActivity('home_page_accessed');
+        
+        // Simplified version - just return basic data for now
         try {
-            $userServers = $this->serverRepository->getForUser($currentUserId);
-            $this->logActivity('servers_loaded', ['count' => count($userServers)]);
+            $GLOBALS['userServers'] = [];
+            $GLOBALS['currentUser'] = [
+                'id' => $currentUserId,
+                'username' => $_SESSION['username'] ?? 'Unknown',
+                'discriminator' => $_SESSION['discriminator'] ?? '0000',
+                'avatar_url' => $_SESSION['avatar_url'] ?? null
+            ];
+            $GLOBALS['friends'] = [];
+            $GLOBALS['onlineFriends'] = [];
 
-            $memberships = $this->userServerMembershipRepository->getServersForUser($currentUserId);
-            $this->logActivity('memberships_loaded', ['count' => count($memberships)]);
-            require_once __DIR__ . '/FriendController.php';
-            $friendController = new FriendController();
-            $friendData = $friendController->getUserFriends();
-            $GLOBALS['userServers'] = $userServers;
-            $GLOBALS['currentUser'] = $friendData['currentUser'];
-            $GLOBALS['friends'] = $friendData['friends'];
-            $GLOBALS['onlineFriends'] = $friendData['onlineFriends'];
+            if (function_exists('logger')) {
+                logger()->info("Home page data prepared successfully", [
+                    'user_id' => $currentUserId
+                ]);
+            }
 
             return [
-                'userServers' => $userServers,
-                'memberships' => $memberships,
+                'userServers' => [],
+                'memberships' => [],
                 'currentUserId' => $currentUserId,
-                'friendData' => $friendData
+                'friendData' => [
+                    'currentUser' => $GLOBALS['currentUser'],
+                    'friends' => [],
+                    'onlineFriends' => []
+                ]
             ];
         } catch (Exception $e) {
-            $this->logActivity('home_load_error', [
-                'error' => $e->getMessage()
-            ]);
+            if (function_exists('logger')) {
+                logger()->error("Home load error", [
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+            }
 
             $GLOBALS['userServers'] = [];
             $GLOBALS['currentUser'] = null;

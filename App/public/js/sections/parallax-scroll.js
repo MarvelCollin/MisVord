@@ -1,6 +1,5 @@
 document.addEventListener('DOMContentLoaded', function() {
     initParallaxScroll();
-    initCardAnimations();
     initSnapScroll();
     initScrollIndicator();
     initScrollTransitions();
@@ -8,7 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function initParallaxScroll() {
     const heroSection = document.querySelector('.hero-section');
-    const featuresSection = document.querySelector('.feature-cards-section');
+    const featuresSection = document.querySelector('.featured-cards-section');
     const scrambleText = document.querySelector('.scramble-text');
     
     if (!heroSection || !featuresSection || !scrambleText) return;
@@ -49,351 +48,21 @@ function initParallaxScroll() {
 }
 
 function revealFeatureCards() {
-    const sectionTitle = document.querySelector('.feature-cards-section .section-title');
-    const cards = document.querySelectorAll('.feature-card');
+    const sectionTitle = document.querySelector('.featured-cards-section .section-title');
+    const sectionSubtitle = document.querySelector('.featured-cards-section .section-subtitle');
     
     if (sectionTitle) {
         sectionTitle.classList.add('revealed');
     }
     
-    cards.forEach((card, index) => {
-        setTimeout(() => {
-            card.classList.add('revealed');
-            
-            if (window.innerWidth >= 1024) {
-                initCardPositioning(card, index, cards.length);
-            }
-        }, 300 + (index * 150));
-    });
-}
-
-function initCardPositioning(card, index, totalCards) {
-    const centerX = window.innerWidth / 2;
-    const centerY = window.innerHeight / 2;
-    const radius = Math.min(window.innerWidth, window.innerHeight) * 0.25;
-    let angle = 0;
-    
-    if (totalCards === 5) {
-        if (index === 0) angle = -60;
-        else if (index === 1) angle = -30;
-        else if (index === 2) angle = 0;
-        else if (index === 3) angle = 30;
-        else if (index === 4) angle = 60;
-    } else {
-        angle = (index / totalCards) * 120 - 60;
-    }
-    
-    const radian = angle * Math.PI / 180;
-    const offsetX = Math.sin(radian) * radius;
-    const offsetY = Math.cos(radian) * radius * 0.3 - 50;
-    
-    card.style.transformOrigin = 'center center';
-    
-    setTimeout(() => {
-        card.style.transform = `translate3d(${offsetX}px, ${offsetY}px, 0) rotate3d(0, 1, 0, ${angle * 0.25}deg)`;
-    }, 100);
-    
-    const inner = card.querySelector('.card-inner');
-    if (inner) {
-        if (index === 0 || index === 1) {
-            inner.style.transform = 'rotateY(-15deg)';
-        } else if (index === 3 || index === 4) {
-            inner.style.transform = 'rotateY(15deg)';
-        } else {
-            inner.style.transform = 'rotateY(0deg)';
-        }
-    }
-}
-
-function initCardAnimations() {
-    const cards = document.querySelectorAll('.feature-card');
-    const container = document.querySelector('.cards-container');
-    
-    if (container) {
-        container.addEventListener('mousemove', e => {
-            const { left, top, width, height } = container.getBoundingClientRect();
-            const mouseX = e.clientX - left;
-            const mouseY = e.clientY - top;
-            
-            const centerX = width / 2;
-            const centerY = height / 2;
-            
-            const percentX = (mouseX - centerX) / centerX;
-            const percentY = (mouseY - centerY) / centerY;
-            
-            cards.forEach((card, index) => {
-                const factor = index === 2 ? 0.05 : 0.1;
-                const rotateY = 15 * percentX * factor;
-                const rotateX = -15 * percentY * factor;
-                const translateZ = index === 2 ? 30 : 15;
-                
-                const depth = index === 2 ? 40 : index === 0 || index === 4 ? 0 : 20;
-                
-                if (!card.classList.contains('active-card')) {
-                    card.style.transform = `translateZ(${depth}px) translateX(${percentX * 10}px) translateY(${percentY * 10}px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
-                }
-            });
-        });
-        
-        container.addEventListener('mouseleave', () => {
-            cards.forEach((card, index) => {
-                if (!card.classList.contains('active-card')) {
-                    if (window.innerWidth >= 1024) {
-                        initCardPositioning(card, index, cards.length);
-                    } else {
-                        card.style.transform = '';
-                    }
-                }
-            });
-        });
-    }
-    
-    cards.forEach((card, index) => {
-        card.addEventListener('mouseenter', () => {
-            card.classList.add('active-card');
-            const inner = card.querySelector('.card-inner');
-            if (inner) {
-                inner.style.transform = 'rotateY(180deg)';
-            }
-            
-            if (window.innerWidth >= 1024) {
-                card.style.zIndex = 10;
-                card.style.transform = `scale(1.1) translateZ(60px)`;
-            }
-        });
-        
-        card.addEventListener('mouseleave', () => {
-            card.classList.remove('active-card');
-            const inner = card.querySelector('.card-inner');
-            
-            if (inner) {
-                if (index === 0 || index === 1) {
-                    inner.style.transform = 'rotateY(-15deg)';
-                } else if (index === 3 || index === 4) {
-                    inner.style.transform = 'rotateY(15deg)';
-                } else {
-                    inner.style.transform = 'rotateY(0deg)';
-                }
-            }
-            
-            if (window.innerWidth >= 1024) {
-                setTimeout(() => {
-                    card.style.zIndex = index === 2 ? 5 : index === 0 || index === 4 ? 1 : 2;
-                    initCardPositioning(card, index, cards.length);
-                }, 300);
-            }
-        });
-        
-        const cardFront = card.querySelector('.card-front');
-        const cardBack = card.querySelector('.card-back');
-        
-        if (cardFront && cardBack) {
-            const shine = document.createElement('div');
-            shine.classList.add('card-shine');
-            cardFront.appendChild(shine);
-            
-            const backShine = document.createElement('div');
-            backShine.classList.add('card-shine');
-            cardBack.appendChild(backShine);
-        }
-        
-        card.addEventListener('mousemove', e => {
-            const { left, top, width, height } = card.getBoundingClientRect();
-            const x = (e.clientX - left) / width - 0.5;
-            const y = (e.clientY - top) / height - 0.5;
-            
-            const inner = card.querySelector('.card-inner');
-            
-            if (inner) {
-                const tiltAmount = 10;
-                let originalRotateY;
-                
-                if (inner.style.transform.includes('rotateY(180deg)')) {
-                    originalRotateY = 180;
-                } else {
-                    if (index <= 1) originalRotateY = -15;
-                    else if (index >= 3) originalRotateY = 15;
-                    else originalRotateY = 0;
-                }
-                
-                inner.style.transform = `rotateY(${originalRotateY}deg) rotateX(${y * -tiltAmount}deg) rotateZ(${x * tiltAmount/2}deg)`;
-            }
-            
-            const shine = card.querySelector('.card-shine');
-            if (shine) {
-                shine.style.opacity = '1';
-                shine.style.transform = `translateX(${x * 50}px) translateY(${y * 50}px)`;
-            }
-        });
-    });
-    
-    // Add resize handler to adjust card positioning
-    window.addEventListener('resize', () => {
-        if (window.innerWidth >= 1024) {
-            cards.forEach((card, index) => {
-                if (card.classList.contains('revealed') && !card.classList.contains('active-card')) {
-                    initCardPositioning(card, index, cards.length);
-                }
-            });
-        } else {
-            cards.forEach(card => {
-                card.style.transform = '';
-            });
-        }
-    });
-}
-
-function initSnapScroll() {
-    const sections = document.querySelectorAll('.scroll-section');
-    if (sections.length === 0) {
-        console.log("No scroll sections found for snap scroll");
-        return;
-    }
-    
-    console.log(`Found ${sections.length} scroll sections for snap scroll`);
-    
-    let isScrolling = false;
-    let currentSection = 0;
-    let touchStartY = 0;
-    let scrollTimeout;
-    
-    // Find the initial section based on scroll position
-    function updateCurrentSection() {
-        const scrollPosition = window.scrollY;
-        let foundCurrentSection = false;
-        
-        sections.forEach((section, index) => {
-            const rect = section.getBoundingClientRect();
-            // If the section is mostly in view, set it as current
-            if (rect.top <= window.innerHeight * 0.3 && rect.bottom >= window.innerHeight * 0.5) {
-                currentSection = index;
-                foundCurrentSection = true;
-            }
-        });
-        
-        // Default to first section if none are in view
-        if (!foundCurrentSection && sections.length > 0) {
-            currentSection = 0;
-        }
-    }
-    
-    // Initial check for current section
-    updateCurrentSection();
-    
-    // Enhanced wheel handler with better debounce
-    function wheelHandler(e) {
-        // Don't interfere with normal scrolling when not in snap scroll mode
-        if (window.innerWidth < 768 || isScrolling) return;
-        
-        // Clear any pending scroll
-        clearTimeout(scrollTimeout);
-        
-        // Debounce scroll events
-        scrollTimeout = setTimeout(() => {
-            isScrolling = true;
-            
-            // Determine scroll direction
-            if (e.deltaY > 0 && currentSection < sections.length - 1) {
-                // Scroll down
-                currentSection++;
-            } else if (e.deltaY < 0 && currentSection > 0) {
-                // Scroll up
-                currentSection--;
-            }
-            
-            // Scroll to section with smooth behavior
-            scrollToSection(currentSection);
-            
-            // Prevent default scroll
-            e.preventDefault();
-        }, 50);
-    }
-    
-    // Scroll to the specified section index
-    function scrollToSection(index) {
-        if (index >= 0 && index < sections.length) {
-            console.log(`Scrolling to section ${index}`);
-            sections[index].scrollIntoView({ behavior: 'smooth' });
-            
-            // Trigger any reveal functions for this section
-            const sectionId = sections[index].id;
-            if (sectionId === 'featured-cards') {
-                console.log("Scrolled to featured cards section, triggering reveal");
-                const featuredCardsEvent = new Event('featuredCardsVisible');
-                document.dispatchEvent(featuredCardsEvent);
-            }
-            
-            setTimeout(() => {
-                isScrolling = false;
-            }, 800); // Allow enough time for the scroll animation to complete
-        }
-    }
-    
-    // Handle touch events for mobile with improved detection
-    function touchStartHandler(e) {
-        touchStartY = e.touches[0].clientY;
-    }
-    
-    function touchEndHandler(e) {
-        // Don't interfere with normal scrolling on mobile
-        if (window.innerWidth < 768 || isScrolling) return;
-        
-        const touchEndY = e.changedTouches[0].clientY;
-        const diff = touchStartY - touchEndY;
-        
-        // Require more significant swipe for mobile
-        if (Math.abs(diff) < 80) return;
-        
-        isScrolling = true;
-        
-        if (diff > 0 && currentSection < sections.length - 1) {
-            // Swipe up (scroll down)
-            currentSection++;
-        } else if (diff < 0 && currentSection > 0) {
-            // Swipe down (scroll up)
-            currentSection--;
-        }
-        
-        scrollToSection(currentSection);
-    }
-    
-    // Update current section on regular scroll
-    function scrollHandler() {
-        if (!isScrolling) {
-            updateCurrentSection();
-        }
-    }
-    
-    // Add event listeners if we have sections
-    if (sections.length > 0) {
-        // Use passive: false to allow preventDefault
-        window.addEventListener('wheel', wheelHandler, { passive: false });
-        window.addEventListener('touchstart', touchStartHandler, { passive: true });
-        window.addEventListener('touchend', touchEndHandler, { passive: true });
-        window.addEventListener('scroll', scrollHandler, { passive: true });
-        
-        // Make sure scroll-to-hash still works
-        if (window.location.hash) {
-            setTimeout(() => {
-                const targetElement = document.querySelector(window.location.hash);
-                if (targetElement) {
-                    targetElement.scrollIntoView({ behavior: 'smooth' });
-                    
-                    // Find which section contains the hash target
-                    sections.forEach((section, index) => {
-                        if (section.contains(targetElement)) {
-                            currentSection = index;
-                        }
-                    });
-                }
-            }, 300);
-        }
+    if (sectionSubtitle) {
+        sectionSubtitle.classList.add('revealed');
     }
 }
 
 function initScrollIndicator() {
     const scrollIndicator = document.querySelector('.scroll-down-indicator');
-    const featuresSection = document.querySelector('.feature-cards-section');
+    const featuresSection = document.querySelector('.featured-cards-section');
     
     if (scrollIndicator && featuresSection) {
         scrollIndicator.addEventListener('click', () => {
@@ -403,14 +72,12 @@ function initScrollIndicator() {
 }
 
 function initScrollTransitions() {
-    const sections = document.querySelectorAll('.hero-section, .feature-cards-section');
-    const navbar = document.querySelector('.navbar'); 
+    const sections = document.querySelectorAll('.hero-section, .featured-cards-section');
     
     let lastScrollTop = 0;
     
     window.addEventListener('scroll', () => {
         const scrollTop = window.scrollY;
-        const scrollDirection = scrollTop > lastScrollTop ? 'down' : 'up';
         
         sections.forEach(section => {
             const rect = section.getBoundingClientRect();
@@ -428,14 +95,6 @@ function initScrollTransitions() {
                 section.classList.remove('in-view');
             }
         });
-        
-        if (navbar) {
-            if (scrollDirection === 'down' && scrollTop > 100) {
-                navbar.classList.add('navbar-hidden');
-            } else {
-                navbar.classList.remove('navbar-hidden');
-            }
-        }
         
         lastScrollTop = scrollTop;
     });
@@ -461,4 +120,113 @@ function animateOnScroll() {
     animatedElements.forEach(el => {
         observer.observe(el);
     });
-} 
+}
+
+function initSnapScroll() {
+    const sections = document.querySelectorAll('.scroll-section');
+    if (sections.length === 0) return;
+    
+    let isScrolling = false;
+    let currentSection = 0;
+    
+    // Find current section based on scroll position
+    function getCurrentSection() {
+        const scrollPosition = window.scrollY + window.innerHeight / 2;
+        
+        sections.forEach((section, index) => {
+            const sectionTop = section.offsetTop;
+            const sectionBottom = sectionTop + section.offsetHeight;
+            
+            if (scrollPosition >= sectionTop && scrollPosition < sectionBottom) {
+                currentSection = index;
+            }
+        });
+    }
+    
+    // Enhanced wheel handler for section snapping
+    function wheelHandler(e) {
+        if (isScrolling) return;
+        
+        if (Math.abs(e.deltaY) < 8) return;
+        
+        e.preventDefault();
+        isScrolling = true;
+        
+        getCurrentSection();
+        
+        let targetSection = currentSection;
+        if (e.deltaY > 0 && currentSection < sections.length - 1) {
+            targetSection = currentSection + 1;
+        } else if (e.deltaY < 0 && currentSection > 0) {
+            targetSection = currentSection - 1;
+        }
+        
+        if (targetSection !== currentSection) {
+            sections[targetSection].scrollIntoView({ 
+                behavior: 'smooth',
+                block: 'start'
+            });
+            currentSection = targetSection;
+            
+            if (targetSection === 1) {
+                setTimeout(() => {
+                    const event = new CustomEvent('featuredCardsVisible');
+                    document.dispatchEvent(event);
+                }, 200);
+            }
+        }
+        
+        setTimeout(() => {
+            isScrolling = false;
+        }, 800);
+    }
+    
+    // Touch handling for mobile
+    let touchStartY = 0;
+    
+    function touchStart(e) {
+        touchStartY = e.touches[0].clientY;
+    }
+    
+    function touchEnd(e) {
+        if (isScrolling) return;
+        
+        const touchEndY = e.changedTouches[0].clientY;
+        const deltaY = touchStartY - touchEndY;
+        
+        // Require significant swipe distance
+        if (Math.abs(deltaY) < 50) return;
+        
+        isScrolling = true;
+        getCurrentSection();
+        
+        let targetSection = currentSection;
+        if (deltaY > 0 && currentSection < sections.length - 1) {
+            // Swipe up (scroll down)
+            targetSection = currentSection + 1;
+        } else if (deltaY < 0 && currentSection > 0) {
+            // Swipe down (scroll up)
+            targetSection = currentSection - 1;
+        }
+        
+        if (targetSection !== currentSection) {
+            sections[targetSection].scrollIntoView({ 
+                behavior: 'smooth',
+                block: 'start'
+            });
+            currentSection = targetSection;
+        }
+        
+        setTimeout(() => {
+            isScrolling = false;
+        }, 1000);
+    }
+    
+    // Add event listeners
+    window.addEventListener('wheel', wheelHandler, { passive: false });
+    window.addEventListener('touchstart', touchStart, { passive: true });
+    window.addEventListener('touchend', touchEnd, { passive: true });
+    
+    // Initialize current section
+    getCurrentSection();
+}

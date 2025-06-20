@@ -1,0 +1,24 @@
+HTTP/1.1 302 Found
+Host: localhost:8000
+Date: Fri, 20 Jun 2025 06:23:48 GMT
+Connection: close
+X-Powered-By: PHP/8.0.30
+Set-Cookie: PHPSESSID=gcu2naopp79vrdgtbic1hql3sc; expires=Sat, 21-Jun-2025 06:23:48 GMT; Max-Age=86400; path=/; HttpOnly; SameSite=Lax
+Expires: Thu, 19 Nov 1981 08:52:00 GMT
+Location: /app
+Cache-Control: no-store, no-cache, must-revalidate, max-age=0
+Cache-Control: post-check=0, pre-check=0
+Pragma: no-cache
+Content-type: text/html; charset=UTF-8
+
+HTTP/1.1 404 Not Found
+Host: localhost:8000
+Date: Fri, 20 Jun 2025 06:23:48 GMT
+Connection: close
+X-Powered-By: PHP/8.0.30
+Set-Cookie: PHPSESSID=g6mt1mobcqjtjo06011dr37hv7; expires=Sat, 21-Jun-2025 06:23:48 GMT; Max-Age=86400; path=/; HttpOnly; SameSite=Lax
+Expires: Thu, 19 Nov 1981 08:52:00 GMT
+Cache-Control: no-store, no-cache, must-revalidate
+Pragma: no-cache
+Content-type: text/html; charset=UTF-8
+

@@ -4,10 +4,8 @@ if (!defined('APP_ROOT')) {
     define('APP_ROOT', dirname(__DIR__));
 }
 
-
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+// Load app configuration early (includes session settings)
+require_once APP_ROOT . '/config/app.php';
 
 
 $requestUri = $_SERVER['REQUEST_URI'];

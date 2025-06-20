@@ -17,6 +17,14 @@ function setupSocketHandlers(io) {
     socket.on('update-activity', (data) => handleUpdateActivity(io, socket, data));
     socket.on('get-online-users', () => handleGetOnlineUsers(socket));
     socket.on('get-user-presence', (data) => handleGetUserPresence(socket, data));
+      // New handlers for refactored socket-api.js
+    socket.on('notify-user', (data) => handleNotifyUser(io, socket, data));
+    socket.on('broadcast', (data) => handleBroadcast(io, socket, data));
+    socket.on('room-event', (data) => handleRoomEvent(io, socket, data));
+    socket.on('typing-start', (data) => handleTypingStart(io, socket, data));
+    socket.on('typing-stop', (data) => handleTypingStop(io, socket, data));
+    socket.on('reaction-added', (data) => handleReactionAdded(io, socket, data));
+    socket.on('user-presence-changed', (data) => handleUserPresenceChanged(io, socket, data));
   });
 }
 
@@ -334,11 +342,171 @@ function broadcastUserPresenceUpdate(io, userId, status, username = null, activi
   if (activityDetails !== null && activityDetails !== undefined) {
     presenceData.activity_details = activityDetails;
   }
-  
-  io.emit('user-presence-changed', presenceData);
+    io.emit('user-presence-changed', presenceData);
   console.log(`📡 Broadcasting presence update for user ${userId}: ${status}`);
+}
+
+// New handlers for refactored socket-api.js
+function handleNotifyUser(io, socket, data) {
+  try {
+    const { user_id, event, data: eventData } = data;
+    
+    if (!user_id || !event) {
+      console.error('❌ Invalid notify-user request - missing user_id or event');
+      return;
+    }
+    
+    // Find the target user's socket(s)
+    const targetSockets = Array.from(userService.connectedUsers.entries())
+      .filter(([socketId, user]) => user.userId === user_id)
+      .map(([socketId, user]) => socketId);
+    
+    if (targetSockets.length === 0) {
+      console.log(`📤 User ${user_id} not connected - cannot notify`);
+      return;
+    }
+    
+    // Send event to all target user's sockets
+    targetSockets.forEach(socketId => {
+      io.to(socketId).emit(event, eventData);
+    });
+    
+    console.log(`📨 Notified user ${user_id} with event ${event}`);
+  } catch (error) {
+    console.error('❌ Notify user error:', error);
+  }
+}
+
+function handleBroadcast(io, socket, data) {
+  try {
+    const { event, data: eventData } = data;
+    
+    if (!event) {
+      console.error('❌ Invalid broadcast request - missing event');
+      return;
+    }
+    
+    // Broadcast to all connected sockets
+    io.emit(event, eventData);
+    console.log(`📡 Broadcast event ${event} to all connected users`);
+  } catch (error) {
+    console.error('❌ Broadcast error:', error);
+  }
+}
+
+function handleRoomEvent(io, socket, data) {
+  try {
+    const { room, event, data: eventData } = data;
+    
+    if (!room || !event) {
+      console.error('❌ Invalid room-event request - missing room or event');
+      return;
+    }
+    
+    // Emit to specific room
+    io.to(room).emit(event, eventData);
+    console.log(`📡 Broadcast event ${event} to room ${room}`);
+  } catch (error) {
+    console.error('❌ Room event error:', error);
+  }
+}
+
+function handleTypingStart(io, socket, data) {
+  try {
+    const { channel_id, user_id, username } = data;
+    
+    if (!channel_id || !user_id) {
+      console.error('❌ Invalid typing-start request');
+      return;
+    }
+    
+    const roomName = `channel-${channel_id}`;
+    
+    // Send typing indicator to channel except sender
+    socket.to(roomName).emit('typing-start', {
+      channel_id,
+      user_id,
+      username,
+      timestamp: new Date().toISOString()
+    });
+    
+    console.log(`⌨️ User ${username} started typing in channel ${channel_id}`);
+  } catch (error) {
+    console.error('❌ Typing start error:', error);
+  }
+}
+
+function handleTypingStop(io, socket, data) {
+  try {
+    const { channel_id, user_id, username } = data;
+    
+    if (!channel_id || !user_id) {
+      console.error('❌ Invalid typing-stop request');
+      return;
+    }
+    
+    const roomName = `channel-${channel_id}`;
+    
+    // Send typing stop to channel except sender
+    socket.to(roomName).emit('typing-stop', {
+      channel_id,
+      user_id,
+      username,
+      timestamp: new Date().toISOString()
+    });
+    
+    console.log(`⌨️ User ${username} stopped typing in channel ${channel_id}`);
+  } catch (error) {
+    console.error('❌ Typing stop error:', error);
+  }
+}
+
+function handleReactionAdded(io, socket, data) {
+  try {
+    const { channel_id, message_id, user_id, username, reaction } = data;
+    
+    if (!channel_id || !message_id || !user_id || !reaction) {
+      console.error('❌ Invalid reaction-added request');
+      return;
+    }
+    
+    const roomName = `channel-${channel_id}`;
+    
+    // Broadcast reaction to channel
+    io.to(roomName).emit('reaction-added', {
+      channel_id,
+      message_id,
+      user_id,
+      username,
+      reaction,
+      timestamp: new Date().toISOString()
+    });
+    
+    console.log(`😄 User ${username} added reaction ${reaction} to message ${message_id}`);
+  } catch (error) {
+    console.error('❌ Reaction added error:', error);
+  }
+}
+
+function handleUserPresenceChanged(io, socket, data) {
+  try {
+    const { user_id, status, activity_details } = data;
+    
+    if (!user_id || !status) {
+      console.error('❌ Invalid user-presence-changed request');
+      return;
+    }
+    
+    const user = userService.getUserById(user_id);
+    const username = user ? user.username : null;
+    
+    // Use existing broadcast function
+    broadcastUserPresenceUpdate(io, user_id, status, username, activity_details);
+  } catch (error) {
+    console.error('❌ User presence changed error:', error);
+  }
 }
 
 module.exports = {
   setupSocketHandlers
-}; 
+};

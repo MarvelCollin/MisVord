@@ -95,3 +95,18 @@
 [2025-06-19 11:01:44] DEBUG [869189] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
 [2025-06-19 11:01:44] INFO [869189] Database connected successfully - Context: {"database":"misvord"}
 [2025-06-19 11:01:44] DEBUG [869189] DB Query: SELECT * FROM servers WHERE  id = ? LIMIT 1 - Duration: 47.81ms - Context: {"bindings":["1"],"found":true,"db_query":"SELECT * FROM servers WHERE  id = ? LIMIT 1","db_duration":0.04780888557434082}
+[2025-06-19 18:16:15] DEBUG [f892c7] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-19 18:16:15] INFO [f892c7] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-19 18:16:15] DEBUG [f892c7] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-19 18:16:15] INFO [f892c7] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-19 23:19:24] INFO [c4f34c] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-19 23:19:24"}
+[2025-06-19 23:19:24] DEBUG [c4f34c] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-19 23:19:24] INFO [c4f34c] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-19 23:19:24] DEBUG [c4f34c] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-19 23:19:24] INFO [c4f34c] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-19 23:25:59] INFO [73ae5a] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-19 23:25:59"}
+[2025-06-19 23:25:59] DEBUG [73ae5a] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-19 23:25:59] INFO [73ae5a] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-19 23:25:59] DEBUG [73ae5a] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-19 23:25:59] INFO [73ae5a] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-19 18:43:42] DEBUG [ee6b7d] Controller instantiated - Context: {"controller":"BaseController","request_uri":"","request_method":"GET","is_ajax":"no"}

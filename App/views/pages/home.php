@@ -1,5 +1,9 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
+require_once dirname(dirname(__DIR__)) . '/config/session.php';
+
+// Session should already be started in index.php
+// Only start if absolutely necessary and safe to do so
+if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
     session_start();
 }
 
@@ -19,7 +23,7 @@ $page_title = 'misvord - Home';
 $body_class = 'bg-discord-dark text-white';
 $page_css = 'app';
 $page_js = 'pages/app';
-$additional_js = ['components/servers/server-dropdown'];
+$additional_js = ['components/servers/server-dropdown', 'components/servers/server-sidebar'];
 $head_scripts = ['logger-init'];
 $contentType = 'home';
 ?>

@@ -1,28 +1,87 @@
 class SocketApi {
     constructor() {
-        this.baseUrl = '/api/socket';
-        this.defaultOptions = {
-            headers: {
-                'Content-Type': 'application/json'
+        // Use the global socket manager instead of HTTP requests
+        this.globalSocketManager = null;
+        this.socket = null;
+        this.isReady = false;
+        
+        // Initialize connection to global socket manager
+        this.initializeConnection();
+    }    initializeConnection() {
+        // Check if global socket manager is available and ready, or if we're in guest mode
+        if (window.globalSocketManager) {
+            if (window.globalSocketManager.isGuest) {
+                // Skip socket initialization for guest users
+                this.isReady = false;
+                return;
             }
+            if (window.globalSocketManager.isReady()) {
+                this.globalSocketManager = window.globalSocketManager;
+                this.socket = this.globalSocketManager.socket;
+                this.isReady = true;
+                return;
+            }
+        }        // Wait for global socket manager to be ready
+        window.addEventListener('misVordGlobalReady', (event) => {
+            if (event.detail.socketManager.isGuest) {
+                // Skip for guest users
+                this.isReady = false;
+                return;
+            }
+            this.globalSocketManager = event.detail.socketManager;
+            this.socket = this.globalSocketManager.socket;
+            this.isReady = true;
+        });        // Fallback: check periodically
+        const checkConnection = () => {
+            if (window.globalSocketManager) {
+                if (window.globalSocketManager.isGuest) {
+                    // Stop checking for guest users
+                    this.isReady = false;
+                    return;
+                }
+                if (window.globalSocketManager.isReady()) {
+                    this.globalSocketManager = window.globalSocketManager;
+                    this.socket = this.globalSocketManager.socket;
+                    this.isReady = true;
+                    return;
+                }
+            }
+            setTimeout(checkConnection, 100);
         };
-    }
-
-    async emit(event, data, room = null) {
+        
+        setTimeout(checkConnection, 100);
+    }    async emit(event, data, room = null) {
         try {
-            const payload = {
-                event,
-                data,
-                room
-            };
+            if (!this.isReady || !this.socket) {
+                console.warn('Socket API not ready, queuing event:', event);
+                return { success: false, error: 'Socket not ready' };
+            }
 
-            const response = await fetch(`${this.baseUrl}/emit`, {
-                method: 'POST',
-                ...this.defaultOptions,
-                body: JSON.stringify(payload)
-            });
-
-            return await response.json();
+            if (room) {
+                // For room-specific events, emit to the room
+                const payload = {
+                    ...data,
+                    room,
+                    timestamp: new Date().toISOString()
+                };
+                
+                // Emit to specific room via the server
+                this.socket.emit('room-event', {
+                    room,
+                    event,
+                    data: payload
+                });
+            } else {
+                // For general events, emit directly
+                const payload = {
+                    ...data,
+                    timestamp: new Date().toISOString()
+                };
+                
+                this.socket.emit(event, payload);
+            }
+            
+            return { success: true };
         } catch (error) {
             console.error('Socket API emit error:', error);
             return { success: false, error: error.message };
@@ -31,19 +90,22 @@ class SocketApi {
 
     async notifyUser(userId, event, data) {
         try {
+            if (!this.isReady || !this.socket) {
+                console.warn('Socket API not ready, queuing notify user:', event);
+                return { success: false, error: 'Socket not ready' };
+            }
+
             const payload = {
                 user_id: userId,
                 event,
-                data
+                data,
+                timestamp: new Date().toISOString()
             };
 
-            const response = await fetch(`${this.baseUrl}/notify-user`, {
-                method: 'POST',
-                ...this.defaultOptions,
-                body: JSON.stringify(payload)
-            });
-
-            return await response.json();
+            // Use WebSocket to notify specific user
+            this.socket.emit('notify-user', payload);
+            
+            return { success: true };
         } catch (error) {
             console.error('Socket API notify user error:', error);
             return { success: false, error: error.message };
@@ -52,18 +114,21 @@ class SocketApi {
 
     async broadcast(event, data) {
         try {
+            if (!this.isReady || !this.socket) {
+                console.warn('Socket API not ready, queuing broadcast:', event);
+                return { success: false, error: 'Socket not ready' };
+            }
+
             const payload = {
                 event,
-                data
+                data,
+                timestamp: new Date().toISOString()
             };
 
-            const response = await fetch(`${this.baseUrl}/broadcast`, {
-                method: 'POST',
-                ...this.defaultOptions,
-                body: JSON.stringify(payload)
-            });
-
-            return await response.json();
+            // Use WebSocket to broadcast to all connected users
+            this.socket.emit('broadcast', payload);
+            
+            return { success: true };
         } catch (error) {
             console.error('Socket API broadcast error:', error);
             return { success: false, error: error.message };

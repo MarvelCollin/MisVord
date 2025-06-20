@@ -10,8 +10,8 @@ class GoogleAuthController
     private $userRepository;
 
     public function __construct()
-    {
-        if (session_status() === PHP_SESSION_NONE) {
+    {        if (session_status() === PHP_SESSION_NONE) {
+            require_once __DIR__ . '/../config/session.php';
             session_start();
         }
 

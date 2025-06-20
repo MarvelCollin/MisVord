@@ -11,6 +11,11 @@ $currentServerId = isset($currentServer) ? $currentServer->id : null;
 $currentPath = $_SERVER['REQUEST_URI'] ?? '';
 $isHomePage = !str_contains($currentPath, '/server/');
 
+if (!$currentServerId && preg_match('/\/server\/(\d+)/', $currentPath, $matches)) {
+    $currentServerId = (int)$matches[1];
+    $isHomePage = false;
+}
+
 $tooltipPath = dirname(dirname(__DIR__)) . '/components/common/tooltip.php';
 if (file_exists($tooltipPath)) {
     require_once $tooltipPath;
@@ -44,7 +49,7 @@ if (file_exists($tooltipPath)) {
                 ?>
                 
                 <?php
-                $serverContent = '<div class="relative">
+                $serverContent = '<div class="relative server-icon' . ($isActive ? ' active' : '') . '" data-server-id="' . $server->id . '">
                     <a href="/server/' . $server->id . '" class="block group">
                         <div class="w-12 h-12 overflow-hidden ' . ($isActive ? 'rounded-2xl bg-discord-primary' : 'rounded-full hover:rounded-2xl bg-discord-dark') . ' transition-all duration-200 flex items-center justify-center">
                             ' . (!empty($serverImage) ? 
