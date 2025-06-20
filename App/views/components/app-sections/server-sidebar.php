@@ -40,8 +40,7 @@ if (file_exists($tooltipPath)) {
         <?php if (!empty($servers)): ?>
         <div class="w-8 h-0.5 bg-discord-dark rounded my-1"></div>
         <?php endif; ?>
-        
-        <?php if (!empty($servers)): ?>            <?php foreach ($servers as $server): ?>
+          <?php if (!empty($servers)): ?>            <?php foreach ($servers as $server): ?>
                 <?php 
                 $isActive = (string)$currentServerId === (string)$server->id;
                 $serverInitials = substr($server->name ?? 'S', 0, 1);

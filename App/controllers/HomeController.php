@@ -33,10 +33,12 @@ class HomeController extends BaseController
 
         $currentUserId = $this->getCurrentUserId();
         $this->logActivity('home_page_accessed');
-        
-        // Simplified version - just return basic data for now
+          // Simplified version - just return basic data for now
         try {
-            $GLOBALS['userServers'] = [];
+            $userServers = $this->serverRepository->getForUser($currentUserId);
+            $this->logActivity('servers_loaded', ['count' => count($userServers)]);
+
+            $GLOBALS['userServers'] = $userServers;
             $GLOBALS['currentUser'] = [
                 'id' => $currentUserId,
                 'username' => $_SESSION['username'] ?? 'Unknown',
@@ -48,12 +50,13 @@ class HomeController extends BaseController
 
             if (function_exists('logger')) {
                 logger()->info("Home page data prepared successfully", [
-                    'user_id' => $currentUserId
+                    'user_id' => $currentUserId,
+                    'servers_count' => count($userServers)
                 ]);
             }
 
             return [
-                'userServers' => [],
+                'userServers' => $userServers,
                 'memberships' => [],
                 'currentUserId' => $currentUserId,
                 'friendData' => [

@@ -1,0 +1,1579 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="A modern Discord-like communication platform">
+<meta name="author" content="MisVord Team">
+<meta name="robots" content="index, follow">
+
+<meta name="user-id" content="2">
+<meta name="username" content="kolina">
+<meta name="user-authenticated" content="true">
+
+<!-- Socket Configuration -->
+<meta name="socket-host" content="localhost">
+<meta name="socket-port" content="1002">
+
+<title>misvord - Home</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com">
+<link rel="preconnect" href="https://cdn.tailwindcss.com">
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+
+<script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    discord: {
+                        'primary': '#5865F2',
+                        'green': '#3BA55C',
+                        'yellow': '#FAA61A',
+                        'red': '#ED4245',
+                        'background': '#36393F',
+                        'dark': '#202225',
+                        'darker': '#18191C',
+                        'light': '#42464D',
+                        'lighter': '#B9BBBE',
+                    }
+                }
+            },
+            fontFamily: {
+                sans: ['Inter', 'sans-serif']
+            }
+        }
+    }
+</script>
+
+<link rel="stylesheet" href="http://localhost:8000\/public/css/global.css?v=1750402067">
+<link rel="stylesheet" href="http://localhost:8000\/public/css/lazy-loading.css?v=1750402067">
+
+    <link rel="stylesheet" href="http://localhost:8000\/public/css/app.css?v=1750402067">
+
+
+
+
+
+            <script src="http://localhost:8000\/public/js/logger-init.js?v=1750402067"></script>
+    
+<!-- Lazyload components preload -->
+<script src="http://localhost:8000\/public/js/utils/lazy-loader.js?v=1750402067" type="module"></script>
+</head>
+<body class="bg-discord-dark text-white" >
+    
+
+
+<div class="flex h-screen" 
+     data-user-id="2" 
+     data-username="kolina"
+     data-discriminator="2200"
+     id="app-container">
+
+    
+<div class="flex h-full">
+    <div class="w-[72px] bg-discord-darker flex flex-col items-center pt-3 pb-3 space-y-2 overflow-visible">
+        <div class="relative group ">
+        <div class="relative">
+            <a href="/home" class="group flex items-center justify-center relative w-12 h-12">
+                <div class="w-12 h-12 rounded-2xl bg-discord-primary rounded-[16px] flex items-center justify-center transition-all duration-200">
+                    <i class="fa-brands fa-discord text-white text-xl"></i>
+                </div>
+            </a>
+            <div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-10 bg-white rounded-r-md"></div>
+        </div>
+        <div class="absolute left-full ml-3 top-1/2 -translate-y-1/2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 delay-500 pointer-events-none z-50">
+            <div class="bg-gray-800 text-white text-sm font-semibold px-3 py-2 rounded-md whitespace-nowrap shadow-lg">
+                Home
+            </div>
+            <div class="absolute right-full top-1/2 -translate-y-1/2 border-r-gray-800 border-r-8 border-y-transparent border-y-8 border-l-0"></div>
+        </div>
+    </div>        
+                <div class="w-8 h-0.5 bg-discord-dark rounded my-1"></div>
+                
+                                                    
+                <div class="relative group mb-2">
+        <div class="relative server-icon active" data-server-id="">
+                    <a href="/server/" class="block group">
+                        <div class="w-12 h-12 overflow-hidden rounded-2xl bg-discord-primary transition-all duration-200 flex items-center justify-center">
+                            <span class="text-white font-bold text-xl">a</span>
+                        </div>
+                    </a>
+                    <div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-10 bg-white rounded-r-md"></div>
+                </div>
+        <div class="absolute left-full ml-3 top-1/2 -translate-y-1/2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 delay-500 pointer-events-none z-50">
+            <div class="bg-gray-800 text-white text-sm font-semibold px-3 py-2 rounded-md whitespace-nowrap shadow-lg">
+                aw
+            </div>
+            <div class="absolute right-full top-1/2 -translate-y-1/2 border-r-gray-800 border-r-8 border-y-transparent border-y-8 border-l-0"></div>
+        </div>
+    </div>                                
+                <div class="relative group mb-2">
+        <div class="relative server-icon active" data-server-id="">
+                    <a href="/server/" class="block group">
+                        <div class="w-12 h-12 overflow-hidden rounded-2xl bg-discord-primary transition-all duration-200 flex items-center justify-center">
+                            <span class="text-white font-bold text-xl">T</span>
+                        </div>
+                    </a>
+                    <div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-10 bg-white rounded-r-md"></div>
+                </div>
+        <div class="absolute left-full ml-3 top-1/2 -translate-y-1/2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 delay-500 pointer-events-none z-50">
+            <div class="bg-gray-800 text-white text-sm font-semibold px-3 py-2 rounded-md whitespace-nowrap shadow-lg">
+                Test Server
+            </div>
+            <div class="absolute right-full top-1/2 -translate-y-1/2 border-r-gray-800 border-r-8 border-y-transparent border-y-8 border-l-0"></div>
+        </div>
+    </div>                
+        <div class="relative group mb-2">
+        <button data-action="create-server" class="w-12 h-12 bg-discord-dark rounded-full hover:rounded-2xl flex items-center justify-center hover:bg-discord-green transition-all duration-200 border-none cursor-pointer outline-none">
+            <i class="fas fa-plus text-green-500 hover:text-white text-xl transition-colors duration-200"></i>
+        </button>
+        <div class="absolute left-full ml-3 top-1/2 -translate-y-1/2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 delay-500 pointer-events-none z-50">
+            <div class="bg-gray-800 text-white text-sm font-semibold px-3 py-2 rounded-md whitespace-nowrap shadow-lg">
+                Add a Server
+            </div>
+            <div class="absolute right-full top-1/2 -translate-y-1/2 border-r-gray-800 border-r-8 border-y-transparent border-y-8 border-l-0"></div>
+        </div>
+    </div>        
+        <div class="relative group ">
+        <a href="/explore-servers" class="block">
+            <div class="w-12 h-12 rounded-full hover:rounded-2xl bg-discord-dark hover:bg-discord-green flex items-center justify-center transition-all duration-200">
+                <i class="fas fa-compass text-green-500 hover:text-white text-xl transition-colors duration-200"></i>
+            </div>
+        </a>
+        <div class="absolute left-full ml-3 top-1/2 -translate-y-1/2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 delay-500 pointer-events-none z-50">
+            <div class="bg-gray-800 text-white text-sm font-semibold px-3 py-2 rounded-md whitespace-nowrap shadow-lg">
+                Explore Public Servers
+            </div>
+            <div class="absolute right-full top-1/2 -translate-y-1/2 border-r-gray-800 border-r-8 border-y-transparent border-y-8 border-l-0"></div>
+        </div>
+    </div>    </div>
+    
+        
+        <script>
+        console.log('DEBUG: Not in server context', {
+            contentType: 'home',
+            currentServer: false,
+            currentPath: '/app'
+        });
+    </script>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Server sidebar loaded with servers:', [{},{}]);
+    console.log('Current user ID:', 2);
+    console.log('Is home page:', true);
+});
+</script>
+
+    <div class="flex flex-1 overflow-hidden">
+                    
+<div class="w-60 bg-discord-dark flex flex-col">
+
+    <div class="p-3">
+        <div class="w-full bg-discord-darker rounded px-2 py-1.5 flex items-center">
+            <input type="text" placeholder="Find or start a conve..." class="w-full bg-transparent border-0 text-sm text-discord-lighter focus:outline-none">
+        </div>
+    </div>
+
+    <div class="px-2 mb-2">
+
+        <div class="flex items-center p-2 rounded hover:bg-discord-light text-white cursor-pointer">
+            <div class="w-8 h-8 rounded-full bg-discord-background flex items-center justify-center mr-3">
+                <i class="fas fa-user-friends"></i>
+            </div>
+            <span class="font-medium">Friends</span>
+        </div>
+
+        <a href="/nitro" class="block w-full">
+            <div class="flex items-center p-2 rounded hover:bg-discord-light text-discord-lighter hover:text-white cursor-pointer mt-1 relative">
+                <div class="w-8 h-8 rounded-full bg-discord-background flex items-center justify-center mr-3">
+                    <i class="fas fa-gift"></i>
+                </div>
+                <span class="font-medium">Nitro</span>
+            </div>
+        </a>
+    </div>
+
+    <div class="px-4 mt-1 flex items-center justify-between">
+        <h3 class="uppercase text-discord-lighter font-semibold text-xs tracking-wider">Direct Messages</h3>
+        <button class="text-discord-lighter hover:text-white text-lg" id="new-direct-message-btn">
+            <i class="fas fa-plus"></i>
+        </button>
+    </div>
+
+    <div class="px-2 mt-1 flex-grow overflow-y-auto">
+                    <div class="text-discord-lighter text-xs p-2">
+                No friends to message yet. Add some friends!
+            </div>
+            </div>
+
+    
+<div class="p-2 bg-discord-darker flex items-center mt-auto">
+    <div class="relative">                    <div class="relative group ">
+        <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden mr-2">
+                    <img src="http://localhost:8000/public/assets/common/main-logo.png" 
+                         alt="Avatar" class="w-full h-full object-cover">
+                </div>
+        <div class="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 delay-500 pointer-events-none z-50">
+            <div class="bg-gray-800 text-white text-sm font-semibold px-3 py-2 rounded-md whitespace-nowrap shadow-lg">
+                kolina#2200
+            </div>
+            <div class="absolute top-full left-1/2 -translate-x-1/2 border-t-gray-800 border-t-8 border-x-transparent border-x-8 border-b-0"></div>
+        </div>
+    </div>                          <span class="absolute bottom-0 right-0.5 w-3 h-3 rounded-full border-2 border-discord-darker bg-discord-green"></span>
+    </div>
+    
+    <div class="flex-1">
+        <div class="text-sm text-white font-medium truncate">kolina</div>
+        <div class="text-xs text-discord-lighter truncate">#2200</div>
+    </div>
+    
+    <div class="flex space-x-1">
+                    <div class="relative group ">
+        <button class="text-discord-lighter hover:text-white p-1">
+                    <i class="fas fa-microphone"></i>
+                </button>
+        <div class="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 delay-500 pointer-events-none z-50">
+            <div class="bg-gray-800 text-white text-sm font-semibold px-3 py-2 rounded-md whitespace-nowrap shadow-lg">
+                Mute
+            </div>
+            <div class="absolute top-full left-1/2 -translate-x-1/2 border-t-gray-800 border-t-8 border-x-transparent border-x-8 border-b-0"></div>
+        </div>
+    </div><div class="relative group ">
+        <button class="text-discord-lighter hover:text-white p-1">
+                    <i class="fas fa-headphones"></i>
+                </button>
+        <div class="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 delay-500 pointer-events-none z-50">
+            <div class="bg-gray-800 text-white text-sm font-semibold px-3 py-2 rounded-md whitespace-nowrap shadow-lg">
+                Deafen
+            </div>
+            <div class="absolute top-full left-1/2 -translate-x-1/2 border-t-gray-800 border-t-8 border-x-transparent border-x-8 border-b-0"></div>
+        </div>
+    </div><div class="relative group ">
+        <button class="text-discord-lighter hover:text-white p-1">
+                    <i class="fas fa-cog"></i>
+                </button>
+        <div class="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 delay-500 pointer-events-none z-50">
+            <div class="bg-gray-800 text-white text-sm font-semibold px-3 py-2 rounded-md whitespace-nowrap shadow-lg">
+                User Settings
+            </div>
+            <div class="absolute top-full left-1/2 -translate-x-1/2 border-t-gray-800 border-t-8 border-x-transparent border-x-8 border-b-0"></div>
+        </div>
+    </div>            </div>
+</div> </div>
+
+<div class="modal-backdrop hidden" id="new-direct-modal">
+    <div class="modal w-full max-w-md mx-4" onclick="event.stopPropagation();">
+        <div class="p-4 border-b border-discord-dark">
+            <div class="flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-white">New Message</h3>
+                <button id="close-new-direct-modal" class="text-gray-400 hover:text-white">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+        <div class="p-4">
+            <div class="mb-4">
+                <label class="block text-xs text-gray-400 uppercase font-semibold mb-2">Select a Friend</label>
+                <div class="relative">
+                    <input type="text" placeholder="Search by username" class="w-full bg-discord-dark text-white rounded px-3 py-2 focus:outline-none" id="dm-search-input">
+                    <i class="fas fa-search absolute right-3 top-2.5 text-gray-500"></i>
+                </div>
+            </div>
+            
+            <div id="dm-friends-list" class="max-h-60 overflow-y-auto py-2 space-y-2">
+                <div class="text-gray-400 text-center py-4 hidden" id="no-dm-friends">
+                    <i class="fas fa-user-friends text-2xl mb-2"></i>
+                    <p>No friends found</p>
+                </div>
+            </div>
+        </div>
+        <div class="p-4 bg-discord-darker flex justify-end space-x-3">
+            <button class="px-4 py-2 text-white bg-discord-dark hover:bg-discord-light rounded-md" id="cancel-new-direct">
+                Cancel
+            </button>
+            <button class="px-4 py-2 text-white bg-discord-primary hover:bg-discord-primary/90 rounded-md opacity-50 cursor-not-allowed" id="create-new-direct" disabled>
+                Create Message
+            </button>
+        </div>
+    </div>
+</div>
+        
+        <div class="flex flex-col flex-1">
+                            <div class="flex-1 bg-discord-background flex flex-col">
+                    <div class="h-12 bg-discord-background border-b border-gray-800 flex items-center px-4">
+                        <div class="flex items-center">
+                            <i class="fa-solid fa-user-group text-[18px] text-gray-400 mr-2"></i>
+                            <span class="font-semibold text-white">Friends</span>
+                        </div>
+                        <div class="border-l border-gray-800 h-6 mx-4"></div>
+                        <div class="flex space-x-4 text-sm">
+                            <button class="text-white bg-discord-primary hover:bg-discord-primary/90 px-2 py-0.5 rounded" data-tab="online">Online</button>
+                            <button class="text-gray-300 hover:text-white hover:bg-discord-light px-2 py-0.5 rounded" data-tab="all">All</button>
+                            <button class="text-gray-300 hover:text-white hover:bg-discord-light px-2 py-0.5 rounded" data-tab="pending">Pending</button>
+                            <button class="text-gray-300 hover:text-white hover:bg-discord-light px-2 py-0.5 rounded" data-tab="blocked">Blocked</button>
+                            <button class="bg-discord-green hover:bg-discord-green/90 text-white px-3 py-1 rounded" data-tab="add-friend">Add Friend</button>
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="online-tab">
+                        
+<div class="flex-1 p-4 overflow-y-auto bg-discord-background">
+    <div class="flex items-center justify-between mb-4">
+        <h2 class="text-gray-400 font-bold text-xs uppercase">Online — 0</h2>
+        <div class="relative w-60">
+            <input type="text" placeholder="Search" class="w-full bg-discord-dark text-white text-sm rounded px-3 py-1 pl-8 focus:outline-none focus:ring-1 focus:ring-discord-primary">
+            <i class="fas fa-search absolute left-2.5 top-1.5 text-gray-500 text-sm"></i>
+        </div>
+    </div>
+
+    <div class="space-y-1 online-friends-container" data-lazyload="friend-list">
+        <!-- Skeleton loader - displayed until content loads -->
+        <div class="skeleton-content">
+                            <div class="skeleton-item flex justify-between items-center p-2">
+                    <div class="flex items-center">
+                        <div class="skeleton skeleton-avatar mr-3"></div>
+                        <div>
+                            <div class="skeleton skeleton-text mb-1"></div>
+                            <div class="skeleton skeleton-text-sm"></div>
+                        </div>
+                    </div>
+                    <div class="flex space-x-2">
+                        <div class="skeleton w-8 h-8 rounded-full"></div>
+                        <div class="skeleton w-8 h-8 rounded-full"></div>
+                    </div>
+                </div>
+                            <div class="skeleton-item flex justify-between items-center p-2">
+                    <div class="flex items-center">
+                        <div class="skeleton skeleton-avatar mr-3"></div>
+                        <div>
+                            <div class="skeleton skeleton-text mb-1"></div>
+                            <div class="skeleton skeleton-text-sm"></div>
+                        </div>
+                    </div>
+                    <div class="flex space-x-2">
+                        <div class="skeleton w-8 h-8 rounded-full"></div>
+                        <div class="skeleton w-8 h-8 rounded-full"></div>
+                    </div>
+                </div>
+                            <div class="skeleton-item flex justify-between items-center p-2">
+                    <div class="flex items-center">
+                        <div class="skeleton skeleton-avatar mr-3"></div>
+                        <div>
+                            <div class="skeleton skeleton-text mb-1"></div>
+                            <div class="skeleton skeleton-text-sm"></div>
+                        </div>
+                    </div>
+                    <div class="flex space-x-2">
+                        <div class="skeleton w-8 h-8 rounded-full"></div>
+                        <div class="skeleton w-8 h-8 rounded-full"></div>
+                    </div>
+                </div>
+                            <div class="skeleton-item flex justify-between items-center p-2">
+                    <div class="flex items-center">
+                        <div class="skeleton skeleton-avatar mr-3"></div>
+                        <div>
+                            <div class="skeleton skeleton-text mb-1"></div>
+                            <div class="skeleton skeleton-text-sm"></div>
+                        </div>
+                    </div>
+                    <div class="flex space-x-2">
+                        <div class="skeleton w-8 h-8 rounded-full"></div>
+                        <div class="skeleton w-8 h-8 rounded-full"></div>
+                    </div>
+                </div>
+                            <div class="skeleton-item flex justify-between items-center p-2">
+                    <div class="flex items-center">
+                        <div class="skeleton skeleton-avatar mr-3"></div>
+                        <div>
+                            <div class="skeleton skeleton-text mb-1"></div>
+                            <div class="skeleton skeleton-text-sm"></div>
+                        </div>
+                    </div>
+                    <div class="flex space-x-2">
+                        <div class="skeleton w-8 h-8 rounded-full"></div>
+                        <div class="skeleton w-8 h-8 rounded-full"></div>
+                    </div>
+                </div>
+                    </div>
+        
+        <!-- Actual content loaded via LazyLoader -->
+        <div class="friend-content hidden">
+                        <div class="p-4 bg-discord-dark rounded text-center">
+                <div class="mb-2 text-gray-400">
+                    <i class="fa-solid fa-user-group text-3xl"></i>
+                </div>
+                <p class="text-gray-300 mb-1">No friends found</p>
+                <p class="text-gray-500 text-sm">Add some friends to get started!</p>
+            </div>
+                    </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() {
+        if (window.LazyLoader && typeof window.LazyLoader.triggerDataLoaded === 'function') {
+            window.LazyLoader.triggerDataLoaded('friend-list', true);
+            
+            // Hide skeleton and show content
+            document.querySelector('.skeleton-content').classList.add('hidden');
+            document.querySelector('.friend-content').classList.remove('hidden');
+        } else {
+            console.warn('LazyLoader.triggerDataLoaded not available yet');
+        }
+    }, 750);
+});
+</script>                    </div>
+                    
+                    <div class="tab-content hidden" id="all-tab">
+                        <div class="flex-1 p-4 overflow-y-auto bg-discord-background">
+                            <div class="flex items-center justify-between mb-4">
+                                <h2 class="text-gray-400 font-bold text-xs uppercase">All Friends</h2>
+                                <div class="relative w-60">
+                                    <input type="text" placeholder="Search" class="w-full bg-discord-dark text-white text-sm rounded px-3 py-1 pl-8 focus:outline-none focus:ring-1 focus:ring-discord-primary">
+                                    <i class="fas fa-search absolute left-2.5 top-1.5 text-gray-500 text-sm"></i>
+                                </div>
+                            </div>
+                            <div class="space-y-1" id="all-friends-container"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-content hidden" id="pending-tab">
+                        <div class="flex-1 p-4 overflow-y-auto bg-discord-background">
+                            <div class="flex items-center justify-between mb-4">
+                                <h2 class="text-gray-400 font-bold text-xs uppercase">Pending</h2>
+                                <div class="relative w-60">
+                                    <input type="text" placeholder="Search" class="w-full bg-discord-dark text-white text-sm rounded px-3 py-1 pl-8 focus:outline-none focus:ring-1 focus:ring-discord-primary">
+                                    <i class="fas fa-search absolute left-2.5 top-1.5 text-gray-500 text-sm"></i>
+                                </div>
+                            </div>
+                            <div class="space-y-4" id="pending-requests"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-content hidden" id="blocked-tab">
+                        <div class="flex-1 p-4 overflow-y-auto bg-discord-background">
+                            <div class="flex items-center justify-between mb-4">
+                                <h2 class="text-gray-400 font-bold text-xs uppercase">Blocked</h2>
+                                <div class="relative w-60">
+                                    <input type="text" placeholder="Search" class="w-full bg-discord-dark text-white text-sm rounded px-3 py-1 pl-8 focus:outline-none focus:ring-1 focus:ring-discord-primary">
+                                    <i class="fas fa-search absolute left-2.5 top-1.5 text-gray-500 text-sm"></i>
+                                </div>
+                            </div>
+                            <div class="space-y-1" id="blocked-users-container"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-content hidden" id="add-friend-tab">
+                        <div class="flex-1 p-4 overflow-y-auto bg-discord-background">
+                            <h2 class="text-white font-bold text-lg mb-2">Add Friend</h2>
+                            <p class="text-gray-400 text-sm mb-4">You can add friends with their MisVord username.</p>
+                            
+                            <div class="bg-discord-dark p-3 rounded">
+                                <div class="border-b border-gray-700 pb-4">
+                                    <label class="text-gray-400 text-sm uppercase font-medium">Add Friend</label>
+                                    <div class="flex mt-2">
+                                        <input type="text" class="flex-1 bg-discord-dark text-white px-3 py-2 rounded-l border border-gray-700 focus:outline-none focus:ring-1 focus:ring-discord-primary" 
+                                               placeholder="Enter a Username#0000" id="friend-username-input">
+                                        <button class="bg-discord-primary text-white px-4 py-2 rounded-r font-medium disabled:opacity-50 disabled:cursor-not-allowed" disabled id="send-friend-request">
+                                            Send Friend Request
+                                        </button>
+                                    </div>
+                                    <div class="text-discord-red text-sm mt-1 hidden" id="friend-request-error"></div>
+                                    <div class="text-discord-green text-sm mt-1 hidden" id="friend-request-success"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                    </div>
+
+                    
+<div class="w-60 bg-discord-dark border-l border-gray-800 flex flex-col h-full max-h-screen">
+    <div class="h-12 border-b border-gray-800 flex items-center px-4">
+        <h2 class="font-semibold text-white">Active Now</h2>
+    </div>
+
+    <div class="flex-1 overflow-y-auto p-4">
+        <div class="rounded-lg bg-discord-background p-6 text-center">
+            <h3 class="font-semibold text-white mb-2 text-lg">It's quiet for now...</h3>
+            <p class="text-gray-400 text-sm">When friends start an activity, like playing a game or hanging out on voice, we'll show it here!</p>
+        </div>
+    </div>
+</div>            </div>
+</div>
+
+<div id="create-server-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 hidden">
+    <div class="bg-discord-background rounded-lg w-full max-w-md p-6 shadow-xl">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-white text-xl font-bold">Create a Server</h2>
+            <button id="close-server-modal" class="text-gray-400 hover:text-white">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <p class="text-gray-400 mb-4">Your server is where you and your friends hang out. Make yours and start talking.</p>
+
+        <form id="create-server-form" action="/api/servers/create" method="POST" class="space-y-4">
+            <div class="group relative w-24 h-24 mx-auto mb-4 rounded-full bg-discord-dark flex items-center justify-center overflow-hidden border-2 border-dashed border-gray-600 hover:border-discord-blue transition-colors cursor-pointer">
+                <img id="server-icon-preview" class="hidden w-full h-full object-cover" src="" alt="Server icon">
+                <div id="server-icon-placeholder" class="flex flex-col items-center justify-center">
+                    <i class="fas fa-camera text-gray-400 text-xl mb-1"></i>
+                    <span class="text-gray-400 text-xs text-center">Upload Icon</span>
+                </div>
+                <input type="file" id="server-icon-input" name="server_icon" class="absolute inset-0 opacity-0 cursor-pointer" accept="image/*">
+            </div>
+
+            <div class="mb-4">
+                <label for="server-name" class="block text-gray-300 text-sm font-medium mb-2">Server Name</label>
+                <input type="text" id="server-name" name="name" class="bg-discord-dark text-white w-full px-3 py-2 rounded border border-gray-700 focus:border-discord-blue focus:outline-none" placeholder="My Awesome Server" required>
+            </div>
+
+            <div>
+                <button type="submit" class="w-full bg-discord-blue text-white font-medium py-2 px-4 rounded hover:bg-opacity-80 transition-colors">
+                    Create Server
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+<div id="create-server-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 hidden">
+    <div class="bg-discord-background rounded-lg w-full max-w-md p-6 shadow-xl">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-white text-xl font-bold">Create a Server</h2>
+            <button id="close-server-modal" class="text-gray-400 hover:text-white">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <p class="text-gray-400 mb-4">Your server is where you and your friends hang out. Make yours and start talking.</p>
+
+        <form id="create-server-form" action="/api/servers/create" method="POST" class="space-y-4">
+            <div class="group relative w-24 h-24 mx-auto mb-4 rounded-full bg-discord-dark flex items-center justify-center overflow-hidden border-2 border-dashed border-gray-600 hover:border-discord-blue transition-colors cursor-pointer">
+                <img id="server-icon-preview" class="hidden w-full h-full object-cover" src="" alt="Server icon">
+                <div id="server-icon-placeholder" class="flex flex-col items-center justify-center">
+                    <i class="fas fa-camera text-gray-400 text-xl mb-1"></i>
+                    <span class="text-gray-400 text-xs text-center">Upload Icon</span>
+                </div>
+                <input type="file" id="server-icon-input" name="server_icon" class="absolute inset-0 opacity-0 cursor-pointer" accept="image/*">
+            </div>
+
+            <div class="mb-4">
+                <label for="server-name" class="block text-gray-300 text-sm font-medium mb-2">Server Name</label>
+                <input type="text" id="server-name" name="name" class="bg-discord-dark text-white w-full px-3 py-2 rounded border border-gray-700 focus:border-discord-blue focus:outline-none" placeholder="My Awesome Server" required>
+            </div>
+
+            <div>
+                <button type="submit" class="w-full bg-discord-blue text-white font-medium py-2 px-4 rounded hover:bg-opacity-80 transition-colors">
+                    Create Server
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+    
+                    
+<style>
+    .animate-fade-in {
+        animation: fadeIn 0.15s ease-in-out forwards;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    @keyframes scaleIn {
+        from { transform: scale(0.95); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+    }
+    
+    .transform.transition-all {
+        animation: scaleIn 0.15s ease-out forwards;
+    }
+    
+    input[type="checkbox"].peer:checked + div svg {
+        display: block;
+    }
+</style>
+
+<div id="create-channel-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 hidden animate-fade-in">
+    <div class="w-full max-w-md transform transition-all">
+        <div class="bg-[#313338] modal-content rounded-md shadow-xl overflow-hidden">
+            <div class="px-4 py-3 border-b border-[#232428] flex justify-between items-center">
+                <h2 class="text-[#f2f3f5] text-base font-semibold">Create Channel</h2>
+                <button id="close-create-channel-modal" class="text-[#b5bac1] hover:text-white" aria-label="Close">
+                    <svg xmlns="http:
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            
+            <form id="create-channel-form" action="/api/channels" method="POST" onsubmit="return submitChannelForm(event)" class="p-4">
+                <input type="hidden" name="server_id" value="0">
+                <input type="hidden" name="position" id="channel-position" value="">
+                <input type="hidden" name="category_id" id="category-id" value="">
+                <input type="hidden" name="ajax_fallback" id="channel-ajax-fallback" value="false">
+                
+                <div class="mb-4">
+                    <label class="flex items-center text-xs font-bold text-[#b5bac1] mb-2">
+                        CHANNEL TYPE
+                    </label>
+                    <div class="relative">
+                        <select id="channel-type" name="type" 
+                                class="w-full bg-[#1e1f22] border border-[#1a1b1e] rounded-[3px] px-3 py-2 text-white appearance-none focus:outline-none focus:border-[#5865f2] text-sm">
+                            <option value="text">Text</option>
+                            <option value="voice">Voice</option>
+                        </select>
+                        <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                            <svg class="w-4 h-4 text-[#b5bac1]" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <label for="channel-name" class="text-xs font-bold text-[#b5bac1]">CHANNEL NAME</label>
+                    </div>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                            <span class="text-[#b5bac1]">#</span>
+                        </div>
+                        <input type="text" id="channel-name" name="name" 
+                              class="w-full bg-[#1e1f22] border border-[#1a1b1e] rounded-[3px] pl-8 pr-3 py-2 text-white focus:outline-none focus:border-[#5865f2] text-sm" 
+                              placeholder="new-channel" required>
+                    </div>
+                    <p class="text-xs text-[#949ba4] mt-1">Use lowercase letters, numbers, hyphens, and underscores</p>
+                </div>
+                
+                <div class="mb-4">
+                    <div class="flex items-center gap-2">
+                        <div class="relative">
+                            <input type="checkbox" id="is-private" name="is_private" 
+                                class="absolute w-4 h-4 opacity-0 cursor-pointer peer">
+                            <div class="w-5 h-5 bg-[#1e1f22] border border-[#1a1b1e] rounded peer-checked:bg-[#5865f2] peer-checked:border-[#5865f2] transition-all peer-focus:ring-2 peer-focus:ring-[#5865f2]/25">
+                                <svg class="w-5 h-5 text-white opacity-0 peer-checked:opacity-100" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <label for="is-private" class="text-sm text-[#dbdee1] cursor-pointer">Private Channel</label>
+                            <div class="group relative">
+                                <span class="text-[#949ba4] cursor-help">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <div class="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 invisible group-hover:visible bg-black text-white text-xs p-2 rounded w-48">
+                                    Only specific members will be able to view this channel
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            
+                <!-- Footer -->
+                <div class="bg-[#2b2d31] mt-4 -mx-4 -mb-4 px-4 py-3 flex justify-end gap-3">
+                    <button type="button" id="cancel-create-channel" class="px-3 py-2 text-sm font-medium text-[#dbdee1] hover:underline">
+                        Cancel
+                    </button>
+                    <button type="submit" class="bg-[#5865f2] hover:bg-[#4752c4] text-white text-sm font-medium px-4 py-2 rounded-[3px] transition-colors">
+                        Create Channel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div id="create-category-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 hidden animate-fade-in">
+    <div class="w-full max-w-md transform transition-all">
+        <div class="bg-[#313338] modal-content rounded-md shadow-xl overflow-hidden">
+            <div class="px-4 py-3 border-b border-[#232428] flex justify-between items-center">
+                <h2 class="text-[#f2f3f5] text-base font-semibold">Create Category</h2>
+                <button id="close-create-category-modal" class="text-[#b5bac1] hover:text-white" aria-label="Close">
+                    <svg xmlns="http:
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            
+            <form id="create-category-form" action="/api/categories" method="POST" onsubmit="return submitCategoryForm(event)" class="p-4">
+                <input type="hidden" name="server_id" value="0">
+                <input type="hidden" name="position" id="category-position" value="">
+                <input type="hidden" name="ajax_fallback" id="category-ajax-fallback" value="false">
+                
+                <div class="mb-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <label for="category-name" class="text-xs font-bold text-[#b5bac1]">CATEGORY NAME</label>
+                    </div>
+                    <input type="text" id="category-name" name="name" 
+                          class="w-full bg-[#1e1f22] border border-[#1a1b1e] rounded-[3px] px-3 py-2 text-white focus:outline-none focus:border-[#5865f2] text-sm" 
+                          placeholder="NEW CATEGORY" required>
+                    <p class="text-xs text-[#949ba4] mt-1">Category names are typically displayed in uppercase</p>
+                </div>
+                
+                <!-- Footer -->
+                <div class="bg-[#2b2d31] mt-4 -mx-4 -mb-4 px-4 py-3 flex justify-end gap-3">
+                    <button type="button" id="cancel-create-category" class="px-3 py-2 text-sm font-medium text-[#dbdee1] hover:underline">
+                        Cancel
+                    </button>
+                    <button type="submit" class="bg-[#5865f2] hover:bg-[#4752c4] text-white text-sm font-medium px-4 py-2 rounded-[3px] transition-colors">
+                        Create Category
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+ <div id="invite-people-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 hidden">
+    <div class="w-full max-w-md">
+        <div class="bg-discord-background rounded-lg shadow-lg overflow-hidden">
+            <div class="p-6">
+                <div class="flex justify-between mb-6">
+                    <h2 class="text-2xl font-bold text-white">Invite People</h2>
+                    <button id="close-invite-modal" class="text-gray-400 hover:text-white">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="space-y-4">
+                    <div>
+                        <p class="text-gray-400 mb-2">Share this link with others to grant access to this server</p>
+                    </div>
+                    
+                    <div class="flex">
+                        <input type="text" id="invite-link" readonly 
+                               class="flex-1 bg-discord-dark border border-gray-700 rounded-l px-3 py-2 text-white text-sm font-mono focus:outline-none focus:ring-2 focus:ring-discord-primary"
+                               placeholder="Generating invite link...">
+                        <button id="copy-invite-link" 
+                                class="bg-discord-primary hover:bg-discord-primary/90 text-white px-4 py-2 rounded-r transition-colors">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="pt-4 flex justify-center">
+                        <button id="generate-new-invite" class="text-discord-primary hover:underline text-sm">
+                            Generate a new link
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="server-settings-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 hidden">
+    <div class="w-full max-w-lg">
+        <div class="bg-discord-background rounded-lg shadow-lg overflow-hidden">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold text-white">Server Settings</h2>
+                    <button id="close-server-settings-modal" class="text-gray-400 hover:text-white">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <form id="server-settings-form" class="space-y-4">
+                    <div>
+                        <label for="settings-server-name" class="block text-sm font-medium text-gray-300 mb-1">
+                            SERVER NAME <span class="text-discord-red">*</span>
+                        </label>
+                        <input type="text" id="settings-server-name" name="name" 
+                               class="w-full bg-discord-dark border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-discord-primary"
+                               placeholder="Enter server name" required>
+                    </div>
+                    
+                    <div>
+                        <label for="settings-server-description" class="block text-sm font-medium text-gray-300 mb-1">
+                            SERVER DESCRIPTION
+                        </label>
+                        <textarea id="settings-server-description" name="description" rows="3"
+                                  class="w-full bg-discord-dark border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-discord-primary resize-none"
+                                  placeholder="What's this server about?"></textarea>
+                    </div>
+                    
+                    <div class="flex items-center">
+                        <input type="checkbox" id="settings-server-public" name="is_public" value="1" 
+                               class="h-4 w-4 accent-discord-primary bg-discord-dark border-gray-700">
+                        <label for="settings-server-public" class="ml-2 text-sm text-gray-300">Make this server public</label>
+                    </div>
+                    
+                    <div class="pt-4 flex space-x-3">
+                        <button type="button" id="cancel-server-settings" 
+                                class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded">
+                            Cancel
+                        </button>
+                        <button type="submit" 
+                                class="flex-1 bg-discord-primary hover:bg-discord-primary/90 text-white font-medium py-2 px-4 rounded">
+                            Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="notification-settings-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 hidden">
+    <div class="w-full max-w-md">
+        <div class="bg-discord-background rounded-lg shadow-lg overflow-hidden">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold text-white">Notification Settings</h2>
+                    <button id="close-notification-settings-modal" class="text-gray-400 hover:text-white">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <form id="notification-settings-form" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">SERVER NOTIFICATIONS</label>
+                        <div class="space-y-2">
+                            <label class="flex items-center p-3 border border-gray-700 rounded cursor-pointer hover:bg-discord-dark">
+                                <input type="radio" name="notification_type" value="all_messages" 
+                                       class="mr-3 accent-discord-primary">
+                                <div>
+                                    <div class="text-white font-medium">All Messages</div>
+                                    <div class="text-gray-400 text-sm">You'll be notified when anyone sends a message</div>
+                                </div>
+                            </label>
+                            <label class="flex items-center p-3 border border-gray-700 rounded cursor-pointer hover:bg-discord-dark">
+                                <input type="radio" name="notification_type" value="mentions_only" checked 
+                                       class="mr-3 accent-discord-primary">
+                                <div>
+                                    <div class="text-white font-medium">Only @mentions</div>
+                                    <div class="text-gray-400 text-sm">You'll only be notified when someone mentions you</div>
+                                </div>
+                            </label>
+                            <label class="flex items-center p-3 border border-gray-700 rounded cursor-pointer hover:bg-discord-dark">
+                                <input type="radio" name="notification_type" value="muted" 
+                                       class="mr-3 accent-discord-primary">
+                                <div>
+                                    <div class="text-white font-medium">Nothing</div>
+                                    <div class="text-gray-400 text-sm">You won't receive any notifications</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="text-white font-medium">Suppress @everyone and @here</div>
+                                <div class="text-gray-400 text-sm">Don't notify me for @everyone or @here mentions</div>
+                            </div>
+                            <input type="checkbox" id="suppress-everyone" name="suppress_everyone" 
+                                   class="h-4 w-4 accent-discord-primary bg-discord-dark border-gray-700">
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="text-white font-medium">Suppress Role @mentions</div>
+                                <div class="text-gray-400 text-sm">Don't notify me when roles I have are mentioned</div>
+                            </div>
+                            <input type="checkbox" id="suppress-roles" name="suppress_roles" 
+                                   class="h-4 w-4 accent-discord-primary bg-discord-dark border-gray-700">
+                        </div>
+                    </div>
+                    
+                    <div class="pt-4 flex space-x-3">
+                        <button type="button" id="cancel-notification-settings" 
+                                class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded">
+                            Cancel
+                        </button>
+                        <button type="submit" 
+                                class="flex-1 bg-discord-primary hover:bg-discord-primary/90 text-white font-medium py-2 px-4 rounded">
+                            Save Settings
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="edit-profile-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 hidden">
+    <div class="w-full max-w-md">
+        <div class="bg-discord-background rounded-lg shadow-lg overflow-hidden">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold text-white">Edit Server Profile</h2>
+                    <button id="close-edit-profile-modal" class="text-gray-400 hover:text-white">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <form id="edit-profile-form" class="space-y-4">
+                    <div>
+                        <label for="profile-nickname" class="block text-sm font-medium text-gray-300 mb-1">
+                            NICKNAME
+                        </label>
+                        <input type="text" id="profile-nickname" name="nickname" 
+                               class="w-full bg-discord-dark border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-discord-primary"
+                               placeholder="Enter nickname (leave empty to use global username)">
+                        <div class="text-xs text-gray-400 mt-1">This nickname will only be visible in this server</div>
+                    </div>
+                    
+                    <div class="pt-4 flex space-x-3">
+                        <button type="button" id="cancel-edit-profile" 
+                                class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded">
+                            Cancel
+                        </button>
+                        <button type="submit" 
+                                class="flex-1 bg-discord-primary hover:bg-discord-primary/90 text-white font-medium py-2 px-4 rounded">
+                            Save Profile
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="leave-server-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 hidden">
+    <div class="w-full max-w-md">
+        <div class="bg-discord-background rounded-lg shadow-lg overflow-hidden">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold text-white">Leave Server</h2>
+                    <button id="close-leave-server-modal" class="text-gray-400 hover:text-white">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="space-y-4">
+                    <div class="text-center">
+                        <i class="fas fa-exclamation-triangle text-yellow-500 text-4xl mb-4"></i>
+                        <p class="text-white mb-2">Are you sure you want to leave this server?</p>
+                        <p class="text-gray-400 text-sm">You won't be able to rejoin this server unless you are re-invited.</p>
+                    </div>
+                    
+                    <div class="pt-4 flex space-x-3">
+                        <button type="button" id="cancel-leave-server" 
+                                class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded">
+                            Cancel
+                        </button>
+                        <button type="button" id="confirm-leave-server" 
+                                class="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded">
+                            Leave Server
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeActiveModals();
+        }
+    });
+
+    function closeActiveModals() {
+        const openModals = document.querySelectorAll('.fixed.inset-0:not(.hidden)');
+        openModals.forEach(modal => {
+            if (modal.id === 'create-channel-modal') closeCreateChannelModal();
+            if (modal.id === 'create-category-modal') closeCreateCategoryModal();
+        });
+    }
+
+    const createChannelModal = document.getElementById('create-channel-modal');
+    const closeChannelBtn = document.getElementById('close-create-channel-modal');
+    const cancelChannelBtn = document.getElementById('cancel-create-channel');
+    
+    function closeCreateChannelModal() {
+        if (!createChannelModal) return;
+        
+        createChannelModal.classList.add('opacity-0');
+        createChannelModal.style.transition = 'opacity 150ms ease-in-out';
+        
+        setTimeout(() => {
+            createChannelModal.classList.add('hidden');
+            createChannelModal.classList.remove('opacity-0');
+            createChannelModal.style.transition = '';
+            
+            const form = createChannelModal.querySelector('form');
+            if (form) form.reset();
+        }, 150);
+    }
+    
+    if (closeChannelBtn) {
+        closeChannelBtn.addEventListener('click', closeCreateChannelModal);
+    }
+    
+    if (cancelChannelBtn) {
+        cancelChannelBtn.addEventListener('click', closeCreateChannelModal);
+    }
+    
+    if (createChannelModal) {
+        createChannelModal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeCreateChannelModal();
+            }
+        });
+    }
+    
+    const createCategoryModal = document.getElementById('create-category-modal');
+    const closeCategoryBtn = document.getElementById('close-create-category-modal');
+    const cancelCategoryBtn = document.getElementById('cancel-create-category');
+    
+    function closeCreateCategoryModal() {
+        if (!createCategoryModal) return;
+        
+        createCategoryModal.classList.add('opacity-0');
+        createCategoryModal.style.transition = 'opacity 150ms ease-in-out';
+        
+        setTimeout(() => {
+            createCategoryModal.classList.add('hidden');
+            createCategoryModal.classList.remove('opacity-0');
+            createCategoryModal.style.transition = '';
+            
+            const form = createCategoryModal.querySelector('form');
+            if (form) form.reset();
+        }, 150);
+    }
+    
+    if (closeCategoryBtn) {
+        closeCategoryBtn.addEventListener('click', closeCreateCategoryModal);
+    }
+    
+    if (cancelCategoryBtn) {
+        cancelCategoryBtn.addEventListener('click', closeCreateCategoryModal);
+    }
+    
+    if (createCategoryModal) {
+        createCategoryModal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeCreateCategoryModal();
+            }
+        });
+    }
+    
+    document.querySelectorAll('.modal-content').forEach(modal => {
+        modal.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+    });
+    
+    window.openCreateChannelModal = function(categoryId = null, position = null) {
+        const form = createChannelModal.querySelector('form');
+        if (form) form.reset();
+        
+        if (categoryId) {
+            const categoryInput = document.getElementById('category-id');
+            if (categoryInput) {
+                categoryInput.value = categoryId;
+            }
+        } else {
+            const categoryInput = document.getElementById('category-id');
+            if (categoryInput) {
+                categoryInput.value = '';
+            }
+        }
+        
+        if (position !== null) {
+            const positionInput = document.getElementById('channel-position');
+            if (positionInput) {
+                positionInput.value = position;
+            }
+        } else {
+            const positionInput = document.getElementById('channel-position');
+            if (positionInput) {
+                positionInput.value = '';
+            }
+        }
+        
+        createChannelModal.classList.remove('hidden');
+        
+        setTimeout(() => {
+            const nameInput = document.getElementById('channel-name');
+            if (nameInput) nameInput.focus();
+        }, 100);
+    };
+    
+    window.closeCreateChannelModal = closeCreateChannelModal;
+    
+    window.openCreateCategoryModal = function(position = null) {
+        const form = createCategoryModal.querySelector('form');
+        if (form) form.reset();
+        
+        if (position !== null) {
+            const positionInput = document.getElementById('category-position');
+            if (positionInput) {
+                positionInput.value = position;
+            }
+        } else {
+            const positionInput = document.getElementById('category-position');
+            if (positionInput) {
+                positionInput.value = '';
+            }
+        }
+        
+        createCategoryModal.classList.remove('hidden');
+        
+        setTimeout(() => {
+            const nameInput = document.getElementById('category-name');
+            if (nameInput) nameInput.focus();
+        }, 100);
+    };
+    
+    window.closeCreateCategoryModal = closeCreateCategoryModal;
+    
+    const channelNameInput = document.getElementById('channel-name');
+    if (channelNameInput) {
+        channelNameInput.addEventListener('input', function() {
+            let value = this.value.toLowerCase();
+            value = value.replace(/\s+/g, '-');
+            value = value.replace(/[^a-z0-9\-_]/g, '');
+            this.value = value;
+        });
+    }
+    
+    window.submitChannelForm = function(event) {
+        event.preventDefault();
+        console.log("Channel form submission started");
+        
+        const form = document.getElementById('create-channel-form');
+        const formData = new FormData(form);
+        
+        const positionField = document.getElementById('channel-position');
+        const categoryField = document.getElementById('category-id');
+        
+        if (positionField && (positionField.value === '' || positionField.value === null)) {
+            formData.set('position', null);
+        }
+        
+        if (categoryField && (categoryField.value === '' || categoryField.value === null)) {
+            formData.delete('category_id');
+            console.log("Removed category_id field from form data");
+        } else {
+            console.log("Using category_id:", categoryField ? categoryField.value : 'categoryField not found');
+        }
+        
+        const submitBtn = form.querySelector('[type="submit"]');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<svg class="animate-spin h-5 w-5 mr-2 inline" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Creating...';
+        }
+        
+        try {
+            const typeInput = form.querySelector('[name="type"]');
+            if (typeInput && typeInput.value) {
+                const typeValue = typeInput.value.toString().trim();
+                formData.set('type', typeValue);
+            }
+            
+            fetch('/api/channels', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => {
+                console.log("Channel API response received", response.status, response.statusText);
+                
+                return response.text().then(rawText => {
+                    console.log("Raw response:", rawText.substring(0, 300) + (rawText.length > 300 ? '...' : ''));
+                    
+                    if (!response.ok) {
+                        console.warn("Server returned error status:", response.status);
+                        
+                        try {
+                            const errorData = JSON.parse(rawText);
+                            console.error("Server error details:", errorData);
+                            
+                            if (errorData && errorData.message) {
+                                if (typeof showToast === 'function') {
+                                    showToast(errorData.message, 'error');
+                                }
+                                if (submitBtn) {
+                                    submitBtn.disabled = false;
+                                    submitBtn.innerHTML = 'Create Channel';
+                                }
+                                return { success: false, message: errorData.message };
+                            }
+                        } catch (parseError) {
+                            console.error("Failed to parse error response:", parseError);
+                            
+                            if (response.status >= 500) {
+                                return submitFormDirectly('create-channel-form');
+                            }
+                        }
+                    }
+                    
+                    try {
+                        const data = JSON.parse(rawText);
+                        return data;
+                    } catch (e) {
+                        console.error("Failed to parse JSON:", e);
+                        if (rawText.includes("</html>") || rawText.includes("<br />")) {
+                            console.error("Server returned HTML instead of JSON. Possible PHP error.");
+                            
+                            return submitFormDirectly('create-channel-form');
+                        }
+                        throw new Error("Invalid response format from server");
+                    }
+                });
+            })
+            .then(data => {
+                if (data === true) {
+                    return; 
+                }
+                
+                if (!data || data.success === false) {
+                    const errorMsg = (data && data.message) ? data.message : 'Error creating channel';
+                    console.error("Error from API:", errorMsg);
+                    
+                    if (typeof showToast === 'function') {
+                        showToast(errorMsg, 'error');
+                    }
+                    
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = 'Create Channel';
+                    }
+                    return;
+                }
+                  console.log("Channel form processing response data", data);
+                if (data && data.success) {
+                    closeCreateChannelModal();
+                    form.reset();
+                    
+                    
+                    if (typeof showToast === 'function') {
+                        showToast('Channel created successfully', 'success');
+                    }
+                    
+                    
+                    try {
+                        if (typeof refreshChannelList === 'function') {
+                            refreshChannelList();
+                            console.log("Channel list refreshed via AJAX");
+                        } else if (typeof window.channelLoader !== 'undefined' && window.channelLoader.loadChannelData) {
+                            const channelContainer = document.querySelector('.channel-list-container');
+                            if (channelContainer) {
+                                channelContainer.setAttribute('data-server-id', formData.get('server_id'));
+                                window.channelLoader.loadChannelData(channelContainer);
+                                console.log("Channel list refreshed via channel loader");
+                            }
+                        } else {
+                            console.log("No AJAX refresh method available, falling back to page reload");
+                            setTimeout(function() {
+                                window.location.reload();
+                            }, 500);
+                        }
+                    } catch (navError) {
+                        console.error("Navigation error:", navError);
+                        setTimeout(function() {
+                            window.location.reload();
+                        }, 1000);
+                    }
+                } else {
+                    
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = 'Create Channel';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('API Error:', error);
+                
+                if (typeof showToast === 'function') {
+                    showToast('Error creating channel. Please try again.', 'error');
+                }
+                
+                
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = 'Create Channel';
+                }
+                
+                
+                submitFormDirectly('create-channel-form');
+            });
+        } catch (outerError) {
+            console.error('Critical error in form submission:', outerError);
+            
+            
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Create Channel';
+            }
+            
+            
+            submitFormDirectly('create-channel-form');
+        }
+        
+        
+        return false;
+    };
+    
+    
+    window.submitCategoryForm = function(event) {
+        event.preventDefault();
+        console.log("Category form submission started");
+        
+        const form = document.getElementById('create-category-form');
+        const formData = new FormData(form);
+        
+        
+        const positionField = document.getElementById('category-position');
+        
+        
+        if (positionField && (positionField.value === '' || positionField.value === null)) {
+            formData.set('position', null);
+        }
+        
+        
+        const submitBtn = form.querySelector('[type="submit"]');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<svg class="animate-spin h-5 w-5 mr-2 inline" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Creating...';
+        }
+        
+        try {
+            fetch('/api/categories', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => {
+                console.log("Category API response received", response.status, response.statusText);
+                
+                
+                return response.text().then(rawText => {
+                    console.log("Raw response:", rawText.substring(0, 300) + (rawText.length > 300 ? '...' : ''));
+                    
+                    
+                    if (!response.ok) {
+                        console.warn("Server returned error status:", response.status);
+                        
+                        try {
+                            
+                            const errorData = JSON.parse(rawText);
+                            console.error("Server error details:", errorData);
+                            
+                            
+                            if (errorData && errorData.message) {
+                                if (typeof showToast === 'function') {
+                                    showToast(errorData.message, 'error');
+                                }
+                                
+                                if (submitBtn) {
+                                    submitBtn.disabled = false;
+                                    submitBtn.innerHTML = 'Create Category';
+                                }
+                                return { success: false, message: errorData.message };
+                            }
+                        } catch (parseError) {
+                            
+                            console.error("Failed to parse error response:", parseError);
+                            
+                            
+                            if (response.status >= 500) {
+                                return submitFormDirectly('create-category-form');
+                            }
+                        }
+                    }
+                    
+                    try {
+                        
+                        const data = JSON.parse(rawText);
+                        return data;
+                    } catch (e) {
+                        console.error("Failed to parse JSON:", e);
+                        
+                        if (rawText.includes("</html>") || rawText.includes("<br />")) {
+                            console.error("Server returned HTML instead of JSON. Possible PHP error.");
+                            
+                            
+                            return submitFormDirectly('create-category-form');
+                        }
+                        throw new Error("Invalid response format from server");
+                    }
+                });
+            })
+            .then(data => {
+                
+                if (data === true) {
+                    return; 
+                }
+                
+                
+                if (!data || data.success === false) {
+                    const errorMsg = (data && data.message) ? data.message : 'Error creating category';
+                    console.error("Error from API:", errorMsg);
+                    
+                    if (typeof showToast === 'function') {
+                        showToast(errorMsg, 'error');
+                    }
+                    
+                    
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = 'Create Category';
+                    }
+                    return;
+                }
+                
+                console.log("Category form processing response data", data);
+                if (data && data.success) {
+                    closeCreateCategoryModal();
+                    form.reset();
+                    
+                    
+                    if (typeof showToast === 'function') {
+                        showToast('Category created successfully', 'success');
+                    }
+                    
+                    
+                    try {
+                        if (data.redirect) {
+                            console.log("Redirecting to:", data.redirect);
+                            setTimeout(function() {
+                                window.location.href = data.redirect;
+                            }, 500);
+                        } else if (data.data && data.data.redirect) {
+                            console.log("Redirecting to:", data.data.redirect);
+                            setTimeout(function() {
+                                window.location.href = data.data.redirect;
+                            }, 500);
+                        } else {
+                            console.log("No redirect URL found, reloading page");
+                            setTimeout(function() {
+                                window.location.reload();
+                            }, 500);
+                        }
+                    } catch (navError) {
+                        console.error("Navigation error:", navError);
+                        
+                        setTimeout(function() {
+                            window.location.reload();
+                        }, 1000);
+                    }
+                } else {
+                    
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = 'Create Category';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('API Error:', error);
+                
+                if (typeof showToast === 'function') {
+                    showToast('Error creating category. Please try again.', 'error');
+                }
+                
+                
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = 'Create Category';
+                }
+                
+                
+                submitFormDirectly('create-category-form');
+            });
+        } catch (outerError) {
+            console.error('Critical error in form submission:', outerError);
+            
+            
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Create Category';
+            }
+            
+            
+            submitFormDirectly('create-category-form');
+        }
+        
+        
+        return false;
+    };
+    
+    
+    window.submitFormDirectly = function(formId) {
+        console.log("Attempting direct form submission for", formId);
+        const form = document.getElementById(formId);
+        if (form) {
+            
+            const fallbackField = form.querySelector('[name="ajax_fallback"]');
+            if (fallbackField) {
+                fallbackField.value = "true";
+            }
+            
+            
+            form.submit();
+            return true;
+        }
+        return false;
+    };
+
+    
+    console.log("Modal scripts initialized");
+});
+</script>
+        
+    
+<script src="http://localhost:8000\/public/js/lib/socket.io.min.js?v=1750402067"></script>
+
+<script>
+// Set up global configuration from meta tags
+(function() {
+    const socketHost = document.querySelector('meta[name="socket-host"]')?.content;
+    const socketPort = document.querySelector('meta[name="socket-port"]')?.content;
+    
+    if (socketHost) window.SOCKET_HOST = socketHost;
+    if (socketPort) window.SOCKET_PORT = parseInt(socketPort);
+})();
+</script>
+
+<script src="http://localhost:8000\/public/js/utils/socket-status.js?v=1750402067"></script>
+
+<script src="http://localhost:8000\/public/js/utils/lazy-loader.js?v=1750402067" type="module"></script>
+<script src="http://localhost:8000\/public/js/utils/debug-logging.js?v=1750402067" type="module"></script>
+<script src="http://localhost:8000\/public/js/main.js?v=1750402067" type="module"></script>
+
+    <script src="http://localhost:8000\/public/js/pages/app.js?v=1750402067" type="module"></script>
+
+    <script src="http://localhost:8000\/public/js/components/servers/server-dropdown.js?v=1750402067" type="module"></script>
+    <script src="http://localhost:8000\/public/js/components/servers/server-sidebar.js?v=1750402067" type="module"></script>
+    <script src="http://localhost:8000\/public/js/components/app-layout.js?v=1750402067" type="module"></script>
+    <script src="http://localhost:8000\/public/js/components/servers/create-server-modal.js?v=1750402067" type="module"></script>
+    <script src="http://localhost:8000\/public/js/components/servers/create-server-modal.js?v=1750402067" type="module"></script>
+    
+            <script type="module" src="http://localhost:8000\/public/js/components/servers/server-manager.js"></script>
+        
+    <!-- CSRF token for AJAX calls -->
+    <meta name="csrf-token" content="">
+</body>
+</html>
