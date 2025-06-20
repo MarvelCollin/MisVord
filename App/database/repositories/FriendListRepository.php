@@ -44,25 +44,37 @@ class FriendListRepository extends Repository {
             'status' => 'pending'
         ]);
     }
-    
-    public function acceptFriendRequest($userId, $friendshipId) {
+      public function acceptFriendRequest($userId, $friendshipId) {
         $friendship = $this->find($friendshipId);
         
         if (!$friendship || $friendship->user_id2 != $userId) {
             return false;
         }
         
-        return $this->update($friendshipId, ['status' => 'accepted']);
-    }
-
-    public function declineFriendRequest($userId, $friendshipId) {
+        // Only update the status field and updated_at timestamp
+        $query = new Query();
+        $result = $query->table('friend_list')
+            ->where('id', $friendshipId)
+            ->update([
+                'status' => 'accepted',
+                'updated_at' => date('Y-m-d H:i:s')
+            ]);
+            
+        return $result > 0;
+    }    public function declineFriendRequest($userId, $friendshipId) {
         $friendship = $this->find($friendshipId);
         
         if (!$friendship || $friendship->user_id2 != $userId) {
             return false;
         }
         
-        return $friendship->delete();
+        // Delete the friend request record
+        $query = new Query();
+        $result = $query->table('friend_list')
+            ->where('id', $friendshipId)
+            ->delete();
+            
+        return $result > 0;
     }
     
     public function blockUser($userId, $blockedUserId) {
@@ -96,12 +108,12 @@ class FriendListRepository extends Repository {
         $relationship = $this->findRelationship($userId, $friendId);
         return $relationship ? $relationship->delete() : false;
     }
-    
-    public function getBlockedUsers($userId) {
+      public function getBlockedUsers($userId) {
         $query = new Query();
         return $query->table('friend_list fl')
             ->join('users u', 'fl.user_id2', '=', 'u.id')
-            ->where('fl.user_id', $userId)            ->where('fl.status', 'blocked')
+            ->where('fl.user_id', $userId)
+            ->where('fl.status', 'blocked')
             ->select('u.*, fl.id as block_id')
             ->get();
     }

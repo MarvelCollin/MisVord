@@ -25,15 +25,13 @@ class AppLogger {
         $this->logFile = $this->logDir . '/app_' . date('Y-m-d') . '.log';
         $this->displayErrors = true;
         $this->logToFile = true;
-        $this->maxFileSize = 10 * 1024 * 1024; // 10MB
-        $this->maxFiles = 30; // Keep 30 days of logs
+        $this->maxFileSize = 10 * 1024 * 1024; 
+        $this->maxFiles = 30; 
 
-        // Create logs directory if it doesn't exist
         if (!is_dir($this->logDir)) {
             mkdir($this->logDir, 0755, true);
         }
 
-        // Rotate logs if needed
         $this->rotateLogsIfNeeded();
     }
 
@@ -44,54 +42,33 @@ class AppLogger {
         return self::$instance;
     }
 
-    /**
-     * Configure logger settings
-     */
     public function configure($displayErrors = true, $logToFile = true) {
         $this->displayErrors = $displayErrors;
         $this->logToFile = $logToFile;
         return $this;
     }
 
-    /**
-     * Log debug message
-     */
     public function debug($message, $context = []) {
         $this->log(self::LEVEL_DEBUG, $message, $context);
     }
 
-    /**
-     * Log info message
-     */
     public function info($message, $context = []) {
         $this->log(self::LEVEL_INFO, $message, $context);
     }
 
-    /**
-     * Log warning message
-     */
     public function warning($message, $context = []) {
         $this->log(self::LEVEL_WARNING, $message, $context);
     }
 
-    /**
-     * Log error message
-     */
     public function error($message, $context = []) {
         $this->log(self::LEVEL_ERROR, $message, $context);
     }
 
-    /**
-     * Log critical message
-     */
     public function critical($message, $context = []) {
         $this->log(self::LEVEL_CRITICAL, $message, $context);
     }
 
-    /**
-     * Log exception with full stack trace
-     */
-    public function exception(Exception $exception, $context = []) {
+    public function exception(Throwable $exception, $context = []) {
         $message = sprintf(
             "Exception: %s in %s:%d\nStack trace:\n%s",
             $exception->getMessage(),
@@ -106,9 +83,6 @@ class AppLogger {
         $this->log(self::LEVEL_ERROR, $message, $context);
     }
 
-    /**
-     * Log API request details
-     */
     public function apiRequest($method, $path, $statusCode, $duration = null, $context = []) {
         $message = sprintf(
             "API Request: %s %s - Status: %d%s",
@@ -131,9 +105,6 @@ class AppLogger {
         $this->log($level, $message, $context);
     }
 
-    /**
-     * Log database query
-     */
     public function dbQuery($query, $duration = null, $error = null, $context = []) {
         if ($error) {
             $message = sprintf("DB Error: %s - Query: %s", $error, $query);
@@ -156,21 +127,16 @@ class AppLogger {
         $this->log($level, $message, $context);
     }
 
-    /**
-     * Main logging method
-     */
     private function log($level, $message, $context = []) {
         $timestamp = date('Y-m-d H:i:s');
         $levelName = $this->getLevelName($level);
         $requestId = $this->getRequestId();
         
-        // Add context information
         $contextStr = '';
         if (!empty($context)) {
             $contextStr = ' - Context: ' . json_encode($context, JSON_UNESCAPED_SLASHES);
         }
         
-        // Format log entry
         $logEntry = sprintf(
             "[%s] %s [%s] %s%s\n",
             $timestamp,
@@ -180,48 +146,35 @@ class AppLogger {
             $contextStr
         );
         
-        // Log to file
         if ($this->logToFile) {
             file_put_contents($this->logFile, $logEntry, FILE_APPEND | LOCK_EX);
         }
         
-        // Display errors if enabled and it's an error/critical level
         if ($this->displayErrors && $level >= self::LEVEL_ERROR) {
             $this->displayError($levelName, $message, $context);
         }
         
-        // Also log to PHP error log for critical errors
         if ($level >= self::LEVEL_CRITICAL) {
             error_log($message);
         }
     }
 
-    /**
-     * Display error in web context
-     */
     private function displayError($levelName, $message, $context = []) {
-        // Check if we're in a web context
         if (php_sapi_name() !== 'cli') {
             $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
                      strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
             
             if ($isAjax || strpos($_SERVER['REQUEST_URI'], '/api/') !== false) {
-                // For AJAX/API requests, add to response headers
                 header("X-Error-Level: {$levelName}");
                 header("X-Error-Message: " . base64_encode($message));
             } else {
-                // For regular web requests, show visual error
                 echo $this->formatWebError($levelName, $message, $context);
             }
         } else {
-            // CLI context
             echo "[$levelName] $message\n";
         }
     }
 
-    /**
-     * Format error for web display
-     */
     private function formatWebError($levelName, $message, $context = []) {
         $color = $levelName === 'ERROR' ? '#ff4444' : '#ff8800';
         $contextStr = !empty($context) ? '<pre>' . htmlspecialchars(json_encode($context, JSON_PRETTY_PRINT)) . '</pre>' : '';
@@ -240,9 +193,6 @@ class AppLogger {
         );
     }
 
-    /**
-     * Get log level name
-     */
     private function getLevelName($level) {
         switch ($level) {
             case self::LEVEL_DEBUG: return 'DEBUG';
@@ -252,9 +202,7 @@ class AppLogger {
             case self::LEVEL_CRITICAL: return 'CRITICAL';
             default: return 'UNKNOWN';
         }
-    }    /**
-     * Get unique request ID for tracking
-     */
+    }   
     public function getRequestId() {
         static $requestId = null;
         if ($requestId === null) {
@@ -263,22 +211,15 @@ class AppLogger {
         return $requestId;
     }
 
-    /**
-     * Rotate logs if file is too large
-     */
     private function rotateLogsIfNeeded() {
         if (file_exists($this->logFile) && filesize($this->logFile) > $this->maxFileSize) {
             $rotatedFile = $this->logFile . '.' . time();
             rename($this->logFile, $rotatedFile);
         }
         
-        // Clean old log files
         $this->cleanOldLogs();
     }
 
-    /**
-     * Clean old log files
-     */
     private function cleanOldLogs() {
         $files = glob($this->logDir . '/app_*.log*');
         if (count($files) > $this->maxFiles) {
@@ -293,9 +234,6 @@ class AppLogger {
         }
     }
 
-    /**
-     * Get recent log entries
-     */
     public function getRecentLogs($lines = 100) {
         if (!file_exists($this->logFile)) {
             return [];
@@ -305,9 +243,6 @@ class AppLogger {
         return array_slice($file, -$lines);
     }
 
-    /**
-     * Clear all logs
-     */
     public function clearLogs() {
         $files = glob($this->logDir . '/app_*.log*');
         foreach ($files as $file) {
@@ -316,7 +251,6 @@ class AppLogger {
     }
 }
 
-// Global helper functions for easier access
 if (!function_exists('logger')) {
     function logger() {
         return AppLogger::getInstance();
@@ -342,7 +276,7 @@ if (!function_exists('log_debug')) {
 }
 
 if (!function_exists('log_exception')) {
-    function log_exception(Exception $exception, $context = []) {
+    function log_exception(Throwable $exception, $context = []) {
         AppLogger::getInstance()->exception($exception, $context);
     }
 }

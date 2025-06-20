@@ -22,7 +22,7 @@ function ensureServerDataLoaded() {
         if (serverId) {
             const serverContainer = document.querySelector('.server-list-container');
             
-            // Check if we need to load server data            if (serverContainer && serverContainer.children.length === 0) {
+            if (serverContainer && serverContainer.children.length === 0) {
                 ServerAPI.getServer(serverId)
                     .then(response => {
                         if (response.success) {

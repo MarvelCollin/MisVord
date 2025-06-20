@@ -9,7 +9,8 @@ require_once __DIR__ . '/../database/repositories/ServerInviteRepository.php';
 require_once __DIR__ . '/BaseController.php';
 
 class ServerController extends BaseController
-{    private $serverRepository;
+{
+    private $serverRepository;
     private $channelRepository;
     private $categoryRepository;
     private $messageRepository;
@@ -17,7 +18,8 @@ class ServerController extends BaseController
     private $inviteRepository;
 
     public function __construct()
-    {        parent::__construct();
+    {
+        parent::__construct();
         $this->serverRepository = new ServerRepository();
         $this->channelRepository = new ChannelRepository();
         $this->categoryRepository = new CategoryRepository();
@@ -26,10 +28,9 @@ class ServerController extends BaseController
         $this->inviteRepository = new ServerInviteRepository();
     }
 
-        public function show($id)
+    public function show($id)
     {
         try {
-            // Log entry into method
             if (function_exists('logger')) {
                 logger()->debug("ServerController::show called", [
                     'server_id' => $id,
@@ -38,17 +39,16 @@ class ServerController extends BaseController
                     'request_uri' => $_SERVER['REQUEST_URI'] ?? ''
                 ]);
             }
-            
+
             $this->requireAuth();
-            
-            // Log after auth check
+
             if (function_exists('logger')) {
                 logger()->debug("Authentication passed", [
                     'server_id' => $id,
                     'user_id' => $_SESSION['user_id']
                 ]);
             }
-            
+
             $server = $this->serverRepository->find($id);
             if (!$server) {
                 return $this->notFound('Server not found');
@@ -57,24 +57,24 @@ class ServerController extends BaseController
             $membership = $this->userServerMembershipRepository->findByUserAndServer($this->getCurrentUserId(), $id);
             if (!$membership) {
                 return $this->forbidden('You are not a member of this server');
-            }            try {
-            $channels = $this->channelRepository->getByServerId($id);
-            $categories = $this->categoryRepository->getForServer($id);
-            
-            // Debug logging
-            if (function_exists('logger')) {
-                logger()->debug("Loaded server data", [
-                    'server_id' => $id,
-                    'channels_count' => count($channels),
-                    'categories_count' => count($categories),
-                    'channels' => $channels,
-                    'categories' => $categories
-                ]);
             }
+            try {
+                $channels = $this->channelRepository->getByServerId($id);
+                $categories = $this->categoryRepository->getForServer($id);
+
+                if (function_exists('logger')) {
+                    logger()->debug("Loaded server data", [
+                        'server_id' => $id,
+                        'channels_count' => count($channels),
+                        'categories_count' => count($categories),
+                        'channels' => $channels,
+                        'categories' => $categories
+                    ]);
+                }
 
                 $activeChannelId = $_GET['channel'] ?? null;
                 $activeChannel = null;
-                $channelMessages = [];            // If no channel is specified, default to the first text channel and redirect
+                $channelMessages = [];
                 if (!$activeChannelId && !empty($channels)) {
                     $defaultChannelId = null;
                     foreach ($channels as $channel) {
@@ -83,13 +83,12 @@ class ServerController extends BaseController
                             break;
                         }
                     }
-                      if ($defaultChannelId) {
-                        // Redirect to include the default channel in the URL
+                    if ($defaultChannelId) {
                         $this->redirect("/server/{$id}?channel={$defaultChannelId}");
                         return;
                     }
                 }
-                
+
                 if ($activeChannelId) {
                     $activeChannel = $this->channelRepository->find($activeChannelId);
                     if ($activeChannel && $activeChannel->server_id == $id) {
@@ -108,14 +107,16 @@ class ServerController extends BaseController
                     }
                 }
 
-                if ($this->isApiRoute() || $this->isAjaxRequest()) {                    return $this->success([
+                if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                    return $this->success([
                         'server' => $this->formatServer($server),
                         'channels' => array_map([$this, 'formatChannel'], $channels),
                         'categories' => $categories,
                         'active_channel' => $activeChannel ? $this->formatChannel($activeChannel) : null,
                         'messages' => $channelMessages
                     ]);
-                }            $GLOBALS['server'] = $server;
+                }
+                $GLOBALS['server'] = $server;
                 $GLOBALS['currentServer'] = $server;
                 $GLOBALS['serverChannels'] = $channels;
                 $GLOBALS['serverCategories'] = $categories;
@@ -138,7 +139,6 @@ class ServerController extends BaseController
                 $this->redirect('/404');
             }
         } catch (Exception $e) {
-            // Log unexpected errors
             if (function_exists('logger')) {
                 logger()->error("Unexpected error in ServerController::show", [
                     'server_id' => $id,
@@ -163,12 +163,12 @@ class ServerController extends BaseController
 
         $name = $input['name'];
         $description = $input['description'] ?? '';
-        
+
         try {
             $server = new Server();
             $server->name = $name;
             $server->description = $description;
-            
+
             if (isset($_FILES['server_icon']) && $_FILES['server_icon']['error'] === UPLOAD_ERR_OK) {
                 $imageUrl = $this->uploadImage($_FILES['server_icon'], 'servers');
                 if ($imageUrl !== false) {
@@ -181,7 +181,8 @@ class ServerController extends BaseController
                 $membership->user_id = $this->getCurrentUserId();
                 $membership->server_id = $server->id;
                 $membership->role = 'owner';
-                $membership->save();                $generalChannel = new Channel();
+                $membership->save();
+                $generalChannel = new Channel();
                 $generalChannel->name = 'general';
                 $generalChannel->type = 'text';
                 $generalChannel->server_id = $server->id;
@@ -208,7 +209,7 @@ class ServerController extends BaseController
         }
     }
 
-        public function update($id)
+    public function update($id)
     {
         $this->requireAuth();
 
@@ -278,7 +279,8 @@ class ServerController extends BaseController
         $server = $this->serverRepository->find($id);
         if (!$server) {
             return $this->notFound('Server not found');
-        }        if (!$server->isOwner($this->getCurrentUserId())) {
+        }
+        if (!$server->isOwner($this->getCurrentUserId())) {
             return $this->forbidden('Only the server owner can delete this server');
         }
 
@@ -311,18 +313,19 @@ class ServerController extends BaseController
         return $this->notFound('Server invite not found');
     }
 
-        public function leave($id)
+    public function leave($id)
     {
         $this->requireAuth();
 
         $server = $this->serverRepository->find($id);
         if (!$server) {
             return $this->notFound('Server not found');
-        }        
+        }
         $membership = $this->userServerMembershipRepository->findByUserAndServer($this->getCurrentUserId(), $id);
         if (!$membership) {
             return $this->notFound('You are not a member of this server');
-        }        if ($server->isOwner($this->getCurrentUserId())) {
+        }
+        if ($server->isOwner($this->getCurrentUserId())) {
             return $this->validationError(['server' => 'Server owner cannot leave. Transfer ownership first.']);
         }
 
@@ -345,19 +348,17 @@ class ServerController extends BaseController
             ]);
             return $this->serverError('Failed to leave server');
         }
-    }    /**
-     * Get all servers for the current user (used by server sidebar)
-     */
+    }
     public function getUserServers()
     {
         $this->requireAuth();
-        
+
         $currentUserId = $this->getCurrentUserId();
-        
+
         try {
             $userServers = $this->serverRepository->getForUser($currentUserId);
             $memberships = $this->userServerMembershipRepository->getServersForUser($currentUserId);
-            
+
             if (function_exists('logger')) {
                 logger()->debug("User servers loaded for sidebar", [
                     'user_id' => $currentUserId,
@@ -365,25 +366,25 @@ class ServerController extends BaseController
                     'membership_count' => count($memberships)
                 ]);
             }
-            
-            // Set globals for use by views
+
             $GLOBALS['userServers'] = $userServers;
-            
+
             return [
                 'userServers' => $userServers,
                 'memberships' => $memberships,
                 'currentUserId' => $currentUserId
             ];
-        } catch (Exception $e) {            if (function_exists('logger')) {
+        } catch (Exception $e) {
+            if (function_exists('logger')) {
                 logger()->error("Failed to get user servers", [
                     'user_id' => $currentUserId,
                     'error' => $e->getMessage(),
                     'trace' => $e->getTraceAsString()
                 ]);
             }
-            
+
             $GLOBALS['userServers'] = [];
-            
+
             return [
                 'userServers' => [],
                 'memberships' => [],
@@ -392,9 +393,6 @@ class ServerController extends BaseController
         }
     }
 
-    /**
-     * Initialize sidebar data
-     */
     public function initSidebar()
     {
         return $this->getUserServers();
@@ -453,13 +451,10 @@ class ServerController extends BaseController
 
     public function getServerChannels($serverId = null)
     {
-        // Check if the request is authenticated
         if (!isset($_SESSION['user_id'])) {
-            // Send a clear error for API requests
             return $this->unauthorized('Authentication required');
         }
 
-        // No need to call requireAuth since we've already checked for auth
 
         if (!$serverId) {
             $input = $this->getInput();
@@ -470,7 +465,6 @@ class ServerController extends BaseController
             return $this->validationError(['server_id' => 'Server ID is required']);
         }
         try {
-            // Create CSRF token if it doesn't exist
             if (!isset($_SESSION['csrf_token'])) {
                 $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
             }
@@ -481,38 +475,34 @@ class ServerController extends BaseController
 
             $channels = $this->channelRepository->getByServerId($serverId);
             $categories = $this->categoryRepository->getForServer($serverId);
-            
-            // Structure the response properly
+
             $responseData = [
                 'channels' => $channels,
                 'categories' => $categories,
                 'server_id' => $serverId
             ];
-            
-            // If we need to structure by categories for the channel loader JS
+
             $categoryStructured = [];
             foreach ($categories as $category) {
-                $categoryChannels = array_filter($channels, function($ch) use ($category) {
+                $categoryChannels = array_filter($channels, function ($ch) use ($category) {
                     return isset($ch['category_id']) && $ch['category_id'] == $category['id'];
                 });
-                
+
                 $categoryStructured[] = [
                     'id' => $category['id'],
                     'name' => $category['name'],
                     'channels' => array_values($categoryChannels)
                 ];
             }
-            
-            // Add uncategorized channels
-            $uncategorizedChannels = array_filter($channels, function($ch) {
+
+            $uncategorizedChannels = array_filter($channels, function ($ch) {
                 return !isset($ch['category_id']) || empty($ch['category_id']);
             });
-            
+
             if (!empty($uncategorizedChannels)) {
                 $responseData['uncategorized'] = array_values($uncategorizedChannels);
             }
-            
-            // Add the category structure for the channel loader
+
             $responseData['categoryStructure'] = $categoryStructured;
 
             $this->logActivity('server_channels_viewed', ['server_id' => $serverId]);
@@ -526,7 +516,7 @@ class ServerController extends BaseController
             return $this->serverError('Failed to load server channels');
         }
     }
-        public function getServerDetails($serverId = null)
+    public function getServerDetails($serverId = null)
     {
         $this->requireAuth();
 
@@ -543,7 +533,7 @@ class ServerController extends BaseController
             $server = $this->serverRepository->find($serverId);
             if (!$server) {
                 return $this->notFound('Server not found');
-            }            
+            }
             if (!$this->userServerMembershipRepository->isMember($this->getCurrentUserId(), $serverId)) {
                 return $this->forbidden('You do not have access to this server');
             }
@@ -580,7 +570,7 @@ class ServerController extends BaseController
 
             if (!$this->userServerMembershipRepository->isOwner($this->getCurrentUserId(), $serverId)) {
                 return $this->forbidden('You do not have permission to generate invite links');
-            } 
+            }
             $inviteCode = bin2hex(random_bytes(8));
             $inviteUrl = $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['HTTP_HOST'] . '/join/' . $inviteCode;
             $invite = $this->inviteRepository->create([
@@ -609,7 +599,8 @@ class ServerController extends BaseController
             ]);
             return $this->serverError('Failed to generate invite link');
         }
-    }    private function formatServer($server)
+    }
+    private function formatServer($server)
     {
         return [
             'id' => $server->id,
@@ -637,7 +628,8 @@ class ServerController extends BaseController
             'category_id' => $channel->category_id,
             'created_at' => $channel->created_at
         ];
-    }    private function canManageServer($server)
+    }
+    private function canManageServer($server)
     {
 
         if ($server->isOwner($this->getCurrentUserId())) {

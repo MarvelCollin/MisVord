@@ -1,7 +1,34 @@
 class ChannelAPI {
     constructor() {
         this.baseURL = '/api/channels';
-    }    async makeRequest(url, options = {}) {
+    }
+
+    async parseResponse(response) {
+        const text = await response.text();
+        
+        if (text.trim().startsWith('<') || text.includes('<br />') || text.includes('</html>') || text.includes('<!DOCTYPE')) {
+            console.error('Server returned HTML instead of JSON:', text.substring(0, 200));
+            throw new Error('Server error occurred. Please try again.');
+        }
+        
+        if (text.includes('Fatal error') || text.includes('Parse error') || text.includes('Warning:') || text.includes('Notice:')) {
+            console.error('Server returned PHP error:', text.substring(0, 200));
+            throw new Error('Server configuration error. Please contact support.');
+        }
+        
+        if (!text) {
+            return {};
+        }
+
+        try {
+            return JSON.parse(text);
+        } catch (e) {
+            console.error('Failed to parse JSON response:', text);
+            throw new Error('Invalid response from server');
+        }
+    }
+
+    async makeRequest(url, options = {}) {
         try {
             const defaultOptions = {
                 headers: {
@@ -28,34 +55,21 @@ class ChannelAPI {
             }
 
             const response = await fetch(url, mergedOptions);
+            const data = await this.parseResponse(response);
             
             if (!response.ok) {
-                const errorText = await response.text();
-                let errorData;
-                try {
-                    errorData = JSON.parse(errorText);
-                } catch {
-                    errorData = { error: errorText || 'Unknown error occurred' };
-                }
-                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                const errorMessage = data.error || data.message || `HTTP error! status: ${response.status}`;
+                throw new Error(errorMessage);
             }
 
-            const text = await response.text();
-            if (!text) {
-                return {};
-            }
-
-            try {
-                return JSON.parse(text);
-            } catch (parseError) {
-                console.error('Failed to parse JSON response:', text);
-                throw new Error('Invalid JSON response received');
-            }
+            return data;
         } catch (error) {
             console.error('Channel API request failed:', error);
             throw error;
         }
-    }    async createChannel(channelData) {
+    }
+
+    async createChannel(channelData) {
         return await this.makeRequest('/api/channels', {
             method: 'POST',
             body: channelData
@@ -87,7 +101,9 @@ class ChannelAPI {
             method: 'POST',
             body: JSON.stringify(channelData)
         });
-    }    async createCategory(categoryData) {
+    }
+
+    async createCategory(categoryData) {
         return await this.makeRequest('/api/categories', {
             method: 'POST',
             body: categoryData
@@ -109,4 +125,5 @@ class ChannelAPI {
     }
 }
 
-window.ChannelAPI = new ChannelAPI();
+const channelAPI = new ChannelAPI();
+export { channelAPI as ChannelAPI };

@@ -135,22 +135,25 @@ class FriendController extends BaseController
             ]);
             return $this->serverError('Failed to remove friend');
         }
-    }
-
-    public function getPendingRequests()
+    }    public function getPendingRequests()
     {
         $this->requireAuth();
+        
+        $userId = $this->getCurrentUserId();
 
         try {
+            // Get incoming friend requests (people who sent requests to me)
+            $incomingRequests = $this->friendListRepository->getPendingRequests($userId);
+            
+            // Get outgoing friend requests (requests I sent to others)
+            $outgoingRequests = $this->friendListRepository->getSentRequests($userId);            $this->logActivity('pending_requests_viewed');
 
-            $requests = [];
-
-            $this->logActivity('pending_requests_viewed');
-
-            return $this->success([
-                'requests' => $requests,
-                'total' => count($requests)
+            // Return data directly without extra nesting
+            $this->jsonResponse([
+                'incoming' => $incomingRequests ?: [],
+                'outgoing' => $outgoingRequests ?: []
             ]);
+            return;
         } catch (Exception $e) {
             $this->logActivity('pending_requests_error', [
                 'error' => $e->getMessage()
@@ -238,10 +241,10 @@ class FriendController extends BaseController
                 $friend['activity'] = null;
                 $friend['last_seen'] = null;
             }
+              $this->logActivity('friends_viewed');
             
-            $this->logActivity('friends_viewed');
-            
-            return $this->success($friends, 'Friends retrieved successfully');
+            $this->jsonResponse($friends);
+            return;
         } catch (Exception $e) {
             return $this->serverError('An error occurred while retrieving friends: ' . $e->getMessage());
         }
@@ -259,10 +262,10 @@ class FriendController extends BaseController
                 // Since socket functionality is removed, no users will be online
                 // This will return an empty array
             }
+              $this->logActivity('online_friends_viewed');
             
-            $this->logActivity('online_friends_viewed');
-            
-            return $this->success($onlineFriends, 'Online friends retrieved successfully');
+            $this->jsonResponse($onlineFriends);
+            return;
         } catch (Exception $e) {
             return $this->serverError('An error occurred while retrieving online friends: ' . $e->getMessage());
         }
@@ -366,21 +369,24 @@ class FriendController extends BaseController
             $this->serverError('An error occurred while sending friend request: ' . $e->getMessage());
         }
     }
-    
-    public function acceptFriendRequest($friendshipId)
+      public function acceptFriendRequest($friendshipId)
     {
         $this->requireAuth();
         
         $userId = $this->getCurrentUserId();
         
         try {
+            // Validate friendship ID
+            if (!$friendshipId || !is_numeric($friendshipId)) {
+                return $this->validationError(['friendship_id' => 'Valid friendship ID is required']);
+            }
+            
             $friendship = $this->friendListRepository->findFriendship($friendshipId);
             
             if (!$friendship) {
                 return $this->notFound('Friend request not found');
             }
-            
-            if ($friendship->recipient_id != $userId) {
+              if ($friendship->user_id2 != $userId) {
                 return $this->forbidden('You cannot accept this friend request');
             }
             
@@ -389,27 +395,24 @@ class FriendController extends BaseController
             if (!$result) {
                 return $this->serverError('Failed to accept friend request');
             }
+              $currentUser = $this->userRepository->find($userId);
+            $senderUser = $this->userRepository->find($friendship->user_id);
             
-            $currentUser = $this->userRepository->find($userId);
-            $senderUser = $this->userRepository->find($friendship->sender_id);
-            
-            $this->notifyViaSocket($friendship->sender_id, 'friend-request-accepted', [
+            $this->notifyViaSocket($friendship->user_id, 'friend-request-accepted', [
                 'friendship_id' => $friendshipId,
                 'recipient_id' => $userId,
                 'recipient_username' => $currentUser->username,
                 'timestamp' => date('Y-m-d H:i:s')
             ]);
-            
-            $this->logActivity('friend_request_accepted', [
+              $this->logActivity('friend_request_accepted', [
                 'friendship_id' => $friendshipId,
-                'sender_id' => $friendship->sender_id,
+                'sender_id' => $friendship->user_id,
                 'sender_username' => $senderUser->username
             ]);
-            
-            return $this->success([
+              return $this->success([
                 'friendship_id' => $friendshipId,
                 'friend' => [
-                    'id' => $friendship->sender_id,
+                    'id' => $friendship->user_id,
                     'username' => $senderUser->username
                 ]
             ], 'Friend request accepted');
@@ -417,21 +420,24 @@ class FriendController extends BaseController
             return $this->serverError('An error occurred while accepting friend request: ' . $e->getMessage());
         }
     }
-    
-    public function declineFriendRequest($friendshipId)
+      public function declineFriendRequest($friendshipId)
     {
         $this->requireAuth();
         
         $userId = $this->getCurrentUserId();
         
         try {
+            // Validate friendship ID
+            if (!$friendshipId || !is_numeric($friendshipId)) {
+                return $this->validationError(['friendship_id' => 'Valid friendship ID is required']);
+            }
+            
             $friendship = $this->friendListRepository->findFriendship($friendshipId);
             
             if (!$friendship) {
                 return $this->notFound('Friend request not found');
             }
-            
-            if ($friendship->recipient_id != $userId) {
+              if ($friendship->user_id2 != $userId) {
                 return $this->forbidden('You cannot decline this friend request');
             }
             
@@ -441,15 +447,14 @@ class FriendController extends BaseController
                 return $this->serverError('Failed to decline friend request');
             }
             
-            $this->notifyViaSocket($friendship->sender_id, 'friend-request-declined', [
+            $this->notifyViaSocket($friendship->user_id, 'friend-request-declined', [
                 'friendship_id' => $friendshipId,
                 'recipient_id' => $userId,
                 'timestamp' => date('Y-m-d H:i:s')
             ]);
-            
-            $this->logActivity('friend_request_declined', [
+              $this->logActivity('friend_request_declined', [
                 'friendship_id' => $friendshipId,
-                'sender_id' => $friendship->sender_id
+                'sender_id' => $friendship->user_id
             ]);
             
             return $this->success(null, 'Friend request declined');
@@ -570,10 +575,10 @@ class FriendController extends BaseController
         
         try {
             $blockedUsers = $this->friendListRepository->getBlockedUsers($userId);
+              $this->logActivity('blocked_users_viewed');
             
-            $this->logActivity('blocked_users_viewed');
-            
-            return $this->success($blockedUsers, 'Blocked users retrieved successfully');
+            $this->jsonResponse($blockedUsers);
+            return;
         } catch (Exception $e) {
             return $this->serverError('An error occurred while retrieving blocked users: ' . $e->getMessage());
         }

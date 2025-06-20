@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/Model.php';
+require_once __DIR__ . '/../query.php';
 
 class ServerInvite extends Model {
     protected static $table = 'server_invites';
@@ -9,23 +10,22 @@ class ServerInvite extends Model {
     public static function findByCode($code) {
         $result = static::where('invite_code', $code)->first();
         return $result ? new static($result) : null;
-    }
-
-    public static function findActiveByCode($code) {
-        $query = static::where('invite_code', $code);
+    }    public static function findActiveByCode($code) {
+        // Use raw SQL to handle complex OR conditions that the Query builder doesn't support well
+        $query = new Query();
+        $pdo = $query->getPdo();
         
-        $query->where(function($q) {
-            $q->whereNull('expires_at')
-              ->orWhere('expires_at', '>', date('Y-m-d H:i:s'));
-        });
+        $sql = "SELECT * FROM " . static::getTable() . " 
+                WHERE invite_code = ? 
+                AND (expires_at IS NULL OR expires_at > ?) 
+                AND (max_uses IS NULL OR uses < max_uses)
+                LIMIT 1";
         
-        $query->where(function($q) {
-            $q->whereNull('max_uses')
-              ->orWhereRaw('uses < max_uses');
-        });
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$code, date('Y-m-d H:i:s')]);
+        $data = $stmt->fetch(PDO::FETCH_ASSOC);
         
-        $result = $query->first();
-        return $result ? new static($result) : null;
+        return $data ? new static($data) : null;
     }
 
     public function isValid() {

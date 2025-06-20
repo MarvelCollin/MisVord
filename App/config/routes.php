@@ -328,14 +328,14 @@ Route::post('/api/friends', function() {
     $controller->sendFriendRequest();
 });
 
-Route::post('/api/friends/([0-9]+)/accept', function($friendshipId) {
+Route::post('/api/friends/accept', function() {
     $controller = new FriendController();
-    $controller->acceptFriendRequest($friendshipId);
+    $controller->acceptFriendRequest($_GET['id'] ?? null);
 });
 
-Route::post('/api/friends/([0-9]+)/decline', function($friendshipId) {
+Route::post('/api/friends/decline', function() {
     $controller = new FriendController();
-    $controller->declineFriendRequest($friendshipId);
+    $controller->declineFriendRequest($_GET['id'] ?? null);
 });
 
 Route::delete('/api/friends', function() {
@@ -367,7 +367,6 @@ Route::post('/api/users/find', function() {
     $controller = new FriendController();
     $controller->findUsers();
 });
-
 return array_merge(Route::getRoutes(), [
     '404' => 'pages/404.php'
 ]);

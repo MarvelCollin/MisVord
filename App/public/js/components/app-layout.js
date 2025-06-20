@@ -1,4 +1,8 @@
 import { DirectMessageAPI } from '../api/direct-message-api.js';
+import { FriendAPI } from '../api/friend-api.js';
+
+const directMessageAPI = DirectMessageAPI;
+const friendAPI = FriendAPI;
 
 document.addEventListener('DOMContentLoaded', function() {
     initServerModal();
@@ -104,13 +108,7 @@ function loadFriendsForDM() {
     
     friendsList.innerHTML = generateSkeletonItems(5);
     
-    if (!window.friendAPI) {
-        console.error('Friend API not loaded');
-        friendsList.innerHTML = '<div class="text-gray-400 text-center py-2">Failed to load friends</div>';
-        return;
-    }
-    
-    window.friendAPI.getFriends()
+    FriendAPI.getFriends()
         .then(friends => {
             friendsList.innerHTML = '';
             
@@ -284,13 +282,7 @@ function loadAllFriends() {
     
     container.innerHTML = generateSkeletonFriends(5);
     
-    if (!window.friendAPI) {
-        console.error('Friend API not loaded');
-        container.innerHTML = '<div class="text-gray-400 p-4">Failed to load friends</div>';
-        return;
-    }
-    
-    window.friendAPI.getFriends()
+    FriendAPI.getFriends()
         .then(friends => {
             if (friends && friends.length > 0) {
                 let friendsHtml = '';
@@ -374,13 +366,7 @@ function loadPendingRequests() {
 
     pendingContainer.innerHTML = generateSkeletonPending();
     
-    if (!window.friendAPI) {
-        console.error('Friend API not loaded');
-        pendingContainer.innerHTML = '<div class="text-gray-400 p-4">Failed to load pending requests</div>';
-        return;
-    }
-    
-    window.friendAPI.getPendingRequests()
+    FriendAPI.getPendingRequests()
         .then(pendingData => {
             pendingContainer.innerHTML = '';
 
@@ -405,9 +391,9 @@ function loadPendingRequests() {
                                     </div>
                                     <div class="flex space-x-2">
                                         <button class="bg-discord-green hover:bg-discord-green/90 text-white rounded-md px-3 py-1 text-sm"
-                                                onclick="acceptFriendRequest('${user.id}')">Accept</button>
+                                                onclick="acceptFriendRequest('${user.friendship_id}')">Accept</button>
                                         <button class="bg-discord-dark hover:bg-discord-light text-white rounded-md px-3 py-1 text-sm"
-                                                onclick="ignoreFriendRequest('${user.id}')">Ignore</button>
+                                                onclick="ignoreFriendRequest('${user.friendship_id}')">Ignore</button>
                                     </div>
                                 </div>
                             `).join('')}
@@ -513,13 +499,7 @@ function loadBlockedUsers() {
     
     container.innerHTML = generateSkeletonItems(3);
     
-    if (!window.friendAPI) {
-        console.error('Friend API not loaded');
-        container.innerHTML = '<div class="text-gray-400 p-4">Failed to load blocked users</div>';
-        return;
-    }
-    
-    window.friendAPI.getBlockedUsers()
+    FriendAPI.getBlockedUsers()
         .then(blockedUsers => {
             if (blockedUsers && blockedUsers.length > 0) {
                 let blockedHtml = '';
@@ -588,13 +568,7 @@ function escapeHtml(text) {
 }
 
 function acceptFriendRequest(userId) {
-    if (!window.friendAPI) {
-        console.error('Friend API not loaded');
-        showToast('Failed to accept friend request', 'error');
-        return;
-    }
-    
-    window.friendAPI.acceptFriendRequest(userId)
+    friendAPI.acceptFriendRequest(userId)
         .then(() => {
             showToast('Friend request accepted!', 'success');
             loadPendingRequests();
@@ -607,13 +581,7 @@ function acceptFriendRequest(userId) {
 }
 
 function ignoreFriendRequest(userId) {
-    if (!window.friendAPI) {
-        console.error('Friend API not loaded');
-        showToast('Failed to ignore friend request', 'error');
-        return;
-    }
-    
-    window.friendAPI.declineFriendRequest(userId)
+    FriendAPI.declineFriendRequest(userId)
         .then(() => {
             showToast('Friend request ignored', 'info');
             loadPendingRequests();
@@ -626,13 +594,7 @@ function ignoreFriendRequest(userId) {
 }
 
 function cancelFriendRequest(userId) {
-    if (!window.friendAPI) {
-        console.error('Friend API not loaded');
-        showToast('Failed to cancel friend request', 'error');
-        return;
-    }
-    
-    window.friendAPI.removeFriend(userId)
+    friendAPI.removeFriend(userId)
         .then(() => {
             showToast('Friend request cancelled', 'info');
             loadPendingRequests();
@@ -644,13 +606,7 @@ function cancelFriendRequest(userId) {
 }
 
 function unblockUser(userId) {
-    if (!window.friendAPI) {
-        console.error('Friend API not loaded');
-        showToast('Failed to unblock user', 'error');
-        return;
-    }
-    
-    window.friendAPI.unblockUser(userId)
+    friendAPI.unblockUser(userId)
         .then(() => {
             showToast('User unblocked', 'success');
             loadBlockedUsers();
@@ -671,7 +627,7 @@ function initFriendRequestForm() {
     
     friendUsernameInput.addEventListener('input', function() {
         const value = this.value.trim();
-        const validation = window.friendAPI ? window.friendAPI.validateUsername(value) : { valid: value.length >= 3 };
+        const validation = FriendAPI.validateUsername(value);
         
         sendFriendRequestBtn.disabled = !validation.valid;
         
@@ -689,7 +645,7 @@ function initFriendRequestForm() {
         const username = friendUsernameInput.value.trim();
         
         // Validate input
-        const validation = window.friendAPI ? window.friendAPI.validateUsername(username) : { valid: username.length >= 3 };
+        const validation = FriendAPI.validateUsername(username);
         if (!validation.valid) {
             if (errorDiv) {
                 errorDiv.textContent = validation.message || 'Invalid username format';
@@ -703,14 +659,8 @@ function initFriendRequestForm() {
         sendFriendRequestBtn.classList.add('opacity-50', 'cursor-not-allowed');
         
         try {
-            // Use friend API
-            if (!window.friendAPI) {
-                throw new Error('Friend API not loaded');
-            }
+            await friendAPI.sendFriendRequest(username);
             
-            await window.friendAPI.sendFriendRequest(username);
-            
-            // Success
             if (successDiv) {
                 successDiv.textContent = 'Friend request sent!';
                 successDiv.classList.remove('hidden');
@@ -718,7 +668,6 @@ function initFriendRequestForm() {
             if (errorDiv) errorDiv.classList.add('hidden');
             friendUsernameInput.value = '';
             
-            // Refresh pending count
             updatePendingCount();
             
         } catch (error) {
@@ -730,7 +679,7 @@ function initFriendRequestForm() {
             if (successDiv) successDiv.classList.add('hidden');
         } finally {
             // Re-enable button if input is still valid
-            const currentValidation = window.friendAPI ? window.friendAPI.validateUsername(friendUsernameInput.value.trim()) : { valid: friendUsernameInput.value.trim().length >= 3 };
+            const currentValidation = friendAPI.validateUsername(friendUsernameInput.value.trim());
             sendFriendRequestBtn.disabled = !currentValidation.valid;
             if (currentValidation.valid) {
                 sendFriendRequestBtn.classList.remove('opacity-50', 'cursor-not-allowed');
@@ -740,12 +689,7 @@ function initFriendRequestForm() {
 }
 
 function updatePendingCount() {
-    if (!window.friendAPI) {
-        console.error('Friend API not loaded');
-        return;
-    }
-    
-    window.friendAPI.getPendingCount()
+    friendAPI.getPendingCount()
         .then(count => {
             const pendingTab = document.querySelector('button[data-tab="pending"]');
 
@@ -766,4 +710,45 @@ function showToast(message, type = 'info') {
     } else {
         console.log(type + ': ' + message);
     }
-} 
+}
+
+// Global functions for handling friend request actions
+window.acceptFriendRequest = async function(friendshipId) {
+    try {
+        console.log('Accepting friend request:', friendshipId);
+        const result = await FriendAPI.acceptFriendRequest(friendshipId);
+        
+        if (result.success) {
+            showToast('Friend request accepted!', 'success');
+            // Refresh the pending requests to update the UI
+            loadPendingRequests();
+            // Update the pending count badge
+            updatePendingCount();
+        } else {
+            showToast(result.message || 'Failed to accept friend request', 'error');
+        }
+    } catch (error) {
+        console.error('Error accepting friend request:', error);
+        showToast(error.message || 'Failed to accept friend request', 'error');
+    }
+};
+
+window.ignoreFriendRequest = async function(friendshipId) {
+    try {
+        console.log('Ignoring friend request:', friendshipId);
+        const result = await FriendAPI.declineFriendRequest(friendshipId);
+        
+        if (result.success) {
+            showToast('Friend request ignored', 'info');
+            // Refresh the pending requests to update the UI
+            loadPendingRequests();
+            // Update the pending count badge
+            updatePendingCount();
+        } else {
+            showToast(result.message || 'Failed to ignore friend request', 'error');
+        }
+    } catch (error) {
+        console.error('Error ignoring friend request:', error);
+        showToast(error.message || 'Failed to ignore friend request', 'error');
+    }
+};

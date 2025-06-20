@@ -49,12 +49,12 @@ function initUpdateChannelForms() {
             e.preventDefault();
 
             const channelId = this.getAttribute('data-channel-id');
-            const formData = new FormData(this);
-
-            const data = {};
+            const formData = new FormData(this);            const data = {};
             for (const [key, value] of formData.entries()) {
                 data[key] = value;
-            }            ChannelAPI.updateChannel(channelId, data)
+            }
+            
+            ChannelAPI.updateChannel(channelId, data)
                 .then(response => {
                     if (response.success) {
                         showToast('Channel updated successfully', 'success');

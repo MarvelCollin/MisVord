@@ -83,9 +83,7 @@ abstract class Model {
         
         if (!isset($this->attributes['updated_at'])) {
             $this->attributes['updated_at'] = date('Y-m-d H:i:s');
-        }
-        
-        if (isset($this->attributes['id'])) {
+        }        if (isset($this->attributes['id'])) {
             $id = $this->attributes['id'];
             $data = $this->attributes;
             unset($data['id']);
@@ -94,7 +92,7 @@ abstract class Model {
                 ->where('id', $id)
                 ->update($data);
                 
-            return $result > 0;        } else {
+            return $result > 0;} else {
             if (!isset($this->attributes['created_at'])) {
                 $this->attributes['created_at'] = date('Y-m-d H:i:s');
             }

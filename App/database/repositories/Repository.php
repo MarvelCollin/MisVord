@@ -24,14 +24,15 @@ abstract class Repository {
         $instance = new $this->modelClass($data);
         return $instance->save() ? $instance : null;
     }
-    
-    public function update($id, $data) {
+      public function update($id, $data) {
         $instance = $this->find($id);
         if (!$instance) {
             return null;
         }
         
-        $instance->fill($data);
+        foreach ($data as $key => $value) {
+            $instance->$key = $value;
+        }
         return $instance->save() ? $instance : null;
     }
     

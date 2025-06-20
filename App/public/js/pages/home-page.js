@@ -1,4 +1,7 @@
 import { UserAPI } from '../api/user-api.js';
+import { FriendAPI } from '../api/friend-api.js';
+
+const friendAPI = FriendAPI;
 
 document.addEventListener('DOMContentLoaded', function() {
     initFriendProfileCards();
@@ -322,13 +325,7 @@ function loadPendingRequests() {
     const pendingContainer = document.getElementById('pending-requests');
     if (!pendingContainer) return;
 
-    if (!window.friendAPI) {
-        console.error('Friend API not loaded');
-        pendingContainer.innerHTML = '<div class="text-gray-400 p-4">Failed to load pending requests</div>';
-        return;
-    }
-
-    window.friendAPI.getPendingRequests()
+    friendAPI.getPendingRequests()
         .then(data => {
             pendingContainer.innerHTML = '';
 
@@ -494,12 +491,7 @@ function addPendingRequest(user) {
 }
 
 function updatePendingCount() {
-    if (!window.friendAPI) {
-        console.error('Friend API not loaded');
-        return;
-    }
-
-    window.friendAPI.getPendingCount()
+    friendAPI.getPendingCount()
         .then(count => {
             const pendingTab = document.querySelector('button[data-tab="pending"]');
 

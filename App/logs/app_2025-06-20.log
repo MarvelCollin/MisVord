@@ -1454,3 +1454,335 @@
 [2025-06-20 17:37:11] INFO [7d6697] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 17:37:11"}
 [2025-06-20 17:37:11] INFO [7dbb6f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 17:37:11"}
 [2025-06-20 17:37:11] INFO [7e345c] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 17:37:11"}
+[2025-06-20 19:41:07] INFO [370d7f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:41:07"}
+[2025-06-20 19:41:39] INFO [324b6d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:41:39"}
+[2025-06-20 19:41:39] INFO [32b6ff] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:41:39"}
+[2025-06-20 19:41:39] INFO [330d77] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:41:39"}
+[2025-06-20 19:41:39] INFO [336f74] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:41:39"}
+[2025-06-20 19:41:39] INFO [33e2ad] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:41:39"}
+[2025-06-20 19:41:39] INFO [343c7b] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:41:39"}
+[2025-06-20 19:41:39] INFO [3498e0] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:41:39"}
+[2025-06-20 19:41:39] INFO [34ec1f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:41:39"}
+[2025-06-20 19:41:39] INFO [3534ce] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:41:39"}
+[2025-06-20 19:41:39] INFO [35a0d6] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:41:39"}
+[2025-06-20 14:43:48] DEBUG [45cce0] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 14:43:48] INFO [45cce0] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 14:43:48] DEBUG [45cce0] DB Query: SELECT * FROM friend_list WHERE  user_id = ? AND user_id2 = ? LIMIT 1 - Duration: 47.53ms - Context: {"bindings":[1,2],"found":false,"db_query":"SELECT * FROM friend_list WHERE  user_id = ? AND user_id2 = ? LIMIT 1","db_duration":0.047534942626953125}
+[2025-06-20 14:43:48] DEBUG [45cce0] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 14:43:48] INFO [45cce0] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 14:43:48] DEBUG [45cce0] DB Query: SELECT * FROM friend_list WHERE  user_id = ? AND user_id2 = ? LIMIT 1 - Duration: 52.80ms - Context: {"bindings":[2,1],"found":false,"db_query":"SELECT * FROM friend_list WHERE  user_id = ? AND user_id2 = ? LIMIT 1","db_duration":0.05279803276062012}
+[2025-06-20 14:43:48] DEBUG [45cce0] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 14:43:48] INFO [45cce0] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 19:49:24] INFO [429237] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:49:24"}
+[2025-06-20 19:49:24] INFO [440c75] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:49:24"}
+[2025-06-20 19:49:24] INFO [446d26] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:49:24"}
+[2025-06-20 19:49:24] INFO [44ce1f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:49:24"}
+[2025-06-20 19:49:24] INFO [451ba2] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:49:24"}
+[2025-06-20 19:49:24] INFO [456e43] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:49:24"}
+[2025-06-20 19:49:24] INFO [45c14e] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:49:24"}
+[2025-06-20 19:49:24] INFO [460f65] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:49:24"}
+[2025-06-20 19:49:24] INFO [466026] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:49:24"}
+[2025-06-20 19:49:24] INFO [46b444] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:49:24"}
+[2025-06-20 19:49:24] INFO [476deb] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:49:24"}
+[2025-06-20 19:49:30] INFO [a00c5b] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:49:30"}
+[2025-06-20 19:49:30] DEBUG [a00c5b] Controller instantiated - Context: {"controller":"FriendController","request_uri":"/api/friends/pending","request_method":"GET","is_ajax":"no"}
+[2025-06-20 19:49:30] DEBUG [a00c5b] requireAuth called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"session_data":[]}
+[2025-06-20 19:49:30] WARNING [a00c5b] User not authenticated, redirecting to login - Context: {"session_data":[],"request_uri":"/api/friends/pending"}
+[2025-06-20 19:51:52] INFO [800505] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:51:52"}
+[2025-06-20 19:53:14] INFO [ad9105] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:53:14"}
+[2025-06-20 19:53:24] INFO [465337] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:53:24"}
+[2025-06-20 19:53:24] DEBUG [465337] Controller instantiated - Context: {"controller":"HomeController","request_uri":"/home?id=eb4ca979-0bbc-445a-81f5-63c9895339ef&vscodeBrowserReqId=1750424004407","request_method":"GET","is_ajax":"no"}
+[2025-06-20 19:53:24] DEBUG [465337] HomeController index called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"request_uri":"/home?id=eb4ca979-0bbc-445a-81f5-63c9895339ef&vscodeBrowserReqId=1750424004407"}
+[2025-06-20 19:53:24] DEBUG [465337] requireAuth called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"session_data":[]}
+[2025-06-20 19:53:24] WARNING [465337] User not authenticated, redirecting to login - Context: {"session_data":[],"request_uri":"/home?id=eb4ca979-0bbc-445a-81f5-63c9895339ef&vscodeBrowserReqId=1750424004407"}
+[2025-06-20 19:53:24] INFO [46b0bf] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:53:24"}
+[2025-06-20 19:53:24] DEBUG [46b0bf] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 19:53:24] INFO [46b0bf] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 19:53:24] DEBUG [46b0bf] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 19:53:24] INFO [46b0bf] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 19:53:24] INFO [4ac998] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:53:24"}
+[2025-06-20 19:53:24] INFO [4b28e4] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:53:24"}
+[2025-06-20 19:53:24] INFO [4b795c] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:53:24"}
+[2025-06-20 19:53:24] INFO [4bc5d6] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:53:24"}
+[2025-06-20 19:53:24] INFO [4c235b] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:53:24"}
+[2025-06-20 19:53:24] INFO [4c95c0] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:53:24"}
+[2025-06-20 19:53:24] INFO [4ce920] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:53:24"}
+[2025-06-20 19:53:24] INFO [4d4100] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:53:24"}
+[2025-06-20 19:53:24] INFO [4d9534] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:53:24"}
+[2025-06-20 19:53:24] INFO [4df6cb] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:53:24"}
+[2025-06-20 19:53:24] INFO [4e0cdc] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:53:24"}
+[2025-06-20 19:55:32] INFO [4f0c15] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:55:32"}
+[2025-06-20 19:55:33] DEBUG [4f0c15] Controller instantiated - Context: {"controller":"HomeController","request_uri":"/home?id=da3fefc4-631d-4a54-8dfd-4349994b23fb&vscodeBrowserReqId=1750424132978","request_method":"GET","is_ajax":"no"}
+[2025-06-20 19:55:33] DEBUG [4f0c15] HomeController index called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"request_uri":"/home?id=da3fefc4-631d-4a54-8dfd-4349994b23fb&vscodeBrowserReqId=1750424132978"}
+[2025-06-20 19:55:33] DEBUG [4f0c15] requireAuth called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"session_data":[]}
+[2025-06-20 19:55:33] WARNING [4f0c15] User not authenticated, redirecting to login - Context: {"session_data":[],"request_uri":"/home?id=da3fefc4-631d-4a54-8dfd-4349994b23fb&vscodeBrowserReqId=1750424132978"}
+[2025-06-20 19:55:33] INFO [50812d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:55:33"}
+[2025-06-20 19:55:33] DEBUG [50812d] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 19:55:33] INFO [50812d] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 19:55:33] DEBUG [50812d] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 19:55:33] INFO [50812d] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 19:55:33] INFO [54bd17] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:55:33"}
+[2025-06-20 19:55:33] INFO [5545ce] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:55:33"}
+[2025-06-20 19:55:33] INFO [55bb89] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:55:33"}
+[2025-06-20 19:55:33] INFO [560576] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:55:33"}
+[2025-06-20 19:55:33] INFO [564e12] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:55:33"}
+[2025-06-20 19:55:33] INFO [569208] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:55:33"}
+[2025-06-20 19:55:33] INFO [56d68a] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:55:33"}
+[2025-06-20 19:55:33] INFO [571f20] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:55:33"}
+[2025-06-20 19:55:33] INFO [5767a6] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:55:33"}
+[2025-06-20 19:55:33] INFO [57ad7b] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:55:33"}
+[2025-06-20 19:55:33] INFO [57c13f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:55:33"}
+[2025-06-20 19:56:37] INFO [56e7b5] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 19:56:37"}
+[2025-06-20 19:56:37] DEBUG [56e7b5] Controller instantiated - Context: {"controller":"FriendController","request_uri":"/api/friends/pending","request_method":"GET","is_ajax":"no"}
+[2025-06-20 19:56:37] DEBUG [56e7b5] requireAuth called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"session_data":[]}
+[2025-06-20 19:56:37] WARNING [56e7b5] User not authenticated, redirecting to login - Context: {"session_data":[],"request_uri":"/api/friends/pending"}
+[2025-06-20 20:03:57] INFO [d1cdb2] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:03:57"}
+[2025-06-20 20:03:57] INFO [d2db2c] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:03:57"}
+[2025-06-20 20:03:57] INFO [d33ae1] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:03:57"}
+[2025-06-20 20:03:57] INFO [d39004] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:03:57"}
+[2025-06-20 20:03:57] INFO [d3dc0f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:03:57"}
+[2025-06-20 20:03:57] INFO [d464c5] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:03:57"}
+[2025-06-20 20:03:57] INFO [d4c70f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:03:57"}
+[2025-06-20 20:03:57] INFO [d5138a] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:03:57"}
+[2025-06-20 20:03:57] INFO [d56110] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:03:57"}
+[2025-06-20 20:03:57] INFO [d5a8ea] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:03:57"}
+[2025-06-20 20:03:57] INFO [d706f4] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:03:57"}
+[2025-06-20 20:04:03] INFO [3752f7] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:04:03"}
+[2025-06-20 20:04:03] DEBUG [3752f7] Controller instantiated - Context: {"controller":"FriendController","request_uri":"/api/friends/pending","request_method":"GET","is_ajax":"no"}
+[2025-06-20 20:04:03] DEBUG [3752f7] requireAuth called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"session_data":[]}
+[2025-06-20 20:04:03] WARNING [3752f7] User not authenticated, redirecting to login - Context: {"session_data":[],"request_uri":"/api/friends/pending"}
+[2025-06-20 20:04:59] INFO [bc1d0f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:04:59"}
+[2025-06-20 20:05:07] INFO [3708d1] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:05:07"}
+[2025-06-20 20:05:07] DEBUG [3708d1] Controller instantiated - Context: {"controller":"FriendController","request_uri":"/api/friends/pending","request_method":"GET","is_ajax":"no"}
+[2025-06-20 20:05:07] DEBUG [3708d1] requireAuth called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"session_data":[]}
+[2025-06-20 20:05:07] WARNING [3708d1] User not authenticated, redirecting to login - Context: {"session_data":[],"request_uri":"/api/friends/pending"}
+[2025-06-20 20:06:34] INFO [a8cda4] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:06:34"}
+[2025-06-20 20:06:42] INFO [2ed7a3] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:06:42"}
+[2025-06-20 20:06:43] INFO [302e7a] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:06:43"}
+[2025-06-20 20:06:43] INFO [309101] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:06:43"}
+[2025-06-20 20:06:43] INFO [30f1ce] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:06:43"}
+[2025-06-20 20:06:43] INFO [316853] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:06:43"}
+[2025-06-20 20:06:43] INFO [31c4b9] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:06:43"}
+[2025-06-20 20:06:43] INFO [323226] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:06:43"}
+[2025-06-20 20:06:43] INFO [32ab55] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:06:43"}
+[2025-06-20 20:06:43] INFO [331483] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:06:43"}
+[2025-06-20 20:06:43] INFO [337b4a] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:06:43"}
+[2025-06-20 20:07:13] INFO [1a8466] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:07:13"}
+[2025-06-20 20:07:32] INFO [48823e] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:07:32"}
+[2025-06-20 20:08:01] INFO [1f2376] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:08:01"}
+[2025-06-20 20:09:23] INFO [3b83a7] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:09:23"}
+[2025-06-20 20:09:23] DEBUG [3b83a7] Controller instantiated - Context: {"controller":"FriendController","request_uri":"/api/friends/accept?id=1","request_method":"POST","is_ajax":"no"}
+[2025-06-20 20:09:23] DEBUG [3b83a7] requireAuth called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"session_data":[]}
+[2025-06-20 20:09:23] WARNING [3b83a7] User not authenticated, redirecting to login - Context: {"session_data":[],"request_uri":"/api/friends/accept?id=1"}
+[2025-06-20 20:09:30] INFO [abe976] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:09:30"}
+[2025-06-20 20:09:30] DEBUG [abe976] Controller instantiated - Context: {"controller":"HomeController","request_uri":"/app?id=9604f441-5e27-46c8-a825-6c6fa8ce7227&vscodeBrowserReqId=1750424970764","request_method":"GET","is_ajax":"no"}
+[2025-06-20 20:09:30] DEBUG [abe976] HomeController index called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"request_uri":"/app?id=9604f441-5e27-46c8-a825-6c6fa8ce7227&vscodeBrowserReqId=1750424970764"}
+[2025-06-20 20:09:30] DEBUG [abe976] requireAuth called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"session_data":[]}
+[2025-06-20 20:09:30] WARNING [abe976] User not authenticated, redirecting to login - Context: {"session_data":[],"request_uri":"/app?id=9604f441-5e27-46c8-a825-6c6fa8ce7227&vscodeBrowserReqId=1750424970764"}
+[2025-06-20 20:09:30] INFO [ac6c24] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:09:30"}
+[2025-06-20 20:09:30] DEBUG [ac6c24] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 20:09:30] INFO [ac6c24] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 20:09:31] DEBUG [ac6c24] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 20:09:31] INFO [ac6c24] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 20:09:31] INFO [b26174] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:09:31"}
+[2025-06-20 20:09:31] INFO [b2e8ab] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:09:31"}
+[2025-06-20 20:09:31] INFO [b3392f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:09:31"}
+[2025-06-20 20:09:31] INFO [b37dc4] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:09:31"}
+[2025-06-20 20:09:31] INFO [b3c66e] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:09:31"}
+[2025-06-20 20:09:31] INFO [b41c75] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:09:31"}
+[2025-06-20 20:09:31] INFO [b46505] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:09:31"}
+[2025-06-20 20:09:31] INFO [b4ad96] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:09:31"}
+[2025-06-20 20:09:31] INFO [b4f40e] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:09:31"}
+[2025-06-20 20:09:31] INFO [b537b5] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:09:31"}
+[2025-06-20 20:09:31] INFO [b57ba2] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:09:31"}
+[2025-06-20 20:11:13] INFO [1a163a] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:11:13"}
+[2025-06-20 20:11:13] DEBUG [1a163a] Controller instantiated - Context: {"controller":"FriendController","request_uri":"/api/friends/decline?id=1","request_method":"POST","is_ajax":"no"}
+[2025-06-20 20:11:13] DEBUG [1a163a] requireAuth called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"session_data":[]}
+[2025-06-20 20:11:13] WARNING [1a163a] User not authenticated, redirecting to login - Context: {"session_data":[],"request_uri":"/api/friends/decline?id=1"}
+[2025-06-20 20:13:37] INFO [1de660] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:13:37"}
+[2025-06-20 20:13:37] DEBUG [1de660] Controller instantiated - Context: {"controller":"HomeController","request_uri":"/app?id=9604f441-5e27-46c8-a825-6c6fa8ce7227&vscodeBrowserReqId=1750425217901","request_method":"GET","is_ajax":"no"}
+[2025-06-20 20:13:37] DEBUG [1de660] HomeController index called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"request_uri":"/app?id=9604f441-5e27-46c8-a825-6c6fa8ce7227&vscodeBrowserReqId=1750425217901"}
+[2025-06-20 20:13:37] DEBUG [1de660] requireAuth called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"session_data":[]}
+[2025-06-20 20:13:37] WARNING [1de660] User not authenticated, redirecting to login - Context: {"session_data":[],"request_uri":"/app?id=9604f441-5e27-46c8-a825-6c6fa8ce7227&vscodeBrowserReqId=1750425217901"}
+[2025-06-20 20:13:37] INFO [1e9617] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:13:37"}
+[2025-06-20 20:13:38] DEBUG [1e9617] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 20:13:38] INFO [1e9617] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 20:13:38] DEBUG [1e9617] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 20:13:38] INFO [1e9617] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 20:13:38] INFO [2433b0] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:13:38"}
+[2025-06-20 20:13:38] INFO [24798f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:13:38"}
+[2025-06-20 20:13:38] INFO [24c177] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:13:38"}
+[2025-06-20 20:13:38] INFO [251298] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:13:38"}
+[2025-06-20 20:13:38] INFO [25701d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:13:38"}
+[2025-06-20 20:13:38] INFO [25da6d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:13:38"}
+[2025-06-20 20:13:38] INFO [262f14] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:13:38"}
+[2025-06-20 20:13:38] INFO [26820a] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:13:38"}
+[2025-06-20 20:13:38] INFO [26d183] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:13:38"}
+[2025-06-20 20:13:38] INFO [2721a1] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:13:38"}
+[2025-06-20 20:13:38] INFO [27668f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:13:38"}
+[2025-06-20 15:16:41] DEBUG [9a28b4] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:16:41] INFO [9a28b4] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:16:41] DEBUG [9a28b4] DB Query: SELECT * FROM friend_list - Duration: 57.13ms - Context: {"bindings":[],"result_count":2,"db_query":"SELECT * FROM friend_list","db_duration":0.05713295936584473}
+[2025-06-20 15:16:41] DEBUG [9a28b4] DB Query: SELECT * FROM users - Duration: 49.37ms - Context: {"bindings":[],"result_count":2,"db_query":"SELECT * FROM users","db_duration":0.04937100410461426}
+[2025-06-20 15:17:22] DEBUG [2e89d9] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:17:22] INFO [2e89d9] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:17:23] DEBUG [2e89d9] DB Query: SELECT * FROM friend_list WHERE  id = ? LIMIT 1 - Duration: 51.91ms - Context: {"bindings":[3],"found":true,"db_query":"SELECT * FROM friend_list WHERE  id = ? LIMIT 1","db_duration":0.05191206932067871}
+[2025-06-20 15:17:57] DEBUG [550fed] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:17:57] INFO [550fed] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:17:57] DEBUG [550fed] DB Query: SELECT * FROM friend_list WHERE  id = ? LIMIT 1 - Duration: 53.82ms - Context: {"bindings":[3],"found":true,"db_query":"SELECT * FROM friend_list WHERE  id = ? LIMIT 1","db_duration":0.05381894111633301}
+[2025-06-20 15:18:12] DEBUG [4eced6] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:18:12] INFO [4eced6] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:18:13] DEBUG [4eced6] DB Query: SELECT * FROM friend_list WHERE  id = ? LIMIT 1 - Duration: 50.01ms - Context: {"bindings":[3],"found":true,"db_query":"SELECT * FROM friend_list WHERE  id = ? LIMIT 1","db_duration":0.050005197525024414}
+[2025-06-20 15:18:30] DEBUG [665718] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:18:30] INFO [665718] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:18:30] DEBUG [665718] DB Query: SELECT * FROM friend_list WHERE  id = ? LIMIT 1 - Duration: 44.79ms - Context: {"bindings":[3],"found":true,"db_query":"SELECT * FROM friend_list WHERE  id = ? LIMIT 1","db_duration":0.04479217529296875}
+[2025-06-20 15:18:49] DEBUG [9bf2fe] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:18:49] INFO [9bf2fe] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:18:49] DEBUG [9bf2fe] DB Query: SELECT * FROM friend_list WHERE  id = ? LIMIT 1 - Duration: 46.66ms - Context: {"bindings":[3],"found":true,"db_query":"SELECT * FROM friend_list WHERE  id = ? LIMIT 1","db_duration":0.046658992767333984}
+[2025-06-20 15:19:06] DEBUG [aeb5fe] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:19:06] INFO [aeb5fe] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:19:07] DEBUG [aeb5fe] DB Query: SELECT * FROM friend_list - Duration: 46.81ms - Context: {"bindings":[],"result_count":2,"db_query":"SELECT * FROM friend_list","db_duration":0.046807050704956055}
+[2025-06-20 15:19:07] DEBUG [aeb5fe] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:19:07] INFO [aeb5fe] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:19:07] DEBUG [aeb5fe] DB Query: SELECT * FROM friend_list WHERE  id = ? LIMIT 1 - Duration: 44.66ms - Context: {"bindings":[3],"found":true,"db_query":"SELECT * FROM friend_list WHERE  id = ? LIMIT 1","db_duration":0.04465794563293457}
+[2025-06-20 15:19:07] DEBUG [aeb5fe] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:19:07] INFO [aeb5fe] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:19:07] DEBUG [aeb5fe] DB Query: SELECT * FROM friend_list WHERE  id = ? LIMIT 1 - Duration: 45.77ms - Context: {"bindings":[3],"found":true,"db_query":"SELECT * FROM friend_list WHERE  id = ? LIMIT 1","db_duration":0.04576992988586426}
+[2025-06-20 15:19:07] DEBUG [aeb5fe] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:19:07] INFO [aeb5fe] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:19:39] DEBUG [b1dc61] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:19:39] INFO [b1dc61] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:19:39] DEBUG [b1dc61] DB Query: SELECT * FROM friend_list WHERE  id = ? - Duration: 42.21ms - Context: {"bindings":[4],"result_count":0,"db_query":"SELECT * FROM friend_list WHERE  id = ?","db_duration":0.04221200942993164}
+[2025-06-20 15:19:45] DEBUG [1e0c4c] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:19:45] INFO [1e0c4c] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:19:45] DEBUG [1e0c4c] DB Query: SELECT * FROM friend_list - Duration: 52.15ms - Context: {"bindings":[],"result_count":1,"db_query":"SELECT * FROM friend_list","db_duration":0.05215001106262207}
+[2025-06-20 15:19:46] DEBUG [1e0c4c] DB Query: SELECT * FROM users - Duration: 49.25ms - Context: {"bindings":[],"result_count":2,"db_query":"SELECT * FROM users","db_duration":0.04925394058227539}
+[2025-06-20 15:19:52] DEBUG [8e9648] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:19:52] INFO [8e9648] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:19:53] DEBUG [8e9648] DB Query: SELECT * FROM friend_list - Duration: 60.79ms - Context: {"bindings":[],"result_count":1,"db_query":"SELECT * FROM friend_list","db_duration":0.06078505516052246}
+[2025-06-20 15:19:53] DEBUG [8e9648] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:19:53] INFO [8e9648] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:19:53] DEBUG [8e9648] DB Query: SELECT * FROM friend_list WHERE  id = ? LIMIT 1 - Duration: 51.60ms - Context: {"bindings":[3],"found":true,"db_query":"SELECT * FROM friend_list WHERE  id = ? LIMIT 1","db_duration":0.05160188674926758}
+[2025-06-20 15:19:53] DEBUG [8e9648] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:19:53] INFO [8e9648] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:19:53] DEBUG [8e9648] DB Query: SELECT * FROM friend_list WHERE  id = ? LIMIT 1 - Duration: 50.05ms - Context: {"bindings":[3],"found":true,"db_query":"SELECT * FROM friend_list WHERE  id = ? LIMIT 1","db_duration":0.05005288124084473}
+[2025-06-20 15:19:53] DEBUG [8e9648] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:19:53] INFO [8e9648] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:20:21] DEBUG [515143] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:20:21] INFO [515143] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:20:21] DEBUG [515143] DB Query: SELECT * FROM friend_list - Duration: 43.47ms - Context: {"bindings":[],"result_count":1,"db_query":"SELECT * FROM friend_list","db_duration":0.043473005294799805}
+[2025-06-20 15:20:21] DEBUG [515143] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:20:21] INFO [515143] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:20:21] DEBUG [515143] DB Query: SELECT * FROM friend_list WHERE  id = ? LIMIT 1 - Duration: 42.96ms - Context: {"bindings":[3],"found":true,"db_query":"SELECT * FROM friend_list WHERE  id = ? LIMIT 1","db_duration":0.042955875396728516}
+[2025-06-20 15:20:21] DEBUG [515143] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:20:21] INFO [515143] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:20:21] DEBUG [515143] DB Query: SELECT * FROM friend_list WHERE  id = ? LIMIT 1 - Duration: 49.63ms - Context: {"bindings":[3],"found":true,"db_query":"SELECT * FROM friend_list WHERE  id = ? LIMIT 1","db_duration":0.04962897300720215}
+[2025-06-20 15:20:21] DEBUG [515143] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:20:21] INFO [515143] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:20:47] DEBUG [f416c7] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:20:47] INFO [f416c7] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:20:47] DEBUG [f416c7] DB Query: SELECT * FROM friend_list - Duration: 51.07ms - Context: {"bindings":[],"result_count":1,"db_query":"SELECT * FROM friend_list","db_duration":0.05107283592224121}
+[2025-06-20 15:20:47] DEBUG [f416c7] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:20:47] INFO [f416c7] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:20:47] DEBUG [f416c7] DB Query: SELECT * FROM friend_list WHERE  id = ? LIMIT 1 - Duration: 45.31ms - Context: {"bindings":[3],"found":true,"db_query":"SELECT * FROM friend_list WHERE  id = ? LIMIT 1","db_duration":0.045308828353881836}
+[2025-06-20 15:20:47] DEBUG [f416c7] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:20:47] INFO [f416c7] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:21:21] DEBUG [13ee54] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:21:21] INFO [13ee54] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:21:21] DEBUG [13ee54] DB Query: SELECT * FROM friend_list - Duration: 47.36ms - Context: {"bindings":[],"result_count":1,"db_query":"SELECT * FROM friend_list","db_duration":0.04736495018005371}
+[2025-06-20 15:21:21] DEBUG [13ee54] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:21:21] INFO [13ee54] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:21:21] DEBUG [13ee54] DB Query: SELECT * FROM friend_list WHERE  id = ? LIMIT 1 - Duration: 46.05ms - Context: {"bindings":[3],"found":true,"db_query":"SELECT * FROM friend_list WHERE  id = ? LIMIT 1","db_duration":0.04604697227478027}
+[2025-06-20 15:21:21] DEBUG [13ee54] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:21:21] INFO [13ee54] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:22:05] DEBUG [ded2aa] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:22:06] INFO [ded2aa] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:22:06] DEBUG [ded2aa] DB Query: SELECT * FROM friend_list - Duration: 42.77ms - Context: {"bindings":[],"result_count":1,"db_query":"SELECT * FROM friend_list","db_duration":0.04277181625366211}
+[2025-06-20 15:22:06] DEBUG [ded2aa] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:22:06] INFO [ded2aa] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:22:06] DEBUG [ded2aa] DB Query: SELECT * FROM friend_list WHERE  id = ? LIMIT 1 - Duration: 51.84ms - Context: {"bindings":[3],"found":true,"db_query":"SELECT * FROM friend_list WHERE  id = ? LIMIT 1","db_duration":0.051835060119628906}
+[2025-06-20 15:22:06] DEBUG [ded2aa] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:22:06] INFO [ded2aa] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:22:06] DEBUG [ded2aa] DB Query: SELECT * FROM friend_list - Duration: 2.56ms - Context: {"bindings":[],"result_count":1,"db_query":"SELECT * FROM friend_list","db_duration":0.0025641918182373047}
+[2025-06-20 15:22:39] DEBUG [fe8357] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:22:39] INFO [fe8357] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:22:40] DEBUG [fe8357] DB Query: SELECT * FROM friend_list WHERE  user_id = ? AND user_id2 = ? LIMIT 1 - Duration: 44.99ms - Context: {"bindings":[2,1],"found":true,"db_query":"SELECT * FROM friend_list WHERE  user_id = ? AND user_id2 = ? LIMIT 1","db_duration":0.04499006271362305}
+[2025-06-20 15:22:40] DEBUG [fe8357] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:22:40] INFO [fe8357] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:22:40] DEBUG [fe8357] DB Query: SELECT * FROM friend_list - Duration: 50.85ms - Context: {"bindings":[],"result_count":1,"db_query":"SELECT * FROM friend_list","db_duration":0.05085301399230957}
+[2025-06-20 15:22:40] DEBUG [fe8357] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:22:40] INFO [fe8357] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:22:40] DEBUG [fe8357] DB Query: SELECT * FROM friend_list WHERE  id = ? LIMIT 1 - Duration: 45.80ms - Context: {"bindings":[null],"found":false,"db_query":"SELECT * FROM friend_list WHERE  id = ? LIMIT 1","db_duration":0.04580211639404297}
+[2025-06-20 15:22:40] DEBUG [fe8357] DB Query: SELECT * FROM friend_list - Duration: 1.68ms - Context: {"bindings":[],"result_count":1,"db_query":"SELECT * FROM friend_list","db_duration":0.001683950424194336}
+[2025-06-20 15:22:48] DEBUG [8533e0] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:22:48] INFO [8533e0] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:22:48] DEBUG [8533e0] DB Query: SELECT * FROM friend_list WHERE  id = ? - Duration: 50.82ms - Context: {"bindings":[4],"result_count":0,"db_query":"SELECT * FROM friend_list WHERE  id = ?","db_duration":0.05081892013549805}
+[2025-06-20 15:23:03] DEBUG [79268b] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:23:03] INFO [79268b] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:23:03] DEBUG [79268b] DB Query: SELECT * FROM friend_list - Duration: 48.49ms - Context: {"bindings":[],"result_count":0,"db_query":"SELECT * FROM friend_list","db_duration":0.04848885536193848}
+[2025-06-20 15:23:12] DEBUG [091b3d] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:23:12] INFO [091b3d] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:23:12] DEBUG [091b3d] DB Query: SELECT * FROM friend_list WHERE  user_id = ? AND user_id2 = ? LIMIT 1 - Duration: 50.59ms - Context: {"bindings":[2,1],"found":false,"db_query":"SELECT * FROM friend_list WHERE  user_id = ? AND user_id2 = ? LIMIT 1","db_duration":0.050585031509399414}
+[2025-06-20 15:23:12] DEBUG [091b3d] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:23:12] INFO [091b3d] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:23:12] DEBUG [091b3d] DB Query: SELECT * FROM friend_list WHERE  user_id = ? AND user_id2 = ? LIMIT 1 - Duration: 47.37ms - Context: {"bindings":[1,2],"found":false,"db_query":"SELECT * FROM friend_list WHERE  user_id = ? AND user_id2 = ? LIMIT 1","db_duration":0.04737401008605957}
+[2025-06-20 15:23:12] DEBUG [091b3d] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:23:12] INFO [091b3d] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:23:12] DEBUG [091b3d] DB Query: INSERT INTO friend_list (`user_id`, `user_id2`, `status`, `updated_at`, `created_at`) VALUES (?, ?, ... - Duration: 72.31ms - Context: {"table":"friend_list","data":{"user_id":2,"user_id2":1,"status":"pending","updated_at":"2025-06-20 15:23:12","created_at":"2025-06-20 15:23:12"},"insert_id":"5","affected_rows":1,"db_query":"INSERT INTO friend_list (`user_id`, `user_id2`, `status`, `updated_at`, `created_at`) VALUES (?, ?, ?, ?, ?)","db_duration":0.07231307029724121}
+[2025-06-20 15:23:12] DEBUG [091b3d] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:23:12] INFO [091b3d] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:23:12] DEBUG [091b3d] DB Query: SELECT * FROM friend_list - Duration: 50.82ms - Context: {"bindings":[],"result_count":1,"db_query":"SELECT * FROM friend_list","db_duration":0.05082201957702637}
+[2025-06-20 15:23:12] DEBUG [091b3d] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:23:12] INFO [091b3d] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:23:12] DEBUG [091b3d] DB Query: SELECT * FROM friend_list WHERE  id = ? LIMIT 1 - Duration: 49.28ms - Context: {"bindings":["5"],"found":true,"db_query":"SELECT * FROM friend_list WHERE  id = ? LIMIT 1","db_duration":0.04928183555603027}
+[2025-06-20 15:23:12] DEBUG [091b3d] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:23:12] INFO [091b3d] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:23:13] DEBUG [091b3d] DB Query: SELECT * FROM friend_list - Duration: 3.23ms - Context: {"bindings":[],"result_count":0,"db_query":"SELECT * FROM friend_list","db_duration":0.00323486328125}
+[2025-06-20 15:24:03] DEBUG [321d21] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:24:03] INFO [321d21] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:24:03] DEBUG [321d21] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:24:03] INFO [321d21] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:24:03] DEBUG [321d21] DB Query: SELECT * FROM friend_list WHERE  user_id = ? AND user_id2 = ? LIMIT 1 - Duration: 44.73ms - Context: {"bindings":[2,1],"found":false,"db_query":"SELECT * FROM friend_list WHERE  user_id = ? AND user_id2 = ? LIMIT 1","db_duration":0.04473400115966797}
+[2025-06-20 15:24:03] DEBUG [321d21] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:24:03] INFO [321d21] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:24:03] DEBUG [321d21] DB Query: SELECT * FROM friend_list WHERE  user_id = ? AND user_id2 = ? LIMIT 1 - Duration: 51.68ms - Context: {"bindings":[1,2],"found":false,"db_query":"SELECT * FROM friend_list WHERE  user_id = ? AND user_id2 = ? LIMIT 1","db_duration":0.051683902740478516}
+[2025-06-20 15:24:03] DEBUG [321d21] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:24:03] INFO [321d21] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:24:03] DEBUG [321d21] DB Query: INSERT INTO friend_list (`user_id`, `user_id2`, `status`, `updated_at`, `created_at`) VALUES (?, ?, ... - Duration: 69.04ms - Context: {"table":"friend_list","data":{"user_id":2,"user_id2":1,"status":"pending","updated_at":"2025-06-20 15:24:03","created_at":"2025-06-20 15:24:03"},"insert_id":"6","affected_rows":1,"db_query":"INSERT INTO friend_list (`user_id`, `user_id2`, `status`, `updated_at`, `created_at`) VALUES (?, ?, ?, ?, ?)","db_duration":0.06904196739196777}
+[2025-06-20 20:24:03] INFO [378819] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:24:03"}
+[2025-06-20 20:24:03] DEBUG [378819] Controller instantiated - Context: {"controller":"FriendController","request_uri":"/api/friends/accept?id=6","request_method":"POST","is_ajax":"no"}
+[2025-06-20 20:24:03] DEBUG [378819] requireAuth called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"session_data":[]}
+[2025-06-20 20:24:03] WARNING [378819] User not authenticated, redirecting to login - Context: {"session_data":[],"request_uri":"/api/friends/accept?id=6"}
+[2025-06-20 15:24:03] DEBUG [321d21] DB Query: SELECT * FROM friend_list - Duration: 2.12ms - Context: {"bindings":[],"result_count":1,"db_query":"SELECT * FROM friend_list","db_duration":0.002122163772583008}
+[2025-06-20 20:24:32] INFO [025a74] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:24:32"}
+[2025-06-20 20:24:32] DEBUG [025a74] Controller instantiated - Context: {"controller":"HomeController","request_uri":"/app?id=433de4cb-5f62-447d-a783-54dafd5803db&vscodeBrowserReqId=1750425872142","request_method":"GET","is_ajax":"no"}
+[2025-06-20 20:24:32] DEBUG [025a74] HomeController index called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"request_uri":"/app?id=433de4cb-5f62-447d-a783-54dafd5803db&vscodeBrowserReqId=1750425872142"}
+[2025-06-20 20:24:32] DEBUG [025a74] requireAuth called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"session_data":[]}
+[2025-06-20 20:24:32] WARNING [025a74] User not authenticated, redirecting to login - Context: {"session_data":[],"request_uri":"/app?id=433de4cb-5f62-447d-a783-54dafd5803db&vscodeBrowserReqId=1750425872142"}
+[2025-06-20 20:24:32] INFO [03eff4] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:24:32"}
+[2025-06-20 20:24:32] DEBUG [03eff4] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 20:24:32] INFO [03eff4] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 20:24:32] DEBUG [03eff4] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 20:24:32] INFO [03eff4] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 20:24:32] INFO [08f352] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:24:32"}
+[2025-06-20 20:24:32] INFO [09998d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:24:32"}
+[2025-06-20 20:24:32] INFO [09eb19] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:24:32"}
+[2025-06-20 20:24:32] INFO [0a30fb] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:24:32"}
+[2025-06-20 20:24:32] INFO [0a7491] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:24:32"}
+[2025-06-20 20:24:32] INFO [0ae319] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:24:32"}
+[2025-06-20 20:24:32] INFO [0b4d4f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:24:32"}
+[2025-06-20 20:24:32] INFO [0ba0fe] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:24:32"}
+[2025-06-20 20:24:32] INFO [0be904] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:24:32"}
+[2025-06-20 20:24:32] INFO [0c2d88] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:24:32"}
+[2025-06-20 20:24:32] INFO [0c414f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 20:24:32"}
+[2025-06-20 15:24:57] DEBUG [97da1f] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:24:57] INFO [97da1f] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:24:57] DEBUG [97da1f] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:24:57] INFO [97da1f] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:24:57] DEBUG [97da1f] DB Query: SELECT * FROM friend_list WHERE  user_id = ? AND user_id2 = ? LIMIT 1 - Duration: 46.62ms - Context: {"bindings":[2,1],"found":false,"db_query":"SELECT * FROM friend_list WHERE  user_id = ? AND user_id2 = ? LIMIT 1","db_duration":0.04661703109741211}
+[2025-06-20 15:24:57] DEBUG [97da1f] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:24:57] INFO [97da1f] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:24:57] DEBUG [97da1f] DB Query: SELECT * FROM friend_list WHERE  user_id = ? AND user_id2 = ? LIMIT 1 - Duration: 44.83ms - Context: {"bindings":[1,2],"found":false,"db_query":"SELECT * FROM friend_list WHERE  user_id = ? AND user_id2 = ? LIMIT 1","db_duration":0.044827938079833984}
+[2025-06-20 15:24:57] DEBUG [97da1f] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-20 15:24:57] INFO [97da1f] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-20 15:24:57] DEBUG [97da1f] DB Query: INSERT INTO friend_list (`user_id`, `user_id2`, `status`, `updated_at`, `created_at`) VALUES (?, ?, ... - Duration: 65.74ms - Context: {"table":"friend_list","data":{"user_id":2,"user_id2":1,"status":"pending","updated_at":"2025-06-20 15:24:57","created_at":"2025-06-20 15:24:57"},"insert_id":"7","affected_rows":1,"db_query":"INSERT INTO friend_list (`user_id`, `user_id2`, `status`, `updated_at`, `created_at`) VALUES (?, ?, ?, ?, ?)","db_duration":0.06573891639709473}

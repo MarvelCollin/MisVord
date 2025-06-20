@@ -531,21 +531,25 @@ class Query {
 
     public function update(array $data) {
         $set = [];
+        $updateBindings = [];
 
         foreach ($data as $column => $value) {
             $set[] = "$column = ?";
-            $this->bindings[] = $value;
+            $updateBindings[] = $value;
         }
 
         $set = implode(', ', $set);
         $query = "UPDATE {$this->table} SET $set";
+
+        // Combine update bindings with where bindings in correct order
+        $allBindings = array_merge($updateBindings, $this->bindings);
 
         if (!empty($this->where)) {
             $query .= ' ' . $this->buildWhereClause();
         }
 
         $stmt = $this->pdo->prepare($query);
-        $this->execute($stmt, $this->bindings);
+        $this->execute($stmt, $allBindings);
 
         return $stmt->rowCount();
     }

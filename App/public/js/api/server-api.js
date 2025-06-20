@@ -1,7 +1,34 @@
 class ServerAPI {
     constructor() {
         this.baseURL = '/api/servers';
-    }    async makeRequest(url, options = {}) {
+    }
+
+    async parseResponse(response) {
+        const text = await response.text();
+        
+        if (text.trim().startsWith('<') || text.includes('<br />') || text.includes('</html>') || text.includes('<!DOCTYPE')) {
+            console.error('Server returned HTML instead of JSON:', text.substring(0, 200));
+            throw new Error('Server error occurred. Please try again.');
+        }
+        
+        if (text.includes('Fatal error') || text.includes('Parse error') || text.includes('Warning:') || text.includes('Notice:')) {
+            console.error('Server returned PHP error:', text.substring(0, 200));
+            throw new Error('Server configuration error. Please contact support.');
+        }
+        
+        if (!text) {
+            return {};
+        }
+
+        try {
+            return JSON.parse(text);
+        } catch (e) {
+            console.error('Failed to parse JSON response:', text);
+            throw new Error('Invalid response from server');
+        }
+    }
+
+    async makeRequest(url, options = {}) {
         try {
             const defaultOptions = {
                 headers: {
@@ -20,39 +47,21 @@ class ServerAPI {
             };
 
             const response = await fetch(url, mergedOptions);
+            const data = await this.parseResponse(response);
             
             if (!response.ok) {
-                const errorText = await response.text();
-                let errorData;
-                try {
-                    errorData = JSON.parse(errorText);
-                } catch {
-                    errorData = { error: errorText || 'Unknown error occurred' };
-                }
-                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                const errorMessage = data.error || data.message || `HTTP error! status: ${response.status}`;
+                throw new Error(errorMessage);
             }
 
-            const contentType = response.headers.get('content-type');
-            if (contentType && contentType.includes('application/json')) {
-                const text = await response.text();
-                if (!text) {
-                    return {};
-                }
-
-                try {
-                    return JSON.parse(text);
-                } catch (parseError) {
-                    console.error('Failed to parse JSON response:', text);
-                    throw new Error('Invalid JSON response received');
-                }
-            } else {
-                return await response.text();
-            }
+            return data;
         } catch (error) {
             console.error('Server API request failed:', error);
             throw error;
         }
-    }async createServer(serverData) {
+    }
+
+    async createServer(serverData) {
         const options = {
             method: 'POST',
             headers: {
@@ -111,7 +120,9 @@ class ServerAPI {
             method: 'POST',
             body: JSON.stringify(profileData)
         });
-    }    async leaveServer(serverId) {
+    }
+
+    async leaveServer(serverId) {
         return await this.makeRequest(`/api/servers/${serverId}/leave`, {
             method: 'POST'
         });
@@ -120,24 +131,6 @@ class ServerAPI {
     async generateInvite(serverId) {
         return await this.makeRequest(`/api/servers/${serverId}/invite`, {
             method: 'POST'
-        });
-    }
-
-    async updateServerSettings(serverId, settingsData) {
-        return await this.makeRequest(`/api/servers/${serverId}/settings`, {
-            method: 'PUT',
-            body: JSON.stringify(settingsData)
-        });
-    }
-
-    async getNotificationSettings(serverId) {
-        return await this.makeRequest(`/api/servers/${serverId}/notifications`);
-    }
-
-    async updateNotificationSettings(serverId, notificationData) {
-        return await this.makeRequest(`/api/servers/${serverId}/notifications`, {
-            method: 'PUT',
-            body: JSON.stringify(notificationData)
         });
     }
 
@@ -173,11 +166,14 @@ class ServerAPI {
 
     async getServers() {
         return await this.makeRequest('/api/servers');
-    }    async redirectToServer(serverId) {
+    }
+
+    async redirectToServer(serverId) {
         return await this.makeRequest(`/server/${serverId}`, {
             method: 'GET'
         });
     }
 }
 
-window.ServerAPI = new ServerAPI();
+const serverAPI = new ServerAPI();
+export { serverAPI as ServerAPI };

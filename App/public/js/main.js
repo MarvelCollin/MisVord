@@ -1,7 +1,5 @@
-// Import the full logger implementation first
 import { logger } from './logger.js';
 
-// Initialize logger first to ensure it's available to all imported modules
 if (typeof window !== 'undefined' && !window.logger) {
     window.logger = {
         info: (module, ...args) => console.log(`[${module.toUpperCase()}]`, ...args),

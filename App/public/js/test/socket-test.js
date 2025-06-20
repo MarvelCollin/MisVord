@@ -1,7 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🔧 Socket Connection Test');
     
-    // Test basic socket.io availability
     if (typeof io === 'undefined') {
         console.error('❌ Socket.IO library not loaded');
         return;
@@ -36,7 +35,6 @@ document.addEventListener('DOMContentLoaded', function() {
         testSocket.on('connect', () => {
             console.log('✅ Socket connected successfully!', testSocket.id);
             
-            // Test authentication
             const userIdMeta = document.querySelector('meta[name="user-id"]');
             const usernameMeta = document.querySelector('meta[name="username"]');
             

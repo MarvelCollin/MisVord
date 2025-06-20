@@ -4,18 +4,21 @@ require_once __DIR__ . '/Model.php';
 
 class FriendList extends Model {
     protected static $table = 'friend_list';
-    protected $fillable = ['user_id', 'user_id2', 'status', 'created_at', 'updated_at'];
-    
-    public static function findRelationship($userId1, $userId2) {
+    protected $fillable = ['id', 'user_id', 'user_id2', 'status', 'created_at', 'updated_at'];
+      public static function findRelationship($userId1, $userId2) {
         $query = new Query();
         $result = $query->table(static::$table)
-            ->where(function($q) use ($userId1, $userId2) {
-                $q->where('user_id', $userId1)->where('user_id2', $userId2);
-            })
-            ->orWhere(function($q) use ($userId1, $userId2) {
-                $q->where('user_id', $userId2)->where('user_id2', $userId1);
-            })
+            ->where('user_id', $userId1)
+            ->where('user_id2', $userId2)
             ->first();
+            
+        if (!$result) {
+            $query2 = new Query();
+            $result = $query2->table(static::$table)
+                ->where('user_id', $userId2)
+                ->where('user_id2', $userId1)
+                ->first();
+        }
             
         return $result ? new static($result) : null;
     }

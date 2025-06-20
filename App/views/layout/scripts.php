@@ -23,7 +23,7 @@ $core_scripts = ['core/ui/toast', 'core/ajax/ajax-handler', 'core/socket/global-
 
 <script src="<?php echo js('utils/socket-status'); ?>?v=<?php echo time(); ?>"></script>
 
-<script src="<?php echo js('api/friend-api'); ?>?v=<?php echo time(); ?>"></script>
+<script src="<?php echo js('api/friend-api'); ?>?v=<?php echo time(); ?>" type="module"></script>
 
 <script src="<?php echo js('utils/lazy-loader'); ?>?v=<?php echo time(); ?>" type="module"></script>
 <script src="<?php echo js('utils/debug-logging'); ?>?v=<?php echo time(); ?>" type="module"></script>

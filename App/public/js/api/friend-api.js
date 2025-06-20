@@ -1,6 +1,3 @@
-// Friend API Module
-// Handles all friend-related API calls with robust error handling
-
 class FriendAPI {
     constructor() {
         this.baseURL = '/api/friends';
@@ -8,29 +5,33 @@ class FriendAPI {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
         };
-    }
-
-    // Helper method to safely parse response
-    async parseResponse(response) {
+    }    async parseResponse(response) {
         const text = await response.text();
         
-        // Check if response is HTML (indicates PHP error)
-        if (text.trim().startsWith('<') || text.includes('<br />') || text.includes('</html>')) {
+        if (text.trim().startsWith('<') || text.includes('<br />') || text.includes('</html>') || text.includes('<!DOCTYPE')) {
             console.error('Server returned HTML instead of JSON:', text.substring(0, 200));
-            throw new Error('Server error occurred. Please try again.');
+            
+            if (text.includes('Fatal error') || text.includes('Parse error')) {
+                throw new Error('Server configuration error. Please contact support.');
+            } else if (text.includes('Warning:') || text.includes('Notice:')) {
+                throw new Error('Server warning occurred. Please try again.');
+            } else {
+                throw new Error('Server error occurred. Please try again.');
+            }
         }
         
-        // Try to parse as JSON
+        if (text.includes('Fatal error') || text.includes('Parse error') || text.includes('Warning:') || text.includes('Notice:')) {
+            console.error('Server returned PHP error:', text.substring(0, 200));
+            throw new Error('Server configuration error. Please contact support.');
+        }
+        
         try {
             return JSON.parse(text);
         } catch (e) {
             console.error('Failed to parse JSON response:', text);
             throw new Error('Invalid response from server');
         }
-    }
-
-    // Helper method to handle API calls with consistent error handling
-    async makeRequest(url, options = {}) {
+    }    async makeRequest(url, options = {}) {
         try {
             const response = await fetch(url, {
                 headers: this.headers,
@@ -39,7 +40,6 @@ class FriendAPI {
             
             const data = await this.parseResponse(response);
             
-            // Handle HTTP error status codes
             if (!response.ok) {
                 const errorMessage = data.error?.message || data.message || `Server error: ${response.status}`;
                 throw new Error(errorMessage);
@@ -52,7 +52,6 @@ class FriendAPI {
         }
     }
 
-    // Send friend request
     async sendFriendRequest(username) {
         const data = await this.makeRequest(this.baseURL, {
             method: 'POST',
@@ -66,33 +65,24 @@ class FriendAPI {
         return data;
     }
 
-    // Get all friends
     async getFriends() {
         const data = await this.makeRequest(this.baseURL);
         return data.success ? data.data : [];
     }
 
-    // Get online friends
     async getOnlineFriends() {
         const data = await this.makeRequest(`${this.baseURL}/online`);
         return data.success ? data.data : [];
-    }
-
-    // Get pending friend requests
-    async getPendingRequests() {
+    }    async getPendingRequests() {
         const data = await this.makeRequest(`${this.baseURL}/pending`);
         return data.success ? data.data : { incoming: [], outgoing: [] };
     }
 
-    // Get pending requests count
     async getPendingCount() {
         const data = await this.makeRequest(`${this.baseURL}/pending/count`);
         return data.count || 0;
-    }
-
-    // Accept friend request
-    async acceptFriendRequest(friendshipId) {
-        const data = await this.makeRequest(`${this.baseURL}/${friendshipId}/accept`, {
+    }    async acceptFriendRequest(friendshipId) {
+        const data = await this.makeRequest(`${this.baseURL}/accept?id=${friendshipId}`, {
             method: 'POST'
         });
         
@@ -103,9 +93,8 @@ class FriendAPI {
         return data;
     }
 
-    // Decline friend request
     async declineFriendRequest(friendshipId) {
-        const data = await this.makeRequest(`${this.baseURL}/${friendshipId}/decline`, {
+        const data = await this.makeRequest(`${this.baseURL}/decline?id=${friendshipId}`, {
             method: 'POST'
         });
         
@@ -116,7 +105,6 @@ class FriendAPI {
         return data;
     }
 
-    // Remove friend
     async removeFriend(userId) {
         const data = await this.makeRequest(this.baseURL, {
             method: 'DELETE',
@@ -130,7 +118,6 @@ class FriendAPI {
         return data;
     }
 
-    // Block user
     async blockUser(userId) {
         const data = await this.makeRequest('/api/users/block', {
             method: 'POST',
@@ -142,10 +129,7 @@ class FriendAPI {
         }
         
         return data;
-    }
-
-    // Unblock user
-    async unblockUser(userId) {
+    }    async unblockUser(userId) {
         const data = await this.makeRequest('/api/users/unblock', {
             method: 'POST',
             body: JSON.stringify({ user_id: userId })
@@ -158,13 +142,11 @@ class FriendAPI {
         return data;
     }
 
-    // Get blocked users
     async getBlockedUsers() {
         const data = await this.makeRequest('/api/users/blocked');
         return data.success ? data.data : [];
     }
 
-    // Validate username format (supports both username and username#discriminator)
     validateUsername(username) {
         if (!username || username.length < 2) {
             return { valid: false, message: 'Username must be at least 2 characters long' };
@@ -192,10 +174,5 @@ class FriendAPI {
     }
 }
 
-// Create global instance
-window.friendAPI = new FriendAPI();
-
-// Export for module usage
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = FriendAPI;
-}
+const friendAPI = new FriendAPI();
+export { friendAPI as FriendAPI };

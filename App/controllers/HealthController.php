@@ -2,16 +2,18 @@
 
 require_once __DIR__ . '/BaseController.php';
 
-class HealthController extends BaseController {
-    
-    public function check() {
+class HealthController extends BaseController
+{
+
+    public function check()
+    {
         try {
             $health = [
                 'status' => 'healthy',
                 'timestamp' => date('Y-m-d H:i:s'),
                 'version' => '1.0.0',
                 'components' => []
-            ];            // Check database connection
+            ];
             try {
                 $query = $this->query();
                 $result = $query->raw("SELECT 1 AS test");
@@ -27,11 +29,10 @@ class HealthController extends BaseController {
                 $health['status'] = 'degraded';
             }
 
-            // Check socket server connection
             try {
                 $socketHost = $_ENV['SOCKET_HOST'] ?? 'localhost';
                 $socketPort = $_ENV['SOCKET_PORT'] ?? '1002';
-                
+
                 $socketUrl = "http://{$socketHost}:{$socketPort}/api/health";
                 $context = stream_context_create([
                     'http' => [
@@ -39,9 +40,9 @@ class HealthController extends BaseController {
                         'method' => 'GET'
                     ]
                 ]);
-                
+
                 $result = @file_get_contents($socketUrl, false, $context);
-                
+
                 if ($result !== false) {
                     $socketResponse = json_decode($result, true);
                     $health['components']['socket_server'] = [
@@ -86,13 +87,11 @@ class HealthController extends BaseController {
                 }
             }
 
-            // Set HTTP status code based on health
             $httpStatus = $health['status'] === 'healthy' ? 200 : 503;
             http_response_code($httpStatus);
 
             header('Content-Type: application/json');
             echo json_encode($health, JSON_PRETTY_PRINT);
-
         } catch (Exception $e) {
             http_response_code(500);
             header('Content-Type: application/json');
@@ -104,11 +103,12 @@ class HealthController extends BaseController {
         }
     }
 
-    public function socketStatus() {
+    public function socketStatus()
+    {
         try {
             $socketHost = $_ENV['SOCKET_HOST'] ?? 'localhost';
             $socketPort = $_ENV['SOCKET_PORT'] ?? '1002';
-            
+
             $endpoints = [
                 'health' => "/api/health",
                 'stats' => "/api/stats",
@@ -125,9 +125,9 @@ class HealthController extends BaseController {
                         'method' => 'GET'
                     ]
                 ]);
-                
+
                 $result = @file_get_contents($url, false, $context);
-                
+
                 if ($result !== false) {
                     $results[$name] = json_decode($result, true);
                 } else {
@@ -142,7 +142,6 @@ class HealthController extends BaseController {
                 'endpoints' => $results,
                 'timestamp' => date('Y-m-d H:i:s')
             ], JSON_PRETTY_PRINT);
-
         } catch (Exception $e) {
             http_response_code(500);
             header('Content-Type: application/json');

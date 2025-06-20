@@ -159,7 +159,7 @@ class GlobalSocketManager {
             this.authenticated = true;
             this.trackConnection('AUTHENTICATED', data);
             this.updatePresence('online');
-            this.requestOnlineUsers();
+            this.getOnlineUsers();
             
             setInterval(() => this.sendHeartbeat(), this.config.heartbeatInterval);
             this.dispatchEvent('globalSocketReady', { manager: this });

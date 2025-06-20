@@ -1,8 +1,6 @@
-// Simple channel display test
 document.addEventListener('DOMContentLoaded', function() {
     console.log('=== CHANNEL DISPLAY TEST ===');
     
-    // Check if channel section exists
     const channelWrapper = document.querySelector('.channel-wrapper');
     const channelList = document.querySelector('.channel-list');
     const channelItems = document.querySelectorAll('.channel-item');
