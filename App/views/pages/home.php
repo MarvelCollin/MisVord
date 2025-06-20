@@ -21,7 +21,12 @@ $page_title = 'misvord - Home';
 $body_class = 'bg-discord-dark text-white';
 $page_css = 'app';
 $page_js = 'pages/app';
-$additional_js = ['components/servers/server-dropdown', 'components/servers/server-sidebar'];
+$additional_js = [
+    'components/servers/server-dropdown', 
+    'components/servers/server-sidebar',
+    'components/messaging/messaging',
+    'components/messaging/direct-message-manager'
+];
 $head_scripts = ['logger-init'];
 $contentType = 'home';
 ?>

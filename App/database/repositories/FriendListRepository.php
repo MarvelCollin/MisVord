@@ -51,7 +51,6 @@ class FriendListRepository extends Repository {
             return false;
         }
         
-        // Only update the status field and updated_at timestamp
         $query = new Query();
         $result = $query->table('friend_list')
             ->where('id', $friendshipId)

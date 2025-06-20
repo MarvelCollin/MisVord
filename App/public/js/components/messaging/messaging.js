@@ -19,9 +19,9 @@ class MisVordMessaging {
         this.reconnectAttempts = 0;
         this.isSubmitting = false;
         this.initialized = false;
-        this.lastSubmitTime = 0;
-
-        this.activeChannel = null;
+        this.lastSubmitTime = 0;        this.activeChannel = null;
+        this.activeChatRoom = null;
+        this.chatType = null; // 'channel' or 'direct'
         this.userId = null;
         this.username = null;
 
@@ -304,13 +304,12 @@ class MisVordMessaging {
                 this.log('🏠 Joined channel via direct socket:', channelId);
             }
         }
-    }
-
-    sendMessage(channelId, content) {
+    }    async sendMessage(chatId, content, chatType = 'channel') {
         this.log('📤 Attempting to send message...');
         this.log('📊 Send conditions check:', {
-            channelId: !!channelId,
+            chatId: !!chatId,
             content: !!content,
+            chatType: chatType,
             connected: this.connected,
             socket: !!this.socket,
             userId: this.getUserId(),
@@ -318,87 +317,47 @@ class MisVordMessaging {
             globalSocketManager: !!this.globalSocketManager
         });
 
-        if (!channelId || !content) {
-            const error = new Error('Missing required data: channelId=' + !!channelId + ', content=' + !!content);
+        if (!chatId || !content) {
+            const error = new Error('Missing required data: chatId=' + !!chatId + ', content=' + !!content);
             this.trackError('SEND_MISSING_DATA', error);
             return false;
         }
 
-        // Use global socket manager if available
-        if (this.globalSocketManager && this.globalSocketManager.isReady()) {
-            this.log('📤 Sending message via global socket manager');
-            const tempId = this.globalSocketManager.sendMessage(channelId, content);
-            
-            if (tempId) {
-                // Create and display temp message
-                const tempMessage = this.createTempMessage(content, tempId);
-                this.appendMessage(tempMessage);
-                
-                this.trackMessage('MESSAGE_SENDING', { channelId, content, tempId });
-                return true;
-            } else {
-                this.showToast('Failed to send message. Please try again.', 'error');
-                return false;
-            }
-        }
-
-        // Fallback to direct socket if global manager not available
-        if (!this.connected || !this.socket) {
-            const error = new Error('Cannot send message: WebSocket not connected');
-            this.trackError('SEND_NOT_CONNECTED', error);
-            this.showToast('Not connected to chat server. Please wait or refresh the page.', 'error');
-            return false;
-        }
-
-        const userId = this.getUserId();
-        if (!userId) {
-            const error = new Error('Cannot send message: No user ID');
-            this.trackError('SEND_NO_USER_ID', error);
-            this.showToast('Error: Not authenticated', 'error');
-            return false;
-        }
-
         const tempId = 'temp_' + Date.now();
-        const messageData = {
-            channelId,
-            content,
-            message_type: 'text',
-            timestamp: new Date().toISOString(),
-            tempId
-        };
-
-        this.log('📤 Sending message data:', messageData);
-        this.trackMessage('MESSAGE_SENDING', messageData);
-
-        // Use global socket manager to join channel
-        if (this.globalSocketManager) {
-            this.globalSocketManager.joinChannel(channelId);
-        } else if (this.activeChannel !== channelId) {
-            this.log('🏠 Joining channel before sending');
-            this.socket.emit('join-channel', channelId);
-            this.activeChannel = channelId;
-        }
-
-        const tempMessage = this.createTempMessage(content, tempId);
-        this.appendMessage(tempMessage);
 
         try {
-            this.socket.emit('channel-message', messageData);
-            this.log('✅ Message sent via WebSocket');
-
-            setTimeout(() => {
-                const tempEl = document.getElementById('msg-' + tempId);
-                if (tempEl && tempEl.classList.contains('temp-message')) {
-                    this.error('Message send timeout - removing temp message');
-                    tempEl.remove();
-                    this.showToast('Message failed to send - please try again', 'error');
+            // Create and display temp message immediately
+            const tempMessage = this.createTempMessage(content, tempId);
+            this.appendMessage(tempMessage);            // Send message via ChatAPI
+            const response = await window.ChatAPI.sendMessage(chatId, content, chatType);
+            
+            if (response.success) {
+                // Remove temp message and let socket handle the real message
+                this.removeTempMessage(tempId);
+                
+                // Send socket event for real-time updates
+                if (this.globalSocketManager && this.globalSocketManager.isReady()) {
+                    const socketEvent = chatType === 'direct' ? 'direct-message' : 'channel-message';
+                    this.globalSocketManager.socket.emit(socketEvent, {
+                        chatId: chatId,
+                        content: content,
+                        message: response.message
+                    });
                 }
-            }, 10000); 
-
-            return true;
-        } catch (error) {
-            this.trackError('SEND_SOCKET_ERROR', error);
-            this.error('Failed to send message via socket:', error);
+                
+                this.trackMessage('MESSAGE_SENT', { chatId, content, chatType, tempId });
+                return true;
+            } else {
+                // Remove temp message on failure
+                this.removeTempMessage(tempId);
+                this.showToast(response.error || 'Failed to send message. Please try again.', 'error');
+                return false;
+            }        } catch (error) {
+            // Remove temp message on error
+            this.removeTempMessage(tempId);
+            this.error('Error sending message:', error);
+            this.trackError('SEND_API_ERROR', error);
+            this.showToast('Failed to send message. Please try again.', 'error');
             return false;
         }
     }
@@ -452,9 +411,8 @@ class MisVordMessaging {
         this.socket.on('connect_error', error => this.onSocketError(error));
         this.socket.on('reconnect', (attemptNumber) => this.onSocketReconnect(attemptNumber));
         this.socket.on('reconnect_error', error => this.onSocketReconnectError(error));
-        this.socket.on('reconnect_failed', () => this.onSocketReconnectFailed());
-
-        this.socket.on('new-channel-message', data => this.onNewMessage(data));
+        this.socket.on('reconnect_failed', () => this.onSocketReconnectFailed());        this.socket.on('new-channel-message', data => this.onNewMessage(data));
+        this.socket.on('new-direct-message', data => this.onNewDirectMessage(data));
         this.socket.on('message_error', data => this.onMessageError(data));
         this.socket.on('message-sent-confirmation', data => this.onMessageSentConfirmation(data));
 
@@ -464,6 +422,8 @@ class MisVordMessaging {
 
         this.socket.on('channel-joined', data => this.onChannelJoined(data));
         this.socket.on('channel-left', data => this.onChannelLeft(data));
+        this.socket.on('dm-room-joined', data => this.onDMRoomJoined(data));
+        this.socket.on('dm-room-left', data => this.onDMRoomLeft(data));
 
         this.socket.on('user-status-change', data => this.onUserStatusChange(data));
         this.socket.on('user-typing', data => this.onUserTyping(data));
@@ -655,14 +615,16 @@ class MisVordMessaging {
     onChannelLeft(data) {
         this.log('👋 Left channel:', data.channelId);
         this.trackConnection('CHANNEL_LEFT', data);
-    }
-
-    onNewMessage(data) {
+    }    onNewMessage(data) {
         this.log('📨 Received new message:', data);
         this.trackMessage('MESSAGE_RECEIVED', data);
 
-        if (!this.isCurrentChannel(data.channelId)) {
-            this.log('⚠️ Ignoring message for different channel:', data.channelId, 'vs current:', this.getActiveChannelId());
+        // Check if message is for current chat room (works for both channels and DMs)
+        const currentChatId = this.getActiveChatId();
+        const messageChatId = data.chatRoomId || data.channelId;
+        
+        if (messageChatId && messageChatId != currentChatId) {
+            this.log('⚠️ Ignoring message for different chat:', messageChatId, 'vs current:', currentChatId);
             return;
         }
 
@@ -726,12 +688,10 @@ class MisVordMessaging {
         if (!form) {
             this.log('ℹ️ Message form not found - skipping message form initialization');
             return;
-        }
-
-        form.addEventListener('submit', e => {
+        }        form.addEventListener('submit', async e => {
             e.preventDefault();
             e.stopPropagation();
-            this.handleSubmit(form);
+            await this.handleSubmit(form);
             return false;
         });
 
@@ -742,21 +702,17 @@ class MisVordMessaging {
                 e.target.style.height = 'auto';
                 e.target.style.height = e.target.scrollHeight + 'px';
                 this.handleTyping();
-            });
-
-            textarea.addEventListener('keydown', e => {
+            });            textarea.addEventListener('keydown', async e => {
                 if (e.key === 'Enter') {
                     if (e.shiftKey) {
-
                         return;
                     } else {
-
                         e.preventDefault();
                         e.stopPropagation();
 
                         const content = e.target.value.trim();
                         if (content) {
-                            this.handleSubmit(form);
+                            await this.handleSubmit(form);
                         }
                         return false;
                     }
@@ -771,7 +727,7 @@ class MisVordMessaging {
         this.log('Message form initialized');
     }
 
-    handleSubmit(form) {
+    async handleSubmit(form) {
         this.log('📝 handleSubmit called', { isSubmitting: this.isSubmitting });
 
         if (this.isSubmitting) {
@@ -787,9 +743,7 @@ class MisVordMessaging {
             setTimeout(() => { this.isSubmitting = false; }, 500);
             return;
         }
-        this.lastSubmitTime = currentTime;
-
-        try {
+        this.lastSubmitTime = currentTime;        try {
             const textarea = document.getElementById('message-input');
             if (!textarea) {
                 this.error('Cannot submit: Message textarea not found');
@@ -807,23 +761,24 @@ class MisVordMessaging {
                 return;
             }
 
-            const channelId = textarea.getAttribute('data-channel-id') || this.getActiveChannelId();
-            if (!channelId) {
-                this.error('Cannot submit: No channel ID found');
-                this.showToast('Error: No channel selected', 'error');
+            // Get chat information from form data
+            const chatId = textarea.getAttribute('data-chat-id') || textarea.getAttribute('data-channel-id') || this.getActiveChatId();
+            const chatType = textarea.getAttribute('data-chat-type') || this.getChatType() || 'channel';
+
+            if (!chatId) {
+                this.error('Cannot submit: No chat ID found');
+                this.showToast('Error: No chat selected', 'error');
                 return;
             }
 
-            this.log('Sending message to channel', channelId, 'Content:', content);
+            this.log('Sending message to chat', chatId, 'Type:', chatType, 'Content:', content);
 
-            const success = this.sendMessage(channelId, content);
+            const success = await this.sendMessage(chatId, content, chatType);
 
             if (success) {
-
                 textarea.value = '';
                 textarea.style.height = 'auto';
                 this.stopTyping();
-
                 setTimeout(() => textarea.focus(), 50);
             }
 
@@ -831,11 +786,79 @@ class MisVordMessaging {
             this.error('Error in handleSubmit:', error);
             this.trackError('SUBMIT_ERROR', error);
         } finally {
-
             setTimeout(() => {
                 this.isSubmitting = false;
             }, 500);
         }
+    }
+
+    async loadMessages(chatId, chatType = 'channel') {
+        this.log('📥 Loading messages for chat:', chatId, 'Type:', chatType);
+        
+        try {
+            const response = await window.ChatAPI.getMessages(chatId, chatType);
+            
+            if (response.success && response.messages) {
+                this.log('✅ Loaded', response.messages.length, 'messages');
+                
+                // Clear existing messages
+                const messagesContainer = document.getElementById('chat-messages');
+                if (messagesContainer) {
+                    messagesContainer.innerHTML = '';
+                    
+                    // Display messages
+                    response.messages.forEach(message => {
+                        this.appendMessage(message, false); // Don't scroll for bulk loading
+                    });
+                    
+                    // Scroll to bottom after all messages are loaded
+                    setTimeout(() => {
+                        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                    }, 100);
+                }
+                
+                return true;
+            } else {
+                this.error('Failed to load messages:', response.error);
+                return false;
+            }
+        } catch (error) {
+            this.error('Error loading messages:', error);
+            this.trackError('LOAD_MESSAGES_ERROR', error);
+            return false;
+        }
+    }
+
+    async switchToChat(chatId, chatType = 'channel') {
+        this.log('🔄 Switching to chat:', chatId, 'Type:', chatType);
+        
+        // Set the new chat context
+        this.setChatContext(chatId, chatType);
+        
+        // Load messages for the new chat
+        await this.loadMessages(chatId, chatType);
+        
+        // Update UI elements
+        this.updateChatUI(chatId, chatType);
+    }
+
+    updateChatUI(chatId, chatType) {
+        // Update message input attributes
+        const messageInput = document.getElementById('message-input');
+        if (messageInput) {
+            messageInput.setAttribute('data-chat-id', chatId);
+            messageInput.setAttribute('data-chat-type', chatType);
+            
+            // Update placeholder based on chat type
+            if (chatType === 'direct') {
+                messageInput.placeholder = 'Type a direct message...';
+            } else {
+                messageInput.placeholder = 'Type a message...';
+            }
+        }
+        
+        // Update any other UI elements as needed
+        this.log('✅ Chat UI updated for:', chatType, chatId);
     }
 
     getUserId() {
@@ -853,8 +876,57 @@ class MisVordMessaging {
         return socketData?.getAttribute('data-channel-id') || this.activeChannel;
     }
 
-    isCurrentChannel(channelId) {
-        return channelId == this.getActiveChannelId();
+    getActiveChatId() {
+        // First check for data attributes on the socket data element
+        const socketData = document.getElementById('socket-data');
+        if (socketData) {
+            return socketData.getAttribute('data-chat-id') || 
+                   socketData.getAttribute('data-channel-id') || 
+                   this.activeChatRoom || 
+                   this.activeChannel;
+        }
+        return this.activeChatRoom || this.activeChannel;
+    }
+
+    getChatType() {
+        const socketData = document.getElementById('socket-data');
+        if (socketData) {
+            return socketData.getAttribute('data-chat-type') || this.chatType || 'channel';
+        }
+        return this.chatType || 'channel';
+    }
+
+    setChatContext(chatId, chatType) {
+        this.log('Setting chat context:', { chatId, chatType });
+        
+        if (chatType === 'direct') {
+            this.activeChatRoom = chatId;
+            this.activeChannel = null;
+        } else {
+            this.activeChannel = chatId;
+            this.activeChatRoom = null;
+        }
+        
+        this.chatType = chatType;
+        
+        // Update socket data element
+        const socketData = document.getElementById('socket-data');
+        if (socketData) {
+            socketData.setAttribute('data-chat-id', chatId);
+            socketData.setAttribute('data-chat-type', chatType);
+            if (chatType === 'channel') {
+                socketData.setAttribute('data-channel-id', chatId);
+            }
+        }
+        
+        // Join appropriate socket rooms
+        if (this.globalSocketManager && this.globalSocketManager.isReady()) {
+            if (chatType === 'direct') {
+                this.globalSocketManager.socket.emit('join-dm-room', chatId);
+            } else {
+                this.globalSocketManager.socket.emit('join-channel', chatId);
+            }
+        }
     }
 
     updateStatus(status, message = null) {
@@ -910,9 +982,7 @@ class MisVordMessaging {
         if (this.socket && this.connected) {
             this.socket.emit('heartbeat');
         }
-    }
-
-    appendMessage(messageData) {
+    }    appendMessage(messageData, shouldScroll = true) {
         this.log('📨 Appending message to UI:', messageData);
 
         const messagesContainer = document.getElementById('chat-messages');
@@ -937,7 +1007,9 @@ class MisVordMessaging {
 
         messagesContainer.appendChild(messageElement);
 
-        this.scrollToBottom();
+        if (shouldScroll) {
+            this.scrollToBottom();
+        }
 
         this.log('✅ Message appended to UI successfully');
     }
@@ -1156,6 +1228,28 @@ class MisVordMessaging {
         const isActiveVoice = activeChannel && activeChannel.getAttribute('data-channel-type') === 'voice';
         
         return voiceContainer || voiceControls.length > 0 || channelTypeElements.length > 0 || isActiveVoice;
+    }
+
+    onNewDirectMessage(data) {
+        this.log('📨 Received new direct message:', data);
+        this.trackMessage('DIRECT_MESSAGE_RECEIVED', data);
+
+        // Check if this is for the current active direct message room
+        if (this.chatType === 'direct' && data.chatRoomId && data.chatRoomId == this.getActiveChatId()) {
+            this.onNewMessage(data);
+        } else {
+            this.log('⚠️ Ignoring direct message for different room:', data.chatRoomId, 'vs current:', this.getActiveChatId());
+        }
+    }
+
+    onDMRoomJoined(data) {
+        this.log('🏠 Joined DM room:', data.chatRoomId);
+        this.trackConnection('DM_ROOM_JOINED', data);
+    }
+
+    onDMRoomLeft(data) {
+        this.log('👋 Left DM room:', data.chatRoomId);
+        this.trackConnection('DM_ROOM_LEFT', data);
     }
 
 }

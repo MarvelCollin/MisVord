@@ -10,6 +10,9 @@ function setupSocketHandlers(io) {
     socket.on('join-channel', (data) => handleJoinChannel(io, socket, data));
     socket.on('leave-channel', (data) => handleLeaveChannel(io, socket, data));
     socket.on('channel-message', (data) => handleChannelMessage(io, socket, data));
+    socket.on('direct-message', (data) => handleDirectMessage(io, socket, data));
+    socket.on('join-dm-room', (data) => handleJoinDMRoom(io, socket, data));
+    socket.on('leave-dm-room', (data) => handleLeaveDMRoom(io, socket, data));
     socket.on('typing', (data) => handleTyping(io, socket, data));
     socket.on('stop-typing', (data) => handleStopTyping(io, socket, data));
     socket.on('heartbeat', () => handleHeartbeat(socket));
@@ -197,6 +200,116 @@ function handleChannelMessage(io, socket, data) {
       error: 'Message processing failed',
       tempId: data.tempId
     });
+  }
+}
+
+function handleDirectMessage(io, socket, data) {
+  try {
+    const { roomId, content, messageType = 'text', timestamp } = data;
+    const user = userService.getConnectedUser(socket.id);
+    
+    if (!user || !roomId || !content) {
+      socket.emit('message_error', { error: 'Invalid direct message data' });
+      return;
+    }
+    
+    const duplicateId = messageService.checkRecentDuplicate(user.userId, timestamp, content);
+    if (duplicateId) {
+      console.log(`🔄 Duplicate direct message detected, using existing ID: ${duplicateId}`);
+      socket.emit('message-sent-confirmation', { 
+        tempId: data.tempId, 
+        messageId: duplicateId,
+        roomId
+      });
+      return;
+    }
+    
+    messageService.saveDirectMessage(roomId, user.userId, content, messageType)
+      .then(message => {
+        const messageData = {
+          ...message,
+          username: user.username,
+          tempId: data.tempId
+        };
+        
+        messageService.trackMessageProcessing(user.userId, timestamp, message.id, content);
+        
+        io.to(`dm-room-${roomId}`).emit('new-direct-message', messageData);
+        
+        socket.emit('message-sent-confirmation', { 
+          tempId: data.tempId, 
+          messageId: message.id,
+          roomId
+        });
+      })
+      .catch(error => {
+        console.error('❌ Error saving direct message:', error);
+        socket.emit('message_error', { 
+          error: 'Failed to save direct message',
+          tempId: data.tempId
+        });
+      });
+  } catch (error) {
+    console.error('❌ Direct message error:', error);
+    socket.emit('message_error', { 
+      error: 'Direct message processing failed',
+      tempId: data.tempId
+    });
+  }
+}
+
+function handleJoinDMRoom(io, socket, data) {
+  try {
+    const { roomId } = data;
+    const user = userService.getConnectedUser(socket.id);
+    
+    if (!user || !roomId) {
+      socket.emit('dm-room-join-failed', { error: 'Invalid request' });
+      return;
+    }
+    
+    const roomName = `dm-room-${roomId}`;
+    socket.join(roomName);
+    
+    console.log(`💬 User ${user.username} (${user.userId}) joined DM room ${roomId}`);
+    
+    socket.emit('dm-room-joined', { 
+      roomId, 
+      success: true 
+    });
+    
+    socket.to(roomName).emit('user-joined-dm-room', {
+      roomId,
+      userId: user.userId,
+      username: user.username
+    });
+  } catch (error) {
+    console.error('❌ Join DM room error:', error);
+    socket.emit('dm-room-join-failed', { error: 'Failed to join DM room' });
+  }
+}
+
+function handleLeaveDMRoom(io, socket, data) {
+  try {
+    const { roomId } = data;
+    const user = userService.getConnectedUser(socket.id);
+    
+    if (!user || !roomId) {
+      return;
+    }
+    
+    const roomName = `dm-room-${roomId}`;
+    socket.leave(roomName);
+    
+    console.log(`💬 User ${user.username} (${user.userId}) left DM room ${roomId}`);
+    
+    socket.to(roomName).emit('user-left-dm-room', {
+      roomId,
+      userId: user.userId,
+      username: user.username
+    });
+  } catch (error) {
+    console.error('❌ Leave DM room error:', error);
   }
 }
 

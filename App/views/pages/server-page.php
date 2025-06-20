@@ -27,6 +27,7 @@ $additional_js = [
     'components/servers/channel-redirect',
     'components/channels/channel-manager',
     'components/messaging/messaging',
+    'components/messaging/direct-message-manager',
     'pages/server-page'
 ];
 $contentType = 'server';

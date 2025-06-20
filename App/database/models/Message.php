@@ -4,7 +4,7 @@ require_once __DIR__ . '/Model.php';
 
 class Message extends Model {
     protected static $table = 'messages';
-    protected $fillable = ['user_id', 'reply_message_id', 'content', 'sent_at', 'edited_at', 'message_type', 'attachment_url', 'created_at', 'updated_at'];
+    protected $fillable = ['id', 'user_id', 'reply_message_id', 'content', 'sent_at', 'edited_at', 'message_type', 'attachment_url', 'created_at', 'updated_at'];
     
     public function save() {
         if (!isset($this->attributes['sent_at'])) {

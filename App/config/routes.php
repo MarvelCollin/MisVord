@@ -367,6 +367,27 @@ Route::post('/api/users/find', function() {
     $controller = new FriendController();
     $controller->findUsers();
 });
+
+Route::get('/api/chat/(channel|dm)/([0-9]+)/messages', function($type, $id) {
+    $controller = new ChatController();
+    $controller->getMessages($type, $id);
+});
+
+Route::post('/api/chat/send', function() {
+    $controller = new ChatController();
+    $controller->sendMessage();
+});
+
+Route::post('/api/chat/dm/create', function() {
+    $controller = new ChatController();
+    $controller->createDirectMessage();
+});
+
+Route::get('/api/chat/dm/rooms', function() {
+    $controller = new ChatController();
+    $controller->getDirectMessageRooms();
+});
+
 return array_merge(Route::getRoutes(), [
     '404' => 'pages/404.php'
 ]);

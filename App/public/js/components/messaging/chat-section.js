@@ -1,4 +1,4 @@
- document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function() {
     window.logger.info('messaging', 'Chat section initializing...');
 
     window.MisVordDebug = {
@@ -88,27 +88,59 @@
         if (serverMatch && !window.location.search.includes('channel=')) {
             window.MisVordDebug.log('Server page detected without channel parameter - this is expected behavior');
         }
-    }    // Get meta tags for channel and user data
+    }    // Get meta tags for chat data
     const getMeta = (name) => {
         const meta = document.querySelector(`meta[name="${name}"]`);
         return meta ? meta.getAttribute('content') : null;
     };
     
-    const channelId = getMeta('channel-id') || (messageInput ? messageInput.getAttribute('data-channel-id') : '');
+    const chatType = getMeta('chat-type') || 'channel';
+    const chatId = getMeta('chat-id') || getMeta('channel-id') || (messageInput ? messageInput.getAttribute('data-chat-id') || messageInput.getAttribute('data-channel-id') : '');
+    const channelId = getMeta('channel-id') || (chatType === 'channel' ? chatId : '');
     const userId = getMeta('user-id');
     const username = getMeta('username');
 
-    window.MisVordDebug.log('Socket connection data', { channelId, userId, username });
+    window.MisVordDebug.log('Socket connection data', { chatType, chatId, channelId, userId, username });
 
     // Always create socket data element for potential messaging system use
-    const socketData = document.createElement('div');
-    socketData.id = 'socket-data';
+    let socketData = document.getElementById('socket-data');
+    if (!socketData) {
+        socketData = document.createElement('div');
+        socketData.id = 'socket-data';
+        socketData.style.display = 'none';
+        document.body.appendChild(socketData);
+    }
+    
+    // Update socket data attributes
+    socketData.setAttribute('data-chat-type', chatType);
+    socketData.setAttribute('data-chat-id', chatId);
     socketData.setAttribute('data-channel-id', channelId);
     socketData.setAttribute('data-user-id', userId);
     socketData.setAttribute('data-username', username);
-    socketData.style.display = 'none';
-    document.body.appendChild(socketData);
-    window.MisVordDebug.log('Socket data element created and added to DOM');
+    
+    window.MisVordDebug.log('Socket data element created/updated and added to DOM');    // Check for direct message parameter in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const dmParam = urlParams.get('dm');
+    if (dmParam) {
+        window.MisVordDebug.log('Direct message parameter detected:', dmParam);
+        
+        // Set up for direct message
+        socketData.setAttribute('data-chat-id', dmParam);
+        socketData.setAttribute('data-chat-type', 'direct');
+        socketData.setAttribute('data-channel-id', ''); // Clear channel ID for DM
+        
+        // Wait for unified chat manager and switch to DM
+        const initDirectMessage = () => {
+            if (window.unifiedChatManager && window.unifiedChatManager.initialized) {
+                window.MisVordDebug.log('Switching to direct message:', dmParam);
+                window.unifiedChatManager.switchToChat(dmParam, 'direct');
+            } else {
+                setTimeout(initDirectMessage, 100);
+            }
+        };
+        
+        setTimeout(initDirectMessage, 500);
+    }
 
     if (typeof io !== 'undefined') {
         window.MisVordDebug.log('Socket.IO is available');
@@ -172,4 +204,4 @@
     }
 
     window.MisVordDebug.log('Chat section initialization complete');
-}); 
+});

@@ -1,43 +1,107 @@
 <?php
-if (!isset($currentServer) || empty($currentServer)) {
-    echo '<div class="flex-1 bg-discord-background flex items-center justify-center text-white text-lg">Select a server to view channels</div>';
-    return;
+// Backward compatibility: Support both new unified system and legacy channel system
+$currentUserId = $_SESSION['user_id'] ?? 0;
+
+// Check for new unified chat variables first
+$chatType = $GLOBALS['chatType'] ?? null;
+$targetId = $GLOBALS['targetId'] ?? null;
+$chatData = $GLOBALS['chatData'] ?? null;
+$messages = $GLOBALS['messages'] ?? [];
+
+// Fallback to legacy channel system if unified variables not set
+if (!$chatType) {
+    $currentServer = $GLOBALS['currentServer'] ?? null;
+    $activeChannelId = $GLOBALS['activeChannelId'] ?? null;
+    $channelMessages = $GLOBALS['channelMessages'] ?? [];
+    $serverChannels = $GLOBALS['serverChannels'] ?? [];
+
+    if (!isset($currentServer) || empty($currentServer)) {
+        echo '<div class="flex-1 bg-discord-background flex items-center justify-center text-white text-lg">Select a server to view channels</div>';
+        return;
+    }
+
+    // Use legacy channel data
+    $chatType = 'channel';
+    $targetId = $activeChannelId;
+    $messages = $channelMessages;
+    
+    // Find active channel data
+    $activeChannel = null;
+    foreach ($serverChannels as $channel) {
+        if ($channel['id'] == $activeChannelId) {
+            $activeChannel = $channel;
+            break;
+        }
+    }
+    
+    if ($activeChannel) {
+        $chatData = $activeChannel;
+        $chatTitle = $activeChannel['name'];
+        $chatIcon = 'fas fa-hashtag';
+        $placeholder = "Message #{$chatTitle}";
+    } else {
+        // No active channel selected
+        $chatType = null;
+    }
 }
 
-$currentServerId = $currentServer->id ?? 0;
-$currentUserId = $_SESSION['user_id'] ?? 0;
-$activeChannelId = $GLOBALS['activeChannelId'] ?? null;
-$messages = $GLOBALS['channelMessages'] ?? [];
-$channels = $GLOBALS['serverChannels'] ?? [];
-
-$activeChannel = null;
-foreach ($channels as $channel) {
-    if ($channel['id'] == $activeChannelId) {
-        $activeChannel = $channel;
-        break;
+// Set up chat display variables based on type
+if ($chatType === 'channel') {
+    $activeChannel = $chatData;
+    $chatTitle = $activeChannel['name'] ?? 'Unknown Channel';
+    $chatIcon = 'fas fa-hashtag';
+    $placeholder = "Message #{$chatTitle}";
+} elseif ($chatType === 'direct' || $chatType === 'dm') {
+    $chatTitle = $chatData['friend_username'] ?? 'Direct Message';
+    $chatIcon = 'fas fa-user';
+    $placeholder = "Message @{$chatTitle}";
+} else {
+    // No chat selected
+    $currentServer = $GLOBALS['currentServer'] ?? null;
+    $serverChannels = $GLOBALS['serverChannels'] ?? [];
+    
+    if ($currentServer) {
+        // Show server welcome screen
+        echo '<div class="flex-1 bg-discord-background flex flex-col items-center justify-center text-white">
+            <div class="text-center max-w-md">
+                <i class="fas fa-hashtag text-6xl text-gray-600 mb-4"></i>
+                <h2 class="text-2xl font-semibold mb-2">Welcome to ' . htmlspecialchars($currentServer->name ?? 'this server') . '!</h2>
+                <p class="text-gray-400 mb-4">Select a channel from the sidebar to start chatting with other members.</p>';
+        if (!empty($serverChannels)) {
+            echo '<button class="bg-discord-primary hover:bg-discord-primary-dark text-white px-4 py-2 rounded transition-colors" 
+                        onclick="document.querySelector(\'.channel-item\')?.click()">
+                    Go to first channel
+                </button>';
+        }
+        echo '</div></div>';
+    } else {
+        echo '<div class="flex-1 bg-discord-background flex items-center justify-center text-white text-lg">Select a server to view channels</div>';
     }
+    return;
 }
 
 $additional_js[] = 'components/messaging/chat-section';
 ?>
 
-<meta name="channel-id" content="<?php echo htmlspecialchars($activeChannelId ?? ''); ?>">
+<meta name="chat-type" content="<?php echo htmlspecialchars($chatType ?? 'channel'); ?>">
+<meta name="chat-id" content="<?php echo htmlspecialchars($targetId ?? ''); ?>">
+<meta name="channel-id" content="<?php echo htmlspecialchars($chatType === 'channel' ? $targetId : ''); ?>">
 <meta name="user-id" content="<?php echo htmlspecialchars($currentUserId); ?>">
 <meta name="username" content="<?php echo htmlspecialchars($_SESSION['username'] ?? ''); ?>">
 
 <div class="flex flex-col flex-1 h-screen">
-    <?php if ($activeChannel): ?>
     <div class="h-12 border-b border-gray-800 flex items-center px-4 shadow-sm">
         <div class="flex items-center">
-            <i class="fas fa-hashtag text-gray-400 mr-2"></i>
-            <h2 class="font-semibold text-white"><?php echo htmlspecialchars($activeChannel['name']); ?></h2>
+            <i class="<?php echo $chatIcon; ?> text-gray-400 mr-2"></i>
+            <h2 class="font-semibold text-white"><?php echo htmlspecialchars($chatTitle); ?></h2>
         </div>
-        <?php if (!empty($activeChannel['topic'])): ?>
+        <?php if ($chatType === 'channel' && !empty($activeChannel['topic'])): ?>
         <div class="border-l border-gray-600 h-6 mx-4"></div>
         <div class="text-sm text-gray-400 truncate"><?php echo htmlspecialchars($activeChannel['topic']); ?></div>
         <?php endif; ?>
         <div class="flex-1"></div>
         <div class="flex space-x-4">
+            <?php if ($chatType === 'channel'): ?>
             <button class="text-gray-400 hover:text-white">
                 <i class="fas fa-bell-slash"></i>
             </button>
@@ -47,6 +111,7 @@ $additional_js[] = 'components/messaging/chat-section';
             <button class="text-gray-400 hover:text-white">
                 <i class="fas fa-user-plus"></i>
             </button>
+            <?php endif; ?>
             <button class="text-gray-400 hover:text-white">
                 <i class="fas fa-magnifying-glass"></i>
             </button>
@@ -63,10 +128,15 @@ $additional_js[] = 'components/messaging/chat-section';
         <?php if (empty($messages)): ?>
         <div class="flex flex-col items-center justify-center h-full text-center" id="welcome-message">
             <div class="w-16 h-16 mb-4 bg-discord-dark rounded-full flex items-center justify-center">
-                <i class="fas fa-hashtag text-discord-primary text-4xl"></i>
+                <i class="<?php echo $chatIcon; ?> text-discord-primary text-4xl"></i>
             </div>
-            <h3 class="font-bold text-xl text-white mb-2">Welcome to #<?php echo htmlspecialchars($activeChannel['name']); ?>!</h3>
-            <p class="text-gray-400 max-w-md">This is the start of the #<?php echo htmlspecialchars($activeChannel['name']); ?> channel.</p>
+            <?php if ($chatType === 'channel'): ?>
+            <h3 class="font-bold text-xl text-white mb-2">Welcome to #<?php echo htmlspecialchars($chatTitle); ?>!</h3>
+            <p class="text-gray-400 max-w-md">This is the start of the #<?php echo htmlspecialchars($chatTitle); ?> channel.</p>
+            <?php else: ?>
+            <h3 class="font-bold text-xl text-white mb-2">This is the beginning of your direct message history with <?php echo htmlspecialchars($chatTitle); ?>.</h3>
+            <p class="text-gray-400 max-w-md">Start a conversation!</p>
+            <?php endif; ?>
         </div>
         <?php else: ?>
             <?php 
@@ -160,15 +230,19 @@ $additional_js[] = 'components/messaging/chat-section';
                 <textarea id="message-input" 
                           name="content"
                           class="message-input w-full bg-discord-dark text-white placeholder-gray-500 outline-none resize-none border-none" 
-                          placeholder="Message #<?php echo htmlspecialchars($activeChannel['name'] ?? 'channel'); ?>"
+                          placeholder="<?php echo htmlspecialchars($placeholder); ?>"
                           rows="1"
                           maxlength="2000"
-                          data-channel-id="<?php echo htmlspecialchars($activeChannelId ?? ''); ?>"
+                          data-chat-type="<?php echo htmlspecialchars($chatType); ?>"
+                          data-chat-id="<?php echo htmlspecialchars($targetId ?? ''); ?>"
+                          data-channel-id="<?php echo htmlspecialchars($chatType === 'channel' ? $targetId : ''); ?>"
                           autocomplete="off"
                           spellcheck="true"></textarea>
             </div>
 
-            <input type="hidden" name="channel_id" value="<?php echo htmlspecialchars($activeChannelId ?? ''); ?>" />
+            <input type="hidden" name="chat_type" value="<?php echo htmlspecialchars($chatType); ?>" />
+            <input type="hidden" name="chat_id" value="<?php echo htmlspecialchars($targetId ?? ''); ?>" />
+            <input type="hidden" name="channel_id" value="<?php echo htmlspecialchars($chatType === 'channel' ? $targetId : ''); ?>" />
             <input type="hidden" data-user-id="<?php echo htmlspecialchars($currentUserId); ?>" />
             <input type="hidden" data-username="<?php echo htmlspecialchars($_SESSION['username'] ?? ''); ?>" />
 
@@ -182,19 +256,4 @@ $additional_js[] = 'components/messaging/chat-section';
             </div>
         </form>
     </div>
-    <?php else: ?>
-        <div class="flex-1 bg-discord-background flex flex-col items-center justify-center text-white">
-            <div class="text-center max-w-md">
-                <i class="fas fa-hashtag text-6xl text-gray-600 mb-4"></i>
-                <h2 class="text-2xl font-semibold mb-2">Welcome to <?php echo htmlspecialchars($currentServer->name ?? 'this server'); ?>!</h2>
-                <p class="text-gray-400 mb-4">Select a channel from the sidebar to start chatting with other members.</p>
-                <?php if (!empty($channels)): ?>
-                    <button class="bg-discord-primary hover:bg-discord-primary-dark text-white px-4 py-2 rounded transition-colors" 
-                            onclick="document.querySelector('.channel-item')?.click()">
-                        Go to first channel
-                    </button>
-                <?php endif; ?>
-            </div>
-        </div>
-    <?php endif; ?>
 </div>

@@ -4,7 +4,7 @@ require_once __DIR__ . '/Model.php';
 
 class ChatRoom extends Model {
     protected static $table = 'chat_rooms';
-    protected $fillable = ['name', 'type', 'image_url', 'created_at', 'updated_at'];
+    protected $fillable = ['id', 'name', 'type', 'image_url', 'created_at', 'updated_at'];
     
     public static function findByType($type) {
         $query = new Query();

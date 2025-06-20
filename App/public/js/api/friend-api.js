@@ -175,4 +175,5 @@ class FriendAPI {
 }
 
 const friendAPI = new FriendAPI();
-export { friendAPI as FriendAPI };
+
+window.FriendAPI = friendAPI;
