@@ -6,7 +6,8 @@ class DirectMessageManager {
     this.noFriendsMessage = document.getElementById("no-dm-friends");
     this.createButton = document.getElementById("create-new-direct");
     this.cancelButton = document.getElementById("cancel-new-direct");
-    this.closeButton = document.getElementById("close-new-direct-modal");    this.selectedFriend = null;
+    this.closeButton = document.getElementById("close-new-direct-modal");
+    this.selectedFriend = null;
     this.friends = [];
 
     this.chatAPI = null;
@@ -68,14 +69,14 @@ class DirectMessageManager {
       if (!this.friendAPI && window.FriendAPI) {
         this.friendAPI = window.FriendAPI;
       }
-      
+
       if (!this.friendAPI) {
         console.error("FriendAPI not available");
         this.friends = [];
         this.renderFriends();
         return;
       }
-      
+
       const response = await this.friendAPI.getUserFriends();
       this.friends = response.friends || [];
       this.renderFriends();

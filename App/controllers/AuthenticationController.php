@@ -138,7 +138,22 @@ class AuthenticationController extends BaseController
                 'user_id' => $_SESSION['user_id'],
                 'username' => $_SESSION['username'],
                 'session_id' => session_id(),
-                'is_authenticated' => $this->isAuthenticated()
+                'is_authenticated' => isset($_SESSION['user_id']) && !empty($_SESSION['user_id'])
+            ]);
+        }
+        
+        // Ensure session is written to storage
+        session_write_close();
+        
+        // Start session again to verify data was saved
+        session_start();
+        
+        // Debug session after write_close and restart
+        if (function_exists('logger')) {
+            logger()->debug("Session after write_close and restart", [
+                'user_id' => $_SESSION['user_id'] ?? 'not_set',
+                'is_authenticated' => isset($_SESSION['user_id']) && !empty($_SESSION['user_id']),
+                'session_status' => session_status()
             ]);
         }
 

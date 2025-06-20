@@ -144,6 +144,11 @@ $additional_js[] = 'components/messaging/direct-message-manager';
                     }
                 }
 
+                // Check if type is explicitly specified in URL
+                if (isset($_GET['type']) && $_GET['type'] === 'voice') {
+                    $channelType = 'voice';
+                }
+
                 if ($channelType === 'voice') {
                     include dirname(__DIR__) . '/app-sections/voice-section.php';
                 } else {

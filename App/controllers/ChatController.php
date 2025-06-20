@@ -6,6 +6,8 @@ require_once __DIR__ . '/../database/repositories/ChatRoomRepository.php';
 require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
 require_once __DIR__ . '/../database/repositories/UserRepository.php';
 require_once __DIR__ . '/../database/repositories/FriendListRepository.php';
+require_once __DIR__ . '/../database/models/Message.php';
+require_once __DIR__ . '/../database/models/User.php';
 require_once __DIR__ . '/../utils/WebSocketClient.php';
 require_once __DIR__ . '/BaseController.php';
 
@@ -239,22 +241,42 @@ class ChatController extends BaseController
             return $this->forbidden('You can only message friends');
         }
 
-        try {
-            $existingRoom = $this->chatRoomRepository->findDirectMessageRoom($userId, $friendId);
+        try {            $existingRoom = $this->chatRoomRepository->findDirectMessageRoom($userId, $friendId);
             if ($existingRoom) {
-                return $this->success(['chat_room' => $existingRoom]);
+                $chatRoomData = [
+                    'id' => $existingRoom->id,
+                    'type' => $existingRoom->type,
+                    'name' => $existingRoom->name,
+                    'image_url' => $existingRoom->image_url,
+                    'created_at' => $existingRoom->created_at,
+                    'updated_at' => $existingRoom->updated_at
+                ];
+                return $this->success(['chat_room' => $chatRoomData]);
             }
 
             $friend = $this->userRepository->find($friendId);
             if (!$friend) {
                 return $this->notFound('Friend not found');
-            }
-
-            $chatRoom = $this->chatRoomRepository->createDirectMessageRoom($userId, $friendId);
+            }            $chatRoom = $this->chatRoomRepository->createDirectMessageRoom($userId, $friendId);
             
-            return $this->success(['chat_room' => $chatRoom], 'Direct message created');
+            // Ensure we have a proper chat room object
+            if (!$chatRoom || !$chatRoom->id) {
+                return $this->serverError('Failed to create chat room');
+            }
+            
+            // Convert the model to array for proper JSON serialization
+            $chatRoomData = [
+                'id' => $chatRoom->id,
+                'type' => $chatRoom->type,
+                'name' => $chatRoom->name,
+                'image_url' => $chatRoom->image_url,
+                'created_at' => $chatRoom->created_at,
+                'updated_at' => $chatRoom->updated_at
+            ];
+              return $this->success(['chat_room' => $chatRoomData], 'Direct message created');
         } catch (Exception $e) {
-            return $this->serverError('Failed to create direct message');
+            error_log('CreateDirectMessage Error: ' . $e->getMessage());
+            return $this->serverError('Failed to create direct message: ' . $e->getMessage());
         }
     }
 
@@ -262,12 +284,152 @@ class ChatController extends BaseController
     {
         $this->requireAuth();
         $userId = $this->getCurrentUserId();
-
+        
         try {
-            $rooms = $this->chatRoomRepository->getUserDirectMessages($userId);
+            $rooms = $this->chatRoomRepository->getUserDirectRooms($userId);
             return $this->success(['rooms' => $rooms]);
         } catch (Exception $e) {
-            return $this->serverError('Failed to load direct messages');
+            return $this->serverError('Failed to get direct message rooms');
+        }
+    }
+    
+    public function getDirectMessageRoomByFriendId() 
+    {
+        if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
+            return $this->unauthorized('You must be logged in to access this resource');
+        }
+        
+        $userId = $_SESSION['user_id'];
+        
+        $friendId = $_GET['friend_id'] ?? null;
+        
+        if (!$friendId) {
+            return $this->validationError(['friend_id' => 'Friend ID is required']);
+        }
+        
+        try {
+            $friendship = $this->friendListRepository->findFriendshipBetweenUsers($userId, $friendId);
+            if (!$friendship || $friendship->status !== 'accepted') {
+                return $this->forbidden('You can only message friends');
+            }
+            
+            $chatRoom = $this->chatRoomRepository->findDirectMessageRoom($userId, $friendId);
+            
+            if ($chatRoom) {
+                $friend = $this->userRepository->find($friendId);
+                $roomData = [
+                    'id' => $chatRoom->id,
+                    'type' => $chatRoom->type,
+                    'friend_id' => $friendId,
+                    'friend_username' => $friend->username,
+                    'friend_avatar' => $friend->avatar_url
+                ];
+                return $this->success(['chat_room' => $roomData]);
+            } else {
+                // Create a new DM room if one doesn't exist
+                $newChatRoom = $this->chatRoomRepository->createDirectMessageRoom($userId, $friendId);
+                if ($newChatRoom) {
+                    $friend = $this->userRepository->find($friendId);
+                    $roomData = [
+                        'id' => $newChatRoom->id,
+                        'type' => $newChatRoom->type,
+                        'friend_id' => $friendId,
+                        'friend_username' => $friend->username,
+                        'friend_avatar' => $friend->avatar_url
+                    ];
+                    return $this->success(['chat_room' => $roomData]);
+                } else {
+                    return $this->serverError('Failed to create direct message room');
+                }
+            }
+        } catch (Exception $e) {
+            return $this->serverError('Failed to get direct message room: ' . $e->getMessage());
+        }
+    }
+    
+    public function getDirectMessageRoom($roomId)
+    {
+        if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
+            return $this->unauthorized('You must be logged in to access this resource');
+        }
+        
+        $userId = $_SESSION['user_id'];
+        
+        try {
+            // First check if user is participant in this room
+            if (!$this->chatRoomRepository->isParticipant($roomId, $userId)) {
+                return $this->forbidden('You are not a participant in this chat room');
+            }
+            
+            $chatRoom = $this->chatRoomRepository->find($roomId);
+            if (!$chatRoom) {
+                return $this->notFound('Chat room not found');
+            }
+            
+            // Get the other participant (for direct messages)
+            if ($chatRoom->type === 'direct') {
+                $participants = $this->chatRoomRepository->getParticipants($roomId);
+                $friend = null;
+                
+                foreach ($participants as $participant) {
+                    if ($participant['user_id'] != $userId) {
+                        $friend = [
+                            'id' => $participant['user_id'],
+                            'username' => $participant['username'],
+                            'avatar_url' => $participant['avatar_url']
+                        ];
+                        break;
+                    }
+                }
+                
+                $roomData = [
+                    'id' => $chatRoom->id,
+                    'type' => $chatRoom->type,
+                    'friend' => $friend
+                ];
+                
+                return $this->success($roomData);
+            } else {
+                $roomData = [
+                    'id' => $chatRoom->id,
+                    'type' => $chatRoom->type,
+                    'name' => $chatRoom->name,
+                    'image_url' => $chatRoom->image_url
+                ];
+                
+                return $this->success($roomData);
+            }
+        } catch (Exception $e) {
+            return $this->serverError('Failed to get direct message room: ' . $e->getMessage());
+        }
+    }
+    
+    public function getDirectMessageRoomMessages($roomId)
+    {
+        if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
+            return $this->unauthorized('You must be logged in to access this resource');
+        }
+        
+        $userId = $_SESSION['user_id'];
+        
+        try {
+            // First check if user is participant in this room
+            if (!$this->chatRoomRepository->isParticipant($roomId, $userId)) {
+                return $this->forbidden('You are not a participant in this chat room');
+            }
+            
+            $limit = $_GET['limit'] ?? 50;
+            $offset = $_GET['offset'] ?? 0;
+            
+            $messages = $this->chatRoomRepository->getMessages($roomId, $limit, $offset);
+            $formattedMessages = array_map([$this, 'formatMessage'], $messages);
+            
+            return $this->success([
+                'messages' => $formattedMessages,
+                'has_more' => count($messages) == $limit
+            ]);
+        } catch (Exception $e) {
+            return $this->serverError('Failed to get messages: ' . $e->getMessage());
         }
     }
 
@@ -285,7 +447,9 @@ class ChatController extends BaseController
             'edited_at' => $message->edited_at ?? null,
             'type' => $message->type ?? 'text'
         ];
-    }    private function sendWebSocketNotification($data, $targetUserId = null)
+    }
+
+    private function sendWebSocketNotification($data, $targetUserId = null)
     {
         try {
             $wsClient = new WebSocketClient();

@@ -173,15 +173,25 @@ class BaseController
 
         echo json_encode($response, JSON_PRETTY_PRINT);
         exit;
-    }
-
-    protected function success($data = null, $message = 'Success')
+    }    protected function success($data = null, $message = 'Success')
     {
-        $response = ['message' => $message];
+        $response = [
+            'success' => true,
+            'timestamp' => date('Y-m-d H:i:s'),
+            'message' => $message
+        ];
+        
         if ($data !== null) {
             $response['data'] = $data;
         }
-        $this->jsonResponse($response);
+        
+        http_response_code(200);
+        if (!headers_sent()) {
+            header('Content-Type: application/json');
+        }
+        
+        echo json_encode($response, JSON_PRETTY_PRINT);
+        exit;
     }
 
     protected function successResponse($data = null, $message = 'Success')

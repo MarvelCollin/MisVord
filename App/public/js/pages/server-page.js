@@ -43,7 +43,10 @@ function initializeChannelClickHandlers() {
 
       if (!channelId || !currentServerId) return;
 
-      const newUrl = `/server/${currentServerId}?channel=${channelId}`;
+      let newUrl = `/server/${currentServerId}?channel=${channelId}`;
+      if (channelType === 'voice') {
+        newUrl += '&type=voice';
+      }
       window.location.href = newUrl;
     });
   });

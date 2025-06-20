@@ -1,8 +1,8 @@
 import { DirectMessageAPI } from '../api/direct-message-api.js';
-import { FriendAPI } from '../api/friend-api.js';
+import '../api/friend-api.js';
 
 const directMessageAPI = DirectMessageAPI;
-const friendAPI = FriendAPI;
+const friendAPI = window.FriendAPI;
 
 document.addEventListener('DOMContentLoaded', function() {
     initServerModal();

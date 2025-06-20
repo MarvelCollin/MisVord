@@ -1786,3 +1786,18 @@
 [2025-06-20 15:24:57] DEBUG [97da1f] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
 [2025-06-20 15:24:57] INFO [97da1f] Database connected successfully - Context: {"database":"misvord"}
 [2025-06-20 15:24:57] DEBUG [97da1f] DB Query: INSERT INTO friend_list (`user_id`, `user_id2`, `status`, `updated_at`, `created_at`) VALUES (?, ?, ... - Duration: 65.74ms - Context: {"table":"friend_list","data":{"user_id":2,"user_id2":1,"status":"pending","updated_at":"2025-06-20 15:24:57","created_at":"2025-06-20 15:24:57"},"insert_id":"7","affected_rows":1,"db_query":"INSERT INTO friend_list (`user_id`, `user_id2`, `status`, `updated_at`, `created_at`) VALUES (?, ?, ?, ?, ?)","db_duration":0.06573891639709473}
+[2025-06-20 21:47:48] INFO [400493] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 21:47:48"}
+[2025-06-20 21:47:55] INFO [b26842] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 21:47:55"}
+[2025-06-20 21:47:55] DEBUG [b26842] Controller instantiated - Context: {"controller":"ChatController","request_uri":"/api/chat/dm/room?friend_id=1","request_method":"GET","is_ajax":"yes"}
+[2025-06-20 21:53:16] INFO [c2f9b8] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 21:53:16"}
+[2025-06-20 21:53:16] DEBUG [c2f9b8] Controller instantiated - Context: {"controller":"ChatController","request_uri":"/api/chat/dm/create","request_method":"POST","is_ajax":"yes"}
+[2025-06-20 21:53:16] DEBUG [c2f9b8] requireAuth called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"session_data":[]}
+[2025-06-20 21:53:16] WARNING [c2f9b8] User not authenticated, redirecting to login - Context: {"session_data":[],"request_uri":"/api/chat/dm/create"}
+[2025-06-20 21:58:48] INFO [82c87d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 21:58:48"}
+[2025-06-20 21:59:47] INFO [306f06] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 21:59:47"}
+[2025-06-20 22:00:21] INFO [5d1cd8] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 22:00:21"}
+[2025-06-20 22:00:57] INFO [9d73d2] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 22:00:57"}
+[2025-06-20 22:01:07] INFO [31906c] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 22:01:07"}
+[2025-06-20 22:02:08] INFO [0a2a91] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 22:02:08"}
+[2025-06-20 22:02:39] INFO [f7bd5c] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 22:02:39"}
+[2025-06-20 22:02:45] INFO [5cc057] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 22:02:45"}

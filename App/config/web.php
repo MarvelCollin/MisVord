@@ -87,14 +87,17 @@ function handleRoute($routes) {
                 }
                 $methodPattern = $methodName;
                 $pattern = $urlPattern;
-            }
-
-            if (strpos($pattern, '{') !== false) {
+            }            if (strpos($pattern, '{') !== false) {
                 $patternRegex = preg_quote($pattern, '#');
                 $patternRegex = preg_replace('/\\\{([a-zA-Z0-9_]+)\\\}/', '(?P<$1>[^/]+)', $patternRegex);
                 $patternRegex = '#^' . $patternRegex . '$#';
             } else {
-                $patternRegex = '#^' . $pattern . '$#';
+                // Don't quote patterns that contain regex groups in parentheses
+                if (preg_match('/\([^)]+\)/', $pattern)) {
+                    $patternRegex = '#^' . $pattern . '$#';
+                } else {
+                    $patternRegex = '#^' . preg_quote($pattern, '#') . '$#';
+                }
             }
 
             if (preg_match($patternRegex, $uri, $matches)) {

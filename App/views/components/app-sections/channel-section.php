@@ -129,7 +129,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (channelType === 'text') {
                     window.location.href = `/server/${serverId}?channel=${channelId}`;
                 } else if (channelType === 'voice') {
-                    console.log('Voice channel clicked:', channelId);
+                    window.location.href = `/server/${serverId}?channel=${channelId}&type=voice`;
                 }
             }
         });

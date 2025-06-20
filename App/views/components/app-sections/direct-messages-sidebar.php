@@ -73,7 +73,10 @@ if (file_exists($tooltipPath)) {
                     $specialLabel = '<span class="ml-auto flex items-center text-xs bg-discord-darker px-1.5 py-0.5 rounded text-purple-400 font-medium">DF</span>';
                 }
                 ?>
-                <div class="flex items-center p-1.5 rounded hover:bg-discord-light text-discord-lighter hover:text-white cursor-pointer group">
+                <div class="dm-friend-item flex items-center p-1.5 rounded hover:bg-discord-light text-discord-lighter hover:text-white cursor-pointer group"
+                     data-friend-id="<?php echo htmlspecialchars($friend['id']); ?>"
+                     data-chat-type="direct"
+                     data-username="<?php echo htmlspecialchars($friend['username']); ?>">
                     <div class="relative mr-3">
                         <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
                             <img src="<?php echo isset($friend['avatar_url']) ? htmlspecialchars($friend['avatar_url']) : 'https://ui-avatars.com/api/?name=' . urlencode($friend['username'] ?? 'U') . '&background=random'; ?>" 
@@ -105,3 +108,107 @@ if (file_exists($tooltipPath)) {
 </div>
 
 <?php include dirname(__DIR__) . '/home/new-direct-modal.php'; ?>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const dmFriendItems = document.querySelectorAll('.dm-friend-item');
+        
+        dmFriendItems.forEach(item => {
+            item.addEventListener('click', function() {
+                const friendId = this.dataset.friendId;
+                const friendUsername = this.dataset.username;
+                
+                // First try to use the unified chat manager if available
+                if (window.unifiedChatManager) {
+                    window.unifiedChatManager.openDirectMessage(friendId);
+                    return;
+                }
+                
+                // Otherwise make an API call to get or create a DM room
+                fetch('/api/chat/dm/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({
+                        friend_id: friendId
+                    }),
+                    credentials: 'same-origin'
+                })
+                .then(response => {
+                    const contentType = response.headers.get('content-type');
+                    if (!contentType || !contentType.includes('application/json')) {
+                        console.error('Server returned HTML instead of JSON');
+                        if (window.showToast) {
+                            window.showToast('Error: Server returned HTML error page', 'error');
+                        }
+                        throw new Error('Server returned HTML error page');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success && data.chat_room) {
+                        const chatRoom = data.chat_room;
+                        
+                        // Replace the current content with chat section
+                        const appContent = document.querySelector('.flex-col.flex-1');
+                        if (appContent) {
+                            // Set global variables for the chat section
+                            window.GLOBALS = window.GLOBALS || {};
+                            window.GLOBALS.chatType = 'direct';
+                            window.GLOBALS.targetId = chatRoom.id;
+                            window.GLOBALS.chatData = {
+                                friend_username: friendUsername,
+                                friend_id: friendId
+                            };
+                            
+                            // Load the chat section
+                            fetch(`/api/chat/dm/${chatRoom.id}/messages`)
+                                .then(response => response.json())
+                                .then(data => {
+                                    if (!data.success) {
+                                        console.error('Failed to load messages:', data.message || 'Unknown error');
+                                        return;
+                                    }
+                                    
+                                    window.GLOBALS.messages = data.messages || [];
+                                    
+                                    // Set proper globals for PHP
+                                    window.chatType = 'direct';
+                                    window.targetId = chatRoom.id;
+                                    window.chatData = {
+                                        friend_username: friendUsername,
+                                        friend_id: friendId
+                                    };
+                                    window.messages = data.messages || [];
+                                    
+                                    // Load chat section template
+                                    fetch('/components/app-sections/chat-section.php')
+                                        .then(response => response.text())
+                                        .then(html => {
+                                            appContent.innerHTML = html;
+                                            
+                                            // Initialize the messaging component
+                                            if (window.MisVordMessaging) {
+                                                window.MisVordMessaging.switchToChat(chatRoom.id, 'direct');
+                                            }
+                                        })
+                                        .catch(error => {
+                                            console.error('Error loading chat section:', error);
+                                        });
+                                })
+                                .catch(error => {
+                                    console.error('Error loading messages:', error);
+                                });
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error opening direct message:', error);
+                });
+            });
+        });
+    });
+</script>

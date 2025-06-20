@@ -1,14 +1,11 @@
 <?php
-// Backward compatibility: Support both new unified system and legacy channel system
 $currentUserId = $_SESSION['user_id'] ?? 0;
 
-// Check for new unified chat variables first
 $chatType = $GLOBALS['chatType'] ?? null;
 $targetId = $GLOBALS['targetId'] ?? null;
 $chatData = $GLOBALS['chatData'] ?? null;
 $messages = $GLOBALS['messages'] ?? [];
 
-// Fallback to legacy channel system if unified variables not set
 if (!$chatType) {
     $currentServer = $GLOBALS['currentServer'] ?? null;
     $activeChannelId = $GLOBALS['activeChannelId'] ?? null;
@@ -20,12 +17,10 @@ if (!$chatType) {
         return;
     }
 
-    // Use legacy channel data
     $chatType = 'channel';
     $targetId = $activeChannelId;
     $messages = $channelMessages;
     
-    // Find active channel data
     $activeChannel = null;
     foreach ($serverChannels as $channel) {
         if ($channel['id'] == $activeChannelId) {

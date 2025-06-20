@@ -4,6 +4,7 @@ require_once __DIR__ . '/../controllers/AuthenticationController.php';
 require_once __DIR__ . '/../controllers/ServerController.php';
 require_once __DIR__ . '/../controllers/ChannelController.php';
 require_once __DIR__ . '/../controllers/MessageController.php';
+require_once __DIR__ . '/../controllers/ChatController.php';
 require_once __DIR__ . '/../controllers/GoogleAuthController.php';
 require_once __DIR__ . '/../controllers/RoleController.php';
 require_once __DIR__ . '/../controllers/EmojiController.php';
@@ -386,6 +387,46 @@ Route::post('/api/chat/dm/create', function() {
 Route::get('/api/chat/dm/rooms', function() {
     $controller = new ChatController();
     $controller->getDirectMessageRooms();
+});
+
+Route::get('/api/chat/dm/room', function() {
+    $controller = new ChatController();
+    $controller->getDirectMessageRoomByFriendId();
+});
+
+Route::get('/api/chat/dm/([0-9]+)', function($roomId) {
+    $controller = new ChatController();
+    $controller->getDirectMessageRoom($roomId);
+});
+
+Route::get('/api/chat/dm/([0-9]+)/messages', function($roomId) {
+    $controller = new ChatController();
+    $controller->getDirectMessageRoomMessages($roomId);
+});
+
+Route::get('/api/auth/check', function() {
+    header('Content-Type: application/json');
+    echo json_encode([
+        'success' => true,
+        'authenticated' => isset($_SESSION['user_id']) && !empty($_SESSION['user_id']),
+        'user_id' => $_SESSION['user_id'] ?? null,
+        'username' => $_SESSION['username'] ?? null,
+        'session_info' => [
+            'id' => session_id(),
+            'status' => session_status()
+        ]
+    ]);
+    exit;
+});
+
+Route::get('/api/debug-simple', function() {
+    header('Content-Type: application/json');
+    echo json_encode(['success' => true, 'message' => 'Simple debug route working', 'uri' => $_SERVER['REQUEST_URI']]);
+});
+
+Route::get('/api/debug-pattern/([0-9]+)', function($id) {
+    header('Content-Type: application/json');
+    echo json_encode(['success' => true, 'message' => 'Pattern debug route working', 'id' => $id, 'uri' => $_SERVER['REQUEST_URI']]);
 });
 
 return array_merge(Route::getRoutes(), [
