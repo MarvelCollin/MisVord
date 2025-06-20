@@ -81,12 +81,54 @@ $cache_version = time();
 <?php endif; ?>
 
 <?php if (isset($include_socket_io) && $include_socket_io): ?>
-    <script src="<?php echo js('lib/socket.io.min'); ?>?v=<?php echo $cache_version; ?>"></script>
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js" integrity="sha384-c79GN5VsunZvi+Q/WObgk2in0CbZsHnjEqvFxC5DxHn9lTfNce2WW6h2pH6u/kF+" crossorigin="anonymous"></script>
 <?php endif; ?>
 
 <?php if (isset($include_channel_loader) && $include_channel_loader): ?>
     
 <?php endif; ?>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    if (window.addEventListener) {
+        window.addEventListener('globalSocketReady', function(event) {
+            if (event.detail?.manager?.socket) {
+                event.detail.manager.socket.on('debug-test-response', function(response) {
+                    if (response.success) {
+                        console.log('✅ Debug test acknowledged by server:', response);
+                    } else {
+                        console.error('❌ Debug test failed on server:', response);
+                    }
+                });
+            }
+        });
+    }
+    
+    document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.key === '1') {
+            e.preventDefault();
+            
+            if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+                const username = document.querySelector('meta[name="username"]')?.content || 'unknown';
+                
+                window.globalSocketManager.socket.emit('debug-test', username);
+                console.log('🧪 Debug ping sent:', username);
+                
+                if (window.showToast) {
+                    window.showToast(`Ping sent from ${username}`, 'success');
+                }
+            } else {
+                console.warn('🧪 Cannot send debug message: socket not ready');
+                if (window.showToast) {
+                    window.showToast('Socket not ready for debug test', 'error');
+                }
+            }
+        }
+    });
+    
+    console.log('🧪 Debug mode active: Press Ctrl+1 to send test message to socket server');
+});
+</script>
 
 <?php if (isset($head_scripts) && is_array($head_scripts)): ?>
     <?php foreach ($head_scripts as $script): ?>

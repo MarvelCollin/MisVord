@@ -7,10 +7,12 @@ const socketConfig = {
   host: process.env.SOCKET_HOST || 'localhost', 
   basePath: process.env.SOCKET_BASE_PATH || '/socket.io',
   subPath: process.env.SOCKET_SUBPATH || '',
-  corsAllowedOrigins: (process.env.CORS_ALLOWED_ORIGINS || 'http://localhost:1001').split(','),
+  corsAllowedOrigins: process.env.APP_ENV === 'production' 
+    ? (process.env.CORS_ALLOWED_ORIGINS || 'http://localhost:1001').split(',')
+    : '*',
   pingTimeout: parseInt(process.env.SOCKET_PING_TIMEOUT) || 30000,
   pingInterval: parseInt(process.env.SOCKET_PING_INTERVAL) || 10000,
-  transports: ['websocket', 'polling'],
+  transports: ['polling', 'websocket'],
   debug: process.env.APP_ENV !== 'production'
 };
 

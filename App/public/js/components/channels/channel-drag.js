@@ -1,4 +1,5 @@
 import { MisVordAjax } from '../../core/ajax/ajax-handler.js';
+import { ChannelAPI } from '../../api/channel-api.js';
 
 document.addEventListener('DOMContentLoaded', function() {
     setTimeout(initDragDrop, 1000);
@@ -574,7 +575,7 @@ function handleDragLeave(event) {
 function updateCategoryPosition(categoryId, position) {
     console.log(`Updating category ${categoryId} to position ${position}`);
 
-    return MisVordAjax.post('/api/categories/position', {
+    return ChannelAPI.updateCategoryPosition({
         category_id: categoryId,
         position: position
     });
@@ -583,7 +584,7 @@ function updateCategoryPosition(categoryId, position) {
 function updateChannelPosition(channelId, position, categoryId) {
     console.log(`Updating channel ${channelId} to position ${position} in category ${categoryId}`);
 
-    return MisVordAjax.post('/api/channels/position', {
+    return ChannelAPI.updateChannelPosition({
         channel_id: channelId,
         position: position,
         category_id: categoryId
@@ -698,36 +699,32 @@ function showCreateChannelModal(serverId, categoryId, position) {
                 .catch(error => {
                     console.error('Error creating channel:', error);
                 });
-        } else {
+        } else {            const formData = new FormData(form);
 
-            const formData = new FormData(form);
-
-            fetch('/api/channels', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())            .then(data => {
-                if (data.success) {
-                    console.log('Channel created at position:', position);
-                    modal.remove();
-                    if (typeof refreshChannelList === 'function') {
-                        refreshChannelList();
-                    } else if (typeof window.channelLoader !== 'undefined' && window.channelLoader.loadChannelData) {
-                        const channelContainer = document.querySelector('.channel-list-container');
-                        if (channelContainer) {
-                            channelContainer.setAttribute('data-server-id', serverId);
-                            window.channelLoader.loadChannelData(channelContainer);
+            ChannelAPI.createChannel(formData)
+                .then(data => {
+                    if (data.success) {
+                        console.log('Channel created at position:', position);
+                        modal.remove();
+                        if (typeof refreshChannelList === 'function') {
+                            refreshChannelList();
+                        } else if (typeof window.channelLoader !== 'undefined' && window.channelLoader.loadChannelData) {
+                            const channelContainer = document.querySelector('.channel-list-container');
+                            if (channelContainer) {
+                                channelContainer.setAttribute('data-server-id', serverId);
+                                window.channelLoader.loadChannelData(channelContainer);
+                            }
+                        } else {
+                            window.location.reload();
                         }
                     } else {
-                        window.location.reload();
+                        alert(data.message || 'Failed to create channel');
                     }
-                } else {
-                    alert(data.message || 'Failed to create channel');
-                }
-            })
-            .catch(error => {
-                console.error('Error creating channel:', error);
-                alert('An error occurred');
+                })
+                .catch(error => {
+                    console.error('Error creating channel:', error);
+                    alert('An error occurred');
+                });
             });
         }
     });
@@ -768,7 +765,7 @@ function showChannelContextMenu(event, channelId) {
 function batchUpdatePositions(updates, serverId) {
     console.log('Batch updating positions:', updates);
 
-    return MisVordAjax.post('/api/positions/batch', {
+    return ChannelAPI.updateBatchPositions({
         updates: updates,
         server_id: serverId
     });
@@ -923,28 +920,22 @@ function showCreateCategoryModal(serverId, position) {
                 .catch(error => {
                     console.error('Error creating category:', error);
                 });
-        } else {
+        } else {            const formData = new FormData(form);
 
-            const formData = new FormData(form);
-
-            fetch('/api/channels/category', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    console.log('Category created at position:', position);
-                    modal.remove();
-                    window.location.reload(); 
-                } else {
-                    alert(data.message || 'Failed to create category');
-                }
-            })
-            .catch(error => {
-                console.error('Error creating category:', error);
-                alert('An error occurred');
-            });
+            ChannelAPI.updateChannelCategory(formData)
+                .then(data => {
+                    if (data.success) {
+                        console.log('Category created at position:', position);
+                        modal.remove();
+                        window.location.reload(); 
+                    } else {
+                        alert(data.message || 'Failed to create category');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error creating category:', error);
+                    alert('An error occurred');
+                });
         }
     });
 

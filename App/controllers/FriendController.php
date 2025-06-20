@@ -284,15 +284,14 @@ class FriendController extends BaseController
             return $this->serverError('An error occurred while retrieving sent requests: ' . $e->getMessage());
         }
     }
-    
-    public function sendFriendRequest()
+      public function sendFriendRequest()
     {
-        $this->requireAuth();
-        
-        $userId = $this->getCurrentUserId();
-        $input = $this->getInput();
-        
         try {
+            $this->requireAuth();
+            
+            $userId = $this->getCurrentUserId();
+            $input = $this->getInput();
+            
             if (!isset($input['user_id']) && !isset($input['username'])) {
                 return $this->error('Either user_id or username is required', 400);
             }
@@ -301,32 +300,46 @@ class FriendController extends BaseController
             $targetUsername = null;
             
             if (isset($input['user_id'])) {
-                $targetUserId = $input['user_id'];
-                $targetUser = $this->userRepository->find($targetUserId);
+                $targetUserId = $input['user_id'];                $targetUser = $this->userRepository->find($targetUserId);
                 if (!$targetUser) {
-                    return $this->notFound('User not found');
+                    $this->error('User not found', 404);
+                    return;
                 }
-                $targetUsername = $targetUser->username;
-            } else {
+                $targetUsername = $targetUser->username;            } else {
                 $username = $input['username'];
-                $targetUser = $this->userRepository->findByUsername($username);
+                
+                // Debug the input
+                error_log("Debug: Searching for user: " . $username);
+                
+                // Support both username and username#discriminator formats
+                if (strpos($username, '#') !== false) {
+                    $parts = explode('#', $username, 2);
+                    if (count($parts) === 2) {
+                        $targetUser = $this->userRepository->findByUsernameAndDiscriminator(trim($parts[0]), trim($parts[1]));
+                    } else {
+                        return $this->error('Invalid username format', 400);
+                    }
+                } else {
+                    $targetUser = $this->userRepository->findByUsername($username);
+                }
                 
                 if (!$targetUser) {
-                    return $this->notFound('User not found');
+                    return $this->error('User not found', 404);
                 }
                 
                 $targetUserId = $targetUser->id;
                 $targetUsername = $targetUser->username;
             }
-            
-            if ($targetUserId == $userId) {
-                return $this->error('You cannot send a friend request to yourself', 400);
+              if ($targetUserId == $userId) {
+                $this->error('You cannot send a friend request to yourself', 400);
+                return;
             }
             
             $result = $this->friendListRepository->sendFriendRequest($userId, $targetUserId);
             
             if ($result === false) {
-                return $this->error('Failed to send friend request, the user may have blocked you', 400);
+                $this->error('Failed to send friend request, the user may have blocked you', 400);
+                return;
             }
             
             $currentUser = $this->userRepository->find($userId);
@@ -342,8 +355,7 @@ class FriendController extends BaseController
                 'target_user_id' => $targetUserId,
                 'target_username' => $targetUsername
             ]);
-            
-            return $this->success([
+              $this->success([
                 'friendship_id' => $result->id,
                 'target_user' => [
                     'id' => $targetUserId,
@@ -351,7 +363,7 @@ class FriendController extends BaseController
                 ]
             ], 'Friend request sent successfully');
         } catch (Exception $e) {
-            return $this->serverError('An error occurred while sending friend request: ' . $e->getMessage());
+            $this->serverError('An error occurred while sending friend request: ' . $e->getMessage());
         }
     }
     

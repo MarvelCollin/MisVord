@@ -99,19 +99,13 @@ class GlobalSocketManager {
         this.username = userData.username;
 
         this.log('Initializing global WebSocket connection for user:', this.username);
-        this.logSystemInfo();
-
-        return this.initSocket()
+        this.logSystemInfo();        return this.initSocket()
             .then(() => {
                 this.initPresenceTracking();
                 this.initActivityTracking();
 
-                setInterval(() => this.sendHeartbeat(), this.config.heartbeatInterval);
-
                 this.log('✅ Global socket manager initialized successfully');
                 this.initialized = true;
-
-                this.dispatchEvent('globalSocketReady', { manager: this });
 
                 return this.initialized;
             })
@@ -141,16 +135,13 @@ class GlobalSocketManager {
         this.setupSocketEventHandlers();
 
         return Promise.resolve();
-    }
-
-    setupSocketEventHandlers() {
+    }    setupSocketEventHandlers() {
         this.socket.on('connect', () => {
             this.log('🟢 Connected to WebSocket server');
             this.connected = true;
             this.reconnectAttempts = 0;
             this.trackConnection('CONNECTED');
             this.authenticate();
-            this.updatePresence('online');
         });
 
         this.socket.on('disconnect', (reason) => {
@@ -163,19 +154,22 @@ class GlobalSocketManager {
         this.socket.on('connect_error', (error) => {
             this.error('🔴 Connection error:', error);
             this.trackConnection('CONNECTION_ERROR', { error: error.message });
-        });
-
-        this.socket.on('authenticated', (data) => {
+        });        this.socket.on('authenticated', (data) => {
             this.log('✅ User authenticated:', data);
             this.authenticated = true;
             this.trackConnection('AUTHENTICATED', data);
+            this.updatePresence('online');
+            this.requestOnlineUsers();
+            
+            setInterval(() => this.sendHeartbeat(), this.config.heartbeatInterval);
+            this.dispatchEvent('globalSocketReady', { manager: this });
         });
 
         this.socket.on('authentication-failed', (data) => {
             this.error('❌ Authentication failed:', data);
             this.authenticated = false;
             this.trackConnection('AUTH_FAILED', data);
-        });        this.socket.on('user-presence-changed', (data) => {
+        });this.socket.on('user-presence-changed', (data) => {
             this.log('👤 User presence changed:', data);
             this.dispatchEvent('userPresenceChanged', data);
         });
@@ -361,13 +355,11 @@ class GlobalSocketManager {
 
         socketClient.on('online-users-received', (data) => {
             this.handleOnlineUsersUpdate(data.users);
-        });
-
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible') {
+        });        document.addEventListener('visibilitychange', () => {
+            if (this.isReady() && document.visibilityState === 'visible') {
                 this.updatePresence('online');
                 this.trackActivity('PAGE_VISIBLE');
-            } else {
+            } else if (this.isReady()) {
                 this.updatePresence('away');
                 this.trackActivity('PAGE_HIDDEN');
             }
@@ -375,21 +367,21 @@ class GlobalSocketManager {
 
         let activityTimeout;
         const resetActivityTimer = () => {
+            if (!this.isReady()) return;
+            
             clearTimeout(activityTimeout);
             this.updatePresence('online');
             
             activityTimeout = setTimeout(() => {
-                this.updatePresence('idle');
+                if (this.isReady()) {
+                    this.updatePresence('idle');
+                }
             }, 300000); 
         };
 
         document.addEventListener('mousemove', resetActivityTimer);
         document.addEventListener('keypress', resetActivityTimer);
         document.addEventListener('click', resetActivityTimer);
-
-        resetActivityTimer();
-        this.updatePresence('online');
-        this.getOnlineUsers();
     }
 
     initActivityTracking() {

@@ -95,41 +95,6 @@ Route::get('/servers/([0-9]+)', function($id) {
     exit;
 });
 
-Route::get('/debug/server/([0-9]+)', function($id) {
-    try {
-        require_once __DIR__ . '/../controllers/ServerController.php';
-        require_once __DIR__ . '/../database/repositories/ServerRepository.php';
-        
-        $serverRepo = new ServerRepository();
-        $server = $serverRepo->find($id);
-        
-        header('Content-Type: application/json');
-        if ($server) {
-            echo json_encode([
-                'status' => 'found',
-                'server' => [
-                    'id' => $server->id,
-                    'name' => $server->name,
-                    'description' => $server->description
-                ]
-            ]);
-        } else {
-            echo json_encode([
-                'status' => 'not_found',
-                'server_id' => $id
-            ]);
-        }
-    } catch (Exception $e) {
-        header('Content-Type: application/json');
-        http_response_code(500);
-        echo json_encode([
-            'status' => 'error',
-            'message' => $e->getMessage()
-        ]);
-    }
-    exit;
-});
-
 Route::get('/join/([a-zA-Z0-9]+)', function($code) {
     require_once __DIR__ . '/../controllers/ServerController.php';
     $controller = new ServerController();
@@ -282,7 +247,6 @@ Route::get('/api/roles/([0-9]+)/permissions', function($roleId) {
     $controller->getRolePermissions($roleId);
 });
 
-// Emoji routes
 Route::get('/api/servers/([0-9]+)/emojis', function($serverId) {
     $controller = new EmojiController();
     $controller->getServerEmojis($serverId);
@@ -392,6 +356,11 @@ Route::post('/api/users/unblock', function() {
 Route::get('/api/users/blocked', function() {
     $controller = new FriendController();
     $controller->getBlockedUsers();
+});
+
+Route::get('/api/users/search', function() {
+    $controller = new FriendController();
+    $controller->searchUsers();
 });
 
 Route::post('/api/users/find', function() {

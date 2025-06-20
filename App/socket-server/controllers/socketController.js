@@ -17,14 +17,13 @@ function setupSocketHandlers(io) {
     socket.on('update-activity', (data) => handleUpdateActivity(io, socket, data));
     socket.on('get-online-users', () => handleGetOnlineUsers(socket));
     socket.on('get-user-presence', (data) => handleGetUserPresence(socket, data));
-      // New handlers for refactored socket-api.js
     socket.on('notify-user', (data) => handleNotifyUser(io, socket, data));
     socket.on('broadcast', (data) => handleBroadcast(io, socket, data));
     socket.on('room-event', (data) => handleRoomEvent(io, socket, data));
-    socket.on('typing-start', (data) => handleTypingStart(io, socket, data));
-    socket.on('typing-stop', (data) => handleTypingStop(io, socket, data));
+    socket.on('typing-start', (data) => handleTypingStart(io, socket, data));    socket.on('typing-stop', (data) => handleTypingStop(io, socket, data));
     socket.on('reaction-added', (data) => handleReactionAdded(io, socket, data));
     socket.on('user-presence-changed', (data) => handleUserPresenceChanged(io, socket, data));
+    socket.on('debug-test', (data) => handleDebugTest(io, socket, data));
   });
 }
 
@@ -501,9 +500,25 @@ function handleUserPresenceChanged(io, socket, data) {
     const username = user ? user.username : null;
     
     // Use existing broadcast function
-    broadcastUserPresenceUpdate(io, user_id, status, username, activity_details);
-  } catch (error) {
+    broadcastUserPresenceUpdate(io, user_id, status, username, activity_details);  } catch (error) {
     console.error('❌ User presence changed error:', error);
+  }
+}
+
+function handleDebugTest(io, socket, username) {
+  try {
+    console.log(`ping from ${username}`);
+    
+    socket.emit('debug-test-response', {
+      success: true,
+      message: `ping from ${username}`
+    });
+  } catch (error) {
+    console.error('❌ Debug test error:', error);
+    socket.emit('debug-test-response', {
+      success: false,
+      error: error.message
+    });
   }
 }
 

@@ -1,3 +1,5 @@
+import { ServerAPI } from '../api/server-api.js';
+
 document.addEventListener('DOMContentLoaded', function() {
     if (typeof window !== 'undefined' && window.logger) {
         window.logger.info('explore', 'Explore servers page initialized');
@@ -113,47 +115,37 @@ function joinServer(serverId, button) {
     button.textContent = 'Joining...';
     button.disabled = true;
     
-    fetch('/api/servers/join', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: JSON.stringify({
-            server_id: serverId
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            button.textContent = 'Joined!';
-            button.classList.remove('bg-discord-primary', 'hover:bg-discord-primary/90');
-            button.classList.add('bg-discord-green');
-            
-            if (window.showToast) {
-                window.showToast('Successfully joined server!', 'success');
+    ServerAPI.joinServer({ server_id: serverId })
+        .then(data => {
+            if (data.success) {
+                button.textContent = 'Joined!';
+                button.classList.remove('bg-discord-primary', 'hover:bg-discord-primary/90');
+                button.classList.add('bg-discord-green');
+                
+                if (window.showToast) {
+                    window.showToast('Successfully joined server!', 'success');
+                }
+                
+                setTimeout(() => {
+                    window.location.href = `/server/${serverId}`;
+                }, 1500);
+            } else {
+                button.textContent = originalText;
+                button.disabled = false;
+                
+                if (window.showToast) {
+                    window.showToast(data.message || 'Failed to join server', 'error');
+                }
             }
-            
-            // Redirect to server after a brief delay
-            setTimeout(() => {
-                window.location.href = `/server/${serverId}`;
-            }, 1500);
-        } else {
+        })
+        .catch(error => {
+            console.error('Error joining server:', error);
             button.textContent = originalText;
             button.disabled = false;
             
             if (window.showToast) {
-                window.showToast(data.message || 'Failed to join server', 'error');
+                window.showToast('Error joining server', 'error');
             }
-        }
-    })
-    .catch(error => {
-        console.error('Error joining server:', error);
-        button.textContent = originalText;
-        button.disabled = false;
-        
-        if (window.showToast) {
-            window.showToast('Error joining server', 'error');
-        }
-    });
+        });
+}
 }

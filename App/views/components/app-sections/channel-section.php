@@ -1,312 +1,142 @@
 <?php
 if (!isset($currentServer) || empty($currentServer)) {
+    echo '<div class="p-4 text-gray-400 text-center">No server loaded</div>';
     return;
 }
 
-require_once dirname(dirname(dirname(__DIR__))) . '/controllers/ChannelController.php';
-
-$channelController = new ChannelController();
-$channelData = $channelController->getServerChannels($currentServer->id ?? 0);
-
 $currentServerId = $currentServer->id ?? 0;
-$currentUserId = $_SESSION['user_id'] ?? 0;
-$activeChannelId = $channelData['activeChannelId'];
-$channels = $channelData['channels'];
-$categories = $channelData['categories'];
+$activeChannelId = $GLOBALS['activeChannelId'] ?? null;
+$channels = $GLOBALS['serverChannels'] ?? [];
+$categories = $GLOBALS['serverCategories'] ?? [];
 
-$debugMode = isset($_GET['debug']) && $_GET['debug'] === 'true';
-if ($debugMode) {
-    echo '<div style="background-color: #111; color: #0f0; padding: 10px; margin: 10px; border: 1px solid #0f0; font-family: monospace; font-size: 12px; position: fixed; top: 10px; left: 10px; z-index: 9999; max-width: 90%; max-height: 80%; overflow: auto;">';
-    echo '<h3>Channel Debug Info:</h3>';
-    echo '<h4>Channels Count:</h4>';
-    echo '<p>Total channels: ' . count($channels) . '</p>';
-    echo '<h4>Categories Count:</h4>';
-    echo '<p>Total categories: ' . count($categories) . '</p>';
-    echo '<button onclick="this.parentNode.style.display=\'none\'" style="background: #333; color: white; border: none; padding: 5px 10px; margin-top: 10px; cursor: pointer;">Close Debug Panel</button>';
+function getChannelIcon($type) {
+    return match(strtolower($type ?? 'text')) {
+        'voice' => 'volume-high',
+        'announcement' => 'bullhorn', 
+        'forum' => 'users',
+        default => 'hashtag'
+    };
+}
+
+function renderChannel($channel, $activeChannelId) {
+    $type = $channel['type'] ?? 'text';
+    $icon = getChannelIcon($type);
+    $isActive = $activeChannelId == $channel['id'];
+    $activeClass = $isActive ? 'bg-discord-lighten text-white' : '';
+    
+    echo '<div class="channel-item flex items-center py-2 px-3 rounded cursor-pointer text-gray-400 hover:text-gray-300 hover:bg-discord-lighten ' . $activeClass . '" 
+              data-channel-id="' . $channel['id'] . '" 
+              data-channel-type="' . htmlspecialchars($type) . '">';
+    echo '  <i class="fas fa-' . $icon . ' text-xs mr-3 text-gray-500"></i>';
+    echo '  <span class="text-sm">' . htmlspecialchars($channel['name']) . '</span>';
+    if ($type === 'voice') {
+        echo '  <span class="ml-auto text-xs text-gray-500">0</span>';
+    }
     echo '</div>';
-}
-
-$textChannels = [];
-$voiceChannels = [];
-
-if (empty($categories)) {
-    foreach ($channels as $channel) {
-        $type = isset($channel['type_name']) ? $channel['type_name'] : ($channel['type'] ?? 'text');
-
-        if ($type === 'voice' || $type === '2') {
-            $voiceChannels[] = $channel;
-        } else {
-            $textChannels[] = $channel;
-        }
-    }
-}
-
-function getChannelType($channel) {
-
-    if (isset($channel['type_name']) && !empty($channel['type_name'])) {
-        $typeName = strtolower(trim($channel['type_name']));
-        if (in_array($typeName, ['text', 'voice', 'category', 'announcement', 'forum'])) {
-            return $typeName;
-        }
-    }
-
-    if (isset($channel['type'])) {
-        $type = $channel['type'];
-
-        if (is_string($type)) {
-            $typeStr = strtolower(trim($type));
-            if (in_array($typeStr, ['text', 'voice', 'category', 'announcement', 'forum'])) {
-                return $typeStr;
-            }
-        }
-
-        if (is_numeric($type)) {
-            switch ((int)$type) {
-                case 1: return 'text';
-                case 2: return 'voice';
-                case 3: return 'category';
-                case 4: return 'announcement';
-                case 5: return 'forum';
-            }
-        }
-    }
-
-    return 'text';
-}
-
-function getChannelIcon($channelType) {
-
-    switch (strtolower(trim($channelType))) {
-        case 'voice':
-            return 'volume-high';
-        case 'announcement':
-            return 'bullhorn';
-        case 'forum':
-            return 'users';
-        case 'category':
-            return 'folder';
-        case 'text':
-        default:
-            return 'hashtag';
-    }
 }
 ?>
 
+<div class="channel-wrapper h-full w-full overflow-y-auto">
+    <div class="channel-list p-2" data-server-id="<?php echo $currentServerId; ?>">
+        <input type="hidden" id="current-server-id" value="<?php echo $currentServerId; ?>">
+        
+        <?php
+        $uncategorizedChannels = array_filter($channels, function($ch) {
+            return !isset($ch['category_id']) || $ch['category_id'] === null || $ch['category_id'] === '';
+        });
+
+        if (!empty($uncategorizedChannels)):
+            $textChannels = array_filter($uncategorizedChannels, function($ch) {
+                return ($ch['type'] ?? 'text') === 'text';
+            });
+            
+            if (!empty($textChannels)):
+        ?>
+        <div class="channels-section group">
+            <?php foreach ($textChannels as $channel): ?>
+                <?php renderChannel($channel, $activeChannelId); ?>
+            <?php endforeach; ?>
+        </div>
+        <?php 
+            endif;
+            
+            $voiceChannels = array_filter($uncategorizedChannels, function($ch) {
+                return ($ch['type'] ?? 'text') === 'voice';
+            });
+            
+            if (!empty($voiceChannels)):
+        ?>
+        <div class="voice-channels-section group">
+            <?php foreach ($voiceChannels as $channel): ?>
+                <?php renderChannel($channel, $activeChannelId); ?>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+        <?php endif; ?>
+
+        <?php if (empty($channels)): ?>
+        <div class="p-4 text-gray-400 text-center text-sm">No channels available</div>
+        <?php endif; ?>
+    </div>
+</div>
+
+<?php if (isset($_GET['debug'])): ?>
+<div style="position:fixed;top:10px;right:10px;background:#000;color:#0f0;padding:10px;font-size:12px;max-width:300px;z-index:9999;border:1px solid #0f0;">
+    <strong>Debug Info:</strong><br>
+    Channels: <?php echo count($channels); ?><br>
+    Categories: <?php echo count($categories); ?><br>
+    Server ID: <?php echo $currentServerId; ?><br>
+    Active Channel: <?php echo $activeChannelId ?? 'none'; ?><br>
+    <pre style="font-size:10px;max-height:200px;overflow:auto;"><?php echo htmlspecialchars(json_encode($channels, JSON_PRETTY_PRINT)); ?></pre>
+    <button onclick="this.parentNode.style.display='none'" style="background:#333;color:white;border:none;padding:2px 5px;margin-top:5px;">Close</button>
+</div>
+<?php endif; ?>
+
 <style>
 .channel-item {
-    cursor: pointer;
-    transition: background-color 0.2s ease;
+    transition: all 0.15s ease;
+    border-radius: 4px;
 }
 
 .channel-item:hover {
-    background-color: rgba(79, 84, 92, 0.16);
+    background-color: rgba(79, 84, 92, 0.16) !important;
 }
 
-.category-header {
-    cursor: pointer;
-    transition: color 0.2s ease;
-}
-
-.category-channels.hidden {
-    display: none;
+.group:hover .opacity-0 {
+    opacity: 1 !important;
 }
 </style>
 
-<!-- Channel container wrapper - always visible -->
-<div class="channel-wrapper h-full w-full relative">
-    <meta name="server-id" content="<?php echo $currentServerId; ?>">    <!-- Channel list container with lazy loading -->
-    <div class="channel-list-container space-y-0 overflow-y-auto scrollbar-thin scrollbar-thumb-discord-light scrollbar-track-transparent" data-server-id="<?php echo $currentServerId; ?>">
-        <!-- Hidden input with server ID for JS -->
-        <input type="hidden" id="current-server-id" value="<?php echo $currentServerId; ?>">
-
-        <?php if (!empty($categories)): ?>
-        <!-- Categories with their channels -->
-        <div class="category-list">
-            <?php foreach ($categories as $category): ?>
-            <div class="category-item my-4" data-category-id="<?php echo $category['id']; ?>">
-                <div class="category-header flex items-center justify-between text-gray-400 hover:text-gray-300 mb-1 px-1 py-1 rounded cursor-pointer">
-                    <div class="flex items-center">
-                        <span class="drag-handle mr-1 opacity-40 hover:opacity-100"><i class="fas fa-grip-lines fa-xs"></i></span>
-                        <i class="fas fa-chevron-down text-xs mr-1"></i>
-                        <span class="font-semibold uppercase text-xs"><?php echo htmlspecialchars($category['name']); ?></span>
-                    </div>
-                    <div class="flex items-center space-x-1 text-gray-500">
-                        <button class="hover:text-gray-300 text-xs" onclick="showAddChannelToCategory(<?php echo $category['id']; ?>)">
-                            <i class="fas fa-plus"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="category-channels pl-2">
-                    <?php
-                    $categoryChannels = array_filter($channels, function($ch) use ($category) {
-                        return isset($ch['category_id']) && $ch['category_id'] == $category['id'];
-                    });
-
-                    foreach ($categoryChannels as $channel):
-                        $channelType = getChannelType($channel);
-                        $channelIcon = getChannelIcon($channelType);
-                        $isActive = $activeChannelId == $channel['id'];
-                    ?>                    <div class="channel-item flex items-center justify-between py-1 px-2 rounded text-gray-400 hover:text-gray-300 hover:bg-discord-lighten <?php echo $isActive ? 'bg-discord-lighten text-white' : ''; ?>" 
-                         data-channel-id="<?php echo $channel['id']; ?>"
-                         data-channel-type="<?php echo htmlspecialchars($channelType); ?>">
-                        <div class="flex items-center w-full">
-                            <span class="drag-handle mr-1 opacity-0 hover:opacity-50"><i class="fas fa-grip-lines fa-xs"></i></span>
-                            <span class="channel-name text-sm truncate"><?php echo htmlspecialchars($channel['name']); ?></span>
-
-                            <div class="ml-auto flex items-center">
-                                <?php if (($channel['is_private'] ?? false) === true): ?>
-                                    <i class="fas fa-lock text-xs mr-2" title="Private channel"></i>
-                                <?php endif; ?>
-
-                                <?php if ($channelType === 'voice'): ?>
-                                    <span class="text-xs text-gray-500">0/99</span>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                    </div>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-            <?php endforeach; ?>
-        </div>
-
-        <!-- Uncategorized channels -->
-        <div class="my-4">
-            <div class="text-gray-400 flex items-center justify-between mb-1 px-1">
-                <div class="font-semibold uppercase text-xs">Channels</div>
-                <button class="text-xs hover:text-gray-300" onclick="openCreateChannelModal()">
-                    <i class="fas fa-plus"></i>
-                </button>
-            </div>
-
-            <div class="uncategorized-channels pl-2">
-                <?php
-                $uncategorizedChannels = array_filter($channels, function($ch) {
-                    return !isset($ch['category_id']) || empty($ch['category_id']);
-                });
-
-                foreach ($uncategorizedChannels as $channel):
-                    $channelType = getChannelType($channel);
-                    $channelIcon = getChannelIcon($channelType);
-                    $isActive = $activeChannelId == $channel['id'];
-                ?>                <div class="channel-item flex items-center justify-between py-1 px-2 rounded text-gray-400 hover:text-gray-300 hover:bg-discord-lighten <?php echo $isActive ? 'bg-discord-lighten text-white' : ''; ?>" 
-                     data-channel-id="<?php echo $channel['id']; ?>"
-                     data-channel-type="<?php echo htmlspecialchars($channelType); ?>">
-                    <div class="flex items-center w-full">
-                        <span class="drag-handle mr-1 opacity-0 hover:opacity-50"><i class="fas fa-grip-lines fa-xs"></i></span>
-                        <span class="channel-name text-sm truncate"><?php echo htmlspecialchars($channel['name']); ?></span>
-                        <?php if (($channel['is_private'] ?? false) === true): ?>
-                            <i class="fas fa-lock ml-auto text-xs" title="Private channel"></i>
-                        <?php endif; ?>
-
-                        <?php if ($channelType === 'voice'): ?>
-                            <span class="ml-auto text-xs text-gray-500">0/99</span>
-                        <?php endif; ?>
-                    </div>
-                </div>
-                <?php endforeach; ?>
-            </div>
-        </div>
-        <?php else: ?>
-        <!-- No categories, simple channel list -->        <div class="my-4">
-            <div class="text-gray-400 flex items-center justify-between mb-1 px-1">
-                <div class="font-semibold uppercase text-xs">Channels</div>
-            </div>
-
-            <div class="uncategorized-channels pl-2">
-                <?php foreach ($textChannels as $channel): 
-                    $isActive = $activeChannelId == $channel['id'];
-                    $channelType = getChannelType($channel);
-                    $channelIcon = getChannelIcon($channelType);
-                ?>                <div class="channel-item flex items-center justify-between py-1 px-2 rounded text-gray-400 hover:text-gray-300 hover:bg-discord-lighten <?php echo $isActive ? 'bg-discord-lighten text-white' : ''; ?>" 
-                     data-channel-id="<?php echo $channel['id']; ?>"
-                     data-channel-type="<?php echo htmlspecialchars($channelType); ?>">
-                    <div class="flex items-center w-full">
-                        <span class="drag-handle mr-1 opacity-40 hover:opacity-100"><i class="fas fa-grip-lines fa-xs"></i></span>
-                        <span class="channel-name text-sm truncate"><?php echo htmlspecialchars($channel['name']); ?></span>
-                        <?php if (($channel['is_private'] ?? false) === true): ?>
-                            <i class="fas fa-lock ml-auto text-xs" title="Private channel"></i>
-                        <?php endif; ?>
-                    </div>
-                </div>
-                <?php endforeach; ?>
-            </div>
-        </div>
-
-        <?php if (!empty($voiceChannels)): ?>
-        <div class="my-4">
-            <div class="text-gray-400 flex items-center justify-between mb-1 px-1">
-                <div class="font-semibold uppercase text-xs">Voice Channels</div>
-                <button class="text-xs hover:text-gray-300" onclick="openCreateChannelModal('voice')">
-                    <i class="fas fa-plus"></i>
-                </button>
-            </div>
-
-            <div class="voice-channels pl-2">
-                <?php foreach ($voiceChannels as $channel): 
-                    $isActive = $activeChannelId == $channel['id'];
-                    $channelType = getChannelType($channel);
-                    $channelIcon = getChannelIcon($channelType);
-                ?>                <div class="channel-item flex items-center justify-between py-1 px-2 rounded text-gray-400 hover:text-gray-300 hover:bg-discord-lighten <?php echo $isActive ? 'bg-discord-lighten text-white' : ''; ?>" 
-                     data-channel-id="<?php echo $channel['id']; ?>"
-                     data-channel-type="<?php echo htmlspecialchars($channelType); ?>">
-                    <div class="flex items-center w-full">
-                        <span class="drag-handle mr-1 opacity-0 hover:opacity-50"><i class="fas fa-grip-lines fa-xs"></i></span>
-                        <span class="channel-name text-sm truncate"><?php echo htmlspecialchars($channel['name']); ?></span>
-                        <?php if (($channel['is_private'] ?? false) === true): ?>
-                            <i class="fas fa-lock ml-auto text-xs" title="Private channel"></i>
-                        <?php endif; ?>
-                        <span class="ml-auto text-xs text-gray-500">0/99</span>
-                    </div>
-                </div>
-                <?php endforeach; ?>
-            </div>
-        </div>
-        <?php endif; ?>
-
-        <?php endif; ?>    </div>
-</div>
-
-<!-- Script to handle channel navigation -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Add click handlers to channel items
-    document.querySelectorAll('.channel-item').forEach(item => {
+    console.log('Channel section initialized');
+    
+    const channelItems = document.querySelectorAll('.channel-item');
+    console.log('Found channels:', channelItems.length);
+    
+    channelItems.forEach(item => {
         item.addEventListener('click', function() {
             const channelId = this.getAttribute('data-channel-id');
-            const channelType = this.getAttribute('data-channel-type');
+            const channelType = this.getAttribute('data-channel-type'); 
+            const serverId = document.querySelector('#current-server-id')?.value;
             
-            if (channelId && channelType === 'text') {
-                const serverId = document.querySelector('#current-server-id')?.value;
-                if (serverId) {
+            channelItems.forEach(el => {
+                el.classList.remove('bg-discord-lighten', 'text-white');
+            });
+            this.classList.add('bg-discord-lighten', 'text-white');
+            
+            if (channelId && serverId) {
+                if (channelType === 'text') {
                     window.location.href = `/server/${serverId}?channel=${channelId}`;
-                }
-            }
-        });
-    });
-    
-    // Add click handlers to category headers
-    document.querySelectorAll('.category-header').forEach(header => {
-        header.addEventListener('click', function(e) {
-            if (!e.target.matches('button, i.fa-plus')) {
-                const category = header.parentElement;
-                const channels = category.querySelector('.category-channels');
-                const icon = header.querySelector('i.fa-chevron-down, i.fa-chevron-right');
-                
-                if (channels && icon) {
-                    channels.classList.toggle('hidden');
-                    
-                    if (channels.classList.contains('hidden')) {
-                        icon.classList.remove('fa-chevron-down');
-                        icon.classList.add('fa-chevron-right');
-                    } else {
-                        icon.classList.remove('fa-chevron-right');
-                        icon.classList.add('fa-chevron-down');
-                    }
+                } else if (channelType === 'voice') {
+                    console.log('Voice channel clicked:', channelId);
                 }
             }
         });
     });
 });
+
+function openCreateChannelModal(type = 'text') {
+    console.log('Create channel modal:', type);
+}
 </script>

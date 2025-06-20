@@ -1,4 +1,6 @@
 import { showToast } from '../../core/ui/toast.js';
+import { ServerAPI } from '../../api/server-api.js';
+import { ChannelAPI } from '../../api/channel-api.js';
 
 if (typeof window !== 'undefined' && window.logger) {
     window.logger.info('server', 'server-dropdown.js loaded successfully - UPDATED VERSION');
@@ -332,29 +334,13 @@ function showLeaveServerConfirmation() {
 }
 
 function loadInviteLink(serverId) {
-
     const inviteLinkInput = document.getElementById('invite-link');
     if (inviteLinkInput) {
         inviteLinkInput.value = "Loading...";
         inviteLinkInput.disabled = true;
     }
 
-    fetch(`/api/servers/${serverId}`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`Server returned status ${response.status}`);
-            }
-
-            const contentType = response.headers.get('content-type');
-            if (contentType && contentType.includes('application/json')) {
-                return response.json();
-            } else {
-                return response.text().then(text => {
-                    console.error('Server returned HTML instead of JSON:', text);
-                    throw new Error('Server error - received HTML response instead of JSON');
-                });
-            }
-        })
+    ServerAPI.getServer(serverId)
         .then(data => {
             console.log('Server data received:', data);
 
@@ -366,7 +352,6 @@ function loadInviteLink(serverId) {
                     inviteLinkInput.value = fullInviteLink;
                     inviteLinkInput.select();
                 } else {
-
                     inviteLinkInput.value = "";
                     inviteLinkInput.placeholder = "Click 'Generate New Link' to create an invite";
                 }
@@ -400,78 +385,45 @@ function generateNewInvite(serverId) {
     generateBtn.textContent = 'Generating...';
     generateBtn.disabled = true;
 
-    fetch(`/api/servers/${serverId}/invite`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        }
-    })
-    .then(response => {
+    ServerAPI.generateInvite(serverId)
+        .then(data => {
+            console.log('Invite generation response:', data);
+            if (data.success) {
+                let inviteCode = null;
 
-        if (!response.ok) {
-            throw new Error(`Server returned status ${response.status}`);
-        }
+                if (data.invite_code) {
+                    inviteCode = data.invite_code;
+                } else if (data.data && data.data.invite_code) {
+                    inviteCode = data.data.invite_code;
+                }
 
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-            return response.json();
-        } else {
-            return response.text().then(text => {
-                console.error('Server returned HTML instead of JSON:', text);
-                throw new Error('Server error - received HTML response instead of JSON');
-            });
-        }
-    })
-    .then(data => {
-        console.log('Invite generation response:', data);
-        if (data.success) {
-            let inviteCode = null;
+                if (inviteCode) {
+                    const fullInviteLink = `${window.location.origin}/join/${inviteCode}`;
+                    const inviteLinkInput = document.getElementById('invite-link');
 
-            if (data.invite_code) {
-                inviteCode = data.invite_code;
-            } else if (data.data && data.data.invite_code) {
-                inviteCode = data.data.invite_code;
-            }
+                    inviteLinkInput.value = fullInviteLink;
+                    inviteLinkInput.select(); 
 
-            if (inviteCode) {
-                const fullInviteLink = `${window.location.origin}/join/${inviteCode}`;
-                const inviteLinkInput = document.getElementById('invite-link');
-
-                inviteLinkInput.value = fullInviteLink;
-                inviteLinkInput.select(); 
-
-                showToast('New invite link generated!', 'success');
+                    showToast('New invite link generated!', 'success');
+                } else {
+                    throw new Error('Invalid response format: invite code not found');
+                }
             } else {
-                throw new Error('Invalid response format: invite code not found');
+                throw new Error(data.message || 'Failed to generate invite link');
             }
-        } else {
-            throw new Error(data.message || 'Failed to generate invite link');
-        }
-    })
-    .catch(error => {
-        console.error('Error generating invite:', error);
-        showToast(`Failed to generate new invite link: ${error.message}`, 'error');
-    })
-    .finally(() => {
-
-        generateBtn.textContent = originalText;
-        generateBtn.disabled = false;
-    });
+        })
+        .catch(error => {
+            console.error('Error generating invite:', error);
+            showToast(`Failed to generate new invite link: ${error.message}`, 'error');
+        })
+        .finally(() => {
+            generateBtn.textContent = originalText;
+            generateBtn.disabled = false;
+        });
 }
 
 function loadServerSettings(serverId) {
-    fetch(`/api/servers/${serverId}`)
-        .then(response => {
-            const contentType = response.headers.get('content-type');
-            if (contentType && contentType.includes('application/json')) {
-                return response.json();
-            } else {
-                return response.text().then(text => {
-                    console.error('Server returned HTML instead of JSON:', text);
-                    throw new Error('Server error - received HTML response instead of JSON');
-                });
-            }
-        })
+    ServerAPI.getServer(serverId)
         .then(data => {
             if (data.success) {
                 const server = data.server;
@@ -497,53 +449,25 @@ function updateServerSettings(e, serverId) {
         is_public: formData.has('is_public')
     };
 
-    fetch(`/api/servers/${serverId}/settings`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => {
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-            return response.json();
-        } else {
-            return response.text().then(text => {
-                console.error('Server returned HTML instead of JSON:', text);
-                throw new Error('Server error - received HTML response instead of JSON');
-            });
-        }
-    })
-    .then(data => {
-        if (data.success) {
-            showToast('Server settings updated successfully!', 'success');
-            closeModal('server-settings-modal');
+    ServerAPI.updateServerSettings(serverId, data)
+        .then(data => {
+            if (data.success) {
+                showToast('Server settings updated successfully!', 'success');
+                closeModal('server-settings-modal');
 
-            setTimeout(() => window.location.reload(), 1000);
-        } else {
-            throw new Error(data.message);
-        }
-    })
-    .catch(error => {
-        console.error('Error updating server settings:', error);
-        showToast('Failed to update server settings', 'error');
-    });
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                throw new Error(data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error updating server settings:', error);
+            showToast('Failed to update server settings', 'error');
+        });
 }
 
 function loadCategories(serverId) {
-    fetch(`/api/servers/${serverId}/channels`)
-        .then(response => {
-            const contentType = response.headers.get('content-type');
-            if (contentType && contentType.includes('application/json')) {
-                return response.json();
-            } else {
-                return response.text().then(text => {
-                    console.error('Server returned HTML instead of JSON:', text);
-                    throw new Error('Server error - received HTML response instead of JSON');
-                });
-            }
-        })
+    ServerAPI.getServerChannels(serverId)
         .then(data => {
             const categorySelect = document.getElementById('channel-category');
             categorySelect.innerHTML = '<option value="">No Category</option>';
@@ -568,36 +492,22 @@ function createChannel(e, serverId) {
     const formData = new FormData(e.target);
     formData.append('server_id', serverId);
 
-    fetch('/api/channels', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => {
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-            return response.json();
-        } else {
-            return response.text().then(text => {
-                console.error('Server returned HTML instead of JSON:', text);
-                throw new Error('Server error - received HTML response instead of JSON');
-            });
-        }
-    })
-    .then(data => {
-        if (data.success) {
-            showToast('Channel created successfully!', 'success');
-            closeModal('create-channel-modal');
-            resetForm('create-channel-form');
+    ChannelAPI.createChannel(formData)
+        .then(data => {
+            if (data.success) {
+                showToast('Channel created successfully!', 'success');
+                closeModal('create-channel-modal');
+                resetForm('create-channel-form');
 
-            refreshChannelList(serverId);
-        } else {
-            showToast('Error: ' + (data.message || 'Something went wrong!'), 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showToast('Error creating channel. Please try again.', 'error');
-    });
+                refreshChannelList(serverId);
+            } else {
+                showToast('Error: ' + (data.message || 'Something went wrong!'), 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('Error creating channel. Please try again.', 'error');
+        });
 }
 
 function resetForm(formId) {
@@ -612,50 +522,26 @@ function createCategory(e, serverId) {
 
     const formData = new FormData(e.target);
     formData.append('server_id', serverId);
-      fetch('/api/categories', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => {
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-            return response.json();
-        } else {
-            return response.text().then(text => {
-                console.error('Server returned HTML instead of JSON:', text);
-                throw new Error('Server error - received HTML response instead of JSON');
-            });
-        }
-    })
-    .then(data => {
-        if (data.success) {
-            showToast('Category created successfully!', 'success');
-            closeModal('create-category-modal');
+    
+    ChannelAPI.createCategory(formData)
+        .then(data => {
+            if (data.success) {
+                showToast('Category created successfully!', 'success');
+                closeModal('create-category-modal');
 
-            setTimeout(() => window.location.reload(), 1000);
-        } else {
-            throw new Error(data.message);
-        }
-    })
-    .catch(error => {
-        console.error('Error creating category:', error);
-        showToast('Failed to create category', 'error');
-    });
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                throw new Error(data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error creating category:', error);
+            showToast('Failed to create category', 'error');
+        });
 }
 
 function loadNotificationSettings(serverId) {
-    fetch(`/api/servers/${serverId}/notifications`)
-        .then(response => {
-            const contentType = response.headers.get('content-type');
-            if (contentType && contentType.includes('application/json')) {
-                return response.json();
-            } else {
-                return response.text().then(text => {
-                    console.error('Server returned HTML instead of JSON:', text);
-                    throw new Error('Server error - received HTML response instead of JSON');
-                });
-            }
-        })
+    ServerAPI.getNotificationSettings(serverId)
         .then(data => {
             if (data.success && data.settings) {
                 const settings = data.settings;
@@ -691,51 +577,24 @@ function updateNotificationSettings(e, serverId) {
         suppress_everyone: formData.has('suppress_everyone'),
         suppress_roles: formData.has('suppress_roles')
     };
-      fetch(`/api/servers/${serverId}/notifications`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => {
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-            return response.json();
-        } else {
-            return response.text().then(text => {
-                console.error('Server returned HTML instead of JSON:', text);
-                throw new Error('Server error - received HTML response instead of JSON');
-            });
-        }
-    })
-    .then(data => {
-        if (data.success) {
-            showToast('Notification settings updated!', 'success');
-            closeModal('notification-settings-modal');
-        } else {
-            throw new Error(data.message);
-        }
-    })
-    .catch(error => {
-        console.error('Error updating notification settings:', error);
-        showToast('Failed to update notification settings', 'error');
-    });
+    
+    ServerAPI.updateNotificationSettings(serverId, data)
+        .then(data => {
+            if (data.success) {
+                showToast('Notification settings updated!', 'success');
+                closeModal('notification-settings-modal');
+            } else {
+                throw new Error(data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error updating notification settings:', error);
+            showToast('Failed to update notification settings', 'error');
+        });
 }
 
 function loadPerServerProfile(serverId) {
-    fetch(`/api/servers/${serverId}/profile`)
-        .then(response => {
-            const contentType = response.headers.get('content-type');
-            if (contentType && contentType.includes('application/json')) {
-                return response.json();
-            } else {
-                return response.text().then(text => {
-                    console.error('Server returned HTML instead of JSON:', text);
-                    throw new Error('Server error - received HTML response instead of JSON');
-                });
-            }
-        })
+    ServerAPI.getPerServerProfile(serverId)
         .then(data => {
             if (data.success && data.profile) {
                 document.getElementById('profile-nickname').value = data.profile.nickname || '';
@@ -755,70 +614,37 @@ function updatePerServerProfile(e, serverId) {
         nickname: formData.get('nickname')
     };
 
-    fetch(`/api/servers/${serverId}/profile`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => {
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-            return response.json();
-        } else {
-            return response.text().then(text => {
-                console.error('Server returned HTML instead of JSON:', text);
-                throw new Error('Server error - received HTML response instead of JSON');
-            });
-        }
-    })
-    .then(data => {
-        if (data.success) {
-            showToast('Server profile updated!', 'success');
-            closeModal('edit-profile-modal');
-        } else {
-            throw new Error(data.message);
-        }
-    })
-    .catch(error => {
-        console.error('Error updating server profile:', error);
-        showToast('Failed to update server profile', 'error');
-    });
+    ServerAPI.updatePerServerProfile(serverId, data)
+        .then(data => {
+            if (data.success) {
+                showToast('Server profile updated!', 'success');
+                closeModal('edit-profile-modal');
+            } else {
+                throw new Error(data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error updating server profile:', error);
+            showToast('Failed to update server profile', 'error');
+        });
 }
 
 function leaveServer(serverId) {
-    fetch(`/api/servers/${serverId}/leave`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        }
-    })
-    .then(response => {
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-            return response.json();
-        } else {
-            return response.text().then(text => {
-                console.error('Server returned HTML instead of JSON:', text);
-                throw new Error('Server error - received HTML response instead of JSON');
-            });
-        }
-    })
-    .then(data => {
-        if (data.success) {
-            showToast('You have left the server', 'success');
-            closeModal('leave-server-modal');
+    ServerAPI.leaveServer(serverId)
+        .then(data => {
+            if (data.success) {
+                showToast('You have left the server', 'success');
+                closeModal('leave-server-modal');
 
-            setTimeout(() => window.location.href = '/home', 1000);
-        } else {
-            throw new Error(data.message);
-        }
-    })
-    .catch(error => {
-        console.error('Error leaving server:', error);
-        showToast('Failed to leave server', 'error');
-    });
+                setTimeout(() => window.location.href = '/home', 1000);
+            } else {
+                throw new Error(data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error leaving server:', error);
+            showToast('Failed to leave server', 'error');
+        });
 }
 
 function getCurrentServerId() {
@@ -842,7 +668,6 @@ function closeModal(modalId) {
 }
 
 function refreshChannelList(serverId) {
-
     if (typeof window.loadChannels === 'function') {
         window.loadChannels(serverId);
         return;
@@ -851,12 +676,10 @@ function refreshChannelList(serverId) {
     const channelContainer = document.getElementById('channel-container');
     if (!channelContainer) return;
 
-    fetch(`/api/servers/${serverId}/channels`)
-        .then(response => response.json())
+    ServerAPI.getServerChannels(serverId)
         .then(data => {
             if (data.success) {
                 console.log('Channels loaded successfully');
-
                 window.location.reload();
             } else {
                 console.error('Error loading channels:', data.message);

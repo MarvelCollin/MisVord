@@ -1,5 +1,6 @@
 import { MisVordAjax } from '../../core/ajax/ajax-handler.js';
 import { showToast } from '../../core/ui/toast.js';
+import { ServerAPI } from '../../api/server-api.js';
 
 document.addEventListener('DOMContentLoaded', function() {
     initServerManager();
@@ -21,34 +22,30 @@ function ensureServerDataLoaded() {
         if (serverId) {
             const serverContainer = document.querySelector('.server-list-container');
             
-            // Check if we need to load server data
-            if (serverContainer && serverContainer.children.length === 0) {
-                MisVordAjax.get(`/api/servers/${serverId}`, {
-                    onSuccess: function(response) {
+            // Check if we need to load server data            if (serverContainer && serverContainer.children.length === 0) {
+                ServerAPI.getServer(serverId)
+                    .then(response => {
                         if (response.success) {
-                            // Server data loaded
                             console.log('Server data loaded successfully');
                             
-                            // Fix for channel list not showing
-                            MisVordAjax.get(`/api/servers/${serverId}/channels`, {
-                                onSuccess: function(channelResponse) {
-                                    if (channelResponse.success) {
-                                        console.log('Channels loaded successfully');
-                                        if (typeof window.channelLoader !== 'undefined' && 
-                                            typeof window.channelLoader.renderChannels === 'function') {
-                                            const container = document.querySelector('.channel-list-container');
-                                            if (container) {
-                                                window.channelLoader.renderChannels(container, channelResponse.data);
-                                            }
-                                        }
-                                    }
-                                },
-                                showToast: false
-                            });
+                            return ServerAPI.getServerChannels(serverId);
                         }
-                    },
-                    showToast: false
-                });
+                    })
+                    .then(channelResponse => {
+                        if (channelResponse && channelResponse.success) {
+                            console.log('Channels loaded successfully');
+                            if (typeof window.channelLoader !== 'undefined' && 
+                                typeof window.channelLoader.renderChannels === 'function') {
+                                const container = document.querySelector('.channel-list-container');
+                                if (container) {
+                                    window.channelLoader.renderChannels(container, channelResponse.data);
+                                }
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error loading server/channel data:', error);
+                    });
             }
         }
     }
@@ -176,15 +173,15 @@ function initServerSettingsForm() {
 }
 
 function refreshServerList() {
-    MisVordAjax.get('/api/servers', {
-        onSuccess: function(response) {
+    ServerAPI.getServers()
+        .then(response => {
             if (response.success && response.data && response.data.servers) {
                 updateServerListUI(response.data.servers);
             }
-        },
-
-        showToast: false
-    });
+        })
+        .catch(error => {
+            console.error('Error refreshing server list:', error);
+        });
 }
 
 function updateServerListUI(servers) {

@@ -24,12 +24,14 @@ const io = new Server(server, {
   cors: {
     origin: socketConfig.corsAllowedOrigins,
     methods: ["GET", "POST"],
-    credentials: true
+    credentials: true,
+    allowedHeaders: ["my-custom-header"]
   },
   path: socketConfig.basePath + socketConfig.subPath,
   pingTimeout: socketConfig.pingTimeout,
   pingInterval: socketConfig.pingInterval,
-  transports: socketConfig.transports
+  transports: socketConfig.transports,
+  allowEIO3: true
 });
 
 // Set up API routes

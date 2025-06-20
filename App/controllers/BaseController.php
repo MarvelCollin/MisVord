@@ -187,15 +187,14 @@ class BaseController
     protected function successResponse($data = null, $message = 'Success')
     {
         return $this->success($data, $message);
-    }
-
-    protected function error($message, $statusCode = 400, $data = null)
+    }    protected function error($message, $statusCode = 400, $data = null)
     {
         $response = ['error' => $message];
         if ($data !== null) {
             $response['data'] = $data;
         }
         $this->jsonResponse($response, $statusCode);
+        return false; // Add return for consistency
     }
 
     protected function validationError($errors, $message = 'Validation failed')

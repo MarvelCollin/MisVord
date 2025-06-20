@@ -11,10 +11,15 @@ class UserRepository extends Repository {
     
     public function findByEmail($email) {
         return User::findByEmail($email);
+    }    public function findByUsername($username) {
+        return User::findByUsername($username);
+    }
+      public function findByDisplayName($displayName) {
+        return User::findByDisplayName($displayName);
     }
     
-    public function findByUsername($username) {
-        return User::findByUsername($username);
+    public function findByUsernameAndDiscriminator($username, $discriminator) {
+        return User::findByUsernameAndDiscriminator($username, $discriminator);
     }
     
     public function findByGoogleId($googleId) {

@@ -12,7 +12,8 @@ class AuthenticationController extends BaseController
     {
         parent::__construct();
         $this->userRepository = new UserRepository();
-    }    public function showLogin()
+    }
+    public function showLogin()
     {
         // Debug session state
         if (function_exists('logger')) {
@@ -23,7 +24,7 @@ class AuthenticationController extends BaseController
                 'request_uri' => $_SERVER['REQUEST_URI'] ?? ''
             ]);
         }
-        
+
         if ($this->isAuthenticated()) {
             $redirect = $_GET['redirect'] ?? '/app';
 
@@ -56,9 +57,9 @@ class AuthenticationController extends BaseController
         }
 
         require_once __DIR__ . '/../views/pages/authentication-page.php';
-    }    public function login()
+    }
+    public function login()
     {
-        // Debug session state at start of login
         if (function_exists('logger')) {
             logger()->debug("login method called", [
                 'session_status' => session_status(),
@@ -68,7 +69,7 @@ class AuthenticationController extends BaseController
             ]);
         }
 
-         if ($this->isAuthenticated()) {
+        if ($this->isAuthenticated()) {
             if ($this->isApiRoute() || $this->isAjaxRequest()) {
                 return $this->redirectResponse('/app');
             }
@@ -97,7 +98,8 @@ class AuthenticationController extends BaseController
             }
 
             $_SESSION['errors'] = ['auth' => 'Invalid email or password'];
-            $_SESSION['old_input'] = ['email' => $email];            if (!headers_sent()) {
+            $_SESSION['old_input'] = ['email' => $email];
+            if (!headers_sent()) {
                 header('Location: /login');
             }
             exit;
@@ -109,7 +111,7 @@ class AuthenticationController extends BaseController
                 'user_discriminator' => $user->discriminator,
                 'user_avatar_url' => $user->avatar_url,
                 'user_class' => get_class($user),
-                'user_reflection' => (function($obj) {
+                'user_reflection' => (function ($obj) {
                     try {
                         $reflection = new ReflectionClass($obj);
                         $properties = [];
@@ -124,7 +126,7 @@ class AuthenticationController extends BaseController
                 })($user)
             ]);
         }
-        
+
         $_SESSION['user_id'] = $user->id;
         $_SESSION['username'] = $user->username;
         $_SESSION['discriminator'] = $user->discriminator;
@@ -142,7 +144,8 @@ class AuthenticationController extends BaseController
 
         $this->logActivity('login_success', ['user_id' => $user->id]);
 
-        $redirect = $this->getRedirectUrl();        if ($this->isApiRoute() || $this->isAjaxRequest()) {
+        $redirect = $this->getRedirectUrl();
+        if ($this->isApiRoute() || $this->isAjaxRequest()) {
             return $this->success([
                 'user' => [
                     'id' => $user->id,

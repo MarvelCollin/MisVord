@@ -12,13 +12,11 @@ function initServerIconUpload() {
         iconInput.addEventListener('change', function() {
             if (this.files && this.files[0]) {
                 const reader = new FileReader();
-
                 reader.onload = function(e) {
                     iconPreview.src = e.target.result;
                     iconPreview.classList.remove('hidden');
                     iconPlaceholder.classList.add('hidden');
                 }
-
                 reader.readAsDataURL(this.files[0]);
             }
         });
@@ -30,166 +28,288 @@ function initServerFormSubmission() {
     if (serverForm) {
         serverForm.addEventListener('submit', function(e) {
             e.preventDefault();
-
-            const formData = new FormData(this);
-            
-            const modal = document.getElementById('create-server-modal');
-            const loadingIndicator = document.createElement('div');
-            loadingIndicator.className = 'flex items-center justify-center absolute inset-0 bg-discord-dark bg-opacity-80 z-10';
-            loadingIndicator.innerHTML = '<div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-discord-blue"></div>';
-            
-            if (modal) {
-                modal.appendChild(loadingIndicator);
-            }
-
-            fetch('/api/servers/create', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log('Server creation response:', JSON.stringify(data, null, 2));
-                
-                if (data.success) {
-                    let serverId = null;
-                    
-                    try {
-                        if (data.data && data.data.server && data.data.server.id) {
-                            serverId = data.data.server.id;
-                        } else if (data.data && data.data.redirect) {
-                            const match = data.data.redirect.match(/\/servers\/(\d+)/);
-                            if (match && match[1]) {
-                                serverId = match[1];
-                            }
-                        }
-                    } catch (err) {
-                        console.error('Error processing server response:', err);
-                    }
-                    
-                    if (serverId) {
-                        if (typeof window.navigateToServer === 'function') {
-                            if (modal) {
-                                modal.classList.add('hidden');
-                                if (loadingIndicator) {
-                                    loadingIndicator.remove();
-                                }
-                            }
-                            window.navigateToServer(serverId);
-                        } else {
-                            window.location.href = '/server/' + serverId;
-                        }
-                    } else {
-                        window.location.href = '/app';
-                    }
-                } else {
-                    if (loadingIndicator) {
-                        loadingIndicator.remove();
-                    }
-                    
-                    let errorMsg = 'Unknown error';
-                    if (data.error && data.error.message) {
-                        errorMsg = data.error.message;
-                    } else if (data.message) {
-                        errorMsg = data.message;
-                    }
-                    alert('Failed to create server: ' + errorMsg);
-                }
-            })
-            .catch(error => {
-                if (loadingIndicator) {
-                    loadingIndicator.remove();
-                }
-                window.logger.error('server', 'Error creating server:', error);
-                alert('An error occurred while creating the server');
-            });
+            handleServerCreation(this);
         });
     }
 }
 
-if (typeof window !== 'undefined') {
-    window.navigateToServer = function(serverId) {
-        fetch('/api/servers/' + serverId)
-            .then(response => response.json())
-            .then(data => {
-                if (data.success && data.data) {
-                    const serverList = document.querySelector('.server-list');
-                    if (serverList) {
-                        const newServerItem = createServerListItem(data.data.server);
-                        serverList.appendChild(newServerItem);
-                        
-                        setTimeout(() => {
-                            const serverItems = document.querySelectorAll('.server-item');
-                            serverItems.forEach(item => item.classList.remove('active'));
-                            newServerItem.classList.add('active');
-                            
-                            const serverContent = document.querySelector('.server-content');
-                            if (serverContent) {
-                                loadServerContent(serverId, serverContent);
-                            }
-                        }, 100);                    } else {
-                        window.location.href = '/server/' + serverId;
-                    }
-                } else {
-                    window.location.href = '/server/' + serverId;
-                }
-            })
-            .catch(error => {
-                window.logger.error('server', 'Error navigating to server:', error);
-                window.location.href = '/server/' + serverId;
-            });
-    };
+function handleServerCreation(form) {
+    const formData = new FormData(form);
+    const modal = document.getElementById('create-server-modal');
+    const submitBtn = form.querySelector('button[type="submit"]');
     
-    function createServerListItem(server) {
-        const serverItem = document.createElement('div');
-        serverItem.className = 'server-item flex items-center justify-center w-12 h-12 rounded-full bg-discord-dark hover:bg-discord-blue mb-2 cursor-pointer relative group transition-all duration-200';
-        serverItem.setAttribute('data-server-id', server.id);
-        serverItem.setAttribute('data-tooltip', server.name);
-        
-        if (server.image_url) {
-            serverItem.innerHTML = `<img src="${server.image_url}" alt="${server.name}" class="w-full h-full object-cover rounded-full">`;
+    showLoading(submitBtn);
+    
+    ServerAPI.createServer(formData)
+    .then(data => {
+        hideLoading(submitBtn);        if (data.success) {
+            const server = data.data.server;
+            
+            try {
+                addServerToSidebar(server);
+            } catch (error) {
+                console.error('Failed to add server to sidebar dynamically:', error);
+                refreshSidebar();
+            }
+            
+            closeModal(modal);
+            resetForm(form);
+            navigateToNewServer(server.id);
         } else {
-            const initials = server.name.substring(0, 2).toUpperCase();
-            serverItem.innerHTML = `<span class="text-white font-medium">${initials}</span>`;
+            showError(data.message || 'Failed to create server');
         }
-        
-        serverItem.onclick = function() {
-            window.navigateToServer(server.id);
-        };
-        
-        return serverItem;
-    }
+    })
+    .catch(error => {
+        hideLoading(submitBtn);
+        showError('Network error occurred');
+        console.error('Server creation error:', error);
+    });
+}
+
+function addServerToSidebar(server) {
+    const sidebar = document.querySelector('.w-\\[72px\\]') || 
+                   document.querySelector('.server-sidebar') ||
+                   document.querySelector('[class*="server"]');
     
-    function loadServerContent(serverId, container) {
-        container.innerHTML = '<div class="flex items-center justify-center h-full"><div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-discord-blue"></div></div>';
+    if (sidebar) {
+        const addButton = sidebar.querySelector('[data-action="create-server"]');
+        const addButtonContainer = addButton ? addButton.closest('.tooltip-wrapper') || addButton.parentElement : null;
         
-        fetch('/server/' + serverId)
-            .then(response => response.text())
-            .then(html => {
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-                const serverContent = doc.querySelector('.server-content');
-                
-                if (serverContent) {
-                    container.innerHTML = serverContent.innerHTML;
-                    
-                    const scripts = Array.from(doc.querySelectorAll('script')).filter(script => !script.src);
-                    scripts.forEach(script => {
-                        if (script.textContent) {
-                            try {
-                                eval(script.textContent);
-                            } catch (err) {
-                                console.error('Error executing script:', err);
-                            }
-                        }
-                    });
-                      history.pushState({serverId: serverId}, 'Server - ' + serverId, '/server/' + serverId);
-                } else {
-                    window.location.href = '/server/' + serverId;
+        if (addButtonContainer) {
+            const serverItem = createServerItem(server);
+            addButtonContainer.parentNode.insertBefore(serverItem, addButtonContainer);
+            setActiveServer(serverItem);
+            
+            if (!sidebar.querySelector('.w-8.h-0\\.5')) {
+                const separator = document.createElement('div');
+                separator.className = 'w-8 h-0.5 bg-discord-dark rounded my-1';
+                const homeButton = sidebar.querySelector('[href="/"]') || sidebar.querySelector('[href="/home"]');
+                const homeContainer = homeButton ? homeButton.closest('.tooltip-wrapper') || homeButton.parentElement : null;
+                if (homeContainer && homeContainer.nextSibling) {
+                    homeContainer.parentNode.insertBefore(separator, homeContainer.nextSibling);
                 }
-            })
-            .catch(error => {
-                window.logger.error('server', 'Error loading server content:', error);
-                window.location.href = '/server/' + serverId;
-            });
+            }
+        }
     }
-} 
+}
+
+function createServerItem(server) {
+    const serverItem = document.createElement('div');
+    serverItem.className = 'tooltip-wrapper mb-2';
+    
+    const serverContent = `
+        <div class="relative server-icon" data-server-id="${server.id}">
+            <a href="/server/${server.id}" class="block group">
+                <div class="w-12 h-12 overflow-hidden rounded-full hover:rounded-2xl bg-discord-dark transition-all duration-200 flex items-center justify-center">
+                    ${server.image_url ? 
+                        `<img src="${server.image_url}" alt="${server.name}" class="w-full h-full object-cover">` :
+                        `<span class="text-white font-bold text-xl">${server.name.substring(0, 1).toUpperCase()}</span>`
+                    }
+                </div>
+            </a>
+            <div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-0 bg-white rounded-r-md group-hover:h-5 transition-all duration-150"></div>
+        </div>
+    `;
+    
+    serverItem.innerHTML = serverContent;
+    
+    const tooltip = document.createElement('div');
+    tooltip.className = 'tooltip tooltip-right opacity-0 invisible absolute left-full top-1/2 -translate-y-1/2 ml-3 bg-black text-white px-2 py-1 rounded text-sm whitespace-nowrap z-10 transition-all duration-200';
+    tooltip.textContent = server.name;
+    serverItem.appendChild(tooltip);
+    
+    serverItem.addEventListener('mouseenter', () => {
+        tooltip.classList.remove('opacity-0', 'invisible');
+    });
+    
+    serverItem.addEventListener('mouseleave', () => {
+        tooltip.classList.add('opacity-0', 'invisible');
+    });
+    
+    return serverItem;
+}
+
+function setActiveServer(serverItem) {
+    document.querySelectorAll('.server-icon').forEach(item => {
+        item.classList.remove('active');
+        const serverDiv = item.querySelector('.w-12.h-12');
+        const indicator = item.querySelector('.w-1');
+        
+        if (serverDiv) {
+            serverDiv.classList.remove('rounded-2xl', 'bg-discord-primary');
+            serverDiv.classList.add('rounded-full', 'bg-discord-dark');
+        }
+        if (indicator) {
+            indicator.classList.remove('h-10');
+            indicator.classList.add('h-0');
+        }
+    });
+    
+    const newServerIcon = serverItem.querySelector('.server-icon');
+    if (newServerIcon) {
+        newServerIcon.classList.add('active');
+        const serverDiv = newServerIcon.querySelector('.w-12.h-12');
+        const indicator = newServerIcon.querySelector('.w-1');
+        
+        if (serverDiv) {
+            serverDiv.classList.remove('rounded-full', 'bg-discord-dark');
+            serverDiv.classList.add('rounded-2xl', 'bg-discord-primary');
+        }
+        if (indicator) {
+            indicator.classList.remove('h-0');
+            indicator.classList.add('h-10');
+        }
+    }
+}
+
+function navigateToNewServer(serverId) {
+    const currentPath = window.location.pathname;
+    const newPath = `/server/${serverId}`;
+    
+    if (currentPath !== newPath) {
+        history.pushState({serverId: serverId}, `Server ${serverId}`, newPath);
+        loadServerPage(serverId);
+    }
+}
+
+function loadServerPage(serverId) {
+    const mainContent = document.querySelector('.flex-1') || 
+                       document.querySelector('[class*="server-content"]') ||
+                       document.querySelector('main');
+    
+    if (mainContent) {
+        showPageLoading(mainContent);
+        
+        ServerAPI.redirectToServer(serverId)
+        .then(html => {
+            updatePageContent(mainContent, html);
+        })
+        .catch(error => {
+            console.error('Error loading server page:', error);
+            window.location.href = `/server/${serverId}`;
+        });
+    } else {
+        window.location.href = `/server/${serverId}`;
+    }
+}
+
+function updatePageContent(container, html) {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const newContent = doc.querySelector('.flex-1') || 
+                      doc.querySelector('[class*="server-content"]') ||
+                      doc.body;
+    
+    if (newContent) {
+        container.innerHTML = newContent.innerHTML;
+        executeInlineScripts(doc);
+    }
+}
+
+function executeInlineScripts(doc) {
+    const scripts = doc.querySelectorAll('script:not([src])');
+    scripts.forEach(script => {
+        if (script.textContent.trim()) {
+            try {
+                eval(script.textContent);
+            } catch (error) {
+                console.error('Script execution error:', error);
+            }
+        }
+    });
+}
+
+function refreshSidebar() {
+    const sidebar = document.querySelector('.w-\\[72px\\]') || 
+                   document.querySelector('.server-sidebar');
+    
+    if (sidebar) {
+        ServerAPI.getSidebar()
+        .then(html => {
+            sidebar.innerHTML = html;
+        })
+        .catch(error => {
+            console.error('Failed to refresh sidebar:', error);
+            window.location.reload();
+        });
+    }
+}
+
+function showLoading(button) {
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Creating...';
+}
+
+function hideLoading(button) {
+    button.disabled = false;
+    button.innerHTML = 'Create Server';
+}
+
+function showPageLoading(container) {
+    container.innerHTML = `
+        <div class="flex items-center justify-center h-full">
+            <div class="text-center">
+                <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-discord-blue mx-auto mb-4"></div>
+                <p class="text-gray-400">Loading server...</p>
+            </div>
+        </div>
+    `;
+}
+
+function closeModal(modal) {
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+function resetForm(form) {
+    form.reset();
+    const preview = document.getElementById('server-icon-preview');
+    const placeholder = document.getElementById('server-icon-placeholder');
+    if (preview) preview.classList.add('hidden');
+    if (placeholder) placeholder.classList.remove('hidden');
+}
+
+function showError(message) {
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'fixed top-4 right-4 bg-red-600 text-white px-4 py-2 rounded shadow-lg z-50';
+    errorDiv.textContent = message;
+    document.body.appendChild(errorDiv);
+    
+    setTimeout(() => {
+        errorDiv.remove();
+    }, 5000);
+}
+
+window.navigateToServer = function(serverId) {
+    navigateToNewServer(serverId);
+};
+
+window.openCreateServerModal = function() {
+    const modal = document.getElementById('create-server-modal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        const nameInput = document.getElementById('server-name');
+        if (nameInput) {
+            nameInput.focus();
+        }
+    }
+};
+
+document.addEventListener('click', function(e) {
+    const modal = document.getElementById('create-server-modal');
+    const closeBtn = document.getElementById('close-server-modal');
+    
+    if (e.target === closeBtn || (e.target === modal)) {
+        closeModal(modal);
+    }
+});
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const modal = document.getElementById('create-server-modal');
+        if (modal && !modal.classList.contains('hidden')) {
+            closeModal(modal);
+        }
+    }
+});

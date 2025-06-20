@@ -1,3 +1,5 @@
+import { UserAPI } from '../api/user-api.js';
+
 document.addEventListener('DOMContentLoaded', function() {
     initFriendProfileCards();
     initSearchFilter();
@@ -25,10 +27,7 @@ function showProfileCard(e) {
         window.activeProfileCard = null;
     }
 
-    const rect = friendItem.getBoundingClientRect();
-
-    fetch(`/api/users/${userId}/profile`)
-        .then(response => response.json())
+    const rect = friendItem.getBoundingClientRect();    UserAPI.getUserProfile(userId)
         .then(data => {
             if (!data) return;
 
@@ -323,8 +322,13 @@ function loadPendingRequests() {
     const pendingContainer = document.getElementById('pending-requests');
     if (!pendingContainer) return;
 
-    fetch('/api/friends/pending')
-        .then(response => response.json())
+    if (!window.friendAPI) {
+        console.error('Friend API not loaded');
+        pendingContainer.innerHTML = '<div class="text-gray-400 p-4">Failed to load pending requests</div>';
+        return;
+    }
+
+    window.friendAPI.getPendingRequests()
         .then(data => {
             pendingContainer.innerHTML = '';
 
@@ -490,14 +494,18 @@ function addPendingRequest(user) {
 }
 
 function updatePendingCount() {
-    fetch('/api/friends/pending/count')
-        .then(response => response.json())
-        .then(data => {
+    if (!window.friendAPI) {
+        console.error('Friend API not loaded');
+        return;
+    }
+
+    window.friendAPI.getPendingCount()
+        .then(count => {
             const pendingTab = document.querySelector('button[data-tab="pending"]');
 
             if (pendingTab) {
-                if (data.count > 0) {
-                    pendingTab.innerHTML = `Pending <span class="bg-discord-red px-1.5 py-0.5 rounded text-white ml-1">${data.count}</span>`;
+                if (count > 0) {
+                    pendingTab.innerHTML = `Pending <span class="bg-discord-red px-1.5 py-0.5 rounded text-white ml-1">${count}</span>`;
                 } else {
                     pendingTab.textContent = 'Pending';
                 }

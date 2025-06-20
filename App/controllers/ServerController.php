@@ -181,13 +181,10 @@ class ServerController extends BaseController
                 $membership->user_id = $this->getCurrentUserId();
                 $membership->server_id = $server->id;
                 $membership->role = 'owner';
-                $membership->save();
-
-                $generalChannel = new Channel();
+                $membership->save();                $generalChannel = new Channel();
                 $generalChannel->name = 'general';
                 $generalChannel->type = 'text';
                 $generalChannel->server_id = $server->id;
-                $generalChannel->created_by = $this->getCurrentUserId();
                 $generalChannel->save();
 
                 $this->logActivity('server_created', [

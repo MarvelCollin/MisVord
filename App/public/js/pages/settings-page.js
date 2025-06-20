@@ -1,3 +1,5 @@
+import { ChannelAPI } from '../api/channel-api.js';
+
 document.addEventListener('DOMContentLoaded', function() {
     initDeleteChannelModal();
 });
@@ -24,27 +26,19 @@ function initDeleteChannelModal() {
     if (confirmDeleteBtn) {
         confirmDeleteBtn.addEventListener('click', function() {
             const channelId = document.querySelector('meta[name="channel-id"]')?.content;
-            const serverId = document.querySelector('meta[name="server-id"]')?.content;
-
-            if (channelId) {
-                fetch(`/api/channels/${channelId}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        window.location.href = `/server/${serverId}`;
-                    } else {
-                        alert('Failed to delete channel: ' + data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('An error occurred while trying to delete the channel.');
-                });
+            const serverId = document.querySelector('meta[name="server-id"]')?.content;            if (channelId) {
+                ChannelAPI.deleteChannel(channelId)
+                    .then(data => {
+                        if (data.success) {
+                            window.location.href = `/server/${serverId}`;
+                        } else {
+                            alert('Failed to delete channel: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('An error occurred while trying to delete the channel.');
+                    });
             }
         });
     }

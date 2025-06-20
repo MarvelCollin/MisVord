@@ -100,16 +100,14 @@ $additional_js[] = 'components/app-layout';
                     </div>
                     
                     <div class="tab-content hidden" id="add-friend-tab">
-                        <div class="flex-1 p-4 overflow-y-auto bg-discord-background">
-                            <h2 class="text-white font-bold text-lg mb-2">Add Friend</h2>
-                            <p class="text-gray-400 text-sm mb-4">You can add friends with their MisVord username.</p>
+                        <div class="flex-1 p-4 overflow-y-auto bg-discord-background">                            <h2 class="text-white font-bold text-lg mb-2">Add Friend</h2>
+                            <p class="text-gray-400 text-sm mb-4">You can add friends with their MisVord username or full username#discriminator.</p>
                             
                             <div class="bg-discord-dark p-3 rounded">
                                 <div class="border-b border-gray-700 pb-4">
                                     <label class="text-gray-400 text-sm uppercase font-medium">Add Friend</label>
-                                    <div class="flex mt-2">
-                                        <input type="text" class="flex-1 bg-discord-dark text-white px-3 py-2 rounded-l border border-gray-700 focus:outline-none focus:ring-1 focus:ring-discord-primary" 
-                                               placeholder="Enter a Username#0000" id="friend-username-input">
+                                    <div class="flex mt-2">                                        <input type="text" class="flex-1 bg-discord-dark text-white px-3 py-2 rounded-l border border-gray-700 focus:outline-none focus:ring-1 focus:ring-discord-primary" 
+                                               placeholder="Username#XXXX" id="friend-username-input">
                                         <button class="bg-discord-primary text-white px-4 py-2 rounded-r font-medium disabled:opacity-50 disabled:cursor-not-allowed" disabled id="send-friend-request">
                                             Send Friend Request
                                         </button>

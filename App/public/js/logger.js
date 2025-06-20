@@ -203,7 +203,6 @@ if (typeof module !== 'undefined' && module.exports) {
 }
 
 if (typeof window !== 'undefined') {
-    // Replace any fallback logger
     if (window.logger && window.logger._isFallback) {
         console.log('[LOGGER] Replacing fallback logger with full implementation');
     }

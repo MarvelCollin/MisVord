@@ -2,15 +2,17 @@ class SocketClient {
   constructor() {
     this.socket = null;
     this.connected = false;
-    this.authenticated = false;
-    this.config = {
+    this.authenticated = false;    this.config = {
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
-      timeout: 20000,
+      timeout: 10000,
       autoConnect: false,
-      path: '/socket.io'
+      path: '/socket.io',
+      transports: ['polling', 'websocket'],
+      upgrade: true,
+      rememberUpgrade: true
     };
     
     this.eventHandlers = new Map();
@@ -41,11 +43,12 @@ class SocketClient {
         }        // Get socket configuration from meta tags or fallback to window/default values
         const socketHostMeta = document.querySelector('meta[name="socket-host"]');
         const socketPortMeta = document.querySelector('meta[name="socket-port"]');
-        
-        const host = socketHostMeta?.content || window.SOCKET_HOST || window.location.hostname;
+          const host = socketHostMeta?.content || window.SOCKET_HOST || window.location.hostname;
         const port = socketPortMeta?.content || window.SOCKET_PORT || 1002;
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const url = `${protocol}//${host}:${port}`;
+        
+        const actualHost = window.location.hostname;
+        const protocol = window.location.protocol;
+        const url = `${protocol}//${actualHost}:${port}`;
         
         this.log(`Connecting to socket server at ${url}`);
         

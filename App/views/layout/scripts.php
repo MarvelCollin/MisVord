@@ -8,7 +8,7 @@ $additional_js = array_filter($additional_js, function($script) {
 $core_scripts = ['core/ui/toast', 'core/ajax/ajax-handler', 'core/socket/global-socket-manager'];
 ?>
 
-<script src="<?php echo js('lib/socket.io.min'); ?>?v=<?php echo time(); ?>"></script>
+<script src="https://cdn.socket.io/4.6.0/socket.io.min.js" integrity="sha384-c79GN5VsunZvi+Q/WObgk2in0CbZsHnjEqvFxC5DxHn9lTfNce2WW6h2pH6u/kF+" crossorigin="anonymous"></script>
 
 <script>
 // Set up global configuration from meta tags
@@ -22,6 +22,8 @@ $core_scripts = ['core/ui/toast', 'core/ajax/ajax-handler', 'core/socket/global-
 </script>
 
 <script src="<?php echo js('utils/socket-status'); ?>?v=<?php echo time(); ?>"></script>
+
+<script src="<?php echo js('api/friend-api'); ?>?v=<?php echo time(); ?>"></script>
 
 <script src="<?php echo js('utils/lazy-loader'); ?>?v=<?php echo time(); ?>" type="module"></script>
 <script src="<?php echo js('utils/debug-logging'); ?>?v=<?php echo time(); ?>" type="module"></script>

@@ -25,9 +25,7 @@ document.addEventListener('DOMContentLoaded', function() {
       if (LazyLoader) {
         window.LazyLoader = Object.assign(window.LazyLoader || {}, LazyLoader);
         window.LazyLoader.init();
-    }
-
-    initGlobalUI();
+    }    initGlobalUI();
     initGlobalSocketManager();
     initPageSpecificComponents();
     
@@ -129,6 +127,11 @@ window.misvord = {
 };
 
 function initGlobalSocketManager() {
+    if (window.globalSocketManager) {
+        window.logger.info('socket', 'Global socket manager already initialized, skipping...');
+        return;
+    }
+    
     window.logger.info('socket', 'Initializing global socket manager...');
 
     const userData = getUserDataFromPage();

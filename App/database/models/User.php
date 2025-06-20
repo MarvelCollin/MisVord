@@ -16,13 +16,45 @@ class User extends Model {
         $query = new Query();
         $result = $query->table(static::$table)->where('username', $username)->first();
         return $result ? new static($result) : null;
-    }
-
-    public static function findByGoogleId($googleId) {
+    }    public static function findByGoogleId($googleId) {
         $query = new Query();
         $result = $query->table(static::$table)->where('google_id', $googleId)->first();
         return $result ? new static($result) : null;
-    }    public function verifyPassword($password) {
+    }
+
+    public static function findByUsernameAndDiscriminator($username, $discriminator) {
+        $query = new Query();
+        $result = $query->table(static::$table)
+            ->where('username', $username)
+            ->where('discriminator', $discriminator)
+            ->first();
+        return $result ? new static($result) : null;
+    }
+
+    public static function findByDisplayName($displayName) {
+        // Parse username#discriminator format
+        if (strpos($displayName, '#') === false) {
+            // If no discriminator provided, just search by username
+            return static::findByUsername($displayName);
+        }
+        
+        $parts = explode('#', $displayName, 2);
+        if (count($parts) !== 2) {
+            return null;
+        }
+        
+        $username = trim($parts[0]);
+        $discriminator = trim($parts[1]);
+        
+        // Validate discriminator format (4 digits)
+        if (!preg_match('/^\d{4}$/', $discriminator)) {
+            return null;
+        }
+        
+        return static::findByUsernameAndDiscriminator($username, $discriminator);
+    }
+
+    public function verifyPassword($password) {
         // Debug password verification
         if (function_exists('logger')) {
             logger()->debug("verifyPassword called", [

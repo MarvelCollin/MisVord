@@ -37,9 +37,6 @@ $additional_js[] = 'components/messaging/chat-section';
         <div class="text-sm text-gray-400 truncate"><?php echo htmlspecialchars($activeChannel['topic']); ?></div>
         <?php endif; ?>
         <div class="flex-1"></div>
-        <div class="socket-status text-sm mr-4 flex items-center opacity-75">
-            <span class="text-yellow-500">•</span> <span class="ml-1">Connecting...</span>
-        </div>
         <div class="flex space-x-4">
             <button class="text-gray-400 hover:text-white">
                 <i class="fas fa-bell-slash"></i>
@@ -177,9 +174,6 @@ $additional_js[] = 'components/messaging/chat-section';
 
             <div class="flex justify-between items-center mt-2">
                 <div class="flex items-center text-xs text-gray-400">
-                    <div class="socket-status mr-4 flex items-center">
-                        <span class="text-yellow-500">•</span> <span class="ml-1">Connecting...</span>
-                    </div>
                     <span class="character-count hidden">0/2000</span>
                 </div>
                 <button type="button" id="send-button" class="bg-discord-primary text-white px-3 py-1 rounded hover:bg-discord-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed">

@@ -1,3 +1,5 @@
+import { DirectMessageAPI } from '../api/direct-message-api.js';
+
 document.addEventListener('DOMContentLoaded', function() {
     initServerModal();
     initDirectMessageModal();
@@ -102,13 +104,18 @@ function loadFriendsForDM() {
     
     friendsList.innerHTML = generateSkeletonItems(5);
     
-    fetch('/api/friends')
-        .then(response => response.json())
-        .then(data => {
+    if (!window.friendAPI) {
+        console.error('Friend API not loaded');
+        friendsList.innerHTML = '<div class="text-gray-400 text-center py-2">Failed to load friends</div>';
+        return;
+    }
+    
+    window.friendAPI.getFriends()
+        .then(friends => {
             friendsList.innerHTML = '';
             
-            if (data && data.data && data.data.length > 0) {
-                data.data.forEach(friend => {
+            if (friends && friends.length > 0) {
+                friends.forEach(friend => {
                     const statusColor = getStatusColor(friend.status || 'offline');
                     
                     const friendItem = document.createElement('div');
@@ -192,29 +199,22 @@ function selectFriendForDM(element) {
 function createDirectMessage(userId) {
     const modal = document.getElementById('new-direct-modal');
     
-    fetch('/api/direct-messages/create', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ user_id: userId })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (modal) {
-            modal.classList.add('hidden');
-        }
-        
-        if (data.success && data.data && data.data.channel_id) {
-            window.location.href = `/app/channels/dm/${data.data.channel_id}`;
-        } else {
-            showToast('Failed to create conversation: ' + (data.message || 'Unknown error'), 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error creating direct message:', error);
-        showToast('Failed to create conversation. Please try again.', 'error');
-    });
+    DirectMessageAPI.createDirectMessage({ user_id: userId })
+        .then(data => {
+            if (modal) {
+                modal.classList.add('hidden');
+            }
+            
+            if (data.success && data.data && data.data.channel_id) {
+                window.location.href = `/app/channels/dm/${data.data.channel_id}`;
+            } else {
+                showToast('Failed to create conversation: ' + (data.message || 'Unknown error'), 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error creating direct message:', error);
+            showToast('Failed to create conversation. Please try again.', 'error');
+        });
 }
 
 function initTabHandling() {
@@ -284,12 +284,17 @@ function loadAllFriends() {
     
     container.innerHTML = generateSkeletonFriends(5);
     
-    fetch('/api/friends')
-        .then(response => response.json())
-        .then(data => {
-            if (data && data.data && data.data.length > 0) {
+    if (!window.friendAPI) {
+        console.error('Friend API not loaded');
+        container.innerHTML = '<div class="text-gray-400 p-4">Failed to load friends</div>';
+        return;
+    }
+    
+    window.friendAPI.getFriends()
+        .then(friends => {
+            if (friends && friends.length > 0) {
                 let friendsHtml = '';
-                data.data.forEach(friend => {
+                friends.forEach(friend => {
                     const statusColor = getStatusColor(friend.status || 'offline');
                     const statusText = getStatusText(friend.status || 'offline');
                     
@@ -369,13 +374,18 @@ function loadPendingRequests() {
 
     pendingContainer.innerHTML = generateSkeletonPending();
     
-    fetch('/api/friends/pending')
-        .then(response => response.json())
-        .then(data => {
+    if (!window.friendAPI) {
+        console.error('Friend API not loaded');
+        pendingContainer.innerHTML = '<div class="text-gray-400 p-4">Failed to load pending requests</div>';
+        return;
+    }
+    
+    window.friendAPI.getPendingRequests()
+        .then(pendingData => {
             pendingContainer.innerHTML = '';
 
-            if (data && data.data) {
-                const { incoming, outgoing } = data.data;
+            if (pendingData) {
+                const { incoming, outgoing } = pendingData;
                 
                 if (incoming && incoming.length > 0) {
                     const incomingHtml = `
@@ -503,12 +513,17 @@ function loadBlockedUsers() {
     
     container.innerHTML = generateSkeletonItems(3);
     
-    fetch('/api/users/blocked')
-        .then(response => response.json())
-        .then(data => {
-            if (data && data.data && data.data.length > 0) {
+    if (!window.friendAPI) {
+        console.error('Friend API not loaded');
+        container.innerHTML = '<div class="text-gray-400 p-4">Failed to load blocked users</div>';
+        return;
+    }
+    
+    window.friendAPI.getBlockedUsers()
+        .then(blockedUsers => {
+            if (blockedUsers && blockedUsers.length > 0) {
                 let blockedHtml = '';
-                data.data.forEach(user => {
+                blockedUsers.forEach(user => {
                     blockedHtml += `
                         <div class="flex justify-between items-center p-2 rounded hover:bg-discord-light">
                             <div class="flex items-center">
@@ -573,89 +588,77 @@ function escapeHtml(text) {
 }
 
 function acceptFriendRequest(userId) {
-    fetch(`/api/friends/${userId}/accept`, {
-        method: 'POST'
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
+    if (!window.friendAPI) {
+        console.error('Friend API not loaded');
+        showToast('Failed to accept friend request', 'error');
+        return;
+    }
+    
+    window.friendAPI.acceptFriendRequest(userId)
+        .then(() => {
             showToast('Friend request accepted!', 'success');
             loadPendingRequests();
             updatePendingCount();
-        } else {
-            showToast(data.message || 'Failed to accept friend request', 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error accepting friend request:', error);
-        showToast('Failed to accept friend request', 'error');
-    });
+        })
+        .catch(error => {
+            console.error('Error accepting friend request:', error);
+            showToast(error.message || 'Failed to accept friend request', 'error');
+        });
 }
 
 function ignoreFriendRequest(userId) {
-    fetch(`/api/friends/${userId}/decline`, {
-        method: 'POST'
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
+    if (!window.friendAPI) {
+        console.error('Friend API not loaded');
+        showToast('Failed to ignore friend request', 'error');
+        return;
+    }
+    
+    window.friendAPI.declineFriendRequest(userId)
+        .then(() => {
             showToast('Friend request ignored', 'info');
             loadPendingRequests();
             updatePendingCount();
-        } else {
-            showToast(data.message || 'Failed to ignore friend request', 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error ignoring friend request:', error);
-        showToast('Failed to ignore friend request', 'error');
-    });
+        })
+        .catch(error => {
+            console.error('Error ignoring friend request:', error);
+            showToast(error.message || 'Failed to ignore friend request', 'error');
+        });
 }
 
 function cancelFriendRequest(userId) {
-    fetch('/api/friends', {
-        method: 'DELETE',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ user_id: userId })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
+    if (!window.friendAPI) {
+        console.error('Friend API not loaded');
+        showToast('Failed to cancel friend request', 'error');
+        return;
+    }
+    
+    window.friendAPI.removeFriend(userId)
+        .then(() => {
             showToast('Friend request cancelled', 'info');
             loadPendingRequests();
-        } else {
-            showToast(data.message || 'Failed to cancel friend request', 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error cancelling friend request:', error);
-        showToast('Failed to cancel friend request', 'error');
-    });
+        })
+        .catch(error => {
+            console.error('Error cancelling friend request:', error);
+            showToast(error.message || 'Failed to cancel friend request', 'error');
+        });
 }
 
 function unblockUser(userId) {
-    fetch('/api/users/unblock', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ user_id: userId })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
+    if (!window.friendAPI) {
+        console.error('Friend API not loaded');
+        showToast('Failed to unblock user', 'error');
+        return;
+    }
+    
+    window.friendAPI.unblockUser(userId)
+        .then(() => {
             showToast('User unblocked', 'success');
             loadBlockedUsers();
-        } else {
-            showToast(data.message || 'Failed to unblock user', 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error unblocking user:', error);
-        showToast('Failed to unblock user', 'error');
-    });
+        })
+        .catch(error => {
+            console.error('Error unblocking user:', error);
+            showToast(error.message || 'Failed to unblock user', 'error');
+        });
 }
 
 function initFriendRequestForm() {
@@ -668,9 +671,11 @@ function initFriendRequestForm() {
     
     friendUsernameInput.addEventListener('input', function() {
         const value = this.value.trim();
-        sendFriendRequestBtn.disabled = value.length < 3;
+        const validation = window.friendAPI ? window.friendAPI.validateUsername(value) : { valid: value.length >= 3 };
         
-        if (value.length >= 3) {
+        sendFriendRequestBtn.disabled = !validation.valid;
+        
+        if (validation.valid) {
             sendFriendRequestBtn.classList.remove('opacity-50', 'cursor-not-allowed');
         } else {
             sendFriendRequestBtn.classList.add('opacity-50', 'cursor-not-allowed');
@@ -680,66 +685,73 @@ function initFriendRequestForm() {
         if (successDiv) successDiv.classList.add('hidden');
     });
     
-    sendFriendRequestBtn.addEventListener('click', function() {
+    sendFriendRequestBtn.addEventListener('click', async function() {
         const username = friendUsernameInput.value.trim();
         
-        if (username.length < 3) return;
+        // Validate input
+        const validation = window.friendAPI ? window.friendAPI.validateUsername(username) : { valid: username.length >= 3 };
+        if (!validation.valid) {
+            if (errorDiv) {
+                errorDiv.textContent = validation.message || 'Invalid username format';
+                errorDiv.classList.remove('hidden');
+            }
+            return;
+        }
         
+        // Disable button and show loading state
         sendFriendRequestBtn.disabled = true;
         sendFriendRequestBtn.classList.add('opacity-50', 'cursor-not-allowed');
         
-        fetch('/api/friends', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ username: username })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                if (successDiv) {
-                    successDiv.textContent = 'Friend request sent!';
-                    successDiv.classList.remove('hidden');
-                }
-                if (errorDiv) errorDiv.classList.add('hidden');
-                friendUsernameInput.value = '';
-            } else {
-                if (errorDiv) {
-                    errorDiv.textContent = data.message || 'Failed to send friend request';
-                    errorDiv.classList.remove('hidden');
-                }
-                if (successDiv) successDiv.classList.add('hidden');
+        try {
+            // Use friend API
+            if (!window.friendAPI) {
+                throw new Error('Friend API not loaded');
             }
             
-            sendFriendRequestBtn.disabled = true;
-        })
-        .catch(error => {
+            await window.friendAPI.sendFriendRequest(username);
+            
+            // Success
+            if (successDiv) {
+                successDiv.textContent = 'Friend request sent!';
+                successDiv.classList.remove('hidden');
+            }
+            if (errorDiv) errorDiv.classList.add('hidden');
+            friendUsernameInput.value = '';
+            
+            // Refresh pending count
+            updatePendingCount();
+            
+        } catch (error) {
             console.error('Error sending friend request:', error);
             if (errorDiv) {
-                errorDiv.textContent = 'Failed to send friend request';
+                errorDiv.textContent = error.message || 'Failed to send friend request';
                 errorDiv.classList.remove('hidden');
             }
             if (successDiv) successDiv.classList.add('hidden');
-        })
-        .finally(() => {
-            sendFriendRequestBtn.disabled = false;
-            if (friendUsernameInput.value.trim().length >= 3) {
+        } finally {
+            // Re-enable button if input is still valid
+            const currentValidation = window.friendAPI ? window.friendAPI.validateUsername(friendUsernameInput.value.trim()) : { valid: friendUsernameInput.value.trim().length >= 3 };
+            sendFriendRequestBtn.disabled = !currentValidation.valid;
+            if (currentValidation.valid) {
                 sendFriendRequestBtn.classList.remove('opacity-50', 'cursor-not-allowed');
             }
-        });
+        }
     });
 }
 
 function updatePendingCount() {
-    fetch('/api/friends/pending/count')
-        .then(response => response.json())
-        .then(data => {
+    if (!window.friendAPI) {
+        console.error('Friend API not loaded');
+        return;
+    }
+    
+    window.friendAPI.getPendingCount()
+        .then(count => {
             const pendingTab = document.querySelector('button[data-tab="pending"]');
 
             if (pendingTab) {
-                if (data.count > 0) {
-                    pendingTab.innerHTML = `Pending <span class="bg-discord-red px-1.5 py-0.5 rounded text-white ml-1">${data.count}</span>`;
+                if (count > 0) {
+                    pendingTab.innerHTML = `Pending <span class="bg-discord-red px-1.5 py-0.5 rounded text-white ml-1">${count}</span>`;
                 } else {
                     pendingTab.textContent = 'Pending';
                 }

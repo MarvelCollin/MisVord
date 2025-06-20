@@ -46,10 +46,9 @@ export class ChannelLoader {
         sessionStorage.setItem('channelData', JSON.stringify(this.channelData));
       }
     });
-    
-    // Check for cached channel data
+      // Check for cached channel data
     const cachedChannels = sessionStorage.getItem('channelData');
-    if (cachedChannels) {
+    if (cachedChannels && !document.body.hasAttribute('data-initial-load')) {
       try {
         this.channelData = JSON.parse(cachedChannels);
         

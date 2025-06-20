@@ -1,5 +1,7 @@
 import { MisVordAjax } from '../../core/ajax/ajax-handler.js';
 import { showToast } from '../../core/ui/toast.js';
+import { ServerAPI } from '../../api/server-api.js';
+import { ChannelAPI } from '../../api/channel-api.js';
 
 document.addEventListener('DOMContentLoaded', function() {
     initChannelManager();
@@ -15,25 +17,28 @@ function initChannelManager() {
 }
 
 function loadServerChannels() {
+    if (document.body.hasAttribute('data-initial-load')) {
+        console.log("Using server-rendered channels, skipping AJAX reload");
+        return;
+    }
+    
     const serverId = getServerId();
     if (!serverId) return;
 
     const loadingEl = document.getElementById('channel-loading');
     if (loadingEl) loadingEl.classList.remove('hidden');
 
-    MisVordAjax.get(`/api/servers/${serverId}/channels`, {
-        onSuccess: function(response) {
+    ServerAPI.getServerChannels(serverId)
+        .then(response => {
             if (response.success) {
                 renderChannelList(response.data);
             }
-
             if (loadingEl) loadingEl.classList.add('hidden');
-        },
-        onError: function() {
-
+        })
+        .catch(error => {
+            console.error('Error loading channels:', error);
             if (loadingEl) loadingEl.classList.add('hidden');
-        }
-    });
+        });
 }
 
 function initUpdateChannelForms() {
@@ -49,10 +54,8 @@ function initUpdateChannelForms() {
             const data = {};
             for (const [key, value] of formData.entries()) {
                 data[key] = value;
-            }
-
-            MisVordAjax.put(`/api/channels/${channelId}`, data, {
-                onSuccess: function(response) {
+            }            ChannelAPI.updateChannel(channelId, data)
+                .then(response => {
                     if (response.success) {
                         showToast('Channel updated successfully', 'success');
 
@@ -67,8 +70,11 @@ function initUpdateChannelForms() {
                             refreshChannelList();
                         }
                     }
-                }
-            });
+                })
+                .catch(error => {
+                    console.error('Error updating channel:', error);
+                    showToast('Failed to update channel', 'error');
+                });
         });
     });
 }
@@ -91,33 +97,34 @@ function initDeleteChannelButtons() {
 }
 
 function deleteChannel(channelId) {
-    MisVordAjax.delete(`/api/channels/${channelId}`, {
-        onSuccess: function(response) {
+    ChannelAPI.deleteChannel(channelId)
+        .then(response => {
             if (response.success) {
                 showToast('Channel deleted successfully', 'success');
-
                 refreshChannelList();
             }
-        }
-    });
+        })
+        .catch(error => {
+            console.error('Error deleting channel:', error);
+            showToast('Failed to delete channel', 'error');
+        });
 }
 
 function refreshChannelList() {
-
     const urlParts = window.location.pathname.split('/');
     const serverId = urlParts[urlParts.indexOf('server') + 1];
 
     if (serverId) {
-        MisVordAjax.get(`/api/servers/${serverId}/channels`, {
-            onSuccess: function(response) {
+        ServerAPI.getServerChannels(serverId)
+            .then(response => {
                 if (response.success) {
-
                     renderChannelList(response.data);
                 }
-            }
-        });
+            })
+            .catch(error => {
+                console.error('Error refreshing channels:', error);
+            });
     } else {
-
         window.location.reload();
     }
 }
@@ -325,7 +332,6 @@ function updateChannelInUI(channel) {
 }
 
 function createChannelAtPosition(name, type, serverId, categoryId = null, position = null) {
-
     const formData = new FormData();
     formData.append('name', name);
     formData.append('type', type);
@@ -339,33 +345,26 @@ function createChannelAtPosition(name, type, serverId, categoryId = null, positi
         formData.append('position', position);
     }
 
-    return new Promise((resolve, reject) => {
-        fetch('/api/channels', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
+    return ChannelAPI.createChannel(formData)
         .then(data => {
             if (data.success) {
                 console.log('Channel created at position:', position);
-                resolve(data);
                 showToast('Channel created successfully', 'success');
                 refreshChannelList();
+                return data;
             } else {
-                reject(data);
                 showToast(data.message || 'Failed to create channel', 'error');
+                throw new Error(data.message || 'Failed to create channel');
             }
         })
         .catch(error => {
             console.error('Error creating channel:', error);
-            reject(error);
             showToast('An error occurred', 'error');
+            throw error;
         });
-    });
 }
 
 function createCategoryAtPosition(name, serverId, position = null) {
-
     const formData = new FormData();
     formData.append('name', name);
     formData.append('server_id', serverId);
@@ -374,29 +373,23 @@ function createCategoryAtPosition(name, serverId, position = null) {
         formData.append('position', position);
     }
 
-    return new Promise((resolve, reject) => {
-        fetch('/api/categories', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
+    return ChannelAPI.createCategory(formData)
         .then(data => {
             if (data.success) {
                 console.log('Category created at position:', position);
-                resolve(data);
                 showToast('Category created successfully', 'success');
                 refreshChannelList();
+                return data;
             } else {
-                reject(data);
                 showToast(data.message || 'Failed to create category', 'error');
+                throw new Error(data.message || 'Failed to create category');
             }
         })
         .catch(error => {
             console.error('Error creating category:', error);
-            reject(error);
             showToast('An error occurred', 'error');
+            throw error;
         });
-    });
 }
 
 if (typeof window !== 'undefined') {

@@ -1,8 +1,6 @@
 <?php
 require_once dirname(dirname(__DIR__)) . '/config/session.php';
 
-// Session should already be started in index.php
-// Only start if absolutely necessary and safe to do so
 if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
     session_start();
 }

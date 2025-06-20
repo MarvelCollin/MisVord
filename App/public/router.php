@@ -40,15 +40,12 @@ if (preg_match('/\\.(?:css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|webp|map)$
 
     if (isset($contentTypes[$extension])) {
         header('Content-Type: ' . $contentTypes[$extension]);
-    }
-
-    $searchPaths = [
+    }    $searchPaths = [
+        $_SERVER['DOCUMENT_ROOT'] . '/',
         __DIR__ . '/',
         dirname(__DIR__) . '/public/',
         dirname(__DIR__) . '/',
     ];
-
-
     foreach ($searchPaths as $searchPath) {
         $fullPath = $searchPath . $requestFile;
         if (file_exists($fullPath) && is_file($fullPath)) {
@@ -57,6 +54,11 @@ if (preg_match('/\\.(?:css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|webp|map)$
         }
     }
 
+    error_log("Static file not found: {$requestFile}");
+    error_log("Searched paths: " . implode(', ', array_map(function($path) use ($requestFile) {
+        return $path . $requestFile . ' (exists: ' . (file_exists($path . $requestFile) ? 'yes' : 'no') . ')';
+    }, $searchPaths)));
+    
     header("HTTP/1.0 404 Not Found");
     exit("Static file not found: {$requestFile}");
 }
