@@ -474,6 +474,27 @@ Route::get('/api/debug/database', function() {
     }
 });
 
+// Message CRUD routes
+Route::post('/api/messages', function() {
+    $controller = new MessageController();
+    $controller->send();
+});
+
+Route::put('/api/messages/([0-9]+)', function($messageId) {
+    $controller = new MessageController();
+    $controller->update($messageId);
+});
+
+Route::delete('/api/messages/([0-9]+)', function($messageId) {
+    $controller = new MessageController();
+    $controller->delete($messageId);
+});
+
+Route::get('/api/messages/([0-9]+)', function($messageId) {
+    $controller = new MessageController();
+    $controller->getMessage($messageId);
+});
+
 Route::get('/api/health', function() {
     $controller = new HealthController();
     $controller->check();

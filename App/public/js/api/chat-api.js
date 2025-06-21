@@ -79,15 +79,13 @@ class ChatAPI {
     async getDirectMessageRooms() {
         const url = `${this.baseURL}/dm/rooms`;
         return await this.makeRequest(url);
-    }
-
-    formatMessage(message) {
+    }    formatMessage(message) {
         return {
             id: message.id,
             content: message.content,
             user_id: message.user_id,
             username: message.username,
-            avatar_url: message.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(message.username)}&background=random`,
+            avatar_url: message.avatar_url || '/public/assets/common/main-logo.png',
             sent_at: message.sent_at,
             edited_at: message.edited_at,
             type: message.type || 'text'

@@ -64,7 +64,7 @@ $onlineFriends = $GLOBALS['onlineFriends'] ?? [];
                         <div class="flex items-center">
                             <div class="relative mr-3">
                                 <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
-                                    <img src="<?php echo isset($friend['avatar']) ? htmlspecialchars($friend['avatar']) : 'https://ui-avatars.com/api/?name=' . urlencode($friend['username'] ?? 'U') . '&background=random'; ?>" 
+                                    <img src="<?php echo getUserAvatar($friend['avatar'] ?? '', $friend['username'] ?? 'User'); ?>" 
                                          alt="Avatar" class="w-full h-full object-cover">
                                 </div>
                                 <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-background <?php echo $statusColor; ?>"></span>

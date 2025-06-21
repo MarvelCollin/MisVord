@@ -1,0 +1,203 @@
+/* Message Context Menu Styles */
+.context-menu {
+    position: fixed;
+    background: #111214;
+    border: 1px solid #2e3338;
+    border-radius: 8px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.24);
+    min-width: 188px;
+    z-index: 10000;
+    padding: 6px 0;
+    font-size: 14px;
+    font-weight: 500;
+    user-select: none;
+}
+
+.context-menu.hidden {
+    display: none;
+}
+
+.context-menu-section {
+    padding: 0;
+}
+
+.context-menu-divider {
+    height: 1px;
+    background: #2e3338;
+    margin: 6px 8px;
+}
+
+.emoji-row {
+    display: flex;
+    align-items: center;
+    padding: 4px 8px;
+    gap: 4px;
+}
+
+.emoji-btn {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    transition: all 0.15s ease;
+    color: #b5bac1;
+}
+
+.emoji-btn:hover {
+    background: #2e3338;
+    transform: scale(1.1);
+}
+
+.emoji-btn:active {
+    transform: scale(0.95);
+}
+
+.emoji-btn.add-reaction-btn {
+    background: #2e3338;
+    font-size: 14px;
+}
+
+.emoji-btn.add-reaction-btn:hover {
+    background: #404249;
+}
+
+.context-menu-item {
+    width: 100%;
+    background: transparent;
+    border: none;
+    padding: 6px 8px;
+    margin: 0 8px;
+    border-radius: 2px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #dbdee1;
+    text-align: left;
+    transition: background-color 0.15s ease;
+    white-space: nowrap;
+    min-height: 32px;
+    line-height: 18px;
+}
+
+.context-menu-item:hover {
+    background: #5865f2;
+    color: white;
+}
+
+.context-menu-item.danger {
+    color: #ed4245;
+}
+
+.context-menu-item.danger:hover {
+    background: #ed4245;
+    color: white;
+}
+
+.context-menu-item i {
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.context-menu-item span {
+    flex: 1;
+}
+
+.context-menu-item .ml-auto {
+    margin-left: auto;
+    font-size: 12px;
+    color: #80848e;
+}
+
+.context-menu-item:hover .ml-auto {
+    color: currentColor;
+}
+
+/* Message hover state improvements */
+.group:hover {
+    background: rgba(79, 84, 92, 0.16) !important;
+}
+
+.message-actions {
+    background: #313338;
+    border: 1px solid #41434a;
+    border-radius: 8px;
+    padding: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.24);
+    transform: translateY(-50%);
+    top: 50%;
+    right: 16px;
+}
+
+.message-actions button {
+    padding: 4px 6px;
+    min-width: 32px;
+    min-height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.message-actions button:hover {
+    background: #404249;
+}
+
+/* Animations */
+@keyframes contextMenuShow {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.context-menu:not(.hidden) {
+    animation: contextMenuShow 0.1s ease-out;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .context-menu {
+        min-width: 200px;
+        font-size: 16px;
+    }
+    
+    .context-menu-item {
+        min-height: 44px;
+        padding: 8px 12px;
+        font-size: 16px;
+    }
+    
+    .emoji-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 18px;
+    }
+}
+
+/* Hide message actions on mobile unless menu is open */
+@media (max-width: 768px) {
+    .message-actions {
+        display: none;
+    }
+    
+    .message-actions.mobile-visible {
+        display: flex;
+    }
+}

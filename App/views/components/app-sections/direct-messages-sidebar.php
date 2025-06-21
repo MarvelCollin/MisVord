@@ -79,7 +79,7 @@ if (file_exists($tooltipPath)) {
                      data-username="<?php echo htmlspecialchars($friend['username']); ?>">
                     <div class="relative mr-3">
                         <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
-                            <img src="<?php echo isset($friend['avatar_url']) ? htmlspecialchars($friend['avatar_url']) : 'https://ui-avatars.com/api/?name=' . urlencode($friend['username'] ?? 'U') . '&background=random'; ?>" 
+                            <img src="<?php echo getUserAvatar($friend['avatar_url'] ?? '', $friend['username'] ?? 'User'); ?>" 
                                 alt="Avatar" class="w-full h-full object-cover">
                         </div>
                         <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark <?php echo $statusColor; ?>"></span>

@@ -111,13 +111,10 @@ class DirectMessageManager {
             <div class="friend-item flex items-center p-2 rounded hover:bg-discord-dark cursor-pointer transition-colors" 
                  data-friend-id="${friend.id}" data-friend-username="${
           friend.username
-        }">
-                <div class="w-8 h-8 rounded-full bg-gray-600 flex-shrink-0 flex items-center justify-center overflow-hidden mr-3">
+        }">                <div class="w-8 h-8 rounded-full bg-gray-600 flex-shrink-0 flex items-center justify-center overflow-hidden mr-3">
                     <img src="${
                       friend.avatar_url ||
-                      `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                        friend.username
-                      )}&background=random`
+                      '/public/assets/common/main-logo.png'
                     }" 
                          alt="Avatar" class="w-full h-full object-cover">
                 </div>

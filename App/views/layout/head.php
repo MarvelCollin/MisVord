@@ -68,7 +68,7 @@ $cache_version = time();
 
 <link rel="stylesheet" href="<?php echo css('global'); ?>?v=<?php echo $cache_version; ?>">
 <link rel="stylesheet" href="<?php echo css('lazy-loading'); ?>?v=<?php echo $cache_version; ?>">
-<link rel="stylesheet" href="<?php echo css('message-composer'); ?>?v=<?php echo $cache_version; ?>">
+<link rel="stylesheet" href="<?php echo css('message-context-menu'); ?>?v=<?php echo $cache_version; ?>">
 
 <?php if (isset($page_css)): ?>
     <link rel="stylesheet" href="<?php echo css($page_css); ?>?v=<?php echo $cache_version; ?>">

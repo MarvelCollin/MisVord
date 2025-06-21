@@ -273,6 +273,46 @@ class MessageController extends BaseController
         }
     }
 
+    public function getMessage($id)
+    {
+        $this->requireAuth();
+
+        $message = $this->messageRepository->find($id);
+        if (!$message) {
+            return $this->notFound('Message not found');
+        }
+
+        $channel = $this->channelRepository->find($message->channel_id);
+        if (!$channel) {
+            return $this->notFound('Channel not found');
+        }
+
+        if ($channel->server_id != 0) {
+            $membership = $this->userServerMembershipRepository->findByUserAndServer($this->getCurrentUserId(), $channel->server_id);
+            if (!$membership) {
+                return $this->forbidden('You are not a member of this server');
+            }
+        }
+
+        try {
+            $formattedMessage = $this->formatMessage($message);
+
+            $this->logActivity('message_retrieved', [
+                'message_id' => $id
+            ]);
+
+            return $this->success([
+                'message' => $formattedMessage
+            ]);
+        } catch (Exception $e) {
+            $this->logActivity('message_retrieve_error', [
+                'message_id' => $id,
+                'error' => $e->getMessage()
+            ]);
+            return $this->serverError('Failed to retrieve message');
+        }
+    }
+
     private function formatMessage($message)
     {
 

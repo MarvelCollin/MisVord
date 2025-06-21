@@ -177,3 +177,14 @@ function truncateText($text, $length = 100, $append = '...') {
     }
     return $text;
 }
+
+function getDefaultAvatar($username = 'User') {
+    return asset('/common/main-logo.png');
+}
+
+function getUserAvatar($avatarUrl, $username = 'User') {
+    if (!empty($avatarUrl)) {
+        return htmlspecialchars($avatarUrl);
+    }
+    return getDefaultAvatar($username);
+}

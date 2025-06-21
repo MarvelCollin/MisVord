@@ -1,5 +1,3 @@
-import { ServerAPI } from '../../api/server-api.js';
-
 document.addEventListener('DOMContentLoaded', function() {
     initServerIconUpload();
     initServerFormSubmission();

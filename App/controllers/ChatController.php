@@ -445,11 +445,10 @@ class ChatController extends BaseController
         // Handle both array and object input
         $userId = is_array($message) ? $message['user_id'] : $message->user_id;
         $user = $this->userRepository->find($userId);
-        
-        // Generate default avatar URL if user doesn't have one
+          // Generate default avatar URL if user doesn't have one
         $username = $user ? $user->username : 'Unknown User';
         $avatarUrl = $user && $user->avatar_url ? $user->avatar_url : 
-                    "https://ui-avatars.com/api/?name=" . urlencode($username) . "&background=random&color=fff&size=64";
+                    getUserAvatar('', $username);
         
         return [
             'id' => is_array($message) ? $message['id'] : $message->id,

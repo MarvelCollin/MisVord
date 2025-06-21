@@ -155,13 +155,13 @@ $additional_js[] = 'components/messaging/chat-section';
                     </div>';
                 }
             ?>
-                <div class="mb-4 group hover:bg-discord-dark/30 p-1 rounded -mx-1 <?php echo $showHeader ? '' : 'pl-12'; ?>" 
+                <div class="mb-4 group hover:bg-discord-dark/30 p-1 rounded -mx-1 relative <?php echo $showHeader ? '' : 'pl-12'; ?>" 
                      id="msg-<?php echo htmlspecialchars($message['id']); ?>"
                      data-user-id="<?php echo htmlspecialchars($message['user_id']); ?>">
                     <?php if ($showHeader): ?>
                     <div class="flex items-start">
                         <div class="w-10 h-10 rounded-full bg-gray-700 flex-shrink-0 flex items-center justify-center overflow-hidden mr-3">
-                            <img src="<?php echo !empty($message['avatar_url']) ? htmlspecialchars($message['avatar_url']) : 'https://ui-avatars.com/api/?name=' . urlencode($message['username'] ?? 'U') . '&background=random'; ?>" 
+                            <img src="<?php echo getUserAvatar($message['avatar_url'] ?? '', $message['username'] ?? 'User'); ?>" 
                                  alt="Avatar" class="w-full h-full object-cover">
                         </div>
                         <div class="flex-1">
@@ -181,23 +181,107 @@ $additional_js[] = 'components/messaging/chat-section';
                         </div>
                     </div>
                     <?php endif; ?>
-                    <div class="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity mt-1 ml-12">
-                        <button class="p-1 text-gray-400 hover:text-white hover:bg-discord-light rounded-sm">
+                    <div class="message-actions absolute top-0 right-4 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button class="reaction-btn p-1 text-gray-400 hover:text-white hover:bg-discord-light rounded-sm" 
+                                title="Add Reaction" data-message-id="<?php echo htmlspecialchars($message['id']); ?>">
                             <i class="fas fa-face-smile text-xs"></i>
                         </button>
-                        <button class="p-1 text-gray-400 hover:text-white hover:bg-discord-light rounded-sm">
+                        <?php if ($message['user_id'] == $currentUserId): ?>
+                        <button class="edit-btn p-1 text-gray-400 hover:text-white hover:bg-discord-light rounded-sm" 
+                                title="Edit Message" data-message-id="<?php echo htmlspecialchars($message['id']); ?>">
                             <i class="fas fa-pen-to-square text-xs"></i>
                         </button>
-                        <button class="p-1 text-gray-400 hover:text-white hover:bg-discord-light rounded-sm">
+                        <?php endif; ?>
+                        <button class="reply-btn p-1 text-gray-400 hover:text-white hover:bg-discord-light rounded-sm" 
+                                title="Reply" data-message-id="<?php echo htmlspecialchars($message['id']); ?>">
                             <i class="fas fa-reply text-xs"></i>
                         </button>
-                        <button class="p-1 text-gray-400 hover:text-white hover:bg-discord-light rounded-sm">
+                        <button class="more-btn p-1 text-gray-400 hover:text-white hover:bg-discord-light rounded-sm" 
+                                title="More" data-message-id="<?php echo htmlspecialchars($message['id']); ?>"
+                                data-user-id="<?php echo htmlspecialchars($message['user_id']); ?>"
+                                data-is-owner="<?php echo $message['user_id'] == $currentUserId ? 'true' : 'false'; ?>">
                             <i class="fas fa-ellipsis text-xs"></i>
                         </button>
                     </div>
                 </div>
             <?php endforeach; ?>
         <?php endif; ?>
+    </div>
+
+    <!-- Message Context Menu -->
+    <div id="message-context-menu" class="context-menu hidden">
+        <div class="context-menu-section">
+            <!-- Message Reactions -->
+            <div class="emoji-row">
+                <button class="emoji-btn" data-emoji="👍" title="👍">👍</button>
+                <button class="emoji-btn" data-emoji="❤️" title="❤️">❤️</button>
+                <button class="emoji-btn" data-emoji="😂" title="😂">😂</button>
+                <button class="emoji-btn" data-emoji="😮" title="😮">😮</button>
+                <button class="emoji-btn add-reaction-btn" title="Add Reaction">
+                    <i class="fas fa-face-smile"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div class="context-menu-divider"></div>
+        
+        <div class="context-menu-section">
+            <button class="context-menu-item edit-message-btn">
+                <i class="fas fa-pen-to-square"></i>
+                <span>Edit Message</span>
+            </button>
+            <button class="context-menu-item reply-message-btn">
+                <i class="fas fa-reply"></i>
+                <span>Reply</span>
+            </button>
+            <button class="context-menu-item forward-message-btn">
+                <i class="fas fa-share"></i>
+                <span>Forward</span>
+            </button>
+            <button class="context-menu-item copy-text-btn">
+                <i class="fas fa-copy"></i>
+                <span>Copy Text</span>
+            </button>
+            <button class="context-menu-item pin-message-btn">
+                <i class="fas fa-thumbtack"></i>
+                <span>Pin Message</span>
+            </button>
+        </div>
+        
+        <div class="context-menu-divider"></div>
+        
+        <div class="context-menu-section">
+            <button class="context-menu-item apps-btn">
+                <i class="fas fa-puzzle-piece"></i>
+                <span>Apps</span>
+                <i class="fas fa-chevron-right ml-auto"></i>
+            </button>
+            <button class="context-menu-item mark-unread-btn">
+                <i class="fas fa-eye-slash"></i>
+                <span>Mark Unread</span>
+            </button>
+            <button class="context-menu-item copy-link-btn">
+                <i class="fas fa-link"></i>
+                <span>Copy Message Link</span>
+            </button>
+            <button class="context-menu-item speak-message-btn">
+                <i class="fas fa-volume-high"></i>
+                <span>Speak Message</span>
+            </button>
+        </div>
+        
+        <div class="context-menu-divider"></div>
+        
+        <div class="context-menu-section">
+            <button class="context-menu-item delete-message-btn danger">
+                <i class="fas fa-trash"></i>
+                <span>Delete Message</span>
+            </button>
+            <button class="context-menu-item copy-id-btn">
+                <i class="fas fa-hashtag"></i>
+                <span>Copy Message ID</span>
+            </button>
+        </div>
     </div>
 
     <div id="typing-indicator" class="text-xs text-gray-400 pb-1 pl-5 flex items-center hidden">

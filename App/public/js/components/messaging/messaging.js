@@ -605,18 +605,13 @@ class MisVordMessaging {
             // Create and display temp message immediately
             const tempMessage = this.createTempMessage(content, tempId);
             this.appendMessage(tempMessage);            // Send message via ChatAPI
-            const response = await window.ChatAPI.sendMessage(chatId, content, chatType);
-              if (response.success) {
+            const response = await window.ChatAPI.sendMessage(chatId, content, chatType);              if (response.success) {
                 // Remove temp message
                 this.removeTempMessage(tempId);
                 
-                // Display the real message immediately
-                if (response.data && response.data.message) {
-                    this.appendMessage(response.data.message);
-                    this.log('✅ Message displayed:', response.data.message);
-                } else {
-                    this.log('⚠️ No message data in response to display', response);
-                }
+                // Don't display the message immediately - let the socket event handle it
+                // This prevents duplication when the socket event fires
+                this.log('✅ Message sent successfully, waiting for socket event to display');
                   // Send socket event for real-time updates to other users
                 if (this.globalSocketManager && this.globalSocketManager.isReady()) {
                     if (chatType === 'direct') {
@@ -641,7 +636,11 @@ class MisVordMessaging {
                         this.log('📡 Channel message socket event sent for channel:', chatId);
                     }
                 } else {
-                    this.log('⚠️ Socket not ready, real-time updates disabled');
+                    // If socket is not available, display the message immediately as fallback
+                    if (response.data && response.data.message) {
+                        this.appendMessage(response.data.message);
+                        this.log('✅ Message displayed as fallback (no socket):', response.data.message);
+                    }
                 }
                 
                 this.trackMessage('MESSAGE_SENT', { chatId, content, chatType, tempId });
@@ -705,17 +704,13 @@ class MisVordMessaging {
                 body: JSON.stringify(payload)
             });
 
-            const result = await response.json();
-
-            if (result.success) {
+            const result = await response.json();            if (result.success) {
                 // Remove temp message
                 this.removeTempMessage(tempId);
                 
-                // Display the real message
-                if (result.data && result.data.message) {
-                    this.appendMessage(result.data.message);
-                    this.log('✅ Rich message displayed:', result.data.message);
-                }
+                // Don't display the message immediately - let the socket event handle it
+                // This prevents duplication when the socket event fires
+                this.log('✅ Rich message sent successfully, waiting for socket event to display');
 
                 // Send socket event for real-time updates
                 if (this.globalSocketManager && this.globalSocketManager.isReady()) {
@@ -738,6 +733,12 @@ class MisVordMessaging {
                             channelId: chatId,
                             ...socketData
                         });
+                    }
+                } else {
+                    // If socket is not available, display the message immediately as fallback
+                    if (result.data && result.data.message) {
+                        this.appendMessage(result.data.message);
+                        this.log('✅ Rich message displayed as fallback (no socket):', result.data.message);
                     }
                 }
 
@@ -762,7 +763,7 @@ class MisVordMessaging {
             id: tempId,
             user_id: user.id,
             username: user.username,
-            avatar_url: user.avatar_url || '/assets/images/default-avatar.png',
+            avatar_url: user.avatar_url || '/public/assets/common/main-logo.png',
             content: messageData.content || '',
             message_type: messageData.type || 'text',
             attachment_url: messageData.attachments && messageData.attachments.length > 0 ? messageData.attachments[0].file_url : null,
@@ -1033,18 +1034,40 @@ class MisVordMessaging {
 
         // Check if message is for current chat room (works for both channels and DMs)
         const currentChatId = this.getActiveChatId();
-        const messageChatId = data.chatRoomId || data.channelId;
+        const messageChatId = data.chatRoomId || data.channelId || data.channel_id;
         
         if (messageChatId && messageChatId != currentChatId) {
             this.log('⚠️ Ignoring message for different chat:', messageChatId, 'vs current:', currentChatId);
             return;
         }
 
-        if (data.id && document.getElementById('msg-' + data.id)) {
-            this.log('⚠️ Message already displayed, ignoring duplicate:', data.id);
-            return;
+        // More robust duplicate detection
+        if (data.id) {
+            const existingMessage = document.getElementById('msg-' + data.id);
+            if (existingMessage) {
+                this.log('⚠️ Message already displayed, ignoring duplicate:', data.id);
+                return;
+            }
         }
 
+        // Also check for recent messages with same content and user to prevent near-duplicates
+        if (data.content && data.user_id) {
+            const recentMessages = document.querySelectorAll('[data-user-id="' + data.user_id + '"]');
+            const fiveSecondsAgo = Date.now() - 5000;
+            
+            for (let msg of recentMessages) {
+                const msgTime = msg.dataset.timestamp;
+                const msgContent = msg.querySelector('.text-gray-300')?.textContent?.trim();
+                
+                if (msgTime && msgContent === data.content.trim() && 
+                    new Date(msgTime).getTime() > fiveSecondsAgo) {
+                    this.log('⚠️ Near-duplicate message detected, ignoring:', data);
+                    return;
+                }
+            }
+        }
+
+        // Remove any temporary messages from this user
         if (data.user_id) {
             this.removeTempMessagesByUserId(data.user_id);
         }
@@ -1452,21 +1475,23 @@ class MisVordMessaging {
         const messageDiv = document.createElement('div');
         const messageId = messageData.id || messageData.tempId;
         messageDiv.id = 'msg-' + messageId;
-        messageDiv.className = 'mb-4 group hover:bg-discord-dark/30 p-1 rounded -mx-1 ' + (messageData.temp ? 'temp-message opacity-75' : '');
+        messageDiv.className = 'mb-4 group hover:bg-discord-dark/30 p-1 rounded -mx-1 relative ' + (messageData.temp ? 'temp-message opacity-75' : '');
         messageDiv.setAttribute('data-user-id', messageData.user_id);
+        
+        // Add timestamp data for duplicate detection
+        const messageTimestamp = messageData.timestamp || messageData.sent_at || new Date().toISOString();
+        messageDiv.setAttribute('data-timestamp', messageTimestamp);
         
         // Add temp-id attribute for temp messages
         if (messageData.temp && messageData.tempId) {
             messageDiv.setAttribute('data-temp-id', messageData.tempId);
         }
 
-        const username = messageData.username || messageData.user?.username || 'Unknown User';
-        const avatarUrl = messageData.avatar || messageData.user?.avatar_url || 
-                         'https://www.gravatar.com/avatar/' + messageData.user_id + '?d=mp';
+        const username = messageData.username || messageData.user?.username || 'Unknown User';        const avatarUrl = messageData.avatar_url || messageData.user?.avatar_url || 
+                         '/public/assets/common/main-logo.png';        const timestamp = this.formatMessageTime(messageData.timestamp || messageData.sent_at);
 
-        const timestamp = this.formatMessageTime(messageData.timestamp || messageData.sent_at);
-
-        let messageHTML = '<div class="flex items-start">';
+        let messageHTML = '<div class="mb-4 group hover:bg-discord-dark/30 p-1 rounded -mx-1 relative" id="msg-' + messageData.id + '" data-user-id="' + messageData.user_id + '">';
+        messageHTML += '<div class="flex items-start">';
         messageHTML += '<div class="w-10 h-10 rounded-full bg-gray-700 flex-shrink-0 flex items-center justify-center overflow-hidden mr-3">';
         messageHTML += '<img src="' + avatarUrl + '" alt="Avatar" class="w-full h-full object-cover">';
         messageHTML += '</div>';
@@ -1495,20 +1520,20 @@ class MisVordMessaging {
         
         messageHTML += '</div>';
         messageHTML += '</div>';
-        messageHTML += '</div>';
-        messageHTML += '<div class="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity mt-1 ml-12">';
-        messageHTML += '<button class="p-1 text-gray-400 hover:text-white hover:bg-discord-light rounded-sm">';
+        messageHTML += '</div>';        messageHTML += '<div class="message-actions absolute top-0 right-4 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">';
+        messageHTML += '<button class="reaction-btn p-1 text-gray-400 hover:text-white hover:bg-discord-light rounded-sm" title="Add Reaction" data-message-id="' + messageData.id + '">';
         messageHTML += '<i class="fas fa-face-smile text-xs"></i>';
         messageHTML += '</button>';
-        messageHTML += '<button class="p-1 text-gray-400 hover:text-white hover:bg-discord-light rounded-sm">';
+        messageHTML += '<button class="edit-btn p-1 text-gray-400 hover:text-white hover:bg-discord-light rounded-sm" title="Edit Message" data-message-id="' + messageData.id + '">';
         messageHTML += '<i class="fas fa-pen-to-square text-xs"></i>';
         messageHTML += '</button>';
-        messageHTML += '<button class="p-1 text-gray-400 hover:text-white hover:bg-discord-light rounded-sm">';
+        messageHTML += '<button class="reply-btn p-1 text-gray-400 hover:text-white hover:bg-discord-light rounded-sm" title="Reply" data-message-id="' + messageData.id + '">';
         messageHTML += '<i class="fas fa-reply text-xs"></i>';
         messageHTML += '</button>';
-        messageHTML += '<button class="p-1 text-gray-400 hover:text-white hover:bg-discord-light rounded-sm">';
+        messageHTML += '<button class="more-btn p-1 text-gray-400 hover:text-white hover:bg-discord-light rounded-sm" title="More" data-message-id="' + messageData.id + '" data-user-id="' + messageData.user_id + '" data-is-owner="' + (messageData.user_id === this.currentUserId ? 'true' : 'false') + '">';
         messageHTML += '<i class="fas fa-ellipsis text-xs"></i>';
         messageHTML += '</button>';
+        messageHTML += '</div>';
         messageHTML += '</div>';
 
         messageDiv.innerHTML = messageHTML;

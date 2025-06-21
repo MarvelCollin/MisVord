@@ -258,4 +258,416 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     window.MisVordDebug.log('Chat section initialization complete');
+
+// Message Context Menu Functionality
+    let contextMenu = null;
+    let currentMessageId = null;
+    let currentMessageData = null;
+
+    function initializeContextMenu() {
+        contextMenu = document.getElementById('message-context-menu');
+        if (!contextMenu) {
+            window.MisVordDebug.error('Context menu element not found');
+            return;
+        }
+
+        // Hide context menu on outside click
+        document.addEventListener('click', (e) => {
+            if (!contextMenu.contains(e.target) && !e.target.closest('.more-btn')) {
+                hideContextMenu();
+            }
+        });
+
+        // Hide context menu on scroll
+        const messagesContainer = document.getElementById('chat-messages');
+        if (messagesContainer) {
+            messagesContainer.addEventListener('scroll', hideContextMenu);
+        }
+
+        // Handle more button clicks
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.more-btn')) {
+                const btn = e.target.closest('.more-btn');
+                showContextMenu(e, btn);
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        });
+
+        // Setup context menu item handlers
+        setupContextMenuHandlers();
+    }
+
+    function showContextMenu(event, button) {
+        if (!contextMenu) return;
+
+        currentMessageId = button.dataset.messageId;
+        const isOwner = button.dataset.isOwner === 'true';
+        const userId = button.dataset.userId;
+
+        // Store message data for context menu actions
+        currentMessageData = {
+            id: currentMessageId,
+            userId: userId,
+            isOwner: isOwner
+        };
+
+        // Update menu items based on ownership
+        updateContextMenuItems(isOwner);
+
+        // Position the context menu
+        const rect = button.getBoundingClientRect();
+        contextMenu.style.left = `${rect.left}px`;
+        contextMenu.style.top = `${rect.bottom + 5}px`;
+
+        // Adjust position if menu would go off screen
+        const menuRect = contextMenu.getBoundingClientRect();
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+
+        if (rect.left + menuRect.width > windowWidth) {
+            contextMenu.style.left = `${windowWidth - menuRect.width - 10}px`;
+        }
+
+        if (rect.bottom + menuRect.height > windowHeight) {
+            contextMenu.style.top = `${rect.top - menuRect.height - 5}px`;
+        }
+
+        contextMenu.classList.remove('hidden');
+        window.MisVordDebug.log('Context menu shown for message', currentMessageId);
+    }
+
+    function hideContextMenu() {
+        if (contextMenu) {
+            contextMenu.classList.add('hidden');
+            currentMessageId = null;
+            currentMessageData = null;
+        }
+    }
+
+    function updateContextMenuItems(isOwner) {
+        const editBtn = contextMenu.querySelector('.edit-message-btn');
+        const deleteBtn = contextMenu.querySelector('.delete-message-btn');
+
+        if (editBtn) {
+            editBtn.style.display = isOwner ? 'flex' : 'none';
+        }
+        if (deleteBtn) {
+            deleteBtn.style.display = isOwner ? 'flex' : 'none';
+        }
+    }
+
+    function setupContextMenuHandlers() {
+        // Emoji reactions
+        contextMenu.querySelectorAll('.emoji-btn[data-emoji]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const emoji = btn.dataset.emoji;
+                addReaction(currentMessageId, emoji);
+                hideContextMenu();
+            });
+        });
+
+        // Add reaction button
+        const addReactionBtn = contextMenu.querySelector('.add-reaction-btn');
+        if (addReactionBtn) {
+            addReactionBtn.addEventListener('click', (e) => {
+                showEmojiPicker();
+                hideContextMenu();
+            });
+        }
+
+        // Edit message
+        const editBtn = contextMenu.querySelector('.edit-message-btn');
+        if (editBtn) {
+            editBtn.addEventListener('click', (e) => {
+                editMessage(currentMessageId);
+                hideContextMenu();
+            });
+        }
+
+        // Reply to message
+        const replyBtn = contextMenu.querySelector('.reply-message-btn');
+        if (replyBtn) {
+            replyBtn.addEventListener('click', (e) => {
+                replyToMessage(currentMessageId);
+                hideContextMenu();
+            });
+        }
+
+        // Forward message
+        const forwardBtn = contextMenu.querySelector('.forward-message-btn');
+        if (forwardBtn) {
+            forwardBtn.addEventListener('click', (e) => {
+                forwardMessage(currentMessageId);
+                hideContextMenu();
+            });
+        }
+
+        // Copy text
+        const copyTextBtn = contextMenu.querySelector('.copy-text-btn');
+        if (copyTextBtn) {
+            copyTextBtn.addEventListener('click', (e) => {
+                copyMessageText(currentMessageId);
+                hideContextMenu();
+            });
+        }
+
+        // Pin message
+        const pinBtn = contextMenu.querySelector('.pin-message-btn');
+        if (pinBtn) {
+            pinBtn.addEventListener('click', (e) => {
+                pinMessage(currentMessageId);
+                hideContextMenu();
+            });
+        }
+
+        // Mark unread
+        const markUnreadBtn = contextMenu.querySelector('.mark-unread-btn');
+        if (markUnreadBtn) {
+            markUnreadBtn.addEventListener('click', (e) => {
+                markMessageUnread(currentMessageId);
+                hideContextMenu();
+            });
+        }
+
+        // Copy message link
+        const copyLinkBtn = contextMenu.querySelector('.copy-link-btn');
+        if (copyLinkBtn) {
+            copyLinkBtn.addEventListener('click', (e) => {
+                copyMessageLink(currentMessageId);
+                hideContextMenu();
+            });
+        }
+
+        // Speak message
+        const speakBtn = contextMenu.querySelector('.speak-message-btn');
+        if (speakBtn) {
+            speakBtn.addEventListener('click', (e) => {
+                speakMessage(currentMessageId);
+                hideContextMenu();
+            });
+        }
+
+        // Delete message
+        const deleteBtn = contextMenu.querySelector('.delete-message-btn');
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', (e) => {
+                deleteMessage(currentMessageId);
+                hideContextMenu();
+            });
+        }
+
+        // Copy message ID
+        const copyIdBtn = contextMenu.querySelector('.copy-id-btn');
+        if (copyIdBtn) {
+            copyIdBtn.addEventListener('click', (e) => {
+                copyMessageId(currentMessageId);
+                hideContextMenu();
+            });
+        }
+    }
+
+    // Context menu action functions
+    function addReaction(messageId, emoji) {
+        window.MisVordDebug.log('Adding reaction', { messageId, emoji });
+        // TODO: Implement reaction API call
+        showToast(`Added ${emoji} reaction`);
+    }
+
+    function showEmojiPicker() {
+        window.MisVordDebug.log('Opening emoji picker');
+        // TODO: Implement emoji picker
+        showToast('Emoji picker coming soon!');
+    }
+
+    function editMessage(messageId) {
+        window.MisVordDebug.log('Editing message', messageId);
+        const messageElement = document.getElementById(`msg-${messageId}`);
+        if (messageElement) {
+            const contentElement = messageElement.querySelector('.text-gray-300');
+            if (contentElement) {
+                const currentText = contentElement.textContent;
+                const input = document.createElement('textarea');
+                input.value = currentText;
+                input.className = 'w-full bg-discord-message-input text-white p-2 rounded resize-none';
+                input.style.minHeight = '40px';
+                
+                contentElement.replaceWith(input);
+                input.focus();
+                input.select();
+
+                const saveEdit = () => {
+                    const newContent = input.value.trim();
+                    if (newContent && newContent !== currentText) {
+                        updateMessage(messageId, newContent);
+                    }
+                    restoreMessageContent();
+                };
+
+                const restoreMessageContent = () => {
+                    const newContentElement = document.createElement('div');
+                    newContentElement.className = 'text-gray-300 select-text break-words';
+                    newContentElement.textContent = input.value || currentText;
+                    input.replaceWith(newContentElement);
+                };
+
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        saveEdit();
+                    } else if (e.key === 'Escape') {
+                        restoreMessageContent();
+                    }
+                });
+
+                input.addEventListener('blur', saveEdit);
+            }
+        }
+    }
+
+    function replyToMessage(messageId) {
+        window.MisVordDebug.log('Replying to message', messageId);
+        const messageInput = document.getElementById('message-input');
+        if (messageInput) {
+            messageInput.focus();
+            // TODO: Implement reply UI
+        }
+        showToast('Reply feature coming soon!');
+    }
+
+    function forwardMessage(messageId) {
+        window.MisVordDebug.log('Forwarding message', messageId);
+        showToast('Forward feature coming soon!');
+    }
+
+    function copyMessageText(messageId) {
+        const messageElement = document.getElementById(`msg-${messageId}`);
+        if (messageElement) {
+            const contentElement = messageElement.querySelector('.text-gray-300');
+            if (contentElement) {
+                navigator.clipboard.writeText(contentElement.textContent).then(() => {
+                    showToast('Message copied to clipboard');
+                }).catch(() => {
+                    showToast('Failed to copy message');
+                });
+            }
+        }
+    }
+
+    function pinMessage(messageId) {
+        window.MisVordDebug.log('Pinning message', messageId);
+        showToast('Pin feature coming soon!');
+    }
+
+    function markMessageUnread(messageId) {
+        window.MisVordDebug.log('Marking message unread', messageId);
+        showToast('Mark unread feature coming soon!');
+    }
+
+    function copyMessageLink(messageId) {
+        const chatType = window.ChatData?.chatType || 'channel';
+        const targetId = window.ChatData?.targetId || '';
+        const link = `${window.location.origin}/app#${chatType}/${targetId}/${messageId}`;
+        
+        navigator.clipboard.writeText(link).then(() => {
+            showToast('Message link copied to clipboard');
+        }).catch(() => {
+            showToast('Failed to copy message link');
+        });
+    }
+
+    function speakMessage(messageId) {
+        const messageElement = document.getElementById(`msg-${messageId}`);
+        if (messageElement) {
+            const contentElement = messageElement.querySelector('.text-gray-300');
+            if (contentElement && 'speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(contentElement.textContent);
+                speechSynthesis.speak(utterance);
+                showToast('Speaking message...');
+            } else {
+                showToast('Text-to-speech not supported');
+            }
+        }
+    }
+
+    function deleteMessage(messageId) {
+        if (confirm('Are you sure you want to delete this message?')) {
+            window.MisVordDebug.log('Deleting message', messageId);
+            
+            fetch(`/api/messages/${messageId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Message deleted');
+                    const messageElement = document.getElementById(`msg-${messageId}`);
+                    if (messageElement) {
+                        messageElement.remove();
+                    }
+                } else {
+                    showToast('Failed to delete message');
+                }
+            })
+            .catch(error => {
+                window.MisVordDebug.error('Error deleting message', error);
+                showToast('Failed to delete message');
+            });
+        }
+    }
+
+    function copyMessageId(messageId) {
+        navigator.clipboard.writeText(messageId).then(() => {
+            showToast('Message ID copied to clipboard');
+        }).catch(() => {
+            showToast('Failed to copy message ID');
+        });
+    }
+
+    function updateMessage(messageId, content) {
+        fetch(`/api/messages/${messageId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({ content: content })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Message updated');
+                // The message content is already updated in the DOM
+            } else {
+                showToast('Failed to update message');
+                // Restore original content
+                location.reload();
+            }
+        })
+        .catch(error => {
+            window.MisVordDebug.error('Error updating message', error);
+            showToast('Failed to update message');
+            location.reload();
+        });
+    }
+
+    function showToast(message) {
+        // Simple toast notification
+        const toast = document.createElement('div');
+        toast.className = 'fixed bottom-4 right-4 bg-discord-dark text-white px-4 py-2 rounded shadow-lg z-50';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.remove();
+        }, 3000);
+    }
+
+    // Initialize context menu when DOM is ready
+    window.MisVordDebug.log('Initializing context menu...');
+    initializeContextMenu();
 });

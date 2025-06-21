@@ -80,9 +80,8 @@ function createProfileCardContent(user) {
         <div class="profile-header" style="background-color: ${user.banner_color || '#5865f2'}"></div>
         <div class="profile-content">
             <div class="flex items-start mb-3">
-                <div class="relative">
-                    <div class="profile-avatar">
-                        <img src="${user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.username)}&background=random`}" 
+                <div class="relative">                    <div class="profile-avatar">
+                        <img src="${user.avatar_url || '/public/assets/common/main-logo.png'}" 
                              alt="Avatar" class="w-full h-full object-cover rounded-full">
                     </div>
                     <span class="absolute bottom-0 right-0 w-5 h-5 rounded-full border-4 border-[#18191c] ${statusColor}"></span>
@@ -261,14 +260,12 @@ function updateFriendActivity(data) {
 function createActivityItem(data) {
     const { user, activity } = data;
 
-    return `
-        <div class="activity-item" data-user-id="${user.id}">
+    return `        <div class="activity-item" data-user-id="${user.id}">
             <div class="mb-3 rounded-md bg-discord-background overflow-hidden">
-                <div class="p-3">
-                    <div class="flex items-center mb-2">
+                <div class="p-3">                    <div class="flex items-center mb-2">
                         <div class="relative mr-2">
                             <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
-                                <img src="${user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.username)}&background=random`}" 
+                                <img src="${user.avatar_url || '/public/assets/common/main-logo.png'}" 
                                      alt="Avatar" class="w-full h-full object-cover">
                             </div>
                             <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-background bg-discord-green"></span>
@@ -370,9 +367,8 @@ function loadPendingRequests() {
 function createPendingRequestItem(user) {
     return `
         <div class="flex items-center justify-between p-2 bg-discord-background rounded">
-            <div class="flex items-center">
-                <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden mr-3">
-                    <img src="${user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.username)}&background=random`}" 
+            <div class="flex items-center">                <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden mr-3">
+                    <img src="${user.avatar_url || '/public/assets/common/main-logo.png'}" 
                          alt="Avatar" class="w-full h-full object-cover">
                 </div>
                 <div>
@@ -393,9 +389,8 @@ function createPendingRequestItem(user) {
 function createOutgoingRequestItem(user) {
     return `
         <div class="flex items-center justify-between p-2 bg-discord-background rounded">
-            <div class="flex items-center">
-                <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden mr-3">
-                    <img src="${user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.username)}&background=random`}" 
+            <div class="flex items-center">                <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden mr-3">
+                    <img src="${user.avatar_url || '/public/assets/common/main-logo.png'}" 
                          alt="Avatar" class="w-full h-full object-cover">
                 </div>
                 <div>
@@ -513,9 +508,8 @@ function addNewFriend(user) {
     const friendHtml = `
         <div class="flex justify-between items-center p-2 rounded hover:bg-discord-light group friend-item" data-user-id="${user.id}">
             <div class="flex items-center">
-                <div class="relative mr-3">
-                    <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
-                        <img src="${user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.username)}&background=random`}" 
+                <div class="relative mr-3">                    <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
+                        <img src="${user.avatar_url || '/public/assets/common/main-logo.png'}" 
                              alt="Avatar" class="w-full h-full object-cover">
                     </div>
                     <span class="status-indicator bg-discord-green"></span>
