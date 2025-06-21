@@ -318,10 +318,9 @@
                         }, 3000);
                     }
                 });
-                
-                // PHP Backend tests
+                  // PHP Backend tests
                 document.getElementById('testPhpMessage').addEventListener('click', () => {
-                    fetch('/api/messaging/debug/test-message', {
+                    fetch('/api/debug/socket-test.php/test-message', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -342,7 +341,7 @@
                 });
                 
                 document.getElementById('testSocketHealth').addEventListener('click', () => {
-                    fetch('http://localhost:1002/health')
+                    fetch('/api/debug/socket-test.php/socket-health')
                     .then(response => response.json())
                     .then(data => {
                         this.log(`Socket health: ${JSON.stringify(data)}`, 'success');

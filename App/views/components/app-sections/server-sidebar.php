@@ -26,19 +26,19 @@ if (file_exists($tooltipPath)) {
 <?php if ($isExplorePage): ?>
 <style>
 /* Critical styles for server icons in explore page to prevent collapse */
-.server-icon {
+.sidebar-server-icon {
     display: block !important;
     position: relative !important;
     margin-bottom: 8px !important;
 }
 
-.server-icon a div {
+.sidebar-server-icon a div {
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
 }
 
-.server-icon .absolute.left-0 {
+.sidebar-server-icon .absolute.left-0 {
     position: absolute !important;
 }
 </style>
@@ -48,7 +48,7 @@ if (file_exists($tooltipPath)) {
     <div class="w-[72px] bg-discord-darker flex flex-col items-center pt-3 pb-3 space-y-2 overflow-visible">
         <?php
         $homeContent = '<div class="relative">
-            <a href="/home" class="group flex items-center justify-center relative w-12 h-12">
+            <a href="/home" class="block group flex items-center justify-center relative w-12 h-12">
                 <div class="w-12 h-12 rounded-2xl ' . ($isHomePage ? 'bg-discord-primary rounded-[16px]' : 'bg-discord-dark rounded-full hover:rounded-2xl hover:bg-discord-primary') . ' flex items-center justify-center transition-all duration-200">
                     <i class="fa-brands fa-discord text-white text-xl"></i>
                 </div>
@@ -72,7 +72,7 @@ if (file_exists($tooltipPath)) {
                 ?>
                 
                 <?php
-                $serverContent = '<div class="relative server-icon' . ($isActive ? ' active' : '') . '" data-server-id="' . $serverId . '">
+                $serverContent = '<div class="relative sidebar-server-icon' . ($isActive ? ' active' : '') . '" data-server-id="' . $serverId . '">
                     <a href="/server/' . $serverId . '" class="block group">
                         <div class="w-12 h-12 overflow-hidden ' . ($isActive ? 'rounded-2xl bg-discord-primary' : 'rounded-full hover:rounded-2xl bg-discord-dark') . ' transition-all duration-200 flex items-center justify-center">
                             ' . (!empty($serverImage) ? 

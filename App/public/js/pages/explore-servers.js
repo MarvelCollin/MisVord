@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function initSidebarServerIcons() {
-    const serverIcons = document.querySelectorAll('.server-icon');
+    const serverIcons = document.querySelectorAll('.sidebar-server-icon');
     
     serverIcons.forEach(icon => {
         if (icon.closest('.w-[72px]')) {

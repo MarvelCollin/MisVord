@@ -24,13 +24,14 @@ class MessageController extends BaseController
 
         $this->validate($input, ['emoji' => 'required']);
 
-        $emoji = $input['emoji'];        
+        $emoji = $input['emoji'];
         $message = $this->messageRepository->find($messageId);
         if (!$message) {
             return $this->notFound('Message not found');
         }
 
-        try {            $this->sendWebSocketNotification('reaction_added', [
+        try {
+            $this->sendWebSocketNotification('reaction_added', [
                 'message_id' => $messageId,
                 'user_id' => $userId,
                 'emoji' => $emoji
@@ -63,7 +64,8 @@ class MessageController extends BaseController
             return $this->notFound('Message not found');
         }
 
-        try {            $this->sendWebSocketNotification('reaction_removed', [
+        try {
+            $this->sendWebSocketNotification('reaction_removed', [
                 'message_id' => $messageId,
                 'user_id' => $userId,
                 'emoji' => $emoji
@@ -108,7 +110,8 @@ class MessageController extends BaseController
             return $this->notFound('Message not found');
         }
 
-        try {            $this->sendWebSocketNotification('message_pinned', [
+        try {
+            $this->sendWebSocketNotification('message_pinned', [
                 'message_id' => $messageId,
                 'user_id' => $userId
             ]);
@@ -117,8 +120,10 @@ class MessageController extends BaseController
                 'message_id' => $messageId
             ], 'Message pinned successfully');
         } catch (Exception $e) {
-            return $this->serverError('Failed to pin message');        }
-    }    private function sendWebSocketNotification($event, $data)
+            return $this->serverError('Failed to pin message');
+        }
+    }
+    private function sendWebSocketNotification($event, $data)
     {
         try {
             $wsClient = new WebSocketClient();

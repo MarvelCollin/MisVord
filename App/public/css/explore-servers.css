@@ -59,7 +59,8 @@
   overflow: visible;
 }
 
-.server-icon {
+/* Server card icon styles */
+.server-card .server-icon {
   width: 64px;
   height: 64px;
   border-radius: 16px;
@@ -135,7 +136,7 @@
 }
 
 /* Server sidebar icon fixes */
-.flex.h-full .w-\[72px\] .server-icon {
+.flex.h-full .w-\[72px\] .sidebar-server-icon {
   width: 48px;
   height: 48px;
   margin-bottom: 8px;
@@ -143,13 +144,13 @@
   display: block;
 }
 
-.flex.h-full .w-\[72px\] .server-icon a {
+.flex.h-full .w-\[72px\] .sidebar-server-icon a {
   display: block;
   width: 100%;
   height: 100%;
 }
 
-.flex.h-full .w-\[72px\] .server-icon a div {
+.flex.h-full .w-\[72px\] .sidebar-server-icon a div {
   width: 48px !important;
   height: 48px !important;
   transition: border-radius 0.2s ease;
@@ -159,15 +160,15 @@
   z-index: 100;
 }
 
-.flex.h-full .w-\[72px\] .server-icon .absolute.left-0 {
+.flex.h-full .w-\[72px\] .sidebar-server-icon .absolute.left-0 {
   height: 0;
   transition: height 0.15s ease;
 }
 
-.flex.h-full .w-\[72px\] .server-icon.active .absolute.left-0 {
+.flex.h-full .w-\[72px\] .sidebar-server-icon.active .absolute.left-0 {
   height: 40px !important;
 }
 
-.flex.h-full .w-\[72px\] .server-icon:hover .absolute.left-0.group-hover\:h-5 {
+.flex.h-full .w-\[72px\] .sidebar-server-icon:hover .absolute.left-0.group-hover\:h-5 {
   height: 20px !important;
 }

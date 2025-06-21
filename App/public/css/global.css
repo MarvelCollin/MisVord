@@ -316,12 +316,12 @@ button:focus {
   color: white !important;
 }
 
-.server-icon,
+.global-server-icon,
 .w-12.h-12.rounded-full {
   transition: all 0.2s ease;
 }
 
-.server-icon:hover,
+.global-server-icon:hover,
 .w-12.h-12.rounded-full:hover {
   border-radius: 1rem !important;
 }
