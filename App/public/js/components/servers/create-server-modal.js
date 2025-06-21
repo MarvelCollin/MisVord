@@ -2,6 +2,7 @@ import { ServerAPI } from '../../api/server-api.js';
 
 document.addEventListener('DOMContentLoaded', function() {
     initServerIconUpload();
+    initServerBannerUpload();
     initServerFormSubmission();
 });
 
@@ -18,6 +19,26 @@ function initServerIconUpload() {
                     iconPreview.src = e.target.result;
                     iconPreview.classList.remove('hidden');
                     iconPlaceholder.classList.add('hidden');
+                }
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+    }
+}
+
+function initServerBannerUpload() {
+    const bannerInput = document.getElementById('server-banner-input');
+    const bannerPreview = document.getElementById('server-banner-preview');
+    const bannerPlaceholder = document.getElementById('server-banner-placeholder');
+
+    if (bannerInput) {
+        bannerInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    bannerPreview.src = e.target.result;
+                    bannerPreview.classList.remove('hidden');
+                    bannerPlaceholder.classList.add('hidden');
                 }
                 reader.readAsDataURL(this.files[0]);
             }
@@ -266,10 +287,15 @@ function closeModal(modal) {
 
 function resetForm(form) {
     form.reset();
-    const preview = document.getElementById('server-icon-preview');
-    const placeholder = document.getElementById('server-icon-placeholder');
-    if (preview) preview.classList.add('hidden');
-    if (placeholder) placeholder.classList.remove('hidden');
+    const iconPreview = document.getElementById('server-icon-preview');
+    const iconPlaceholder = document.getElementById('server-icon-placeholder');
+    const bannerPreview = document.getElementById('server-banner-preview');
+    const bannerPlaceholder = document.getElementById('server-banner-placeholder');
+    
+    if (iconPreview) iconPreview.classList.add('hidden');
+    if (iconPlaceholder) iconPlaceholder.classList.remove('hidden');
+    if (bannerPreview) bannerPreview.classList.add('hidden');
+    if (bannerPlaceholder) bannerPlaceholder.classList.remove('hidden');
 }
 
 function showError(message) {

@@ -302,9 +302,7 @@ class MisVordMessaging {
 
     getDebugInfo() {
         return this.debugUtils.getDebugInfo();
-    }
-
-    async switchToChat(chatId, chatType = 'channel') {
+    }    async switchToChat(chatId, chatType = 'channel') {
         this.log('🔄 Switching to chat:', chatId, 'Type:', chatType);
         
         this.setChatContext(chatId, chatType);
@@ -313,9 +311,31 @@ class MisVordMessaging {
         this.loadingMessages = false;
         this.currentOffset = 0;
         
+        // Join the appropriate socket room
+        await this.joinSocketRoom(chatId, chatType);
+        
         await this.loadMessages(chatId, chatType);
         
         this.updateChatUI(chatId, chatType);
+    }
+
+    async joinSocketRoom(chatId, chatType) {
+        if (!this.socket || !this.connected) {
+            this.log('⚠️ Cannot join room: socket not connected');
+            return;
+        }
+
+        try {
+            if (chatType === 'channel') {
+                this.log('🔌 Joining channel room:', chatId);
+                this.socket.emit('join-channel', { channelId: chatId });
+            } else if (chatType === 'direct' || chatType === 'dm') {
+                this.log('🔌 Joining DM room:', chatId);
+                this.socket.emit('join-dm-room', { roomId: chatId });
+            }
+        } catch (error) {
+            this.log('❌ Failed to join socket room:', error);
+        }
     }
 
     setChatContext(chatId, chatType) {

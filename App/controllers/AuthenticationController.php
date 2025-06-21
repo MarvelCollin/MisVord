@@ -131,6 +131,7 @@ class AuthenticationController extends BaseController
         $_SESSION['username'] = $user->username;
         $_SESSION['discriminator'] = $user->discriminator;
         $_SESSION['avatar_url'] = $user->avatar_url;
+        $_SESSION['banner_url'] = $user->banner_url;
 
         // Debug session after setting
         if (function_exists('logger')) {
@@ -166,7 +167,8 @@ class AuthenticationController extends BaseController
                     'id' => $user->id,
                     'username' => $user->username,
                     'discriminator' => $user->discriminator,
-                    'avatar_url' => $user->avatar_url
+                    'avatar_url' => $user->avatar_url,
+                    'banner_url' => $user->banner_url
                 ],
                 'redirect' => $redirect
             ], 'Login successful');
@@ -263,12 +265,47 @@ class AuthenticationController extends BaseController
             exit;
         }
 
+        $discriminator = User::generateDiscriminator();
+        $userData = [
+            'username' => $username,
+            'discriminator' => $discriminator,
+            'email' => $email,
+            'password' => password_hash($password, PASSWORD_DEFAULT),
+            'status' => 'online'
+        ];
+
+        // Handle avatar upload if present
+        if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
+            $avatarUrl = $this->uploadImage($_FILES['avatar'], 'avatars');
+            if ($avatarUrl !== false) {
+                $userData['avatar_url'] = $avatarUrl;
+            }
+        }
+        
+        // Handle banner upload if present
+        if (isset($_FILES['banner']) && $_FILES['banner']['error'] === UPLOAD_ERR_OK) {
+            $bannerUrl = $this->uploadImage($_FILES['banner'], 'banners');
+            if ($bannerUrl !== false) {
+                $userData['banner_url'] = $bannerUrl;
+            }
+        }
+
         try {
             $user = new User();
             $user->username = $username;
             $user->email = $email;
             $user->setPassword($password);
-            $user->discriminator = User::generateDiscriminator();
+            $user->discriminator = $discriminator;
+            $user->status = 'online';
+            
+            // Set avatar and banner URLs if available
+            if (isset($userData['avatar_url'])) {
+                $user->avatar_url = $userData['avatar_url'];
+            }
+            
+            if (isset($userData['banner_url'])) {
+                $user->banner_url = $userData['banner_url'];
+            }
 
             $this->logActivity('registration_attempt', ['username' => $username, 'email' => $email]);
 
@@ -277,6 +314,7 @@ class AuthenticationController extends BaseController
                 $_SESSION['username'] = $user->username;
                 $_SESSION['discriminator'] = $user->discriminator;
                 $_SESSION['avatar_url'] = $user->avatar_url;
+                $_SESSION['banner_url'] = $user->banner_url;
 
                 $this->logActivity('registration_success', ['user_id' => $user->id]);
 
@@ -429,6 +467,7 @@ class AuthenticationController extends BaseController
             $_SESSION['username'] = $user->username;
             $_SESSION['discriminator'] = $user->discriminator;
             $_SESSION['avatar_url'] = $user->avatar_url;
+            $_SESSION['banner_url'] = $user->banner_url;
 
             $redirect = $this->getRedirectUrl();
 

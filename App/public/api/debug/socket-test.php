@@ -18,8 +18,7 @@ class DebugController extends BaseController
             
             // Test WebSocket notification
             $wsClient = new WebSocketClient();
-            
-            if ($targetType === 'channel') {
+              if ($targetType === 'channel') {
                 $result = $wsClient->broadcast('channel-message', [
                     'channelId' => $targetId,
                     'content' => $content,
@@ -33,6 +32,15 @@ class DebugController extends BaseController
                     'content' => $content,
                     'messageType' => 'text',
                     'timestamp' => time(),
+                    'message' => [
+                        'id' => rand(1000, 9999),
+                        'content' => $content,
+                        'user_id' => 1,
+                        'created_at' => date('Y-m-d H:i:s')
+                    ],
+                    'user_id' => 1,
+                    'username' => 'DebugUser',
+                    'chatRoomId' => $targetId,
                     'source' => 'debug-endpoint'
                 ]);
             }

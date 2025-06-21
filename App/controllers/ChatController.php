@@ -169,7 +169,11 @@ class ChatController extends BaseController
                     'channelId' => $channelId,
                     'content' => $content,
                     'messageType' => $messageType,
-                    'timestamp' => time()
+                    'timestamp' => time(),
+                    'message' => $formattedMessage,
+                    'user_id' => $userId,
+                    'username' => $_SESSION['username'] ?? 'Unknown',
+                    'source' => 'php-backend'
                 ]);
 
                 return $this->success(['message' => $formattedMessage], 'Message sent successfully');
@@ -179,9 +183,7 @@ class ChatController extends BaseController
         } catch (Exception $e) {
             return $this->serverError('Failed to send message');
         }
-    }
-
-    private function sendDirectMessage($chatRoomId, $content, $userId, $messageType = 'text', $attachmentUrl = null, $mentions = [])
+    }    private function sendDirectMessage($chatRoomId, $content, $userId, $messageType = 'text', $attachmentUrl = null, $mentions = [])
     {
         $chatRoom = $this->chatRoomRepository->find($chatRoomId);
         if (!$chatRoom) {
@@ -207,16 +209,29 @@ class ChatController extends BaseController
                 if (!empty($mentions)) {
                     $formattedMessage['mentions'] = $mentions;
                 }                $participants = $this->chatRoomRepository->getParticipants($chatRoomId);
+                $senderUsername = $_SESSION['username'] ?? 'Unknown';
+                $targetUsername = 'Unknown';
+                
                 foreach ($participants as $participant) {
                     if ($participant['user_id'] != $userId) {
-                        $this->sendWebSocketNotification('direct-message', [
-                            'roomId' => $chatRoomId,
-                            'content' => $content,
-                            'messageType' => $messageType,
-                            'timestamp' => time()
-                        ], $participant['user_id']);
+                        $targetUsername = $participant['username'] ?? 'Unknown';
+                        break;
                     }
                 }
+                
+                error_log("$senderUsername direct message to $targetUsername : $content");
+
+                $this->sendWebSocketNotification('direct-message', [
+                    'roomId' => $chatRoomId,
+                    'content' => $content,
+                    'messageType' => $messageType,
+                    'timestamp' => time(),
+                    'message' => $formattedMessage,
+                    'chatRoomId' => $chatRoomId,
+                    'user_id' => $userId,
+                    'username' => $senderUsername,
+                    'source' => 'php-backend'
+                ]);
 
                 return $this->success(['message' => $formattedMessage], 'Message sent successfully');
             } else {

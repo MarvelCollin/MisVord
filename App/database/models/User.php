@@ -4,7 +4,7 @@ require_once __DIR__ . '/Model.php';
 
 class User extends Model {
     protected static $table = 'users';
-    protected $fillable = ['id', 'username', 'discriminator', 'email', 'password', 'google_id', 'avatar_url', 'status', 'created_at', 'updated_at'];
+    protected $fillable = ['id', 'username', 'discriminator', 'email', 'password', 'google_id', 'avatar_url', 'banner_url', 'status', 'created_at', 'updated_at'];
     
     public static function findByEmail($email) {
         $query = new Query();
@@ -146,6 +146,7 @@ class User extends Model {
                         email VARCHAR(255) UNIQUE NOT NULL,
                         password VARCHAR(255),
                         avatar_url VARCHAR(500),
+                        banner_url VARCHAR(500),
                         status ENUM('online', 'away', 'busy', 'offline') DEFAULT 'offline',
                         display_name VARCHAR(255),
                         bio TEXT,

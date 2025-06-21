@@ -354,13 +354,11 @@ class SocketManager {
             this.messaging.activeChannel = channelId;
             this.messaging.chatType = 'channel';
         }
-    }
-
-    leaveDMRoom(chatRoomId) {
+    }    leaveDMRoom(chatRoomId) {
         this.messaging.log('🚪 Leaving DM room:', chatRoomId);
         
         if (this.socket && this.connected && this.messaging.activeChatRoom === chatRoomId) {
-            this.socket.emit('leave_dm_room', { chatRoomId: chatRoomId });
+            this.socket.emit('leave-dm-room', { roomId: chatRoomId });
             this.messaging.activeChatRoom = null;
             this.messaging.chatType = null;
         }
@@ -369,7 +367,7 @@ class SocketManager {
     joinDMRoom(chatRoomId) {
         if (this.socket && this.connected) {
             this.messaging.log('💬 Joining DM room:', chatRoomId);
-            this.socket.emit('join_dm_room', { chatRoomId: chatRoomId });
+            this.socket.emit('join-dm-room', { roomId: chatRoomId });
             this.messaging.activeChatRoom = chatRoomId;
             this.messaging.chatType = 'direct';
         }

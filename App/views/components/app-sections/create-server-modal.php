@@ -22,6 +22,15 @@ $additional_js[] = 'components/servers/create-server-modal';
                 <input type="file" id="server-icon-input" name="server_icon" class="absolute inset-0 opacity-0 cursor-pointer" accept="image/*">
             </div>
 
+            <div class="group relative w-full h-32 mx-auto mb-4 rounded-lg bg-discord-dark flex items-center justify-center overflow-hidden border-2 border-dashed border-gray-600 hover:border-discord-blue transition-colors cursor-pointer">
+                <img id="server-banner-preview" class="hidden w-full h-full object-cover" src="" alt="Server banner">
+                <div id="server-banner-placeholder" class="flex flex-col items-center justify-center">
+                    <i class="fas fa-image text-gray-400 text-xl mb-1"></i>
+                    <span class="text-gray-400 text-xs text-center">Upload Banner</span>
+                </div>
+                <input type="file" id="server-banner-input" name="server_banner" class="absolute inset-0 opacity-0 cursor-pointer" accept="image/*">
+            </div>
+
             <div class="mb-4">
                 <label for="server-name" class="block text-gray-300 text-sm font-medium mb-2">Server Name</label>
                 <input type="text" id="server-name" name="name" class="bg-discord-dark text-white w-full px-3 py-2 rounded border border-gray-700 focus:border-discord-blue focus:outline-none" placeholder="My Awesome Server" required>

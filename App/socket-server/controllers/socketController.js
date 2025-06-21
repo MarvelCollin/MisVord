@@ -169,8 +169,7 @@ function handleChannelMessage(io, socket, data) {
       });
       return;
     }
-    
-    messageService.saveMessage(channelId, user.userId, content, messageType)
+      messageService.saveMessage(channelId, user.userId, content, messageType)
       .then(message => {
         const messageData = {
           ...message,
@@ -179,6 +178,8 @@ function handleChannelMessage(io, socket, data) {
         };
         
         messageService.trackMessageProcessing(user.userId, timestamp, message.id, content);
+        
+        console.log(`${user.username} to #channel-${channelId} : ${content}`);
         
         io.to(`channel-${channelId}`).emit('new-channel-message', messageData);
         
@@ -238,8 +239,7 @@ function handleDirectMessage(io, socket, data) {
         roomId
       });
       return;
-    }
-      messageService.saveDirectMessage(roomId, user.userId, content, messageType)
+    }      messageService.saveDirectMessage(roomId, user.userId, content, messageType)
       .then(message => {
         const messageData = {
           ...message,
@@ -253,8 +253,14 @@ function handleDirectMessage(io, socket, data) {
         
         messageService.trackMessageProcessing(user.userId, timestamp, message.id, content);
         
-        console.log(`📤 Emitting new-direct-message to room dm-room-${roomId}:`, messageData);
-        io.to(`dm-room-${roomId}`).emit('new-direct-message', messageData);
+        const roomName = `dm-room-${roomId}`;
+        const room = io.sockets.adapter.rooms.get(roomName);
+        const clientCount = room ? room.size : 0;
+        
+        console.log(`📤 Emitting new-direct-message to ${roomName} (${clientCount} clients):`, messageData);
+        console.log(`${user.username} direct message to room ${roomId} : ${content}`);
+        
+        io.to(roomName).emit('new-direct-message', messageData);
         
         socket.emit('message-sent-confirmation', { 
           tempId: data.tempId, 

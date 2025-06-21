@@ -156,7 +156,7 @@ function handleFriendEvent(io, event, data, res) {
 function handleChannelMessageEvent(io, data, res) {
   console.log(`💬 Channel message event from PHP backend:`, data);
   
-  const { channelId, content, messageType, timestamp } = data;
+  const { channelId, content, messageType, timestamp, message, user_id, username } = data;
   
   if (!channelId || !content) {
     return res.status(400).json({ 
@@ -165,13 +165,19 @@ function handleChannelMessageEvent(io, data, res) {
     });
   }
   
-  io.to(`channel-${channelId}`).emit('new-channel-message', {
+  const messageData = {
     channelId,
     content,
     messageType: messageType || 'text',
     timestamp: timestamp || Date.now(),
-    source: 'php-backend'
-  });
+    source: 'php-backend',
+    user_id,
+    username,
+    ...message
+  };
+  
+  console.log(`📤 Broadcasting to channel-${channelId}:`, messageData);
+  io.to(`channel-${channelId}`).emit('new-channel-message', messageData);
   
   return res.json({ success: true, channelId });
 }
@@ -179,7 +185,7 @@ function handleChannelMessageEvent(io, data, res) {
 function handleDirectMessageEvent(io, data, res) {
   console.log(`💬 Direct message event from PHP backend:`, data);
   
-  const { roomId, content, messageType, timestamp } = data;
+  const { roomId, content, messageType, timestamp, message, user_id, username } = data;
   
   if (!roomId || !content) {
     return res.status(400).json({ 
@@ -188,13 +194,26 @@ function handleDirectMessageEvent(io, data, res) {
     });
   }
   
-  io.to(`dm-room-${roomId}`).emit('new-direct-message', {
+  const messageData = {
     roomId,
     content,
     messageType: messageType || 'text',
     timestamp: timestamp || Date.now(),
-    source: 'php-backend'
-  });
+    source: 'php-backend',
+    chatRoomId: roomId,
+    user_id,
+    username,
+    ...message
+  };
+  
+  const roomName = `dm-room-${roomId}`;
+  const room = io.sockets.adapter.rooms.get(roomName);
+  const clientCount = room ? room.size : 0;
+  
+  console.log(`📤 Broadcasting to ${roomName} (${clientCount} clients):`, messageData);
+  console.log(`${username} direct message to room ${roomId} : ${content}`);
+  
+  io.to(roomName).emit('new-direct-message', messageData);
   
   return res.json({ success: true, roomId });
 }

@@ -108,7 +108,7 @@ function loadFriendsForDM() {
     
     friendsList.innerHTML = generateSkeletonItems(5);
     
-    FriendAPI.getFriends()
+    friendAPI.getFriends()
         .then(friends => {
             friendsList.innerHTML = '';
             
@@ -282,7 +282,7 @@ function loadAllFriends() {
     
     container.innerHTML = generateSkeletonFriends(5);
     
-    FriendAPI.getFriends()
+    friendAPI.getFriends()
         .then(friends => {
             if (friends && friends.length > 0) {
                 let friendsHtml = '';
@@ -366,7 +366,7 @@ function loadPendingRequests() {
 
     pendingContainer.innerHTML = generateSkeletonPending();
     
-    FriendAPI.getPendingRequests()
+    friendAPI.getPendingRequests()
         .then(pendingData => {
             pendingContainer.innerHTML = '';
 
@@ -499,7 +499,7 @@ function loadBlockedUsers() {
     
     container.innerHTML = generateSkeletonItems(3);
     
-    FriendAPI.getBlockedUsers()
+    friendAPI.getBlockedUsers()
         .then(blockedUsers => {
             if (blockedUsers && blockedUsers.length > 0) {
                 let blockedHtml = '';
@@ -581,7 +581,7 @@ function acceptFriendRequest(userId) {
 }
 
 function ignoreFriendRequest(userId) {
-    FriendAPI.declineFriendRequest(userId)
+    friendAPI.declineFriendRequest(userId)
         .then(() => {
             showToast('Friend request ignored', 'info');
             loadPendingRequests();
@@ -627,7 +627,7 @@ function initFriendRequestForm() {
     
     friendUsernameInput.addEventListener('input', function() {
         const value = this.value.trim();
-        const validation = FriendAPI.validateUsername(value);
+        const validation = friendAPI.validateUsername(value);
         
         sendFriendRequestBtn.disabled = !validation.valid;
         
@@ -645,7 +645,7 @@ function initFriendRequestForm() {
         const username = friendUsernameInput.value.trim();
         
         // Validate input
-        const validation = FriendAPI.validateUsername(username);
+        const validation = friendAPI.validateUsername(username);
         if (!validation.valid) {
             if (errorDiv) {
                 errorDiv.textContent = validation.message || 'Invalid username format';
@@ -716,7 +716,7 @@ function showToast(message, type = 'info') {
 window.acceptFriendRequest = async function(friendshipId) {
     try {
         console.log('Accepting friend request:', friendshipId);
-        const result = await FriendAPI.acceptFriendRequest(friendshipId);
+        const result = await friendAPI.acceptFriendRequest(friendshipId);
         
         if (result.success) {
             showToast('Friend request accepted!', 'success');
@@ -736,7 +736,7 @@ window.acceptFriendRequest = async function(friendshipId) {
 window.ignoreFriendRequest = async function(friendshipId) {
     try {
         console.log('Ignoring friend request:', friendshipId);
-        const result = await FriendAPI.declineFriendRequest(friendshipId);
+        const result = await friendAPI.declineFriendRequest(friendshipId);
         
         if (result.success) {
             showToast('Friend request ignored', 'info');

@@ -163,16 +163,29 @@ class ServerController extends BaseController
 
         $name = $input['name'];
         $description = $input['description'] ?? '';
+        $server->is_public = isset($input['is_public']) ? (bool)$input['is_public'] : false;
+        $server->category = $input['category'] ?? null;
 
         try {
             $server = new Server();
             $server->name = $name;
             $server->description = $description;
+            $server->is_public = isset($input['is_public']) ? (bool)$input['is_public'] : false;
+            $server->category = $input['category'] ?? null;
 
+            // Handle server icon upload
             if (isset($_FILES['server_icon']) && $_FILES['server_icon']['error'] === UPLOAD_ERR_OK) {
                 $imageUrl = $this->uploadImage($_FILES['server_icon'], 'servers');
                 if ($imageUrl !== false) {
                     $server->image_url = $imageUrl;
+                }
+            }
+            
+            // Handle server banner upload
+            if (isset($_FILES['server_banner']) && $_FILES['server_banner']['error'] === UPLOAD_ERR_OK) {
+                $bannerUrl = $this->uploadImage($_FILES['server_banner'], 'banners');
+                if ($bannerUrl !== false) {
+                    $server->banner_url = $bannerUrl;
                 }
             }
 
@@ -237,6 +250,30 @@ class ServerController extends BaseController
 
         if (isset($input['description'])) {
             $server->description = $input['description'];
+        }
+        
+        if (isset($input['is_public'])) {
+            $server->is_public = (bool)$input['is_public'];
+        }
+        
+        if (isset($input['category'])) {
+            $server->category = $input['category'];
+        }
+
+        // Handle server icon upload
+        if (isset($_FILES['server_icon']) && $_FILES['server_icon']['error'] === UPLOAD_ERR_OK) {
+            $imageUrl = $this->uploadImage($_FILES['server_icon'], 'servers');
+            if ($imageUrl !== false) {
+                $server->image_url = $imageUrl;
+            }
+        }
+        
+        // Handle server banner upload
+        if (isset($_FILES['server_banner']) && $_FILES['server_banner']['error'] === UPLOAD_ERR_OK) {
+            $bannerUrl = $this->uploadImage($_FILES['server_banner'], 'banners');
+            if ($bannerUrl !== false) {
+                $server->banner_url = $bannerUrl;
+            }
         }
 
         if (!empty($errors)) {
@@ -607,6 +644,9 @@ class ServerController extends BaseController
             'name' => $server->name,
             'description' => $server->description,
             'image_url' => $server->image_url ?? null,
+            'banner_url' => $server->banner_url ?? null,
+            'is_public' => $server->is_public ?? false,
+            'category' => $server->category ?? null,
             'member_count' => $server->getMemberCount(),
             'created_at' => $server->created_at,
             'updated_at' => $server->updated_at,
