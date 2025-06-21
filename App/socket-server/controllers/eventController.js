@@ -154,11 +154,13 @@ function handleFriendEvent(io, event, data, res) {
 }
 
 function handleChannelMessageEvent(io, data, res) {
-  console.log(`💬 Channel message event from PHP backend:`, data);
+  console.log('\n=== 📨 PHP BACKEND MESSAGE EVENT ===');
+  console.log(`💬 Channel message event from PHP backend:`, JSON.stringify(data, null, 2));
   
   const { channelId, content, messageType, timestamp, message, user_id, username } = data;
   
   if (!channelId || !content) {
+    console.log('❌ Missing required parameters:', { channelId: !!channelId, content: !!content });
     return res.status(400).json({ 
       success: false, 
       error: 'Missing required parameters for channel-message' 
@@ -176,8 +178,17 @@ function handleChannelMessageEvent(io, data, res) {
     ...message
   };
   
-  console.log(`📤 Broadcasting to channel-${channelId}:`, messageData);
+  console.log(`📤 Broadcasting to channel-${channelId}:`, JSON.stringify(messageData, null, 2));
+  
+  // Get room info
+  const roomName = `channel-${channelId}`;
+  const clientsInRoom = io.sockets.adapter.rooms.get(roomName);
+  console.log(`👥 Clients in room ${roomName}:`, clientsInRoom ? Array.from(clientsInRoom) : 'No clients');
+  
   io.to(`channel-${channelId}`).emit('new-channel-message', messageData);
+  
+  console.log('✅ PHP message broadcast completed');
+  console.log('=== END PHP BACKEND MESSAGE ===\n');
   
   return res.json({ success: true, channelId });
 }

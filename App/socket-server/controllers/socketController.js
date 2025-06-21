@@ -3,15 +3,62 @@ const messageService = require('../services/messageService');
 
 function setupSocketHandlers(io) {
   io.on('connection', (socket) => {
-    console.log(`🔌 New socket connection: ${socket.id}`);
+    console.log(`\n🔌 New socket connection: ${socket.id} at ${new Date().toISOString()}`);
     
-    socket.on('authenticate', (data) => handleAuthentication(io, socket, data));
-    socket.on('disconnect', () => handleDisconnect(io, socket));
-    socket.on('join-channel', (data) => handleJoinChannel(io, socket, data));
-    socket.on('leave-channel', (data) => handleLeaveChannel(io, socket, data));
-    socket.on('channel-message', (data) => handleChannelMessage(io, socket, data));
-    socket.on('direct-message', (data) => handleDirectMessage(io, socket, data));
-    socket.on('join-dm-room', (data) => handleJoinDMRoom(io, socket, data));    socket.on('leave-dm-room', (data) => handleLeaveDMRoom(io, socket, data));
+    socket.on('authenticate', (data) => {
+      console.log(`📞 authenticate event from ${socket.id}`);
+      handleAuthentication(io, socket, data);
+    });
+    socket.on('disconnect', () => {
+      console.log(`📞 disconnect event from ${socket.id}`);
+      handleDisconnect(io, socket);
+    });
+    socket.on('join-channel', (data) => {
+      console.log(`📞 join-channel event from ${socket.id}:`, data);
+      handleJoinChannel(io, socket, data);
+    });
+    socket.on('leave-channel', (data) => {
+      console.log(`📞 leave-channel event from ${socket.id}:`, data);
+      handleLeaveChannel(io, socket, data);
+    });
+    socket.on('channel-message', (data) => {
+      console.log(`📞 channel-message event from ${socket.id}`);
+      handleChannelMessage(io, socket, data);
+    });
+    socket.on('direct-message', (data) => {
+      console.log(`📞 direct-message event from ${socket.id}`);
+      handleDirectMessage(io, socket, data);
+    });
+    socket.on('join-dm-room', (data) => handleJoinDMRoom(io, socket, data));
+    
+    // Debug command to show current room status
+    socket.on('debug-rooms', () => {
+      console.log('\n=== 🔍 ROOM DEBUG INFO ===');
+      const rooms = io.sockets.adapter.rooms;
+      console.log('All rooms:', Array.from(rooms.keys()));
+      rooms.forEach((clients, roomName) => {
+        if (roomName.startsWith('channel-') || roomName.startsWith('dm-')) {
+          console.log(`Room ${roomName}: ${clients.size} clients - ${Array.from(clients)}`);
+        }
+      });
+      console.log('=== END ROOM DEBUG ===\n');
+    });
+  });
+  
+  // Log room status every 30 seconds for debugging
+  setInterval(() => {
+    const rooms = io.sockets.adapter.rooms;
+    const channelRooms = Array.from(rooms.keys()).filter(name => name.startsWith('channel-'));
+    if (channelRooms.length > 0) {
+      console.log('\n📊 Room Status Update:');
+      channelRooms.forEach(roomName => {
+        const clients = rooms.get(roomName);
+        console.log(`  ${roomName}: ${clients ? clients.size : 0} clients`);
+      });
+      console.log('');
+    }
+  }, 30000);
+}socket.on('leave-dm-room', (data) => handleLeaveDMRoom(io, socket, data));
     socket.on('typing', (data) => handleTyping(io, socket, data));
     socket.on('stop-typing', (data) => handleStopTyping(io, socket, data));
     socket.on('user_typing_dm', (data) => handleTypingDM(io, socket, data));
@@ -32,10 +79,15 @@ function setupSocketHandlers(io) {
 }
 
 function handleAuthentication(io, socket, data) {
+  console.log('\n=== 🔐 AUTHENTICATION REQUEST ===');
+  console.log('Socket ID:', socket.id);
+  console.log('Auth data:', JSON.stringify(data, null, 2));
+  
   try {
     const { userId, username, token } = data;
     
     if (!userId || !username) {
+      console.log('❌ Missing authentication parameters:', { userId: !!userId, username: !!username });
       socket.emit('authentication-failed', { error: 'Missing required authentication parameters' });
       return;
     }
@@ -43,6 +95,7 @@ function handleAuthentication(io, socket, data) {
     const user = userService.addConnectedUser(socket.id, { userId, username });
     
     console.log(`🔐 User authenticated: ${username} (${userId})`);
+    console.log('User object:', user);
     
     socket.emit('authenticated', { 
       success: true, 
@@ -52,6 +105,7 @@ function handleAuthentication(io, socket, data) {
     });
     
     broadcastUserPresenceUpdate(io, userId, 'online', username);
+    console.log('=== END AUTHENTICATION ===\n');
   } catch (error) {
     console.error('❌ Authentication error:', error);
     socket.emit('authentication-failed', { error: 'Authentication failed' });
@@ -80,11 +134,19 @@ function handleDisconnect(io, socket) {
 }
 
 function handleJoinChannel(io, socket, data) {
+  console.log('\n=== 🏠 JOIN CHANNEL REQUEST ===');
+  console.log('Socket ID:', socket.id);
+  console.log('Join data:', JSON.stringify(data, null, 2));
+  
   try {
     const { channelId } = data;
     const user = userService.getConnectedUser(socket.id);
     
+    console.log('User trying to join:', user);
+    console.log('Channel ID:', channelId);
+    
     if (!user || !channelId) {
+      console.log('❌ Invalid join request:', { user: !!user, channelId: !!channelId });
       socket.emit('channel-join-failed', { error: 'Invalid request' });
       return;
     }
@@ -92,12 +154,23 @@ function handleJoinChannel(io, socket, data) {
     const roomName = `channel-${channelId}`;
     socket.join(roomName);
     
-    console.log(`👥 User ${user.username} (${user.userId}) joined channel ${channelId}`);
+    // Get updated room info
+    const clientsInRoom = io.sockets.adapter.rooms.get(roomName);
+    console.log(`✅ User ${user.username} (${user.userId}) joined channel ${channelId}`);
+    console.log(`👥 Total clients in room ${roomName}:`, clientsInRoom ? clientsInRoom.size : 0);
+    console.log(`👥 Client IDs in room:`, clientsInRoom ? Array.from(clientsInRoom) : []);
     
     socket.emit('channel-joined', { 
       channelId, 
       success: true 
     });
+    
+    console.log('=== END JOIN CHANNEL ===\n');
+  } catch (error) {
+    console.error('❌ Join channel error:', error);
+    socket.emit('channel-join-failed', { error: 'Failed to join channel' });
+  }
+}
     
     socket.to(roomName).emit('user-joined-channel', {
       channelId,
@@ -150,11 +223,25 @@ function handleLeaveChannel(io, socket, data) {
 }
 
 function handleChannelMessage(io, socket, data) {
+  console.log('\n=== 📨 CHANNEL MESSAGE RECEIVED ===');
+  console.log('Socket ID:', socket.id);
+  console.log('Raw Data:', JSON.stringify(data, null, 2));
+  
   try {
     const { channelId, content, messageType = 'text', timestamp } = data;
     const user = userService.getConnectedUser(socket.id);
     
+    console.log('User from socket:', user);
+    console.log('Channel ID:', channelId);
+    console.log('Content:', content);
+    console.log('Message Type:', messageType);
+    
     if (!user || !channelId || !content) {
+      console.log('❌ Invalid message data - Missing:', {
+        user: !!user,
+        channelId: !!channelId,
+        content: !!content
+      });
       socket.emit('message_error', { error: 'Invalid message data' });
       return;
     }
@@ -168,9 +255,11 @@ function handleChannelMessage(io, socket, data) {
         channelId
       });
       return;
-    }
+    }      console.log('💾 Saving message to database...');
       messageService.saveMessage(channelId, user.userId, content, messageType)
       .then(message => {
+        console.log('✅ Message saved successfully:', message);
+        
         const messageData = {
           ...message,
           username: user.username,
@@ -178,6 +267,14 @@ function handleChannelMessage(io, socket, data) {
         };
         
         messageService.trackMessageProcessing(user.userId, timestamp, message.id, content);
+        
+        console.log(`📤 Broadcasting to channel-${channelId}`);
+        console.log('Message data being broadcast:', JSON.stringify(messageData, null, 2));
+        
+        // Get room info
+        const roomName = `channel-${channelId}`;
+        const clientsInRoom = io.sockets.adapter.rooms.get(roomName);
+        console.log(`👥 Clients in room ${roomName}:`, clientsInRoom ? Array.from(clientsInRoom) : 'No clients');
         
         console.log(`${user.username} to #channel-${channelId} : ${content}`);
         
@@ -188,6 +285,9 @@ function handleChannelMessage(io, socket, data) {
           messageId: message.id,
           channelId
         });
+        
+        console.log('✅ Message broadcast completed');
+        console.log('=== END CHANNEL MESSAGE ===\n');
       })
       .catch(error => {
         console.error('❌ Error saving message:', error);
@@ -535,7 +635,6 @@ function broadcastUserPresenceUpdate(io, userId, status, username = null, activi
   console.log(`📡 Broadcasting presence update for user ${userId}: ${status}`);
 }
 
-// New handlers for refactored socket-api.js
 function handleNotifyUser(io, socket, data) {
   try {
     const { user_id, event, data: eventData } = data;

@@ -197,7 +197,7 @@ class MessageHandler {
         
         const timestamp = this.formatSafeDate(message.created_at || message.sent_at);
         const fullTimestamp = this.formatFullDate(message.created_at || message.sent_at);
-        const avatarUrl = message.avatar_url || '/assets/default-avatar.png';        if (isGrouped) {
+        const avatarUrl = message.avatar_url || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICAgIDxjaXJjbGUgY3g9IjIwIiBjeT0iMjAiIHI9IjIwIiBmaWxsPSIjNTg2NUYyIi8+CiAgICA8Y2lyY2xlIGN4PSIyMCIgY3k9IjE1IiByPSI2IiBmaWxsPSJ3aGl0ZSIvPgogICAgPHBhdGggZD0iTTggMzJDOCAyNi41IDEyLjUgMjIgMTggMjJIMjJDMjcuNSAyMiAzMiAyNi41IDMyIDMyVjM1QzMyIDM2LjEgMzEuMSAzNyAzMCAzN0gxMEM4LjkgMzcgOCAzNi4xIDggMzVWMzJaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K';        if (isGrouped) {
             messageDiv.innerHTML = `
                 <div class="ml-16 relative">
                     <span class="absolute left-[-60px] text-xs text-gray-500 opacity-0 group-hover:opacity-100 w-14 text-right pr-1 mt-0.5 transition-opacity">

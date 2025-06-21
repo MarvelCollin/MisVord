@@ -1247,3 +1247,34 @@
 [2025-06-21 20:39:49] INFO [5c533f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 20:39:49"}
 [2025-06-21 20:39:49] INFO [5c9f84] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 20:39:49"}
 [2025-06-21 20:39:49] INFO [5cf6f2] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 20:39:49"}
+[2025-06-21 17:14:48] DEBUG [80343b] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 17:14:48] INFO [80343b] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 17:14:48] DEBUG [80343b] DB Query: SELECT * FROM users WHERE  username LIKE ? LIMIT 50 - Duration: 47.61ms - Context: {"bindings":["%%"],"result_count":2,"db_query":"SELECT * FROM users WHERE  username LIKE ? LIMIT 50","db_duration":0.04760599136352539}
+[2025-06-21 17:15:12] DEBUG [093975] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 17:15:12] INFO [093975] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 17:15:12] DEBUG [093975] DB Query: SELECT * FROM users WHERE  id = ? LIMIT 1 - Duration: 51.92ms - Context: {"bindings":[1],"found":true,"db_query":"SELECT * FROM users WHERE  id = ? LIMIT 1","db_duration":0.051915884017944336}
+[2025-06-21 17:15:12] DEBUG [093975] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 17:15:12] INFO [093975] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 17:15:12] DEBUG [093975] DB Query: SELECT * FROM users WHERE  id = ? LIMIT 1 - Duration: 49.20ms - Context: {"bindings":[2],"found":true,"db_query":"SELECT * FROM users WHERE  id = ? LIMIT 1","db_duration":0.04919695854187012}
+[2025-06-21 17:15:12] DEBUG [093975] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 17:15:12] INFO [093975] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 17:15:12] DEBUG [093975] DB Query: SELECT * FROM users WHERE  id = ? LIMIT 1 - Duration: 47.28ms - Context: {"bindings":[3],"found":false,"db_query":"SELECT * FROM users WHERE  id = ? LIMIT 1","db_duration":0.04728293418884277}
+[2025-06-21 17:15:12] DEBUG [093975] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 17:15:12] INFO [093975] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 17:15:12] DEBUG [093975] DB Query: SELECT * FROM users WHERE  id = ? LIMIT 1 - Duration: 52.00ms - Context: {"bindings":[4],"found":false,"db_query":"SELECT * FROM users WHERE  id = ? LIMIT 1","db_duration":0.05199694633483887}
+[2025-06-21 17:15:12] DEBUG [093975] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 17:15:12] INFO [093975] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 17:15:12] DEBUG [093975] DB Query: SELECT * FROM users WHERE  id = ? LIMIT 1 - Duration: 52.73ms - Context: {"bindings":[5],"found":false,"db_query":"SELECT * FROM users WHERE  id = ? LIMIT 1","db_duration":0.05273008346557617}
+[2025-06-21 17:15:12] DEBUG [093975] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 17:15:12] INFO [093975] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 17:15:13] DEBUG [093975] DB Query: SELECT * FROM users WHERE  username = ? LIMIT 1 - Duration: 44.93ms - Context: {"bindings":["kolin"],"found":true,"db_query":"SELECT * FROM users WHERE  username = ? LIMIT 1","db_duration":0.04492616653442383}
+[2025-06-21 17:16:18] DEBUG [291f53] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 17:16:18] INFO [291f53] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 17:16:18] DEBUG [291f53] DB Query: SELECT * FROM users WHERE  id = ? LIMIT 1 - Duration: 42.39ms - Context: {"bindings":[1],"found":true,"db_query":"SELECT * FROM users WHERE  id = ? LIMIT 1","db_duration":0.042387962341308594}
+[2025-06-21 17:16:18] DEBUG [291f53] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 17:16:18] INFO [291f53] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 17:16:18] DEBUG [291f53] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 17:16:18] INFO [291f53] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 17:16:18] DEBUG [291f53] DB Query: SELECT * FROM users WHERE  id = ? LIMIT 1 - Duration: 60.00ms - Context: {"bindings":[2],"found":true,"db_query":"SELECT * FROM users WHERE  id = ? LIMIT 1","db_duration":0.05999588966369629}
+[2025-06-21 17:16:19] DEBUG [291f53] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 17:16:19] INFO [291f53] Database connected successfully - Context: {"database":"misvord"}

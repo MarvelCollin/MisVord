@@ -129,9 +129,260 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         }
+        
+        if (e.ctrlKey && e.key === '2') {
+            e.preventDefault();
+            
+            // Get comprehensive socket status
+            const socketStatus = getDetailedSocketStatus();
+            
+            console.log('🔌 Socket Status Debug:', socketStatus);
+            
+            // Check and potentially fix MisVordMessaging initialization
+            if (window.MisVordMessaging && !window.MisVordMessaging.initialized) {
+                console.log('🔧 MisVordMessaging exists but not initialized, attempting manual initialization...');
+                try {
+                    window.MisVordMessaging.init();
+                    console.log('✅ Manual MisVordMessaging initialization successful');
+                } catch (error) {
+                    console.error('❌ Manual MisVordMessaging initialization failed:', error);
+                }
+            }
+
+            // Also check if we need to force connection to global socket manager
+            if (window.MisVordMessaging && window.globalSocketManager && 
+                !window.MisVordMessaging.connected && window.globalSocketManager.isReady()) {
+                console.log('🔧 Forcing MisVordMessaging connection to global socket manager...');
+                try {
+                    if (window.MisVordMessaging.socketManager && window.MisVordMessaging.socketManager.connectToGlobalSocketManager) {
+                        window.MisVordMessaging.socketManager.connectToGlobalSocketManager();
+                        console.log('✅ Forced connection attempt completed');
+                    }
+                } catch (error) {
+                    console.error('❌ Forced connection failed:', error);
+                }
+            }
+            
+            // Re-check status after potential fixes
+            const updatedSocketStatus = getDetailedSocketStatus();
+            
+            // Prepare detailed status message
+            const statusEmoji = updatedSocketStatus.overallStatus === 'fully-connected' ? '✅' : 
+                               updatedSocketStatus.overallStatus === 'connected-but-issues' ? '⚠️' : '❌';
+            
+            const statusText = updatedSocketStatus.overallStatus === 'fully-connected' ? 
+                `${statusEmoji} Socket Fully Connected (ID: ${updatedSocketStatus.socketId})` :
+                updatedSocketStatus.overallStatus === 'connected-but-issues' ? 
+                `${statusEmoji} Socket Connected but has issues: ${updatedSocketStatus.issues.join(', ')}` :
+                `${statusEmoji} Socket Disconnected: ${updatedSocketStatus.issues.join(', ')}`;
+            
+            const toastType = updatedSocketStatus.overallStatus === 'fully-connected' ? 'success' : 
+                             updatedSocketStatus.overallStatus === 'connected-but-issues' ? 'warning' : 'error';
+            
+            // Show toast if available, otherwise fallback to alert
+            if (window.showToast) {
+                window.showToast(statusText, toastType, 8000); // Show for 8 seconds
+            } else {
+                alert(statusText);
+            }
+            
+            // Show detailed info in console
+            console.group('🔍 Detailed Socket Status');
+            console.table({
+                'Socket.IO Available': updatedSocketStatus.socketIOAvailable,
+                'Global Socket Ready': updatedSocketStatus.globalSocketReady,
+                'Socket Connected': updatedSocketStatus.socketConnected,
+                'User Authenticated': updatedSocketStatus.userAuthenticated,
+                'Messaging Ready': updatedSocketStatus.messagingReady,
+                'Overall Status': updatedSocketStatus.overallStatus,
+                'Socket ID': updatedSocketStatus.socketId || 'None',
+                'Socket Host': document.querySelector('meta[name="socket-host"]')?.content || 'Not found',
+                'Socket Port': document.querySelector('meta[name="socket-port"]')?.content || 'Not found',
+                'Issues': updatedSocketStatus.issues.join(', ') || 'None'
+            });
+            
+            // Additional MisVordMessaging debug info
+            if (window.MisVordMessaging) {
+                console.log('📱 MisVordMessaging Debug Info:');
+                console.log('  - Available:', !!window.MisVordMessaging);
+                console.log('  - Initialized:', window.MisVordMessaging.initialized);
+                console.log('  - Connected:', window.MisVordMessaging.connected);
+                console.log('  - Socket Manager:', !!window.MisVordMessaging.socketManager);
+                console.log('  - Active Channel:', window.MisVordMessaging.activeChannel);
+                console.log('  - Chat Type:', window.MisVordMessaging.chatType);
+                console.log('  - User ID:', window.MisVordMessaging.userId);
+                console.log('  - Username:', window.MisVordMessaging.username);
+                
+                if (window.MisVordMessaging.socketManager) {
+                    console.log('  - Socket Manager Connected:', window.MisVordMessaging.socketManager.connected);
+                    console.log('  - Socket Manager Authenticated:', window.MisVordMessaging.socketManager.authenticated);
+                }
+            }
+            
+            console.groupEnd();
+        }
+        
+        // Ctrl+3: Force MisVordMessaging initialization
+        if (e.ctrlKey && e.key === '3') {
+            e.preventDefault();
+            
+            console.log('🔧 Manual MisVordMessaging initialization triggered...');
+            
+            if (!window.MisVordMessaging) {
+                console.error('❌ MisVordMessaging not available');
+                if (window.showToast) {
+                    window.showToast('❌ MisVordMessaging not available', 'error');
+                }
+                return;
+            }
+            
+            try {
+                console.log('📊 Current MisVordMessaging state:', {
+                    initialized: window.MisVordMessaging.initialized,
+                    connected: window.MisVordMessaging.connected,
+                    socketManager: !!window.MisVordMessaging.socketManager,
+                    globalSocketManager: !!window.globalSocketManager
+                });
+                
+                // Force initialization if not initialized
+                if (!window.MisVordMessaging.initialized) {
+                    console.log('🔄 Forcing initialization...');
+                    window.MisVordMessaging.init();
+                }
+                
+                // Force connection to global socket manager
+                if (window.MisVordMessaging.socketManager && window.globalSocketManager) {
+                    console.log('🔄 Forcing connection to global socket manager...');
+                    window.MisVordMessaging.socketManager.connectToGlobalSocketManager();
+                }
+                
+                // Re-check DM context if we're on a DM page
+                const urlParams = new URLSearchParams(window.location.search);
+                const dmParam = urlParams.get('dm');
+                if (dmParam) {
+                    console.log('🔄 Re-setting DM context:', dmParam);
+                    window.MisVordMessaging.activeChatRoom = dmParam;
+                    window.MisVordMessaging.chatType = 'direct';
+                    if (window.MisVordMessaging.joinDMRoom) {
+                        window.MisVordMessaging.joinDMRoom(dmParam);
+                    }
+                }
+                
+                console.log('✅ Manual initialization completed');
+                if (window.showToast) {
+                    window.showToast('✅ MisVordMessaging manual initialization completed', 'success');
+                }
+                
+            } catch (error) {
+                console.error('❌ Manual initialization failed:', error);
+                if (window.showToast) {
+                    window.showToast('❌ Manual initialization failed: ' + error.message, 'error');
+                }
+            }
+        }
     });
     
-    console.log('🧪 Debug mode active: Press Ctrl+1 to send test message to socket server');
+    function getDetailedSocketStatus() {
+        const status = {
+            socketIOAvailable: typeof io !== 'undefined',
+            globalSocketReady: !!(window.globalSocketManager && window.globalSocketManager.isReady()),
+            socketConnected: false,
+            userAuthenticated: false,
+            messagingReady: false,
+            socketId: null,
+            socketUrl: null,
+            connectionAttempts: 0,
+            lastConnectionError: null,
+            issues: [],
+            overallStatus: 'disconnected'
+        };
+        
+        // Check Socket.IO availability
+        if (!status.socketIOAvailable) {
+            status.issues.push('Socket.IO library not loaded');
+        }
+        
+        // Check global socket manager
+        if (window.globalSocketManager) {
+            status.socketConnected = window.globalSocketManager.connected;
+            status.userAuthenticated = window.globalSocketManager.authenticated;
+            status.socketId = window.globalSocketManager.socket?.id;
+            status.socketUrl = window.globalSocketManager.socket?.io?.uri;
+            status.connectionAttempts = window.globalSocketManager.socket?.io?._reconnectionAttempts || 0;
+            status.lastConnectionError = window.globalSocketManager.lastError;
+            
+            if (!status.socketConnected) {
+                status.issues.push('Socket not connected');
+            }
+            if (!status.userAuthenticated) {
+                status.issues.push('User not authenticated');
+            }
+        } else {
+            status.issues.push('Global socket manager not available');
+        }
+        
+        // Check messaging system
+        if (window.MisVordMessaging) {
+            status.messagingReady = window.MisVordMessaging.initialized && window.MisVordMessaging.connected;
+            if (!status.messagingReady) {
+                if (!window.MisVordMessaging.initialized) {
+                    status.issues.push('MisVordMessaging not initialized');
+                }
+                if (!window.MisVordMessaging.connected) {
+                    status.issues.push('MisVordMessaging not connected');
+                }
+            }
+        } else {
+            status.issues.push('MisVordMessaging not available');
+        }
+        
+        // Check server connectivity
+        const socketHost = document.querySelector('meta[name="socket-host"]')?.content;
+        const socketPort = document.querySelector('meta[name="socket-port"]')?.content;
+        if (!socketHost || !socketPort) {
+            status.issues.push('Socket connection config missing');
+        }
+        
+        // Determine overall status
+        if (status.globalSocketReady && status.socketConnected && status.userAuthenticated && status.messagingReady) {
+            status.overallStatus = 'fully-connected';
+        } else if (status.globalSocketReady && status.socketConnected) {
+            status.overallStatus = 'connected-but-issues';
+        } else if (status.socketIOAvailable) {
+            status.overallStatus = 'library-available';
+        } else {
+            status.overallStatus = 'disconnected';
+        }
+        
+        return status;
+    }
+    
+    console.log('🧪 Debug mode active: Press Ctrl+1 to send test message, Ctrl+2 to check socket status, Ctrl+3 to force messaging init');
+    
+    // Check and potentially fix MisVordMessaging initialization
+    if (window.MisVordMessaging && !window.MisVordMessaging.initialized) {
+        console.log('🔧 MisVordMessaging exists but not initialized, attempting manual initialization...');
+        try {
+            window.MisVordMessaging.init();
+            console.log('✅ Manual MisVordMessaging initialization successful');
+        } catch (error) {
+            console.error('❌ Manual MisVordMessaging initialization failed:', error);
+        }
+    }
+
+    // Also check if we need to force connection to global socket manager
+    if (window.MisVordMessaging && window.globalSocketManager && 
+        !window.MisVordMessaging.connected && window.globalSocketManager.isReady()) {
+        console.log('🔧 Forcing MisVordMessaging connection to global socket manager...');
+        try {
+            if (window.MisVordMessaging.socketManager && window.MisVordMessaging.socketManager.connectToGlobalSocketManager) {
+                window.MisVordMessaging.socketManager.connectToGlobalSocketManager();
+                console.log('✅ Forced connection attempt completed');
+            }
+        } catch (error) {
+            console.error('❌ Forced connection failed:', error);
+        }
+    }
 });
 </script>
 

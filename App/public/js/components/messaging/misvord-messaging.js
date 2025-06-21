@@ -63,9 +63,7 @@ class MisVordMessaging {
     isVoiceChannel() {
         const url = window.location.pathname;
         return url.includes('/voice/') || url.includes('voice-channel');
-    }
-
-    init() {
+    }    init() {
         if (this.initialized) {
             this.log('Already initialized, skipping duplicate initialization');
             return;
@@ -76,12 +74,14 @@ class MisVordMessaging {
             return;
         }
 
+        // Check for messaging elements, but be more lenient for app pages with dynamic content
         const messageContainer = document.getElementById('chat-messages');
         const messageForm = document.getElementById('message-form');
         const messageInput = document.getElementById('message-input');
+        const isAppPage = window.location.pathname.includes('/app');
         
-        if (!messageContainer && !messageForm && !messageInput) {
-            this.log('No messaging elements found, skipping messaging initialization (this is normal for server pages without selected channels)');
+        if (!messageContainer && !messageForm && !messageInput && !isAppPage) {
+            this.log('No messaging elements found and not on app page, skipping messaging initialization');
             return;
         }
 
@@ -89,10 +89,19 @@ class MisVordMessaging {
         this.debugUtils.logSystemInfo();
 
         try {
+            // Always try to connect to global socket manager
             this.socketManager.connectToGlobalSocketManager();
-            this.formHandler.initMessageForm();
-            this.typingManager.setupTypingEvents();
-            this.initMessageContainer();
+            
+            // Initialize form handler and typing manager if elements exist
+            if (messageForm || messageInput) {
+                this.formHandler.initMessageForm();
+                this.typingManager.setupTypingEvents();
+            }
+            
+            // Initialize message container if it exists
+            if (messageContainer) {
+                this.initMessageContainer();
+            }
 
             this.log('✅ Messaging system initialized successfully');
             this.initialized = true;
@@ -425,7 +434,7 @@ class MisVordMessaging {
             content: content,
             user_id: 'other-user',
             username: 'Test User',
-            avatar_url: '/assets/default-avatar.png',
+            avatar_url: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICAgIDxjaXJjbGUgY3g9IjIwIiBjeT0iMjAiIHI9IjIwIiBmaWxsPSIjNTg2NUYyIi8+CiAgICA8Y2lyY2xlIGN4PSIyMCIgY3k9IjE1IiByPSI2IiBmaWxsPSJ3aGl0ZSIvPgogICAgPHBhdGggZD0iTTggMzJDOCAyNi41IDEyLjUgMjIgMTggMjJIMjJDMjcuNSAyMiAzMiAyNi41IDMyIDMyVjM1QzMyIDM2LjEgMzEuMSAzNyAzMCAzN0gxMEM4LjkgMzcgOCAzNi4xIDggMzVWMzJaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K',
             created_at: new Date().toISOString(),
             channelId: this.activeChannel,
             chatRoomId: this.activeChatRoom
@@ -449,19 +458,38 @@ class MisVordMessaging {
 
 // Auto-initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('🔄 MisVordMessaging DOMContentLoaded - checking initialization...');
+    
     // Only initialize if we're not already initialized and we have the necessary elements
     if (!window.MisVordMessaging) {
+        console.log('📝 Creating new MisVordMessaging instance...');
         const messaging = new MisVordMessaging();
         messaging.init();
+    } else if (!window.MisVordMessaging.initialized) {
+        console.log('📝 MisVordMessaging exists but not initialized, initializing...');
+        window.MisVordMessaging.init();
+    } else {
+        console.log('✅ MisVordMessaging already initialized');
     }
 });
 
 // Also initialize when MainModulesReady event is fired (for compatibility)
 window.addEventListener('MainModulesReady', () => {
+    console.log('🔄 MisVordMessaging MainModulesReady - checking initialization...');
+    
     if (!window.MisVordMessaging || !window.MisVordMessaging.initialized) {
         const messaging = window.MisVordMessaging || new MisVordMessaging();
+        console.log('📝 Initializing MisVordMessaging via MainModulesReady...');
         messaging.init();
     }
 });
+
+// Add a fallback timer-based initialization for edge cases
+setTimeout(() => {
+    if (window.MisVordMessaging && !window.MisVordMessaging.initialized) {
+        console.log('⏰ Timer-based MisVordMessaging initialization fallback...');
+        window.MisVordMessaging.init();
+    }
+}, 2000);
 
 export default MisVordMessaging;
