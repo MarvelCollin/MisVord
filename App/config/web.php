@@ -4,7 +4,8 @@ $routes = require_once __DIR__ . '/routes.php';
 
 $GLOBALS['active_route'] = null;
 
-function displayActiveRoute($uri, $matchedRoute, $viewFile) {
+function displayActiveRoute($uri, $matchedRoute, $viewFile)
+{
     $style = "
         position: fixed;
         bottom: 10px;
@@ -29,19 +30,23 @@ function displayActiveRoute($uri, $matchedRoute, $viewFile) {
     echo "</div>";
 }
 
-function handleRoute($routes) {
+function handleRoute($routes)
+{
     error_reporting(E_ALL);
     ini_set('display_errors', 1);
-
-    $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+    
     $method = $_SERVER['REQUEST_METHOD'];
-    $methodRoute = $method . ':' . $uri;
-    $scriptName = $_SERVER['SCRIPT_NAME'];
-    $scriptDir = dirname($scriptName);
+    
+    $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+    
+    if (strpos($uri, '/api/') !== 0) {
+        $scriptName = $_SERVER['SCRIPT_NAME'];
+        $scriptDir = dirname($scriptName);
 
-    if ($scriptDir !== '/' && !empty($scriptDir)) {
-        if (strpos($uri, $scriptDir) === 0) {
-            $uri = substr($uri, strlen($scriptDir));
+        if ($scriptDir !== '/' && !empty($scriptDir)) {
+            if (strpos($uri, $scriptDir) === 0) {
+                $uri = substr($uri, strlen($scriptDir));
+            }
         }
     }
 
@@ -49,6 +54,8 @@ function handleRoute($routes) {
     if ($uri === '//') {
         $uri = '/';
     }
+
+    $methodRoute = $method . ':' . $uri;
 
     $GLOBALS['active_route'] = $uri;
 
@@ -75,31 +82,32 @@ function handleRoute($routes) {
         $matched = false;
 
         foreach ($routes as $pattern => $handler) {
-            if (strpos($pattern, '{') === false && !preg_match('/\([^)]+\)/', $pattern)) {
-                continue;
-            }
 
             $methodPattern = null;
+            $originalPattern = $pattern;
             if (strpos($pattern, ':') !== false) {
                 list($methodName, $urlPattern) = explode(':', $pattern, 2);
                 if ($methodName !== $method) {
-                    continue; 
+                    continue;
                 }
                 $methodPattern = $methodName;
                 $pattern = $urlPattern;
-            }            if (strpos($pattern, '{') !== false) {
+            }
+
+            if (strpos($pattern, '{') === false && !preg_match('/\([^)]+\)/', $pattern)) {
+                continue;
+            }
+            if (strpos($pattern, '{') !== false) {
                 $patternRegex = preg_quote($pattern, '#');
                 $patternRegex = preg_replace('/\\\{([a-zA-Z0-9_]+)\\\}/', '(?P<$1>[^/]+)', $patternRegex);
                 $patternRegex = '#^' . $patternRegex . '$#';
             } else {
-                // Don't quote patterns that contain regex groups in parentheses
                 if (preg_match('/\([^)]+\)/', $pattern)) {
                     $patternRegex = '#^' . $pattern . '$#';
                 } else {
                     $patternRegex = '#^' . preg_quote($pattern, '#') . '$#';
                 }
             }
-
             if (preg_match($patternRegex, $uri, $matches)) {
                 if (strpos($pattern, '{') !== false) {
                     $params = [];
@@ -109,15 +117,18 @@ function handleRoute($routes) {
                         }
                     }
                 } else {
-                    $params = isset($matches[1]) ? $matches[1] : $matches[0];
+                    $params = array_slice($matches, 1);
                 }
 
                 if ($methodPattern !== null) {
                     $pattern = $methodPattern . ':' . $pattern;
                 }
-
                 if (is_callable($handler)) {
-                    $handler($params);
+                    if (is_array($params)) {
+                        $handler(...$params);
+                    } else {
+                        $handler($params);
+                    }
                     $matched = true;
                     return;
                 } else {
@@ -128,9 +139,7 @@ function handleRoute($routes) {
                 }
             }
         }
-
         if (!$matched) {
-
             $viewFile = $routes['404'] ?? 'pages/404.php';
             $matchedRoute = '404 (Not Found)';
             http_response_code(404);
@@ -150,7 +159,7 @@ function handleRoute($routes) {
 
     if (file_exists($fullPath)) {
         if (isset($_GET['debug']) && $_GET['debug'] === '1') {
-            register_shutdown_function(function() use ($uri, $matchedRoute, $viewFile) {
+            register_shutdown_function(function () use ($uri, $matchedRoute, $viewFile) {
                 displayActiveRoute($uri, $matchedRoute, $viewFile);
             });
         }

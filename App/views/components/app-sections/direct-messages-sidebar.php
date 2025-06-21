@@ -184,9 +184,14 @@ if (file_exists($tooltipPath)) {
                                     };
                                     window.messages = data.messages || [];
                                     
-                                    // Load chat section template
-                                    fetch('/components/app-sections/chat-section.php')
-                                        .then(response => response.text())
+                                    // Load chat section template using the API endpoint
+                                    fetch(`/api/chat/render/direct/${chatRoom.id}`)
+                                        .then(response => {
+                                            if (!response.ok) {
+                                                throw new Error(`HTTP error! status: ${response.status}`);
+                                            }
+                                            return response.text();
+                                        })
                                         .then(html => {
                                             appContent.innerHTML = html;
                                             

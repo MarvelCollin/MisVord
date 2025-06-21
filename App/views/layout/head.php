@@ -22,7 +22,11 @@ $cache_version = time();
 <?php endif; ?>
 
 <!-- Socket Configuration -->
-<meta name="socket-host" content="<?php echo htmlspecialchars($_ENV['SOCKET_HOST'] ?? 'localhost'); ?>">
+<meta name="socket-host" content="<?php 
+    // Browser connects to localhost, Docker containers communicate internally
+    $socketHost = 'localhost';  // Always localhost for browser connections
+    echo htmlspecialchars($socketHost);
+?>">
 <meta name="socket-port" content="<?php echo htmlspecialchars($_ENV['SOCKET_PORT'] ?? '1002'); ?>">
 
 <title><?php echo htmlspecialchars($page_title); ?></title>
@@ -64,6 +68,7 @@ $cache_version = time();
 
 <link rel="stylesheet" href="<?php echo css('global'); ?>?v=<?php echo $cache_version; ?>">
 <link rel="stylesheet" href="<?php echo css('lazy-loading'); ?>?v=<?php echo $cache_version; ?>">
+<link rel="stylesheet" href="<?php echo css('message-composer'); ?>?v=<?php echo $cache_version; ?>">
 
 <?php if (isset($page_css)): ?>
     <link rel="stylesheet" href="<?php echo css($page_css); ?>?v=<?php echo $cache_version; ?>">

@@ -5,11 +5,28 @@ class UnifiedChatManager {
         this.currentChatId = null;
         this.chatAPI = window.ChatAPI;
         this.socketAPI = window.socketAPI;
-        this.messaging = window.MisVordMessaging;
+        this.messaging = null;
+        this.initialized = false;
         
-        this.setupEventListeners();
+        this.init();
         
         window.unifiedChatManager = this;
+    }
+    
+    init() {
+        this.setupEventListeners();
+        
+        const waitForMessaging = () => {
+            if (window.MisVordMessaging) {
+                this.messaging = window.MisVordMessaging;
+                this.initialized = true;
+                console.log('✅ UnifiedChatManager initialized with messaging system');
+            } else {
+                setTimeout(waitForMessaging, 100);
+            }
+        };
+        
+        waitForMessaging();
     }
     
     setupEventListeners() {
@@ -90,12 +107,42 @@ class UnifiedChatManager {
         window.GLOBALS.chatData = chatData;
         window.GLOBALS.messages = messages;
         
-        const template = '/components/app-sections/chat-section.php';
+        const endpoint = `/api/chat/render/${chatType}/${chatId}`;
         
-        fetch(template)
-            .then(response => response.text())
+        fetch(endpoint)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.text();
+            })
             .then(html => {
                 this.chatContainer.innerHTML = html;
+                
+                setTimeout(() => {
+                    if (window.MisVordMessaging) {
+                        window.MisVordMessaging.initMessageForm();
+                        window.MisVordMessaging.setChatContext(chatId, chatType);
+                        console.log('✅ Messaging context updated for:', chatType, chatId);
+                    } else {
+                        console.warn('⚠️ MisVordMessaging not available after chat UI update');
+                    }
+                    
+                    const existingScript = document.querySelector('script[src*="chat-section.js"]');
+                    if (!existingScript) {
+                        const script = document.createElement('script');
+                        script.src = `/public/js/components/messaging/chat-section.js?v=${Date.now()}`;
+                        script.onload = function() {
+                            console.log('Chat section script loaded');
+                            if (window.MisVordMessaging) {
+                                window.MisVordMessaging.setChatContext(chatId, chatType);
+                            }
+                        };
+                        document.head.appendChild(script);
+                    } else if (window.MisVordMessaging) {
+                        window.MisVordMessaging.setChatContext(chatId, chatType);
+                    }
+                }, 100);
                 
                 if (this.messaging && this.messaging.switchToChat) {
                     this.messaging.switchToChat(chatId, chatType);
@@ -108,6 +155,10 @@ class UnifiedChatManager {
                         this.socketAPI.joinDMRoom(chatId);
                     }
                 }
+            })
+            .catch(error => {
+                console.error('Error loading chat section:', error);
+                this.chatContainer.innerHTML = '<div class="flex-1 bg-discord-background flex items-center justify-center text-white text-lg">Error loading chat</div>';
             });
     }
     

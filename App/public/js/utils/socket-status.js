@@ -90,8 +90,7 @@ window.SocketStatus = {
             }
         }, intervalMs);
         
-        console.log('🔍 Socket status monitoring started (interval: ' + intervalMs + 'ms)');
-        return this.monitoringInterval;
+        console.log('Socket Status Monitoring started');
     },
     
     stopMonitoring() {
@@ -102,22 +101,80 @@ window.SocketStatus = {
         }
     },
     
-    printStatus() {
+    displayStatus() {
         const status = this.getFullStatus();
-        console.group('🌐 MisVord Socket Status Report');
-        console.log('📊 Overall Status:', this.getOverallStatus(status));
-        console.log('👤 User:', status.page.userAuthenticated ? `${status.page.username} (${status.page.userId})` : 'Guest');
-        console.log('🔌 Global Socket Manager:', status.globalSocketManager.ready ? '✅ Ready' : '❌ Not Ready');
-        console.log('💬 Messaging System:', status.misVordMessaging.connected ? '✅ Connected' : '❌ Not Connected');
-        console.log('🔧 Socket.IO:', status.socketIO.available ? `✅ Available (${status.socketIO.version})` : '❌ Not Available');
+        console.group('=== COMPLETE SOCKET STATUS ===');
+        console.log('Timestamp:', status.timestamp);
+        console.log('Overall Status:', this.getOverallStatus(status));
+        
+        console.group('Global Socket Manager:');
+        console.log('Available:', status.globalSocketManager.available);
+        console.log('Ready:', status.globalSocketManager.ready);
+        if (status.globalSocketManager.status) {
+            console.log('Details:', status.globalSocketManager.status);
+        }
+        console.groupEnd();
+        
+        console.group('MisVord Messaging:');
+        console.log('Available:', status.misVordMessaging.available);
+        console.log('Initialized:', status.misVordMessaging.initialized);
+        console.log('Connected:', status.misVordMessaging.connected);
+        console.log('Authenticated:', status.misVordMessaging.authenticated);
+        if (window.MisVordMessaging && window.MisVordMessaging.debugConnection) {
+            console.log('Debug Info:', window.MisVordMessaging.debugConnection());
+        }
+        console.groupEnd();
+        
+        console.group('Socket.IO:');
+        console.log('Available:', status.socketIO.available);
+        console.log('Version:', status.socketIO.version);
+        console.groupEnd();
+        
+        console.group('Page Info:');
+        console.log('URL:', status.page.url);
+        console.log('User Auth:', status.page.userAuthenticated);
+        console.log('User ID:', status.page.userId);
+        console.log('Username:', status.page.username);
+        console.groupEnd();
         
         if (status.debug.errors.length > 0) {
-            console.warn('⚠️ Recent Errors:', status.debug.errors);
+            console.group('Recent Errors:');
+            status.debug.errors.forEach(error => {
+                console.error(error);
+            });
+            console.groupEnd();
         }
         
         console.groupEnd();
-        
         return status;
+    },
+    
+    printStatus() {
+        this.displayStatus();
+    },
+    
+    testMessaging() {
+        console.log('🧪 Testing messaging system...');
+        
+        if (!window.MisVordMessaging) {
+            console.error('❌ MisVordMessaging not available');
+            return false;
+        }
+        
+        if (!window.MisVordMessaging.debugConnection) {
+            console.error('❌ MisVordMessaging.debugConnection not available');
+            return false;
+        }
+        
+        const debug = window.MisVordMessaging.debugConnection();
+        console.log('🔍 Messaging Debug Info:', debug);
+        
+        if (window.MisVordMessaging.forceReconnect) {
+            console.log('🔄 Forcing reconnection...');
+            window.MisVordMessaging.forceReconnect();
+        }
+        
+        return true;
     }
 };
 
@@ -131,9 +188,29 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
                 window.SocketStatus.printStatus();
             }, 2000);
         }, 1000);
+        
+        // Listen for messaging system ready event
+        window.addEventListener('messagingSystemReady', (event) => {
+            console.log('✅ Messaging system connected!', event.detail);
+            window.SocketStatus.printStatus();
+        });
     });
 }
 
 if (typeof window !== 'undefined') {
     window.checkSockets = () => window.SocketStatus.printStatus();
 }
+
+// Auto-start monitoring when page loads
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+        if (window.SocketStatus) {
+            window.SocketStatus.startMonitoring(3000);
+            console.log('📊 Socket status:', window.SocketStatus.getSimpleStatus());
+        }
+    }, 2000);
+});
+
+// Global shortcuts for debugging
+window.ss = () => window.SocketStatus.displayStatus();
+window.tm = () => window.SocketStatus.testMessaging();

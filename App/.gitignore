@@ -4,3 +4,4 @@ rules.txt
 system.txt
 rules2.txt
 vendor/
+.env

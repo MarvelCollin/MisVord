@@ -104,9 +104,7 @@ class ChatController extends BaseController
         } catch (Exception $e) {
             return $this->serverError('Failed to load direct messages');
         }
-    }
-
-    public function sendMessage()
+    }    public function sendMessage()
     {
         $this->requireAuth();
         $userId = $this->getCurrentUserId();
@@ -116,28 +114,31 @@ class ChatController extends BaseController
 
         $this->validate($input, [
             'target_type' => 'required',
-            'target_id' => 'required',
-            'content' => 'required'
+            'target_id' => 'required'
         ]);
 
         $targetType = $input['target_type'];
         $targetId = $input['target_id'];
-        $content = trim($input['content']);
+        $content = trim($input['content'] ?? '');
+        $messageType = $input['message_type'] ?? 'text';
+        $attachmentUrl = $input['attachment_url'] ?? null;
+        $mentions = $input['mentions'] ?? [];
 
-        if (empty($content)) {
-            return $this->validationError(['content' => 'Message content cannot be empty']);
+        // Validate that there's either content or an attachment
+        if (empty($content) && empty($attachmentUrl)) {
+            return $this->validationError(['content' => 'Message must have content or an attachment']);
         }
 
         if ($targetType === 'channel') {
-            return $this->sendChannelMessage($targetId, $content, $userId);
-        } elseif ($targetType === 'dm') {
-            return $this->sendDirectMessage($targetId, $content, $userId);
+            return $this->sendChannelMessage($targetId, $content, $userId, $messageType, $attachmentUrl, $mentions);
+        } elseif ($targetType === 'dm' || $targetType === 'direct') {
+            return $this->sendDirectMessage($targetId, $content, $userId, $messageType, $attachmentUrl, $mentions);
         } else {
             return $this->validationError(['target_type' => 'Invalid target type']);
         }
     }
 
-    private function sendChannelMessage($channelId, $content, $userId)
+    private function sendChannelMessage($channelId, $content, $userId, $messageType = 'text', $attachmentUrl = null, $mentions = [])
     {
         $channel = $this->channelRepository->find($channelId);
         if (!$channel) {
@@ -149,17 +150,21 @@ class ChatController extends BaseController
             if (!$membership) {
                 return $this->forbidden('You are not a member of this server');
             }
-        }
-
-        try {
+        }        try {
             $message = new Message();
             $message->content = $content;
             $message->channel_id = $channelId;
             $message->user_id = $userId;
-            $message->type = 'text';
+            $message->message_type = $messageType;
+            $message->attachment_url = $attachmentUrl;
 
             if ($message->save()) {
                 $formattedMessage = $this->formatMessage($message);
+                
+                // Add mentions to the formatted message
+                if (!empty($mentions)) {
+                    $formattedMessage['mentions'] = $mentions;
+                }
 
                 $this->sendWebSocketNotification([
                     'type' => 'new_message',
@@ -177,7 +182,7 @@ class ChatController extends BaseController
         }
     }
 
-    private function sendDirectMessage($chatRoomId, $content, $userId)
+    private function sendDirectMessage($chatRoomId, $content, $userId, $messageType = 'text', $attachmentUrl = null, $mentions = [])
     {
         $chatRoom = $this->chatRoomRepository->find($chatRoomId);
         if (!$chatRoom) {
@@ -186,18 +191,22 @@ class ChatController extends BaseController
 
         if (!$this->chatRoomRepository->isParticipant($chatRoomId, $userId)) {
             return $this->forbidden('You are not a participant in this chat');
-        }
-
-        try {
+        }        try {
             $message = new Message();
             $message->content = $content;
             $message->user_id = $userId;
-            $message->type = 'text';
+            $message->message_type = $messageType;
+            $message->attachment_url = $attachmentUrl;
 
             if ($message->save()) {
                 $this->chatRoomRepository->addMessageToRoom($chatRoomId, $message->id);
                 
                 $formattedMessage = $this->formatMessage($message);
+                
+                // Add mentions to the formatted message
+                if (!empty($mentions)) {
+                    $formattedMessage['mentions'] = $mentions;
+                }
 
                 $participants = $this->chatRoomRepository->getParticipants($chatRoomId);
                 foreach ($participants as $participant) {
@@ -431,25 +440,28 @@ class ChatController extends BaseController
         } catch (Exception $e) {
             return $this->serverError('Failed to get messages: ' . $e->getMessage());
         }
-    }
-
-    private function formatMessage($message)
+    }    private function formatMessage($message)
     {
-        $user = $this->userRepository->find($message->user_id);
+        // Handle both array and object input
+        $userId = is_array($message) ? $message['user_id'] : $message->user_id;
+        $user = $this->userRepository->find($userId);
+        
+        // Generate default avatar URL if user doesn't have one
+        $username = $user ? $user->username : 'Unknown User';
+        $avatarUrl = $user && $user->avatar_url ? $user->avatar_url : 
+                    "https://ui-avatars.com/api/?name=" . urlencode($username) . "&background=random&color=fff&size=64";
         
         return [
-            'id' => $message->id,
-            'content' => $message->content,
-            'user_id' => $message->user_id,
-            'username' => $user ? $user->username : 'Unknown User',
-            'avatar_url' => $user ? $user->avatar_url : null,
-            'sent_at' => $message->created_at,
-            'edited_at' => $message->edited_at ?? null,
-            'type' => $message->type ?? 'text'
+            'id' => is_array($message) ? $message['id'] : $message->id,
+            'content' => is_array($message) ? $message['content'] : $message->content,
+            'user_id' => $userId,
+            'username' => $username,
+            'avatar_url' => $avatarUrl,
+            'sent_at' => is_array($message) ? ($message['sent_at'] ?? $message['created_at']) : $message->created_at,
+            'edited_at' => is_array($message) ? ($message['edited_at'] ?? null) : ($message->edited_at ?? null),
+            'type' => is_array($message) ? ($message['message_type'] ?? 'text') : ($message->type ?? 'text')
         ];
-    }
-
-    private function sendWebSocketNotification($data, $targetUserId = null)
+    }private function sendWebSocketNotification($data, $targetUserId = null)
     {
         try {
             $wsClient = new WebSocketClient();
@@ -460,6 +472,132 @@ class ChatController extends BaseController
             }
         } catch (Exception $e) {
             error_log('WebSocket notification failed: ' . $e->getMessage());
+        }
+    }    public function renderChatSection($chatType, $chatId)
+    {
+        $this->requireAuth();
+        $currentUserId = $this->getCurrentUserId();        try {
+            if ($chatType === 'dm' || $chatType === 'direct') {
+                // Get chat room data directly from repository
+                $chatRoom = $this->chatRoomRepository->find($chatId);
+                if (!$chatRoom) {
+                    http_response_code(404);
+                    echo "Chat room not found";
+                    return;
+                }
+
+                // Check if user is participant in this room
+                if (!$this->chatRoomRepository->isParticipant($chatId, $currentUserId)) {
+                    http_response_code(403);
+                    echo "Access denied";
+                    return;
+                }
+
+                // Get the other participant (friend)
+                $participants = $this->chatRoomRepository->getParticipants($chatId);
+                $friend = null;
+                
+                foreach ($participants as $participant) {
+                    if ($participant['user_id'] != $currentUserId) {
+                        $friend = [
+                            'id' => $participant['user_id'],
+                            'username' => $participant['username'],
+                            'avatar_url' => $participant['avatar_url']
+                        ];
+                        break;
+                    }
+                }                // Get messages using repository directly
+                try {
+                    $limit = 50;
+                    $offset = 0;
+                    $rawMessages = $this->chatRoomRepository->getMessages($chatId, $limit, $offset);
+                    $messages = array_map([$this, 'formatMessage'], $rawMessages);
+                } catch (Exception $e) {
+                    $messages = [];
+                }
+
+                // Format chat data for template
+                $chatData = [
+                    'friend_username' => $friend['username'] ?? 'Unknown User',
+                    'friend_id' => $friend['id'] ?? null,
+                    'friend_avatar_url' => $friend['avatar_url'] ?? null
+                ];
+
+                // Set globals for template
+                $GLOBALS['chatType'] = 'direct';
+                $GLOBALS['targetId'] = $chatId;
+                $GLOBALS['chatData'] = $chatData;
+                $GLOBALS['messages'] = $messages;            } elseif ($chatType === 'channel') {
+                // Get channel data
+                $channel = $this->channelRepository->find($chatId);
+                if (!$channel) {
+                    http_response_code(404);
+                    echo "Channel not found";
+                    return;
+                }
+
+                // Check if user has access to this channel
+                $membership = $this->userServerMembershipRepository->findByUserAndServer($currentUserId, $channel->server_id);
+                if (!$membership) {
+                    http_response_code(403);
+                    echo "Access denied";
+                    return;
+                }
+
+                // Get messages directly from repository
+                try {
+                    $limit = 50;
+                    $offset = 0;
+                    $rawMessages = $this->messageRepository->getForChannel($chatId, $limit, $offset);
+                    $messages = array_map([$this, 'formatMessage'], $rawMessages);
+                } catch (Exception $e) {
+                    $messages = [];
+                }
+
+                // Format channel data for template
+                $channelData = [
+                    'id' => $channel->id,
+                    'name' => $channel->name,
+                    'topic' => $channel->topic ?? '',
+                    'server_id' => $channel->server_id
+                ];
+
+                // Set globals for template
+                $channelData = [
+                    'id' => $channel->id,
+                    'name' => $channel->name,
+                    'topic' => $channel->topic ?? '',
+                    'server_id' => $channel->server_id
+                ];
+
+                // Set globals for template
+                $GLOBALS['chatType'] = 'channel';
+                $GLOBALS['targetId'] = $chatId;
+                $GLOBALS['chatData'] = $channelData;
+                $GLOBALS['messages'] = $messages;
+
+            } else {
+                http_response_code(400);
+                echo "Invalid chat type";
+                return;
+            }            // Set content type to HTML (override the JSON header from BaseController)
+            header('Content-Type: text/html; charset=utf-8');
+            
+            // Render the template
+            require_once __DIR__ . '/../views/components/app-sections/chat-section.php';
+
+        } catch (Exception $e) {
+            if (function_exists('logger')) {
+                logger()->error("Chat section render error", [
+                    'error' => $e->getMessage(),
+                    'chat_type' => $chatType,
+                    'chat_id' => $chatId,
+                    'user_id' => $currentUserId
+                ]);
+            }
+            
+            http_response_code(500);
+            echo "Error rendering chat section";
         }
     }
 }

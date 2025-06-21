@@ -1,0 +1,35 @@
+ROUTER DEBUG: Request URI: /api/chat/dm/1
+ROUTER DEBUG: Request URI: /api/chat/dm/1
+ROUTER DEBUG: API route detected, routing to web.php: /api/chat/dm/1
+ROUTER DEBUG: Loading web.php: C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App/config/web.php
+ROUTER DEBUG: web.php loaded successfully
+ROUTER DEBUG: Request URI: /api/chat/dm/1
+ROUTER DEBUG: API route detected, routing to web.php: /api/chat/dm/1
+ROUTER DEBUG: Loading web.php: C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App/config/web.php
+WEB DEBUG: URI: /api/chat/dm/1, Method: GET, Method Route: GET:/api/chat/dm/1
+ROUTER DEBUG: web.php loaded successfully
+ROUTER DEBUG: Request URI: /api/chat/dm/1
+ROUTER DEBUG: API route detected, routing to web.php: /api/chat/dm/1
+ROUTER DEBUG: Loading web.php: C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App/config/web.php
+WEB DEBUG: URI: /api/chat/dm/1, Method: GET, Method Route: GET:/api/chat/dm/1
+WEB DEBUG: No route matched for URI: /1, falling back to 404
+ROUTER DEBUG: web.php loaded successfully
+ROUTER DEBUG: Request URI: /api/chat/dm/1
+ROUTER DEBUG: API route detected, routing to web.php: /api/chat/dm/1
+ROUTER DEBUG: Loading web.php: C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App/config/web.php
+WEB DEBUG: URI: /api/chat/dm/1, Method: GET, Method Route: GET:/api/chat/dm/1
+WEB DEBUG: Script Name: /api/chat/dm/1, Script Dir: /api/chat/dm
+WEB DEBUG: URI modified from /api/chat/dm/1 to /1 (removed script dir: /api/chat/dm)
+WEB DEBUG: No route matched for URI: /1, falling back to 404
+ROUTER DEBUG: web.php loaded successfully
+ROUTER DEBUG: Request URI: /api/chat/dm/1
+ROUTER DEBUG: API route detected, routing to web.php: /api/chat/dm/1
+ROUTER DEBUG: Loading web.php: C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App/config/web.php
+WEB DEBUG: URI: /api/chat/dm/1, Method: GET, Method Route: GET:/api/chat/dm/1
+WEB DEBUG: API route detected, keeping URI as-is: /api/chat/dm/1
+WEB DEBUG: Found callable handler for pattern: GET:/api/chat/dm/([0-9]+)
+ROUTER DEBUG: Request URI: /api/auth/check
+ROUTER DEBUG: API route detected, routing to web.php: /api/auth/check
+ROUTER DEBUG: Loading web.php: C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App/config/web.php
+WEB DEBUG: URI: /api/auth/check, Method: GET, Method Route: GET:/api/auth/check
+WEB DEBUG: API route detected, keeping URI as-is: /api/auth/check

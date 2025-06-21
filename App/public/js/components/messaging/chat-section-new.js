@@ -112,9 +112,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (serverMatch && !window.location.search.includes('channel=')) {
             window.MisVordDebug.log('Server page detected without channel parameter - this is expected behavior');
         }
-    }    async function handleMessageSubmit(form) {
+    }
+
+    async function handleMessageSubmit(form) {
         const messageInput = form.querySelector('#message-input');
-        const sendButton = form.querySelector('#send-button');
         const content = messageInput.value.trim();
         
         if (!content || content.length === 0) return;
@@ -133,7 +134,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (window.MisVordMessaging && typeof window.MisVordMessaging.sendMessage === 'function') {
                 messageInput.value = '';
                 messageInput.style.height = 'auto';
-                if (sendButton) sendButton.disabled = true;
+                sendButton.disabled = true;
                 characterCountContainer?.classList.add('hidden');
                 
                 await window.MisVordMessaging.sendMessage(chatId, content, chatType);
@@ -143,7 +144,6 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (error) {
             window.MisVordDebug.error('Message send failed', error);
             messageInput.value = content;
-            if (sendButton) sendButton.disabled = false;
         }
     }
 
@@ -174,7 +174,9 @@ document.addEventListener('DOMContentLoaded', function() {
     socketData.setAttribute('data-user-id', userId);
     socketData.setAttribute('data-username', username);
     
-    window.MisVordDebug.log('Socket data element created/updated and added to DOM');    const urlParams = new URLSearchParams(window.location.search);
+    window.MisVordDebug.log('Socket data element created/updated and added to DOM');
+
+    const urlParams = new URLSearchParams(window.location.search);
     const dmParam = urlParams.get('dm');
     if (dmParam) {
         window.MisVordDebug.log('Direct message parameter detected:', dmParam);
@@ -184,12 +186,8 @@ document.addEventListener('DOMContentLoaded', function() {
         socketData.setAttribute('data-channel-id', '');
         
         const initDirectMessage = () => {
-            if (window.MisVordMessaging && window.MisVordMessaging.initialized) {
-                window.MisVordMessaging.setChatContext(dmParam, 'direct');
-                window.MisVordDebug.log('✅ Direct message context set via MisVordMessaging');
-            } else if (window.unifiedChatManager && window.unifiedChatManager.initialized) {
+            if (window.unifiedChatManager && window.unifiedChatManager.initialized) {
                 window.unifiedChatManager.switchToChat(dmParam, 'direct');
-                window.MisVordDebug.log('✅ Direct message context set via unifiedChatManager');
             } else {
                 setTimeout(initDirectMessage, 100);
             }

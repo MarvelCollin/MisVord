@@ -80,6 +80,8 @@ $additional_js[] = 'components/messaging/chat-section';
 
 <meta name="chat-type" content="<?php echo htmlspecialchars($chatType ?? 'channel'); ?>">
 <meta name="chat-id" content="<?php echo htmlspecialchars($targetId ?? ''); ?>">
+<meta name="active-channel" content="<?php echo htmlspecialchars($chatType === 'channel' ? $targetId : ''); ?>">
+<meta name="chat-context" content='<?php echo json_encode(['type' => $chatType ?? 'channel', 'id' => $targetId ?? '']); ?>'>
 <meta name="channel-id" content="<?php echo htmlspecialchars($chatType === 'channel' ? $targetId : ''); ?>">
 <meta name="user-id" content="<?php echo htmlspecialchars($currentUserId); ?>">
 <meta name="username" content="<?php echo htmlspecialchars($_SESSION['username'] ?? ''); ?>">
@@ -207,48 +209,88 @@ $additional_js[] = 'components/messaging/chat-section';
         <span>Someone is typing...</span>
     </div>
 
-    <div class="p-4 bg-discord-background">
-        <form id="message-form" class="bg-discord-dark rounded-lg p-2" onsubmit="return false;">
-            <div class="flex items-center mb-2">
-                <button type="button" class="text-discord-primary hover:text-white mr-2">
-                    <i class="fas fa-circle-plus text-lg"></i>
-                </button>
-                <div class="flex-1"></div>
-                <button type="button" class="text-discord-primary hover:text-white mr-1">
-                    <i class="fas fa-gift text-lg"></i>
-                </button>
-                <button type="button" class="text-discord-primary hover:text-white">
-                    <i class="fas fa-image text-lg"></i>
-                </button>
-            </div>
-            <div class="relative">
-                <textarea id="message-input" 
-                          name="content"
-                          class="message-input w-full bg-discord-dark text-white placeholder-gray-500 outline-none resize-none border-none" 
-                          placeholder="<?php echo htmlspecialchars($placeholder); ?>"
-                          rows="1"
-                          maxlength="2000"
-                          data-chat-type="<?php echo htmlspecialchars($chatType); ?>"
-                          data-chat-id="<?php echo htmlspecialchars($targetId ?? ''); ?>"
-                          data-channel-id="<?php echo htmlspecialchars($chatType === 'channel' ? $targetId : ''); ?>"
-                          autocomplete="off"
-                          spellcheck="true"></textarea>
-            </div>
+    <div class="px-4 pb-6 bg-discord-background">
+        <div class="relative">
+            <form id="message-form" class="relative" onsubmit="return false;">
+                <div class="bg-discord-message-input border border-discord-input-border rounded-lg overflow-hidden focus-within:border-discord-primary transition-colors">
+                    <div class="flex items-center px-4 py-3">
+                        <button type="button" class="text-discord-muted hover:text-white transition-colors mr-4 flex-shrink-0" title="Upload File">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                            </svg>
+                        </button>
+                        
+                        <div class="flex-1 relative">
+                            <textarea 
+                                id="message-input" 
+                                name="content"
+                                class="w-full bg-transparent text-white placeholder-discord-muted resize-none border-none outline-none text-base leading-6 max-h-40 overflow-y-auto scrollbar-thin scrollbar-track-discord-dark scrollbar-thumb-discord-scrollbar"
+                                placeholder="<?php echo htmlspecialchars($placeholder); ?>"
+                                rows="1"
+                                maxlength="2000"
+                                data-chat-type="<?php echo htmlspecialchars($chatType); ?>"
+                                data-chat-id="<?php echo htmlspecialchars($targetId ?? ''); ?>"
+                                data-channel-id="<?php echo htmlspecialchars($chatType === 'channel' ? $targetId : ''); ?>"
+                                autocomplete="off"
+                                spellcheck="true"
+                                style="min-height: 24px;"></textarea>
+                        </div>
 
-            <input type="hidden" name="chat_type" value="<?php echo htmlspecialchars($chatType); ?>" />
-            <input type="hidden" name="chat_id" value="<?php echo htmlspecialchars($targetId ?? ''); ?>" />
-            <input type="hidden" name="channel_id" value="<?php echo htmlspecialchars($chatType === 'channel' ? $targetId : ''); ?>" />
-            <input type="hidden" data-user-id="<?php echo htmlspecialchars($currentUserId); ?>" />
-            <input type="hidden" data-username="<?php echo htmlspecialchars($_SESSION['username'] ?? ''); ?>" />
-
-            <div class="flex justify-between items-center mt-2">
-                <div class="flex items-center text-xs text-gray-400">
-                    <span class="character-count hidden">0/2000</span>
+                        <div class="flex items-center space-x-2 ml-4 flex-shrink-0">
+                            <button type="button" class="text-discord-muted hover:text-white transition-colors" title="Send Gift">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M16.886 7.999H20a1 1 0 011 1v11a3 3 0 01-3 3H6a3 3 0 01-3-3v-11a1 1 0 011-1h3.114A3.962 3.962 0 017 7.5a4 4 0 118 0c0 .176-.012.35-.034.52zM15.8 7.999a2 2 0 10-7.6 0H8a2 2 0 100 4h8a2 2 0 100-4h-.2z"/>
+                                </svg>
+                            </button>
+                            
+                            <button type="button" class="text-discord-muted hover:text-white transition-colors" title="Upload Image">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M3 5v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2zm4.5 4.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM19 15l-3-3-4.5 4.5L9 14l-4 4h14v-3z"/>
+                                </svg>
+                            </button>
+                            
+                            <button type="button" class="text-discord-muted hover:text-white transition-colors" title="Emoji">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zM8.5 9a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm7 0a1.5 1.5 0 110-3 1.5 1.5 0 010 3zM8 15s1 2 4 2 4-2 4-2H8z"/>
+                                </svg>
+                            </button>
+                            
+                            <button 
+                                type="button" 
+                                id="send-button" 
+                                class="bg-discord-primary hover:bg-discord-primary-dark text-white rounded-full p-2 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-discord-primary"
+                                title="Send Message"
+                                disabled>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2 .01 7z"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="character-count-container px-4 pb-2 hidden">
+                        <div class="text-xs text-discord-muted text-right">
+                            <span class="character-count">0</span>/2000
+                        </div>
+                    </div>
                 </div>
-                <button type="button" id="send-button" class="bg-discord-primary text-white px-3 py-1 rounded hover:bg-discord-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                    Send <i class="fas fa-paper-plane ml-1"></i>
-                </button>
-            </div>
-        </form>
+
+                <input type="hidden" name="chat_type" value="<?php echo htmlspecialchars($chatType); ?>" />
+                <input type="hidden" name="chat_id" value="<?php echo htmlspecialchars($targetId ?? ''); ?>" />
+                <input type="hidden" name="channel_id" value="<?php echo htmlspecialchars($chatType === 'channel' ? $targetId : ''); ?>" />
+                <input type="hidden" data-user-id="<?php echo htmlspecialchars($currentUserId); ?>" />
+                <input type="hidden" data-username="<?php echo htmlspecialchars($_SESSION['username'] ?? ''); ?>" />
+            </form>
+        </div>
     </div>
 </div>
+
+<script>
+window.ChatData = {
+    chatType: '<?php echo htmlspecialchars($chatType); ?>',
+    targetId: '<?php echo htmlspecialchars($targetId ?? ''); ?>',
+    placeholder: '<?php echo htmlspecialchars($placeholder); ?>',
+    userId: <?php echo intval($currentUserId); ?>,
+    username: '<?php echo htmlspecialchars($_SESSION['username'] ?? ''); ?>'
+};
+</script>

@@ -22,11 +22,11 @@ function setupSocketHandlers(io) {
     socket.on('get-user-presence', (data) => handleGetUserPresence(socket, data));
     socket.on('notify-user', (data) => handleNotifyUser(io, socket, data));
     socket.on('broadcast', (data) => handleBroadcast(io, socket, data));
-    socket.on('room-event', (data) => handleRoomEvent(io, socket, data));
-    socket.on('typing-start', (data) => handleTypingStart(io, socket, data));    socket.on('typing-stop', (data) => handleTypingStop(io, socket, data));
+    socket.on('room-event', (data) => handleRoomEvent(io, socket, data));    socket.on('typing-start', (data) => handleTypingStart(io, socket, data));    socket.on('typing-stop', (data) => handleTypingStop(io, socket, data));
     socket.on('reaction-added', (data) => handleReactionAdded(io, socket, data));
     socket.on('user-presence-changed', (data) => handleUserPresenceChanged(io, socket, data));
     socket.on('debug-test', (data) => handleDebugTest(io, socket, data));
+    socket.on('test-message', (data) => handleTestMessage(io, socket, data));
   });
 }
 
@@ -208,10 +208,25 @@ function handleDirectMessage(io, socket, data) {
     const { roomId, content, messageType = 'text', timestamp } = data;
     const user = userService.getConnectedUser(socket.id);
     
+    console.log('📨 Direct message received:', {
+      roomId,
+      content: content ? content.substring(0, 50) + '...' : 'empty',
+      messageType,
+      timestamp,
+      userId: user ? user.userId : 'unknown',
+      socketId: socket.id
+    });
+    
     if (!user || !roomId || !content) {
+      console.log('❌ Invalid direct message data:', { user: !!user, roomId: !!roomId, content: !!content });
       socket.emit('message_error', { error: 'Invalid direct message data' });
       return;
     }
+    
+    const roomName = `dm-room-${roomId}`;
+    const roomSockets = io.sockets.adapter.rooms.get(roomName);
+    console.log(`📨 Room ${roomName} has ${roomSockets ? roomSockets.size : 0} sockets`);
+    console.log(`📨 Socket ${socket.id} is in room: ${socket.rooms.has(roomName)}`);
     
     const duplicateId = messageService.checkRecentDuplicate(user.userId, timestamp, content);
     if (duplicateId) {
@@ -223,17 +238,21 @@ function handleDirectMessage(io, socket, data) {
       });
       return;
     }
-    
-    messageService.saveDirectMessage(roomId, user.userId, content, messageType)
+      messageService.saveDirectMessage(roomId, user.userId, content, messageType)
       .then(message => {
         const messageData = {
           ...message,
           username: user.username,
-          tempId: data.tempId
+          tempId: data.tempId,
+          chatRoomId: roomId,
+          user_id: user.userId,
+          message_type: messageType || 'text',
+          created_at: message.created_at || message.sent_at
         };
         
         messageService.trackMessageProcessing(user.userId, timestamp, message.id, content);
         
+        console.log(`📤 Emitting new-direct-message to room dm-room-${roomId}:`, messageData);
         io.to(`dm-room-${roomId}`).emit('new-direct-message', messageData);
         
         socket.emit('message-sent-confirmation', { 
@@ -259,11 +278,16 @@ function handleDirectMessage(io, socket, data) {
 }
 
 function handleJoinDMRoom(io, socket, data) {
+  console.log('🔍 handleJoinDMRoom called with data:', data);
   try {
     const { roomId } = data;
     const user = userService.getConnectedUser(socket.id);
     
+    console.log('🔍 User from socket:', user);
+    console.log('🔍 Room ID:', roomId);
+    
     if (!user || !roomId) {
+      console.log('❌ Invalid request - user or roomId missing');
       socket.emit('dm-room-join-failed', { error: 'Invalid request' });
       return;
     }
@@ -272,6 +296,10 @@ function handleJoinDMRoom(io, socket, data) {
     socket.join(roomName);
     
     console.log(`💬 User ${user.username} (${user.userId}) joined DM room ${roomId}`);
+    console.log(`💬 Socket ${socket.id} joined room: ${roomName}`);
+    
+    const roomSockets = io.sockets.adapter.rooms.get(roomName);
+    console.log(`💬 Room ${roomName} now has ${roomSockets ? roomSockets.size : 0} sockets`);
     
     socket.emit('dm-room-joined', { 
       roomId, 
@@ -629,6 +657,36 @@ function handleDebugTest(io, socket, username) {
   } catch (error) {
     console.error('❌ Debug test error:', error);
     socket.emit('debug-test-response', {
+      success: false,
+      error: error.message
+    });
+  }
+}
+
+function handleTestMessage(io, socket, data) {
+  try {
+    console.log(`📨 Test message received from ${socket.id}:`, data);
+    
+    // Send response back to the sender
+    socket.emit('test-response', {
+      success: true,
+      message: 'Test message received successfully!',
+      original: data,
+      timestamp: new Date().toISOString(),
+      socketId: socket.id
+    });
+    
+    // Optional: broadcast to all clients for testing
+    socket.broadcast.emit('test-broadcast', {
+      message: 'Another client sent a test message',
+      original: data,
+      from: socket.id,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('❌ Test message error:', error);
+    socket.emit('test-response', {
       success: false,
       error: error.message
     });

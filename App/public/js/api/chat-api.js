@@ -21,9 +21,7 @@ class ChatAPI {
             console.error('Failed to parse JSON response:', text);
             throw new Error('Invalid server response');
         }
-    }
-
-    async makeRequest(url, options = {}) {
+    }    async makeRequest(url, options = {}) {
         try {
             const response = await fetch(url, {
                 ...options,
@@ -36,7 +34,14 @@ class ChatAPI {
             const data = await this.parseResponse(response);
             
             if (!response.ok) {
-                throw new Error(data.message || `HTTP ${response.status}`);
+                console.error('API Request failed:', {
+                    url: url,
+                    status: response.status,
+                    statusText: response.statusText,
+                    data: data,
+                    requestBody: options.body
+                });
+                throw new Error(data.message || `HTTP ${response.status}: ${response.statusText}`);
             }
 
             return data;
@@ -44,19 +49,17 @@ class ChatAPI {
             console.error('API Request failed:', error);
             throw error;
         }
-    }
-
-    async getMessages(chatType, targetId, limit = 50, offset = 0) {
-        const url = `${this.baseURL}/${chatType}/${targetId}/messages?limit=${limit}&offset=${offset}`;
+    }    async getMessages(chatType, targetId, limit = 50, offset = 0) {
+        const apiChatType = chatType === 'direct' ? 'dm' : chatType;
+        const url = `${this.baseURL}/${apiChatType}/${targetId}/messages?limit=${limit}&offset=${offset}`;
         return await this.makeRequest(url);
-    }
-
-    async sendMessage(chatType, targetId, content) {
+    }    async sendMessage(targetId, content, chatType = 'channel') {
         const url = `${this.baseURL}/send`;
+        const apiChatType = chatType === 'direct' ? 'dm' : chatType;
         return await this.makeRequest(url, {
             method: 'POST',
             body: JSON.stringify({
-                target_type: chatType,
+                target_type: apiChatType,
                 target_id: targetId,
                 content: content
             })

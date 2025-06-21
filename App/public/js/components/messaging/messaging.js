@@ -19,7 +19,9 @@ class MisVordMessaging {
         this.reconnectAttempts = 0;
         this.isSubmitting = false;
         this.initialized = false;
-        this.lastSubmitTime = 0;        this.activeChannel = null;
+        this.lastSubmitTime = 0;
+
+        this.activeChannel = null;
         this.activeChatRoom = null;
         this.chatType = null; // 'channel' or 'direct'
         this.userId = null;
@@ -36,8 +38,68 @@ class MisVordMessaging {
 
         // Wait for global socket manager to be ready
         this.globalSocketManager = null;
-        this.waitingForGlobalSocket = false;        window.MisVordMessaging = this;
+        this.waitingForGlobalSocket = false;
+        this.syncInterval = null;
+
+        window.MisVordMessaging = this;
         window.logger.debug('messaging', 'MisVordMessaging instance created and registered globally (using global socket manager)');
+        
+        // Add debugging methods
+        this.debugConnection = () => {
+            return {
+                messaging: {
+                    connected: this.connected,
+                    authenticated: this.authenticated,
+                    socket: !!this.socket,
+                    socketId: this.socket ? this.socket.id : 'none',
+                    globalSocketManager: !!this.globalSocketManager,
+                    initialized: this.initialized
+                },
+                globalManager: window.globalSocketManager ? {
+                    connected: window.globalSocketManager.connected,
+                    authenticated: window.globalSocketManager.authenticated,
+                    initialized: window.globalSocketManager.initialized,
+                    isGuest: window.globalSocketManager.isGuest,
+                    socket: !!window.globalSocketManager.socket,
+                    socketId: window.globalSocketManager.socket ? window.globalSocketManager.socket.id : 'none',
+                    isReady: window.globalSocketManager.isReady ? window.globalSocketManager.isReady() : false
+                } : null
+            };
+        };
+        
+        // Add manual reconnection method
+        this.forceReconnect = () => {
+            this.log('🔄 Forcing reconnection to global socket manager...');
+            this.connected = false;
+            this.authenticated = false;
+            this.socket = null;
+            this.connectToGlobalSocketManager();
+        };
+        
+        // Add manual sync trigger
+        this.manualSync = () => {
+            this.log('🔧 Manual sync triggered');
+            if (this.globalSocketManager) {
+                this.syncWithGlobalManager();
+            } else {
+                this.log('❌ No global socket manager available for sync');
+            }
+        };
+        
+        // Add status check method
+        this.checkStatus = () => {
+            return {
+                hasGlobalManager: !!this.globalSocketManager,
+                globalManagerReady: this.globalSocketManager ? this.globalSocketManager.isReady() : false,
+                messagingConnected: this.connected,
+                messagingAuthenticated: this.authenticated,
+                socketExists: !!this.socket,
+                socketId: this.socket ? this.socket.id : 'none',
+                activeChatType: this.chatType,
+                activeChatRoom: this.activeChatRoom,
+                activeChannel: this.activeChannel
+            };
+        };
     }
 
     log(...args) {
@@ -87,49 +149,159 @@ class MisVordMessaging {
 
     /**
      * Connect to the global socket manager instead of creating own socket
-     */
-    connectToGlobalSocketManager() {
+     */    connectToGlobalSocketManager() {
         this.log('🔌 Connecting to global socket manager...');
 
-        // Check if global socket manager is available
+        // First, try to connect immediately if available and ready
         if (window.globalSocketManager) {
-            this.setupGlobalSocketManager(window.globalSocketManager);
-            return;
+            this.log('✅ Global socket manager found immediately');
+            
+            if (window.globalSocketManager.isReady && window.globalSocketManager.isReady()) {
+                this.log('✅ Global socket manager is ready immediately');
+                this.setupGlobalSocketManager(window.globalSocketManager);
+                return;
+            } else {
+                this.log('⏳ Global socket manager found but not ready, waiting...');
+            }
+        } else {
+            this.log('⏳ Global socket manager not found, waiting...');
         }
 
-        // Wait for global socket manager to be ready
+        // Set up comprehensive event listening to catch the global socket manager when it's ready
         this.waitingForGlobalSocket = true;
-        this.log('⏳ Waiting for global socket manager to be ready...');
-
-        const checkGlobalSocket = () => {
-            if (window.globalSocketManager) {
+        
+        // Listen for the ready event (dispatched when authentication completes)
+        const readyHandler = (event) => {
+            if (this.waitingForGlobalSocket) {
+                this.log('📡 Global socket ready event received');
+                if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+                    this.setupGlobalSocketManager(window.globalSocketManager);
+                    this.waitingForGlobalSocket = false;
+                    window.removeEventListener('globalSocketReady', readyHandler);
+                    window.removeEventListener('globalSocketConnected', connectedHandler);
+                    window.removeEventListener('misVordGlobalReady', misVordReadyHandler);
+                }
+            }
+        };
+        
+        // Listen for connection event (dispatched when socket connects and authenticates)
+        const connectedHandler = (event) => {
+            if (this.waitingForGlobalSocket) {
+                this.log('🟢 Global socket connected event received', event.detail);
+                if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+                    this.setupGlobalSocketManager(window.globalSocketManager);
+                    this.waitingForGlobalSocket = false;
+                    window.removeEventListener('globalSocketReady', readyHandler);
+                    window.removeEventListener('globalSocketConnected', connectedHandler);
+                    window.removeEventListener('misVordGlobalReady', misVordReadyHandler);
+                }
+            }
+        };
+        
+        // Listen for misVord global ready (alternative event name)
+        const misVordReadyHandler = (event) => {
+            if (this.waitingForGlobalSocket) {
+                this.log('📡 MisVord global ready event received', event.detail);
+                if (event.detail && event.detail.socketManager) {
+                    this.setupGlobalSocketManager(event.detail.socketManager);
+                    this.waitingForGlobalSocket = false;
+                    window.removeEventListener('globalSocketReady', readyHandler);
+                    window.removeEventListener('globalSocketConnected', connectedHandler);
+                    window.removeEventListener('misVordGlobalReady', misVordReadyHandler);
+                }
+            }
+        };
+        
+        window.addEventListener('globalSocketReady', readyHandler);
+        window.addEventListener('globalSocketConnected', connectedHandler);
+        window.addEventListener('misVordGlobalReady', misVordReadyHandler);
+        
+        // Polling fallback - check every 500ms for up to 30 seconds
+        let pollCount = 0;
+        const maxPolls = 60; // 30 seconds
+        
+        const pollForManager = () => {
+            pollCount++;
+            
+            if (!this.waitingForGlobalSocket) {
+                return; // Already connected
+            }
+            
+            if (window.globalSocketManager && window.globalSocketManager.isReady && window.globalSocketManager.isReady()) {
+                this.log('✅ Global socket manager found via polling (attempt ' + pollCount + ')');
                 this.setupGlobalSocketManager(window.globalSocketManager);
                 this.waitingForGlobalSocket = false;
+                window.removeEventListener('globalSocketReady', readyHandler);
+                window.removeEventListener('globalSocketConnected', connectedHandler);
+                window.removeEventListener('misVordGlobalReady', misVordReadyHandler);
                 return;
             }
-
-            // Keep checking for a reasonable amount of time
-            setTimeout(checkGlobalSocket, 100);
+            
+            if (pollCount < maxPolls) {
+                this.log('⏳ Still waiting for global socket manager... (attempt ' + pollCount + '/' + maxPolls + ')');
+                setTimeout(pollForManager, 500);
+            } else {
+                this.log('❌ Timeout waiting for global socket manager after ' + (maxPolls * 500 / 1000) + ' seconds');
+                this.waitingForGlobalSocket = false;
+                this.updateStatus('error', 'Failed to connect to socket manager');
+                window.removeEventListener('globalSocketReady', readyHandler);
+                window.removeEventListener('globalSocketConnected', connectedHandler);
+                window.removeEventListener('misVordGlobalReady', misVordReadyHandler);
+            }
         };
-
-        // Listen for global socket ready event
-        window.addEventListener('misVordGlobalReady', (event) => {
-            if (this.waitingForGlobalSocket) {
-                this.log('📡 Global socket manager ready event received');
-                this.setupGlobalSocketManager(event.detail.socketManager);
+        
+        // Start polling
+        setTimeout(pollForManager, 500);
+    }
+      waitForGlobalSocketReady() {
+        const checkReady = () => {
+            if (window.globalSocketManager && window.globalSocketManager.isReady && window.globalSocketManager.isReady()) {
+                this.log('✅ Global socket manager is now ready');
+                this.setupGlobalSocketManager(window.globalSocketManager);
+                this.waitingForGlobalSocket = false;
+            } else {
+                this.log('⏳ Still waiting for global socket manager to be ready...', {
+                    exists: !!window.globalSocketManager,
+                    hasIsReady: window.globalSocketManager ? !!window.globalSocketManager.isReady : false,
+                    isReady: window.globalSocketManager && window.globalSocketManager.isReady ? window.globalSocketManager.isReady() : false
+                });
+                setTimeout(checkReady, 500);
+            }
+        };
+        
+        // Listen for the ready event
+        window.addEventListener('globalSocketReady', (event) => {
+            this.log('📡 Global socket ready event received');
+            if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+                this.setupGlobalSocketManager(window.globalSocketManager);
                 this.waitingForGlobalSocket = false;
             }
         });
-
-        // Start checking
-        checkGlobalSocket();
-    }
-
-    /**
+        
+        // Listen for connection event
+        window.addEventListener('globalSocketConnected', (event) => {
+            this.log('🟢 Global socket connected event received', event.detail);
+            if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+                this.setupGlobalSocketManager(window.globalSocketManager);
+                this.waitingForGlobalSocket = false;
+            }
+        });
+        
+        checkReady();
+    }/**
      * Setup connection with global socket manager
      */
     setupGlobalSocketManager(globalManager) {
         this.log('🔗 Setting up connection with global socket manager');
+        this.log('📊 Global manager status:', {
+            isGuest: globalManager.isGuest,
+            connected: globalManager.connected,
+            authenticated: globalManager.authenticated,
+            initialized: globalManager.initialized,
+            userId: globalManager.userId,
+            username: globalManager.username,
+            socketId: globalManager.socket ? globalManager.socket.id : 'none'
+        });
         
         this.globalSocketManager = globalManager;
         
@@ -139,21 +311,84 @@ class MisVordMessaging {
             return;
         }
 
-        // Use the global socket connection
-        this.socket = globalManager.socket;
-        this.connected = globalManager.connected;
-        this.authenticated = globalManager.authenticated;
-        this.userId = globalManager.userId;
-        this.username = globalManager.username;
+        // Use the global socket connection and sync states
+        this.syncWithGlobalManager();
 
         // Listen for global socket events that we care about for messaging
-        this.setupGlobalSocketEventListeners();
-
-        // Join active channel if we have one
+        this.setupGlobalSocketEventListeners();        // Join active channel if we have one
         this.joinActiveChannel();
+        
+        // Also check if we need to initialize based on URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const dmParam = urlParams.get('dm');
+        if (dmParam && (!this.activeChatRoom || this.activeChatRoom != dmParam)) {
+            this.log('🔄 Initializing direct message context from URL:', dmParam);
+            this.setChatContext(dmParam, 'direct');
+        }
 
         this.log('✅ Successfully connected to global socket manager');
         this.updateStatus('connected');
+        
+        // Trigger a status update event for socket status monitoring
+        window.dispatchEvent(new CustomEvent('messagingSystemReady', {
+            detail: { 
+                messaging: this,
+                connected: this.connected,
+                authenticated: this.authenticated 
+            }
+        }));
+    }
+
+    /**
+     * Sync messaging system state with global socket manager
+     */
+    syncWithGlobalManager() {
+        if (!this.globalSocketManager) {
+            this.log('⚠️ No global socket manager to sync with');
+            return;
+        }
+
+        // Update connection state
+        this.socket = this.globalSocketManager.socket;
+        this.connected = this.globalSocketManager.connected;
+        this.authenticated = this.globalSocketManager.authenticated;
+        this.userId = this.globalSocketManager.userId;
+        this.username = this.globalSocketManager.username;
+
+        this.log('🔄 Synced messaging state with global manager:', {
+            connected: this.connected,
+            authenticated: this.authenticated,
+            socket: !!this.socket,
+            socketId: this.socket ? this.socket.id : 'none',
+            isReady: this.globalSocketManager.isReady ? this.globalSocketManager.isReady() : false
+        });
+
+        // Periodically sync state to catch any updates
+        if (this.syncInterval) {
+            clearInterval(this.syncInterval);
+        }
+        
+        this.syncInterval = setInterval(() => {
+            const wasConnected = this.connected;
+            const wasAuthenticated = this.authenticated;
+            
+            this.connected = this.globalSocketManager.connected;
+            this.authenticated = this.globalSocketManager.authenticated;
+            this.socket = this.globalSocketManager.socket;
+            
+            if (wasConnected !== this.connected || wasAuthenticated !== this.authenticated) {
+                this.log('🔄 State changed, updating status:', {
+                    wasConnected, nowConnected: this.connected,
+                    wasAuthenticated, nowAuthenticated: this.authenticated
+                });
+                
+                if (this.connected && this.authenticated) {
+                    this.updateStatus('connected');
+                } else {
+                    this.updateStatus('disconnected');
+                }
+            }
+        }, 1000);
     }
 
     /**
@@ -162,8 +397,8 @@ class MisVordMessaging {
     setupGlobalSocketEventListeners() {
         // Listen for global socket connection state changes
         window.addEventListener('globalSocketReady', () => {
-            this.connected = true;
-            this.authenticated = true;
+            this.log('🟢 Global socket ready event received');
+            this.syncWithGlobalManager();
             this.updateStatus('connected');
         });
 
@@ -188,6 +423,19 @@ class MisVordMessaging {
         if (this.socket) {
             this.registerSocketEvents();
         }
+        
+        // Listen for socket connection/disconnection to update our status
+        window.addEventListener('globalSocketConnected', () => {
+            this.log('🟢 Global socket connected');
+            this.syncWithGlobalManager();
+            this.updateStatus('connected');
+        });
+        
+        window.addEventListener('globalSocketDisconnected', () => {
+            this.log('🔴 Global socket disconnected');
+            this.connected = false;
+            this.updateStatus('disconnected');
+        });
     }
 
     dispatchEvent(eventName, detail = {}) {
@@ -286,13 +534,15 @@ class MisVordMessaging {
 
         this.log('📤 Sending authentication data:', authData);
         this.socket.emit('authenticate', authData);
-    }
-
-    joinActiveChannel() {
-        this.log('🏠 Joining active channel...');
+    }    joinActiveChannel() {
+        this.log('🏠 Joining active channel or chat room...');
 
         const channelId = this.getActiveChannelId();
-        if (channelId) {
+        const chatRoomId = this.getActiveChatId();
+        
+        if (this.chatType === 'direct' && chatRoomId) {
+            this.joinDMRoom(chatRoomId);
+        } else if (channelId) {
             // Use global socket manager if available
             if (this.globalSocketManager && this.globalSocketManager.isReady()) {
                 this.globalSocketManager.joinChannel(channelId);
@@ -304,9 +554,31 @@ class MisVordMessaging {
                 this.log('🏠 Joined channel via direct socket:', channelId);
             }
         }
-    }    async sendMessage(chatId, content, chatType = 'channel') {
+    }    joinDMRoom(chatRoomId) {
+        this.log('💬 Joining DM room:', chatRoomId);
+        
+        if (this.socket && this.connected) {
+            this.socket.emit('join-dm-room', { roomId: chatRoomId });
+            this.activeChatRoom = chatRoomId;
+            this.log('💬 Joined DM room via socket:', chatRoomId);
+        } else {
+            this.log('⚠️ Cannot join DM room - socket not connected');
+        }
+    }
+
+    leaveDMRoom(chatRoomId) {
+        this.log('👋 Leaving DM room:', chatRoomId);
+        
+        if (this.socket && this.connected && this.activeChatRoom === chatRoomId) {
+            this.socket.emit('leave-dm-room', { roomId: chatRoomId });
+            this.activeChatRoom = null;
+            this.log('👋 Left DM room via socket:', chatRoomId);
+        }
+    }async sendMessage(chatId, content, chatType = 'channel') {
         this.log('📤 Attempting to send message...');
-        this.log('📊 Send conditions check:', {
+        
+        // Detailed status check
+        const statusCheck = {
             chatId: !!chatId,
             content: !!content,
             chatType: chatType,
@@ -314,8 +586,12 @@ class MisVordMessaging {
             socket: !!this.socket,
             userId: this.getUserId(),
             authenticated: this.authenticated,
-            globalSocketManager: !!this.globalSocketManager
-        });
+            globalSocketManager: !!this.globalSocketManager,
+            globalManagerReady: this.globalSocketManager ? this.globalSocketManager.isReady() : false,
+            socketId: this.socket ? this.socket.id : 'none'
+        };
+        
+        this.log('📊 Send conditions check:', statusCheck);
 
         if (!chatId || !content) {
             const error = new Error('Missing required data: chatId=' + !!chatId + ', content=' + !!content);
@@ -330,19 +606,42 @@ class MisVordMessaging {
             const tempMessage = this.createTempMessage(content, tempId);
             this.appendMessage(tempMessage);            // Send message via ChatAPI
             const response = await window.ChatAPI.sendMessage(chatId, content, chatType);
-            
-            if (response.success) {
-                // Remove temp message and let socket handle the real message
+              if (response.success) {
+                // Remove temp message
                 this.removeTempMessage(tempId);
                 
-                // Send socket event for real-time updates
+                // Display the real message immediately
+                if (response.data && response.data.message) {
+                    this.appendMessage(response.data.message);
+                    this.log('✅ Message displayed:', response.data.message);
+                } else {
+                    this.log('⚠️ No message data in response to display', response);
+                }
+                  // Send socket event for real-time updates to other users
                 if (this.globalSocketManager && this.globalSocketManager.isReady()) {
-                    const socketEvent = chatType === 'direct' ? 'direct-message' : 'channel-message';
-                    this.globalSocketManager.socket.emit(socketEvent, {
-                        chatId: chatId,
-                        content: content,
-                        message: response.message
-                    });
+                    if (chatType === 'direct') {
+                        // For direct messages, send to DM room
+                        this.globalSocketManager.socket.emit('direct-message', {
+                            roomId: chatId,
+                            content: content,
+                            messageType: 'text',
+                            timestamp: new Date().toISOString(),
+                            tempId: tempId
+                        });
+                        this.log('📡 Direct message socket event sent for room:', chatId);
+                    } else {
+                        // For channel messages
+                        this.globalSocketManager.socket.emit('channel-message', {
+                            channelId: chatId,
+                            content: content,
+                            messageType: 'text',
+                            timestamp: new Date().toISOString(),
+                            tempId: tempId
+                        });
+                        this.log('📡 Channel message socket event sent for channel:', chatId);
+                    }
+                } else {
+                    this.log('⚠️ Socket not ready, real-time updates disabled');
                 }
                 
                 this.trackMessage('MESSAGE_SENT', { chatId, content, chatType, tempId });
@@ -360,6 +659,119 @@ class MisVordMessaging {
             this.showToast('Failed to send message. Please try again.', 'error');
             return false;
         }
+    }
+
+    async sendRichMessage(messageData) {
+        this.log('📤 Attempting to send rich message...', messageData);
+        
+        const chatId = this.getActiveChatId();
+        const chatType = this.getChatType() || 'channel';
+        
+        if (!chatId) {
+            throw new Error('No active chat selected');
+        }
+
+        // Handle file uploads first if present
+        let attachmentUrl = null;
+        if (messageData.attachments && messageData.attachments.length > 0) {
+            // Files should already be uploaded by the composer
+            const attachment = messageData.attachments[0]; // Take first attachment
+            attachmentUrl = attachment.file_url;
+        }
+
+        // Prepare the message payload
+        const payload = {
+            target_type: chatType,
+            target_id: chatId,
+            content: messageData.content || '',
+            message_type: messageData.type || 'text',
+            attachment_url: attachmentUrl,
+            mentions: messageData.mentions || []
+        };
+
+        const tempId = 'temp_' + Date.now();
+
+        try {
+            // Create and display temp message immediately
+            const tempMessage = this.createTempRichMessage(messageData, tempId);
+            this.appendMessage(tempMessage);
+
+            // Send via API
+            const response = await fetch('/api/chat/send', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Remove temp message
+                this.removeTempMessage(tempId);
+                
+                // Display the real message
+                if (result.data && result.data.message) {
+                    this.appendMessage(result.data.message);
+                    this.log('✅ Rich message displayed:', result.data.message);
+                }
+
+                // Send socket event for real-time updates
+                if (this.globalSocketManager && this.globalSocketManager.isReady()) {
+                    const socketData = {
+                        content: messageData.content || '',
+                        messageType: messageData.type || 'text',
+                        attachmentUrl: attachmentUrl,
+                        mentions: messageData.mentions || [],
+                        timestamp: new Date().toISOString(),
+                        tempId: tempId
+                    };
+
+                    if (chatType === 'direct') {
+                        this.globalSocketManager.socket.emit('direct-message', {
+                            roomId: chatId,
+                            ...socketData
+                        });
+                    } else {
+                        this.globalSocketManager.socket.emit('channel-message', {
+                            channelId: chatId,
+                            ...socketData
+                        });
+                    }
+                }
+
+                return true;
+            } else {
+                this.removeTempMessage(tempId);
+                throw new Error(result.error || 'Failed to send rich message');
+            }
+
+        } catch (error) {
+            this.removeTempMessage(tempId);
+            this.error('Error sending rich message:', error);
+            throw error;
+        }
+    }
+
+    createTempRichMessage(messageData, tempId) {
+        const user = this.getCurrentUser();
+        const now = new Date();
+        
+        let tempMessage = {
+            id: tempId,
+            user_id: user.id,
+            username: user.username,
+            avatar_url: user.avatar_url || '/assets/images/default-avatar.png',
+            content: messageData.content || '',
+            message_type: messageData.type || 'text',
+            attachment_url: messageData.attachments && messageData.attachments.length > 0 ? messageData.attachments[0].file_url : null,
+            mentions: messageData.mentions || [],
+            sent_at: now.toISOString(),
+            is_temp: true
+        };
+
+        return tempMessage;
     }
 
     initSocket() {
@@ -790,16 +1202,17 @@ class MisVordMessaging {
                 this.isSubmitting = false;
             }, 500);
         }
-    }
-
-    async loadMessages(chatId, chatType = 'channel') {
+    }    async loadMessages(chatId, chatType = 'channel') {
         this.log('📥 Loading messages for chat:', chatId, 'Type:', chatType);
         
         try {
-            const response = await window.ChatAPI.getMessages(chatId, chatType);
+            const response = await window.ChatAPI.getMessages(chatType, chatId);
             
-            if (response.success && response.messages) {
-                this.log('✅ Loaded', response.messages.length, 'messages');
+            const messages = response.success ? 
+                (response.data?.messages || response.messages || []) : [];
+            
+            if (response.success && messages.length >= 0) {
+                this.log('✅ Loaded', messages.length, 'messages');
                 
                 // Clear existing messages
                 const messagesContainer = document.getElementById('chat-messages');
@@ -807,7 +1220,7 @@ class MisVordMessaging {
                     messagesContainer.innerHTML = '';
                     
                     // Display messages
-                    response.messages.forEach(message => {
+                    messages.forEach(message => {
                         this.appendMessage(message, false); // Don't scroll for bulk loading
                     });
                     
@@ -819,7 +1232,7 @@ class MisVordMessaging {
                 
                 return true;
             } else {
-                this.error('Failed to load messages:', response.error);
+                this.error('Failed to load messages:', response.error || response.message);
                 return false;
             }
         } catch (error) {
@@ -917,14 +1330,37 @@ class MisVordMessaging {
             if (chatType === 'channel') {
                 socketData.setAttribute('data-channel-id', chatId);
             }
-        }
-        
-        // Join appropriate socket rooms
+        }          // Join appropriate socket rooms
         if (this.globalSocketManager && this.globalSocketManager.isReady()) {
             if (chatType === 'direct') {
-                this.globalSocketManager.socket.emit('join-dm-room', chatId);
+                this.globalSocketManager.socket.emit('join-dm-room', { roomId: chatId });
+                this.log('💬 Joining DM room via global manager:', chatId);
             } else {
                 this.globalSocketManager.socket.emit('join-channel', chatId);
+                this.log('🏠 Joining channel via global manager:', chatId);
+            }
+        } else {
+            this.log('⚠️ Cannot join room - global socket manager not ready', {
+                hasManager: !!this.globalSocketManager,
+                isReady: this.globalSocketManager ? this.globalSocketManager.isReady() : false,
+                chatType,
+                chatId
+            });
+            
+            // Try to join after socket is ready
+            if (this.globalSocketManager) {
+                this.globalSocketManager.waitForReady().then(() => {
+                    this.log('✅ Socket manager now ready, joining room');
+                    if (chatType === 'direct') {
+                        this.globalSocketManager.socket.emit('join-dm-room', { roomId: chatId });
+                        this.log('💬 Joining DM room after wait:', chatId);
+                    } else {
+                        this.globalSocketManager.socket.emit('join-channel', chatId);
+                        this.log('🏠 Joining channel after wait:', chatId);
+                    }
+                }).catch(error => {
+                    this.log('❌ Failed to wait for socket manager:', error);
+                });
             }
         }
     }
@@ -1012,14 +1448,17 @@ class MisVordMessaging {
         }
 
         this.log('✅ Message appended to UI successfully');
-    }
-
-    createMessageElement(messageData) {
+    }    createMessageElement(messageData) {
         const messageDiv = document.createElement('div');
         const messageId = messageData.id || messageData.tempId;
         messageDiv.id = 'msg-' + messageId;
         messageDiv.className = 'mb-4 group hover:bg-discord-dark/30 p-1 rounded -mx-1 ' + (messageData.temp ? 'temp-message opacity-75' : '');
         messageDiv.setAttribute('data-user-id', messageData.user_id);
+        
+        // Add temp-id attribute for temp messages
+        if (messageData.temp && messageData.tempId) {
+            messageDiv.setAttribute('data-temp-id', messageData.tempId);
+        }
 
         const username = messageData.username || messageData.user?.username || 'Unknown User';
         const avatarUrl = messageData.avatar || messageData.user?.avatar_url || 
@@ -1037,8 +1476,23 @@ class MisVordMessaging {
         messageHTML += '<span class="text-xs text-gray-400">' + timestamp + '</span>';
         messageHTML += messageData.temp ? '<span class="text-xs text-yellow-400 ml-2">Sending...</span>' : '';
         messageHTML += '</div>';
+        
+        // Handle rich message content
         messageHTML += '<div class="text-gray-300 select-text break-words">';
-        messageHTML += this.formatMessageContent(messageData.content);
+        if (messageData.content) {
+            messageHTML += this.formatMessageContent(messageData.content);
+        }
+        
+        // Handle attachments based on message type
+        if (messageData.attachment_url) {
+            messageHTML += this.renderRichMessageAttachment(messageData);
+        }
+        
+        // Handle mentions
+        if (messageData.mentions && messageData.mentions.length > 0) {
+            messageHTML += this.renderMentions(messageData.mentions);
+        }
+        
         messageHTML += '</div>';
         messageHTML += '</div>';
         messageHTML += '</div>';
@@ -1060,6 +1514,101 @@ class MisVordMessaging {
         messageDiv.innerHTML = messageHTML;
 
         return messageDiv;
+    }
+
+    renderRichMessageAttachment(messageData) {
+        const messageType = messageData.message_type || 'text';
+        const attachmentUrl = messageData.attachment_url;
+        
+        let attachmentHTML = '<div class="mt-2">';
+        
+        switch (messageType) {
+            case 'image':
+                attachmentHTML += `<div class="max-w-md">
+                    <img src="${this.escapeHtml(attachmentUrl)}" alt="Uploaded image" 
+                         class="rounded-lg cursor-pointer hover:opacity-90 transition-opacity max-w-full h-auto"
+                         onclick="this.openImageModal('${this.escapeHtml(attachmentUrl)}')">
+                </div>`;
+                break;
+                
+            case 'gif':
+                attachmentHTML += `<div class="max-w-md">
+                    <img src="${this.escapeHtml(attachmentUrl)}" alt="GIF" 
+                         class="rounded-lg cursor-pointer hover:opacity-90 transition-opacity max-w-full h-auto">
+                </div>`;
+                break;
+                
+            case 'audio':
+                attachmentHTML += `<div class="max-w-md bg-gray-800 rounded-lg p-3">
+                    <div class="flex items-center space-x-3">
+                        <i class="fas fa-music text-blue-400"></i>
+                        <div class="flex-1">
+                            <audio controls class="w-full">
+                                <source src="${this.escapeHtml(attachmentUrl)}" type="audio/mpeg">
+                                Your browser does not support the audio element.
+                            </audio>
+                        </div>
+                    </div>
+                </div>`;
+                break;
+                
+            default:
+                // Handle other file types
+                const fileName = attachmentUrl.split('/').pop();
+                attachmentHTML += `<div class="max-w-md bg-gray-800 rounded-lg p-3">
+                    <div class="flex items-center space-x-3">
+                        <i class="fas fa-file text-gray-400"></i>
+                        <div class="flex-1">
+                            <a href="${this.escapeHtml(attachmentUrl)}" target="_blank" 
+                               class="text-blue-400 hover:text-blue-300 underline">
+                                ${this.escapeHtml(fileName)}
+                            </a>
+                        </div>
+                    </div>
+                </div>`;
+        }
+        
+        attachmentHTML += '</div>';
+        return attachmentHTML;
+    }
+
+    renderMentions(mentions) {
+        if (!mentions || mentions.length === 0) return '';
+        
+        let mentionsHTML = '<div class="mt-1 text-xs text-gray-400">';
+        mentionsHTML += '<i class="fas fa-at mr-1"></i>';
+        mentionsHTML += 'Mentioned: ';
+        mentionsHTML += mentions.map(mention => 
+            `<span class="text-blue-400">@${this.escapeHtml(mention.username)}</span>`
+        ).join(', ');
+        mentionsHTML += '</div>';
+        
+        return mentionsHTML;
+    }
+
+    openImageModal(imageUrl) {
+        // Create a simple image modal
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50';
+        modal.innerHTML = `
+            <div class="relative max-w-4xl max-h-full p-4">
+                <img src="${this.escapeHtml(imageUrl)}" alt="Full size image" 
+                     class="max-w-full max-h-full object-contain">
+                <button class="absolute top-2 right-2 text-white hover:text-gray-300 text-2xl" 
+                        onclick="this.parentElement.parentElement.remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        
+        // Close on click outside
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
+        
+        document.body.appendChild(modal);
     }
 
     createTempMessage(content, tempId) {
@@ -1147,6 +1696,14 @@ class MisVordMessaging {
         });
     }
 
+    removeTempMessage(tempId) {
+        const tempMessage = document.querySelector(`[data-temp-id="${tempId}"]`);
+        if (tempMessage) {
+            tempMessage.remove();
+            this.log('🗑️ Removed temp message:', tempId);
+        }
+    }
+
     removeUserFromTyping(userId) {
         if (this.typingUsers.has(userId)) {
             this.typingUsers.delete(userId);
@@ -1228,17 +1785,24 @@ class MisVordMessaging {
         const isActiveVoice = activeChannel && activeChannel.getAttribute('data-channel-type') === 'voice';
         
         return voiceContainer || voiceControls.length > 0 || channelTypeElements.length > 0 || isActiveVoice;
-    }
-
-    onNewDirectMessage(data) {
+    }    onNewDirectMessage(data) {
         this.log('📨 Received new direct message:', data);
         this.trackMessage('DIRECT_MESSAGE_RECEIVED', data);
 
-        // Check if this is for the current active direct message room
-        if (this.chatType === 'direct' && data.chatRoomId && data.chatRoomId == this.getActiveChatId()) {
+        const currentChatId = this.getActiveChatId();
+        const messageRoomId = data.chatRoomId || data.room_id;
+        
+        this.log('📨 Direct message room check:', {
+            chatType: this.chatType,
+            currentChatId: currentChatId,
+            messageRoomId: messageRoomId,
+            match: messageRoomId == currentChatId
+        });
+
+        if (this.chatType === 'direct' && messageRoomId && messageRoomId == currentChatId) {
             this.onNewMessage(data);
         } else {
-            this.log('⚠️ Ignoring direct message for different room:', data.chatRoomId, 'vs current:', this.getActiveChatId());
+            this.log('⚠️ Ignoring direct message for different room:', messageRoomId, 'vs current:', currentChatId);
         }
     }
 

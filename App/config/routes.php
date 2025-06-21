@@ -14,6 +14,7 @@ require_once __DIR__ . '/../controllers/HealthController.php';
 require_once __DIR__ . '/../controllers/HomeController.php';
 require_once __DIR__ . '/../controllers/ExploreController.php';
 require_once __DIR__ . '/../controllers/SettingsController.php';
+require_once __DIR__ . '/../controllers/MediaController.php';
 require_once __DIR__ . '/env.php';
 
 class Route {
@@ -404,6 +405,28 @@ Route::get('/api/chat/dm/([0-9]+)/messages', function($roomId) {
     $controller->getDirectMessageRoomMessages($roomId);
 });
 
+// Render chat section template
+Route::get('/api/chat/render/(channel|dm|direct)/([0-9]+)', function($chatType, $chatId) {
+    $controller = new ChatController();
+    $controller->renderChatSection($chatType, $chatId);
+});
+
+// Media upload routes
+Route::post('/api/media/upload', function() {
+    $controller = new MediaController();
+    $controller->uploadMedia();
+});
+
+Route::post('/api/media/upload/multiple', function() {
+    $controller = new MediaController();
+    $controller->uploadMultipleMedia();
+});
+
+Route::get('/api/media/gifs', function() {
+    $controller = new MediaController();
+    $controller->getGifs();
+});
+
 Route::get('/api/auth/check', function() {
     header('Content-Type: application/json');
     echo json_encode([
@@ -427,6 +450,33 @@ Route::get('/api/debug-simple', function() {
 Route::get('/api/debug-pattern/([0-9]+)', function($id) {
     header('Content-Type: application/json');
     echo json_encode(['success' => true, 'message' => 'Pattern debug route working', 'id' => $id, 'uri' => $_SERVER['REQUEST_URI']]);
+});
+
+Route::get('/api/debug/database', function() {
+    header('Content-Type: application/json');
+    try {
+        $db = require_once __DIR__ . '/db.php';
+        // Test database connection
+        $stmt = $db->prepare("SELECT 1 as test");
+        $stmt->execute();
+        $result = $stmt->fetch();
+        
+        echo json_encode([
+            'success' => true, 
+            'message' => 'Database connection successful',
+            'test_query' => $result ? 'passed' : 'failed'
+        ]);
+    } catch (Exception $e) {
+        echo json_encode([
+            'success' => false, 
+            'message' => 'Database connection failed: ' . $e->getMessage()
+        ]);
+    }
+});
+
+Route::get('/api/health', function() {
+    $controller = new HealthController();
+    $controller->check();
 });
 
 return array_merge(Route::getRoutes(), [

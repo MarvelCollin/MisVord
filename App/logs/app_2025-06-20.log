@@ -1801,3 +1801,79 @@
 [2025-06-20 22:02:08] INFO [0a2a91] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 22:02:08"}
 [2025-06-20 22:02:39] INFO [f7bd5c] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 22:02:39"}
 [2025-06-20 22:02:45] INFO [5cc057] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 22:02:45"}
+[2025-06-20 22:03:59] INFO [f80d13] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 22:03:59"}
+[2025-06-20 22:04:17] INFO [160280] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 22:04:17"}
+[2025-06-20 22:04:34] INFO [24443c] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 22:04:34"}
+[2025-06-20 22:06:08] INFO [0857a9] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 22:06:08"}
+[2025-06-20 22:06:42] INFO [2433ed] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 22:06:42"}
+[2025-06-20 22:07:24] INFO [cc68d7] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 22:07:24"}
+[2025-06-20 22:08:00] INFO [0d5768] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 22:08:00"}
+[2025-06-20 22:08:50] INFO [2ad1e7] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 22:08:50"}
+[2025-06-20 22:09:33] INFO [def725] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 22:09:33"}
+[2025-06-20 22:10:01] INFO [9eb324] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 22:10:01"}
+[2025-06-20 22:11:03] INFO [784e47] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 22:11:03"}
+[2025-06-20 22:11:47] INFO [30bd7c] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 22:11:47"}
+[2025-06-20 22:12:23] INFO [7678f7] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 22:12:23"}
+[2025-06-20 22:12:53] INFO [5ec784] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 22:12:53"}
+[2025-06-20 22:13:30] INFO [a3fed1] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 22:13:30"}
+[2025-06-20 22:14:20] INFO [c491f1] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 22:14:20"}
+[2025-06-20 22:14:20] DEBUG [c491f1] Controller instantiated - Context: {"controller":"ChatController","request_uri":"/api/chat/dm/1","request_method":"GET","is_ajax":"no"}
+[2025-06-20 22:20:46] INFO [e9d80b] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 22:20:46"}
+[2025-06-20 22:21:44] INFO [8cf080] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 22:21:44"}
+[2025-06-20 22:21:44] DEBUG [8cf080] Controller instantiated - Context: {"controller":"ChatController","request_uri":"/api/chat/dm/1","request_method":"GET","is_ajax":"no"}
+[2025-06-20 22:30:52] INFO [c7c227] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 22:30:52"}
+[2025-06-20 22:30:52] ERROR [c7c227] Exception: Too few arguments to function {closure}(), 1 passed in C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\config\web.php on line 135 and exactly 2 expected in C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\config\routes.php:372
+Stack trace:
+#0 C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\config\web.php(135): {closure}('dm')
+#1 C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\config\web.php(180): handleRoute(Array)
+#2 C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\public\router.php(22): require_once('C:\\BINUS\\CASEMA...')
+#3 {main} - Context: {"exception_class":"ArgumentCountError","exception_code":0}
+[2025-06-20 22:31:19] INFO [7152d5] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 22:31:19"}
+[2025-06-20 22:31:19] ERROR [7152d5] Exception: Too few arguments to function {closure}(), 1 passed in C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\config\web.php on line 135 and exactly 2 expected in C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\config\routes.php:372
+Stack trace:
+#0 C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\config\web.php(135): {closure}('channel')
+#1 C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\config\web.php(180): handleRoute(Array)
+#2 C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\public\router.php(22): require_once('C:\\BINUS\\CASEMA...')
+#3 {main} - Context: {"exception_class":"ArgumentCountError","exception_code":0}
+[2025-06-20 22:32:12] INFO [c70e57] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 22:32:12"}
+[2025-06-20 22:32:12] DEBUG [c70e57] Controller instantiated - Context: {"controller":"ChatController","request_uri":"/api/chat/dm/1/messages","request_method":"GET","is_ajax":"no"}
+[2025-06-20 22:32:12] DEBUG [c70e57] requireAuth called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"session_data":[]}
+[2025-06-20 22:32:12] WARNING [c70e57] User not authenticated, redirecting to login - Context: {"session_data":[],"request_uri":"/api/chat/dm/1/messages"}
+[2025-06-20 22:32:19] INFO [3f1224] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 22:32:19"}
+[2025-06-20 22:32:20] DEBUG [3f1224] Controller instantiated - Context: {"controller":"ChatController","request_uri":"/api/chat/channel/1/messages","request_method":"GET","is_ajax":"no"}
+[2025-06-20 22:32:20] DEBUG [3f1224] requireAuth called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"session_data":[]}
+[2025-06-20 22:32:20] WARNING [3f1224] User not authenticated, redirecting to login - Context: {"session_data":[],"request_uri":"/api/chat/channel/1/messages"}
+[2025-06-20 22:33:23] INFO [3cb065] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 22:33:23"}
+[2025-06-20 22:33:23] DEBUG [3cb065] Controller instantiated - Context: {"controller":"ChatController","request_uri":"/api/chat/dm/1/messages","request_method":"GET","is_ajax":"no"}
+[2025-06-20 22:33:23] DEBUG [3cb065] requireAuth called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"session_data":[]}
+[2025-06-20 22:33:23] WARNING [3cb065] User not authenticated, redirecting to login - Context: {"session_data":[],"request_uri":"/api/chat/dm/1/messages"}
+[2025-06-20 22:33:30] INFO [ad05dd] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 22:33:30"}
+[2025-06-20 22:33:30] DEBUG [ad05dd] Controller instantiated - Context: {"controller":"ChatController","request_uri":"/api/chat/dm/1","request_method":"GET","is_ajax":"no"}
+[2025-06-20 22:37:51] INFO [fe7330] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 22:37:51"}
+[2025-06-20 22:37:52] DEBUG [fe7330] Controller instantiated - Context: {"controller":"ChatController","request_uri":"/api/chat/render/dm/1","request_method":"GET","is_ajax":"no"}
+[2025-06-20 22:37:52] DEBUG [fe7330] requireAuth called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"session_data":[]}
+[2025-06-20 22:37:52] WARNING [fe7330] User not authenticated, redirecting to login - Context: {"session_data":[],"request_uri":"/api/chat/render/dm/1"}
+[2025-06-20 23:09:50] INFO [ebbadd] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 23:09:50"}
+[2025-06-20 23:09:50] DEBUG [ebbadd] Controller instantiated - Context: {"controller":"ChatController","request_uri":"/api/chat/render/direct/1","request_method":"GET","is_ajax":"no"}
+[2025-06-20 23:09:50] DEBUG [ebbadd] requireAuth called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"session_data":[]}
+[2025-06-20 23:09:50] WARNING [ebbadd] User not authenticated, redirecting to login - Context: {"session_data":[],"request_uri":"/api/chat/render/direct/1"}
+[2025-06-20 23:09:58] INFO [693c28] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 23:09:58"}
+[2025-06-20 23:09:58] DEBUG [693c28] Controller instantiated - Context: {"controller":"ChatController","request_uri":"/api/chat/render/dm/1","request_method":"GET","is_ajax":"no"}
+[2025-06-20 23:09:58] DEBUG [693c28] requireAuth called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"session_data":[]}
+[2025-06-20 23:09:58] WARNING [693c28] User not authenticated, redirecting to login - Context: {"session_data":[],"request_uri":"/api/chat/render/dm/1"}
+[2025-06-20 23:27:15] INFO [3e91f8] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 23:27:15"}
+[2025-06-20 23:27:16] DEBUG [3e91f8] Controller instantiated - Context: {"controller":"ChatController","request_uri":"/api/chat/render/direct/1","request_method":"GET","is_ajax":"no"}
+[2025-06-20 23:27:16] DEBUG [3e91f8] requireAuth called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"session_data":[]}
+[2025-06-20 23:27:16] WARNING [3e91f8] User not authenticated, redirecting to login - Context: {"session_data":[],"request_uri":"/api/chat/render/direct/1"}
+[2025-06-20 23:42:17] INFO [92a473] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 23:42:17"}
+[2025-06-20 23:42:17] DEBUG [92a473] Controller instantiated - Context: {"controller":"ChatController","request_uri":"/api/chat/send","request_method":"POST","is_ajax":"no"}
+[2025-06-20 23:42:17] DEBUG [92a473] requireAuth called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"session_data":[]}
+[2025-06-20 23:42:17] WARNING [92a473] User not authenticated, redirecting to login - Context: {"session_data":[],"request_uri":"/api/chat/send"}
+[2025-06-20 23:46:48] INFO [81dfd3] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 23:46:48"}
+[2025-06-20 23:49:54] INFO [29d134] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 23:49:54"}
+[2025-06-20 23:50:03] INFO [b50031] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 23:50:03"}
+[2025-06-20 23:51:44] INFO [0cfc4e] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-20 23:51:44"}
+[2025-06-20 23:51:44] DEBUG [0cfc4e] Controller instantiated - Context: {"controller":"HomeController","request_uri":"/app","request_method":"GET","is_ajax":"no"}
+[2025-06-20 23:51:44] DEBUG [0cfc4e] HomeController index called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"request_uri":"/app"}
+[2025-06-20 23:51:44] DEBUG [0cfc4e] requireAuth called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"session_data":[]}
+[2025-06-20 23:51:44] WARNING [0cfc4e] User not authenticated, redirecting to login - Context: {"session_data":[],"request_uri":"/app"}

@@ -22,7 +22,9 @@
 
             <div id="dm-friends-list" class="max-h-60 overflow-y-auto py-2 space-y-2 custom-scrollbar">
                 <div class="flex items-center p-2 rounded-md hover:bg-discord-dark-hover cursor-pointer transition-colors duration-150" data-user-id="user-kolina-id">
-                    <img src="https://via.placeholder.com/32" alt="User Avatar" class="w-8 h-8 rounded-full mr-3 object-cover">
+                    <div class="w-8 h-8 rounded-full mr-3 bg-discord-primary flex items-center justify-center">
+                        <i class="fas fa-user text-white text-sm"></i>
+                    </div>
                     <div>
                         <p class="text-white font-medium">kolina</p>
                         <p class="text-gray-400 text-sm">Offline</p>

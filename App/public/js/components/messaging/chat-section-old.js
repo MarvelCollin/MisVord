@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.MisVordDebug = {
         initialized: false,
         messagingAvailable: false,
+        richComposerAvailable: false,
         errors: [],
         logs: [],
 
@@ -33,18 +34,76 @@ document.addEventListener('DOMContentLoaded', function() {
             return {
                 initialized: this.initialized,
                 messagingAvailable: this.messagingAvailable,
+                richComposerAvailable: this.richComposerAvailable,
                 socketAvailable: typeof io !== 'undefined',
                 globalSocketManager: !!window.globalSocketManager,
                 MisVordMessaging: !!window.MisVordMessaging,
+                RichMessageComposer: !!window.RichMessageComposer,
                 recentErrors: this.errors.slice(-5),
                 recentLogs: this.logs.slice(-10)
             };
         }
-    };
+    };    // Initialize Rich Message Composer if available
+    function initializeRichComposer() {
+        const richComposerContainer = document.getElementById('rich-message-composer-container');
+        const composerElement = richComposerContainer ? richComposerContainer.querySelector('[id^="main-message-composer"]') : null;
+        const simpleMessageForm = document.getElementById('simple-message-form');
+        
+        if (window.RichMessageComposer && composerElement && window.ChatData) {
+            try {
+                window.MisVordDebug.log('Initializing Rich Message Composer');
+                
+                window.richMessageComposer = new window.RichMessageComposer(composerElement, window.MisVordMessaging);
+                window.MisVordDebug.richComposerAvailable = true;
+                window.MisVordDebug.log('Rich Message Composer initialized successfully');
+                
+                // Hide simple form since rich composer is active
+                if (simpleMessageForm) {
+                    simpleMessageForm.classList.add('hidden');
+                }
+                
+                return true;
+            } catch (error) {
+                window.MisVordDebug.error('Failed to initialize Rich Message Composer', error);
+                // Fallback to simple form
+                if (simpleMessageForm) {
+                    simpleMessageForm.classList.remove('hidden');
+                }
+                return false;
+            }
+        }
+        
+        // Show simple form if rich composer not available
+        if (simpleMessageForm) {
+            simpleMessageForm.classList.remove('hidden');
+        }
+        window.MisVordDebug.log('Using simple message form (rich composer not available)');
+        return false;
+    }
 
+    // Try to initialize rich composer, fallback to simple form
+    let richComposerInitialized = false;
+    
+    // Wait for RichMessageComposer to be loaded
+    function waitForRichComposer(attempts = 0) {
+        if (window.RichMessageComposer) {
+            richComposerInitialized = initializeRichComposer();
+        } else if (attempts < 10) {
+            setTimeout(() => waitForRichComposer(attempts + 1), 100);
+        } else {
+            window.MisVordDebug.log('Rich Message Composer not loaded, using simple form');
+            const simpleMessageForm = document.getElementById('simple-message-form');
+            if (simpleMessageForm) {
+                simpleMessageForm.classList.remove('hidden');
+            }
+        }
+    }
+    
+    waitForRichComposer();
+
+    // Initialize simple message form functionality (fallback)
     const messageInput = document.getElementById('message-input');
     const characterCount = document.querySelector('.character-count');
-    const characterCountContainer = document.querySelector('.character-count-container');
     const sendButton = document.getElementById('send-button');
 
     window.MisVordDebug.log('Chat elements check', {
@@ -52,54 +111,62 @@ document.addEventListener('DOMContentLoaded', function() {
         characterCount: !!characterCount,
         sendButton: !!sendButton,
         messageForm: !!document.getElementById('message-form'),
-        chatMessages: !!document.getElementById('chat-messages')
+        chatMessages: !!document.getElementById('chat-messages'),
+        richComposerContainer: !!document.getElementById('rich-message-composer-container')
     });
 
     if (messageInput && sendButton) {
-        window.MisVordDebug.log('Message input and send button found - initializing chat interface');
+        window.MisVordDebug.log('Message input and send button found - initializing simple chat interface');
 
         messageInput.addEventListener('input', function(e) {
             this.style.height = 'auto';
-            this.style.height = Math.min(this.scrollHeight, 160) + 'px';
+            this.style.height = (this.scrollHeight) + 'px';
 
-            const length = this.value.length;
             if (characterCount) {
-                characterCount.textContent = length;
-                
-                if (length > 1900) {
-                    characterCountContainer?.classList.remove('hidden');
-                    characterCount.classList.add('text-red-400');
-                } else if (length > 1500) {
-                    characterCountContainer?.classList.remove('hidden');
-                    characterCount.classList.remove('text-red-400');
-                } else {
-                    characterCountContainer?.classList.add('hidden');
-                    characterCount.classList.remove('text-red-400');
-                }
+                const length = this.value.length;
+                characterCount.textContent = `${length}/2000`;
+                characterCount.classList.toggle('hidden', length === 0);
+                characterCount.classList.toggle('text-red-400', length > 1900);
             }
 
             const hasContent = this.value.trim().length > 0;
             sendButton.disabled = !hasContent;
         });
 
-        messageInput.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                if (!sendButton.disabled) {
-                    sendButton.click();
-                }
-            }
-        });
-
         sendButton.addEventListener('click', async function(e) {
             e.preventDefault();
             const form = document.getElementById('message-form');
             if (form) {
-                await handleMessageSubmit(form);
+                if (window.MisVordMessaging && window.MisVordMessaging.handleSubmit) {
+                    await window.MisVordMessaging.handleSubmit(form);
+                } else {
+                    const messageInput = document.getElementById('message-input');
+                    const content = messageInput ? messageInput.value.trim() : '';
+                    if (content && window.ChatAPI) {
+                        const chatId = messageInput.getAttribute('data-chat-id');
+                        const chatType = messageInput.getAttribute('data-chat-type') || 'channel';
+                        
+                        try {
+                            const response = await window.ChatAPI.sendMessage(chatId, content, chatType);
+                            if (response.success) {
+                                messageInput.value = '';
+                                messageInput.style.height = 'auto';
+                            }
+                        } catch (error) {
+                            console.error('Error sending message:', error);
+                        }
+                    }
+                }
             }
         });
 
         sendButton.disabled = true;
+        setTimeout(() => {
+            if (!richComposerInitialized && messageInput) {
+                messageInput.focus();
+                window.MisVordDebug.log('Message input focused (simple form)');
+            }
+        }, 500);
     } else {
         window.MisVordDebug.log('Chat interface not available', {
             messageInput: !!messageInput,
@@ -107,46 +174,13 @@ document.addEventListener('DOMContentLoaded', function() {
             reason: 'No active channel selected or channel is voice-only'
         });
         
+        // Check if we're on a server page without a selected channel
         const currentPath = window.location.pathname;
         const serverMatch = currentPath.match(/^\/servers\/(\d+)$/);
         if (serverMatch && !window.location.search.includes('channel=')) {
             window.MisVordDebug.log('Server page detected without channel parameter - this is expected behavior');
         }
-    }    async function handleMessageSubmit(form) {
-        const messageInput = form.querySelector('#message-input');
-        const sendButton = form.querySelector('#send-button');
-        const content = messageInput.value.trim();
-        
-        if (!content || content.length === 0) return;
-        if (content.length > 2000) {
-            window.MisVordDebug.error('Message too long', { length: content.length });
-            return;
-        }
-
-        const formData = new FormData(form);
-        const chatType = formData.get('chat_type');
-        const chatId = formData.get('chat_id');
-
-        window.MisVordDebug.log('Submitting message', { chatType, chatId, contentLength: content.length });
-
-        try {
-            if (window.MisVordMessaging && typeof window.MisVordMessaging.sendMessage === 'function') {
-                messageInput.value = '';
-                messageInput.style.height = 'auto';
-                if (sendButton) sendButton.disabled = true;
-                characterCountContainer?.classList.add('hidden');
-                
-                await window.MisVordMessaging.sendMessage(chatId, content, chatType);
-            } else {
-                throw new Error('MisVordMessaging not available');
-            }
-        } catch (error) {
-            window.MisVordDebug.error('Message send failed', error);
-            messageInput.value = content;
-            if (sendButton) sendButton.disabled = false;
-        }
-    }
-
+    }    // Get meta tags for chat data
     const getMeta = (name) => {
         const meta = document.querySelector(`meta[name="${name}"]`);
         return meta ? meta.getAttribute('content') : null;
@@ -160,6 +194,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     window.MisVordDebug.log('Socket connection data', { chatType, chatId, channelId, userId, username });
 
+    // Always create socket data element for potential messaging system use
     let socketData = document.getElementById('socket-data');
     if (!socketData) {
         socketData = document.createElement('div');
@@ -168,28 +203,29 @@ document.addEventListener('DOMContentLoaded', function() {
         document.body.appendChild(socketData);
     }
     
+    // Update socket data attributes
     socketData.setAttribute('data-chat-type', chatType);
     socketData.setAttribute('data-chat-id', chatId);
     socketData.setAttribute('data-channel-id', channelId);
     socketData.setAttribute('data-user-id', userId);
     socketData.setAttribute('data-username', username);
     
-    window.MisVordDebug.log('Socket data element created/updated and added to DOM');    const urlParams = new URLSearchParams(window.location.search);
+    window.MisVordDebug.log('Socket data element created/updated and added to DOM');    // Check for direct message parameter in URL
+    const urlParams = new URLSearchParams(window.location.search);
     const dmParam = urlParams.get('dm');
     if (dmParam) {
         window.MisVordDebug.log('Direct message parameter detected:', dmParam);
         
+        // Set up for direct message
         socketData.setAttribute('data-chat-id', dmParam);
         socketData.setAttribute('data-chat-type', 'direct');
-        socketData.setAttribute('data-channel-id', '');
+        socketData.setAttribute('data-channel-id', ''); // Clear channel ID for DM
         
+        // Wait for unified chat manager and switch to DM
         const initDirectMessage = () => {
-            if (window.MisVordMessaging && window.MisVordMessaging.initialized) {
-                window.MisVordMessaging.setChatContext(dmParam, 'direct');
-                window.MisVordDebug.log('✅ Direct message context set via MisVordMessaging');
-            } else if (window.unifiedChatManager && window.unifiedChatManager.initialized) {
+            if (window.unifiedChatManager && window.unifiedChatManager.initialized) {
+                window.MisVordDebug.log('Switching to direct message:', dmParam);
                 window.unifiedChatManager.switchToChat(dmParam, 'direct');
-                window.MisVordDebug.log('✅ Direct message context set via unifiedChatManager');
             } else {
                 setTimeout(initDirectMessage, 100);
             }
@@ -205,6 +241,7 @@ document.addEventListener('DOMContentLoaded', function() {
             window.MisVordDebug.log('Global socket manager is ready:', event.detail);
             window.MisVordDebug.initialized = true;
             
+            // Update status indicator
             const socketStatus = document.querySelector('.socket-status');
             if (socketStatus && event.detail.socketManager.isReady()) {
                 socketStatus.innerHTML = '<span class="text-green-500">•</span> <span class="ml-1">Connected</span>';
@@ -241,6 +278,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (hasMessages) {
             setTimeout(() => {
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                window.MisVordDebug.log('Auto-scrolled to bottom on page load');
             }, 100);
         }
 

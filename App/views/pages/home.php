@@ -25,7 +25,8 @@ $additional_js = [
     'components/servers/server-dropdown', 
     'components/servers/server-sidebar',
     'components/messaging/messaging',
-    'components/messaging/direct-message-manager'
+    'components/messaging/direct-message-manager',
+    'components/messaging/unified-chat-manager'
 ];
 $head_scripts = ['logger-init'];
 $contentType = 'home';
@@ -47,6 +48,12 @@ $contentType = 'home';
     <pre><?php print_r($GLOBALS['userServers']); ?></pre>
 </div>
 <?php endif; ?>
+
+<!-- Socket data for JavaScript access -->
+<div id="socket-data" style="display: none;" 
+     data-user-id="<?php echo htmlspecialchars($currentUserId); ?>"
+     data-username="<?php echo htmlspecialchars($GLOBALS['currentUser']['username'] ?? ''); ?>"
+     data-channel-id=""></div>
 
 <?php include dirname(dirname(__DIR__)) . '/views/components/app-sections/app-layout.php'; ?>
 

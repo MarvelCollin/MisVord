@@ -42,9 +42,8 @@ class SocketClient {
           return reject(new Error('Socket.io not loaded'));
         }        // Get socket configuration from meta tags or fallback to window/default values
         const socketHostMeta = document.querySelector('meta[name="socket-host"]');
-        const socketPortMeta = document.querySelector('meta[name="socket-port"]');
-          const host = socketHostMeta?.content || window.SOCKET_HOST || window.location.hostname;
-        const port = socketPortMeta?.content || window.SOCKET_PORT || 1002;
+        const socketPortMeta = document.querySelector('meta[name="socket-port"]');        const host = socketHostMeta?.content || window.SOCKET_HOST || window.location.hostname;
+        const port = 1002;
         
         const actualHost = window.location.hostname;
         const protocol = window.location.protocol;

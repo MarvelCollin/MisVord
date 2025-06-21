@@ -27,13 +27,11 @@ class HealthController extends BaseController
                     'message' => 'Database connection failed: ' . $e->getMessage()
                 ];
                 $health['status'] = 'degraded';
-            }
-
-            try {
-                $socketHost = $_ENV['SOCKET_HOST'] ?? 'localhost';
+            }            try {
+                $socketHost = 'socket';  // Use Docker service name
                 $socketPort = $_ENV['SOCKET_PORT'] ?? '1002';
 
-                $socketUrl = "http://{$socketHost}:{$socketPort}/api/health";
+                $socketUrl = "http://{$socketHost}:{$socketPort}/health";
                 $context = stream_context_create([
                     'http' => [
                         'timeout' => 5,

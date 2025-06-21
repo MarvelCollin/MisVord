@@ -48,6 +48,10 @@ const PORT = process.env.SOCKET_PORT || socketConfig.port;
 server.listen(PORT, async () => {
   console.log(`🚀 Socket server running on port ${PORT}`);
   console.log(`🔌 Socket.IO path: ${socketConfig.basePath}${socketConfig.subPath}`);
+  console.log(`🌐 CORS allowed origins:`, socketConfig.corsAllowedOrigins);
+  console.log(`🚛 Transports:`, socketConfig.transports);
+  console.log(`⚡ Ping timeout: ${socketConfig.pingTimeout}ms`);
+  console.log(`💓 Ping interval: ${socketConfig.pingInterval}ms`);
   
   try {
     const dbConnected = await db.initDatabase();
