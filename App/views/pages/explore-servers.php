@@ -131,9 +131,11 @@ $additional_js = ['components/servers/server-dropdown'];
             <div>
                 <h2 class="text-lg font-bold mb-4">All Servers</h2>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="all-servers">
-                    <?php foreach ($servers as $server): 
-                        $isMember = in_array($server['id'], $userServerId);
-                    ?>
+                    <?php foreach ($servers as $server): ?>
+                        <?php 
+                        $serverId = $server['id'];
+                        $isMember = in_array($serverId, $userServerId);
+                        ?>
                         <div class="bg-discord-dark rounded-lg overflow-hidden hover:shadow-lg transition-shadow server-card" data-category="<?php echo htmlspecialchars($server['category'] ?? ''); ?>">
                             <div class="p-4">
                                 <div class="flex items-start mb-3">
@@ -142,15 +144,15 @@ $additional_js = ['components/servers/server-dropdown'];
                                             <img src="<?php echo htmlspecialchars($server['image_url']); ?>" alt="<?php echo htmlspecialchars($server['name']); ?>" class="w-full h-full object-cover">
                                         <?php else: ?>
                                             <div class="w-full h-full flex items-center justify-center">
-                                                <span class="text-white font-bold text-xl"><?php echo substr($server['name'], 0, 1); ?></span>
+                                                <span class="text-white font-bold text-xl"><?php echo substr($server['name'] ?? 'N', 0, 1); ?></span>
                                             </div>
                                         <?php endif; ?>
                                     </div>
 
                                     <div>
-                                        <h3 class="font-bold server-name"><?php echo htmlspecialchars($server['name']); ?></h3>
+                                        <h3 class="font-bold server-name"><?php echo htmlspecialchars($server['name'] ?? 'Unknown Server'); ?></h3>
                                         <div class="flex items-center text-xs text-discord-lighter mt-1">
-                                            <span><?php echo number_format($server['member_count']); ?> members</span>
+                                            <span><?php echo number_format($server['member_count'] ?? 0); ?> members</span>
                                             <span class="mx-1.5">•</span>
                                             <span><?php echo rand(5, 50); ?> online</span>
                                         </div>
@@ -164,7 +166,7 @@ $additional_js = ['components/servers/server-dropdown'];
                                 <?php endif; ?>
 
                                 <?php if ($isMember): ?>
-                                    <a href="/server/<?php echo $server['id']; ?>" class="block w-full bg-discord-green/30 text-discord-green text-center py-1.5 text-sm rounded-md hover:bg-discord-green/40 transition-colors">
+                                    <a href="/server/<?php echo $serverId; ?>" class="block w-full bg-discord-green/30 text-discord-green text-center py-1.5 text-sm rounded-md hover:bg-discord-green/40 transition-colors">
                                         <i class="fas fa-check mr-1"></i>Joined
                                     </a>
                                 <?php else: ?>

@@ -10,6 +10,7 @@ $servers = $GLOBALS['userServers'] ?? [];
 $currentServerId = isset($currentServer) ? $currentServer->id : null;
 $currentPath = $_SERVER['REQUEST_URI'] ?? '';
 $isHomePage = !str_contains($currentPath, '/server/');
+$isExplorePage = str_contains($currentPath, '/explore');
 
 if (!$currentServerId && preg_match('/\/server\/(\d+)/', $currentPath, $matches)) {
     $currentServerId = (int)$matches[1];
@@ -21,6 +22,27 @@ if (file_exists($tooltipPath)) {
     require_once $tooltipPath;
 }
 ?>
+
+<?php if ($isExplorePage): ?>
+<style>
+/* Critical styles for server icons in explore page to prevent collapse */
+.server-icon {
+    display: block !important;
+    position: relative !important;
+    margin-bottom: 8px !important;
+}
+
+.server-icon a div {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.server-icon .absolute.left-0 {
+    position: absolute !important;
+}
+</style>
+<?php endif; ?>
 
 <div class="flex h-full">
     <div class="w-[72px] bg-discord-darker flex flex-col items-center pt-3 pb-3 space-y-2 overflow-visible">
@@ -42,24 +64,26 @@ if (file_exists($tooltipPath)) {
         <?php endif; ?>
           <?php if (!empty($servers)): ?>            <?php foreach ($servers as $server): ?>
                 <?php 
-                $isActive = (string)$currentServerId === (string)$server->id;
-                $serverInitials = substr($server->name ?? 'S', 0, 1);
-                $serverImage = $server->image_url ?? '';
+                $isActive = (string)$currentServerId === (string)($server['id'] ?? $server->id);
+                $serverInitials = substr($server['name'] ?? $server->name ?? 'S', 0, 1);
+                $serverImage = $server['image_url'] ?? $server->image_url ?? '';
+                $serverId = $server['id'] ?? $server->id;
+                $serverName = $server['name'] ?? $server->name ?? 'Server';
                 ?>
                 
                 <?php
-                $serverContent = '<div class="relative server-icon' . ($isActive ? ' active' : '') . '" data-server-id="' . $server->id . '">
-                    <a href="/server/' . $server->id . '" class="block group">
+                $serverContent = '<div class="relative server-icon' . ($isActive ? ' active' : '') . '" data-server-id="' . $serverId . '">
+                    <a href="/server/' . $serverId . '" class="block group">
                         <div class="w-12 h-12 overflow-hidden ' . ($isActive ? 'rounded-2xl bg-discord-primary' : 'rounded-full hover:rounded-2xl bg-discord-dark') . ' transition-all duration-200 flex items-center justify-center">
                             ' . (!empty($serverImage) ? 
-                                '<img src="' . htmlspecialchars($serverImage) . '" alt="' . htmlspecialchars($server->name) . '" class="w-full h-full object-cover">' :
+                                '<img src="' . htmlspecialchars($serverImage) . '" alt="' . htmlspecialchars($serverName) . '" class="w-full h-full object-cover">' :
                                 '<span class="text-white font-bold text-xl">' . htmlspecialchars($serverInitials) . '</span>') . '
                         </div>
                     </a>
                     ' . ($isActive ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-10 bg-white rounded-r-md"></div>' : '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-0 bg-white rounded-r-md group-hover:h-5 transition-all duration-150"></div>') . '
                 </div>';
                 
-                echo tooltip($serverContent, htmlspecialchars($server->name), 'right', 'mb-2');
+                echo tooltip($serverContent, htmlspecialchars($serverName), 'right', 'mb-2');
             endforeach; ?>
         <?php endif; ?>
         
@@ -93,7 +117,7 @@ if (file_exists($tooltipPath)) {
     <?php if (isset($contentType) && $contentType === 'server' && isset($currentServer)): ?>
     <div class="w-60 bg-discord-dark flex flex-col">
         <div class="h-12 border-b border-black flex items-center px-4 shadow-sm relative">
-            <h2 class="font-bold text-white truncate flex-1"><?php echo htmlspecialchars($currentServer->name ?? 'Server'); ?></h2>
+            <h2 class="font-bold text-white truncate flex-1"><?php echo htmlspecialchars(is_array($currentServer) ? ($currentServer['name'] ?? 'Server') : ($currentServer->name ?? 'Server')); ?></h2>
             <button id="server-dropdown-btn" class="text-gray-400 hover:text-white focus:outline-none w-5 h-5 flex items-center justify-center">
                 <i class="fas fa-chevron-down text-sm"></i>
             </button>

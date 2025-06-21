@@ -35,12 +35,10 @@ if (!$chatType) {
         $chatIcon = 'fas fa-hashtag';
         $placeholder = "Message #{$chatTitle}";
     } else {
-        // No active channel selected
         $chatType = null;
     }
 }
 
-// Set up chat display variables based on type
 if ($chatType === 'channel') {
     $activeChannel = $chatData;
     $chatTitle = $activeChannel['name'] ?? 'Unknown Channel';
@@ -51,12 +49,10 @@ if ($chatType === 'channel') {
     $chatIcon = 'fas fa-user';
     $placeholder = "Message @{$chatTitle}";
 } else {
-    // No chat selected
     $currentServer = $GLOBALS['currentServer'] ?? null;
     $serverChannels = $GLOBALS['serverChannels'] ?? [];
     
     if ($currentServer) {
-        // Show server welcome screen
         echo '<div class="flex-1 bg-discord-background flex flex-col items-center justify-center text-white">
             <div class="text-center max-w-md">
                 <i class="fas fa-hashtag text-6xl text-gray-600 mb-4"></i>
@@ -76,6 +72,7 @@ if ($chatType === 'channel') {
 }
 
 $additional_js[] = 'components/messaging/chat-section';
+$additional_css[] = 'messaging';
 ?>
 
 <meta name="chat-type" content="<?php echo htmlspecialchars($chatType ?? 'channel'); ?>">
@@ -122,96 +119,11 @@ $additional_js[] = 'components/messaging/chat-section';
     </div>
 
     <div class="flex-1 overflow-y-auto p-4 bg-discord-background" id="chat-messages" data-lazyload="chat">
-        <?php if (empty($messages)): ?>
-        <div class="flex flex-col items-center justify-center h-full text-center" id="welcome-message">
-            <div class="w-16 h-16 mb-4 bg-discord-dark rounded-full flex items-center justify-center">
-                <i class="<?php echo $chatIcon; ?> text-discord-primary text-4xl"></i>
-            </div>
-            <?php if ($chatType === 'channel'): ?>
-            <h3 class="font-bold text-xl text-white mb-2">Welcome to #<?php echo htmlspecialchars($chatTitle); ?>!</h3>
-            <p class="text-gray-400 max-w-md">This is the start of the #<?php echo htmlspecialchars($chatTitle); ?> channel.</p>
-            <?php else: ?>
-            <h3 class="font-bold text-xl text-white mb-2">This is the beginning of your direct message history with <?php echo htmlspecialchars($chatTitle); ?>.</h3>
-            <p class="text-gray-400 max-w-md">Start a conversation!</p>
-            <?php endif; ?>
-        </div>
-        <?php else: ?>
-            <?php 
-            $currentDate = '';
-            $lastUserId = null;
-            foreach ($messages as $index => $message): 
-                $timestamp = strtotime($message['sent_at'] ?? $message['timestamp']);
-                $messageDate = date('Y-m-d', $timestamp);
-                $showHeader = $lastUserId !== $message['user_id'];
-                $lastUserId = $message['user_id'];
-
-                if ($messageDate !== $currentDate) {
-                    $currentDate = $messageDate;
-                    $displayDate = date('F j, Y', $timestamp);
-                    echo '<div class="flex items-center my-3">
-                        <hr class="flex-1 border-gray-700">
-                        <span class="px-2 text-xs font-semibold text-gray-500">' . $displayDate . '</span>
-                        <hr class="flex-1 border-gray-700">
-                    </div>';
-                }
-            ?>
-                <div class="mb-4 group hover:bg-discord-dark/30 p-1 rounded -mx-1 relative <?php echo $showHeader ? '' : 'pl-12'; ?>" 
-                     id="msg-<?php echo htmlspecialchars($message['id']); ?>"
-                     data-user-id="<?php echo htmlspecialchars($message['user_id']); ?>">
-                    <?php if ($showHeader): ?>
-                    <div class="flex items-start">
-                        <div class="w-10 h-10 rounded-full bg-gray-700 flex-shrink-0 flex items-center justify-center overflow-hidden mr-3">
-                            <img src="<?php echo getUserAvatar($message['avatar_url'] ?? '', $message['username'] ?? 'User'); ?>" 
-                                 alt="Avatar" class="w-full h-full object-cover">
-                        </div>
-                        <div class="flex-1">
-                            <div class="flex items-center">
-                                <span class="font-medium text-white mr-2"><?php echo htmlspecialchars($message['username']); ?></span>
-                                <span class="text-xs text-gray-400"><?php echo date('g:i A', $timestamp); ?></span>
-                            </div>
-                    <?php else: ?>
-                        <div class="relative group-hover:visible invisible">
-                            <span class="text-xs text-gray-400 absolute -left-12"><?php echo date('g:i A', $timestamp); ?></span>
-                        </div>
-                    <?php endif; ?>
-                            <div class="text-gray-300 select-text break-words">
-                                <?php echo nl2br(htmlspecialchars($message['content'])); ?>
-                            </div>
-                    <?php if ($showHeader): ?>
-                        </div>
-                    </div>
-                    <?php endif; ?>
-                    <div class="message-actions absolute top-0 right-4 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button class="reaction-btn p-1 text-gray-400 hover:text-white hover:bg-discord-light rounded-sm" 
-                                title="Add Reaction" data-message-id="<?php echo htmlspecialchars($message['id']); ?>">
-                            <i class="fas fa-face-smile text-xs"></i>
-                        </button>
-                        <?php if ($message['user_id'] == $currentUserId): ?>
-                        <button class="edit-btn p-1 text-gray-400 hover:text-white hover:bg-discord-light rounded-sm" 
-                                title="Edit Message" data-message-id="<?php echo htmlspecialchars($message['id']); ?>">
-                            <i class="fas fa-pen-to-square text-xs"></i>
-                        </button>
-                        <?php endif; ?>
-                        <button class="reply-btn p-1 text-gray-400 hover:text-white hover:bg-discord-light rounded-sm" 
-                                title="Reply" data-message-id="<?php echo htmlspecialchars($message['id']); ?>">
-                            <i class="fas fa-reply text-xs"></i>
-                        </button>
-                        <button class="more-btn p-1 text-gray-400 hover:text-white hover:bg-discord-light rounded-sm" 
-                                title="More" data-message-id="<?php echo htmlspecialchars($message['id']); ?>"
-                                data-user-id="<?php echo htmlspecialchars($message['user_id']); ?>"
-                                data-is-owner="<?php echo $message['user_id'] == $currentUserId ? 'true' : 'false'; ?>">
-                            <i class="fas fa-ellipsis text-xs"></i>
-                        </button>
-                    </div>
-                </div>
-            <?php endforeach; ?>
-        <?php endif; ?>
+        <!-- Messages will be loaded here -->
     </div>
 
-    <!-- Message Context Menu -->
     <div id="message-context-menu" class="context-menu hidden">
         <div class="context-menu-section">
-            <!-- Message Reactions -->
             <div class="emoji-row">
                 <button class="emoji-btn" data-emoji="👍" title="👍">👍</button>
                 <button class="emoji-btn" data-emoji="❤️" title="❤️">❤️</button>
@@ -299,9 +211,7 @@ $additional_js[] = 'components/messaging/chat-section';
                 <div class="bg-discord-message-input border border-discord-input-border rounded-lg overflow-hidden focus-within:border-discord-primary transition-colors">
                     <div class="flex items-center px-4 py-3">
                         <button type="button" class="text-discord-muted hover:text-white transition-colors mr-4 flex-shrink-0" title="Upload File">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                            </svg>
+                            <i class="fas fa-plus-circle fa-lg"></i>
                         </button>
                         
                         <div class="flex-1 relative">
@@ -322,21 +232,15 @@ $additional_js[] = 'components/messaging/chat-section';
 
                         <div class="flex items-center space-x-2 ml-4 flex-shrink-0">
                             <button type="button" class="text-discord-muted hover:text-white transition-colors" title="Send Gift">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M16.886 7.999H20a1 1 0 011 1v11a3 3 0 01-3 3H6a3 3 0 01-3-3v-11a1 1 0 011-1h3.114A3.962 3.962 0 017 7.5a4 4 0 118 0c0 .176-.012.35-.034.52zM15.8 7.999a2 2 0 10-7.6 0H8a2 2 0 100 4h8a2 2 0 100-4h-.2z"/>
-                                </svg>
+                                <i class="fas fa-gift fa-lg"></i>
                             </button>
                             
                             <button type="button" class="text-discord-muted hover:text-white transition-colors" title="Upload Image">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M3 5v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2zm4.5 4.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM19 15l-3-3-4.5 4.5L9 14l-4 4h14v-3z"/>
-                                </svg>
+                                <i class="fas fa-image fa-lg"></i>
                             </button>
                             
                             <button type="button" class="text-discord-muted hover:text-white transition-colors" title="Emoji">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zM8.5 9a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm7 0a1.5 1.5 0 110-3 1.5 1.5 0 010 3zM8 15s1 2 4 2 4-2 4-2H8z"/>
-                                </svg>
+                                <i class="fas fa-face-smile fa-lg"></i>
                             </button>
                             
                             <button 
@@ -345,9 +249,7 @@ $additional_js[] = 'components/messaging/chat-section';
                                 class="bg-discord-primary hover:bg-discord-primary-dark text-white rounded-full p-2 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-discord-primary"
                                 title="Send Message"
                                 disabled>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2 .01 7z"/>
-                                </svg>
+                                <i class="fas fa-paper-plane"></i>
                             </button>
                         </div>
                     </div>
@@ -377,4 +279,12 @@ window.ChatData = {
     userId: <?php echo intval($currentUserId); ?>,
     username: '<?php echo htmlspecialchars($_SESSION['username'] ?? ''); ?>'
 };
+
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(() => {
+        if (window.MisVordMessaging && window.ChatData.targetId) {
+            window.MisVordMessaging.switchToChat(window.ChatData.targetId, window.ChatData.chatType);
+        }
+    }, 1000);
+});
 </script>

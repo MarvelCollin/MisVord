@@ -544,3 +544,672 @@
 [2025-06-21 15:49:56] INFO [45d278] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 15:49:56"}
 [2025-06-21 15:49:56] INFO [4621c6] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 15:49:56"}
 [2025-06-21 15:49:56] INFO [46ba37] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 15:49:56"}
+[2025-06-21 17:22:22] INFO [e9b44f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 17:22:22"}
+[2025-06-21 17:22:22] INFO [ea99eb] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 17:22:22"}
+[2025-06-21 17:22:22] INFO [eb033b] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 17:22:22"}
+[2025-06-21 17:22:22] INFO [eb5b38] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 17:22:22"}
+[2025-06-21 17:22:22] INFO [ebb02d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 17:22:22"}
+[2025-06-21 17:22:22] INFO [ec1a1e] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 17:22:22"}
+[2025-06-21 17:22:22] INFO [ec8550] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 17:22:22"}
+[2025-06-21 17:22:22] INFO [ecdf47] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 17:22:22"}
+[2025-06-21 17:22:22] INFO [ed36fc] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 17:22:22"}
+[2025-06-21 17:22:22] INFO [ed9831] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 17:22:22"}
+[2025-06-21 17:22:22] INFO [ee6823] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 17:22:22"}
+[2025-06-21 17:42:12] INFO [482002] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 17:42:12"}
+[2025-06-21 17:42:12] INFO [48d7de] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 17:42:12"}
+[2025-06-21 17:42:12] INFO [49543c] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 17:42:12"}
+[2025-06-21 17:42:12] INFO [49be24] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 17:42:12"}
+[2025-06-21 17:42:12] INFO [4a2a4a] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 17:42:12"}
+[2025-06-21 17:42:12] INFO [4aa7bc] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 17:42:12"}
+[2025-06-21 17:42:12] INFO [4b2bb5] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 17:42:12"}
+[2025-06-21 17:42:12] INFO [4bd503] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 17:42:12"}
+[2025-06-21 17:42:12] INFO [4c495c] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 17:42:12"}
+[2025-06-21 17:42:12] INFO [4cc23e] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 17:42:12"}
+[2025-06-21 17:42:12] INFO [4d6ff4] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 17:42:12"}
+[2025-06-21 17:44:19] INFO [37b9e7] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 17:44:19"}
+[2025-06-21 17:44:19] DEBUG [37b9e7] Controller instantiated - Context: {"controller":"ExploreController","request_uri":"/explore-servers","request_method":"GET","is_ajax":"no"}
+[2025-06-21 17:44:19] DEBUG [37b9e7] requireAuth called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"session_data":[]}
+[2025-06-21 17:44:19] WARNING [37b9e7] User not authenticated, redirecting to login - Context: {"session_data":[],"request_uri":"/explore-servers"}
+[2025-06-21 17:48:16] INFO [04f32c] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 17:48:16"}
+[2025-06-21 17:48:16] DEBUG [04f32c] Controller instantiated - Context: {"controller":"ExploreController","request_uri":"/explore-servers?id=a662d839-9951-4663-b187-56bd41ce52aa&vscodeBrowserReqId=1750502896304","request_method":"GET","is_ajax":"no"}
+[2025-06-21 17:48:16] DEBUG [04f32c] requireAuth called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"session_data":[]}
+[2025-06-21 17:48:16] WARNING [04f32c] User not authenticated, redirecting to login - Context: {"session_data":[],"request_uri":"/explore-servers?id=a662d839-9951-4663-b187-56bd41ce52aa&vscodeBrowserReqId=1750502896304"}
+[2025-06-21 17:48:16] INFO [0cb3a3] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 17:48:16"}
+[2025-06-21 17:48:16] DEBUG [0cb3a3] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 17:48:16] INFO [0cb3a3] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 17:48:16] DEBUG [0cb3a3] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 17:48:17] INFO [0cb3a3] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 17:48:17] INFO [1263cc] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 17:48:17"}
+[2025-06-21 17:48:17] INFO [12efc2] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 17:48:17"}
+[2025-06-21 17:48:17] INFO [13b37a] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 17:48:17"}
+[2025-06-21 17:48:17] INFO [147e97] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 17:48:17"}
+[2025-06-21 17:48:17] INFO [151e83] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 17:48:17"}
+[2025-06-21 17:48:17] INFO [15c690] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 17:48:17"}
+[2025-06-21 17:48:17] INFO [1649fb] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 17:48:17"}
+[2025-06-21 17:48:17] INFO [16eeb4] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 17:48:17"}
+[2025-06-21 17:48:17] INFO [17ab07] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 17:48:17"}
+[2025-06-21 17:48:17] INFO [18aa4e] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 17:48:17"}
+[2025-06-21 17:48:17] INFO [197c90] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 17:48:17"}
+[2025-06-21 17:48:17] INFO [19a95c] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 17:48:17"}
+[2025-06-21 17:48:17] INFO [1a48e1] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 17:48:17"}
+[2025-06-21 17:48:17] INFO [1abeb6] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 17:48:17"}
+[2025-06-21 17:48:17] INFO [1b88c2] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 17:48:17"}
+[2025-06-21 18:08:27] INFO [b987ea] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:08:27"}
+[2025-06-21 18:08:27] DEBUG [b987ea] Controller instantiated - Context: {"controller":"ExploreController","request_uri":"/explore-servers?id=a662d839-9951-4663-b187-56bd41ce52aa&vscodeBrowserReqId=1750504107603","request_method":"GET","is_ajax":"no"}
+[2025-06-21 18:08:27] DEBUG [b987ea] requireAuth called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"session_data":[]}
+[2025-06-21 18:08:27] WARNING [b987ea] User not authenticated, redirecting to login - Context: {"session_data":[],"request_uri":"/explore-servers?id=a662d839-9951-4663-b187-56bd41ce52aa&vscodeBrowserReqId=1750504107603"}
+[2025-06-21 18:08:27] INFO [bc1cde] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:08:27"}
+[2025-06-21 18:08:27] DEBUG [bc1cde] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 18:08:27] INFO [bc1cde] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 18:08:27] DEBUG [bc1cde] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 18:08:27] INFO [bc1cde] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 18:08:28] INFO [c14973] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:08:28"}
+[2025-06-21 18:08:28] INFO [c19b79] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:08:28"}
+[2025-06-21 18:08:28] INFO [c1f59e] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:08:28"}
+[2025-06-21 18:08:28] INFO [c27d25] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:08:28"}
+[2025-06-21 18:08:28] INFO [c2eec0] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:08:28"}
+[2025-06-21 18:08:28] INFO [c35d76] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:08:28"}
+[2025-06-21 18:08:28] INFO [c3bc80] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:08:28"}
+[2025-06-21 18:08:28] INFO [c40ece] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:08:28"}
+[2025-06-21 18:08:28] INFO [c4815b] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:08:28"}
+[2025-06-21 18:08:28] INFO [c4d235] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:08:28"}
+[2025-06-21 18:08:28] INFO [c51f3c] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:08:28"}
+[2025-06-21 18:08:28] INFO [c53b5b] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:08:28"}
+[2025-06-21 18:08:28] INFO [c58dd6] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:08:28"}
+[2025-06-21 18:08:28] INFO [c5e744] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:08:28"}
+[2025-06-21 18:08:28] INFO [c65015] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:08:28"}
+[2025-06-21 18:08:44] INFO [cdc8ab] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:08:44"}
+[2025-06-21 18:08:44] WARNING [cdc8ab] PHP Warning: Undefined array key "REQUEST_URI" - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":9,"severity":2}
+[2025-06-21 18:08:44] WARNING [cdc8ab] PHP Warning: Undefined array key "REQUEST_URI" - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":38,"severity":2}
+[2025-06-21 13:10:03] DEBUG [bed2b9] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 13:10:03] INFO [bed2b9] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 13:10:04] DEBUG [bed2b9] DB Query: SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.... - Duration: 50.77ms - Context: {"bindings":[1],"result_count":0,"db_query":"SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  s.is_public = ? GROUP BY s.id ORDER BY member_count DESC","db_duration":0.05077099800109863}
+[2025-06-21 13:10:28] DEBUG [486578] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 13:10:28] INFO [486578] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 13:10:28] DEBUG [486578] DB Query: SELECT * FROM servers - Duration: 48.64ms - Context: {"bindings":[],"result_count":3,"db_query":"SELECT * FROM servers","db_duration":0.048644065856933594}
+[2025-06-21 13:10:28] DEBUG [486578] DB Query: SELECT * FROM servers WHERE  is_public = ? - Duration: 47.68ms - Context: {"bindings":[1],"result_count":0,"db_query":"SELECT * FROM servers WHERE  is_public = ?","db_duration":0.04768204689025879}
+[2025-06-21 13:11:00] DEBUG [454e85] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 13:11:00] INFO [454e85] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 13:11:00] DEBUG [454e85] DB Query: SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.... - Duration: 48.41ms - Context: {"bindings":[1],"result_count":0,"db_query":"SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  s.is_public = ? GROUP BY s.id ORDER BY member_count DESC","db_duration":0.048413991928100586}
+[2025-06-21 13:11:00] DEBUG [454e85] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 13:11:00] INFO [454e85] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 13:11:00] DEBUG [454e85] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 13:11:00] INFO [454e85] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 13:11:00] DEBUG [454e85] DB Query: SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.... - Duration: 43.31ms - Context: {"bindings":[1],"result_count":1,"db_query":"SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  s.is_public = ? GROUP BY s.id ORDER BY member_count DESC","db_duration":0.04331207275390625}
+[2025-06-21 13:11:32] DEBUG [42b72c] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 13:11:32] INFO [42b72c] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 18:12:31] INFO [fcd3a1] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:12:31"}
+[2025-06-21 18:12:31] INFO [fd690c] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:12:31"}
+[2025-06-21 18:12:31] INFO [fdc39d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:12:31"}
+[2025-06-21 18:12:31] INFO [fe0d63] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:12:31"}
+[2025-06-21 18:12:31] INFO [fe5cfc] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:12:31"}
+[2025-06-21 18:12:31] INFO [feaf5b] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:12:31"}
+[2025-06-21 18:12:31] INFO [ff0aed] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:12:31"}
+[2025-06-21 18:12:32] INFO [004dba] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:12:32"}
+[2025-06-21 18:12:32] INFO [00c200] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:12:32"}
+[2025-06-21 18:12:32] INFO [018923] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:12:32"}
+[2025-06-21 18:13:11] INFO [7a676f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:13:11"}
+[2025-06-21 18:13:11] DEBUG [7a676f] Controller instantiated - Context: {"controller":"ExploreController","request_uri":"/explore-servers?id=a662d839-9951-4663-b187-56bd41ce52aa&vscodeBrowserReqId=1750504391672","request_method":"GET","is_ajax":"no"}
+[2025-06-21 18:13:11] DEBUG [7a676f] requireAuth called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"session_data":[]}
+[2025-06-21 18:13:11] WARNING [7a676f] User not authenticated, redirecting to login - Context: {"session_data":[],"request_uri":"/explore-servers?id=a662d839-9951-4663-b187-56bd41ce52aa&vscodeBrowserReqId=1750504391672"}
+[2025-06-21 18:13:11] INFO [7d5113] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:13:11"}
+[2025-06-21 18:13:11] DEBUG [7d5113] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 18:13:11] INFO [7d5113] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 18:13:12] DEBUG [7d5113] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 18:13:12] INFO [7d5113] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 18:13:12] INFO [82df79] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:13:12"}
+[2025-06-21 18:13:12] INFO [835835] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:13:12"}
+[2025-06-21 18:13:12] INFO [83a887] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:13:12"}
+[2025-06-21 18:13:12] INFO [842f98] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:13:12"}
+[2025-06-21 18:13:12] INFO [84fe81] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:13:12"}
+[2025-06-21 18:13:12] INFO [85948a] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:13:12"}
+[2025-06-21 18:13:12] INFO [85f8d5] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:13:12"}
+[2025-06-21 18:13:12] INFO [864845] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:13:12"}
+[2025-06-21 18:13:12] INFO [86a1ac] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:13:12"}
+[2025-06-21 18:13:12] INFO [86ef7c] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:13:12"}
+[2025-06-21 18:13:12] INFO [87b6a5] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:13:12"}
+[2025-06-21 18:13:12] INFO [87e4b4] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:13:12"}
+[2025-06-21 18:13:12] INFO [8887fc] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:13:12"}
+[2025-06-21 18:13:12] INFO [891413] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:13:12"}
+[2025-06-21 18:13:12] INFO [897d64] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:13:12"}
+[2025-06-21 18:17:22] INFO [23ebd1] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:17:22"}
+[2025-06-21 18:17:22] INFO [24959d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:17:22"}
+[2025-06-21 18:17:22] INFO [24fa04] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:17:22"}
+[2025-06-21 18:17:22] INFO [25595f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:17:22"}
+[2025-06-21 18:17:22] INFO [25b6a8] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:17:22"}
+[2025-06-21 18:17:22] INFO [260e3d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:17:22"}
+[2025-06-21 18:17:22] INFO [265ca1] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:17:22"}
+[2025-06-21 18:17:22] INFO [26aa9a] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:17:22"}
+[2025-06-21 18:17:22] INFO [26fda6] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:17:22"}
+[2025-06-21 18:17:22] INFO [275774] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:17:22"}
+[2025-06-21 18:17:48] INFO [c525f7] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:17:48"}
+[2025-06-21 18:17:48] DEBUG [c525f7] Controller instantiated - Context: {"controller":"ExploreController","request_uri":"/explore-servers?id=a662d839-9951-4663-b187-56bd41ce52aa&vscodeBrowserReqId=1750504668330","request_method":"GET","is_ajax":"no"}
+[2025-06-21 18:17:48] DEBUG [c525f7] requireAuth called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"session_data":[]}
+[2025-06-21 18:17:48] WARNING [c525f7] User not authenticated, redirecting to login - Context: {"session_data":[],"request_uri":"/explore-servers?id=a662d839-9951-4663-b187-56bd41ce52aa&vscodeBrowserReqId=1750504668330"}
+[2025-06-21 18:17:48] INFO [cd0a26] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:17:48"}
+[2025-06-21 18:17:48] DEBUG [cd0a26] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 18:17:48] INFO [cd0a26] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 18:17:49] DEBUG [cd0a26] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 18:17:49] INFO [cd0a26] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 18:17:49] INFO [d27973] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:17:49"}
+[2025-06-21 18:17:49] INFO [d2dc6b] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:17:49"}
+[2025-06-21 18:17:49] INFO [d334c1] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:17:49"}
+[2025-06-21 18:17:49] INFO [d39571] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:17:49"}
+[2025-06-21 18:17:49] INFO [d3f937] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:17:49"}
+[2025-06-21 18:17:49] INFO [d44f1a] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:17:49"}
+[2025-06-21 18:17:49] INFO [d4b2cb] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:17:49"}
+[2025-06-21 18:17:49] INFO [d5109f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:17:49"}
+[2025-06-21 18:17:49] INFO [d572e4] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:17:49"}
+[2025-06-21 18:17:49] INFO [d5ca92] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:17:49"}
+[2025-06-21 18:17:49] INFO [d617fb] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:17:49"}
+[2025-06-21 18:17:49] INFO [d62ec9] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:17:49"}
+[2025-06-21 18:17:49] INFO [d681b4] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:17:49"}
+[2025-06-21 18:17:49] INFO [d6dde7] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:17:49"}
+[2025-06-21 18:17:49] INFO [d73e4c] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:17:49"}
+[2025-06-21 18:21:39] INFO [3b5667] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:21:39"}
+[2025-06-21 18:21:39] INFO [3bd26a] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:21:39"}
+[2025-06-21 18:21:39] INFO [3c1e8d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:21:39"}
+[2025-06-21 18:21:39] INFO [3c6f9c] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:21:39"}
+[2025-06-21 18:21:39] INFO [3cc0d1] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:21:39"}
+[2025-06-21 18:21:39] INFO [3d619c] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:21:39"}
+[2025-06-21 18:21:39] INFO [3dead5] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:21:39"}
+[2025-06-21 18:21:39] INFO [3e3c2a] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:21:39"}
+[2025-06-21 18:21:39] INFO [3e8a67] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:21:39"}
+[2025-06-21 18:21:39] INFO [3ee4fd] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:21:39"}
+[2025-06-21 18:21:39] INFO [3f3898] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:21:39"}
+[2025-06-21 18:21:40] INFO [4062dd] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:21:40"}
+[2025-06-21 18:21:40] INFO [40c16f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:21:40"}
+[2025-06-21 18:21:40] INFO [411e29] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:21:40"}
+[2025-06-21 18:21:40] INFO [4169ac] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:21:40"}
+[2025-06-21 18:21:40] INFO [418776] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:21:40"}
+[2025-06-21 18:21:40] INFO [41a2f1] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:21:40"}
+[2025-06-21 18:23:10] INFO [ea5882] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:23:10"}
+[2025-06-21 18:23:10] INFO [eb3ecb] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:23:10"}
+[2025-06-21 18:23:10] INFO [eb9315] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:23:10"}
+[2025-06-21 18:23:10] INFO [ebe4af] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:23:10"}
+[2025-06-21 18:23:10] INFO [ec3699] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:23:10"}
+[2025-06-21 18:23:10] INFO [ec8d4c] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:23:10"}
+[2025-06-21 18:23:10] INFO [ecdc56] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:23:10"}
+[2025-06-21 18:23:10] INFO [ed2e17] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:23:10"}
+[2025-06-21 18:23:10] INFO [ed7ea7] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:23:10"}
+[2025-06-21 18:23:10] INFO [ede62d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:23:10"}
+[2025-06-21 13:24:35] DEBUG [3edcc9] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 13:24:36] INFO [3edcc9] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 13:24:36] DEBUG [3edcc9] DB Query: SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.... - Duration: 45.11ms - Context: {"bindings":[1],"result_count":2,"db_query":"SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  s.is_public = ? GROUP BY s.id ORDER BY member_count DESC","db_duration":0.04510784149169922}
+[2025-06-21 13:24:36] DEBUG [3edcc9] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 13:24:36] INFO [3edcc9] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 13:24:36] DEBUG [3edcc9] DB Query: SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.... - Duration: 51.02ms - Context: {"bindings":[1],"result_count":2,"db_query":"SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  s.is_public = ? GROUP BY s.id ORDER BY member_count DESC LIMIT 3","db_duration":0.05101799964904785}
+[2025-06-21 18:24:44] INFO [cc51b7] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:24:44"}
+[2025-06-21 18:24:44] INFO [cce10b] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:24:44"}
+[2025-06-21 18:24:44] INFO [cd3a78] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:24:44"}
+[2025-06-21 18:24:44] INFO [cd908f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:24:44"}
+[2025-06-21 18:24:44] INFO [cdf3cc] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:24:44"}
+[2025-06-21 18:24:44] INFO [ce7a98] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:24:44"}
+[2025-06-21 18:24:44] INFO [ceef7b] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:24:44"}
+[2025-06-21 18:24:45] INFO [d00d1a] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:24:45"}
+[2025-06-21 18:24:45] INFO [d06794] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:24:45"}
+[2025-06-21 18:24:45] INFO [d0c4da] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:24:45"}
+[2025-06-21 18:24:45] INFO [d12a32] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:24:45"}
+[2025-06-21 18:24:45] INFO [d18d3e] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:24:45"}
+[2025-06-21 18:24:45] INFO [d1ebf9] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:24:45"}
+[2025-06-21 18:24:45] INFO [d23d7b] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:24:45"}
+[2025-06-21 18:24:45] INFO [d29e92] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:24:45"}
+[2025-06-21 18:24:45] INFO [d2b759] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:24:45"}
+[2025-06-21 18:24:45] INFO [d2d23f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:24:45"}
+[2025-06-21 18:26:26] INFO [270ea3] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:26:26"}
+[2025-06-21 18:26:26] INFO [278785] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:26:26"}
+[2025-06-21 18:26:26] INFO [27d9a3] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:26:26"}
+[2025-06-21 18:26:26] INFO [28372c] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:26:26"}
+[2025-06-21 18:26:26] INFO [288c1f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:26:26"}
+[2025-06-21 18:26:26] INFO [28daf5] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:26:26"}
+[2025-06-21 18:26:26] INFO [2932af] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:26:26"}
+[2025-06-21 18:26:26] INFO [298a6d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:26:26"}
+[2025-06-21 18:26:26] INFO [29d8e2] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:26:26"}
+[2025-06-21 18:26:26] INFO [2a2d60] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:26:26"}
+[2025-06-21 18:26:26] INFO [2a7fd6] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:26:26"}
+[2025-06-21 18:26:26] INFO [2acd4e] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:26:26"}
+[2025-06-21 18:26:26] INFO [2b2823] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:26:26"}
+[2025-06-21 18:26:26] INFO [2c0777] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:26:26"}
+[2025-06-21 18:26:26] INFO [2c436a] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:26:26"}
+[2025-06-21 18:26:26] INFO [2c67a6] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:26:26"}
+[2025-06-21 18:26:26] INFO [2c841d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:26:26"}
+[2025-06-21 18:26:41] INFO [117c93] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:26:41"}
+[2025-06-21 18:26:41] INFO [11fe20] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:26:41"}
+[2025-06-21 18:26:41] INFO [1252b4] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:26:41"}
+[2025-06-21 18:26:41] INFO [12a7f5] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:26:41"}
+[2025-06-21 18:26:41] INFO [12fbe8] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:26:41"}
+[2025-06-21 18:26:41] INFO [134e12] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:26:41"}
+[2025-06-21 18:26:41] INFO [13a2fa] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:26:41"}
+[2025-06-21 18:26:41] INFO [13fc8a] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:26:41"}
+[2025-06-21 18:26:41] INFO [146257] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:26:41"}
+[2025-06-21 18:26:41] INFO [154079] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:26:41"}
+[2025-06-21 18:27:32] INFO [44ec79] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:27:32"}
+[2025-06-21 18:27:32] INFO [45f4fb] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:27:32"}
+[2025-06-21 18:27:32] INFO [46442f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:27:32"}
+[2025-06-21 18:27:32] INFO [46973d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:27:32"}
+[2025-06-21 18:27:32] INFO [46e976] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:27:32"}
+[2025-06-21 18:27:32] INFO [474522] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:27:32"}
+[2025-06-21 18:27:32] INFO [47a406] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:27:32"}
+[2025-06-21 18:27:32] INFO [480fca] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:27:32"}
+[2025-06-21 18:27:32] INFO [486250] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:27:32"}
+[2025-06-21 18:27:32] INFO [48df79] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:27:32"}
+[2025-06-21 18:27:32] INFO [4941b6] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:27:32"}
+[2025-06-21 18:27:32] INFO [49df40] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:27:32"}
+[2025-06-21 18:27:32] INFO [4a66b5] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:27:32"}
+[2025-06-21 18:27:32] INFO [4ad0c8] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:27:32"}
+[2025-06-21 18:27:32] INFO [4b01a7] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:27:32"}
+[2025-06-21 18:27:32] INFO [4b208a] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:27:32"}
+[2025-06-21 18:27:32] INFO [4b3fbb] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:27:32"}
+[2025-06-21 18:28:38] INFO [6a78f8] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:28:38"}
+[2025-06-21 18:28:38] DEBUG [6a78f8] Controller instantiated - Context: {"controller":"ExploreController","request_uri":"/explore-servers?id=a662d839-9951-4663-b187-56bd41ce52aa&vscodeBrowserReqId=1750505318673","request_method":"GET","is_ajax":"no"}
+[2025-06-21 18:28:38] DEBUG [6a78f8] requireAuth called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"session_data":[]}
+[2025-06-21 18:28:38] WARNING [6a78f8] User not authenticated, redirecting to login - Context: {"session_data":[],"request_uri":"/explore-servers?id=a662d839-9951-4663-b187-56bd41ce52aa&vscodeBrowserReqId=1750505318673"}
+[2025-06-21 18:28:38] INFO [6b5a38] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:28:38"}
+[2025-06-21 18:28:38] DEBUG [6b5a38] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 18:28:38] INFO [6b5a38] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 18:28:38] DEBUG [6b5a38] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 18:28:38] INFO [6b5a38] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 18:28:39] INFO [705f03] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:28:39"}
+[2025-06-21 18:28:39] INFO [70bc6d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:28:39"}
+[2025-06-21 18:28:39] INFO [711367] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:28:39"}
+[2025-06-21 18:28:39] INFO [7163da] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:28:39"}
+[2025-06-21 18:28:39] INFO [71b5c6] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:28:39"}
+[2025-06-21 18:28:39] INFO [720ee9] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:28:39"}
+[2025-06-21 18:28:39] INFO [726a89] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:28:39"}
+[2025-06-21 18:28:39] INFO [72ba7d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:28:39"}
+[2025-06-21 18:28:39] INFO [730ddf] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:28:39"}
+[2025-06-21 18:28:39] INFO [736769] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:28:39"}
+[2025-06-21 18:28:39] INFO [73c4b1] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:28:39"}
+[2025-06-21 18:28:39] INFO [73dad4] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:28:39"}
+[2025-06-21 18:28:39] INFO [742fa5] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:28:39"}
+[2025-06-21 18:28:39] INFO [7486c3] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:28:39"}
+[2025-06-21 18:28:39] INFO [74e16b] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:28:39"}
+[2025-06-21 18:28:45] INFO [d53338] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:28:45"}
+[2025-06-21 18:28:45] DEBUG [d53338] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 18:28:45] INFO [d53338] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 18:28:45] DEBUG [d53338] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 18:28:45] INFO [d53338] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 18:28:45] INFO [d9b012] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:28:45"}
+[2025-06-21 18:28:45] INFO [da43ea] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:28:45"}
+[2025-06-21 18:28:45] INFO [dac0f7] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:28:45"}
+[2025-06-21 18:28:45] INFO [db18af] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:28:45"}
+[2025-06-21 18:28:45] INFO [db6bf8] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:28:45"}
+[2025-06-21 18:28:45] INFO [dbd188] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:28:45"}
+[2025-06-21 18:28:45] INFO [dc43e1] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:28:45"}
+[2025-06-21 18:28:45] INFO [dca54e] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:28:45"}
+[2025-06-21 18:28:45] INFO [dcf99b] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:28:45"}
+[2025-06-21 18:28:45] INFO [dd6167] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:28:45"}
+[2025-06-21 18:28:45] INFO [ddd1c6] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:28:45"}
+[2025-06-21 18:28:45] INFO [ddf0ac] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:28:45"}
+[2025-06-21 18:28:45] INFO [de4c85] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:28:45"}
+[2025-06-21 18:28:45] INFO [dec439] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:28:45"}
+[2025-06-21 18:28:45] INFO [df36cb] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:28:45"}
+[2025-06-21 18:29:42] INFO [6d26d8] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:29:42"}
+[2025-06-21 18:29:43] DEBUG [6d26d8] Controller instantiated - Context: {"controller":"ExploreController","request_uri":"/explore-servers?id=2d18e61d-4913-4aa8-a8c4-17cc3d96b1d5&vscodeBrowserReqId=1750505382851","request_method":"GET","is_ajax":"no"}
+[2025-06-21 18:29:43] DEBUG [6d26d8] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 18:29:43] INFO [6d26d8] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 18:29:43] DEBUG [6d26d8] DB Query: SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.... - Duration: 45.59ms - Context: {"bindings":[1],"result_count":1,"db_query":"SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.user_id = ?","db_duration":0.04558992385864258}
+[2025-06-21 18:29:43] DEBUG [6d26d8] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 18:29:43] INFO [6d26d8] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 18:29:43] DEBUG [6d26d8] DB Query: SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.... - Duration: 44.93ms - Context: {"bindings":[1],"result_count":2,"db_query":"SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  s.is_public = ? GROUP BY s.id ORDER BY member_count DESC","db_duration":0.044934988021850586}
+[2025-06-21 18:29:43] DEBUG [6d26d8] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 18:29:43] INFO [6d26d8] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 18:29:43] DEBUG [6d26d8] DB Query: SELECT server_id FROM user_server_memberships WHERE  user_id = ? - Duration: 43.62ms - Context: {"bindings":[0],"result_count":0,"db_query":"SELECT server_id FROM user_server_memberships WHERE  user_id = ?","db_duration":0.04361891746520996}
+[2025-06-21 18:29:43] DEBUG [6d26d8] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 18:29:43] INFO [6d26d8] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 18:29:43] DEBUG [6d26d8] DB Query: SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.... - Duration: 43.44ms - Context: {"bindings":[1],"result_count":2,"db_query":"SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  s.is_public = ? GROUP BY s.id ORDER BY member_count DESC LIMIT 3","db_duration":0.043440818786621094}
+[2025-06-21 18:29:43] DEBUG [6d26d8] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 18:29:43] INFO [6d26d8] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 18:29:43] DEBUG [6d26d8] DB Query: SELECT server_id FROM user_server_memberships WHERE  user_id = ? - Duration: 50.95ms - Context: {"bindings":[0],"result_count":0,"db_query":"SELECT server_id FROM user_server_memberships WHERE  user_id = ?","db_duration":0.0509490966796875}
+[2025-06-21 18:29:43] DEBUG [6d26d8] Controller instantiated - Context: {"controller":"ServerController","request_uri":"/explore-servers?id=2d18e61d-4913-4aa8-a8c4-17cc3d96b1d5&vscodeBrowserReqId=1750505382851","request_method":"GET","is_ajax":"no"}
+[2025-06-21 18:29:43] DEBUG [6d26d8] requireAuth called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"session_data":[]}
+[2025-06-21 18:29:43] WARNING [6d26d8] User not authenticated, redirecting to login - Context: {"session_data":[],"request_uri":"/explore-servers?id=2d18e61d-4913-4aa8-a8c4-17cc3d96b1d5&vscodeBrowserReqId=1750505382851"}
+[2025-06-21 18:29:43] INFO [75a726] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:29:43"}
+[2025-06-21 18:29:43] DEBUG [75a726] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 18:29:43] INFO [75a726] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 18:29:43] DEBUG [75a726] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 18:29:43] INFO [75a726] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 18:29:43] INFO [7b4007] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:29:43"}
+[2025-06-21 18:29:43] INFO [7bd3a1] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:29:43"}
+[2025-06-21 18:29:43] INFO [7c2170] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:29:43"}
+[2025-06-21 18:29:43] INFO [7c7b28] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:29:43"}
+[2025-06-21 18:29:43] INFO [7cd084] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:29:43"}
+[2025-06-21 18:29:43] INFO [7d657a] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:29:43"}
+[2025-06-21 18:29:43] INFO [7dea3c] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:29:43"}
+[2025-06-21 18:29:43] INFO [7e3a4e] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:29:43"}
+[2025-06-21 18:29:43] INFO [7e8dc5] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:29:43"}
+[2025-06-21 18:29:43] INFO [7ee3dd] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:29:43"}
+[2025-06-21 18:29:44] INFO [800ee5] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:29:44"}
+[2025-06-21 18:29:44] INFO [802bee] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:29:44"}
+[2025-06-21 18:29:44] INFO [808b0d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:29:44"}
+[2025-06-21 18:29:44] INFO [80e5c3] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:29:44"}
+[2025-06-21 18:29:44] INFO [8144b0] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 18:29:44"}
+[2025-06-21 19:00:24] INFO [8da922] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:00:24"}
+[2025-06-21 19:00:24] INFO [8f2cc3] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:00:24"}
+[2025-06-21 19:00:25] INFO [903d46] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:00:25"}
+[2025-06-21 19:00:25] INFO [909762] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:00:25"}
+[2025-06-21 19:00:25] INFO [90f8a7] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:00:25"}
+[2025-06-21 19:00:25] INFO [91779f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:00:25"}
+[2025-06-21 19:00:25] INFO [91d036] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:00:25"}
+[2025-06-21 19:00:25] INFO [922752] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:00:25"}
+[2025-06-21 19:00:25] INFO [927db1] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:00:25"}
+[2025-06-21 19:00:25] INFO [92cf00] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:00:25"}
+[2025-06-21 19:00:25] INFO [9323ac] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:00:25"}
+[2025-06-21 19:00:25] INFO [937913] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:00:25"}
+[2025-06-21 19:00:25] INFO [93cec6] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:00:25"}
+[2025-06-21 19:00:25] INFO [942121] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:00:25"}
+[2025-06-21 19:00:25] INFO [9442fd] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:00:25"}
+[2025-06-21 19:00:25] INFO [9458b8] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:00:25"}
+[2025-06-21 19:00:25] INFO [946c2e] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:00:25"}
+[2025-06-21 19:00:50] INFO [2c451f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:00:50"}
+[2025-06-21 19:00:50] DEBUG [2c451f] Controller instantiated - Context: {"controller":"ExploreController","request_uri":"/explore-servers?id=2c04aa9b-2cec-4a26-92a0-cb4805ce8c64&vscodeBrowserReqId=1750507250796","request_method":"GET","is_ajax":"no"}
+[2025-06-21 19:00:50] DEBUG [2c451f] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:00:50] INFO [2c451f] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:00:50] DEBUG [2c451f] DB Query: SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.... - Duration: 44.03ms - Context: {"bindings":[1],"result_count":1,"db_query":"SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.user_id = ?","db_duration":0.04403495788574219}
+[2025-06-21 19:00:50] DEBUG [2c451f] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:00:50] INFO [2c451f] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:00:50] DEBUG [2c451f] DB Query: SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.... - Duration: 54.54ms - Context: {"bindings":[1],"result_count":2,"db_query":"SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  s.is_public = ? GROUP BY s.id ORDER BY member_count DESC","db_duration":0.054537057876586914}
+[2025-06-21 19:00:50] DEBUG [2c451f] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:00:50] INFO [2c451f] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:00:51] DEBUG [2c451f] DB Query: SELECT server_id FROM user_server_memberships WHERE  user_id = ? - Duration: 48.43ms - Context: {"bindings":[0],"result_count":0,"db_query":"SELECT server_id FROM user_server_memberships WHERE  user_id = ?","db_duration":0.04843497276306152}
+[2025-06-21 19:00:51] DEBUG [2c451f] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:00:51] INFO [2c451f] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:00:51] DEBUG [2c451f] DB Query: SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.... - Duration: 51.58ms - Context: {"bindings":[1],"result_count":2,"db_query":"SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  s.is_public = ? GROUP BY s.id ORDER BY member_count DESC LIMIT 3","db_duration":0.05157589912414551}
+[2025-06-21 19:00:51] DEBUG [2c451f] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:00:51] INFO [2c451f] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:00:51] DEBUG [2c451f] DB Query: SELECT server_id FROM user_server_memberships WHERE  user_id = ? - Duration: 52.68ms - Context: {"bindings":[0],"result_count":0,"db_query":"SELECT server_id FROM user_server_memberships WHERE  user_id = ?","db_duration":0.05268406867980957}
+[2025-06-21 19:00:51] DEBUG [2c451f] Controller instantiated - Context: {"controller":"ServerController","request_uri":"/explore-servers?id=2c04aa9b-2cec-4a26-92a0-cb4805ce8c64&vscodeBrowserReqId=1750507250796","request_method":"GET","is_ajax":"no"}
+[2025-06-21 19:00:51] DEBUG [2c451f] requireAuth called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"session_data":[]}
+[2025-06-21 19:00:51] WARNING [2c451f] User not authenticated, redirecting to login - Context: {"session_data":[],"request_uri":"/explore-servers?id=2c04aa9b-2cec-4a26-92a0-cb4805ce8c64&vscodeBrowserReqId=1750507250796"}
+[2025-06-21 19:00:51] INFO [334dd3] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:00:51"}
+[2025-06-21 19:00:51] DEBUG [334dd3] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:00:51] INFO [334dd3] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:00:51] DEBUG [334dd3] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:00:51] INFO [334dd3] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:00:51] INFO [37996c] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:00:51"}
+[2025-06-21 19:00:51] INFO [3834a3] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:00:51"}
+[2025-06-21 19:00:51] INFO [38ab60] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:00:51"}
+[2025-06-21 19:00:51] INFO [390be3] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:00:51"}
+[2025-06-21 19:00:51] INFO [3969ed] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:00:51"}
+[2025-06-21 19:00:51] INFO [39c813] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:00:51"}
+[2025-06-21 19:00:51] INFO [3a467c] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:00:51"}
+[2025-06-21 19:00:51] INFO [3abb78] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:00:51"}
+[2025-06-21 19:00:51] INFO [3b1ecc] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:00:51"}
+[2025-06-21 19:00:51] INFO [3b8120] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:00:51"}
+[2025-06-21 19:00:51] INFO [3be079] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:00:51"}
+[2025-06-21 19:00:51] INFO [3bf689] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:00:51"}
+[2025-06-21 19:00:51] INFO [3c4a3d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:00:51"}
+[2025-06-21 19:00:51] INFO [3cb33b] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:00:51"}
+[2025-06-21 19:00:51] INFO [3d2dcf] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:00:51"}
+[2025-06-21 19:02:06] INFO [e6c62c] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:02:06"}
+[2025-06-21 19:02:21] INFO [df1021] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:02:21"}
+[2025-06-21 19:02:22] DEBUG [df1021] Controller instantiated - Context: {"controller":"ExploreController","request_uri":"/explore-servers","request_method":"GET","is_ajax":"no"}
+[2025-06-21 19:02:22] DEBUG [df1021] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:02:22] INFO [df1021] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:02:22] DEBUG [df1021] DB Query: SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.... - Duration: 45.76ms - Context: {"bindings":[1],"result_count":1,"db_query":"SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.user_id = ?","db_duration":0.045762062072753906}
+[2025-06-21 19:02:22] DEBUG [df1021] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:02:22] INFO [df1021] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:02:22] DEBUG [df1021] DB Query: SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.... - Duration: 52.52ms - Context: {"bindings":[1],"result_count":2,"db_query":"SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  s.is_public = ? GROUP BY s.id ORDER BY member_count DESC","db_duration":0.05252194404602051}
+[2025-06-21 19:02:22] DEBUG [df1021] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:02:22] INFO [df1021] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:02:22] DEBUG [df1021] DB Query: SELECT server_id FROM user_server_memberships WHERE  user_id = ? - Duration: 61.09ms - Context: {"bindings":[0],"result_count":0,"db_query":"SELECT server_id FROM user_server_memberships WHERE  user_id = ?","db_duration":0.061094045639038086}
+[2025-06-21 19:02:22] DEBUG [df1021] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:02:22] INFO [df1021] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:02:22] DEBUG [df1021] DB Query: SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.... - Duration: 47.55ms - Context: {"bindings":[1],"result_count":2,"db_query":"SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  s.is_public = ? GROUP BY s.id ORDER BY member_count DESC LIMIT 3","db_duration":0.04754519462585449}
+[2025-06-21 19:02:22] DEBUG [df1021] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:02:22] INFO [df1021] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:02:22] DEBUG [df1021] DB Query: SELECT server_id FROM user_server_memberships WHERE  user_id = ? - Duration: 47.35ms - Context: {"bindings":[0],"result_count":0,"db_query":"SELECT server_id FROM user_server_memberships WHERE  user_id = ?","db_duration":0.04734683036804199}
+[2025-06-21 19:02:22] DEBUG [df1021] Controller instantiated - Context: {"controller":"ServerController","request_uri":"/explore-servers","request_method":"GET","is_ajax":"no"}
+[2025-06-21 19:02:22] DEBUG [df1021] requireAuth called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"session_data":[]}
+[2025-06-21 19:02:22] WARNING [df1021] User not authenticated, redirecting to login - Context: {"session_data":[],"request_uri":"/explore-servers"}
+[2025-06-21 19:03:32] INFO [4aa2a3] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:03:32"}
+[2025-06-21 19:03:32] WARNING [4aa2a3] PHP Warning: ini_set(): Session ini settings cannot be changed after headers have already been sent - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\config\\session.php","line":12,"severity":2}
+[2025-06-21 19:03:32] WARNING [4aa2a3] PHP Warning: ini_set(): Session ini settings cannot be changed after headers have already been sent - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\config\\session.php","line":13,"severity":2}
+[2025-06-21 19:03:32] WARNING [4aa2a3] PHP Warning: ini_set(): Session ini settings cannot be changed after headers have already been sent - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\config\\session.php","line":14,"severity":2}
+[2025-06-21 19:03:32] WARNING [4aa2a3] PHP Warning: ini_set(): Session ini settings cannot be changed after headers have already been sent - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\config\\session.php","line":15,"severity":2}
+[2025-06-21 19:03:32] WARNING [4aa2a3] PHP Warning: ini_set(): Session ini settings cannot be changed after headers have already been sent - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\config\\session.php","line":16,"severity":2}
+[2025-06-21 19:03:32] WARNING [4aa2a3] PHP Warning: ini_set(): Session ini settings cannot be changed after headers have already been sent - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\config\\session.php","line":17,"severity":2}
+[2025-06-21 19:03:32] DEBUG [4aa2a3] Controller instantiated - Context: {"controller":"ExploreController","request_uri":"","request_method":"GET","is_ajax":"no"}
+[2025-06-21 19:03:32] DEBUG [4aa2a3] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:03:32] INFO [4aa2a3] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:03:32] DEBUG [4aa2a3] DB Query: SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.... - Duration: 42.98ms - Context: {"bindings":[1],"result_count":1,"db_query":"SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.user_id = ?","db_duration":0.0429840087890625}
+[2025-06-21 19:03:32] DEBUG [4aa2a3] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:03:32] INFO [4aa2a3] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:03:32] DEBUG [4aa2a3] DB Query: SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.... - Duration: 42.57ms - Context: {"bindings":[1],"result_count":2,"db_query":"SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  s.is_public = ? GROUP BY s.id ORDER BY member_count DESC","db_duration":0.042572021484375}
+[2025-06-21 19:03:32] DEBUG [4aa2a3] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:03:32] INFO [4aa2a3] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:03:32] DEBUG [4aa2a3] DB Query: SELECT server_id FROM user_server_memberships WHERE  user_id = ? - Duration: 47.51ms - Context: {"bindings":[0],"result_count":0,"db_query":"SELECT server_id FROM user_server_memberships WHERE  user_id = ?","db_duration":0.04750990867614746}
+[2025-06-21 19:03:32] DEBUG [4aa2a3] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:03:32] INFO [4aa2a3] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:03:33] DEBUG [4aa2a3] DB Query: SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.... - Duration: 52.84ms - Context: {"bindings":[1],"result_count":2,"db_query":"SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  s.is_public = ? GROUP BY s.id ORDER BY member_count DESC LIMIT 3","db_duration":0.052842140197753906}
+[2025-06-21 19:03:33] DEBUG [4aa2a3] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:03:33] INFO [4aa2a3] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:03:33] DEBUG [4aa2a3] DB Query: SELECT server_id FROM user_server_memberships WHERE  user_id = ? - Duration: 47.63ms - Context: {"bindings":[0],"result_count":0,"db_query":"SELECT server_id FROM user_server_memberships WHERE  user_id = ?","db_duration":0.04763293266296387}
+[2025-06-21 14:04:00] DEBUG [015be6] Controller instantiated - Context: {"controller":"ExploreController","request_uri":"","request_method":"GET","is_ajax":"no"}
+[2025-06-21 14:04:00] DEBUG [015be6] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 14:04:00] INFO [015be6] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 14:04:00] DEBUG [015be6] DB Query: SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.... - Duration: 49.57ms - Context: {"bindings":[1],"result_count":1,"db_query":"SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.user_id = ?","db_duration":0.04957389831542969}
+[2025-06-21 14:04:00] DEBUG [015be6] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 14:04:00] INFO [015be6] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 14:04:00] DEBUG [015be6] DB Query: SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.... - Duration: 49.55ms - Context: {"bindings":[1],"result_count":2,"db_query":"SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  s.is_public = ? GROUP BY s.id ORDER BY member_count DESC","db_duration":0.04954886436462402}
+[2025-06-21 14:04:00] DEBUG [015be6] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 14:04:00] INFO [015be6] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 14:04:00] DEBUG [015be6] DB Query: SELECT server_id FROM user_server_memberships WHERE  user_id = ? - Duration: 46.59ms - Context: {"bindings":[0],"result_count":0,"db_query":"SELECT server_id FROM user_server_memberships WHERE  user_id = ?","db_duration":0.04659295082092285}
+[2025-06-21 14:04:00] DEBUG [015be6] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 14:04:00] INFO [015be6] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 14:04:00] DEBUG [015be6] DB Query: SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.... - Duration: 43.99ms - Context: {"bindings":[1],"result_count":2,"db_query":"SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  s.is_public = ? GROUP BY s.id ORDER BY member_count DESC LIMIT 3","db_duration":0.04399299621582031}
+[2025-06-21 14:04:00] DEBUG [015be6] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 14:04:00] INFO [015be6] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 14:04:00] DEBUG [015be6] DB Query: SELECT server_id FROM user_server_memberships WHERE  user_id = ? - Duration: 52.51ms - Context: {"bindings":[0],"result_count":0,"db_query":"SELECT server_id FROM user_server_memberships WHERE  user_id = ?","db_duration":0.05250811576843262}
+[2025-06-21 14:04:00] DEBUG [015be6] Controller instantiated - Context: {"controller":"ServerController","request_uri":"","request_method":"GET","is_ajax":"no"}
+[2025-06-21 14:04:00] DEBUG [015be6] requireAuth called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"session_data":[]}
+[2025-06-21 14:04:00] WARNING [015be6] User not authenticated, redirecting to login - Context: {"session_data":[],"request_uri":""}
+[2025-06-21 14:04:40] DEBUG [809b3d] Controller instantiated - Context: {"controller":"ExploreController","request_uri":"","request_method":"GET","is_ajax":"no"}
+[2025-06-21 14:04:40] DEBUG [809b3d] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 14:04:40] INFO [809b3d] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 14:04:40] DEBUG [809b3d] DB Query: SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.... - Duration: 46.84ms - Context: {"bindings":[1],"result_count":1,"db_query":"SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.user_id = ?","db_duration":0.0468440055847168}
+[2025-06-21 14:04:40] DEBUG [809b3d] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 14:04:40] INFO [809b3d] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 14:04:40] DEBUG [809b3d] DB Query: SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.... - Duration: 48.16ms - Context: {"bindings":[1],"result_count":2,"db_query":"SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  s.is_public = ? GROUP BY s.id ORDER BY member_count DESC","db_duration":0.048156023025512695}
+[2025-06-21 14:04:40] DEBUG [809b3d] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 14:04:40] INFO [809b3d] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 14:04:40] DEBUG [809b3d] DB Query: SELECT server_id FROM user_server_memberships WHERE  user_id = ? - Duration: 50.95ms - Context: {"bindings":[0],"result_count":0,"db_query":"SELECT server_id FROM user_server_memberships WHERE  user_id = ?","db_duration":0.05094504356384277}
+[2025-06-21 14:04:40] DEBUG [809b3d] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 14:04:40] INFO [809b3d] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 14:04:40] DEBUG [809b3d] DB Query: SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.... - Duration: 43.71ms - Context: {"bindings":[1],"result_count":2,"db_query":"SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  s.is_public = ? GROUP BY s.id ORDER BY member_count DESC LIMIT 3","db_duration":0.04370594024658203}
+[2025-06-21 14:04:40] DEBUG [809b3d] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 14:04:40] INFO [809b3d] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 14:04:40] DEBUG [809b3d] DB Query: SELECT server_id FROM user_server_memberships WHERE  user_id = ? - Duration: 44.58ms - Context: {"bindings":[0],"result_count":0,"db_query":"SELECT server_id FROM user_server_memberships WHERE  user_id = ?","db_duration":0.04457807540893555}
+[2025-06-21 14:04:40] DEBUG [809b3d] Controller instantiated - Context: {"controller":"ServerController","request_uri":"","request_method":"GET","is_ajax":"no"}
+[2025-06-21 14:04:40] DEBUG [809b3d] requireAuth called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"session_data":[]}
+[2025-06-21 14:04:40] WARNING [809b3d] User not authenticated, redirecting to login - Context: {"session_data":[],"request_uri":""}
+[2025-06-21 19:04:47] INFO [f91df7] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:04:47"}
+[2025-06-21 19:04:47] DEBUG [f91df7] Controller instantiated - Context: {"controller":"ExploreController","request_uri":"/explore-servers","request_method":"GET","is_ajax":"no"}
+[2025-06-21 19:04:47] DEBUG [f91df7] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:04:47] INFO [f91df7] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:04:47] DEBUG [f91df7] DB Query: SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.... - Duration: 45.36ms - Context: {"bindings":[1],"result_count":1,"db_query":"SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.user_id = ?","db_duration":0.04536008834838867}
+[2025-06-21 19:04:47] DEBUG [f91df7] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:04:47] INFO [f91df7] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:04:47] DEBUG [f91df7] DB Query: SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.... - Duration: 48.23ms - Context: {"bindings":[1],"result_count":2,"db_query":"SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  s.is_public = ? GROUP BY s.id ORDER BY member_count DESC","db_duration":0.04822897911071777}
+[2025-06-21 19:04:47] DEBUG [f91df7] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:04:47] INFO [f91df7] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:04:47] DEBUG [f91df7] DB Query: SELECT server_id FROM user_server_memberships WHERE  user_id = ? - Duration: 44.33ms - Context: {"bindings":[0],"result_count":0,"db_query":"SELECT server_id FROM user_server_memberships WHERE  user_id = ?","db_duration":0.04432988166809082}
+[2025-06-21 19:04:47] DEBUG [f91df7] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:04:47] INFO [f91df7] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:04:47] DEBUG [f91df7] DB Query: SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.... - Duration: 44.68ms - Context: {"bindings":[1],"result_count":2,"db_query":"SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  s.is_public = ? GROUP BY s.id ORDER BY member_count DESC LIMIT 3","db_duration":0.04468107223510742}
+[2025-06-21 19:04:47] DEBUG [f91df7] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:04:47] INFO [f91df7] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:04:47] DEBUG [f91df7] DB Query: SELECT server_id FROM user_server_memberships WHERE  user_id = ? - Duration: 42.71ms - Context: {"bindings":[0],"result_count":0,"db_query":"SELECT server_id FROM user_server_memberships WHERE  user_id = ?","db_duration":0.04271101951599121}
+[2025-06-21 19:04:47] DEBUG [f91df7] Controller instantiated - Context: {"controller":"ServerController","request_uri":"/explore-servers","request_method":"GET","is_ajax":"no"}
+[2025-06-21 19:04:47] DEBUG [f91df7] requireAuth called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"session_data":[]}
+[2025-06-21 19:04:47] WARNING [f91df7] User not authenticated, redirecting to login - Context: {"session_data":[],"request_uri":"/explore-servers"}
+[2025-06-21 19:06:16] INFO [82782c] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:06:16"}
+[2025-06-21 19:06:16] DEBUG [82782c] Controller instantiated - Context: {"controller":"ExploreController","request_uri":"/explore-servers","request_method":"GET","is_ajax":"no"}
+[2025-06-21 19:06:16] DEBUG [82782c] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:06:16] INFO [82782c] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:06:16] DEBUG [82782c] DB Query: SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.... - Duration: 48.87ms - Context: {"bindings":[1],"result_count":1,"db_query":"SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.user_id = ?","db_duration":0.048870086669921875}
+[2025-06-21 19:06:16] DEBUG [82782c] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:06:16] INFO [82782c] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:06:16] DEBUG [82782c] DB Query: SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.... - Duration: 43.23ms - Context: {"bindings":[1],"result_count":2,"db_query":"SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  s.is_public = ? GROUP BY s.id ORDER BY member_count DESC","db_duration":0.043229103088378906}
+[2025-06-21 19:06:16] DEBUG [82782c] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:06:16] INFO [82782c] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:06:16] DEBUG [82782c] DB Query: SELECT server_id FROM user_server_memberships WHERE  user_id = ? - Duration: 48.96ms - Context: {"bindings":[0],"result_count":0,"db_query":"SELECT server_id FROM user_server_memberships WHERE  user_id = ?","db_duration":0.048956871032714844}
+[2025-06-21 19:06:16] DEBUG [82782c] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:06:16] INFO [82782c] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:06:16] DEBUG [82782c] DB Query: SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.... - Duration: 45.96ms - Context: {"bindings":[1],"result_count":2,"db_query":"SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  s.is_public = ? GROUP BY s.id ORDER BY member_count DESC LIMIT 3","db_duration":0.04595804214477539}
+[2025-06-21 19:06:16] DEBUG [82782c] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:06:16] INFO [82782c] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:06:16] DEBUG [82782c] DB Query: SELECT server_id FROM user_server_memberships WHERE  user_id = ? - Duration: 50.35ms - Context: {"bindings":[0],"result_count":0,"db_query":"SELECT server_id FROM user_server_memberships WHERE  user_id = ?","db_duration":0.05035090446472168}
+[2025-06-21 19:06:16] DEBUG [82782c] Controller instantiated - Context: {"controller":"ServerController","request_uri":"/explore-servers","request_method":"GET","is_ajax":"no"}
+[2025-06-21 19:06:16] DEBUG [82782c] requireAuth called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"session_data":[]}
+[2025-06-21 19:06:16] WARNING [82782c] User not authenticated, redirecting to login - Context: {"session_data":[],"request_uri":"/explore-servers"}
+[2025-06-21 19:06:46] INFO [6a1d7b] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:06:46"}
+[2025-06-21 19:06:46] DEBUG [6a1d7b] Controller instantiated - Context: {"controller":"ExploreController","request_uri":"","request_method":"GET","is_ajax":"no"}
+[2025-06-21 19:06:46] DEBUG [6a1d7b] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:06:46] INFO [6a1d7b] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:06:46] DEBUG [6a1d7b] DB Query: SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.... - Duration: 49.81ms - Context: {"bindings":[1],"result_count":1,"db_query":"SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.user_id = ?","db_duration":0.04981398582458496}
+[2025-06-21 19:06:46] DEBUG [6a1d7b] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:06:46] INFO [6a1d7b] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:06:46] DEBUG [6a1d7b] DB Query: SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.... - Duration: 46.41ms - Context: {"bindings":[1],"result_count":2,"db_query":"SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  s.is_public = ? GROUP BY s.id ORDER BY member_count DESC","db_duration":0.04641389846801758}
+[2025-06-21 19:06:46] DEBUG [6a1d7b] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:06:46] INFO [6a1d7b] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:06:46] DEBUG [6a1d7b] DB Query: SELECT server_id FROM user_server_memberships WHERE  user_id = ? - Duration: 55.44ms - Context: {"bindings":[0],"result_count":0,"db_query":"SELECT server_id FROM user_server_memberships WHERE  user_id = ?","db_duration":0.05543804168701172}
+[2025-06-21 19:06:46] DEBUG [6a1d7b] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:06:46] INFO [6a1d7b] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:06:46] DEBUG [6a1d7b] DB Query: SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.... - Duration: 46.03ms - Context: {"bindings":[1],"result_count":2,"db_query":"SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  s.is_public = ? GROUP BY s.id ORDER BY member_count DESC LIMIT 3","db_duration":0.04602503776550293}
+[2025-06-21 19:06:46] DEBUG [6a1d7b] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:06:46] INFO [6a1d7b] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:06:47] DEBUG [6a1d7b] DB Query: SELECT server_id FROM user_server_memberships WHERE  user_id = ? - Duration: 51.67ms - Context: {"bindings":[0],"result_count":0,"db_query":"SELECT server_id FROM user_server_memberships WHERE  user_id = ?","db_duration":0.051672935485839844}
+[2025-06-21 19:07:24] INFO [cdd9eb] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:07:24"}
+[2025-06-21 19:07:24] DEBUG [cdd9eb] Controller instantiated - Context: {"controller":"ExploreController","request_uri":"","request_method":"GET","is_ajax":"no"}
+[2025-06-21 19:07:24] DEBUG [cdd9eb] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:07:24] INFO [cdd9eb] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:07:24] DEBUG [cdd9eb] DB Query: SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.... - Duration: 42.67ms - Context: {"bindings":[1],"result_count":1,"db_query":"SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.user_id = ?","db_duration":0.04266500473022461}
+[2025-06-21 19:07:24] DEBUG [cdd9eb] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:07:24] INFO [cdd9eb] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:07:25] DEBUG [cdd9eb] DB Query: SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.... - Duration: 42.32ms - Context: {"bindings":[1],"result_count":2,"db_query":"SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  s.is_public = ? GROUP BY s.id ORDER BY member_count DESC","db_duration":0.04232192039489746}
+[2025-06-21 19:07:25] DEBUG [cdd9eb] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:07:25] INFO [cdd9eb] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:07:25] DEBUG [cdd9eb] DB Query: SELECT server_id FROM user_server_memberships WHERE  user_id = ? - Duration: 48.86ms - Context: {"bindings":[0],"result_count":0,"db_query":"SELECT server_id FROM user_server_memberships WHERE  user_id = ?","db_duration":0.048863887786865234}
+[2025-06-21 19:07:25] DEBUG [cdd9eb] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:07:25] INFO [cdd9eb] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:07:25] DEBUG [cdd9eb] DB Query: SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.... - Duration: 43.31ms - Context: {"bindings":[1],"result_count":2,"db_query":"SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  s.is_public = ? GROUP BY s.id ORDER BY member_count DESC LIMIT 3","db_duration":0.04331493377685547}
+[2025-06-21 19:07:25] DEBUG [cdd9eb] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:07:25] INFO [cdd9eb] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:07:25] DEBUG [cdd9eb] DB Query: SELECT server_id FROM user_server_memberships WHERE  user_id = ? - Duration: 44.92ms - Context: {"bindings":[0],"result_count":0,"db_query":"SELECT server_id FROM user_server_memberships WHERE  user_id = ?","db_duration":0.04491710662841797}
+[2025-06-21 19:07:41] INFO [df18c9] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:07:41"}
+[2025-06-21 19:07:42] DEBUG [df18c9] Controller instantiated - Context: {"controller":"ExploreController","request_uri":"","request_method":"GET","is_ajax":"no"}
+[2025-06-21 19:07:42] DEBUG [df18c9] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:07:42] INFO [df18c9] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:07:42] DEBUG [df18c9] DB Query: SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.... - Duration: 45.21ms - Context: {"bindings":[1],"result_count":1,"db_query":"SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.user_id = ?","db_duration":0.045207977294921875}
+[2025-06-21 19:07:42] DEBUG [df18c9] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:07:42] INFO [df18c9] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:07:42] DEBUG [df18c9] DB Query: SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.... - Duration: 51.13ms - Context: {"bindings":[1],"result_count":2,"db_query":"SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  s.is_public = ? GROUP BY s.id ORDER BY member_count DESC","db_duration":0.0511319637298584}
+[2025-06-21 19:07:42] DEBUG [df18c9] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:07:42] INFO [df18c9] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:07:42] DEBUG [df18c9] DB Query: SELECT server_id FROM user_server_memberships WHERE  user_id = ? - Duration: 49.07ms - Context: {"bindings":[0],"result_count":0,"db_query":"SELECT server_id FROM user_server_memberships WHERE  user_id = ?","db_duration":0.04907393455505371}
+[2025-06-21 19:07:42] DEBUG [df18c9] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:07:42] INFO [df18c9] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:07:42] DEBUG [df18c9] DB Query: SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.... - Duration: 46.51ms - Context: {"bindings":[1],"result_count":2,"db_query":"SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  s.is_public = ? GROUP BY s.id ORDER BY member_count DESC LIMIT 3","db_duration":0.04650712013244629}
+[2025-06-21 19:07:42] DEBUG [df18c9] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:07:42] INFO [df18c9] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:07:42] DEBUG [df18c9] DB Query: SELECT server_id FROM user_server_memberships WHERE  user_id = ? - Duration: 42.78ms - Context: {"bindings":[0],"result_count":0,"db_query":"SELECT server_id FROM user_server_memberships WHERE  user_id = ?","db_duration":0.042775869369506836}
+[2025-06-21 19:07:42] DEBUG [df18c9] Controller instantiated - Context: {"controller":"ServerController","request_uri":"","request_method":"GET","is_ajax":"no"}
+[2025-06-21 19:07:42] DEBUG [df18c9] requireAuth called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"session_data":[]}
+[2025-06-21 19:07:42] WARNING [df18c9] User not authenticated, redirecting to login - Context: {"session_data":[],"request_uri":""}
+[2025-06-21 19:07:42] WARNING [df18c9] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\test_sidebar.php:33) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\controllers\\BaseController.php","line":136,"severity":2}
+[2025-06-21 19:07:48] INFO [40be2d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:07:48"}
+[2025-06-21 19:07:48] DEBUG [40be2d] Controller instantiated - Context: {"controller":"ExploreController","request_uri":"/explore-servers?id=2c04aa9b-2cec-4a26-92a0-cb4805ce8c64&vscodeBrowserReqId=1750507668038","request_method":"GET","is_ajax":"no"}
+[2025-06-21 19:07:48] DEBUG [40be2d] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:07:48] INFO [40be2d] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:07:48] DEBUG [40be2d] DB Query: SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.... - Duration: 50.65ms - Context: {"bindings":[1],"result_count":1,"db_query":"SELECT s.* FROM servers s INNER JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  usm.user_id = ?","db_duration":0.05064702033996582}
+[2025-06-21 19:07:48] DEBUG [40be2d] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:07:48] INFO [40be2d] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:07:48] DEBUG [40be2d] DB Query: SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.... - Duration: 42.92ms - Context: {"bindings":[1],"result_count":2,"db_query":"SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  s.is_public = ? GROUP BY s.id ORDER BY member_count DESC","db_duration":0.042923927307128906}
+[2025-06-21 19:07:48] DEBUG [40be2d] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:07:48] INFO [40be2d] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:07:48] DEBUG [40be2d] DB Query: SELECT server_id FROM user_server_memberships WHERE  user_id = ? - Duration: 49.51ms - Context: {"bindings":[0],"result_count":0,"db_query":"SELECT server_id FROM user_server_memberships WHERE  user_id = ?","db_duration":0.04950594902038574}
+[2025-06-21 19:07:48] DEBUG [40be2d] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:07:48] INFO [40be2d] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:07:48] DEBUG [40be2d] DB Query: SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.... - Duration: 49.04ms - Context: {"bindings":[1],"result_count":2,"db_query":"SELECT s.*, COUNT(usm.id) as member_count FROM servers s LEFT JOIN user_server_memberships usm ON s.id = usm.server_id WHERE  s.is_public = ? GROUP BY s.id ORDER BY member_count DESC LIMIT 3","db_duration":0.04903697967529297}
+[2025-06-21 19:07:48] DEBUG [40be2d] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:07:48] INFO [40be2d] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:07:48] DEBUG [40be2d] DB Query: SELECT server_id FROM user_server_memberships WHERE  user_id = ? - Duration: 44.11ms - Context: {"bindings":[0],"result_count":0,"db_query":"SELECT server_id FROM user_server_memberships WHERE  user_id = ?","db_duration":0.04410600662231445}
+[2025-06-21 19:07:48] DEBUG [40be2d] Controller instantiated - Context: {"controller":"ServerController","request_uri":"/explore-servers?id=2c04aa9b-2cec-4a26-92a0-cb4805ce8c64&vscodeBrowserReqId=1750507668038","request_method":"GET","is_ajax":"no"}
+[2025-06-21 19:07:48] DEBUG [40be2d] requireAuth called - Context: {"session_status":2,"user_id":"not_set","is_authenticated":false,"session_data":[]}
+[2025-06-21 19:07:48] WARNING [40be2d] User not authenticated, redirecting to login - Context: {"session_data":[],"request_uri":"/explore-servers?id=2c04aa9b-2cec-4a26-92a0-cb4805ce8c64&vscodeBrowserReqId=1750507668038"}
+[2025-06-21 19:07:48] INFO [468c16] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:07:48"}
+[2025-06-21 19:07:48] DEBUG [468c16] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:07:48] INFO [468c16] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:07:48] DEBUG [468c16] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-21 19:07:48] INFO [468c16] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-21 19:07:48] INFO [4b7589] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:07:48"}
+[2025-06-21 19:07:48] INFO [4bd4bf] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:07:48"}
+[2025-06-21 19:07:48] INFO [4c229f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:07:48"}
+[2025-06-21 19:07:48] INFO [4c75a0] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:07:48"}
+[2025-06-21 19:07:48] INFO [4cc646] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:07:48"}
+[2025-06-21 19:07:48] INFO [4d1de9] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:07:48"}
+[2025-06-21 19:07:48] INFO [4d9059] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:07:48"}
+[2025-06-21 19:07:48] INFO [4deb1c] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:07:48"}
+[2025-06-21 19:07:48] INFO [4e4fa7] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:07:48"}
+[2025-06-21 19:07:48] INFO [4eb2ee] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:07:48"}
+[2025-06-21 19:07:48] INFO [4f0680] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:07:48"}
+[2025-06-21 19:07:48] INFO [4f1e96] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:07:48"}
+[2025-06-21 19:07:49] INFO [502f30] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:07:49"}
+[2025-06-21 19:07:49] INFO [508086] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:07:49"}
+[2025-06-21 19:07:49] INFO [50d507] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:07:49"}
+[2025-06-21 19:08:22] INFO [6db766] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:08:22"}
+[2025-06-21 19:08:22] INFO [6f3174] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:08:22"}
+[2025-06-21 19:08:23] INFO [704a7c] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:08:23"}
+[2025-06-21 19:08:23] INFO [70ae4c] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:08:23"}
+[2025-06-21 19:08:23] INFO [7116cd] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:08:23"}
+[2025-06-21 19:08:23] INFO [717383] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:08:23"}
+[2025-06-21 19:08:23] INFO [71d31f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:08:23"}
+[2025-06-21 19:08:23] INFO [722c70] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:08:23"}
+[2025-06-21 19:08:23] INFO [727fd7] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:08:23"}
+[2025-06-21 19:08:23] INFO [72ef34] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:08:23"}
+[2025-06-21 19:08:23] INFO [738dbd] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:08:23"}
+[2025-06-21 19:08:23] INFO [744d31] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:08:23"}
+[2025-06-21 19:08:23] INFO [74d38f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:08:23"}
+[2025-06-21 19:08:23] INFO [753ade] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:08:23"}
+[2025-06-21 19:08:23] INFO [757f55] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:08:23"}
+[2025-06-21 19:08:23] INFO [75a3d7] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:08:23"}
+[2025-06-21 19:08:23] INFO [75c7ef] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:08:23"}
+[2025-06-21 19:35:20] INFO [88e5fc] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:35:20"}
+[2025-06-21 19:35:20] INFO [89a053] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:35:20"}
+[2025-06-21 19:35:20] INFO [8a12bb] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:35:20"}
+[2025-06-21 19:35:20] INFO [8a881e] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:35:20"}
+[2025-06-21 19:35:20] INFO [8b1ba5] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:35:20"}
+[2025-06-21 19:35:20] INFO [8b6fab] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:35:20"}
+[2025-06-21 19:35:20] INFO [8bd347] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:35:20"}
+[2025-06-21 19:35:20] INFO [8c44ff] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:35:20"}
+[2025-06-21 19:35:20] INFO [8c9bbe] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:35:20"}
+[2025-06-21 19:35:20] INFO [8d00eb] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:35:20"}
+[2025-06-21 19:35:20] INFO [8e2d57] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:35:20"}
+[2025-06-21 19:59:22] INFO [a51b68] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:59:22"}
+[2025-06-21 19:59:22] INFO [a5b94e] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:59:22"}
+[2025-06-21 19:59:22] INFO [a6103c] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:59:22"}
+[2025-06-21 19:59:22] INFO [a66660] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:59:22"}
+[2025-06-21 19:59:22] INFO [a6b913] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:59:22"}
+[2025-06-21 19:59:22] INFO [a70906] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:59:22"}
+[2025-06-21 19:59:22] INFO [a759e6] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:59:22"}
+[2025-06-21 19:59:22] INFO [a7abdd] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:59:22"}
+[2025-06-21 19:59:22] INFO [a80482] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:59:22"}
+[2025-06-21 19:59:22] INFO [a8634d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 19:59:22"}
+[2025-06-21 20:00:23] INFO [7d37c5] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 20:00:23"}
+[2025-06-21 20:00:23] INFO [7db79a] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 20:00:23"}
+[2025-06-21 20:00:23] INFO [7e1c54] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 20:00:23"}
+[2025-06-21 20:00:23] INFO [7e6949] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 20:00:23"}
+[2025-06-21 20:00:23] INFO [7ee033] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 20:00:23"}
+[2025-06-21 20:00:24] INFO [80103b] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 20:00:24"}
+[2025-06-21 20:00:24] INFO [806bfe] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 20:00:24"}
+[2025-06-21 20:00:24] INFO [80c5f8] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 20:00:24"}
+[2025-06-21 20:00:24] INFO [8128a4] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 20:00:24"}
+[2025-06-21 20:00:24] INFO [817633] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 20:00:24"}
+[2025-06-21 20:00:24] INFO [81d702] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 20:00:24"}
+[2025-06-21 20:00:24] INFO [82525f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 20:00:24"}
+[2025-06-21 20:00:24] INFO [82d2ec] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 20:00:24"}
+[2025-06-21 20:00:24] INFO [833988] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 20:00:24"}
+[2025-06-21 20:00:24] INFO [836a88] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 20:00:24"}
+[2025-06-21 20:00:24] INFO [8384a0] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 20:00:24"}
+[2025-06-21 20:00:24] INFO [839c36] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-06-21 20:00:24"}

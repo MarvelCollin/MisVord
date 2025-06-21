@@ -28,6 +28,11 @@ function handleEmitRequest(io, req, res) {
       case 'emoji-updated':
       case 'emoji-deleted':
         return handleEmojiEvent(io, event, data, res);
+        case 'channel-message':
+        return handleChannelMessageEvent(io, data, res);
+      
+      case 'direct-message':
+        return handleDirectMessageEvent(io, data, res);
       
       case 'reaction-added':
       case 'reaction-removed':
@@ -148,6 +153,52 @@ function handleFriendEvent(io, event, data, res) {
   return res.json({ success: true });
 }
 
+function handleChannelMessageEvent(io, data, res) {
+  console.log(`💬 Channel message event from PHP backend:`, data);
+  
+  const { channelId, content, messageType, timestamp } = data;
+  
+  if (!channelId || !content) {
+    return res.status(400).json({ 
+      success: false, 
+      error: 'Missing required parameters for channel-message' 
+    });
+  }
+  
+  io.to(`channel-${channelId}`).emit('new-channel-message', {
+    channelId,
+    content,
+    messageType: messageType || 'text',
+    timestamp: timestamp || Date.now(),
+    source: 'php-backend'
+  });
+  
+  return res.json({ success: true, channelId });
+}
+
+function handleDirectMessageEvent(io, data, res) {
+  console.log(`💬 Direct message event from PHP backend:`, data);
+  
+  const { roomId, content, messageType, timestamp } = data;
+  
+  if (!roomId || !content) {
+    return res.status(400).json({ 
+      success: false, 
+      error: 'Missing required parameters for direct-message' 
+    });
+  }
+  
+  io.to(`dm-room-${roomId}`).emit('new-direct-message', {
+    roomId,
+    content,
+    messageType: messageType || 'text',
+    timestamp: timestamp || Date.now(),
+    source: 'php-backend'
+  });
+  
+  return res.json({ success: true, roomId });
+}
+
 module.exports = {
   handleEmitRequest
-}; 
+};

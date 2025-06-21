@@ -59,7 +59,7 @@ class ChatController extends BaseController
             }
         }
 
-        $limit = $_GET['limit'] ?? 50;
+        $limit = $_GET['limit'] ?? 20;
         $offset = $_GET['offset'] ?? 0;
 
         try {
@@ -88,7 +88,7 @@ class ChatController extends BaseController
             return $this->forbidden('You are not a participant in this chat');
         }
 
-        $limit = $_GET['limit'] ?? 50;
+        $limit = $_GET['limit'] ?? 20;
         $offset = $_GET['offset'] ?? 0;
 
         try {
@@ -124,7 +124,7 @@ class ChatController extends BaseController
         $attachmentUrl = $input['attachment_url'] ?? null;
         $mentions = $input['mentions'] ?? [];
 
-        // Validate that there's either content or an attachment
+
         if (empty($content) && empty($attachmentUrl)) {
             return $this->validationError(['content' => 'Message must have content or an attachment']);
         }
@@ -144,13 +144,14 @@ class ChatController extends BaseController
         if (!$channel) {
             return $this->notFound('Channel not found');
         }
-
         if ($channel->server_id != 0) {
             $membership = $this->userServerMembershipRepository->findByUserAndServer($userId, $channel->server_id);
             if (!$membership) {
                 return $this->forbidden('You are not a member of this server');
             }
-        }        try {
+        }
+
+        try {
             $message = new Message();
             $message->content = $content;
             $message->channel_id = $channelId;
@@ -160,17 +161,15 @@ class ChatController extends BaseController
 
             if ($message->save()) {
                 $formattedMessage = $this->formatMessage($message);
-                
-                // Add mentions to the formatted message
+
+
                 if (!empty($mentions)) {
                     $formattedMessage['mentions'] = $mentions;
-                }
-
-                $this->sendWebSocketNotification([
-                    'type' => 'new_message',
-                    'target_type' => 'channel',
-                    'target_id' => $channelId,
-                    'message' => $formattedMessage
+                }                $this->sendWebSocketNotification('channel-message', [
+                    'channelId' => $channelId,
+                    'content' => $content,
+                    'messageType' => $messageType,
+                    'timestamp' => time()
                 ]);
 
                 return $this->success(['message' => $formattedMessage], 'Message sent successfully');
@@ -188,10 +187,11 @@ class ChatController extends BaseController
         if (!$chatRoom) {
             return $this->notFound('Chat room not found');
         }
-
         if (!$this->chatRoomRepository->isParticipant($chatRoomId, $userId)) {
             return $this->forbidden('You are not a participant in this chat');
-        }        try {
+        }
+
+        try {
             $message = new Message();
             $message->content = $content;
             $message->user_id = $userId;
@@ -200,22 +200,20 @@ class ChatController extends BaseController
 
             if ($message->save()) {
                 $this->chatRoomRepository->addMessageToRoom($chatRoomId, $message->id);
-                
+
                 $formattedMessage = $this->formatMessage($message);
-                
-                // Add mentions to the formatted message
+
+
                 if (!empty($mentions)) {
                     $formattedMessage['mentions'] = $mentions;
-                }
-
-                $participants = $this->chatRoomRepository->getParticipants($chatRoomId);
+                }                $participants = $this->chatRoomRepository->getParticipants($chatRoomId);
                 foreach ($participants as $participant) {
                     if ($participant['user_id'] != $userId) {
-                        $this->sendWebSocketNotification([
-                            'type' => 'new_message',
-                            'target_type' => 'dm',
-                            'target_id' => $chatRoomId,
-                            'message' => $formattedMessage
+                        $this->sendWebSocketNotification('direct-message', [
+                            'roomId' => $chatRoomId,
+                            'content' => $content,
+                            'messageType' => $messageType,
+                            'timestamp' => time()
                         ], $participant['user_id']);
                     }
                 }
@@ -250,7 +248,8 @@ class ChatController extends BaseController
             return $this->forbidden('You can only message friends');
         }
 
-        try {            $existingRoom = $this->chatRoomRepository->findDirectMessageRoom($userId, $friendId);
+        try {
+            $existingRoom = $this->chatRoomRepository->findDirectMessageRoom($userId, $friendId);
             if ($existingRoom) {
                 $chatRoomData = [
                     'id' => $existingRoom->id,
@@ -266,14 +265,15 @@ class ChatController extends BaseController
             $friend = $this->userRepository->find($friendId);
             if (!$friend) {
                 return $this->notFound('Friend not found');
-            }            $chatRoom = $this->chatRoomRepository->createDirectMessageRoom($userId, $friendId);
-            
-            // Ensure we have a proper chat room object
+            }
+            $chatRoom = $this->chatRoomRepository->createDirectMessageRoom($userId, $friendId);
+
+
             if (!$chatRoom || !$chatRoom->id) {
                 return $this->serverError('Failed to create chat room');
             }
-            
-            // Convert the model to array for proper JSON serialization
+
+
             $chatRoomData = [
                 'id' => $chatRoom->id,
                 'type' => $chatRoom->type,
@@ -282,7 +282,7 @@ class ChatController extends BaseController
                 'created_at' => $chatRoom->created_at,
                 'updated_at' => $chatRoom->updated_at
             ];
-              return $this->success(['chat_room' => $chatRoomData], 'Direct message created');
+            return $this->success(['chat_room' => $chatRoomData], 'Direct message created');
         } catch (Exception $e) {
             error_log('CreateDirectMessage Error: ' . $e->getMessage());
             return $this->serverError('Failed to create direct message: ' . $e->getMessage());
@@ -293,7 +293,7 @@ class ChatController extends BaseController
     {
         $this->requireAuth();
         $userId = $this->getCurrentUserId();
-        
+
         try {
             $rooms = $this->chatRoomRepository->getUserDirectRooms($userId);
             return $this->success(['rooms' => $rooms]);
@@ -301,29 +301,29 @@ class ChatController extends BaseController
             return $this->serverError('Failed to get direct message rooms');
         }
     }
-    
-    public function getDirectMessageRoomByFriendId() 
+
+    public function getDirectMessageRoomByFriendId()
     {
         if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
             return $this->unauthorized('You must be logged in to access this resource');
         }
-        
+
         $userId = $_SESSION['user_id'];
-        
+
         $friendId = $_GET['friend_id'] ?? null;
-        
+
         if (!$friendId) {
             return $this->validationError(['friend_id' => 'Friend ID is required']);
         }
-        
+
         try {
             $friendship = $this->friendListRepository->findFriendshipBetweenUsers($userId, $friendId);
             if (!$friendship || $friendship->status !== 'accepted') {
                 return $this->forbidden('You can only message friends');
             }
-            
+
             $chatRoom = $this->chatRoomRepository->findDirectMessageRoom($userId, $friendId);
-            
+
             if ($chatRoom) {
                 $friend = $this->userRepository->find($friendId);
                 $roomData = [
@@ -335,7 +335,7 @@ class ChatController extends BaseController
                 ];
                 return $this->success(['chat_room' => $roomData]);
             } else {
-                // Create a new DM room if one doesn't exist
+
                 $newChatRoom = $this->chatRoomRepository->createDirectMessageRoom($userId, $friendId);
                 if ($newChatRoom) {
                     $friend = $this->userRepository->find($friendId);
@@ -355,31 +355,31 @@ class ChatController extends BaseController
             return $this->serverError('Failed to get direct message room: ' . $e->getMessage());
         }
     }
-    
+
     public function getDirectMessageRoom($roomId)
     {
         if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
             return $this->unauthorized('You must be logged in to access this resource');
         }
-        
+
         $userId = $_SESSION['user_id'];
-        
+
         try {
-            // First check if user is participant in this room
+
             if (!$this->chatRoomRepository->isParticipant($roomId, $userId)) {
                 return $this->forbidden('You are not a participant in this chat room');
             }
-            
+
             $chatRoom = $this->chatRoomRepository->find($roomId);
             if (!$chatRoom) {
                 return $this->notFound('Chat room not found');
             }
-            
-            // Get the other participant (for direct messages)
+
+
             if ($chatRoom->type === 'direct') {
                 $participants = $this->chatRoomRepository->getParticipants($roomId);
                 $friend = null;
-                
+
                 foreach ($participants as $participant) {
                     if ($participant['user_id'] != $userId) {
                         $friend = [
@@ -390,13 +390,13 @@ class ChatController extends BaseController
                         break;
                     }
                 }
-                
+
                 $roomData = [
                     'id' => $chatRoom->id,
                     'type' => $chatRoom->type,
                     'friend' => $friend
                 ];
-                
+
                 return $this->success($roomData);
             } else {
                 $roomData = [
@@ -405,34 +405,33 @@ class ChatController extends BaseController
                     'name' => $chatRoom->name,
                     'image_url' => $chatRoom->image_url
                 ];
-                
+
                 return $this->success($roomData);
             }
         } catch (Exception $e) {
             return $this->serverError('Failed to get direct message room: ' . $e->getMessage());
         }
     }
-    
+
     public function getDirectMessageRoomMessages($roomId)
     {
         if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
             return $this->unauthorized('You must be logged in to access this resource');
         }
-        
+
         $userId = $_SESSION['user_id'];
-        
+
         try {
-            // First check if user is participant in this room
+
             if (!$this->chatRoomRepository->isParticipant($roomId, $userId)) {
                 return $this->forbidden('You are not a participant in this chat room');
             }
-            
-            $limit = $_GET['limit'] ?? 50;
+            $limit = $_GET['limit'] ?? 20;
             $offset = $_GET['offset'] ?? 0;
-            
+
             $messages = $this->chatRoomRepository->getMessages($roomId, $limit, $offset);
             $formattedMessages = array_map([$this, 'formatMessage'], $messages);
-            
+
             return $this->success([
                 'messages' => $formattedMessages,
                 'has_more' => count($messages) == $limit
@@ -440,16 +439,17 @@ class ChatController extends BaseController
         } catch (Exception $e) {
             return $this->serverError('Failed to get messages: ' . $e->getMessage());
         }
-    }    private function formatMessage($message)
+    }
+    private function formatMessage($message)
     {
-        // Handle both array and object input
+
         $userId = is_array($message) ? $message['user_id'] : $message->user_id;
         $user = $this->userRepository->find($userId);
-          // Generate default avatar URL if user doesn't have one
+
         $username = $user ? $user->username : 'Unknown User';
-        $avatarUrl = $user && $user->avatar_url ? $user->avatar_url : 
-                    getUserAvatar('', $username);
-        
+        $avatarUrl = $user && $user->avatar_url ? $user->avatar_url :
+            getUserAvatar('', $username);
+
         return [
             'id' => is_array($message) ? $message['id'] : $message->id,
             'content' => is_array($message) ? $message['content'] : $message->content,
@@ -460,24 +460,28 @@ class ChatController extends BaseController
             'edited_at' => is_array($message) ? ($message['edited_at'] ?? null) : ($message->edited_at ?? null),
             'type' => is_array($message) ? ($message['message_type'] ?? 'text') : ($message->type ?? 'text')
         ];
-    }private function sendWebSocketNotification($data, $targetUserId = null)
+    }    private function sendWebSocketNotification($event, $data, $targetUserId = null)
     {
         try {
             $wsClient = new WebSocketClient();
             if ($targetUserId) {
-                $wsClient->notifyUser($targetUserId, 'message', $data);
+                $wsClient->notifyUser($targetUserId, $event, $data);
             } else {
-                $wsClient->broadcast('message', $data);
+                $wsClient->broadcast($event, $data);
             }
         } catch (Exception $e) {
             error_log('WebSocket notification failed: ' . $e->getMessage());
         }
-    }    public function renderChatSection($chatType, $chatId)
+    }
+
+    public function renderChatSection($chatType, $chatId)
     {
         $this->requireAuth();
-        $currentUserId = $this->getCurrentUserId();        try {
+        $currentUserId = $this->getCurrentUserId();
+
+        try {
             if ($chatType === 'dm' || $chatType === 'direct') {
-                // Get chat room data directly from repository
+
                 $chatRoom = $this->chatRoomRepository->find($chatId);
                 if (!$chatRoom) {
                     http_response_code(404);
@@ -485,17 +489,17 @@ class ChatController extends BaseController
                     return;
                 }
 
-                // Check if user is participant in this room
+
                 if (!$this->chatRoomRepository->isParticipant($chatId, $currentUserId)) {
                     http_response_code(403);
                     echo "Access denied";
                     return;
                 }
 
-                // Get the other participant (friend)
+
                 $participants = $this->chatRoomRepository->getParticipants($chatId);
                 $friend = null;
-                
+
                 foreach ($participants as $participant) {
                     if ($participant['user_id'] != $currentUserId) {
                         $friend = [
@@ -505,9 +509,11 @@ class ChatController extends BaseController
                         ];
                         break;
                     }
-                }                // Get messages using repository directly
+                }
+
+
                 try {
-                    $limit = 50;
+                    $limit = 20;
                     $offset = 0;
                     $rawMessages = $this->chatRoomRepository->getMessages($chatId, $limit, $offset);
                     $messages = array_map([$this, 'formatMessage'], $rawMessages);
@@ -515,19 +521,20 @@ class ChatController extends BaseController
                     $messages = [];
                 }
 
-                // Format chat data for template
+
                 $chatData = [
                     'friend_username' => $friend['username'] ?? 'Unknown User',
                     'friend_id' => $friend['id'] ?? null,
                     'friend_avatar_url' => $friend['avatar_url'] ?? null
                 ];
 
-                // Set globals for template
+
                 $GLOBALS['chatType'] = 'direct';
                 $GLOBALS['targetId'] = $chatId;
                 $GLOBALS['chatData'] = $chatData;
-                $GLOBALS['messages'] = $messages;            } elseif ($chatType === 'channel') {
-                // Get channel data
+                $GLOBALS['messages'] = $messages;
+            } elseif ($chatType === 'channel') {
+
                 $channel = $this->channelRepository->find($chatId);
                 if (!$channel) {
                     http_response_code(404);
@@ -535,17 +542,15 @@ class ChatController extends BaseController
                     return;
                 }
 
-                // Check if user has access to this channel
+
                 $membership = $this->userServerMembershipRepository->findByUserAndServer($currentUserId, $channel->server_id);
                 if (!$membership) {
                     http_response_code(403);
                     echo "Access denied";
                     return;
                 }
-
-                // Get messages directly from repository
                 try {
-                    $limit = 50;
+                    $limit = 20;
                     $offset = 0;
                     $rawMessages = $this->messageRepository->getForChannel($chatId, $limit, $offset);
                     $messages = array_map([$this, 'formatMessage'], $rawMessages);
@@ -553,7 +558,7 @@ class ChatController extends BaseController
                     $messages = [];
                 }
 
-                // Format channel data for template
+
                 $channelData = [
                     'id' => $channel->id,
                     'name' => $channel->name,
@@ -561,7 +566,7 @@ class ChatController extends BaseController
                     'server_id' => $channel->server_id
                 ];
 
-                // Set globals for template
+
                 $channelData = [
                     'id' => $channel->id,
                     'name' => $channel->name,
@@ -569,22 +574,20 @@ class ChatController extends BaseController
                     'server_id' => $channel->server_id
                 ];
 
-                // Set globals for template
+
                 $GLOBALS['chatType'] = 'channel';
                 $GLOBALS['targetId'] = $chatId;
                 $GLOBALS['chatData'] = $channelData;
                 $GLOBALS['messages'] = $messages;
-
             } else {
                 http_response_code(400);
                 echo "Invalid chat type";
                 return;
-            }            // Set content type to HTML (override the JSON header from BaseController)
+            }
             header('Content-Type: text/html; charset=utf-8');
-            
-            // Render the template
-            require_once __DIR__ . '/../views/components/app-sections/chat-section.php';
 
+
+            require_once __DIR__ . '/../views/components/app-sections/chat-section.php';
         } catch (Exception $e) {
             if (function_exists('logger')) {
                 logger()->error("Chat section render error", [
@@ -594,9 +597,152 @@ class ChatController extends BaseController
                     'user_id' => $currentUserId
                 ]);
             }
-            
+
             http_response_code(500);
             echo "Error rendering chat section";
+        }
+    }
+
+    public function updateMessage($messageId)
+    {
+        $this->requireAuth();
+        $userId = $this->getCurrentUserId();
+
+        $message = $this->messageRepository->find($messageId);
+        if (!$message) {
+            return $this->notFound('Message not found');
+        }
+
+        if ($message->user_id != $userId) {
+            return $this->forbidden('You can only edit your own messages');
+        }
+
+        $input = $this->getInput();
+        $input = $this->sanitize($input);
+
+        $this->validate($input, ['content' => 'required']);
+
+        $content = trim($input['content']);
+        if (empty($content)) {
+            return $this->validationError(['content' => 'Message content cannot be empty']);
+        }
+
+        try {
+            $message->content = $content;
+            $message->edited_at = date('Y-m-d H:i:s');
+
+            if ($message->save()) {
+                $formattedMessage = $this->formatMessage($message);                $this->sendWebSocketNotification('message_updated', [
+                    'target_type' => 'channel',
+                    'target_id' => $message->channel_id ?? null,
+                    'message' => $formattedMessage
+                ]);
+
+                return $this->success([
+                    'message' => $formattedMessage
+                ], 'Message updated successfully');
+            } else {
+                throw new Exception('Failed to update message');
+            }
+        } catch (Exception $e) {
+            return $this->serverError('Failed to update message');
+        }
+    }
+
+    public function deleteMessage($messageId)
+    {
+        $this->requireAuth();
+        $userId = $this->getCurrentUserId();
+
+        $message = $this->messageRepository->find($messageId);
+        if (!$message) {
+            return $this->notFound('Message not found');
+        }
+
+        if ($message->user_id != $userId) {
+            return $this->forbidden('You can only delete your own messages');
+        }
+
+        try {
+            $message->content = '[deleted]';
+            $message->deleted_at = date('Y-m-d H:i:s');
+
+            if ($message->save()) {                $this->sendWebSocketNotification('message_deleted', [
+                    'target_type' => 'channel',
+                    'target_id' => $message->channel_id ?? null,
+                    'message_id' => $messageId
+                ]);
+
+                return $this->success(null, 'Message deleted successfully');
+            } else {
+                throw new Exception('Failed to delete message');
+            }
+        } catch (Exception $e) {
+            return $this->serverError('Failed to delete message');
+        }
+    }
+
+    public function getMessage($messageId)
+    {
+        $this->requireAuth();
+        $userId = $this->getCurrentUserId();
+
+        $message = $this->messageRepository->find($messageId);
+        if (!$message) {
+            return $this->notFound('Message not found');
+        }
+
+        if ($message->channel_id) {
+            $channel = $this->channelRepository->find($message->channel_id);
+            if ($channel && $channel->server_id != 0) {
+                $membership = $this->userServerMembershipRepository->findByUserAndServer($userId, $channel->server_id);
+                if (!$membership) {
+                    return $this->forbidden('You are not a member of this server');
+                }
+            }
+        }
+
+        try {
+            $formattedMessage = $this->formatMessage($message);
+            return $this->success(['message' => $formattedMessage]);
+        } catch (Exception $e) {
+            return $this->serverError('Failed to retrieve message');
+        }
+    }
+
+    public function searchMessages($channelId)
+    {
+        $this->requireAuth();
+        $userId = $this->getCurrentUserId();
+
+        $channel = $this->channelRepository->find($channelId);
+        if (!$channel) {
+            return $this->notFound('Channel not found');
+        }
+
+        if ($channel->server_id != 0) {
+            $membership = $this->userServerMembershipRepository->findByUserAndServer($userId, $channel->server_id);
+            if (!$membership) {
+                return $this->forbidden('You are not a member of this server');
+            }
+        }
+
+        $searchQuery = $_GET['q'] ?? '';
+        if (empty($searchQuery)) {
+            return $this->validationError(['q' => 'Search query is required']);
+        }
+
+        try {
+            $messages = $this->messageRepository->searchInChannel($channelId, $searchQuery, 50);
+            $formattedMessages = array_map([$this, 'formatMessage'], $messages);
+
+            return $this->success([
+                'channel_id' => $channelId,
+                'query' => $searchQuery,
+                'messages' => $formattedMessages
+            ]);
+        } catch (Exception $e) {
+            return $this->serverError('Failed to search messages');
         }
     }
 }

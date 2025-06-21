@@ -133,3 +133,41 @@
     width: 100%;
   }
 }
+
+/* Server sidebar icon fixes */
+.flex.h-full .w-\[72px\] .server-icon {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 8px;
+  position: relative;
+  display: block;
+}
+
+.flex.h-full .w-\[72px\] .server-icon a {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.flex.h-full .w-\[72px\] .server-icon a div {
+  width: 48px !important;
+  height: 48px !important;
+  transition: border-radius 0.2s ease;
+}
+
+.flex.h-full .w-\[72px\] .group .absolute {
+  z-index: 100;
+}
+
+.flex.h-full .w-\[72px\] .server-icon .absolute.left-0 {
+  height: 0;
+  transition: height 0.15s ease;
+}
+
+.flex.h-full .w-\[72px\] .server-icon.active .absolute.left-0 {
+  height: 40px !important;
+}
+
+.flex.h-full .w-\[72px\] .server-icon:hover .absolute.left-0.group-hover\:h-5 {
+  height: 20px !important;
+}

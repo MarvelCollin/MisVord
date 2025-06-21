@@ -80,8 +80,7 @@ class ChatRoomRepository extends Repository {
             
         return $results;
     }
-    
-    public function getRoomMessages($roomId, $limit = 50, $offset = 0) {
+      public function getRoomMessages($roomId, $limit = 50, $offset = 0) {
         $query = new Query();
         
         $results = $query->table('messages m')
@@ -89,12 +88,12 @@ class ChatRoomRepository extends Repository {
             ->join('users u', 'm.user_id', '=', 'u.id')
             ->where('crm.room_id', $roomId)
             ->select('m.*, u.username, u.avatar_url')
-            ->orderBy('m.sent_at', 'ASC')
+            ->orderBy('m.sent_at', 'DESC')
             ->limit($limit)
             ->offset($offset)
             ->get();
             
-        return $results;
+        return array_reverse($results);
     }
     
     public function addMessageToRoom($roomId, $messageId) {

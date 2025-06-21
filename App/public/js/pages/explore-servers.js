@@ -9,7 +9,24 @@ document.addEventListener('DOMContentLoaded', function() {
     initCategoryFilter();
     initSearchFilter();
     initJoinServerHandlers();
+    initSidebarServerIcons();
 });
+
+function initSidebarServerIcons() {
+    const serverIcons = document.querySelectorAll('.server-icon');
+    
+    serverIcons.forEach(icon => {
+        if (icon.closest('.w-[72px]')) {
+            icon.style.display = 'block';
+            icon.style.margin = '0 auto 8px auto';
+            icon.style.position = 'relative';
+        }
+        
+        if (!icon.getAttribute('data-initialized')) {
+            icon.setAttribute('data-initialized', 'true');
+        }
+    });
+}
 
 function initServerCards() {
     const serverCards = document.querySelectorAll('.server-card');
@@ -147,5 +164,4 @@ function joinServer(serverId, button) {
                 window.showToast('Error joining server', 'error');
             }
         });
-}
 }

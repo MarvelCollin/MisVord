@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Socket Debug Test</title>
+    
+    <!-- Socket Configuration -->
+    <meta name="socket-host" content="localhost">
+    <meta name="socket-port" content="1002">
+    <meta name="user-id" content="1">
+    <meta name="username" content="TestUser">
+    <meta name="user-authenticated" content="true">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.8.1/socket.io.js"></script>
+    <style>
+        .log-container {
+            background: #1a1a1a;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .log-entry {
+            margin-bottom: 5px;
+        }
+        .error { color: #ff4444; }
+        .success { color: #44ff44; }
+        .info { color: #4488ff; }
+        .warning { color: #ffaa44; }
+    </style>
+</head>
+<body class="bg-gray-900 text-white p-6">
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-3xl font-bold mb-6 text-center">Socket Debug Test</h1>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Connection Tests -->
+            <div class="bg-gray-800 p-6 rounded-lg">
+                <h2 class="text-xl font-semibold mb-4">Connection Tests</h2>
+                <div class="space-y-3">
+                    <button id="testSocketConnection" class="w-full bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded">
+                        Test Socket Connection
+                    </button>
+                    <button id="testAuthentication" class="w-full bg-green-600 hover:bg-green-700 px-4 py-2 rounded">
+                        Test Authentication
+                    </button>
+                    <button id="testJoinChannel" class="w-full bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded">
+                        Join Test Channel
+                    </button>
+                    <button id="testDirectMessage" class="w-full bg-yellow-600 hover:bg-yellow-700 px-4 py-2 rounded">
+                        Test Direct Message
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Message Tests -->
+            <div class="bg-gray-800 p-6 rounded-lg">
+                <h2 class="text-xl font-semibold mb-4">Message Tests</h2>
+                <div class="space-y-3">
+                    <input id="testMessage" type="text" placeholder="Test message content" 
+                           class="w-full bg-gray-700 px-3 py-2 rounded text-white">
+                    <button id="sendChannelMessage" class="w-full bg-red-600 hover:bg-red-700 px-4 py-2 rounded">
+                        Send Channel Message
+                    </button>
+                    <button id="sendDirectMsg" class="w-full bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded">
+                        Send Direct Message
+                    </button>
+                    <button id="testTyping" class="w-full bg-orange-600 hover:bg-orange-700 px-4 py-2 rounded">
+                        Test Typing Indicator
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Status Display -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+            <div class="bg-gray-800 p-4 rounded-lg">
+                <h3 class="font-semibold mb-2">Connection Status</h3>
+                <div id="connectionStatus" class="text-red-400">Disconnected</div>
+                <div id="authStatus" class="text-red-400">Not Authenticated</div>
+            </div>
+            
+            <div class="bg-gray-800 p-4 rounded-lg">
+                <h3 class="font-semibold mb-2">Socket Info</h3>
+                <div id="socketInfo">Not Connected</div>
+            </div>
+            
+            <div class="bg-gray-800 p-4 rounded-lg">
+                <h3 class="font-semibold mb-2">Event Count</h3>
+                <div id="eventCount">Messages: 0, Events: 0</div>
+            </div>
+        </div>
+        
+        <!-- Debug Log -->
+        <div class="mt-6 bg-gray-800 p-6 rounded-lg">
+            <h2 class="text-xl font-semibold mb-4">Debug Log</h2>
+            <div id="debugLog" class="log-container">
+                <div class="log-entry info">Debug system initialized...</div>
+            </div>
+            <button id="clearLog" class="mt-3 bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded">
+                Clear Log
+            </button>
+        </div>
+        
+        <!-- PHP Backend Test -->
+        <div class="mt-6 bg-gray-800 p-6 rounded-lg">
+            <h2 class="text-xl font-semibold mb-4">PHP Backend Test</h2>
+            <div class="space-y-3">
+                <button id="testPhpMessage" class="bg-teal-600 hover:bg-teal-700 px-4 py-2 rounded">
+                    Test PHP Message Send
+                </button>
+                <button id="testSocketHealth" class="bg-cyan-600 hover:bg-cyan-700 px-4 py-2 rounded">
+                    Test Socket Server Health
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class SocketDebugger {
+            constructor() {
+                this.socket = null;
+                this.connected = false;
+                this.authenticated = false;
+                this.messageCount = 0;
+                this.eventCount = 0;
+                this.init();
+            }
+            
+            init() {
+                this.setupEventListeners();
+                this.log('Socket Debugger initialized', 'info');
+                this.connectSocket();
+            }
+            
+            log(message, type = 'info') {
+                const logContainer = document.getElementById('debugLog');
+                const entry = document.createElement('div');
+                entry.className = `log-entry ${type}`;
+                entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+                logContainer.appendChild(entry);
+                logContainer.scrollTop = logContainer.scrollHeight;
+            }
+            
+            updateStatus() {
+                document.getElementById('connectionStatus').textContent = this.connected ? 'Connected' : 'Disconnected';
+                document.getElementById('connectionStatus').className = this.connected ? 'text-green-400' : 'text-red-400';
+                
+                document.getElementById('authStatus').textContent = this.authenticated ? 'Authenticated' : 'Not Authenticated';
+                document.getElementById('authStatus').className = this.authenticated ? 'text-green-400' : 'text-red-400';
+                
+                document.getElementById('socketInfo').textContent = this.socket ? 
+                    `Socket ID: ${this.socket.id || 'Unknown'}` : 'Not Connected';
+                    
+                document.getElementById('eventCount').textContent = 
+                    `Messages: ${this.messageCount}, Events: ${this.eventCount}`;
+            }
+            
+            connectSocket() {
+                const socketHost = document.querySelector('meta[name="socket-host"]')?.getAttribute('content') || 'localhost';
+                const socketPort = document.querySelector('meta[name="socket-port"]')?.getAttribute('content') || '1002';
+                const socketUrl = `http://${socketHost}:${socketPort}`;
+                
+                this.log(`Connecting to ${socketUrl}`, 'info');
+                
+                this.socket = io(socketUrl, {
+                    path: '/socket.io',
+                    transports: ['polling', 'websocket'],
+                    reconnection: true,
+                    reconnectionAttempts: 5,
+                    reconnectionDelay: 1000,
+                    timeout: 20000
+                });
+                
+                this.setupSocketEvents();
+            }
+            
+            setupSocketEvents() {
+                this.socket.on('connect', () => {
+                    this.connected = true;
+                    this.log('Socket connected successfully!', 'success');
+                    this.updateStatus();
+                });
+                
+                this.socket.on('disconnect', () => {
+                    this.connected = false;
+                    this.authenticated = false;
+                    this.log('Socket disconnected', 'warning');
+                    this.updateStatus();
+                });
+                
+                this.socket.on('authenticated', (data) => {
+                    this.authenticated = true;
+                    this.log(`Authentication successful: ${JSON.stringify(data)}`, 'success');
+                    this.updateStatus();
+                });
+                
+                this.socket.on('authentication-failed', (data) => {
+                    this.authenticated = false;
+                    this.log(`Authentication failed: ${JSON.stringify(data)}`, 'error');
+                    this.updateStatus();
+                });
+                
+                // Message events
+                this.socket.on('message', (data) => {
+                    this.messageCount++;
+                    this.log(`Received message: ${JSON.stringify(data)}`, 'info');
+                    this.updateStatus();
+                });
+                
+                this.socket.on('new-channel-message', (data) => {
+                    this.messageCount++;
+                    this.log(`Received new channel message: ${JSON.stringify(data)}`, 'success');
+                    this.updateStatus();
+                });
+                
+                this.socket.on('new-direct-message', (data) => {
+                    this.messageCount++;
+                    this.log(`Received new direct message: ${JSON.stringify(data)}`, 'success');
+                    this.updateStatus();
+                });
+                
+                // Typing events
+                this.socket.on('user-typing', (data) => {
+                    this.eventCount++;
+                    this.log(`User typing: ${JSON.stringify(data)}`, 'info');
+                    this.updateStatus();
+                });
+                
+                this.socket.on('user-stop-typing', (data) => {
+                    this.eventCount++;
+                    this.log(`User stopped typing: ${JSON.stringify(data)}`, 'info');
+                    this.updateStatus();
+                });
+                
+                // Error events
+                this.socket.on('error', (error) => {
+                    this.log(`Socket error: ${JSON.stringify(error)}`, 'error');
+                });
+                
+                this.socket.on('connect_error', (error) => {
+                    this.log(`Connection error: ${error.message}`, 'error');
+                });
+            }
+            
+            setupEventListeners() {
+                // Connection tests
+                document.getElementById('testSocketConnection').addEventListener('click', () => {
+                    if (this.socket) {
+                        this.log('Socket status: ' + (this.connected ? 'Connected' : 'Disconnected'), 'info');
+                    }
+                });
+                
+                document.getElementById('testAuthentication').addEventListener('click', () => {
+                    if (this.socket && this.connected) {
+                        this.socket.emit('authenticate', {
+                            userId: '1',
+                            username: 'TestUser',
+                            token: 'test-token'
+                        });
+                        this.log('Authentication request sent', 'info');
+                    }
+                });
+                
+                document.getElementById('testJoinChannel').addEventListener('click', () => {
+                    if (this.socket && this.connected) {
+                        this.socket.emit('join-channel', { channelId: '1' });
+                        this.log('Join channel request sent', 'info');
+                    }
+                });
+                
+                document.getElementById('sendChannelMessage').addEventListener('click', () => {
+                    const message = document.getElementById('testMessage').value;
+                    if (this.socket && this.connected && message) {
+                        this.socket.emit('channel-message', {
+                            channelId: '1',
+                            content: message,
+                            messageType: 'text',
+                            timestamp: Date.now()
+                        });
+                        this.log(`Channel message sent: ${message}`, 'info');
+                    }
+                });
+                
+                document.getElementById('sendDirectMsg').addEventListener('click', () => {
+                    const message = document.getElementById('testMessage').value;
+                    if (this.socket && this.connected && message) {
+                        this.socket.emit('direct-message', {
+                            roomId: '1',
+                            content: message,
+                            messageType: 'text',
+                            timestamp: Date.now()
+                        });
+                        this.log(`Direct message sent: ${message}`, 'info');
+                    }
+                });
+                
+                document.getElementById('testTyping').addEventListener('click', () => {
+                    if (this.socket && this.connected) {
+                        this.socket.emit('typing', {
+                            userId: '1',
+                            username: 'TestUser',
+                            channelId: '1'
+                        });
+                        this.log('Typing event sent', 'info');
+                        
+                        setTimeout(() => {
+                            this.socket.emit('stop-typing', {
+                                userId: '1',
+                                username: 'TestUser',
+                                channelId: '1'
+                            });
+                            this.log('Stop typing event sent', 'info');
+                        }, 3000);
+                    }
+                });
+                
+                // PHP Backend tests
+                document.getElementById('testPhpMessage').addEventListener('click', () => {
+                    fetch('/api/messaging/debug/test-message', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            content: 'Test message from debug page',
+                            target_type: 'channel',
+                            target_id: '1'
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        this.log(`PHP message response: ${JSON.stringify(data)}`, 'info');
+                    })
+                    .catch(error => {
+                        this.log(`PHP message error: ${error.message}`, 'error');
+                    });
+                });
+                
+                document.getElementById('testSocketHealth').addEventListener('click', () => {
+                    fetch('http://localhost:1002/health')
+                    .then(response => response.json())
+                    .then(data => {
+                        this.log(`Socket health: ${JSON.stringify(data)}`, 'success');
+                    })
+                    .catch(error => {
+                        this.log(`Socket health error: ${error.message}`, 'error');
+                    });
+                });
+                
+                document.getElementById('clearLog').addEventListener('click', () => {
+                    document.getElementById('debugLog').innerHTML = 
+                        '<div class="log-entry info">Debug log cleared...</div>';
+                });
+            }
+        }
+        
+        // Initialize debugger when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new SocketDebugger();
+        });
+    </script>
+</body>
+</html>

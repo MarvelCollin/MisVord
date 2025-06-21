@@ -24,10 +24,11 @@ class ServerRepository extends Repository {
             ->select('s.*')
             ->get();
         
-        return array_map(function($data) { return new Server($data); }, $results);
+        return $results;
     }
     
     public function getFormattedServersForUser($userId) {
+        // Get servers as arrays directly
         return $this->getForUser($userId);
     }
       public function createWithOwner($data, $ownerId) {
@@ -72,21 +73,23 @@ class ServerRepository extends Repository {
         $server = $this->find($serverId);
         return $server ? $server->generateInviteLink() : false;
     }
-    
-    public function getPublicServersWithMemberCount() {
+      public function getPublicServersWithMemberCount() {
         $query = new Query();
-        return $query->table('servers s')
+        $results = $query->table('servers s')
             ->select('s.*, COUNT(usm.id) as member_count')
             ->leftJoin('user_server_memberships usm', 's.id', '=', 'usm.server_id')
             ->where('s.is_public', 1)
             ->groupBy('s.id')
             ->orderBy('member_count', 'DESC')
             ->get();
+        
+        return array_map(function($row) {
+            return is_array($row) ? $row : (array) $row;
+        }, $results);
     }
-    
-    public function getFeaturedServersWithMemberCount($limit = 3) {
+      public function getFeaturedServersWithMemberCount($limit = 3) {
         $query = new Query();
-        return $query->table('servers s')
+        $results = $query->table('servers s')
             ->select('s.*, COUNT(usm.id) as member_count')
             ->leftJoin('user_server_memberships usm', 's.id', '=', 'usm.server_id')
             ->where('s.is_public', 1)
@@ -94,11 +97,14 @@ class ServerRepository extends Repository {
             ->orderBy('member_count', 'DESC')
             ->limit($limit)
             ->get();
+            
+        return array_map(function($row) {
+            return is_array($row) ? $row : (array) $row;
+        }, $results);
     }
-    
-    public function getServersByCategoryWithMemberCount($category) {
+      public function getServersByCategoryWithMemberCount($category) {
         $query = new Query();
-        return $query->table('servers s')
+        $results = $query->table('servers s')
             ->select('s.*, COUNT(usm.id) as member_count')
             ->leftJoin('user_server_memberships usm', 's.id', '=', 'usm.server_id')
             ->where('s.is_public', 1)
@@ -106,5 +112,9 @@ class ServerRepository extends Repository {
             ->groupBy('s.id')
             ->orderBy('member_count', 'DESC')
             ->get();
+            
+        return array_map(function($row) {
+            return is_array($row) ? $row : (array) $row;
+        }, $results);
     }
 }

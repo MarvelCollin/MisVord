@@ -11,10 +11,11 @@ function setupSocketHandlers(io) {
     socket.on('leave-channel', (data) => handleLeaveChannel(io, socket, data));
     socket.on('channel-message', (data) => handleChannelMessage(io, socket, data));
     socket.on('direct-message', (data) => handleDirectMessage(io, socket, data));
-    socket.on('join-dm-room', (data) => handleJoinDMRoom(io, socket, data));
-    socket.on('leave-dm-room', (data) => handleLeaveDMRoom(io, socket, data));
+    socket.on('join-dm-room', (data) => handleJoinDMRoom(io, socket, data));    socket.on('leave-dm-room', (data) => handleLeaveDMRoom(io, socket, data));
     socket.on('typing', (data) => handleTyping(io, socket, data));
     socket.on('stop-typing', (data) => handleStopTyping(io, socket, data));
+    socket.on('user_typing_dm', (data) => handleTypingDM(io, socket, data));
+    socket.on('user_stop_typing_dm', (data) => handleStopTypingDM(io, socket, data));
     socket.on('heartbeat', () => handleHeartbeat(socket));
     socket.on('update-presence', (data) => handleUpdatePresence(io, socket, data));
     socket.on('update-activity', (data) => handleUpdateActivity(io, socket, data));
@@ -376,6 +377,48 @@ function handleStopTyping(io, socket, data) {
     });
   } catch (error) {
     console.error('❌ Stop typing notification error:', error);
+  }
+}
+
+function handleTypingDM(io, socket, data) {
+  try {
+    const { chatRoomId } = data;
+    const user = userService.getConnectedUser(socket.id);
+    
+    if (!user || !chatRoomId) {
+      return;
+    }
+    
+    socket.to(`dm-room-${chatRoomId}`).emit('user-typing-dm', {
+      chatRoomId,
+      userId: user.userId,
+      username: user.username
+    });
+    
+    console.log(`⌨️ User ${user.username} started typing in DM room ${chatRoomId}`);
+  } catch (error) {
+    console.error('❌ DM typing notification error:', error);
+  }
+}
+
+function handleStopTypingDM(io, socket, data) {
+  try {
+    const { chatRoomId } = data;
+    const user = userService.getConnectedUser(socket.id);
+    
+    if (!user || !chatRoomId) {
+      return;
+    }
+    
+    socket.to(`dm-room-${chatRoomId}`).emit('user-stop-typing-dm', {
+      chatRoomId,
+      userId: user.userId,
+      username: user.username
+    });
+    
+    console.log(`✋ User ${user.username} stopped typing in DM room ${chatRoomId}`);
+  } catch (error) {
+    console.error('❌ DM stop typing notification error:', error);
   }
 }
 

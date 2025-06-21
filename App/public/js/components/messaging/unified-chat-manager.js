@@ -107,7 +107,8 @@ class UnifiedChatManager {
         window.GLOBALS.chatData = chatData;
         window.GLOBALS.messages = messages;
         
-        const endpoint = `/api/chat/render/${chatType}/${chatId}`;
+        const routeChatType = chatType === 'direct' ? 'dm' : chatType;
+        const endpoint = `/api/chat/render/${routeChatType}/${chatId}`;
         
         fetch(endpoint)
             .then(response => {

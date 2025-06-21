@@ -50,6 +50,10 @@ Route::get('/home', 'pages/home.php');
 Route::get('/app', 'pages/home.php');
 Route::get('/login', 'pages/authentication-page.php');
 Route::get('/register', 'pages/authentication-page.php');
+Route::get('/explore', function() {
+    header('Location: /explore-servers');
+    exit;
+});
 Route::get('/explore-servers', 'pages/explore-servers.php');
 Route::get('/settings', 'pages/settings.php');
 Route::get('/call', 'pages/call.php');
@@ -141,11 +145,6 @@ Route::post('/api/channels', function() {
 Route::post('/api/channels/category', function() {
     $controller = new ChannelController();
     $controller->createCategory();
-});
-
-Route::get('/api/channels/([0-9]+)/messages', function($channelId) {
-    $controller = new MessageController();
-    $controller->getMessages($channelId);
 });
 
 Route::get('/api/channels/([0-9]+)', function($channelId) {
@@ -275,18 +274,18 @@ Route::delete('/api/emojis/([0-9]+)', function($emojiId) {
 });
 
 Route::post('/api/messages/([0-9]+)/reactions', function($messageId) {
-    $controller = new EmojiController();
-    $controller->addEmojiReaction($messageId);
+    $controller = new MessageController();
+    $controller->addReaction($messageId);
 });
 
 Route::delete('/api/messages/([0-9]+)/reactions', function($messageId) {
-    $controller = new EmojiController();
-    $controller->removeEmojiReaction($messageId);
+    $controller = new MessageController();
+    $controller->removeReaction($messageId);
 });
 
 Route::get('/api/messages/([0-9]+)/reactions', function($messageId) {
-    $controller = new EmojiController();
-    $controller->getMessageReactions($messageId);
+    $controller = new MessageController();
+    $controller->getReactions($messageId);
 });
 
 Route::get('/api/users/me/emojis/top', function() {
@@ -411,20 +410,30 @@ Route::get('/api/chat/render/(channel|dm|direct)/([0-9]+)', function($chatType, 
     $controller->renderChatSection($chatType, $chatId);
 });
 
-// Media upload routes
-Route::post('/api/media/upload', function() {
-    $controller = new MediaController();
-    $controller->uploadMedia();
+// Message CRUD operations
+Route::put('/api/messages/([0-9]+)', function($messageId) {
+    $controller = new ChatController();
+    $controller->updateMessage($messageId);
 });
 
-Route::post('/api/media/upload/multiple', function() {
-    $controller = new MediaController();
-    $controller->uploadMultipleMedia();
+Route::delete('/api/messages/([0-9]+)', function($messageId) {
+    $controller = new ChatController();
+    $controller->deleteMessage($messageId);
 });
 
-Route::get('/api/media/gifs', function() {
-    $controller = new MediaController();
-    $controller->getGifs();
+Route::get('/api/messages/([0-9]+)', function($messageId) {
+    $controller = new ChatController();
+    $controller->getMessage($messageId);
+});
+
+Route::get('/api/channels/([0-9]+)/search', function($channelId) {
+    $controller = new ChatController();
+    $controller->searchMessages($channelId);
+});
+
+Route::post('/api/messages/([0-9]+)/pin', function($messageId) {
+    $controller = new MessageController();
+    $controller->pinMessage($messageId);
 });
 
 Route::get('/api/auth/check', function() {
@@ -472,32 +481,6 @@ Route::get('/api/debug/database', function() {
             'message' => 'Database connection failed: ' . $e->getMessage()
         ]);
     }
-});
-
-// Message CRUD routes
-Route::post('/api/messages', function() {
-    $controller = new MessageController();
-    $controller->send();
-});
-
-Route::put('/api/messages/([0-9]+)', function($messageId) {
-    $controller = new MessageController();
-    $controller->update($messageId);
-});
-
-Route::delete('/api/messages/([0-9]+)', function($messageId) {
-    $controller = new MessageController();
-    $controller->delete($messageId);
-});
-
-Route::get('/api/messages/([0-9]+)', function($messageId) {
-    $controller = new MessageController();
-    $controller->getMessage($messageId);
-});
-
-Route::get('/api/health', function() {
-    $controller = new HealthController();
-    $controller->check();
 });
 
 return array_merge(Route::getRoutes(), [

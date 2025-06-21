@@ -92,6 +92,16 @@ class UserServerMembership extends Model {
     public static function initialize() {
         return self::createTable();
     }
+
+    public static function getServerIdsForUser($userId) {
+        $query = new Query();
+        $results = $query->table('user_server_memberships')
+            ->where('user_id', $userId)
+            ->select('server_id')
+            ->get();
+        
+        return array_column($results, 'server_id');
+    }
 }
 
 

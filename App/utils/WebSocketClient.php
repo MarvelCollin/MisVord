@@ -6,10 +6,9 @@ class WebSocketClient {
     private $path;
     private $timeout;
     private $debug;
-    
-    public function __construct($host = 'localhost', $port = 1002, $path = '/socket.io', $timeout = 5, $debug = false) {
-        $this->host = $host;
-        $this->port = $port;
+      public function __construct($host = null, $port = null, $path = '/socket.io', $timeout = 5, $debug = false) {
+        $this->host = $host ?: ($_ENV['SOCKET_HOST'] ?? 'localhost');
+        $this->port = $port ?: ($_ENV['SOCKET_PORT'] ?? 1002);
         $this->path = $path;
         $this->timeout = $timeout;
         $this->debug = $debug;

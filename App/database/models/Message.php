@@ -13,18 +13,19 @@ class Message extends Model {
         
         return parent::save();
     }
-    
-    public static function getForChannel($channelId, $limit = 50, $offset = 0) {
+      public static function getForChannel($channelId, $limit = 50, $offset = 0) {
         $query = new Query();
-        return $query->table('messages m')
+        $results = $query->table('messages m')
                 ->select('m.*, u.username, u.avatar_url, m.sent_at as timestamp') 
                 ->join('channel_messages cm', 'm.id', '=', 'cm.message_id')
                 ->join('users u', 'm.user_id', '=', 'u.id')
                 ->where('cm.channel_id', $channelId)
-                ->orderBy('m.sent_at', 'ASC') 
+                ->orderBy('m.sent_at', 'DESC') 
                 ->limit($limit)
                 ->offset($offset)
                 ->get();
+        
+        return array_reverse($results);
     }
       public static function getRecentForChannel($channelId, $limit = 10) {
         $query = new Query();

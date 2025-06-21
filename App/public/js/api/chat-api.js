@@ -49,11 +49,11 @@ class ChatAPI {
             console.error('API Request failed:', error);
             throw error;
         }
-    }    async getMessages(chatType, targetId, limit = 50, offset = 0) {
+    }    async getMessages(chatType, targetId, limit = 20, offset = 0) {
         const apiChatType = chatType === 'direct' ? 'dm' : chatType;
         const url = `${this.baseURL}/${apiChatType}/${targetId}/messages?limit=${limit}&offset=${offset}`;
         return await this.makeRequest(url);
-    }    async sendMessage(targetId, content, chatType = 'channel') {
+    }async sendMessage(targetId, content, chatType = 'channel') {
         const url = `${this.baseURL}/send`;
         const apiChatType = chatType === 'direct' ? 'dm' : chatType;
         return await this.makeRequest(url, {
@@ -93,9 +93,4 @@ class ChatAPI {
     }
 }
 
-// Expose globally for backward compatibility
 window.ChatAPI = new ChatAPI();
-
-// Export for module usage (commented out for regular script loading)
-// export { ChatAPI };
-// export default ChatAPI;

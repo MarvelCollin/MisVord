@@ -89,4 +89,8 @@ class UserServerMembershipRepository extends Repository {
             'suppress_roles' => false
         ];
     }
+    
+    public function getServerIdsForUser($userId) {
+        return UserServerMembership::getServerIdsForUser($userId);
+    }
 }
