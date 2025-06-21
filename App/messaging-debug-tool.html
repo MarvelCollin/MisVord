@@ -106,18 +106,26 @@ setTimeout(() => {
         <button class="btn-primary" onclick="copyDebugScript()">📋 Copy Debug Script</button>
         <button class="btn-success" onclick="openMisVordApp()">🚀 Open MisVord App</button>
     </div>
-    
-    <div class="tool">
+      <div class="tool">
         <h3>🎮 Manual Testing Steps:</h3>
         <ol>
-            <li>Open MisVord app at <code>http://localhost:1001/app?dm=1</code></li>
-            <li>Press <strong>F12</strong> to open Developer Tools</li>
-            <li>Paste the debug script above into the Console tab</li>
-            <li>Press <strong>Enter</strong> to run the script</li>
-            <li>Use <strong>Ctrl+2</strong> to check socket status</li>
-            <li>Use <strong>Ctrl+3</strong> to force messaging initialization</li>
-            <li>Try sending a test message</li>
+            <li>Open two browser windows/tabs with MisVord app at <code>http://localhost:1001/app?dm=1</code></li>
+            <li>Login as different users (kolin, kolina) in each window</li>
+            <li>Press <strong>F12</strong> in both windows to open Developer Tools</li>
+            <li>In the first window, press <strong>Ctrl+2</strong> to check socket status</li>
+            <li>In the first window, press <strong>Ctrl+4</strong> to manually join DM room</li>
+            <li>Send a test message from the first window</li>
+            <li>Check console logs in both windows for message broadcasting</li>
+            <li>Verify message appears in the second window</li>
         </ol>
+        
+        <h4>🔍 Key Debug Shortcuts:</h4>
+        <ul>
+            <li><strong>Ctrl+1:</strong> Send test message</li>
+            <li><strong>Ctrl+2:</strong> Check socket status</li>
+            <li><strong>Ctrl+3:</strong> Force messaging initialization</li>
+            <li><strong>Ctrl+4:</strong> Manual DM room join</li>
+        </ul>
     </div>
     
     <div class="tool">

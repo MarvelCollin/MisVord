@@ -130,14 +130,20 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
 
-    const formData = new FormData(form);
-    const chatType = formData.get("chat_type");
-    const chatId = formData.get("chat_id");
+    // Use validated chat data instead of form data
+    if (!isValidData) {
+      window.MisVordDebug.error("Cannot send message - chat data is invalid");
+      return;
+    }
+
+    const targetId =
+      chatData.chatType === "channel" ? chatData.channelId : chatData.chatId;
 
     window.MisVordDebug.log("Submitting message", {
-      chatType,
-      chatId,
+      chatType: chatData.chatType,
+      targetId: targetId,
       contentLength: content.length,
+      chatData: chatData,
     });
 
     try {
@@ -150,7 +156,11 @@ document.addEventListener("DOMContentLoaded", function () {
         if (sendButton) sendButton.disabled = true;
         characterCountContainer?.classList.add("hidden");
 
-        await window.MisVordMessaging.sendMessage(chatId, content, chatType);
+        await window.MisVordMessaging.sendMessage(
+          targetId,
+          content,
+          chatData.chatType
+        );
       } else {
         throw new Error("MisVordMessaging not available");
       }
@@ -160,58 +170,103 @@ document.addEventListener("DOMContentLoaded", function () {
       if (sendButton) sendButton.disabled = false;
     }
   }
-
+  // Centralized data extraction from meta tags - single source of truth
   const getMeta = (name) => {
     const meta = document.querySelector(`meta[name="${name}"]`);
     return meta ? meta.getAttribute("content") : null;
   };
 
-  const chatType = getMeta("chat-type") || "channel";
-  const chatId =
-    getMeta("chat-id") ||
-    getMeta("channel-id") ||
-    (messageInput
-      ? messageInput.getAttribute("data-chat-id") ||
-        messageInput.getAttribute("data-channel-id")
-      : "");
-  const channelId =
-    getMeta("channel-id") || (chatType === "channel" ? chatId : "");
-  const userId = getMeta("user-id");
-  const username = getMeta("username");
+  // Extract all chat data from meta tags
+  const chatData = {
+    chatType: getMeta("chat-type") || "channel",
+    chatId: getMeta("chat-id") || "",
+    channelId: getMeta("channel-id") || "",
+    userId: getMeta("user-id") || "",
+    username: getMeta("username") || "",
+    chatTitle: getMeta("chat-title") || "",
+    placeholder: getMeta("chat-placeholder") || "Type a message...",
+  };
 
-  window.MisVordDebug.log("Socket connection data", {
-    chatType,
-    chatId,
-    channelId,
-    userId,
-    username,
-  });
+  // Validate required data
+  const validateChatData = () => {
+    const required = ["chatType", "userId", "username"];
+    const missing = required.filter((key) => !chatData[key]);
 
-  let socketData = document.getElementById("socket-data");
-  if (!socketData) {
-    socketData = document.createElement("div");
-    socketData.id = "socket-data";
-    socketData.style.display = "none";
-    document.body.appendChild(socketData);
+    if (missing.length > 0) {
+      window.MisVordDebug.error("Missing required chat data", {
+        missing,
+        chatData,
+      });
+      return false;
+    }
+
+    // Validate chat ID is present when needed
+    if (chatData.chatType === "channel" && !chatData.channelId) {
+      window.MisVordDebug.error(
+        "Channel ID required for channel chat",
+        chatData
+      );
+      return false;
+    }
+
+    return true;
+  };
+
+  const isValidData = validateChatData();
+
+  window.MisVordDebug.log("Chat data extracted and validated", {
+    chatData,
+    isValid: isValidData,
+  }); // Set up socket data element only if data is valid
+  if (isValidData) {
+    let socketData = document.getElementById("socket-data");
+    if (!socketData) {
+      socketData = document.createElement("div");
+      socketData.id = "socket-data";
+      socketData.style.display = "none";
+      document.body.appendChild(socketData);
+    }
+
+    // Use consistent data from our validated chatData object
+    socketData.setAttribute("data-chat-type", chatData.chatType);
+    socketData.setAttribute("data-chat-id", chatData.chatId);
+    socketData.setAttribute("data-channel-id", chatData.channelId);
+    socketData.setAttribute("data-user-id", chatData.userId);
+    socketData.setAttribute("data-username", chatData.username);
+
+    window.MisVordDebug.log("Socket data element configured", {
+      chatType: chatData.chatType,
+      chatId: chatData.chatId,
+      channelId: chatData.channelId,
+      userId: chatData.userId,
+      username: chatData.username,
+    });
+  } else {
+    window.MisVordDebug.error(
+      "Skipping socket data setup due to invalid chat data"
+    );
   }
-
-  socketData.setAttribute("data-chat-type", chatType);
-  socketData.setAttribute("data-chat-id", chatId);
-  socketData.setAttribute("data-channel-id", channelId);
-  socketData.setAttribute("data-user-id", userId);
-  socketData.setAttribute("data-username", username);
 
   window.MisVordDebug.log(
     "Socket data element created/updated and added to DOM"
-  );
+  ); // Handle direct message URL parameter override
   const urlParams = new URLSearchParams(window.location.search);
   const dmParam = urlParams.get("dm");
-  if (dmParam) {
+  if (dmParam && isValidData) {
     window.MisVordDebug.log("Direct message parameter detected:", dmParam);
 
-    socketData.setAttribute("data-chat-id", dmParam);
-    socketData.setAttribute("data-chat-type", "direct");
-    socketData.setAttribute("data-channel-id", "");
+    // Update chat data for direct message
+    chatData.chatId = dmParam;
+    chatData.chatType = "direct";
+    chatData.channelId = "";
+
+    // Update socket data element
+    const socketData = document.getElementById("socket-data");
+    if (socketData) {
+      socketData.setAttribute("data-chat-id", dmParam);
+      socketData.setAttribute("data-chat-type", "direct");
+      socketData.setAttribute("data-channel-id", "");
+    }
 
     const initDirectMessage = () => {
       if (window.MisVordMessaging && window.MisVordMessaging.initialized) {
@@ -266,12 +321,15 @@ document.addEventListener("DOMContentLoaded", function () {
     if (socketStatus) {
       socketStatus.innerHTML =
         '<span class="text-red-500">•</span> <span class="ml-1">WebSocket required - please refresh</span>';
-    }
-
-    if (messageInput) {
+    }    if (messageInput) {
       messageInput.disabled = true;
       messageInput.placeholder = "WebSocket connection required for messaging";
     }
+  }
+
+  // Update message input placeholder if we have valid chat data
+  if (messageInput && chatData.placeholder && isValidData) {
+    messageInput.placeholder = chatData.placeholder;
   }
 
   const messagesContainer = document.getElementById("chat-messages");

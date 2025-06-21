@@ -227,6 +227,15 @@ function handleChannelMessage(io, socket, data) {
   console.log('Socket ID:', socket.id);
   console.log('Raw Data:', JSON.stringify(data, null, 2));
   
+  // 🐳 DOCKER SOCKET LOGS: User sent a message
+  console.log(`\n🐳 [DOCKER-SOCKET-LOG] Message send event:`);
+  console.log(`🐳 [DOCKER-SOCKET-LOG] Socket ID: ${socket.id}`);
+  console.log(`🐳 [DOCKER-SOCKET-LOG] Timestamp: ${new Date().toISOString()}`);
+  console.log(`🐳 [DOCKER-SOCKET-LOG] Event: channel-message`);
+  console.log(`🐳 [DOCKER-SOCKET-LOG] Channel ID: ${data.channelId}`);
+  console.log(`🐳 [DOCKER-SOCKET-LOG] Content Length: ${data.content ? data.content.length : 0}`);
+  console.log(`🐳 [DOCKER-SOCKET-LOG] Message Type: ${data.messageType || 'text'}`);
+  
   try {
     const { channelId, content, messageType = 'text', timestamp } = data;
     const user = userService.getConnectedUser(socket.id);
@@ -237,26 +246,43 @@ function handleChannelMessage(io, socket, data) {
     console.log('Message Type:', messageType);
     
     if (!user || !channelId || !content) {
-      console.log('❌ Invalid message data - Missing:', {
-        user: !!user,
-        channelId: !!channelId,
-        content: !!content
+      console.log('❌ Missing required data:', { user: !!user, channelId: !!channelId, content: !!content });
+      
+      // 🐳 DOCKER SOCKET LOGS: Message send failed
+      console.log(`🐳 [DOCKER-SOCKET-LOG] Message send FAILED - Missing required data`);
+      console.log(`🐳 [DOCKER-SOCKET-LOG] User: ${!!user}, Channel: ${!!channelId}, Content: ${!!content}`);
+      
+      socket.emit('message_error', { 
+        error: 'Missing required data',
+        tempId: data.tempId
       });
-      socket.emit('message_error', { error: 'Invalid message data' });
       return;
     }
     
+    // 🐳 DOCKER SOCKET LOGS: Message validation passed
+    console.log(`🐳 [DOCKER-SOCKET-LOG] Message validation PASSED for user: ${user.username} (${user.userId})`);
+    
     const duplicateId = messageService.checkRecentDuplicate(user.userId, timestamp, content);
     if (duplicateId) {
-      console.log(`🔄 Duplicate message detected, using existing ID: ${duplicateId}`);
-      socket.emit('message-sent-confirmation', { 
-        tempId: data.tempId, 
+      console.log('⚠️ Duplicate message detected, skipping...');
+      
+      // 🐳 DOCKER SOCKET LOGS: Duplicate message detected
+      console.log(`🐳 [DOCKER-SOCKET-LOG] DUPLICATE message detected - Skipping save`);
+      console.log(`🐳 [DOCKER-SOCKET-LOG] Duplicate ID: ${duplicateId}`);
+      
+      socket.emit('message_sent', { 
+        success: true,
         messageId: duplicateId,
-        channelId
+        tempId: data.tempId,
+        duplicate: true
       });
       return;
-    }      console.log('💾 Saving message to database...');
-      messageService.saveMessage(channelId, user.userId, content, messageType)
+    }
+    
+    // 🐳 DOCKER SOCKET LOGS: Saving message to database
+    console.log(`🐳 [DOCKER-SOCKET-LOG] Saving message to database...`);
+    
+    messageService.saveMessage(channelId, user.userId, content, messageType)
       .then(message => {
         console.log('✅ Message saved successfully:', message);
         
@@ -298,6 +324,11 @@ function handleChannelMessage(io, socket, data) {
       });
   } catch (error) {
     console.error('❌ Channel message error:', error);
+    
+    // 🐳 DOCKER SOCKET LOGS: Message processing error
+    console.log(`🐳 [DOCKER-SOCKET-LOG] Message processing ERROR: ${error.message}`);
+    console.log(`🐳 [DOCKER-SOCKET-LOG] Error stack: ${error.stack}`);
+    
     socket.emit('message_error', { 
       error: 'Message processing failed',
       tempId: data.tempId
@@ -306,70 +337,110 @@ function handleChannelMessage(io, socket, data) {
 }
 
 function handleDirectMessage(io, socket, data) {
+  console.log('\n=== 💬 DIRECT MESSAGE RECEIVED ===');
+  console.log('Socket ID:', socket.id);
+  console.log('Raw Data:', JSON.stringify(data, null, 2));
+  
+  // 🐳 DOCKER SOCKET LOGS: User sent a direct message
+  console.log(`\n🐳 [DOCKER-SOCKET-LOG] Direct message send event:`);
+  console.log(`🐳 [DOCKER-SOCKET-LOG] Socket ID: ${socket.id}`);
+  console.log(`🐳 [DOCKER-SOCKET-LOG] Timestamp: ${new Date().toISOString()}`);
+  console.log(`🐳 [DOCKER-SOCKET-LOG] Event: direct-message`);
+  console.log(`🐳 [DOCKER-SOCKET-LOG] Room ID: ${data.roomId}`);
+  console.log(`🐳 [DOCKER-SOCKET-LOG] Content Length: ${data.content ? data.content.length : 0}`);
+  console.log(`🐳 [DOCKER-SOCKET-LOG] Message Type: ${data.messageType || 'text'}`);
+  
   try {
     const { roomId, content, messageType = 'text', timestamp } = data;
     const user = userService.getConnectedUser(socket.id);
     
-    console.log('📨 Direct message received:', {
-      roomId,
-      content: content ? content.substring(0, 50) + '...' : 'empty',
-      messageType,
-      timestamp,
-      userId: user ? user.userId : 'unknown',
-      socketId: socket.id
-    });
+    console.log('User from socket:', user);
+    console.log('Room ID:', roomId);
+    console.log('Content:', content);
+    console.log('Message Type:', messageType);
     
     if (!user || !roomId || !content) {
-      console.log('❌ Invalid direct message data:', { user: !!user, roomId: !!roomId, content: !!content });
-      socket.emit('message_error', { error: 'Invalid direct message data' });
+      console.log('❌ Missing required data:', { user: !!user, roomId: !!roomId, content: !!content });
+      
+      // 🐳 DOCKER SOCKET LOGS: Direct message send failed
+      console.log(`🐳 [DOCKER-SOCKET-LOG] Direct message send FAILED - Missing required data`);
+      console.log(`🐳 [DOCKER-SOCKET-LOG] User: ${!!user}, Room: ${!!roomId}, Content: ${!!content}`);
+      
+      socket.emit('message_error', { 
+        error: 'Invalid direct message data',
+        tempId: data.tempId
+      });
       return;
     }
     
-    const roomName = `dm-room-${roomId}`;
-    const roomSockets = io.sockets.adapter.rooms.get(roomName);
-    console.log(`📨 Room ${roomName} has ${roomSockets ? roomSockets.size : 0} sockets`);
-    console.log(`📨 Socket ${socket.id} is in room: ${socket.rooms.has(roomName)}`);
-    
-    const duplicateId = messageService.checkRecentDuplicate(user.userId, timestamp, content);
+    // 🐳 DOCKER SOCKET LOGS: Direct message validation passed
+    console.log(`🐳 [DOCKER-SOCKET-LOG] Direct message validation PASSED for user: ${user.username} (${user.userId})`);
+        const duplicateId = messageService.checkRecentDuplicate(user.userId, timestamp, content);
     if (duplicateId) {
-      console.log(`🔄 Duplicate direct message detected, using existing ID: ${duplicateId}`);
+      console.log('⚠️ Duplicate direct message detected, skipping...');
+      
+      // 🐳 DOCKER SOCKET LOGS: Duplicate direct message detected
+      console.log(`🐳 [DOCKER-SOCKET-LOG] DUPLICATE direct message detected - Skipping save`);
+      console.log(`🐳 [DOCKER-SOCKET-LOG] Duplicate ID: ${duplicateId}`);
+      
       socket.emit('message-sent-confirmation', { 
         tempId: data.tempId, 
         messageId: duplicateId,
-        roomId
+        roomId,
+        duplicate: true
       });
       return;
-    }      messageService.saveDirectMessage(roomId, user.userId, content, messageType)
+    }
+
+    // 🐳 DOCKER SOCKET LOGS: Saving direct message to database
+    console.log(`🐳 [DOCKER-SOCKET-LOG] Saving direct message to database...`);
+        messageService.saveDirectMessage(roomId, user.userId, content, messageType)
       .then(message => {
+        console.log('✅ Direct message saved successfully:', message);
+        
         const messageData = {
-          ...message,
-          username: user.username,
-          tempId: data.tempId,
-          chatRoomId: roomId,
+          id: message.id,
+          content: content,
           user_id: user.userId,
-          message_type: messageType || 'text',
-          created_at: message.created_at || message.sent_at
+          username: user.username,
+          chatRoomId: roomId,
+          message_type: messageType,
+          created_at: message.created_at || message.sent_at,
+          tempId: data.tempId
         };
         
         messageService.trackMessageProcessing(user.userId, timestamp, message.id, content);
         
+        console.log(`📤 Broadcasting to dm-room-${roomId}`);
+        console.log('Direct message data being broadcast:', JSON.stringify(messageData, null, 2));
+        
+        // Get room info
         const roomName = `dm-room-${roomId}`;
-        const room = io.sockets.adapter.rooms.get(roomName);
-        const clientCount = room ? room.size : 0;
+        const clientsInRoom = io.sockets.adapter.rooms.get(roomName);
+        console.log(`👥 Clients in room ${roomName}:`, clientsInRoom ? Array.from(clientsInRoom) : 'No clients');
         
-        console.log(`📤 Emitting new-direct-message to ${roomName} (${clientCount} clients):`, messageData);
-        console.log(`${user.username} direct message to room ${roomId} : ${content}`);
-        
-        io.to(roomName).emit('new-direct-message', messageData);
+        socket.to(`dm-room-${roomId}`).emit('user-message-dm', messageData);
         
         socket.emit('message-sent-confirmation', { 
           tempId: data.tempId, 
           messageId: message.id,
           roomId
         });
+        
+        console.log(`💬 ${user.username} sent message to DM room ${roomId}: ${content}`);
+        
+        // 🐳 DOCKER SOCKET LOGS: Direct message broadcast completed
+        console.log(`🐳 [DOCKER-SOCKET-LOG] Direct message broadcast completed successfully`);
+        console.log(`🐳 [DOCKER-SOCKET-LOG] Message ID: ${message.id}`);
+        console.log('=== END DIRECT MESSAGE ===\n');
       })
       .catch(error => {
         console.error('❌ Error saving direct message:', error);
+        
+        // 🐳 DOCKER SOCKET LOGS: Direct message save error
+        console.log(`🐳 [DOCKER-SOCKET-LOG] Direct message save ERROR: ${error.message}`);
+        console.log(`🐳 [DOCKER-SOCKET-LOG] Error stack: ${error.stack}`);
+        
         socket.emit('message_error', { 
           error: 'Failed to save direct message',
           tempId: data.tempId
@@ -377,15 +448,21 @@ function handleDirectMessage(io, socket, data) {
       });
   } catch (error) {
     console.error('❌ Direct message error:', error);
+    
+    // 🐳 DOCKER SOCKET LOGS: Direct message processing error
+    console.log(`🐳 [DOCKER-SOCKET-LOG] Direct message processing ERROR: ${error.message}`);
+    console.log(`🐳 [DOCKER-SOCKET-LOG] Error stack: ${error.stack}`);
+    
     socket.emit('message_error', { 
-      error: 'Direct message processing failed',
+      error: 'Message processing failed',
       tempId: data.tempId
     });
   }
-}
-
 function handleJoinDMRoom(io, socket, data) {
-  console.log('🔍 handleJoinDMRoom called with data:', data);
+  console.log('\n=== 🏠 DM ROOM JOIN REQUEST ===');
+  console.log('Socket ID:', socket.id);
+  console.log('Join data:', JSON.stringify(data, null, 2));
+  
   try {
     const { roomId } = data;
     const user = userService.getConnectedUser(socket.id);
@@ -400,17 +477,37 @@ function handleJoinDMRoom(io, socket, data) {
     }
     
     const roomName = `dm-room-${roomId}`;
+    
+    // Check current room membership before joining
+    const currentRooms = Array.from(socket.rooms);
+    console.log('📋 Current rooms for socket before join:', currentRooms);
+    
+    // Join the room
     socket.join(roomName);
     
     console.log(`💬 User ${user.username} (${user.userId}) joined DM room ${roomId}`);
     console.log(`💬 Socket ${socket.id} joined room: ${roomName}`);
     
+    // Verify the join worked
     const roomSockets = io.sockets.adapter.rooms.get(roomName);
-    console.log(`💬 Room ${roomName} now has ${roomSockets ? roomSockets.size : 0} sockets`);
+    const roomMembers = roomSockets ? Array.from(roomSockets) : [];
+    console.log(`💬 Room ${roomName} now has ${roomMembers.length} members:`, roomMembers);
+    
+    // List all users in the room
+    roomMembers.forEach(socketId => {
+      const memberUser = userService.getConnectedUser(socketId);
+      console.log(`  👤 Socket ${socketId}: ${memberUser ? `${memberUser.username} (${memberUser.userId})` : 'Unknown user'}`);
+    });
+    
+    // Check final room membership
+    const finalRooms = Array.from(socket.rooms);
+    console.log('📋 Final rooms for socket after join:', finalRooms);
     
     socket.emit('dm-room-joined', { 
       roomId, 
-      success: true 
+      roomName,
+      success: true,
+      memberCount: roomMembers.length
     });
     
     socket.to(roomName).emit('user-joined-dm-room', {
@@ -418,6 +515,15 @@ function handleJoinDMRoom(io, socket, data) {
       userId: user.userId,
       username: user.username
     });
+    
+    console.log('✅ DM room join completed successfully');
+    console.log('=== END DM ROOM JOIN ===\n');
+    
+  } catch (error) {
+    console.error('❌ Error in handleJoinDMRoom:', error);
+    socket.emit('dm-room-join-failed', { error: 'Failed to join room' });
+  }
+}
   } catch (error) {
     console.error('❌ Join DM room error:', error);
     socket.emit('dm-room-join-failed', { error: 'Failed to join DM room' });

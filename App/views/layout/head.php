@@ -280,6 +280,97 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         }
+
+        // Ctrl+4: Check and join DM room
+        if (e.ctrlKey && e.key === '4') {
+            e.preventDefault();
+            
+            console.log('🔧 Manual DM room check and join triggered...');
+            
+            const urlParams = new URLSearchParams(window.location.search);
+            const dmParam = urlParams.get('dm');
+            
+            if (!dmParam) {
+                console.log('❌ No DM parameter in URL');
+                if (window.showToast) {
+                    window.showToast('❌ Not on a DM page', 'error');
+                }
+                return;
+            }
+            
+            console.log('📊 DM Context Check:', {
+                dmParam: dmParam,
+                MisVordMessaging: !!window.MisVordMessaging,
+                activeChatRoom: window.MisVordMessaging?.activeChatRoom,
+                chatType: window.MisVordMessaging?.chatType,
+                globalSocketManager: !!window.globalSocketManager,
+                socketConnected: window.globalSocketManager?.connected
+            });
+            
+            if (window.MisVordMessaging) {
+                try {
+                    // Set DM context
+                    window.MisVordMessaging.activeChatRoom = dmParam;
+                    window.MisVordMessaging.chatType = 'direct';
+                    console.log('✅ DM context set');
+                    
+                    // Join DM room via socket
+                    if (window.globalSocketManager && window.globalSocketManager.socket) {
+                        console.log('📡 Emitting join-dm-room event:', { roomId: dmParam });
+                        window.globalSocketManager.socket.emit('join-dm-room', { roomId: dmParam });
+                        console.log('✅ Join DM room event sent');
+                    }
+                    
+                    // Also try the MisVordMessaging method
+                    if (window.MisVordMessaging.joinDMRoom) {
+                        console.log('📡 Calling MisVordMessaging.joinDMRoom');
+                        window.MisVordMessaging.joinDMRoom(dmParam);
+                    }
+                    
+                    if (window.showToast) {
+                        window.showToast(`✅ DM room ${dmParam} join attempt completed`, 'success');
+                    }
+                    
+                } catch (error) {
+                    console.error('❌ DM room join failed:', error);
+                    if (window.showToast) {
+                        window.showToast('❌ DM room join failed: ' + error.message, 'error');
+                    }
+                }
+            } else {
+                console.error('❌ MisVordMessaging not available');
+                if (window.showToast) {
+                    window.showToast('❌ MisVordMessaging not available', 'error');
+                }
+            }
+        }
+        
+        // Ctrl+5: Debug room status and membership
+        if (e.ctrlKey && e.key === '5') {
+            e.preventDefault();
+            
+            console.log('🔧 Room status debug triggered...');
+            
+            if (window.globalSocketManager && window.globalSocketManager.socket) {
+                console.log('📡 Requesting room debug info...');
+                window.globalSocketManager.socket.emit('debug-rooms');
+                
+                // Also check current socket rooms
+                console.log('📊 Socket room membership check:', {
+                    socketId: window.globalSocketManager.socket.id,
+                    rooms: Array.from(window.globalSocketManager.socket.rooms || [])
+                });
+                
+                if (window.showToast) {
+                    window.showToast('📊 Room debug info requested - check console', 'info');
+                }
+            } else {
+                console.error('❌ No socket connection for room debugging');
+                if (window.showToast) {
+                    window.showToast('❌ No socket connection', 'error');
+                }
+            }
+        }
     });
     
     function getDetailedSocketStatus() {
@@ -357,7 +448,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return status;
     }
     
-    console.log('🧪 Debug mode active: Press Ctrl+1 to send test message, Ctrl+2 to check socket status, Ctrl+3 to force messaging init');
+    console.log('🧪 Debug mode active: Ctrl+1 (test message), Ctrl+2 (socket status), Ctrl+3 (force messaging init), Ctrl+4 (join DM room), Ctrl+5 (debug room status)');
     
     // Check and potentially fix MisVordMessaging initialization
     if (window.MisVordMessaging && !window.MisVordMessaging.initialized) {

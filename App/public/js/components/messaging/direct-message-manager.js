@@ -113,8 +113,7 @@ class DirectMessageManager {
           friend.username
         }">                <div class="w-8 h-8 rounded-full bg-gray-600 flex-shrink-0 flex items-center justify-center overflow-hidden mr-3">
                     <img src="${
-                      friend.avatar_url ||
-                      '/public/assets/common/main-logo.png'
+                      friend.avatar_url || "/public/assets/common/main-logo.png"
                     }" 
                          alt="Avatar" class="w-full h-full object-cover">
                 </div>

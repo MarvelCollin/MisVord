@@ -19,11 +19,20 @@
 <body>
     <h1>🔍 Socket Status Test - MisVord</h1>
     <div id="status"></div>
-    
-    <div>        <button class="btn-primary" onclick="testConnection()">Test Socket Connection</button>
+      <div>        <button class="btn-primary" onclick="testConnection()">Test Socket Connection</button>
         <button class="btn-secondary" onclick="testAuthentication()">Test Authentication</button>
         <button class="btn-secondary" onclick="testMisVordMessaging()">Test MisVord Messaging</button>
+        <button class="btn-secondary" onclick="joinTestRoom()">Join Test DM Room</button>
+        <button class="btn-secondary" onclick="sendTestMessage()">Send Test Message</button>
+        <button class="btn-secondary" onclick="debugRooms()">Debug Rooms</button>
         <button class="btn-secondary" onclick="clearLog()">Clear Log</button>
+    </div>
+    
+    <div style="margin: 20px 0;">
+        <h3>Quick Message Test:</h3>
+        <input type="text" id="roomId" placeholder="Enter room ID (e.g., 1)" style="padding: 8px; margin: 5px; background: #40444b; color: white; border: 1px solid #666; border-radius: 3px;">
+        <input type="text" id="testMessage" placeholder="Enter test message" style="padding: 8px; margin: 5px; background: #40444b; color: white; border: 1px solid #666; border-radius: 3px; width: 200px;">
+        <button class="btn-primary" onclick="quickMessageTest()">Quick Test</button>
     </div>
     
     <h3>Debug Log:</h3>
@@ -81,10 +90,44 @@
                 log(`✅ Authentication successful: ${JSON.stringify(data)}`);
                 updateStatus('✅ Authenticated successfully', 'success');
             });
-            
-            socket.on('authentication_error', (error) => {
+              socket.on('authentication_error', (error) => {
                 log(`❌ Authentication failed: ${JSON.stringify(error)}`);
                 updateStatus(`❌ Authentication failed: ${error.message || 'Unknown error'}`, 'error');
+            });
+            
+            // Room events
+            socket.on('dm-room-joined', (data) => {
+                log('✅ DM room joined: ' + JSON.stringify(data));
+            });
+            
+            socket.on('dm-room-join-failed', (data) => {
+                log('❌ DM room join failed: ' + JSON.stringify(data));
+            });
+            
+            socket.on('user-joined-dm-room', (data) => {
+                log('👤 User joined DM room: ' + JSON.stringify(data));
+            });
+            
+            socket.on('room-joined', (data) => {
+                log('✅ Room joined: ' + JSON.stringify(data));
+            });
+            
+            // Message events
+            socket.on('new-direct-message', (data) => {
+                log('📨 NEW DIRECT MESSAGE RECEIVED: ' + JSON.stringify(data, null, 2));
+            });
+            
+            socket.on('message-sent-confirmation', (data) => {
+                log('✅ Message sent confirmation: ' + JSON.stringify(data));
+            });
+            
+            socket.on('message_error', (data) => {
+                log('❌ Message error: ' + JSON.stringify(data));
+            });
+            
+            // Debug events
+            socket.on('debug-response', (data) => {
+                log('🔍 Debug response: ' + JSON.stringify(data, null, 2));
             });
         }
         
@@ -146,9 +189,80 @@
                 updateStatus('✅ MisVordMessaging already initialized', 'success');
             }
         }
-        
-        function clearLog() {
+          function clearLog() {
             document.getElementById('log').innerHTML = '';
+        }
+        
+        function joinTestRoom() {
+            const roomId = document.getElementById('roomId').value || '1';
+            log(`🏠 Attempting to join DM room: ${roomId}`);
+            
+            if (socket && socket.connected) {
+                socket.emit('join-dm-room', { roomId: roomId });
+                log(`📡 Emitted join-dm-room event for room ${roomId}`);
+            } else {
+                log('❌ Socket not connected');
+            }
+        }
+        
+        function sendTestMessage() {
+            const roomId = document.getElementById('roomId').value || '1';
+            const message = document.getElementById('testMessage').value || `Test message ${new Date().toLocaleTimeString()}`;
+            
+            log(`📤 Attempting to send message to room ${roomId}: ${message}`);
+            
+            if (socket && socket.connected) {
+                const messageData = {
+                    roomId: roomId,
+                    content: message,
+                    messageType: 'text',
+                    timestamp: Date.now()
+                };
+                
+                socket.emit('direct-message', messageData);
+                log(`📡 Emitted direct-message event:`, JSON.stringify(messageData, null, 2));
+            } else {
+                log('❌ Socket not connected');
+            }
+        }
+        
+        function debugRooms() {
+            log('🔍 Requesting room debug information...');
+            
+            if (socket && socket.connected) {
+                socket.emit('debug-rooms');
+                log('📡 Emitted debug-rooms event');
+            } else {
+                log('❌ Socket not connected');
+            }
+        }
+        
+        function quickMessageTest() {
+            const roomId = document.getElementById('roomId').value || '1';
+            const message = document.getElementById('testMessage').value || `Quick test ${new Date().toLocaleTimeString()}`;
+            
+            log(`🚀 Quick test: joining room ${roomId} and sending message`);
+            
+            // First join the room
+            if (socket && socket.connected) {
+                socket.emit('join-dm-room', { roomId: roomId });
+                log(`📡 Step 1: Joined room ${roomId}`);
+                
+                // Wait a bit then send message
+                setTimeout(() => {
+                    const messageData = {
+                        roomId: roomId,
+                        content: message,
+                        messageType: 'text',
+                        timestamp: Date.now()
+                    };
+                    
+                    socket.emit('direct-message', messageData);
+                    log(`📡 Step 2: Sent message: ${message}`);
+                }, 1000);
+            } else {
+                log('❌ Socket not connected');
+            }
         }
         
         // Auto-start connection test

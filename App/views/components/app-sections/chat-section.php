@@ -77,11 +77,11 @@ $additional_css[] = 'messaging';
 
 <meta name="chat-type" content="<?php echo htmlspecialchars($chatType ?? 'channel'); ?>">
 <meta name="chat-id" content="<?php echo htmlspecialchars($targetId ?? ''); ?>">
-<meta name="active-channel" content="<?php echo htmlspecialchars($chatType === 'channel' ? $targetId : ''); ?>">
-<meta name="chat-context" content='<?php echo json_encode(['type' => $chatType ?? 'channel', 'id' => $targetId ?? '']); ?>'>
 <meta name="channel-id" content="<?php echo htmlspecialchars($chatType === 'channel' ? $targetId : ''); ?>">
 <meta name="user-id" content="<?php echo htmlspecialchars($currentUserId); ?>">
 <meta name="username" content="<?php echo htmlspecialchars($_SESSION['username'] ?? ''); ?>">
+<meta name="chat-title" content="<?php echo htmlspecialchars($chatTitle ?? ''); ?>">
+<meta name="chat-placeholder" content="<?php echo htmlspecialchars($placeholder ?? ''); ?>">
 
 <div class="flex flex-col flex-1 h-screen">
     <div class="h-12 border-b border-gray-800 flex items-center px-4 shadow-sm">
@@ -213,8 +213,7 @@ $additional_css[] = 'messaging';
                         <button type="button" class="text-discord-muted hover:text-white transition-colors mr-4 flex-shrink-0" title="Upload File">
                             <i class="fas fa-plus-circle fa-lg"></i>
                         </button>
-                        
-                        <div class="flex-1 relative">
+                          <div class="flex-1 relative">
                             <textarea 
                                 id="message-input" 
                                 name="content"
@@ -222,9 +221,6 @@ $additional_css[] = 'messaging';
                                 placeholder="<?php echo htmlspecialchars($placeholder); ?>"
                                 rows="1"
                                 maxlength="2000"
-                                data-chat-type="<?php echo htmlspecialchars($chatType); ?>"
-                                data-chat-id="<?php echo htmlspecialchars($targetId ?? ''); ?>"
-                                data-channel-id="<?php echo htmlspecialchars($chatType === 'channel' ? $targetId : ''); ?>"
                                 autocomplete="off"
                                 spellcheck="true"
                                 style="min-height: 24px;"></textarea>
@@ -258,33 +254,37 @@ $additional_css[] = 'messaging';
                         <div class="text-xs text-discord-muted text-right">
                             <span class="character-count">0</span>/2000
                         </div>
-                    </div>
-                </div>
+                    </div>                </div>
 
+                <!-- Hidden form data for fallback - using consistent naming -->
                 <input type="hidden" name="chat_type" value="<?php echo htmlspecialchars($chatType); ?>" />
                 <input type="hidden" name="chat_id" value="<?php echo htmlspecialchars($targetId ?? ''); ?>" />
                 <input type="hidden" name="channel_id" value="<?php echo htmlspecialchars($chatType === 'channel' ? $targetId : ''); ?>" />
-                <input type="hidden" data-user-id="<?php echo htmlspecialchars($currentUserId); ?>" />
-                <input type="hidden" data-username="<?php echo htmlspecialchars($_SESSION['username'] ?? ''); ?>" />
             </form>
         </div>
     </div>
 </div>
 
 <script>
-window.ChatData = {
-    chatType: '<?php echo htmlspecialchars($chatType); ?>',
-    targetId: '<?php echo htmlspecialchars($targetId ?? ''); ?>',
-    placeholder: '<?php echo htmlspecialchars($placeholder); ?>',
-    userId: <?php echo intval($currentUserId); ?>,
-    username: '<?php echo htmlspecialchars($_SESSION['username'] ?? ''); ?>'
-};
-
+// Initialize chat when messaging system is ready
 document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(() => {
-        if (window.MisVordMessaging && window.ChatData.targetId) {
-            window.MisVordMessaging.switchToChat(window.ChatData.targetId, window.ChatData.chatType);
+    // Wait for messaging system to be available
+    const initializeChat = () => {
+        if (window.MisVordMessaging) {
+            const chatType = document.querySelector('meta[name="chat-type"]')?.content;
+            const chatId = document.querySelector('meta[name="chat-id"]')?.content;
+            
+            if (chatId && chatType) {
+                console.log('🚀 Initializing chat:', { chatType, chatId });
+                window.MisVordMessaging.switchToChat(chatId, chatType);
+            }
+        } else {
+            // Retry after a short delay if messaging system isn't ready yet
+            setTimeout(initializeChat, 500);
         }
-    }, 1000);
+    };
+    
+    // Start initialization after DOM is ready
+    setTimeout(initializeChat, 100);
 });
 </script>

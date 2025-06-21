@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Real-time Messaging Test - MisVord</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #2f3136; color: white; }
+        .test-container { background: #36393f; padding: 20px; margin: 10px 0; border-radius: 8px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #4caf50; }
+        .error { background: #f44336; }
+        .warning { background: #ff9800; }
+        .info { background: #2196f3; }
+        button { padding: 10px 20px; margin: 5px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .btn-primary { background: #5865f2; color: white; }
+        .btn-success { background: #4caf50; color: white; }
+        .btn-warning { background: #ff9800; color: white; }
+        .btn-danger { background: #f44336; color: white; }
+        .log { background: #1e2124; padding: 15px; border-radius: 5px; height: 300px; overflow-y: auto; font-family: monospace; font-size: 12px; }
+        .code { background: #1e2124; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 12px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Real-time Messaging Test</h1>
+    
+    <div class="test-container">
+        <h3>🎯 Complete Debug Script for Browser Console</h3>
+        <p>Copy and paste this into the browser console on the MisVord app page (http://localhost:1001/app?dm=1):</p>
+        
+        <div class="code">
+            <pre id="complete-debug-script">// 🧪 Complete MisVord Messaging Debug & Test Script
+console.log('🚀 Starting complete messaging debug...');
+
+// Step 1: Check current state
+console.log('\n=== 📊 CURRENT STATE ===');
+const state = {
+    url: window.location.href,
+    dmParam: new URLSearchParams(window.location.search).get('dm'),
+    MisVordMessaging: !!window.MisVordMessaging,
+    globalSocketManager: !!window.globalSocketManager,
+    socketIO: typeof io !== 'undefined'
+};
+
+console.table(state);
+
+if (window.MisVordMessaging) {
+    console.log('\n=== 📱 MISVORD MESSAGING STATE ===');
+    console.table({
+        initialized: window.MisVordMessaging.initialized,
+        connected: window.MisVordMessaging.connected,
+        activeChatRoom: window.MisVordMessaging.activeChatRoom,
+        chatType: window.MisVordMessaging.chatType,
+        userId: window.MisVordMessaging.userId,
+        username: window.MisVordMessaging.username
+    });
+}
+
+if (window.globalSocketManager) {
+    console.log('\n=== 🌐 GLOBAL SOCKET STATE ===');
+    console.table({
+        ready: window.globalSocketManager.isReady(),
+        connected: window.globalSocketManager.connected,
+        authenticated: window.globalSocketManager.authenticated,
+        socketId: window.globalSocketManager.socket?.id,
+        userId: window.globalSocketManager.userId,
+        username: window.globalSocketManager.username
+    });
+}
+
+// Step 2: Fix any issues
+console.log('\n=== 🔧 FIXING ISSUES ===');
+
+// Initialize MisVordMessaging if needed
+if (window.MisVordMessaging && !window.MisVordMessaging.initialized) {
+    console.log('🔄 Initializing MisVordMessaging...');
+    try {
+        window.MisVordMessaging.init();
+        console.log('✅ MisVordMessaging initialized');
+    } catch (error) {
+        console.error('❌ MisVordMessaging initialization failed:', error);
+    }
+}
+
+// Force connection to global socket manager
+if (window.MisVordMessaging && window.globalSocketManager && window.globalSocketManager.isReady()) {
+    console.log('🔄 Connecting to global socket manager...');
+    try {
+        if (window.MisVordMessaging.socketManager?.connectToGlobalSocketManager) {
+            window.MisVordMessaging.socketManager.connectToGlobalSocketManager();
+            console.log('✅ Connection attempt completed');
+        }
+    } catch (error) {
+        console.error('❌ Connection failed:', error);
+    }
+}
+
+// Step 3: Join DM room
+const dmParam = new URLSearchParams(window.location.search).get('dm');
+if (dmParam && window.MisVordMessaging) {
+    console.log('\n=== 🏠 JOINING DM ROOM ===');
+    console.log('DM Room ID:', dmParam);
+    
+    try {
+        // Set context
+        window.MisVordMessaging.activeChatRoom = dmParam;
+        window.MisVordMessaging.chatType = 'direct';
+        
+        // Join room via socket
+        if (window.globalSocketManager?.socket) {
+            console.log('📡 Emitting join-dm-room event...');
+            window.globalSocketManager.socket.emit('join-dm-room', { roomId: dmParam });
+        }
+        
+        // Also use MisVordMessaging method
+        if (window.MisVordMessaging.joinDMRoom) {
+            console.log('📡 Calling MisVordMessaging.joinDMRoom...');
+            window.MisVordMessaging.joinDMRoom(dmParam);
+        }
+        
+        console.log('✅ DM room join completed');
+    } catch (error) {
+        console.error('❌ DM room join failed:', error);
+    }
+}
+
+// Step 4: Set up enhanced message logging
+console.log('\n=== 🔍 SETTING UP MESSAGE LOGGING ===');
+
+let messageCount = 0;
+
+// Override the onNewMessage method to add detailed logging
+if (window.MisVordMessaging && window.MisVordMessaging.messageHandler) {
+    const originalOnNewMessage = window.MisVordMessaging.messageHandler.onNewMessage.bind(window.MisVordMessaging.messageHandler);
+    
+    window.MisVordMessaging.messageHandler.onNewMessage = function(data) {
+        messageCount++;
+        console.log(`\n=== 📨 MESSAGE RECEIVED #${messageCount} ===`);
+        console.log('🔍 Raw message data:', JSON.stringify(data, null, 2));
+        console.log('🔍 Current context:', {
+            activeChannel: this.messaging.activeChannel,
+            activeChatRoom: this.messaging.activeChatRoom,
+            chatType: this.messaging.chatType,
+            userId: this.messaging.userId
+        });
+        
+        // Call original method
+        return originalOnNewMessage(data);
+    };
+    console.log('✅ Enhanced message logging activated');
+}
+
+// Step 5: Test message sending function
+window.testSendMessage = function(content = `Test message ${Date.now()}`) {
+    console.log('\n=== 📤 SENDING TEST MESSAGE ===');
+    console.log('Message content:', content);
+    
+    if (!window.MisVordMessaging) {
+        console.error('❌ MisVordMessaging not available');
+        return;
+    }
+    
+    const dmParam = new URLSearchParams(window.location.search).get('dm');
+    if (!dmParam) {
+        console.error('❌ No DM parameter in URL');
+        return;
+    }
+    
+    try {
+        console.log('📡 Sending message via MisVordMessaging.sendMessage...');
+        window.MisVordMessaging.sendMessage('direct', dmParam, content)
+            .then(result => {
+                console.log('✅ Message sent successfully:', result);
+            })
+            .catch(error => {
+                console.error('❌ Message send failed:', error);
+            });
+    } catch (error) {
+        console.error('❌ Message send error:', error);
+    }
+};
+
+// Final status check
+setTimeout(() => {
+    console.log('\n=== 📊 FINAL STATUS ===');
+    if (window.MisVordMessaging) {
+        console.table({
+            initialized: window.MisVordMessaging.initialized,
+            connected: window.MisVordMessaging.connected,
+            activeChatRoom: window.MisVordMessaging.activeChatRoom,
+            chatType: window.MisVordMessaging.chatType
+        });
+    }
+    
+    console.log('\n🎉 Debug setup complete!');
+    console.log('💡 Available test functions:');
+    console.log('   - testSendMessage() - Send a test message');
+    console.log('   - testSendMessage("Custom message") - Send custom message');
+    console.log('\n🎮 Available keyboard shortcuts in app:');
+    console.log('   - Ctrl+1: Send test message');
+    console.log('   - Ctrl+2: Check socket status');
+    console.log('   - Ctrl+3: Force messaging init');
+    console.log('   - Ctrl+4: Join DM room');
+}, 2000);</pre>
+        </div>
+        
+        <button class="btn-primary" onclick="copyCompleteScript()">📋 Copy Complete Script</button>
+        <button class="btn-success" onclick="openMisVordApp()">🚀 Open MisVord App</button>
+    </div>
+    
+    <div class="test-container">
+        <h3>🧪 Two-User Testing Instructions</h3>
+        <ol>
+            <li><strong>Window 1:</strong> Open <code>http://localhost:1001/app?dm=1</code> and login as <strong>kolin</strong></li>
+            <li><strong>Window 2:</strong> Open <code>http://localhost:1001/app?dm=1</code> and login as <strong>kolina</strong></li>
+            <li>In both windows, press <strong>F12</strong> and paste the debug script above</li>
+            <li>In Window 1, run <code>testSendMessage("Hello from kolin!")</code></li>
+            <li>Check Window 2 console for message reception logs</li>
+            <li>In Window 2, run <code>testSendMessage("Hello from kolina!")</code></li>
+            <li>Check Window 1 console for message reception logs</li>
+        </ol>
+        
+        <div class="status info">
+            <strong>Expected Result:</strong> Messages should appear in both the UI and console logs of the receiving window
+        </div>
+    </div>
+    
+    <script>
+        function copyCompleteScript() {
+            const script = document.getElementById('complete-debug-script').textContent;
+            navigator.clipboard.writeText(script).then(() => {
+                alert('Complete debug script copied! Paste it in browser console.');
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                alert('Failed to copy. Please manually copy the script.');
+            });
+        }
+        
+        function openMisVordApp() {
+            window.open('http://localhost:1001/app?dm=1', '_blank');
+        }
+    </script>
+</body>
+</html>

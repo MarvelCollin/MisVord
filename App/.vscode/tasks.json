@@ -15,6 +15,20 @@
 			"group": "build",
 			"isBackground": true,
 			"problemMatcher": []
+		},
+		{
+			"label": "Start Socket Server",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"start"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}/socket-server"
+			},
+			"group": "build",
+			"isBackground": true,
+			"problemMatcher": []
 		}
 	]
 }
