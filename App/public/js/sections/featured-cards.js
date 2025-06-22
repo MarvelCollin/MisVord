@@ -60,11 +60,6 @@ function initFeaturedCards() {
 }
 
 function animateTitle(titleElement) {
-//   titleElement.style.opacity = "1";
-//   titleElement.style.transform = "translateY(0)";
-//   titleElement.style.display = "block";
-//   titleElement.style.visibility = "visible";
-//   titleElement.classList.add("revealed");
 
   splitTextIntoChars(titleElement);
 }

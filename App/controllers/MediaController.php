@@ -14,7 +14,6 @@ class MediaController extends BaseController
         parent::__construct();
         $this->uploadPath = __DIR__ . '/../public/uploads/';
         
-        // Create upload directories if they don't exist
         $this->ensureUploadDirectories();
     }
 
@@ -49,29 +48,24 @@ class MediaController extends BaseController
             $fileSize = $file['size'];
             $mimeType = mime_content_type($tempPath);
 
-            // Validate file size
             if ($fileSize > $this->maxFileSize) {
                 return $this->validationError(['file' => 'File size exceeds 25MB limit']);
             }
 
-            // Validate file type and determine category
             $category = $this->determineFileCategory($mimeType);
             if (!$category) {
                 return $this->validationError(['file' => 'Unsupported file type']);
             }
 
-            // Generate unique filename
             $extension = pathinfo($originalName, PATHINFO_EXTENSION);
             $fileName = uniqid() . '_' . time() . '.' . $extension;
             $relativePath = "uploads/{$category}/{$fileName}";
             $absolutePath = $this->uploadPath . "{$category}/{$fileName}";
 
-            // Move uploaded file
             if (!move_uploaded_file($tempPath, $absolutePath)) {
                 return $this->serverError('Failed to save uploaded file');
             }
 
-            // Return file information
             return $this->success([
                 'file_url' => '/' . $relativePath,
                 'file_name' => $originalName,
@@ -111,26 +105,22 @@ class MediaController extends BaseController
                 $fileSize = $files['size'][$i];
                 $mimeType = mime_content_type($tempPath);
 
-                // Validate file size
                 if ($fileSize > $this->maxFileSize) {
                     $errors[] = "File '{$originalName}': Size exceeds 25MB limit";
                     continue;
                 }
 
-                // Validate file type and determine category
                 $category = $this->determineFileCategory($mimeType);
                 if (!$category) {
                     $errors[] = "File '{$originalName}': Unsupported file type";
                     continue;
                 }
 
-                // Generate unique filename
                 $extension = pathinfo($originalName, PATHINFO_EXTENSION);
                 $fileName = uniqid() . '_' . time() . '.' . $extension;
                 $relativePath = "uploads/{$category}/{$fileName}";
                 $absolutePath = $this->uploadPath . "{$category}/{$fileName}";
 
-                // Move uploaded file
                 if (!move_uploaded_file($tempPath, $absolutePath)) {
                     $errors[] = "File '{$originalName}': Failed to save";
                     continue;
@@ -166,7 +156,7 @@ class MediaController extends BaseController
             return 'audio';
         }
         
-        return null; // Unsupported type
+        return null;
     }
 
     public function getGifs()

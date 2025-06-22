@@ -535,7 +535,6 @@ class ChatController extends BaseController
             
             error_log("📨 Sending WebSocket notification: " . $event . ", Data: " . json_encode($data));
             
-            // For channel and direct messages, broadcast directly to the specific room
             if ($event === 'channel-message' && isset($data['channelId'])) {
                 $roomName = 'channel-' . $data['channelId'];
                 error_log("📢 Broadcasting to channel room: " . $roomName);

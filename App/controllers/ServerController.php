@@ -171,15 +171,12 @@ class ServerController extends BaseController
             $server->is_public = isset($input['is_public']) ? (bool)$input['is_public'] : false;
             $server->category = $input['category'] ?? null;
 
-            // Handle server icon upload
             if (isset($_FILES['server_icon']) && $_FILES['server_icon']['error'] === UPLOAD_ERR_OK) {
                 $imageUrl = $this->uploadImage($_FILES['server_icon'], 'servers');
                 if ($imageUrl !== false) {
                     $server->image_url = $imageUrl;
                 }
             }
-            
-            // Handle server banner upload
             if (isset($_FILES['server_banner']) && $_FILES['server_banner']['error'] === UPLOAD_ERR_OK) {
                 $bannerUrl = $this->uploadImage($_FILES['server_banner'], 'banners');
                 if ($bannerUrl !== false) {

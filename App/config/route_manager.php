@@ -108,12 +108,10 @@ class RouteManager {
         $method = strtoupper($method);
         $key = $method . ':' . $uri;
         
-        // Direct match
         if (isset($this->routes[$key])) {
             return $this->routes[$key];
         }
         
-        // Pattern matching
         foreach ($this->routes as $routeKey => $route) {
             if (strpos($routeKey, $method . ':') !== 0) {
                 continue;
@@ -121,14 +119,12 @@ class RouteManager {
             
             $pattern = $route['uri'];
             
-            // Convert route parameters to regex
             if (strpos($pattern, '{') !== false) {
                 $pattern = preg_quote($pattern, '#');
                 $pattern = preg_replace('/\\\{([a-zA-Z0-9_]+)\\\}/', '(?P<$1>[^/]+)', $pattern);
                 $pattern = '#^' . $pattern . '$#';
                 
                 if (preg_match($pattern, $uri, $matches)) {
-                    // Extract named parameters
                     $parameters = [];
                     foreach ($matches as $key => $value) {
                         if (!is_numeric($key)) {
@@ -154,27 +150,23 @@ class RouteManager {
             return;
         }
         
-        // Execute middleware
         foreach ($route['middleware'] as $middlewareName) {
             if (isset($this->middleware[$middlewareName])) {
                 $middlewareResult = call_user_func($this->middleware[$middlewareName]);
                 if ($middlewareResult === false) {
-                    return; // Middleware blocked the request
+                    return;
                 }
             }
         }
         
-        // Execute handler
         $handler = $route['handler'];
         $parameters = $route['parameters'] ?? [];
         
         if (is_callable($handler)) {
             call_user_func_array($handler, array_values($parameters));
         } elseif (is_string($handler)) {
-            // Assume it's a view file
             $viewPath = __DIR__ . '/../views/' . $handler;
             if (file_exists($viewPath)) {
-                // Extract parameters as variables
                 extract($parameters);
                 require $viewPath;
             } else {
@@ -191,8 +183,6 @@ class RouteManager {
     }
     
     public function url($name, $parameters = []) {
-        // This would be used for named routes (not implemented yet)
-        // For now, just return the URI with parameters replaced
         foreach ($this->routes as $route) {
             if (isset($route['name']) && $route['name'] === $name) {
                 $uri = $route['uri'];

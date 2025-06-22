@@ -32,9 +32,7 @@ class User extends Model {
     }
 
     public static function findByDisplayName($displayName) {
-        // Parse username#discriminator format
         if (strpos($displayName, '#') === false) {
-            // If no discriminator provided, just search by username
             return static::findByUsername($displayName);
         }
         
@@ -46,7 +44,6 @@ class User extends Model {
         $username = trim($parts[0]);
         $discriminator = trim($parts[1]);
         
-        // Validate discriminator format (4 digits)
         if (!preg_match('/^\d{4}$/', $discriminator)) {
             return null;
         }
@@ -55,7 +52,6 @@ class User extends Model {
     }
 
     public function verifyPassword($password) {
-        // Debug password verification
         if (function_exists('logger')) {
             logger()->debug("verifyPassword called", [
                 'has_password_in_db' => isset($this->attributes['password']) && !empty($this->attributes['password']),
@@ -64,7 +60,6 @@ class User extends Model {
             ]);
         }
         
-        // Use isset and check for null instead of empty() due to magic method behavior
         if (!isset($this->attributes['password']) || $this->attributes['password'] === null || $this->attributes['password'] === '') {
             if (function_exists('logger')) {
                 logger()->warning("No password set in database for user");

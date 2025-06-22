@@ -133,10 +133,8 @@ if (file_exists($tooltipPath)) {
                 const chatRoomId = this.dataset.chatRoomId;
                 
                 if (chatRoomId) {
-                    // If we already have a chat room, redirect directly to it
                     window.location.href = `/app/channels/dm/${chatRoomId}`;
                 } else {
-                    // Otherwise create a new chat room
                     fetch('/api/chat/create', {
                         method: 'POST',
                         headers: {

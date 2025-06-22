@@ -8,14 +8,19 @@ class WebSocketClient {
     private $debug;
     
     public function __construct($host = null, $port = null, $path = '/socket.io', $timeout = 5, $debug = true) {
-        $this->host = $host ?: ($_ENV['SOCKET_HOST'] ?? 'misvord_node');
-        $this->port = $port ?: ($_ENV['SOCKET_PORT'] ?? 1002);
+        $envHost = getenv('SOCKET_HOST');
+        $this->host = $host ?: ($envHost !== false ? $envHost : 'socket');
+        
+        $envPort = getenv('SOCKET_PORT'); 
+        $this->port = $port ?: ($envPort !== false ? $envPort : 1002);
+        
         $this->path = $path;
         $this->timeout = $timeout;
         $this->debug = $debug;
         
-        // Log connection details on initialization
-        $this->log("Initializing WebSocketClient with host: {$this->host}, port: {$this->port}");
+        $this->log("Initializing WebSocketClient with host: '{$this->host}', port: {$this->port}");
+        $this->log("Environment variables: SOCKET_HOST=" . ($envHost !== false ? $envHost : 'not set') . 
+                  ", SOCKET_PORT=" . ($envPort !== false ? $envPort : 'not set'));
     }
     
     public function emit($event, $data) {
@@ -78,6 +83,7 @@ class WebSocketClient {
         $url = "http://{$this->host}:{$this->port}/api{$endpoint}";
         
         $this->log("Sending request to: {$url}");
+        $this->log("With payload: " . $payload);
         
         $options = [
             'http' => [
@@ -114,9 +120,13 @@ class WebSocketClient {
             
             if ($result === false) {
                 $error = error_get_last();
-                $this->log("Socket request failed: " . ($error ? $error['message'] : 'Unknown error'));
+                $errorMessage = $error ? $error['message'] : 'Unknown error';
+                $this->log("Socket request failed: " . $errorMessage);
                 
-                // Try cURL as fallback if file_get_contents fails
+                if (strpos($errorMessage, 'Connection refused') !== false) {
+                    $this->log("Connection to socket server refused. Make sure the socket server is running and accessible at {$this->host}:{$this->port}");
+                }
+                
                 return $this->curlFallback($url, $options);
             }
             
@@ -176,10 +186,21 @@ class WebSocketClient {
     
     private function log($message) {
         if ($this->debug) {
+            $logMessage = "[WebSocketClient] " . $message;
+            
+            // Always log to error_log
+            error_log($logMessage);
+            
             if (function_exists('logger')) {
-                logger()->debug("[WebSocketClient] " . $message);
-            } else {
-                error_log("[WebSocketClient] " . $message);
+                logger()->debug($logMessage);
+            }
+            
+            // Try to log to a file
+            try {
+                $logFile = __DIR__ . '/../logs/websocket.log';
+                file_put_contents($logFile, date('[Y-m-d H:i:s]') . " " . $logMessage . "\n", FILE_APPEND);
+            } catch (Exception $e) {
+                error_log("Failed to write to WebSocketClient log file: " . $e->getMessage());
             }
         }
     }

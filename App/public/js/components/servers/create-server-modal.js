@@ -10,46 +10,58 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function initServerIconUpload() {
-    const iconContainer = document.getElementById('server-icon-container');
-    const iconInput = document.getElementById('server-icon-input');
-    const iconPreview = document.getElementById('server-icon-preview');
-    const iconPlaceholder = document.getElementById('server-icon-placeholder');
-    
-    // Create image cutter for profile/icon (1:1 aspect ratio)
-    if (iconContainer) {
+    try {
+        const iconContainer = document.getElementById('server-icon-container');
+        const iconInput = document.getElementById('server-icon-input');
+        const iconPreview = document.getElementById('server-icon-preview');
+        const iconPlaceholder = document.getElementById('server-icon-placeholder');
+        
+        // Ensure all required elements exist
+        if (!iconContainer || !iconInput || !iconPreview || !iconPlaceholder) {
+            console.error('Missing required elements for server icon upload');
+            return;
+        }
+        
+        // Create image cutter for profile/icon (1:1 aspect ratio)
         const iconCutter = new ImageCutter({
             container: iconContainer,
             type: 'profile',
             modalTitle: 'Crop Server Icon',
             onCrop: (result) => {
+                if (result && result.error) {
+                    console.error('Error cropping server icon:', result.message);
+                    return;
+                }
+                
                 // Update preview with cropped image
                 iconPreview.src = result.dataUrl;
                 iconPreview.classList.remove('hidden');
                 iconPlaceholder.classList.add('hidden');
                 console.log('Icon crop completed');
+                
+                // Store the cropped image data to use during form submission
+                iconContainer.dataset.croppedImage = result.dataUrl;
             }
         });
         
         // Store the cutter instance for later use
         window.serverIconCutter = iconCutter;
         
-        // Listen for crop completion event
-        iconContainer.addEventListener('imageCropComplete', (e) => {
-            // Update the preview with the cropped image
-            iconPreview.src = e.detail.dataUrl;
-            iconPreview.classList.remove('hidden');
-            iconPlaceholder.classList.add('hidden');
-            
-            // Store the cropped image data to use during form submission
-            iconContainer.dataset.croppedImage = e.detail.dataUrl;
-        });
-    }
-
-    if (iconInput) {
+        // Listen for file input changes
         iconInput.addEventListener('change', function() {
-            if (this.files && this.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
+            if (!this.files || !this.files[0]) return;
+            
+            const file = this.files[0];
+            
+            // Validate file type
+            if (!file.type.match('image.*')) {
+                alert('Please select a valid image file');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
                     // If we have the image cutter, use it
                     if (window.serverIconCutter) {
                         window.serverIconCutter.loadImage(e.target.result);
@@ -58,55 +70,82 @@ function initServerIconUpload() {
                         iconPreview.src = e.target.result;
                         iconPreview.classList.remove('hidden');
                         iconPlaceholder.classList.add('hidden');
+                        iconContainer.dataset.croppedImage = e.target.result;
                     }
+                } catch (error) {
+                    console.error('Error processing server icon:', error);
+                    // Fallback to simple preview
+                    iconPreview.src = e.target.result;
+                    iconPreview.classList.remove('hidden');
+                    iconPlaceholder.classList.add('hidden');
+                    iconContainer.dataset.croppedImage = e.target.result;
                 }
-                reader.readAsDataURL(this.files[0]);
-            }
+            };
+            
+            reader.onerror = function(error) {
+                console.error('Error reading file:', error);
+            };
+            
+            reader.readAsDataURL(file);
         });
+    } catch (error) {
+        console.error('Error initializing server icon upload:', error);
     }
 }
 
 function initServerBannerUpload() {
-    const bannerContainer = document.getElementById('server-banner-container');
-    const bannerInput = document.getElementById('server-banner-input');
-    const bannerPreview = document.getElementById('server-banner-preview');
-    const bannerPlaceholder = document.getElementById('server-banner-placeholder');
-    
-    // Create image cutter for banner (2:1 aspect ratio)
-    if (bannerContainer) {
+    try {
+        const bannerContainer = document.getElementById('server-banner-container');
+        const bannerInput = document.getElementById('server-banner-input');
+        const bannerPreview = document.getElementById('server-banner-preview');
+        const bannerPlaceholder = document.getElementById('server-banner-placeholder');
+        
+        // Ensure all required elements exist
+        if (!bannerContainer || !bannerInput || !bannerPreview || !bannerPlaceholder) {
+            console.error('Missing required elements for server banner upload');
+            return;
+        }
+        
+        // Create image cutter for banner (2:1 aspect ratio)
         const bannerCutter = new ImageCutter({
             container: bannerContainer,
             type: 'banner',
             modalTitle: 'Crop Server Banner',
             onCrop: (result) => {
+                if (result && result.error) {
+                    console.error('Error cropping server banner:', result.message);
+                    return;
+                }
+                
                 // Update preview with cropped image
                 bannerPreview.src = result.dataUrl;
                 bannerPreview.classList.remove('hidden');
                 bannerPlaceholder.classList.add('hidden');
                 console.log('Banner crop completed');
+                
+                // Store the cropped image data to use during form submission
+                bannerContainer.dataset.croppedImage = result.dataUrl;
             }
         });
         
         // Store the cutter instance for later use
         window.serverBannerCutter = bannerCutter;
         
-        // Listen for crop completion event
-        bannerContainer.addEventListener('imageCropComplete', (e) => {
-            // Update the preview with the cropped image
-            bannerPreview.src = e.detail.dataUrl;
-            bannerPreview.classList.remove('hidden');
-            bannerPlaceholder.classList.add('hidden');
-            
-            // Store the cropped image data to use during form submission
-            bannerContainer.dataset.croppedImage = e.detail.dataUrl;
-        });
-    }
-
-    if (bannerInput) {
+        // Listen for file input changes
         bannerInput.addEventListener('change', function() {
-            if (this.files && this.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
+            if (!this.files || !this.files[0]) return;
+            
+            const file = this.files[0];
+            
+            // Validate file type
+            if (!file.type.match('image.*')) {
+                alert('Please select a valid image file');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
                     // If we have the image cutter, use it
                     if (window.serverBannerCutter) {
                         window.serverBannerCutter.loadImage(e.target.result);
@@ -115,11 +154,26 @@ function initServerBannerUpload() {
                         bannerPreview.src = e.target.result;
                         bannerPreview.classList.remove('hidden');
                         bannerPlaceholder.classList.add('hidden');
+                        bannerContainer.dataset.croppedImage = e.target.result;
                     }
+                } catch (error) {
+                    console.error('Error processing server banner:', error);
+                    // Fallback to simple preview
+                    bannerPreview.src = e.target.result;
+                    bannerPreview.classList.remove('hidden');
+                    bannerPlaceholder.classList.add('hidden');
+                    bannerContainer.dataset.croppedImage = e.target.result;
                 }
-                reader.readAsDataURL(this.files[0]);
-            }
+            };
+            
+            reader.onerror = function(error) {
+                console.error('Error reading file:', error);
+            };
+            
+            reader.readAsDataURL(file);
         });
+    } catch (error) {
+        console.error('Error initializing server banner upload:', error);
     }
 }
 
@@ -129,6 +183,9 @@ function initServerFormSubmission() {
         serverForm.addEventListener('submit', function(e) {
             e.preventDefault();
             
+            const submitBtn = this.querySelector('button[type="submit"]');
+            showLoading(submitBtn);
+            
             // Get cropped images from data attributes if available
             const iconContainer = document.getElementById('server-icon-container');
             const bannerContainer = document.getElementById('server-banner-container');
@@ -137,39 +194,60 @@ function initServerFormSubmission() {
             
             // If we have cropped images, use them
             if (iconDataUrl || bannerDataUrl) {
-                const promises = [];
-                
-                if (iconDataUrl) {
-                    promises.push(
-                        fetch(iconDataUrl)
-                            .then(res => res.blob())
-                            .then(blob => {
-                                const iconFile = new File([blob], 'icon.png', { type: 'image/png' });
-                                updateFormDataWithFile(this, 'server_icon', iconFile);
-                            })
-                    );
+                try {
+                    const promises = [];
+                    
+                    if (iconDataUrl) {
+                        promises.push(
+                            fetch(iconDataUrl)
+                                .then(res => res.blob())
+                                .then(blob => {
+                                    try {
+                                        const iconFile = new File([blob], 'icon.png', { type: 'image/png' });
+                                        updateFormDataWithFile(this, 'server_icon', iconFile);
+                                    } catch (fileError) {
+                                        console.error('Error creating icon file:', fileError);
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error('Error processing icon image:', error);
+                                })
+                        );
+                    }
+                    
+                    if (bannerDataUrl) {
+                        promises.push(
+                            fetch(bannerDataUrl)
+                                .then(res => res.blob())
+                                .then(blob => {
+                                    try {
+                                        const bannerFile = new File([blob], 'banner.png', { type: 'image/png' });
+                                        updateFormDataWithFile(this, 'server_banner', bannerFile);
+                                    } catch (fileError) {
+                                        console.error('Error creating banner file:', fileError);
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error('Error processing banner image:', error);
+                                })
+                        );
+                    }
+                    
+                    // Wait for all promises to resolve then submit the form
+                    Promise.all(promises)
+                        .then(() => {
+                            handleServerCreation(this);
+                        })
+                        .catch(err => {
+                            console.error('Error processing cropped images:', err);
+                            hideLoading(submitBtn);
+                            showError('Error processing images. Please try again.');
+                        });
+                } catch (error) {
+                    console.error('Error in image processing:', error);
+                    hideLoading(submitBtn);
+                    showError('Error processing images. Please try again.');
                 }
-                
-                if (bannerDataUrl) {
-                    promises.push(
-                        fetch(bannerDataUrl)
-                            .then(res => res.blob())
-                            .then(blob => {
-                                const bannerFile = new File([blob], 'banner.png', { type: 'image/png' });
-                                updateFormDataWithFile(this, 'server_banner', bannerFile);
-                            })
-                    );
-                }
-                
-                // Wait for all promises to resolve then submit the form
-                Promise.all(promises)
-                    .then(() => {
-                        handleServerCreation(this);
-                    })
-                    .catch(err => {
-                        console.error('Error processing cropped images:', err);
-                        handleServerCreation(this);
-                    });
             } else {
                 handleServerCreation(this);
             }
@@ -199,36 +277,53 @@ function updateFormDataWithFile(form, fieldName, file) {
 }
 
 function handleServerCreation(form) {
-    const formData = new FormData(form);
-    const modal = document.getElementById('create-server-modal');
-    const submitBtn = form.querySelector('button[type="submit"]');
-    
-    showLoading(submitBtn);
-    
-    ServerAPI.createServer(formData)
-    .then(data => {
-        hideLoading(submitBtn);        if (data.success) {
-            const server = data.data.server;
-            
-            try {
-                addServerToSidebar(server);
-            } catch (error) {
-                console.error('Failed to add server to sidebar dynamically:', error);
-                refreshSidebar();
-            }
-            
-            closeModal(modal);
-            resetForm(form);
-            navigateToNewServer(server.id);
-        } else {
-            showError(data.message || 'Failed to create server');
+    try {
+        const formData = new FormData(form);
+        const modal = document.getElementById('create-server-modal');
+        const submitBtn = form.querySelector('button[type="submit"]');
+        
+        if (!submitBtn.classList.contains('loading')) {
+            showLoading(submitBtn);
         }
-    })
-    .catch(error => {
+        
+        const serverName = formData.get('name');
+        if (!serverName || serverName.trim() === '') {
+            hideLoading(submitBtn);
+            showError('Server name is required');
+            return;
+        }
+        
+        ServerAPI.createServer(formData)
+        .then(data => {
+            hideLoading(submitBtn);
+            if (data.success) {
+                const server = data.data.server;
+                
+                try {
+                    addServerToSidebar(server);
+                } catch (error) {
+                    console.error('Failed to add server to sidebar dynamically:', error);
+                    refreshSidebar();
+                }
+                
+                closeModal(modal);
+                resetForm(form);
+                navigateToNewServer(server.id);
+            } else {
+                showError(data.message || 'Failed to create server');
+            }
+        })
+        .catch(error => {
+            hideLoading(submitBtn);
+            showError('Network error occurred. Please try again.');
+            console.error('Server creation error:', error);
+        });
+    } catch (error) {
+        const submitBtn = form.querySelector('button[type="submit"]');
         hideLoading(submitBtn);
-        showError('Network error occurred');
-        console.error('Server creation error:', error);
-    });
+        showError('An unexpected error occurred. Please try again.');
+        console.error('Error in server creation:', error);
+    }
 }
 
 function addServerToSidebar(server) {

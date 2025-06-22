@@ -7,7 +7,6 @@ document.addEventListener('DOMContentLoaded', function() {
 function initParallax() {
     const layers = document.querySelectorAll('.parallax-layer');
     
-    // Only enable parallax on desktop/tablet for better performance
     if (window.innerWidth > 768) {
         document.addEventListener('mousemove', function(e) {
             const x = e.clientX;
@@ -17,7 +16,7 @@ function initParallax() {
             const windowHeight = window.innerHeight;
             
             const xPercent = x / windowWidth - 0.5;
-            const yPercent = y / windowHeight - 0.5;
+            const yPercent = y / windowHeight - 0.5;        
             
             layers.forEach(layer => {
                 const depth = parseFloat(layer.getAttribute('data-depth'));
@@ -28,7 +27,6 @@ function initParallax() {
             });
         });
     } else {
-        // Reset transform on mobile
         layers.forEach(layer => {
             layer.style.transform = 'none';
         });
@@ -68,37 +66,31 @@ function initScrollTransition() {
     });
 }
 
-// Enhanced responsive handling for landing page
 function handleLandingPageResize() {
     const isMobile = window.innerWidth <= 768;
     
-    // Disable certain animations on mobile for better performance
     if (isMobile) {
         const layers = document.querySelectorAll('.parallax-layer');
         layers.forEach(layer => {
             layer.style.transform = 'none';
         });
         
-        // Reduce star count on mobile
         const stars = document.querySelectorAll('.star');
         stars.forEach((star, index) => {
-            if (index > 30) { // Keep only first 30 stars on mobile
+            if (index > 30) {
                 star.style.display = 'none';
             }
         });
     } else {
-        // Re-enable animations on desktop
         const stars = document.querySelectorAll('.star');
         stars.forEach(star => {
             star.style.display = 'block';
         });
     }
 }
-
-// Add resize listener for landing page
+        
 window.addEventListener('resize', debounce(handleLandingPageResize, 150));
 
-// Debounce function for performance
 function debounce(func, wait) {
     let timeout;
     return function executedFunction(...args) {

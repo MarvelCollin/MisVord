@@ -1,8 +1,6 @@
 <?php
 require_once dirname(dirname(__DIR__)) . '/config/session.php';
 
-// Session should already be started in index.php
-// Only start if absolutely necessary and safe to do so
 if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
     session_start();
 }
@@ -14,7 +12,7 @@ if (!function_exists('asset')) {
 $mode = 'login'; 
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
-if ($path === '/register') {
+if ($path === '/register') {        
     $mode = 'register';
 } elseif ($path === '/forgot-password') {
     $mode = 'forgot-password';
@@ -32,7 +30,7 @@ $page_css = 'authentication-page';
 $page_js = 'pages/authentication-simple';
 $additional_js = [];
 $head_scripts = ['logger-init'];
-$include_socket_io = true; // Add Socket.IO CDN
+$include_socket_io = true;
 $data_page = 'auth';
 
 $debugInfo = '';
@@ -271,7 +269,7 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
     </div>
 </div>
 
-<script src="/js/core/socket/global-socket-manager.js" type="module"></script>
+<script src="public/js/core/socket/global-socket-manager.js" type="module"></script>
 
 <?php 
 

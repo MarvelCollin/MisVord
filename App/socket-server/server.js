@@ -20,8 +20,10 @@ const io = new Server(server, socketConfig.options);
 
 socketController.setup(io);
 
+const HOST = '0.0.0.0';
 const PORT = process.env.SOCKET_PORT || 1002;
-server.listen(PORT, () => {
-    console.log(`Socket server running on port ${PORT}`);
+
+server.listen(PORT, HOST, () => {
+    console.log(`Socket server running on ${HOST}:${PORT}`);
     console.log('Socket server is ready to accept connections');
 });

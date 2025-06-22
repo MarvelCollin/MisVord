@@ -1,19 +1,9 @@
-#!/usr/bin/env php
 <?php
-/**
- * misvord CLI Tool
- * 
- * This file provides command-line interface tools for misvord.
- */
-
-// Define constants
 define('APP_ROOT', __DIR__);
 define('MIGRATIONS_PATH', __DIR__ . '/database/migrations');
 
-// Include necessary files
 require_once __DIR__ . '/config/helpers.php';
 
-// Load .env file first
 if (file_exists(__DIR__ . '/.env')) {
     $envFile = file_get_contents(__DIR__ . '/.env');
     $lines = explode("\n", $envFile);
@@ -28,28 +18,21 @@ if (file_exists(__DIR__ . '/.env')) {
     }
 }
 
-// Override with Docker settings for connecting from host to container
-// Use db as host which is the Docker service name for the database container
 putenv("DB_HOST=db");
-// Get the port from the environment or use default 1003
 $dbPort = getenv("DB_PORT") ?: "1003";
 putenv("DB_PORT=" . $dbPort);
-// Set explicit password for database
 putenv("DB_PASS=kolin123");
 
 require_once __DIR__ . '/config/env.php';
 require_once __DIR__ . '/config/db.php';
 
-// Database connection helper
 function get_db_connection() {
     return Database::getInstance()->getConnection();
 }
 
-// Get CLI arguments
-$argv = $_SERVER['argv'];
+$argv = $_SERVER['argv'];   
 $argc = $_SERVER['argc'];
 
-// Check if any command is provided
 if ($argc < 2) {
     echo "\033[33mmisvord CLI Tool\033[0m\n\n";
     echo "Available commands:\n";
@@ -63,10 +46,8 @@ if ($argc < 2) {
     exit(0);
 }
 
-// Command handling
 $command = $argv[1];
 
-// Check Docker environment variables
 $isDocker = getenv('IS_DOCKER') === 'true' || file_exists('/.dockerenv');
 if ($isDocker) {
     echo "\033[34mRunning in Docker environment\033[0m\n";
@@ -193,7 +174,6 @@ try {
                 echo "\033[32m✓ Successfully connected to MySQL server.\033[0m\n";
                 echo "\033[32m✓ Successfully connected to database.\033[0m\n";
                 
-                // Try to create migration table to verify full functionality
                 try {
                     $createTableSQL = "CREATE TABLE IF NOT EXISTS `migrations` (
                         `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -228,15 +208,14 @@ try {
 } catch (PDOException $e) {
     echo "\n\033[31mDatabase Error:\033[0m " . $e->getMessage() . "\n";
     
-    // Provide helpful suggestions based on error codes
     switch ($e->getCode()) {
-        case 1045: // Access denied
+        case 1045:
             echo "\033[33mCheck your database credentials in .env file or docker-compose.yml.\033[0m\n";
             break;
-        case 2002: // Connection refused
+        case 2002:
             echo "\033[33mCannot connect to MySQL server. If using Docker, make sure the db container is running.\033[0m\n";
             break;
-        case 1049: // Unknown database
+        case 1049:
             echo "\033[33mDatabase does not exist. Running with --force will attempt to create it.\033[0m\n";
             break;
     }

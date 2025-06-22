@@ -25,11 +25,9 @@ class BaseController
             $this->ajaxConfig = require_once __DIR__ . '/../config/ajax.php';
         } else {
             $this->ajaxConfig = ['enabled' => true];
-        }        // Session is already started in index.php or router.php
-        // Only start if absolutely necessary
+        }
         if (session_status() === PHP_SESSION_NONE) {
             require_once __DIR__ . '/../config/session.php';
-            // Only start session if no output has been sent
             if (!headers_sent()) {
                 session_start();
             }
@@ -112,7 +110,6 @@ class BaseController
         return isset($_SESSION['user_id']);
     }    protected function requireAuth()
     {
-        // Debug authentication check
         if (function_exists('logger')) {
             logger()->debug("requireAuth called", [
                 'session_status' => session_status(),
@@ -204,7 +201,7 @@ class BaseController
             $response['data'] = $data;
         }
         $this->jsonResponse($response, $statusCode);
-        return false; // Add return for consistency
+            return false;
     }
 
     protected function validationError($errors, $message = 'Validation failed')
@@ -288,11 +285,9 @@ class BaseController
             if ($this->isApiRoute() || $this->isAjaxRequest()) {
                 $this->error('Validation failed', 400, ['validation_errors' => $errors]);
             } else {
-                // For form submissions, set session errors and redirect back
                 $_SESSION['errors'] = ['validation' => $errors];
                 $_SESSION['old_input'] = $data;
                 
-                // Get the referer URL or fallback to current page
                 $referer = $_SERVER['HTTP_REFERER'] ?? $_SERVER['REQUEST_URI'] ?? '/login';
                 
                 if (!headers_sent()) {
