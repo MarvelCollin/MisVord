@@ -28,15 +28,25 @@
   position: relative;
 }
 
-.message-group:hover .message-actions {
-  opacity: 1;
-  visibility: visible;
-}
-
 /* Message content */
 .message-content {
   position: relative;
   width: 100%;
+  cursor: default;
+  transition: background-color 0.15s ease;
+}
+
+/* Message actions */
+.message-actions {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+}
+
+.message-actions.visible {
+  opacity: 1;
+  visibility: visible;
+  display: flex;
 }
 
 .message-text {

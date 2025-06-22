@@ -3,6 +3,20 @@
  */
 document.addEventListener('DOMContentLoaded', function() {
     initUserSettingsPage();
+    
+    // Prevent chat-section.js from attempting to initialize on the settings page
+    // by creating empty elements that it looks for
+    if (!document.getElementById('chat-messages') && 
+        document.body.classList.contains('settings-user')) {
+        const hiddenElements = document.createElement('div');
+        hiddenElements.style.display = 'none';
+        hiddenElements.innerHTML = `
+            <div id="chat-messages"></div>
+            <form id="message-form"></form>
+            <textarea id="message-input"></textarea>
+        `;
+        document.body.appendChild(hiddenElements);
+    }
 });
 
 function initUserSettingsPage() {
@@ -14,14 +28,462 @@ function initUserSettingsPage() {
         window.logger.debug('settings', 'Initializing user settings page');
     }
 
-    initUserAvatarUpload();
-    initTabNavigation();
+    // Get active section from URL parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const activeSection = urlParams.get('section') || 'my-account';
+    
+    // Initialize the sidebar navigation 
+    initSidebarNavigation(activeSection);
+    
+    // Initialize specific section functionality
+    if (activeSection === 'my-account') {
+        initUserAvatarUpload();
+        initStatusSelector();
+        initEmailReveal();
+        initPasswordChangeForms();
+        initTwoFactorAuth();
+    }
+    
+    // Initialize close button
     initCloseButton();
-    initSettingsNavigation();
-    initEmailReveal();
-    initStatusSelector();
-    initEditButtons();
     initPasswordFieldMasking();
+}
+
+/**
+ * Initialize sidebar navigation
+ */
+function initSidebarNavigation(activeSection) {
+    const sidebarItems = document.querySelectorAll('.sidebar-item');
+    
+    sidebarItems.forEach(item => {
+        item.addEventListener('click', function(e) {
+            if (this.getAttribute('href').includes('section=')) {
+                // Let the link handle the navigation
+                return;
+            }
+            
+            e.preventDefault();
+            const section = this.getAttribute('data-section');
+            if (!section) return;
+            
+            // Update URL without reloading the page
+            const url = new URL(window.location);
+            url.searchParams.set('section', section);
+            window.history.pushState({}, '', url);
+            
+            // Update active item
+            sidebarItems.forEach(i => i.classList.remove('active'));
+            this.classList.add('active');
+            
+            // You would typically load the content dynamically here
+            // For now, we'll just reload the page
+            window.location.href = this.getAttribute('href');
+        });
+    });
+}
+
+/**
+ * Initialize user avatar upload with image cropper
+ */
+function initUserAvatarUpload() {
+    const iconContainer = document.getElementById('server-icon-container');
+    const iconInput = document.getElementById('avatar-input');
+    const iconPreview = document.getElementById('server-icon-preview');
+    const changeIconBtn = document.getElementById('edit-profile-btn');
+    const removeIconBtn = document.getElementById('remove-avatar-btn');
+    
+    if (!iconContainer || !iconInput || !changeIconBtn) return;
+    
+    // Check if we have the ImageCutter module
+    let avatarCutter = null;
+    if (window.ImageCutter) {
+        try {
+            avatarCutter = new ImageCutter({
+                container: iconContainer,
+                type: 'profile',
+                modalTitle: 'Upload Profile Picture',
+                aspectRatio: 1,
+                onCrop: (result) => {
+                    if (result && result.error) {
+                        console.error('Error cropping avatar:', result.message);
+                        return;
+                    }
+                    
+                    // Update preview with cropped image
+                    if (iconPreview) {
+                        iconPreview.src = result.dataUrl;
+                        iconPreview.classList.remove('hidden');
+                        
+                        const placeholder = document.getElementById('server-icon-placeholder');
+                        if (placeholder) placeholder.classList.add('hidden');
+                    }
+                    
+                    // Store the cropped image data to use during form submission
+                    iconContainer.dataset.croppedImage = result.dataUrl;
+                    
+                    // Show remove button if it exists
+                    if (removeIconBtn && removeIconBtn.classList.contains('hidden')) {
+                        removeIconBtn.classList.remove('hidden');
+                    }
+                    
+                    // Upload the avatar immediately
+                    uploadAvatar(result.dataUrl);
+                }
+            });
+            
+            // Store the cutter instance for later use
+            window.userAvatarCutter = avatarCutter;
+        } catch (error) {
+            console.error('Error initializing image cutter:', error);
+        }
+    }
+    
+    // Change avatar button click handler
+    if (changeIconBtn) {
+        changeIconBtn.addEventListener('click', function() {
+            iconInput.click();
+        });
+    }
+    
+    // Icon container click handler (alternative way to upload)
+    if (iconContainer) {
+        iconContainer.addEventListener('click', function() {
+            iconInput.click();
+        });
+    }
+    
+    // File input change handler
+    if (iconInput) {
+        iconInput.addEventListener('change', function() {
+            if (!this.files || !this.files[0]) return;
+            
+            const file = this.files[0];
+            
+            // Validate file type
+            if (!file.type.match('image.*')) {
+                alert('Please select a valid image file');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    // If we have the image cutter, use it
+                    if (window.userAvatarCutter) {
+                        window.userAvatarCutter.loadImage(e.target.result);
+                    } else {
+                        // Fallback to simple preview
+                        if (iconPreview) {
+                            iconPreview.src = e.target.result;
+                            iconPreview.classList.remove('hidden');
+                            
+                            const placeholder = document.getElementById('server-icon-placeholder');
+                            if (placeholder) placeholder.classList.add('hidden');
+                        }
+                        
+                        iconContainer.dataset.croppedImage = e.target.result;
+                        
+                        // Upload the avatar immediately
+                        uploadAvatar(e.target.result);
+                    }
+                } catch (error) {
+                    console.error('Error processing avatar:', error);
+                }
+            };
+            
+            reader.readAsDataURL(file);
+        });
+    }
+    
+    // Remove avatar button click handler
+    if (removeIconBtn) {
+        removeIconBtn.addEventListener('click', function(e) {
+            e.stopPropagation(); // Prevent triggering the container click
+            
+            // Confirm before removing
+            if (!confirm('Are you sure you want to remove your profile picture?')) {
+                return;
+            }
+            
+            // Call API to remove avatar
+            fetch('/user/avatar/remove', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Clear the preview and show placeholder
+                    if (iconPreview) {
+                        iconPreview.src = '';
+                        iconPreview.classList.add('hidden');
+                        
+                        const placeholder = document.getElementById('server-icon-placeholder');
+                        if (placeholder) placeholder.classList.remove('hidden');
+                    }
+                    
+                    // Clear the stored image data
+                    if (iconContainer) {
+                        delete iconContainer.dataset.croppedImage;
+                    }
+                    
+                    // Hide the remove button
+                    removeIconBtn.classList.add('hidden');
+                    
+                    // Clear the file input
+                    if (iconInput) {
+                        iconInput.value = '';
+                    }
+                    
+                    showToast('Profile picture removed successfully', 'success');
+                } else {
+                    showToast(data.message || 'Failed to remove profile picture', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error removing profile picture:', error);
+                showToast('Error removing profile picture', 'error');
+            });
+        });
+    }
+}
+
+/**
+ * Upload avatar to server
+ */
+function uploadAvatar(dataUrl) {
+    // Convert data URL to Blob
+    const blob = dataURLtoBlob(dataUrl);
+    
+    // Create FormData
+    const formData = new FormData();
+    formData.append('avatar', blob, 'avatar.png');
+    
+    // Show loading state
+    showToast('Uploading profile picture...', 'info');
+    
+    // Upload to server
+    fetch('/user/avatar/update', {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Profile picture updated successfully', 'success');
+            
+            // Update avatar in all places
+            const avatars = document.querySelectorAll('.user-avatar img, .user-avatar-preview img');
+            avatars.forEach(avatar => {
+                avatar.src = data.avatar_url || dataUrl;
+            });
+            
+            // Show remove button if it exists
+            const removeAvatarBtn = document.getElementById('remove-avatar-btn');
+            if (removeAvatarBtn && removeAvatarBtn.classList.contains('hidden')) {
+                removeAvatarBtn.classList.remove('hidden');
+            }
+        } else {
+            showToast(data.message || 'Failed to update profile picture', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error uploading avatar:', error);
+        showToast('Error uploading profile picture', 'error');
+    });
+}
+
+/**
+ * Convert data URL to Blob
+ */
+function dataURLtoBlob(dataURL) {
+    const arr = dataURL.split(',');
+    const mime = arr[0].match(/:(.*?);/)[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    
+    while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+    }
+    
+    return new Blob([u8arr], { type: mime });
+}
+
+/**
+ * Initialize close button
+ */
+function initCloseButton() {
+    const closeButton = document.querySelector('.close-button');
+    if (!closeButton) return;
+    
+    closeButton.addEventListener('click', function(e) {
+        e.preventDefault();
+        window.history.back();
+    });
+    
+    // Also handle ESC key press
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            window.history.back();
+        }
+    });
+}
+
+/**
+ * Initialize status selector for user status
+ */
+function initStatusSelector() {
+    const statusOptions = document.querySelectorAll('.status-option');
+    const userMetaStatus = document.querySelector('meta[name="user-status"]');
+    const currentStatus = userMetaStatus ? userMetaStatus.content : 'offline';
+    
+    statusOptions.forEach(option => {
+        if (option.dataset.status === currentStatus) {
+            option.classList.add('bg-discord-background-modifier-selected');
+        }
+        
+        option.addEventListener('click', function() {
+            const status = this.dataset.status;
+            
+            // Update UI
+            statusOptions.forEach(opt => {
+                opt.classList.remove('bg-discord-background-modifier-selected');
+            });
+            this.classList.add('bg-discord-background-modifier-selected');
+            
+            // Update status on server
+            updateUserStatus(status);
+        });
+    });
+}
+
+/**
+ * Update user status via API
+ */
+function updateUserStatus(status) {
+    fetch('/user/status', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ status }),
+        credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update status indicators
+            updateStatusIndicators(status);
+            showToast(`Status updated to ${status}`, 'success');
+        } else {
+            showToast(data.message || 'Failed to update status', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error updating status:', error);
+        showToast('Error updating status', 'error');
+    });
+}
+
+/**
+ * Update status indicators in UI
+ */
+function updateStatusIndicators(status) {
+    const statusMap = {
+        'appear': 'bg-green-500',
+        'invisible': 'bg-gray-500',
+        'do_not_disturb': 'bg-red-500',
+        'offline': 'bg-[#747f8d]'
+    };
+    
+    const newStatusClass = statusMap[status] || 'bg-green-500';
+    
+    // Update status indicators
+    const statusIndicators = document.querySelectorAll('.status-indicator');
+    statusIndicators.forEach(indicator => {
+        // Remove all status classes
+        Object.values(statusMap).forEach(cls => {
+            indicator.classList.remove(cls);
+        });
+        
+        // Add new status class
+        indicator.classList.add(newStatusClass);
+    });
+    
+    // Update meta tag
+    const userMetaStatus = document.querySelector('meta[name="user-status"]');
+    if (userMetaStatus) {
+        userMetaStatus.content = status;
+    }
+}
+
+/**
+ * Initialize email reveal functionality
+ */
+function initEmailReveal() {
+    const revealButton = document.getElementById('reveal-email-btn');
+    const emailDisplay = document.getElementById('user-email-display');
+    
+    if (!revealButton || !emailDisplay) return;
+    
+    revealButton.addEventListener('click', function() {
+        const email = this.dataset.email;
+        
+        // If no email is set, do nothing
+        if (!email) return;
+        
+        // Toggle between hidden and revealed email
+        if (emailDisplay.textContent !== email) {
+            emailDisplay.textContent = email;
+            revealButton.textContent = 'Hide';
+        } else {
+            const parts = email.split('@');
+            if (parts.length > 1) {
+                const username = parts[0];
+                const domain = parts[1];
+                const maskedUsername = username.substring(0, 2) + '*'.repeat(username.length - 2);
+                emailDisplay.textContent = maskedUsername + '@' + domain;
+            } else {
+                emailDisplay.textContent = email.substring(0, 2) + '*'.repeat(email.length - 5) + email.substring(email.length - 3);
+            }
+            revealButton.textContent = 'Reveal';
+        }
+    });
+}
+
+/**
+ * Initialize password change forms
+ */
+function initPasswordChangeForms() {
+    const changePasswordBtn = document.getElementById('change-password-btn');
+    
+    if (!changePasswordBtn) return;
+    
+    changePasswordBtn.addEventListener('click', function() {
+        // You can create a modal for password change or redirect to a separate page
+        alert('Password change functionality will be implemented soon.');
+    });
+}
+
+/**
+ * Initialize two-factor authentication
+ */
+function initTwoFactorAuth() {
+    const enable2faBtn = document.getElementById('enable-2fa-btn');
+    
+    if (!enable2faBtn) return;
+    
+    enable2faBtn.addEventListener('click', function() {
+        // You can create a modal for 2FA setup or redirect to a separate page
+        alert('Two-factor authentication setup will be implemented soon.');
+    });
 }
 
 /**
@@ -42,719 +504,75 @@ function initPasswordFieldMasking() {
                 mutation.addedNodes.forEach(function(node) {
                     if (node.querySelectorAll) {
                         const passwordFields = node.querySelectorAll('.password-field');
-                        passwordFields.forEach(field => {
-                            setupPasswordField(field);
-                        });
+                        passwordFields.forEach(setupPasswordField);
                     }
                 });
             }
         });
     });
     
-    // Start observing the document with the configured parameters
     observer.observe(document.body, { childList: true, subtree: true });
     
-    function setupPasswordField(field) {
-        if (field.dataset.passwordFieldSetup) return;
-        field.dataset.passwordFieldSetup = 'true';
+    // Set up any existing password fields on initial load
+    document.querySelectorAll('.password-field').forEach(setupPasswordField);
+}
+
+/**
+ * Setup individual password field masking
+ */
+function setupPasswordField(field) {
+    // Skip if already processed
+    if (field.dataset.maskingInitialized) return;
+    field.dataset.maskingInitialized = 'true';
+    
+    // Create toggle button if it doesn't exist
+    const parent = field.parentElement;
+    if (!parent.querySelector('.password-toggle')) {
+        const toggleBtn = document.createElement('button');
+        toggleBtn.type = 'button';
+        toggleBtn.className = 'password-toggle absolute right-2 top-1/2 transform -translate-y-1/2';
+        toggleBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z" /><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" /></svg>';
         
-        // Create container for the field and toggle button
-        const container = document.createElement('div');
-        container.className = 'relative';
-        field.parentNode.insertBefore(container, field);
-        container.appendChild(field);
+        // Make parent relative positioned if it's not already
+        if (getComputedStyle(parent).position === 'static') {
+            parent.style.position = 'relative';
+        }
         
-        // Create toggle button
-        const toggleButton = document.createElement('button');
-        toggleButton.type = 'button';
-        toggleButton.className = 'absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors';
-        toggleButton.innerHTML = '<i class="fa-solid fa-eye"></i>';
-        container.appendChild(toggleButton);
-        
-        // Mask the password initially
-        maskPassword(field);
+        parent.appendChild(toggleBtn);
         
         // Add event listener to toggle button
-        toggleButton.addEventListener('click', function() {
-            if (field.dataset.masked === 'true') {
-                unmaskPassword(field, toggleButton);
+        toggleBtn.addEventListener('click', function() {
+            if (field.type === 'password') {
+                field.type = 'text';
+                this.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z" clip-rule="evenodd" /><path d="M12.454 16.697L9.75 13.992a4 4 0 01-3.742-3.741L2.335 6.578A9.98 9.98 0 00.458 10c1.274 4.057 5.065 7 9.542 7 .847 0 1.669-.105 2.454-.303z" /></svg>';
             } else {
-                maskPassword(field, toggleButton);
+                field.type = 'password';
+                this.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z" /><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" /></svg>';
             }
         });
     }
-    
-    function maskPassword(field, toggleButton) {
-        field.dataset.masked = 'true';
-        field.style.fontFamily = 'password';
-        field.style.webkitTextSecurity = 'disc';
-        field.style.textSecurity = 'disc';
-        
-        if (toggleButton) {
-            toggleButton.innerHTML = '<i class="fa-solid fa-eye"></i>';
-        }
-    }
-    
-    function unmaskPassword(field, toggleButton) {
-        field.dataset.masked = 'false';
-        field.style.fontFamily = '';
-        field.style.webkitTextSecurity = '';
-        field.style.textSecurity = '';
-        
-        if (toggleButton) {
-            toggleButton.innerHTML = '<i class="fa-solid fa-eye-slash"></i>';
-        }
-    }
-    
-    // Add password font style to head
-    const style = document.createElement('style');
-    style.textContent = `
-        @font-face {
-            font-family: 'password';
-            font-style: normal;
-            font-weight: 400;
-            src: url(data:font/woff;base64,d09GRgABAAAAAAfsABAAAAAADAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABGRlRNAAAHwAAAABwAAAAcaFMWO0dERUYAAAfAAAAAHAAAAB4AJwAcT1MvMgAAAZgAAABHAAAAVi+vS9xjbWFwAAAB+AAAAEcAAAFS6CL7lGdhc3AAAAe4AAAACAAAAAj//wADZ2x5ZgAAAlgAAAEzAAABeLy/JLZoZWFkAAABMAAAAC0AAAA2/Jf3M2hoZWEAAAFgAAAAHAAAACQHMgOlaG10eAAAAeAAAAAPAAAAFAwAAABsb2NhAAACRAAAAA4AAAAOAKYAIG1heHAAAAF8AAAAHgAAACAATABubmFtZQAAA4wAAADkAAAB1H7x7HFwb3N0AAAEcAAAAC0AAABMM4xvuXjaY2BkYGAA4gVmC5Tj+W2+MnAzMYDApdl/rzDj+f+//+8xMTAeAHI5GMDSAACiegvPAHjaY2BkYGA88P8Agx4TAwPD/z8MDEwMQBEUwAcAW+IEDAAAAQAAAAEAAAAAAAAAAKYAIAAAAAEAAAAKAAYACAABAAAAAAAA7QCkAAEAAAAAAAEABgAAAAEAAAAAAAIABwAGAAEAAAAAAAMAIwANAAEAAAAAAAQABgAwAAEAAAAAAAUACwA2AAEAAAAAAAYABgBBAAMAAQQJAAEADAAHAAMAAQQJAAIADgATAAMAAQQJAAMARgAhAAMAAQQJAAQADAAHAAMAAQQJAAUAFgBBAAMAAQQJAAYADABXcGFzc3dvcmQAcABhAHMAcwB3AG8AcgBkVmVyc2lvbiAxLjAAVgBlAHIAcwBpAG8AbgAgADEALgAwcGFzc3dvcmQAcABhAHMAcwB3AG8AcgBkcGFzc3dvcmQAcABhAHMAcwB3AG8AcgBkUmVndWxhcgBSAGUAZwB1AGwAYQBycGFzc3dvcmQAcABhAHMAcwB3AG8AcgBkRm9udCBnZW5lcmF0ZWQgYnkgSWNvTW9vbi4ARgBvAG4AdAAgAGcAZQBuAGUAcgBhAHQAZQBkACAAYgB5ACAASQBjAG8ATQBvAG8AbgAuAAAAAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==) format('woff');
-        }
-    `;
-    document.head.appendChild(style);
-}
-
-/**
- * Initialize user avatar upload functionality
- */
-function initUserAvatarUpload() {
-    const editProfileBtn = document.getElementById('edit-profile-btn');
-    if (!editProfileBtn) return;
-
-    editProfileBtn.addEventListener('click', function() {
-        // In a real implementation, this would open a modal dialog
-        // for uploading/cropping profile picture and banner
-        console.log('Edit profile button clicked');
-        
-        if (typeof ImageCutter !== 'undefined') {
-            try {
-                const avatarCutter = new ImageCutter({
-                    type: 'profile',
-                    modalTitle: 'Upload Profile Picture',
-                    aspectRatio: 1,
-                    onCrop: (result) => {
-                        if (result && result.error) {
-                            console.error('Error cropping profile picture:', result.message);
-                            return;
-                        }
-                        
-                        // Update avatar in various places
-                        updateUserAvatarInUI(result.dataUrl);
-                    }
-                });
-                
-                // Store the cutter instance for later use
-                window.userAvatarCutter = avatarCutter;
-                
-                // Open file selector
-                const input = document.createElement('input');
-                input.type = 'file';
-                input.accept = 'image/*';
-                input.onchange = function() {
-                    if (!this.files || !this.files[0]) return;
-                    
-                    const file = this.files[0];
-                    
-                    // Validate file type
-                    if (!file.type.match('image.*')) {
-                        alert('Please select a valid image file');
-                        return;
-                    }
-                    
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        try {
-                            if (window.userAvatarCutter) {
-                                window.userAvatarCutter.loadImage(e.target.result);
-                            }
-                        } catch (error) {
-                            console.error('Error processing profile picture:', error);
-                        }
-                    };
-                    
-                    reader.readAsDataURL(file);
-                };
-                input.click();
-                
-            } catch (error) {
-                console.error('Error initializing image cutter:', error);
-                // Fallback for no ImageCutter class
-                alert('Image upload functionality not available');
-            }
-        } else {
-            // Fallback for no ImageCutter class
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = 'image/*';
-            input.onchange = function() {
-                if (!this.files || !this.files[0]) return;
-                
-                const file = this.files[0];
-                
-                // Validate file type
-                if (!file.type.match('image.*')) {
-                    alert('Please select a valid image file');
-                    return;
-                }
-                
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    updateUserAvatarInUI(e.target.result);
-                };
-                
-                reader.readAsDataURL(file);
-            };
-            input.click();
-        }
-    });
-}
-
-/**
- * Update user avatar in all UI elements
- */
-function updateUserAvatarInUI(imageUrl) {
-    // Update avatar in the main card
-    const avatarImg = document.querySelector('.w-20.h-20 img');
-    if (avatarImg) {
-        avatarImg.src = imageUrl;
-    }
-    
-    // Update avatar in preview panel
-    const previewAvatar = document.querySelector('.user-avatar-preview img');
-    if (previewAvatar) {
-        previewAvatar.src = imageUrl;
-    }
-    
-    // Update in other components (e.g. user profile sidebar if visible)
-    const sidebarAvatar = document.querySelector('.p-2.bg-discord-darker img');
-    if (sidebarAvatar) {
-        sidebarAvatar.src = imageUrl;
-    }
-    
-    // Show success message
-    showToast('Profile picture updated successfully', 'success');
-}
-
-/**
- * Initialize tab navigation
- */
-function initTabNavigation() {
-    const tabs = document.querySelectorAll('.border-b button');
-    
-    tabs.forEach(tab => {
-        tab.addEventListener('click', function() {
-            // Remove active class from all tabs
-            tabs.forEach(t => {
-                t.classList.remove('border-discord-blue', 'text-discord-blue');
-                t.classList.add('text-discord-lighter', 'hover:text-white');
-                t.style.borderBottom = 'none';
-            });
-            
-            // Add active class to clicked tab
-            this.classList.remove('text-discord-lighter', 'hover:text-white');
-            this.classList.add('text-discord-blue', 'border-b-2', 'border-discord-blue');
-            
-            // Here you would also handle showing the correct tab content
-        });
-    });
-}
-
-/**
- * Initialize close button
- */
-function initCloseButton() {
-    const closeButton = document.querySelector('button[onclick="window.history.back()"]');
-    if (!closeButton) return;
-    
-    closeButton.addEventListener('click', function(e) {
-        e.preventDefault();
-        window.history.back();
-    });
-    
-    // Add escape key listener
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            window.history.back();
-        }
-    });
-}
-
-/**
- * Initialize settings navigation
- */
-function initSettingsNavigation() {
-    const settingsItems = document.querySelectorAll('.sidebar-item');
-    
-    settingsItems.forEach(item => {
-        item.addEventListener('click', function(e) {
-            const href = this.getAttribute('href');
-            
-            // If it's just a tab change within the same page, prevent default
-            if (href && href.startsWith('#')) {
-                e.preventDefault();
-                
-                // Remove selected class from all items
-                settingsItems.forEach(i => i.classList.remove('bg-discord-selected', 'active'));
-                
-                // Add selected class to clicked item
-                this.classList.add('bg-discord-selected', 'active');
-            }
-        });
-    });
-}
-
-/**
- * Initialize email reveal functionality
- */
-function initEmailReveal() {
-    const revealButton = document.getElementById('reveal-email-btn');
-    if (!revealButton) return;
-    
-    revealButton.addEventListener('click', function() {
-        const emailElement = document.getElementById('user-email-display');
-        if (!emailElement) return;
-        
-        const fullEmail = this.getAttribute('data-email');
-        if (!fullEmail) return;
-        
-        emailElement.textContent = fullEmail;
-        this.style.display = 'none';
-        
-        // Log this action
-        if (typeof window.logger !== 'undefined') {
-            window.logger.debug('settings', 'Email revealed');
-        }
-    });
-}
-
-/**
- * Initialize status selector
- */
-function initStatusSelector() {
-    const statusOptions = document.querySelectorAll('.status-option');
-    if (!statusOptions.length) return;
-    
-    statusOptions.forEach(option => {
-        option.addEventListener('click', function() {
-            const statusValue = this.dataset.status;
-            
-            // Update visual state immediately for better UX
-            statusOptions.forEach(opt => {
-                opt.classList.remove('bg-discord-background-modifier-selected');
-                opt.style.fontWeight = '';
-            });
-            
-            this.classList.add('bg-discord-background-modifier-selected');
-            this.style.fontWeight = 'bold';
-            
-            // Update status indicators in UI
-            updateStatusUI(statusValue);
-            
-            // Make an API call to update the status
-            fetch('/api/user/status', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: JSON.stringify({ status: statusValue })
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Status update failed');
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (typeof window.logger !== 'undefined') {
-                    window.logger.debug('settings', 'Status updated:', data);
-                }
-                
-                // If we need to refresh any other parts of the UI after the server confirms status change
-                if (data && data.success) {
-                    showToast('Status updated successfully', 'success');
-                }
-            })
-            .catch(error => {
-                console.error('Error updating status:', error);
-                showToast('Error updating status', 'error');
-                
-                // Revert UI changes on error, if we have access to current status
-                const currentStatusElement = document.querySelector('meta[name="user-status"]');
-                if (currentStatusElement) {
-                    const currentStatus = currentStatusElement.getAttribute('content');
-                    if (currentStatus) {
-                        updateStatusUI(currentStatus);
-                        
-                        // Re-select the correct status option
-                        statusOptions.forEach(opt => {
-                            opt.classList.remove('bg-discord-background-modifier-selected');
-                            opt.style.fontWeight = '';
-                            
-                            if (opt.dataset.status === currentStatus) {
-                                opt.classList.add('bg-discord-background-modifier-selected');
-                                opt.style.fontWeight = 'bold';
-                            }
-                        });
-                    }
-                }
-            });
-        });
-    });
-    
-    function updateStatusUI(statusValue) {
-        // Update status indicator in user profile
-        const profileStatusIndicator = document.querySelector('.absolute.bottom-0.right-0\\.5.rounded-full.border-2');
-        const previewStatusIndicator = document.querySelector('.user-avatar-preview .absolute.bottom-0.right-0.rounded-full.border-2');
-        
-        if (profileStatusIndicator) {
-            updateStatusIndicator(profileStatusIndicator, statusValue);
-        }
-        
-        if (previewStatusIndicator) {
-            updateStatusIndicator(previewStatusIndicator, statusValue);
-        }
-        
-        // Update status icon indicators
-        const doNotDisturbIcon = document.querySelector('.w-5.h-5.rounded-full.bg-discord-red');
-        const onlineIcon = document.querySelector('.w-5.h-5.rounded-full.bg-discord-green');
-        
-        if (doNotDisturbIcon) {
-            doNotDisturbIcon.style.display = statusValue === 'do_not_disturb' ? 'flex' : 'none';
-        }
-        
-        if (onlineIcon) {
-            onlineIcon.style.display = statusValue === 'appear' ? 'flex' : 'none';
-        }
-    }
-    
-    function updateStatusIndicator(indicator, status) {
-        // Remove all status classes
-        indicator.classList.remove(
-            'bg-discord-green',
-            'bg-gray-500',
-            'bg-discord-red',
-            'bg-[#747f8d]',
-            'bg-black'
-        );
-        
-        // Add the appropriate class based on status
-        switch(status) {
-            case 'appear':
-                indicator.classList.add('bg-discord-green');
-                break;
-            case 'invisible':
-                indicator.classList.add('bg-gray-500');
-                break;
-            case 'do_not_disturb':
-                indicator.classList.add('bg-discord-red');
-                break;
-            case 'offline':
-                indicator.classList.add('bg-[#747f8d]');
-                break;
-            case 'banned':
-                indicator.classList.add('bg-black');
-                break;
-            default:
-                indicator.classList.add('bg-discord-green');
-        }
-    }
-}
-
-/**
- * Initialize edit buttons
- */
-function initEditButtons() {
-    const editButtons = document.querySelectorAll('button:not([onclick="window.history.back()"])');
-    
-    editButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const buttonText = this.textContent.trim();
-            
-            if (buttonText === 'Edit') {
-                const parentSection = this.closest('div');
-                if (!parentSection) return;
-                
-                const label = parentSection.querySelector('h3')?.textContent || '';
-                const valueElement = parentSection.querySelector('p');
-                if (!valueElement) return;
-                
-                const currentValue = valueElement.textContent.trim();
-                
-                // Create an input field
-                const input = document.createElement('input');
-                input.type = 'text';
-                input.value = currentValue;
-                input.className = 'w-full bg-discord-dark text-white border-none rounded p-2 mt-1 focus:outline-none focus:ring-2 focus:ring-discord-blue';
-                
-                // Replace the paragraph with the input
-                valueElement.replaceWith(input);
-                
-                // Focus the input
-                input.focus();
-                
-                // Change button text
-                this.textContent = 'Save';
-                
-                // Add a cancel button
-                const cancelButton = document.createElement('button');
-                cancelButton.textContent = 'Cancel';
-                cancelButton.className = 'bg-transparent hover:underline text-discord-lighter rounded px-4 py-1.5 text-sm font-medium ml-2';
-                cancelButton.addEventListener('click', function() {
-                    // Restore original value
-                    const p = document.createElement('p');
-                    p.textContent = currentValue;
-                    p.className = 'text-discord-lighter';
-                    input.replaceWith(p);
-                    
-                    // Remove cancel button and restore edit button
-                    this.remove();
-                    button.textContent = 'Edit';
-                });
-                
-                // Add cancel button after edit button
-                this.parentNode.appendChild(cancelButton);
-            }
-            else if (buttonText === 'Save') {
-                const parentSection = this.closest('div');
-                if (!parentSection) return;
-                
-                const input = parentSection.querySelector('input');
-                if (!input) return;
-                
-                const newValue = input.value.trim();
-                const fieldName = parentSection.querySelector('h3')?.textContent || '';
-                
-                // Validate input based on field type
-                if (fieldName.toLowerCase().includes('email')) {
-                    // Email validation
-                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                    if (!emailRegex.test(newValue)) {
-                        showToast('Please enter a valid email address', 'error');
-                        return;
-                    }
-                } else if (fieldName.toLowerCase().includes('phone')) {
-                    // Phone validation
-                    const phoneRegex = /^\d{10,15}$/;
-                    if (!phoneRegex.test(newValue.replace(/\D/g, ''))) {
-                        showToast('Please enter a valid phone number', 'error');
-                        return;
-                    }
-                } else if (fieldName.toLowerCase().includes('username')) {
-                    // Username validation
-                    if (newValue.length < 3 || newValue.length > 32) {
-                        showToast('Username must be between 3 and 32 characters', 'error');
-                        return;
-                    }
-                    
-                    if (!/^[a-zA-Z0-9_]+$/.test(newValue)) {
-                        showToast('Username can only contain letters, numbers, and underscores', 'error');
-                        return;
-                    }
-                } else if (newValue.length === 0) {
-                    showToast('Field cannot be empty', 'error');
-                    return;
-                }
-                
-                // Create paragraph with new value
-                const p = document.createElement('p');
-                p.textContent = newValue;
-                p.className = 'text-discord-lighter';
-                input.replaceWith(p);
-                
-                // Remove cancel button if it exists
-                const cancelButton = this.nextElementSibling;
-                if (cancelButton && cancelButton.textContent === 'Cancel') {
-                    cancelButton.remove();
-                }
-                
-                // Change button text back to Edit
-                this.textContent = 'Edit';
-                
-                // In a real app, this would make an API call to update the user data
-                console.log('Updated value:', newValue);
-                
-                // Show a toast notification
-                showToast('Settings updated successfully', 'success');
-            }
-            else if (buttonText === 'Add') {
-                // Handle adding a phone number
-                const parentSection = this.closest('div');
-                if (!parentSection) return;
-                
-                const label = parentSection.querySelector('h3')?.textContent || '';
-                const valueElement = parentSection.querySelector('p');
-                if (!valueElement) return;
-                
-                // Create an input field
-                const input = document.createElement('input');
-                input.type = 'text';
-                input.placeholder = 'Enter your phone number';
-                input.className = 'w-full bg-discord-dark text-white border-none rounded p-2 mt-1 focus:outline-none focus:ring-2 focus:ring-discord-blue';
-                
-                // Replace the paragraph with the input
-                valueElement.replaceWith(input);
-                
-                // Focus the input
-                input.focus();
-                
-                // Change button text
-                this.textContent = 'Save';
-                
-                // Add a cancel button
-                const cancelButton = document.createElement('button');
-                cancelButton.textContent = 'Cancel';
-                cancelButton.className = 'bg-transparent hover:underline text-discord-lighter rounded px-4 py-1.5 text-sm font-medium ml-2';
-                cancelButton.addEventListener('click', function() {
-                    // Restore original message
-                    const p = document.createElement('p');
-                    p.textContent = 'You haven\'t added a phone number yet.';
-                    p.className = 'text-discord-lighter';
-                    input.replaceWith(p);
-                    
-                    // Remove cancel button and restore add button
-                    this.remove();
-                    button.textContent = 'Add';
-                });
-                
-                // Add cancel button after add/save button
-                this.parentNode.appendChild(cancelButton);
-            }
-            else if (buttonText === 'Change Password') {
-                // Show password change form
-                const changePasswordSection = this.parentElement;
-                if (!changePasswordSection) return;
-                
-                // Create form elements
-                const formContainer = document.createElement('div');
-                formContainer.className = 'space-y-4 mt-4';
-                
-                // Current password
-                const currentPasswordGroup = document.createElement('div');
-                currentPasswordGroup.innerHTML = `
-                    <label class="block text-sm font-medium text-white mb-1">Current Password</label>
-                    <input type="text" class="password-field w-full bg-discord-dark text-white border-none rounded p-2 focus:outline-none focus:ring-2 focus:ring-discord-blue" placeholder="Enter current password">
-                `;
-                
-                // New password
-                const newPasswordGroup = document.createElement('div');
-                newPasswordGroup.innerHTML = `
-                    <label class="block text-sm font-medium text-white mb-1">New Password</label>
-                    <input type="text" class="password-field w-full bg-discord-dark text-white border-none rounded p-2 focus:outline-none focus:ring-2 focus:ring-discord-blue" placeholder="Enter new password">
-                `;
-                
-                // Confirm password
-                const confirmPasswordGroup = document.createElement('div');
-                confirmPasswordGroup.innerHTML = `
-                    <label class="block text-sm font-medium text-white mb-1">Confirm New Password</label>
-                    <input type="text" class="password-field w-full bg-discord-dark text-white border-none rounded p-2 focus:outline-none focus:ring-2 focus:ring-discord-blue" placeholder="Confirm new password">
-                `;
-                
-                // Button group
-                const buttonGroup = document.createElement('div');
-                buttonGroup.className = 'flex space-x-2 mt-4';
-                buttonGroup.innerHTML = `
-                    <button class="bg-discord-blue hover:bg-discord-blue-dark text-white rounded px-4 py-2 text-sm font-medium">Save</button>
-                    <button class="bg-transparent hover:underline text-discord-lighter rounded px-4 py-2 text-sm font-medium">Cancel</button>
-                `;
-                
-                // Add elements to the form container
-                formContainer.appendChild(currentPasswordGroup);
-                formContainer.appendChild(newPasswordGroup);
-                formContainer.appendChild(confirmPasswordGroup);
-                formContainer.appendChild(buttonGroup);
-                
-                // Hide the original button and append the form
-                this.style.display = 'none';
-                changePasswordSection.appendChild(formContainer);
-                
-                // Add event listeners to new buttons
-                const saveButton = buttonGroup.querySelector('button:first-child');
-                const cancelButton = buttonGroup.querySelector('button:last-child');
-                
-                saveButton.addEventListener('click', function() {
-                    // Get password values
-                    const currentPassword = formContainer.querySelector('input:nth-child(1)').value;
-                    const newPassword = formContainer.querySelector('input:nth-child(2)').value;
-                    const confirmPassword = formContainer.querySelector('input:nth-child(3)').value;
-                    
-                    // Validate passwords
-                    if (!currentPassword) {
-                        showToast('Current password is required', 'error');
-                        return;
-                    }
-                    
-                    if (!newPassword) {
-                        showToast('New password is required', 'error');
-                        return;
-                    }
-                    
-                    if (newPassword !== confirmPassword) {
-                        showToast('New passwords do not match', 'error');
-                        return;
-                    }
-                    
-                    if (newPassword.length < 8) {
-                        showToast('Password must be at least 8 characters', 'error');
-                        return;
-                    }
-                    
-                    // In a real app, this would make an API call to change the password
-                    
-                    // Show success message
-                    showToast('Password changed successfully', 'success');
-                    
-                    // Remove the form and show the original button
-                    formContainer.remove();
-                    button.style.display = 'inline-flex';
-                });
-                
-                cancelButton.addEventListener('click', function() {
-                    // Remove the form and show the original button
-                    formContainer.remove();
-                    button.style.display = 'inline-flex';
-                });
-            }
-            else if (buttonText === 'Enable Authenticator App') {
-                // In a real app, this would start the 2FA setup process
-                alert('This would launch the 2FA setup flow in a real app.');
-            }
-        });
-    });
 }
 
 /**
  * Show toast notification
- * @param {string} message - The message to display
- * @param {string} type - The type of toast (success, error, info)
  */
 function showToast(message, type = 'info') {
-    if (window.Toast && window.Toast.show) {
-        window.Toast.show(message, type);
+    if (window.showToast) {
+        window.showToast(message, type);
     } else {
-        // Create a simple toast if the Toast module isn't available
         const toast = document.createElement('div');
-        toast.className = 'fixed bottom-4 right-4 py-2 px-4 rounded shadow-lg z-50 transition-opacity duration-500';
-        
-        if (type === 'success') {
-            toast.className += ' bg-green-500 text-white';
-        } else if (type === 'error') {
-            toast.className += ' bg-red-500 text-white';
-        } else {
-            toast.className += ' bg-blue-500 text-white';
-        }
-        
-        toast.textContent = message;
+        toast.className = `fixed bottom-4 right-4 p-4 rounded shadow-lg z-50 ${getToastClass(type)}`;
+        toast.innerHTML = `
+            <div class="flex items-center">
+                ${getToastIcon(type)}
+                <span class="ml-2">${message}</span>
+            </div>
+        `;
         document.body.appendChild(toast);
         
+        // Remove after 3 seconds
         setTimeout(() => {
-            toast.style.opacity = '0';
-            
+            toast.classList.add('opacity-0', 'transition-opacity', 'duration-500');
             setTimeout(() => {
                 document.body.removeChild(toast);
             }, 500);
@@ -763,35 +581,44 @@ function showToast(message, type = 'info') {
 }
 
 /**
- * Convert data URL to Blob
- * @param {string} dataURL - The data URL to convert
- * @returns {Blob} - The resulting blob
+ * Get toast notification background class based on type
  */
-function dataURLtoBlob(dataURL) {
-    const parts = dataURL.split(';base64,');
-    const contentType = parts[0].split(':')[1];
-    const raw = window.atob(parts[1]);
-    const rawLength = raw.length;
-    const uInt8Array = new Uint8Array(rawLength);
-    
-    for (let i = 0; i < rawLength; ++i) {
-        uInt8Array[i] = raw.charCodeAt(i);
+function getToastClass(type) {
+    switch (type) {
+        case 'success':
+            return 'bg-green-500 text-white';
+        case 'error':
+            return 'bg-red-500 text-white';
+        case 'warning':
+            return 'bg-yellow-500 text-white';
+        default:
+            return 'bg-blue-500 text-white';
     }
-    
-    return new Blob([uInt8Array], { type: contentType });
+}
+
+/**
+ * Get toast notification icon based on type
+ */
+function getToastIcon(type) {
+    switch (type) {
+        case 'success':
+            return '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>';
+        case 'error':
+            return '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" /></svg>';
+        case 'warning':
+            return '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>';
+        default:
+            return '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" /></svg>';
+    }
 }
 
 /**
  * Debounce function to limit how often a function is called
- * @param {Function} func - The function to debounce
- * @param {number} wait - The debounce wait time in ms
- * @returns {Function} - The debounced function
  */
 function debounce(func, wait) {
     let timeout;
     return function(...args) {
-        const context = this;
         clearTimeout(timeout);
-        timeout = setTimeout(() => func.apply(context, args), wait);
+        timeout = setTimeout(() => func.apply(this, args), wait);
     };
 }

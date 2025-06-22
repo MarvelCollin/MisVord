@@ -8,6 +8,10 @@ if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
     session_start();
 }
 
+if (!function_exists('asset')) {
+    require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
+}
+
 // Redirect if not logged in
 if (!isset($_SESSION['user_id'])) {
     header('Location: /login');
@@ -35,23 +39,24 @@ if (class_exists('UserBadgeRepository')) {
 
 // Get section from query params
 $section = $_GET['section'] ?? 'my-account';
+
+ob_start();
 ?>
 
-<?php ob_start(); ?>
+<!-- Meta tags for JavaScript access -->
+<meta name="user-status" content="<?php echo htmlspecialchars($user->status ?? 'offline'); ?>">
+<meta name="user-id" content="<?php echo htmlspecialchars($user->id ?? ''); ?>">
+<meta name="user-avatar" content="<?php echo htmlspecialchars($user->avatar_url ?? '/assets/common/main-logo.png'); ?>">
 
 <div class="flex min-h-screen max-w-[1480px] mx-auto">
-    <!-- Meta tags for JavaScript access -->
-    <meta name="user-status" content="<?php echo htmlspecialchars($user->status ?? 'offline'); ?>">
-    <meta name="user-id" content="<?php echo htmlspecialchars($user->id ?? ''); ?>">
-    <meta name="user-avatar" content="<?php echo htmlspecialchars($user->avatar_url ?? '/public/assets/common/main-logo.png'); ?>">
-
     <!-- Left Sidebar with Settings Categories -->
-    <div class="w-72 bg-discord-light border-r border-discord-dark pl-8 pr-4 overflow-y-auto" style="height: 100vh;">
-                        <div class="p-4">
-            <input placeholder="Search" class="w-full bg-discord-darker text-white border-none rounded p-2 focus:outline-none focus:ring-2 focus:ring-discord-blue" />
+    <div class="w-60 bg-discord-light border-r border-discord-dark">
+        <div class="p-4">
+            <div class="text-sm font-semibold text-white"><?php echo htmlspecialchars($user->username ?? ''); ?></div>
+            <div class="text-xs text-discord-lighter mt-1">User Settings</div>
         </div>
         
-        <nav class="mt-6">
+        <nav class="mt-2">
             <ul>
                 <!-- User Settings Categories -->
                 <li>
@@ -60,45 +65,45 @@ $section = $_GET['section'] ?? 'my-account';
                     </div>
                 </li>
                 <li>
-                    <a href="?section=my-account" class="sidebar-item <?php echo $section === 'my-account' ? 'active bg-discord-selected' : ''; ?>">
+                    <a href="?section=my-account" class="sidebar-item <?php echo $section === 'my-account' ? 'active' : ''; ?>">
                         My Account
                     </a>
                 </li>
                 <li>
-                    <a href="?section=profiles" class="sidebar-item <?php echo $section === 'profiles' ? 'active bg-discord-selected' : ''; ?>">
+                    <a href="?section=profiles" class="sidebar-item <?php echo $section === 'profiles' ? 'active' : ''; ?>">
                         Profiles
                     </a>
                 </li>
                 <li>
-                    <a href="?section=connections" class="sidebar-item <?php echo $section === 'connections' ? 'active bg-discord-selected' : ''; ?>">
+                    <a href="?section=connections" class="sidebar-item <?php echo $section === 'connections' ? 'active' : ''; ?>">
                         Connections
                     </a>
                 </li>
                 
                 <!-- App Settings Categories -->
-                <li>
-                    <div class="sidebar-category mt-6">
+                <li class="mt-6">
+                    <div class="sidebar-category">
                         <span>APP SETTINGS</span>
                     </div>
                 </li>
                 <li>
-                    <a href="?section=nitro" class="sidebar-item <?php echo $section === 'nitro' ? 'active bg-discord-selected' : ''; ?>">
+                    <a href="?section=nitro" class="sidebar-item <?php echo $section === 'nitro' ? 'active' : ''; ?>">
                         Nitro
                         <span class="sidebar-item-badge">NEW</span>
                     </a>
                 </li>
                 <li>
-                    <a href="?section=voice" class="sidebar-item <?php echo $section === 'voice' ? 'active bg-discord-selected' : ''; ?>">
+                    <a href="?section=voice" class="sidebar-item <?php echo $section === 'voice' ? 'active' : ''; ?>">
                         Voice & Video
                     </a>
                 </li>
                 <li>
-                    <a href="?section=text" class="sidebar-item <?php echo $section === 'text' ? 'active bg-discord-selected' : ''; ?>">
+                    <a href="?section=text" class="sidebar-item <?php echo $section === 'text' ? 'active' : ''; ?>">
                         Text & Images
                     </a>
                 </li>
                 <li>
-                    <a href="?section=notifications" class="sidebar-item <?php echo $section === 'notifications' ? 'active bg-discord-selected' : ''; ?>">
+                    <a href="?section=notifications" class="sidebar-item <?php echo $section === 'notifications' ? 'active' : ''; ?>">
                         Notifications
                     </a>
                 </li>
@@ -128,10 +133,10 @@ $section = $_GET['section'] ?? 'my-account';
     </div>
 
     <!-- Main Content Area -->
-    <div class="flex-1 bg-discord-dark overflow-y-auto px-10" style="height: 100vh;">
+    <div class="flex-1 bg-discord-dark overflow-y-auto">
         <?php if ($section === 'my-account'): ?>
-            <!-- Page Header -->
-            <div class="py-10 max-w-[740px]">
+            <!-- My Account Section -->
+            <div class="p-10 max-w-[740px]">
                 <h1 class="text-2xl font-bold mb-2">My Account</h1>
                 
                 <!-- Tabs -->
@@ -146,20 +151,21 @@ $section = $_GET['section'] ?? 'my-account';
                     </div>
                 </div>
                 
-                <!-- User Profile Card -->
-                <div class="bg-discord-darkest rounded-lg overflow-hidden mb-8">
-                    <!-- Banner -->
-                    <div class="h-32 bg-[#5865f2] relative">
-                        <?php if (isset($user->banner_url) && $user->banner_url): ?>
-                            <img src="<?php echo htmlspecialchars($user->banner_url); ?>" alt="Banner" class="w-full h-full object-cover">
-                        <?php endif; ?>
+                <form id="user-profile-form" class="space-y-8">
+                    <!-- User Avatar -->
+                    <div class="form-group">
+                        <label class="block text-sm font-medium text-white mb-2">Profile Picture</label>
+                        <p class="text-discord-lighter text-sm mb-2">We recommend an image of at least 512x512.</p>
                         
-                        <!-- Avatar -->
-                        <div class="absolute -bottom-8 left-4">
-                            <div class="w-20 h-20 rounded-full bg-discord-darkest p-1 relative">
-                                <div class="w-full h-full rounded-full bg-discord-darker overflow-hidden">
-                                    <img src="<?php echo htmlspecialchars($user->avatar_url ?? '/public/assets/common/main-logo.png'); ?>" alt="Avatar" class="w-full h-full object-cover">
-                                </div>
+                        <div class="flex items-center space-x-4">
+                            <div id="server-icon-container" class="relative w-24 h-24 bg-discord-dark-input rounded-full overflow-hidden border border-gray-700">
+                                <?php if ($user->avatar_url): ?>
+                                    <img id="server-icon-preview" src="<?php echo htmlspecialchars($user->avatar_url); ?>" alt="User Avatar" class="w-full h-full object-cover">
+                                <?php else: ?>
+                                    <div id="server-icon-placeholder" class="w-full h-full flex items-center justify-center text-2xl font-bold text-white">
+                                        <?php echo strtoupper(substr($user->username ?? '', 0, 1)); ?>
+                                    </div>
+                                <?php endif; ?>
                                 
                                 <!-- Status indicator -->
                                 <?php 
@@ -170,78 +176,44 @@ $section = $_GET['section'] ?? 'my-account';
                                 ?>
                                 <div class="absolute bottom-0 right-0.5 w-3 h-3 rounded-full border-2 border-discord-darker <?php echo $statusClass; ?>"></div>
                             </div>
-                        </div>
-                        
-                        <!-- Edit Button -->
-                        <div class="absolute bottom-4 right-4">
-                            <button id="edit-profile-btn" class="bg-discord-blue hover:bg-discord-blue-dark text-white rounded px-4 py-1.5 text-sm font-medium">
-                                Edit User Profile
+                            
+                            <button type="button" id="edit-profile-btn" class="bg-[#5865f2] hover:bg-[#4752c4] text-white font-medium py-2 px-4 rounded-md">
+                                Change Avatar
                             </button>
+                            
+                            <?php if ($user->avatar_url): ?>
+                                <button type="button" id="remove-avatar-btn" class="text-[#ed4245] hover:underline font-medium py-2 px-4">
+                                    Remove
+                                </button>
+                            <?php endif; ?>
+                            
+                            <input type="file" id="avatar-input" name="avatar" class="hidden" accept="image/*">
                         </div>
                     </div>
                     
-                    <!-- User Info Section -->
-                    <div class="pt-12 pb-4 px-4">
-                        <!-- Name with status indicators -->
-                        <div class="flex items-center mb-4">
-                            <h2 class="text-xl font-semibold mr-2">
-                                <?php echo htmlspecialchars($user->username ?? ''); ?>
-                            </h2>
-                            
-                            <!-- Status Indicators - based on actual user flags -->
-                            <div class="flex space-x-1">
-                                <?php if ($user->status === 'do_not_disturb'): ?>
-                                <span class="w-5 h-5 rounded-full bg-discord-red flex items-center justify-center">
-                                    <i class="fas fa-minus text-xs"></i>
-                                </span>
-                                <?php endif; ?>
-                                
-                                <?php if ($user->status === 'appear'): ?>
-                                <span class="w-5 h-5 rounded-full bg-discord-green flex items-center justify-center">
-                                    <i class="fas fa-check text-xs"></i>
-                                </span>
-                                <?php endif; ?>
-                                
-                                <?php if (isset($user->verified) && $user->verified): ?>
-                                <span class="w-5 h-5 rounded-full bg-[#00aff4] flex items-center justify-center">
-                                    <i class="fas fa-link text-xs"></i>
-                                </span>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- User Details -->
-                <div class="space-y-6">
                     <!-- Display Name -->
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h3 class="font-medium">Display Name</h3>
-                            <p class="text-discord-lighter"><?php echo htmlspecialchars($user->display_name ?? $user->username ?? ''); ?></p>
-                        </div>
-                        <button class="bg-[#4e5058] hover:bg-[#6d6f78] text-white rounded px-4 py-1.5 text-sm font-medium">
-                            Edit
-                        </button>
+                    <div class="form-group">
+                        <label for="display-name" class="block text-sm font-medium text-white mb-2">Display Name</label>
+                        <input type="text" id="display-name" name="display_name" class="form-input" value="<?php echo htmlspecialchars($user->display_name ?? $user->username ?? ''); ?>">
+                        <p class="text-discord-lighter text-xs mt-1">This is how others see you. You can use special characters and emojis.</p>
                     </div>
                     
                     <!-- Username -->
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h3 class="font-medium">Username</h3>
-                            <p class="text-discord-lighter"><?php echo htmlspecialchars(strtolower($user->username ?? '')); ?></p>
+                    <div class="form-group">
+                        <label for="username" class="block text-sm font-medium text-white mb-2">Username</label>
+                        <div class="flex">
+                            <input type="text" id="username" name="username" class="form-input flex-grow" value="<?php echo htmlspecialchars($user->username ?? ''); ?>">
+                            <span class="bg-discord-darker flex items-center px-3 rounded-r-md border-l border-gray-700">
+                                #<?php echo htmlspecialchars($user->discriminator ?? '0000'); ?>
+                            </span>
                         </div>
-                        <button class="bg-[#4e5058] hover:bg-[#6d6f78] text-white rounded px-4 py-1.5 text-sm font-medium">
-                            Edit
-                        </button>
                     </div>
                     
                     <!-- Email -->
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h3 class="font-medium">Email</h3>
-                            <div class="flex items-center">
-                                <?php
+                    <div class="form-group">
+                        <label for="email" class="block text-sm font-medium text-white mb-2">Email</label>
+                        <div class="flex items-center">
+                            <p id="user-email-display" class="text-discord-lighter"><?php 
                                 $email = $user->email ?? '';
                                 $hiddenEmail = '';
                                 
@@ -256,53 +228,70 @@ $section = $_GET['section'] ?? 'my-account';
                                         $hiddenEmail = substr($email, 0, 2) . str_repeat('*', strlen($email) - 5) . substr($email, -3);
                                     }
                                 }
-                                ?>
-                                <p class="text-discord-lighter" id="user-email-display"><?php echo htmlspecialchars($hiddenEmail); ?></p>
-                                <button class="ml-2 text-blue-500 hover:underline text-xs" id="reveal-email-btn" data-email="<?php echo htmlspecialchars($email); ?>">Reveal</button>
-                            </div>
+                                echo htmlspecialchars($hiddenEmail);
+                            ?></p>
+                            <button type="button" id="reveal-email-btn" data-email="<?php echo htmlspecialchars($email); ?>" class="ml-2 text-blue-500 hover:underline text-xs">
+                                Reveal
+                            </button>
+                            <button type="button" id="edit-email-btn" class="ml-auto bg-[#4e5058] hover:bg-[#6d6f78] text-white rounded px-4 py-1.5 text-sm font-medium">
+                                Edit
+                            </button>
                         </div>
-                        <button class="bg-[#4e5058] hover:bg-[#6d6f78] text-white rounded px-4 py-1.5 text-sm font-medium">
-                            Edit
-                        </button>
                     </div>
                     
                     <!-- Phone Number -->
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h3 class="font-medium">Phone Number</h3>
+                    <div class="form-group">
+                        <label for="phone" class="block text-sm font-medium text-white mb-2">Phone Number</label>
+                        <div class="flex items-center">
                             <p class="text-discord-lighter"><?php echo !empty($user->phone) ? htmlspecialchars($user->phone) : "You haven't added a phone number yet."; ?></p>
+                            <button type="button" id="edit-phone-btn" class="ml-auto bg-[#4e5058] hover:bg-[#6d6f78] text-white rounded px-4 py-1.5 text-sm font-medium">
+                                <?php echo !empty($user->phone) ? 'Edit' : 'Add'; ?>
+                            </button>
                         </div>
-                        <button class="bg-[#4e5058] hover:bg-[#6d6f78] text-white rounded px-4 py-1.5 text-sm font-medium">
-                            <?php echo !empty($user->phone) ? 'Edit' : 'Add'; ?>
-                        </button>
                     </div>
-                </div>
-                
-                <!-- Password and Authentication Section -->
-                <div class="mt-10 border-t border-gray-700 pt-8">
-                    <h2 class="text-xl font-bold mb-6">Password and Authentication</h2>
                     
-                    <button class="bg-[#5865f2] hover:bg-[#4752c4] text-white rounded px-4 py-2 text-sm font-medium">
-                        Change Password
-                    </button>
-                    
-                    <!-- 2FA Section -->
-                    <div class="mt-8">
-                        <h3 class="font-medium mb-2">Authenticator App</h3>
-                        <p class="text-discord-lighter mb-4">
-                            Protect your misvord account with an extra layer of security. Once configured,
-                            you'll be required to enter your password and complete one additional step in
-                            order to sign in.
-                        </p>
+                    <!-- Password and Authentication Section -->
+                    <div class="border-t border-gray-700 pt-8 mt-8">
+                        <h2 class="text-xl font-bold mb-6">Password and Authentication</h2>
                         
-                        <button class="bg-[#5865f2] hover:bg-[#4752c4] text-white rounded px-4 py-2 text-sm font-medium">
-                            Enable Authenticator App
-                        </button>
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="font-medium">Password</h3>
+                                <p class="text-discord-lighter text-sm">●●●●●●●●●●●●●●</p>
+                            </div>
+                            <button type="button" id="change-password-btn" class="bg-[#5865f2] hover:bg-[#4752c4] text-white rounded px-4 py-1.5 text-sm font-medium">
+                                Change Password
+                            </button>
+                        </div>
+                        
+                        <!-- 2FA Section -->
+                        <div class="mt-8">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h3 class="font-medium">Two-Factor Authentication</h3>
+                                    <p class="text-discord-lighter text-sm">
+                                        Add an extra layer of security to your account
+                                    </p>
+                                </div>
+                                <button type="button" id="enable-2fa-btn" class="bg-[#5865f2] hover:bg-[#4752c4] text-white rounded px-4 py-1.5 text-sm font-medium">
+                                    Enable 2FA
+                                </button>
+                            </div>
+                        </div>
                     </div>
+                </form>
+            </div>
+        <?php elseif ($section === 'profiles'): ?>
+            <div class="p-10 max-w-[740px]">
+                <h1 class="text-2xl font-bold mb-6">Profiles</h1>
+                <p class="text-discord-lighter">Customize how others see you across different servers.</p>
+                
+                <div class="mt-8 bg-[#2b2d31] p-6 rounded-lg">
+                    <p class="text-center text-discord-lighter">This section is under development.</p>
                 </div>
             </div>
         <?php else: ?>
-            <div class="py-10 max-w-[740px]">
+            <div class="p-10 max-w-[740px]">
                 <h1 class="text-2xl font-bold mb-6"><?php echo ucfirst(str_replace('-', ' ', $section)); ?></h1>
                 <p class="text-discord-lighter">This section is under development.</p>
             </div>
@@ -310,17 +299,21 @@ $section = $_GET['section'] ?? 'my-account';
     </div>
     
     <!-- User Preview Panel -->
-    <div class="w-80 bg-discord-dark border-l border-discord-light p-6 pr-10 overflow-y-auto" style="height: 100vh;">
-        <div class="user-preview-card bg-[#1e1f22] rounded-lg overflow-hidden">
+    <div class="w-80 bg-discord-dark border-l border-discord-light p-6">
+        <div class="server-preview-card bg-[#1e1f22] rounded-lg overflow-hidden">
             <!-- User Banner Preview -->
-            <div class="user-banner h-40 bg-gradient-to-b from-[#5865f2] to-[#4752c4] relative">
-                <?php if (isset($user->banner_url) && $user->banner_url): ?>
-                    <img src="<?php echo htmlspecialchars($user->banner_url); ?>" alt="Banner" class="w-full h-full object-cover">
-                <?php endif; ?>
+            <div class="server-banner h-40 <?php echo $user->banner_url ? '' : 'bg-gradient-to-b from-[#5865f2] to-[#4752c4]'; ?>" 
+                 <?php echo $user->banner_url ? 'style="background-image: url(\'' . htmlspecialchars($user->banner_url) . '\'); background-size: cover; background-position: center;"' : ''; ?>>
                 
                 <!-- User Avatar Preview -->
-                <div class="user-avatar-preview absolute -bottom-8 left-4 w-16 h-16 bg-discord-dark rounded-full border-4 border-[#1e1f22] overflow-hidden relative">
-                    <img src="<?php echo htmlspecialchars($user->avatar_url ?? '/public/assets/common/main-logo.png'); ?>" alt="Avatar" class="w-full h-full object-cover">
+                <div class="server-icon-preview absolute -bottom-8 left-4 w-16 h-16 bg-discord-dark rounded-full border-4 border-[#1e1f22] overflow-hidden relative">
+                    <?php if ($user->avatar_url): ?>
+                        <img src="<?php echo htmlspecialchars($user->avatar_url); ?>" alt="User Avatar" class="w-full h-full object-cover">
+                    <?php else: ?>
+                        <div class="w-full h-full flex items-center justify-center text-xl font-bold text-white">
+                            <?php echo strtoupper(substr($user->username ?? '', 0, 1)); ?>
+                        </div>
+                    <?php endif; ?>
                     
                     <!-- Status indicator in preview -->
                     <?php 
@@ -334,10 +327,10 @@ $section = $_GET['section'] ?? 'my-account';
             </div>
             
             <!-- User Info Preview -->
-            <div class="user-info pt-10 px-4 pb-4">
-                <h3 class="user-name text-white font-bold"><?php echo htmlspecialchars($user->username ?? ''); ?></h3>
-                <div class="user-tag text-xs text-discord-lighter mt-1">
-                    #<?php echo htmlspecialchars($user->discriminator ?? '0000'); ?>
+            <div class="server-info pt-10 px-4 pb-4">
+                <h3 class="server-name text-white font-bold"><?php echo htmlspecialchars($user->username ?? ''); ?></h3>
+                <div class="server-meta flex items-center text-xs text-discord-lighter mt-1">
+                    <span class="mx-1">#<?php echo htmlspecialchars($user->discriminator ?? '0000'); ?></span>
                 </div>
                 
                 <!-- Status Selector -->
@@ -407,17 +400,17 @@ $section = $_GET['section'] ?? 'my-account';
     </div>
     
     <!-- Close button to return to previous page -->
-    <div class="absolute top-6 right-6 flex items-center">
-        <a href="javascript:history.back()" class="close-button flex items-center justify-center py-2">
-            <div class="close-button-icon bg-[#4e5058] hover:bg-[#6d6f78] w-9 h-9 rounded-full flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-white"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+    <div class="absolute top-0 right-0 flex items-center">
+        <a href="javascript:history.back()" class="close-button flex items-center justify-center py-2 px-4">
+            <div class="close-button-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-white"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </div>
-            <span class="close-button-text ml-2 text-xs">ESC</span>
+            <span class="close-button-text">ESC</span>
         </a>
     </div>
 </div>
 
 <?php 
-$content = ob_get_clean();
-include dirname(dirname(__DIR__)) . '/views/layout/main-app.php'; 
+$content = ob_get_clean(); 
+include dirname(dirname(__DIR__)) . '/views/layout/main-app.php';
 ?>

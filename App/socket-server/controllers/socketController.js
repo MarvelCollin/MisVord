@@ -331,21 +331,20 @@ function forwardEvent(io, client, eventName, data, specificRoom = null) {
     // Generate a message signature to detect duplicates
     let messageSignature = null;
     if (eventName === 'new-channel-message' || eventName === 'user-message-dm') {
-        messageSignature = `${eventName}_${client.data.userId}_${Date.now().toString().slice(0, -3)}_${cleanData.content?.substring(0, 20)}`;
+        messageSignature = `${eventName}_${client.data.userId}_${cleanData.id || Date.now().toString()}_${cleanData.content?.substring(0, 20)}`;
         
-        // Check if this is a duplicate message (sent in the last 2 seconds)
-        if (recentMessages.has(messageSignature)) {
-            console.log(`Dropping duplicate message: ${messageSignature}`);
+        const exactDuplicate = recentMessages.has(messageSignature);
+        
+        if (exactDuplicate) {
+            console.log(`Dropping exact duplicate message: ${messageSignature}`);
             return;
         }
         
-        // Store this message signature briefly to prevent duplicates
         recentMessages.set(messageSignature, Date.now());
         
-        // Clean up old message signatures (older than 2 seconds)
         const now = Date.now();
         for (const [key, timestamp] of recentMessages.entries()) {
-            if (now - timestamp > 2000) {
+            if (now - timestamp > 5000) {
                 recentMessages.delete(key);
             }
         }

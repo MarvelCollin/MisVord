@@ -165,8 +165,7 @@ class ChatSection {
         const actions = messageGroup.querySelector('.message-actions');
         if (actions) {
             actions.classList.remove('hidden');
-            actions.style.opacity = '1';
-            actions.style.visibility = 'visible';
+            actions.classList.add('visible');
         }
     }
 
@@ -174,8 +173,7 @@ class ChatSection {
         const actions = messageGroup.querySelector('.message-actions');
         if (actions) {
             actions.classList.add('hidden');
-            actions.style.opacity = '0';
-            actions.style.visibility = 'hidden';
+            actions.classList.remove('visible');
         }
     }
     
@@ -196,9 +194,13 @@ class ChatSection {
             io.on('new-channel-message', function(data) {
                 console.log('Received channel message:', data);
                 if (self.chatType === 'channel' && data.channelId == self.targetId) {
+                    // Generate a reliable message ID if one doesn't exist
+                    const messageId = data.id || `${data.userId}-${data.timestamp}`;
+                    data.id = messageId;
+                    
                     // Only add messages we haven't processed yet
-                    if (!self.processedMessageIds.has(data.id)) {
-                        self.processedMessageIds.add(data.id);
+                    if (!self.processedMessageIds.has(messageId)) {
+                        self.processedMessageIds.add(messageId);
                         
                         // Only add messages from other users (our own are added when sent)
                         if (data.userId != self.userId) {
@@ -211,9 +213,13 @@ class ChatSection {
             io.on('user-message-dm', function(data) {
                 console.log('Received DM message:', data);
                 if ((self.chatType === 'direct' || self.chatType === 'dm') && data.roomId == self.targetId) {
+                    // Generate a reliable message ID if one doesn't exist
+                    const messageId = data.id || `${data.userId}-${data.timestamp}`;
+                    data.id = messageId;
+                    
                     // Only add messages we haven't processed yet
-                    if (!self.processedMessageIds.has(data.id)) {
-                        self.processedMessageIds.add(data.id);
+                    if (!self.processedMessageIds.has(messageId)) {
+                        self.processedMessageIds.add(messageId);
                         
                         // Only add messages from other users (our own are added when sent)
                         if (data.userId != self.userId) {
@@ -679,10 +685,7 @@ class ChatSection {
         
         // Create message actions element (hidden by default)
         const messageActions = document.createElement('div');
-        messageActions.className = 'message-actions hidden absolute -top-2 right-4 bg-[#2b2d31] shadow-lg rounded flex items-center p-1 z-10';
-        messageActions.style.opacity = '0';
-        messageActions.style.visibility = 'hidden';
-        messageActions.style.transition = 'opacity 0.1s ease, visibility 0.1s ease';
+        messageActions.className = 'message-actions hidden absolute -top-2 right-4 bg-[#2b2d31] shadow-lg rounded items-center p-1 z-10';
         
         // Add emoji reaction button
         const addReactionBtn = document.createElement('button');

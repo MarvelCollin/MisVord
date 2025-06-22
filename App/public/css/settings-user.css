@@ -53,24 +53,65 @@ body {
   padding-bottom: 30px; /* Add bottom padding for comfort */
 }
 
+/* Form Elements */
+.form-group {
+  margin-bottom: 24px;
+}
+
+.form-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--discord-lighter);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.form-input {
+  width: 100%;
+  background-color: var(--discord-dark-input);
+  border: none;
+  border-radius: 3px;
+  padding: 10px;
+  color: white;
+  font-size: 16px;
+  height: 40px;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-input:hover {
+  background-color: #202225;
+}
+
+.form-input:focus {
+  outline: none;
+  border: none;
+  box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.3);
+  background-color: var(--discord-dark-input);
+}
+
+.form-input::placeholder {
+  color: #72767d;
+}
+
 /* Sidebar categories */
 .sidebar-category {
   font-size: 12px;
   font-weight: 700;
   color: #b5bac1;
-  padding: 4px 0;
-  margin-top: 16px;
+  padding: 4px 16px;
+  margin-top: 24px;
   text-transform: uppercase;
 }
 
 .sidebar-item {
   display: flex;
   align-items: center;
-  padding: 8px 8px;
+  padding: 8px 16px;
   color: #b5bac1;
   cursor: pointer;
   border-radius: 4px;
-  margin: 2px 0;
+  margin: 2px 8px;
   transition: background-color 0.2s ease, color 0.2s ease, transform 0.1s ease;
 }
 
@@ -81,7 +122,7 @@ body {
 }
 
 .sidebar-item.active {
-  background-color: rgba(79, 84, 92, 0.32);
+  background-color: #35373c;
   color: white;
 }
 
@@ -100,24 +141,24 @@ body {
 }
 
 /* User Preview Card */
-.user-preview-card {
+.server-preview-card {
   background-color: #1e1f22;
   border-radius: 8px;
   overflow: hidden;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.user-preview-card:hover {
+.server-preview-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-.user-banner {
+.server-banner {
   height: 160px;
   position: relative;
 }
 
-.user-avatar-preview {
+.server-icon-preview {
   position: absolute;
   bottom: -32px;
   left: 16px;
@@ -130,33 +171,74 @@ body {
   transition: transform 0.2s ease;
 }
 
-.user-preview-card:hover .user-avatar-preview {
+.server-preview-card:hover .server-icon-preview {
   transform: scale(1.02);
 }
 
-.user-info {
+.server-info {
   padding: 40px 16px 16px;
 }
 
-.user-name {
+.server-name {
   font-size: 16px;
   font-weight: 700;
   color: var(--discord-white);
   margin-bottom: 4px;
 }
 
-.user-tag {
+.server-meta {
   font-size: 12px;
   color: var(--discord-lighter);
 }
 
-/* Animation for the ESC button */
-.settings-content button[onclick="window.history.back()"]:hover {
-  transform: scale(1.05);
-  transition: transform 0.2s ease;
+/* Toggle Switch */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 42px;
+  height: 24px;
 }
 
-/* Close button */
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #36393f;
+  transition: .4s;
+  border-radius: 34px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: #72767d;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: var(--discord-primary);
+}
+
+input:checked + .slider:before {
+  transform: translateX(18px);
+  background-color: white;
+}
+
+/* Animation for the ESC button */
 .close-button {
   position: absolute;
   top: 16px;
@@ -217,21 +299,43 @@ body {
   transition: background-color 0.2s ease;
 }
 
-/* Custom scrollbar for the settings page */
-.settings-sidebar::-webkit-scrollbar,
-.settings-content::-webkit-scrollbar {
-  width: 8px;
+/* User avatar container */
+#server-icon-container {
+  position: relative;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
-.settings-sidebar::-webkit-scrollbar-thumb,
-.settings-content::-webkit-scrollbar-thumb {
-  background-color: #202225;
-  border-radius: 4px;
+#server-icon-container:hover {
+  opacity: 0.9;
+  transform: scale(1.02);
 }
 
-.settings-sidebar::-webkit-scrollbar-track,
-.settings-content::-webkit-scrollbar-track {
-  background-color: transparent;
+#server-icon-container:active {
+  transform: scale(0.98);
+}
+
+#server-icon-container::after {
+  content: "Change";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 500;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  border-radius: 50%;
+}
+
+#server-icon-container:hover::after {
+  opacity: 1;
 }
 
 /* Improved scrollbar styling for all scrollable areas */
@@ -265,37 +369,22 @@ button:active {
   transform: translateY(0);
 }
 
-button.bg-discord-blue {
+button.bg-discord-blue, button.bg-\[\#5865f2\] {
   background-color: #5865f2;
   color: white;
 }
 
-button.bg-discord-blue:hover {
+button.bg-discord-blue:hover, button.bg-\[\#5865f2\]:hover {
   background-color: #4752c4;
 }
 
-button.bg-discord-dark {
-  background-color: #2b2d31;
+button.bg-discord-dark, button.bg-\[\#4e5058\] {
+  background-color: #4e5058;
   color: white;
 }
 
-button.bg-discord-dark:hover {
-  background-color: #35373c;
-}
-
-/* Form inputs */
-input {
-  background-color: #1e1f22;
-  border: none;
-  border-radius: 4px;
-  color: white;
-  padding: 10px;
-  transition: box-shadow 0.2s ease;
-}
-
-input:focus {
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.3);
+button.bg-discord-dark:hover, button.bg-\[\#4e5058\]:hover {
+  background-color: #6d6f78;
 }
 
 /* Badge styles */
@@ -334,3 +423,4 @@ input:focus {
     order: 3;
   }
 }
+

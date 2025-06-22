@@ -5,6 +5,15 @@ $additional_js = array_filter($additional_js, function($script) {
     return $script !== 'socket.io.min.js' && $script !== 'lib/socket.io.min.js';
 });
 
+// Check if this is the server settings page and remove chat-section.js scripts
+$is_settings_page = isset($page_css) && $page_css === 'settings-server';
+if ($is_settings_page) {
+    // Prevent chat scripts from loading on settings page
+    $additional_js = array_filter($additional_js, function($script) {
+        return strpos($script, 'chat-section') === false;
+    });
+}
+
 $core_scripts = ['core/ui/toast', 'core/ajax/ajax-handler', 'core/socket/global-socket-manager'];
 ?>
 

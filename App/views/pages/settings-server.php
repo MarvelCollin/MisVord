@@ -18,7 +18,7 @@ $serverId = $settingsData['serverId'];
 $section = $settingsData['section'] ?? 'profile';
 
 $page_title = 'misvord - Server Settings';
-$body_class = 'bg-discord-dark text-white';
+$body_class = 'bg-discord-dark text-white settings-page';
 $page_css = 'settings-server';
 $page_js = 'pages/settings-page';
 $head_scripts = ['logger-init'];
@@ -92,16 +92,16 @@ ob_start();
                     <!-- Server Name -->
                     <div class="form-group">
                         <label for="server-name" class="block text-sm font-medium text-white mb-2">Name</label>
-                        <input type="text" id="server-name" name="name" class="form-input" value="<?php echo htmlspecialchars($server->name); ?>">
+                        <input type="text" id="server-name" name="name" class="form-input bg-discord-dark-input text-white border-none focus:ring-2 focus:ring-discord-primary" value="<?php echo htmlspecialchars($server->name); ?>">
                     </div>
                     
                     <!-- Server Icon -->
                     <div class="form-group">
                         <label class="block text-sm font-medium text-white mb-2">Icon</label>
-                        <p class="text-discord-lighter text-sm mb-2">We recommend an image of at least 512x512.</p>
+                        <p class="text-discord-lighter text-sm mb-4">We recommend an image of at least 512x512.</p>
                         
                         <div class="flex items-center space-x-4">
-                            <div id="server-icon-container" class="relative w-24 h-24 bg-discord-dark-input rounded-full overflow-hidden border border-gray-700">
+                            <div id="server-icon-container" class="relative w-24 h-24 bg-discord-dark-input rounded-full overflow-hidden border border-discord-darker cursor-pointer hover:opacity-90 transition-opacity">
                                 <?php if ($server->image_url): ?>
                                     <img id="server-icon-preview" src="<?php echo htmlspecialchars($server->image_url); ?>" alt="Server Icon" class="w-full h-full object-cover">
                                 <?php else: ?>
@@ -109,17 +109,22 @@ ob_start();
                                         <?php echo strtoupper(substr($server->name, 0, 1)); ?>
                                     </div>
                                 <?php endif; ?>
+                                <div class="absolute inset-0 bg-black bg-opacity-50 opacity-0 hover:opacity-100 flex items-center justify-center transition-opacity">
+                                    <div class="text-white text-sm font-medium">CHANGE</div>
+                                </div>
                             </div>
                             
-                            <button type="button" id="change-server-icon-btn" class="bg-[#5865f2] hover:bg-[#4752c4] text-white font-medium py-2 px-4 rounded-md">
-                                Change Server Icon
-                            </button>
-                            
-                            <?php if ($server->image_url): ?>
-                                <button type="button" id="remove-server-icon-btn" class="text-[#ed4245] hover:underline font-medium py-2 px-4">
-                                    Remove Icon
+                            <div class="flex space-x-3">
+                                <button type="button" id="change-server-icon-btn" class="bg-discord-primary hover:bg-discord-primary-dark text-white font-medium py-2 px-4 rounded-md">
+                                    Change Icon
                                 </button>
-                            <?php endif; ?>
+                                
+                                <?php if ($server->image_url): ?>
+                                    <button type="button" id="remove-server-icon-btn" class="text-discord-red hover:underline font-medium py-2 px-4">
+                                        Remove
+                                    </button>
+                                <?php endif; ?>
+                            </div>
                             
                             <input type="file" id="server-icon-input" name="server_icon" class="hidden" accept="image/*">
                         </div>
@@ -128,23 +133,30 @@ ob_start();
                     <!-- Server Description -->
                     <div class="form-group">
                         <label for="server-description" class="block text-sm font-medium text-white mb-2">Description</label>
-                        <textarea id="server-description" name="description" class="form-input h-24 resize-none" placeholder="Tell people what your server is about..."><?php echo htmlspecialchars($server->description ?? ''); ?></textarea>
+                        <textarea id="server-description" name="description" class="form-input bg-discord-dark-input text-white border-none h-24 resize-none focus:ring-2 focus:ring-discord-primary" placeholder="Tell people what your server is about..."><?php echo htmlspecialchars($server->description ?? ''); ?></textarea>
                     </div>
                     
                     <!-- Server Privacy -->
-                    <div class="form-group">
+                    <div class="form-group pb-4 border-b border-discord-lighter border-opacity-20">
                         <label class="block text-sm font-medium text-white mb-2">Privacy Setting</label>
-                        <div class="flex items-center space-x-2">
-                            <input type="checkbox" id="is-public" name="is_public" class="w-5 h-5" <?php echo $server->is_public ? 'checked' : ''; ?>>
-                            <label for="is-public" class="text-sm text-white">Make this server public</label>
+                        <div class="flex items-center space-x-3">
+                            <div class="relative inline-flex items-center">
+                                <input type="checkbox" id="is-public" name="is_public" class="custom-checkbox absolute opacity-0 w-0 h-0" <?php echo $server->is_public ? 'checked' : ''; ?>>
+                                <div class="checkbox-wrapper flex items-center justify-center w-5 h-5 bg-discord-dark-input rounded border border-discord-darker">
+                                    <svg class="checkbox-check w-3.5 h-3.5 text-white opacity-0 transform scale-50 transition-all duration-100" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <label for="is-public" class="ml-2 text-sm text-white cursor-pointer">Make this server public</label>
+                            </div>
                         </div>
-                        <p class="text-discord-lighter text-xs mt-1">Public servers can be found by anyone in Server Discovery</p>
+                        <p class="text-discord-lighter text-xs mt-1 ml-8">Public servers can be found by anyone in Server Discovery</p>
                     </div>
                     
                     <!-- Server Category -->
-                    <div class="form-group">
+                    <div class="form-group mt-6">
                         <label for="server-category" class="block text-sm font-medium text-white mb-2">Category</label>
-                        <select id="server-category" name="category" class="form-input">
+                        <select id="server-category" name="category" class="form-input bg-discord-dark-input text-white border-none focus:ring-2 focus:ring-discord-primary">
                             <option value="">Select a category</option>
                             <option value="gaming" <?php echo ($server->category === 'gaming') ? 'selected' : ''; ?>>Gaming</option>
                             <option value="music" <?php echo ($server->category === 'music') ? 'selected' : ''; ?>>Music</option>
@@ -156,7 +168,7 @@ ob_start();
                     
                     <!-- Save Button -->
                     <div class="form-group mt-8">
-                        <button type="submit" id="save-changes-btn" class="bg-[#5865f2] hover:bg-[#4752c4] text-white font-medium py-2 px-6 rounded-md">
+                        <button type="submit" id="save-changes-btn" class="bg-discord-primary hover:bg-discord-primary-dark text-white font-medium py-2 px-6 rounded-md transition-colors">
                             Save Changes
                         </button>
                     </div>

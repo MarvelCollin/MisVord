@@ -13,7 +13,15 @@ import './servers/server-sidebar.js';
 import './servers/server-manager.js';
 import './servers/channel-redirect.js';
 import './channels/channel-manager.js';
-import './messaging/chat-section.js';
+
+// Only import chat-section if not on settings pages
+if (!document.body.classList.contains('settings-page') && 
+    !document.location.pathname.includes('/settings')) {
+    import('./messaging/chat-section.js').catch(err => {
+        console.debug('Chat section not loaded: ', err.message);
+    });
+}
+
 import './common/user-detail.js';
 
 // Initialize global UI components

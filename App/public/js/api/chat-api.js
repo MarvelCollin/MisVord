@@ -112,6 +112,7 @@ class ChatAPI {
         const userId = window.globalSocketManager.userId;
         const username = window.globalSocketManager.username;
         const timestamp = Date.now();
+        const messageId = `msg_${timestamp}_${Math.random().toString(36).substring(2, 9)}`;
         const io = window.globalSocketManager.io;
         
         try {
@@ -120,6 +121,7 @@ class ChatAPI {
             if (chatType === 'channel') {
                 eventName = 'new-channel-message';
                 messageData = {
+                    id: messageId,
                     channelId: targetId,
                     content: content,
                     messageType: 'text',
@@ -131,6 +133,7 @@ class ChatAPI {
             else if (chatType === 'direct' || chatType === 'dm') {
                 eventName = 'user-message-dm';
                 messageData = {
+                    id: messageId,
                     roomId: targetId,
                     content: content,
                     messageType: 'text',
@@ -142,6 +145,7 @@ class ChatAPI {
             
             if (eventName && messageData) {
                 io.emit(eventName, messageData);
+                console.log(`Emitting ${eventName} with ID ${messageId}`);
             }
             
             return true;

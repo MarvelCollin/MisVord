@@ -60,25 +60,52 @@ body {
 
 .form-input {
   width: 100%;
-  background-color: white;
+  background-color: var(--discord-dark-input);
   border: none;
   border-radius: 3px;
   padding: 10px;
-  color: black;
+  color: white;
   font-size: 16px;
   height: 40px;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .form-input:hover {
-  background-color: #f7f7f7;
+  background-color: #202225;
 }
 
 .form-input:focus {
   outline: none;
   border: none;
   box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.3);
-  background-color: white;
+  background-color: var(--discord-dark-input);
+}
+
+.form-input::placeholder {
+  color: #72767d;
+}
+
+/* Custom Checkbox */
+.custom-checkbox {
+  cursor: pointer;
+}
+
+.custom-checkbox:checked + .checkbox-wrapper {
+  background-color: #5865f2;
+  border-color: #5865f2;
+}
+
+.custom-checkbox:checked + .checkbox-wrapper .checkbox-check {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.checkbox-wrapper {
+  transition: all 0.2s ease;
+}
+
+.custom-checkbox:focus + .checkbox-wrapper {
+  box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.3);
 }
 
 /* Toggle Switch */
@@ -154,39 +181,28 @@ input:checked + .slider:before {
 #server-icon-container {
   position: relative;
   cursor: pointer;
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  border: none;
+  overflow: hidden;
+  transition: opacity 0.2s ease;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
 }
 
 #server-icon-container:hover {
   opacity: 0.9;
-  transform: scale(1.02);
 }
 
 #server-icon-container:active {
   transform: scale(0.98);
 }
 
-#server-icon-container::after {
-  content: "Change";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+#server-icon-placeholder {
+  background-color: var(--discord-dark);
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
-  font-weight: 500;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-  border-radius: 50%;
-}
-
-#server-icon-container:hover::after {
-  opacity: 1;
+  width: 100%;
+  height: 100%;
 }
 
 /* Trait Cards */
@@ -866,3 +882,70 @@ input[type="radio"] {
 .create-role-btn:hover {
   background-color: #4752c4;
 }
+
+/* Form input focus states */
+.form-input:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--discord-primary);
+}
+
+/* Button styles */
+#change-server-icon-btn {
+  padding: 8px 16px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  font-weight: 500;
+  font-size: 14px;
+  transition: background-color 0.17s ease;
+}
+
+#remove-server-icon-btn {
+  background: transparent;
+  border: none;
+  padding: 8px 12px;
+  height: 36px;
+  color: var(--discord-red);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background-color 0.17s ease, color 0.17s ease;
+}
+
+#remove-server-icon-btn:hover {
+  text-decoration: none;
+  background-color: rgba(237, 66, 69, 0.1);
+}
+
+/* Save button styling */
+#save-changes-btn {
+  min-width: 120px;
+  height: 38px;
+  font-size: 14px;
+  padding: 2px 16px;
+  border-radius: 3px;
+  transition: background-color 0.17s ease;
+}
+
+/* Description textarea */
+#server-description {
+  min-height: 80px;
+  line-height: 1.3;
+  font-size: 15px;
+}
+
+/* Discord style select */
+select.form-input {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23B5BAC1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px;
+  padding-right: 30px;
+}
+
+select.form-input:focus {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235865F2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+
