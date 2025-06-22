@@ -1,5 +1,14 @@
+import { ServerAPI } from '../api/server-api.js';
+import { pageUtils } from '../utils/index.js';
+
 document.addEventListener("DOMContentLoaded", function () {
   initServerPage();
+  
+  // Check for broken display and fix it
+  const mainContent = document.querySelector('.flex-1');
+  if (mainContent && mainContent.textContent.trim() === '[object Object]') {
+    fixObjectDisplay();
+  }
 });
 
 function initServerPage() {
@@ -16,6 +25,14 @@ function initServerPage() {
     const serverId = matches[1];
     console.log(`Loading server page for server ID: ${serverId}`);
 
+    // Fix for [object Object] display issue
+    const objectDisplay = document.querySelector('.server-content');
+    if (objectDisplay && objectDisplay.textContent.includes('[object Object]')) {
+      console.log('Fixing [object Object] display issue');
+      fixObjectDisplay();
+      return;
+    }
+
     document.dispatchEvent(
       new CustomEvent("RefreshChannels", {
         detail: {
@@ -28,6 +45,36 @@ function initServerPage() {
   }
 
   initializeChannelClickHandlers();
+}
+
+// Function to fix [object Object] display issue
+function fixObjectDisplay() {
+  const serverId = getServerIdFromUrl();
+  if (serverId) {
+    console.log('Reloading server page to fix [object Object] issue');
+    new ServerAPI().getServerPageHTML(serverId)
+      .then(html => {
+        const mainContent = document.querySelector('.flex-1');
+        if (mainContent && html) {
+          pageUtils.updatePageContent(mainContent, html);
+        } else {
+          window.location.reload();
+        }
+      })
+      .catch(err => {
+        console.error('Failed to fix display issue:', err);
+        window.location.reload();
+      });
+  } else {
+    window.location.reload();
+  }
+}
+
+// Helper function to get server ID from URL
+function getServerIdFromUrl() {
+  const path = window.location.pathname;
+  const matches = path.match(/\/server\/(\d+)/);
+  return matches && matches[1] ? matches[1] : null;
 }
 
 function initializeChannelClickHandlers() {

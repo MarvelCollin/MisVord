@@ -1,0 +1,264 @@
+/* Server Settings Page Styles */
+
+:root {
+  --discord-primary: #5865f2;
+  --discord-primary-dark: #4752c4;
+  --discord-red: #ed4245;
+  --discord-green: #3ba55d;
+  --discord-dark: #313338;
+  --discord-darker: #2b2d31;
+  --discord-light: #1e1f22;
+  --discord-lighter: #b5bac1;
+  --discord-white: #ffffff;
+  --discord-background: #313338;
+  --discord-background-secondary: #2b2d31;
+  --discord-background-tertiary: #1e1f22;
+  --discord-background-modifier-hover: rgba(79, 84, 92, 0.16);
+  --discord-background-modifier-active: rgba(79, 84, 92, 0.24);
+  --discord-background-modifier-selected: rgba(79, 84, 92, 0.32);
+  --discord-text-normal: #dcddde;
+  --discord-text-muted: #a3a6aa;
+  --discord-dark-input: #1e1f22;
+  --discord-dark-hover: rgba(79, 84, 92, 0.3);
+}
+
+/* Form Elements */
+.form-group {
+  margin-bottom: 24px;
+}
+
+.form-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--discord-lighter);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.form-input {
+  width: 100%;
+  background-color: var(--discord-dark-input);
+  border: 1px solid #1e1f22;
+  border-radius: 3px;
+  padding: 10px;
+  color: var(--discord-white);
+  font-size: 16px;
+  height: 40px;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--discord-primary);
+  box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.3);
+}
+
+/* Toggle Switch */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 42px;
+  height: 24px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #36393f;
+  transition: .4s;
+  border-radius: 34px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: #72767d;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: var(--discord-primary);
+}
+
+input:checked + .slider:before {
+  transform: translateX(18px);
+  background-color: white;
+}
+
+/* Banner Color Options */
+.banner-color-option {
+  height: 64px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: border-color 0.2s ease;
+}
+
+.banner-color-option:hover,
+.banner-color-option.selected {
+  border-color: var(--discord-white);
+}
+
+/* Server Icon Container */
+#server-icon-container {
+  position: relative;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+#server-icon-container:hover {
+  opacity: 0.8;
+}
+
+#server-icon-container::after {
+  content: "Change";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 500;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+#server-icon-container:hover::after {
+  opacity: 1;
+}
+
+/* Trait Cards */
+.trait-card {
+  background-color: var(--discord-dark-input);
+  border: 1px solid #2c2f33;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.trait-card:hover {
+  background-color: var(--discord-dark-hover);
+}
+
+.trait-emoji {
+  width: 40px;
+  height: 40px;
+  background-color: #2c2f33;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+  font-size: 20px;
+}
+
+/* Server Preview Card */
+.server-preview-card {
+  background-color: var(--discord-light);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.server-banner {
+  height: 160px;
+  position: relative;
+}
+
+.server-icon-preview {
+  position: absolute;
+  bottom: -32px;
+  left: 16px;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 4px solid var(--discord-dark);
+  overflow: hidden;
+  background-color: var(--discord-dark);
+}
+
+.server-info {
+  padding: 40px 16px 16px;
+}
+
+.server-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--discord-white);
+  margin-bottom: 4px;
+}
+
+.server-meta {
+  font-size: 12px;
+  color: var(--discord-lighter);
+}
+
+.online-indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background-color: var(--discord-green);
+  border-radius: 50%;
+  margin-right: 4px;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border-radius: 3px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.btn-primary {
+  background-color: var(--discord-primary);
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: var(--discord-primary-dark);
+}
+
+.btn-secondary {
+  background-color: transparent;
+  color: var(--discord-white);
+}
+
+.btn-secondary:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.btn-danger {
+  color: var(--discord-red);
+}
+
+.btn-danger:hover {
+  background-color: rgba(237, 66, 69, 0.1);
+}

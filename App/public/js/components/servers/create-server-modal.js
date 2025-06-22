@@ -1,5 +1,6 @@
 import { ServerAPI } from '../../api/server-api.js';
 import ImageCutter from '../common/image-cutter.js';
+import { pageUtils } from '../../utils/index.js';
 
 document.addEventListener('DOMContentLoaded', function() {
     initServerIconUpload();
@@ -293,7 +294,8 @@ function handleServerCreation(form) {
             return;
         }
         
-        ServerAPI.createServer(formData)
+        const serverApi = new ServerAPI();
+        serverApi.createServer(formData)
         .then(data => {
             hideLoading(submitBtn);
             if (data.success) {
@@ -440,9 +442,16 @@ function loadServerPage(serverId) {
     if (mainContent) {
         showPageLoading(mainContent);
         
-        ServerAPI.redirectToServer(serverId)
+        // Use the better HTML-specific method
+        new ServerAPI().getServerPageHTML(serverId)
         .then(html => {
-            updatePageContent(mainContent, html);
+            if (typeof html === 'string') {
+                pageUtils.updatePageContent(mainContent, html);
+            } else {
+                // Fallback direct navigation
+                console.log('Received non-HTML response, redirecting...');
+                window.location.href = `/server/${serverId}`;
+            }
         })
         .catch(error => {
             console.error('Error loading server page:', error);
@@ -450,48 +459,6 @@ function loadServerPage(serverId) {
         });
     } else {
         window.location.href = `/server/${serverId}`;
-    }
-}
-
-function updatePageContent(container, html) {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-    const newContent = doc.querySelector('.flex-1') || 
-                      doc.querySelector('[class*="server-content"]') ||
-                      doc.body;
-    
-    if (newContent) {
-        container.innerHTML = newContent.innerHTML;
-        executeInlineScripts(doc);
-    }
-}
-
-function executeInlineScripts(doc) {
-    const scripts = doc.querySelectorAll('script:not([src])');
-    scripts.forEach(script => {
-        if (script.textContent.trim()) {
-            try {
-                eval(script.textContent);
-            } catch (error) {
-                console.error('Script execution error:', error);
-            }
-        }
-    });
-}
-
-function refreshSidebar() {
-    const sidebar = document.querySelector('.w-\\[72px\\]') || 
-                   document.querySelector('.server-sidebar');
-    
-    if (sidebar) {
-        ServerAPI.getSidebar()
-        .then(html => {
-            sidebar.innerHTML = html;
-        })
-        .catch(error => {
-            console.error('Failed to refresh sidebar:', error);
-            window.location.reload();
-        });
     }
 }
 

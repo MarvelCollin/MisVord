@@ -9,6 +9,15 @@ function setup(io) {
     io.on('connection', (socket) => {
         console.log(`Socket connected: ${socket.id}`);
         
+        // Debug all incoming events
+        const originalOnEvent = socket.onevent;
+        socket.onevent = function(packet) {
+            const args = packet.data || [];
+            const eventName = args[0];
+            console.log(`📥 RECEIVED EVENT: ${eventName}`, socket.id, args.length > 1 ? `args: ${JSON.stringify(args[1]).substring(0, 100)}...` : 'no args');
+            originalOnEvent.call(this, packet);
+        };
+        
         socket.on('authenticate', (data) => handleAuthenticate(socket, data));
         socket.on('join-channel', (data) => handleJoinChannel(socket, data));
         socket.on('leave-channel', (data) => handleLeaveChannel(socket, data));
@@ -17,6 +26,16 @@ function setup(io) {
         socket.on('typing', (data) => handleTyping(socket, data));
         socket.on('stop-typing', (data) => handleStopTyping(socket, data));
         socket.on('update-presence', (data) => handleUpdatePresence(socket, data));
+        
+        // Direct socket events for messaging
+        socket.on('new-channel-message', (data) => forwardEvent(socket, 'new-channel-message', data, `channel-${data.channelId}`));
+        socket.on('user-message-dm', (data) => forwardEvent(socket, 'user-message-dm', data, `dm-room-${data.roomId}`));
+        socket.on('message-updated', (data) => forwardEvent(socket, 'message-updated', data, getTargetRoom(data)));
+        socket.on('message-deleted', (data) => forwardEvent(socket, 'message-deleted', data, getTargetRoom(data)));
+        socket.on('reaction-added', (data) => forwardEvent(socket, 'reaction-added', data));
+        socket.on('reaction-removed', (data) => forwardEvent(socket, 'reaction-removed', data));
+        socket.on('message-pinned', (data) => forwardEvent(socket, 'message-pinned', data));
+        
         socket.on('debug-rooms', () => handleDebugRooms(io, socket));
         socket.on('get-room-info', () => handleGetRoomInfo(io, socket));
         socket.on('heartbeat', () => socket.emit('heartbeat-response', { time: Date.now() }));
@@ -274,6 +293,93 @@ function handleGetRoomInfo(io, socket) {
     socket.emit('room-info', {
         rooms: socketRooms
     });
+}
+
+function forwardEvent(socket, eventName, data, specificRoom = null) {
+    if (!socket.data.authenticated) {
+        socket.emit('error', { message: 'Authentication required' });
+        return;
+    }
+    
+    // Figure out the target room if not specified
+    if (!specificRoom) {
+        specificRoom = getTargetRoom(data);
+    }
+    
+    // Basic event logging
+    console.log(`Forwarding event ${eventName}${specificRoom ? ' to room: ' + specificRoom : ''}`);
+    
+    // Get username from debug data or from socket data
+    const username = data._debug?.emittedBy || socket.data.username || 'Unknown';
+    const userId = socket.data.userId || data.user_id || data.userId || 'unknown';
+    const source = data._debug?.type || 'direct-socket';
+    
+    // Detailed message logging based on event type
+    if (eventName === 'new-channel-message') {
+        const channelId = data.channelId || data.channel_id;
+        console.log(`👤 ${username} (${userId}) chat in channel ${channelId} : "${data.content}"`);
+    } else if (eventName === 'user-message-dm') {
+        const roomId = data.roomId || data.chatRoomId || data.room_id;
+        console.log(`👤 ${username} (${userId}) chat in room ${roomId} : "${data.content}"`);
+    } else if (eventName === 'message-updated') {
+        const targetType = data.target_type || 'unknown';
+        const roomId = data.target_id || data.roomId || data.channelId;
+        console.log(`👤 ${username} (${userId}) edited message in ${targetType} ${roomId} : "${data.message?.content || data.content || 'unknown content'}"`);
+    } else if (eventName === 'message-deleted') {
+        const targetType = data.target_type || 'unknown';
+        const roomId = data.target_id || data.roomId || data.channelId;
+        console.log(`👤 ${username} (${userId}) deleted message ${data.message_id} in ${targetType} ${roomId}`);
+    } else if (eventName === 'reaction-added' || eventName === 'reaction-removed') {
+        console.log(`👤 ${username} (${userId}) ${eventName.replace('-', ' ')} ${data.emoji} to message ${data.message_id}`);
+    }
+    
+    // Remove debug properties before forwarding to other clients
+    if (data._debug) {
+        const cleanData = {...data};
+        delete cleanData._debug;
+        data = cleanData;
+    }
+    
+    // Forward the event
+    if (specificRoom) {
+        socket.to(specificRoom).emit(eventName, data);
+        
+        // Log room size for debugging
+        const roomSize = socket.adapter.rooms && socket.adapter.rooms.get(specificRoom)?.size || 0;
+        console.log(`📢 Sent to room ${specificRoom} (${roomSize} clients connected)`);
+    } else {
+        socket.broadcast.emit(eventName, data);
+        console.log(`📢 Broadcasted to all other clients`);
+    }
+}
+
+function getTargetRoom(data) {
+    // Handle channel type messages
+    if (data.target_type === 'channel' && data.target_id) {
+        return `channel-${data.target_id}`;
+    }
+    // Handle DM/direct type messages - normalize to 'dm'
+    else if ((data.target_type === 'dm' || data.target_type === 'direct') && data.target_id) {
+        return `dm-room-${data.target_id}`;
+    }
+    // Handle legacy direct format with roomId
+    else if (data.roomId) {
+        return `dm-room-${data.roomId}`;
+    }
+    // Handle legacy channel format with channelId
+    else if (data.channelId) {
+        return `channel-${data.channelId}`;
+    }
+    // Handle less common key formats
+    else if (data.chatRoomId) {
+        return `dm-room-${data.chatRoomId}`;
+    }
+    else if (data.channel_id) {
+        return `channel-${data.channel_id}`;
+    }
+    
+    // If no room identifier found, return null
+    return null;
 }
 
 module.exports = {

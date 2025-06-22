@@ -385,19 +385,59 @@ class BaseController
             throw new Exception('No file uploaded');
         }
 
-        $targetDir = dirname(__DIR__) . "/public/assets/{$folder}/";
-        if (!is_dir($targetDir)) {
-            mkdir($targetDir, 0755, true);
+        $isDocker = getenv('IS_DOCKER') === 'true';
+        
+        if ($isDocker) {
+            $baseUploadDir = dirname(__DIR__) . "/storage/uploads/";
+            $targetDir = $baseUploadDir . $folder . '/';
+            
+            if (!is_dir($baseUploadDir)) {
+                if (!mkdir($baseUploadDir, 0755, true)) {
+                    throw new Exception('Failed to create upload base directory');
+                }
+            }
+            
+            if (!is_dir($targetDir)) {
+                if (!mkdir($targetDir, 0755, true)) {
+                    throw new Exception('Failed to create upload target directory');
+                }
+            }
+
+            $filename = uniqid() . '_' . basename($file['name']);
+            $targetFile = $targetDir . $filename;
+            
+            if (!move_uploaded_file($file['tmp_name'], $targetFile)) {
+                throw new Exception('Failed to move uploaded file');
+            }
+
+            $publicUrl = "/storage/uploads/{$folder}/{$filename}";
+            
+            $symlinkedDir = dirname(__DIR__) . "/public/storage/uploads/{$folder}";
+            
+            if (!is_dir(dirname($symlinkedDir))) {
+                if (!mkdir(dirname($symlinkedDir), 0755, true)) {
+                    error_log("Warning: Unable to create symlink directory structure");
+                }
+            }
+            
+            return $publicUrl;
+        } else {
+            $targetDir = dirname(__DIR__) . "/public/assets/{$folder}/";
+            if (!is_dir($targetDir)) {
+                if (!mkdir($targetDir, 0755, true)) {
+                    throw new Exception('Failed to create directory');
+                }
+            }
+
+            $filename = uniqid() . '_' . basename($file['name']);
+            $targetFile = $targetDir . $filename;
+
+            if (!move_uploaded_file($file['tmp_name'], $targetFile)) {
+                throw new Exception('Failed to upload file');
+            }
+
+            return "/assets/{$folder}/{$filename}";
         }
-
-        $filename = uniqid() . '_' . basename($file['name']);
-        $targetFile = $targetDir . $filename;
-
-        if (!move_uploaded_file($file['tmp_name'], $targetFile)) {
-            throw new Exception('Failed to upload file');
-        }
-
-        return "/assets/{$folder}/{$filename}";
     }
     
     protected function notifyViaSocket($userId, $event, $data)

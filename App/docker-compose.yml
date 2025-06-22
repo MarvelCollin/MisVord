@@ -17,10 +17,11 @@ services:
       - ./migrations:/var/www/html/migrations:ro
       - ./database:/var/www/html/database:ro
       - ./utils:/var/www/html/utils:ro
-      - ./storage:/var/www/html/storage:rw 
+      - ./storage:/var/www/html/storage:rw
       - ./public/router.php:/var/www/html/router.php:ro
       - ./public/index.php:/var/www/html/index.php:ro
       - ./.htaccess:/var/www/html/.htaccess:ro
+      - ./public/storage:/var/www/html/public/storage:rw
     depends_on:
       - db
     networks:

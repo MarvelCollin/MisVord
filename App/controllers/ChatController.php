@@ -8,7 +8,6 @@ require_once __DIR__ . '/../database/repositories/UserRepository.php';
 require_once __DIR__ . '/../database/repositories/FriendListRepository.php';
 require_once __DIR__ . '/../database/models/Message.php';
 require_once __DIR__ . '/../database/models/User.php';
-require_once __DIR__ . '/../utils/WebSocketClient.php';
 require_once __DIR__ . '/BaseController.php';
 
 class ChatController extends BaseController
@@ -104,7 +103,9 @@ class ChatController extends BaseController
         } catch (Exception $e) {
             return $this->serverError('Failed to load direct messages');
         }
-    }    public function sendMessage()
+    }
+
+    public function sendMessage()
     {
         $this->requireAuth();
         $userId = $this->getCurrentUserId();
@@ -162,28 +163,35 @@ class ChatController extends BaseController
             if ($message->save()) {
                 $formattedMessage = $this->formatMessage($message);
 
-
                 if (!empty($mentions)) {
                     $formattedMessage['mentions'] = $mentions;
-                }                $this->sendWebSocketNotification('channel-message', [
-                    'channelId' => $channelId,
-                    'content' => $content,
-                    'messageType' => $messageType,
-                    'timestamp' => time(),
-                    'message' => $formattedMessage,
-                    'user_id' => $userId,
-                    'username' => $_SESSION['username'] ?? 'Unknown',
-                    'source' => 'php-backend'
-                ]);
+                }
 
-                return $this->success(['message' => $formattedMessage], 'Message sent successfully');
+                return $this->success([
+                    'message' => $formattedMessage,
+                    'channel_id' => $channelId,
+                    'socket_event' => 'new-channel-message',
+                    'socket_data' => [
+                        'channelId' => $channelId,
+                        'content' => $content,
+                        'messageType' => $messageType,
+                        'timestamp' => time(),
+                        'message' => $formattedMessage,
+                        'user_id' => $userId,
+                        'username' => $_SESSION['username'] ?? 'Unknown',
+                        'source' => 'client-relay'
+                    ],
+                    'client_should_emit_socket' => true
+                ], 'Message sent successfully');
             } else {
                 throw new Exception('Failed to save message');
             }
         } catch (Exception $e) {
             return $this->serverError('Failed to send message');
         }
-    }    private function sendDirectMessage($chatRoomId, $content, $userId, $messageType = 'text', $attachmentUrl = null, $mentions = [])
+    }
+
+    private function sendDirectMessage($chatRoomId, $content, $userId, $messageType = 'text', $attachmentUrl = null, $mentions = [])
     {
         $chatRoom = $this->chatRoomRepository->find($chatRoomId);
         if (!$chatRoom) {
@@ -205,10 +213,11 @@ class ChatController extends BaseController
 
                 $formattedMessage = $this->formatMessage($message);
 
-
                 if (!empty($mentions)) {
                     $formattedMessage['mentions'] = $mentions;
-                }                $participants = $this->chatRoomRepository->getParticipants($chatRoomId);
+                }
+                
+                $participants = $this->chatRoomRepository->getParticipants($chatRoomId);
                 $senderUsername = $_SESSION['username'] ?? 'Unknown';
                 $targetUsername = 'Unknown';
                 
@@ -221,24 +230,28 @@ class ChatController extends BaseController
                 
                 error_log("$senderUsername direct message to $targetUsername : $content");
 
-                $this->sendWebSocketNotification('direct-message', [
-                    'roomId' => $chatRoomId,
-                    'content' => $content,
-                    'messageType' => $messageType,
-                    'timestamp' => time(),
+                return $this->success([
                     'message' => $formattedMessage,
-                    'chatRoomId' => $chatRoomId,
-                    'user_id' => $userId,
-                    'username' => $senderUsername,
-                    'source' => 'php-backend'
-                ]);
-
-                return $this->success(['message' => $formattedMessage], 'Message sent successfully');
+                    'room_id' => $chatRoomId,
+                    'socket_event' => 'user-message-dm',
+                    'socket_data' => [
+                        'roomId' => $chatRoomId,
+                        'content' => $content,
+                        'messageType' => $messageType,
+                        'timestamp' => time(),
+                        'message' => $formattedMessage,
+                        'chatRoomId' => $chatRoomId,
+                        'user_id' => $userId,
+                        'username' => $senderUsername,
+                        'source' => 'client-relay'
+                    ],
+                    'client_should_emit_socket' => true
+                ], 'Message sent successfully');
             } else {
                 throw new Exception('Failed to save message');
             }
         } catch (Exception $e) {
-            return $this->serverError('Failed to send direct message');
+            return $this->serverError('Failed to send message');
         }
     }
 
@@ -507,6 +520,7 @@ class ChatController extends BaseController
             return $this->serverError('Failed to get messages: ' . $e->getMessage());
         }
     }
+
     private function formatMessage($message)
     {
 
@@ -527,37 +541,6 @@ class ChatController extends BaseController
             'edited_at' => is_array($message) ? ($message['edited_at'] ?? null) : ($message->edited_at ?? null),
             'type' => is_array($message) ? ($message['message_type'] ?? 'text') : ($message->type ?? 'text')
         ];
-    }    private function sendWebSocketNotification($event, $data, $targetUserId = null)
-    {
-        try {
-            $wsClient = new WebSocketClient();
-            $wsClient->setDebug(true);
-            
-            error_log("📨 Sending WebSocket notification: " . $event . ", Data: " . json_encode($data));
-            
-            if ($event === 'channel-message' && isset($data['channelId'])) {
-                $roomName = 'channel-' . $data['channelId'];
-                error_log("📢 Broadcasting to channel room: " . $roomName);
-                return $wsClient->broadcastToRoom($roomName, 'new-channel-message', $data);
-            } 
-            else if ($event === 'direct-message' && isset($data['roomId'])) {
-                $roomName = 'dm-room-' . $data['roomId'];
-                error_log("📢 Broadcasting to DM room: " . $roomName);
-                return $wsClient->broadcastToRoom($roomName, 'user-message-dm', $data);
-            }
-            else if ($targetUserId) {
-                error_log("📝 Notifying specific user: " . $targetUserId);
-                return $wsClient->notifyUser($targetUserId, $event, $data);
-            } 
-            else {
-                error_log("📣 Broadcasting general event: " . $event);
-                return $wsClient->broadcast($event, $data);
-            }
-        } catch (Exception $e) {
-            error_log('❌ WebSocket notification failed: ' . $e->getMessage());
-            error_log('❌ Stack trace: ' . $e->getTraceAsString());
-            return false;
-        }
     }
 
     public function renderChatSection($chatType, $chatId)
@@ -718,14 +701,16 @@ class ChatController extends BaseController
             $message->edited_at = date('Y-m-d H:i:s');
 
             if ($message->save()) {
-                $formattedMessage = $this->formatMessage($message);                $this->sendWebSocketNotification('message_updated', [
-                    'target_type' => 'channel',
-                    'target_id' => $message->channel_id ?? null,
-                    'message' => $formattedMessage
-                ]);
-
+                $formattedMessage = $this->formatMessage($message);
+                
                 return $this->success([
-                    'message' => $formattedMessage
+                    'message' => $formattedMessage,
+                    'socket_event' => 'message-updated',
+                    'socket_data' => [
+                        'target_type' => 'channel',
+                        'target_id' => $message->channel_id ?? null,
+                        'message' => $formattedMessage
+                    ]
                 ], 'Message updated successfully');
             } else {
                 throw new Exception('Failed to update message');
@@ -753,13 +738,16 @@ class ChatController extends BaseController
             $message->content = '[deleted]';
             $message->deleted_at = date('Y-m-d H:i:s');
 
-            if ($message->save()) {                $this->sendWebSocketNotification('message_deleted', [
-                    'target_type' => 'channel',
-                    'target_id' => $message->channel_id ?? null,
-                    'message_id' => $messageId
-                ]);
-
-                return $this->success(null, 'Message deleted successfully');
+            if ($message->save()) {
+                return $this->success([
+                    'message_id' => $messageId,
+                    'socket_event' => 'message-deleted',
+                    'socket_data' => [
+                        'target_type' => 'channel',
+                        'target_id' => $message->channel_id ?? null,
+                        'message_id' => $messageId
+                    ]
+                ], 'Message deleted successfully');
             } else {
                 throw new Exception('Failed to delete message');
             }

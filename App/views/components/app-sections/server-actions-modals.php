@@ -200,58 +200,6 @@ $categories = $GLOBALS['serverCategories'] ?? [];
     </div>
 </div>
 
-<div id="server-settings-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 hidden">
-    <div class="w-full max-w-lg">
-        <div class="bg-discord-background rounded-lg shadow-lg overflow-hidden">
-            <div class="p-6">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-xl font-bold text-white">Server Settings</h2>
-                    <button id="close-server-settings-modal" class="text-gray-400 hover:text-white">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                
-                <form id="server-settings-form" class="space-y-4">
-                    <div>
-                        <label for="settings-server-name" class="block text-sm font-medium text-gray-300 mb-1">
-                            SERVER NAME <span class="text-discord-red">*</span>
-                        </label>
-                        <input type="text" id="settings-server-name" name="name" 
-                               class="w-full bg-discord-dark border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-discord-primary"
-                               placeholder="Enter server name" required>
-                    </div>
-                    
-                    <div>
-                        <label for="settings-server-description" class="block text-sm font-medium text-gray-300 mb-1">
-                            SERVER DESCRIPTION
-                        </label>
-                        <textarea id="settings-server-description" name="description" rows="3"
-                                  class="w-full bg-discord-dark border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-discord-primary resize-none"
-                                  placeholder="What's this server about?"></textarea>
-                    </div>
-                    
-                    <div class="flex items-center">
-                        <input type="checkbox" id="settings-server-public" name="is_public" value="1" 
-                               class="h-4 w-4 accent-discord-primary bg-discord-dark border-gray-700">
-                        <label for="settings-server-public" class="ml-2 text-sm text-gray-300">Make this server public</label>
-                    </div>
-                    
-                    <div class="pt-4 flex space-x-3">
-                        <button type="button" id="cancel-server-settings" 
-                                class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded">
-                            Cancel
-                        </button>
-                        <button type="submit" 
-                                class="flex-1 bg-discord-primary hover:bg-discord-primary/90 text-white font-medium py-2 px-4 rounded">
-                            Save Changes
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
 <div id="notification-settings-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 hidden">
     <div class="w-full max-w-md">
         <div class="bg-discord-background rounded-lg shadow-lg overflow-hidden">

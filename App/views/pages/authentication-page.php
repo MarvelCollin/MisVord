@@ -117,6 +117,19 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                     <a href="#" class="text-sm text-discord-blue hover:underline form-toggle" data-form="forgot">Forgot your password?</a>
                 </div>
 
+                <div class="form-group">
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Verification</label>
+                    <div id="login-captcha-container" class="mb-2"></div>
+                    <input 
+                        type="text" 
+                        id="login_captcha" 
+                        name="captcha" 
+                        class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 sm:p-3 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all text-sm sm:text-base" 
+                        placeholder="Enter the code above" 
+                        required
+                    >
+                </div>
+
                 <button type="submit" class="w-full py-2.5 sm:py-3 bg-discord-blue hover:bg-discord-blue/90 text-white font-medium rounded-md transition-all text-sm sm:text-base">
                     Log In
                 </button>
@@ -212,6 +225,19 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                         <p class="text-red-500 text-sm mt-1"><?php echo $errors['password_confirm']; ?></p>
                     <?php endif; ?>
                     <div class="text-green-500 text-xs mt-1 hidden" id="passwordsMatch">Passwords match <i class="fa-solid fa-check"></i></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Verification</label>
+                    <div id="register-captcha-container" class="mb-2"></div>
+                    <input 
+                        type="text" 
+                        id="register_captcha" 
+                        name="captcha" 
+                        class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
+                        placeholder="Enter the code above" 
+                        required
+                    >
                 </div>
 
                 <button type="submit" class="w-full py-2.5 bg-discord-blue hover:bg-discord-blue/90 text-white font-medium rounded-md transition-all">

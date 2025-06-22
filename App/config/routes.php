@@ -60,6 +60,7 @@ Route::get('/explore', function() {
 });
 Route::get('/explore-servers', 'pages/explore-servers.php');
 Route::get('/settings', 'pages/settings.php');
+Route::get('/settings-server', 'pages/settings-server.php');
 Route::get('/call', 'pages/call.php');
 Route::get('/dev', 'pages/dev.php');
 Route::get('/forgot-password', 'pages/authentication-page.php');
@@ -302,7 +303,6 @@ Route::get('/api/users/([0-9]+)/emojis/top', function($userId) {
     $controller->getUserTopEmojis($userId);
 });
 
-// Friend routes
 Route::get('/api/friends', function() {
     $controller = new FriendController();
     $controller->getFriends();
@@ -413,13 +413,11 @@ Route::get('/api/chat/dm/([0-9]+)/messages', function($roomId) {
     $controller->getDirectMessageRoomMessages($roomId);
 });
 
-// Render chat section template
 Route::get('/api/chat/render/(channel|dm|direct)/([0-9]+)', function($chatType, $chatId) {
     $controller = new ChatController();
     $controller->renderChatSection($chatType, $chatId);
 });
 
-// Message CRUD operations
 Route::put('/api/messages/([0-9]+)', function($messageId) {
     $controller = new ChatController();
     $controller->updateMessage($messageId);
@@ -474,7 +472,6 @@ Route::get('/api/debug/database', function() {
     header('Content-Type: application/json');
     try {
         $db = require_once __DIR__ . '/db.php';
-        // Test database connection
         $stmt = $db->prepare("SELECT 1 as test");
         $stmt->execute();
         $result = $stmt->fetch();

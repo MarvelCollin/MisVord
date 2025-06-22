@@ -13,6 +13,9 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Set up storage directories
+require_once APP_ROOT . '/bootstrap/storage-setup.php';
+
 if ($_SERVER['REQUEST_URI'] === '/health') {
     header('Content-Type: application/json');
     echo json_encode([

@@ -1,7 +1,6 @@
 <?php
 
 require_once __DIR__ . '/../database/repositories/MessageRepository.php';
-require_once __DIR__ . '/../utils/WebSocketClient.php';
 require_once __DIR__ . '/BaseController.php';
 
 class MessageController extends BaseController
@@ -31,16 +30,17 @@ class MessageController extends BaseController
         }
 
         try {
-            $this->sendWebSocketNotification('reaction_added', [
-                'message_id' => $messageId,
-                'user_id' => $userId,
-                'emoji' => $emoji
-            ]);
-
             return $this->success([
                 'message_id' => $messageId,
                 'emoji' => $emoji,
-                'user_id' => $userId
+                'user_id' => $userId,
+                'socket_event' => 'reaction-added',
+                'socket_data' => [
+                    'message_id' => $messageId,
+                    'user_id' => $userId,
+                    'emoji' => $emoji
+                ],
+                'client_should_emit_socket' => true
             ], 'Reaction added successfully');
         } catch (Exception $e) {
             return $this->serverError('Failed to add reaction');
@@ -65,16 +65,17 @@ class MessageController extends BaseController
         }
 
         try {
-            $this->sendWebSocketNotification('reaction_removed', [
-                'message_id' => $messageId,
-                'user_id' => $userId,
-                'emoji' => $emoji
-            ]);
-
             return $this->success([
                 'message_id' => $messageId,
                 'emoji' => $emoji,
-                'user_id' => $userId
+                'user_id' => $userId,
+                'socket_event' => 'reaction-removed',
+                'socket_data' => [
+                    'message_id' => $messageId,
+                    'user_id' => $userId,
+                    'emoji' => $emoji
+                ],
+                'client_should_emit_socket' => true
             ], 'Reaction removed successfully');
         } catch (Exception $e) {
             return $this->serverError('Failed to remove reaction');
@@ -111,25 +112,17 @@ class MessageController extends BaseController
         }
 
         try {
-            $this->sendWebSocketNotification('message_pinned', [
-                'message_id' => $messageId,
-                'user_id' => $userId
-            ]);
-
             return $this->success([
-                'message_id' => $messageId
+                'message_id' => $messageId,
+                'socket_event' => 'message-pinned',
+                'socket_data' => [
+                    'message_id' => $messageId,
+                    'user_id' => $userId
+                ],
+                'client_should_emit_socket' => true
             ], 'Message pinned successfully');
         } catch (Exception $e) {
             return $this->serverError('Failed to pin message');
-        }
-    }
-    private function sendWebSocketNotification($event, $data)
-    {
-        try {
-            $wsClient = new WebSocketClient();
-            $wsClient->broadcast($event, $data);
-        } catch (Exception $e) {
-            error_log('WebSocket notification failed: ' . $e->getMessage());
         }
     }
 

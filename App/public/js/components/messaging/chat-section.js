@@ -26,6 +26,7 @@ class ChatSection {
         this.setupEventListeners();
         this.loadMessages();
         this.setupSocketListeners();
+        this.addTestButton();
     }
     
     loadElements() {
@@ -522,5 +523,396 @@ class ChatSection {
         if (window.showToast) {
             window.showToast(message, 'error');
         }
+    }
+    
+    addTestButton() {
+        // Create a container for the test UI
+        const testContainer = document.createElement('div');
+        testContainer.className = 'fixed bottom-20 right-4 z-50 flex flex-col gap-2 items-end';
+        
+        // Create the test button
+        const testButton = document.createElement('button');
+        testButton.innerHTML = '🔍 Test Socket';
+        testButton.className = 'bg-gray-700 hover:bg-gray-600 text-white text-xs px-2 py-1 rounded opacity-60 hover:opacity-100 transition-opacity flex items-center gap-1';
+        testButton.title = 'Send test message to socket server';
+        
+        // Create socket status indicator
+        const statusIndicator = document.createElement('span');
+        statusIndicator.className = 'w-2 h-2 rounded-full mr-1';
+        
+        // Update status indicator color based on socket status
+        const updateSocketStatus = () => {
+            if (!window.globalSocketManager) {
+                statusIndicator.className = 'w-2 h-2 rounded-full mr-1 bg-red-500';
+                statusIndicator.title = 'Socket manager not found';
+                return;
+            }
+            
+            const status = window.globalSocketManager.getStatus();
+            if (status.connected && status.authenticated) {
+                statusIndicator.className = 'w-2 h-2 rounded-full mr-1 bg-green-500';
+                statusIndicator.title = `Connected (${status.socketId})`;
+            } else if (status.connected) {
+                statusIndicator.className = 'w-2 h-2 rounded-full mr-1 bg-yellow-500';
+                statusIndicator.title = 'Connected but not authenticated';
+            } else {
+                statusIndicator.className = 'w-2 h-2 rounded-full mr-1 bg-red-500';
+                statusIndicator.title = 'Disconnected';
+            }
+        };
+        
+        // Add status indicator to button
+        testButton.prepend(statusIndicator);
+        updateSocketStatus();
+        
+        // Update socket status every 2 seconds
+        setInterval(updateSocketStatus, 2000);
+        
+        // Add event listener for test button
+        testButton.addEventListener('click', () => {
+            this.sendTestMessage();
+        });
+        
+        // Add the detailed status button
+        const statusButton = document.createElement('button');
+        statusButton.innerHTML = 'Show Socket Details';
+        statusButton.className = 'bg-gray-700 hover:bg-gray-600 text-white text-xs px-2 py-1 rounded opacity-60 hover:opacity-100 transition-opacity';
+        statusButton.title = 'Show detailed socket connection info';
+        
+        statusButton.addEventListener('click', () => {
+            this.showSocketDetails();
+        });
+        
+        // Add debug button
+        const debugButton = document.createElement('button');
+        debugButton.innerHTML = '🛠️ Debug Socket Connection';
+        debugButton.className = 'bg-purple-700 hover:bg-purple-600 text-white text-xs px-2 py-1 rounded opacity-60 hover:opacity-100 transition-opacity';
+        debugButton.title = 'Run socket connection diagnostics';
+        
+        debugButton.addEventListener('click', () => {
+            this.runSocketDiagnostics();
+        });
+        
+        // Add buttons to container
+        testContainer.appendChild(testButton);
+        testContainer.appendChild(statusButton);
+        testContainer.appendChild(debugButton);
+        
+        // Add the container to the document
+        document.body.appendChild(testContainer);
+    }
+    
+    showSocketDetails() {
+        if (!window.globalSocketManager) {
+            alert('Socket manager not found!');
+            return;
+        }
+        
+        const status = window.globalSocketManager.getStatus();
+        
+        const detailsContainer = document.createElement('div');
+        detailsContainer.className = 'fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-gray-800 text-white p-4 rounded-lg shadow-lg z-50 max-w-md w-full';
+        
+        // Add close button
+        const closeButton = document.createElement('button');
+        closeButton.innerHTML = '×';
+        closeButton.className = 'absolute top-2 right-2 text-gray-400 hover:text-white text-xl';
+        closeButton.addEventListener('click', () => {
+            detailsContainer.remove();
+        });
+        detailsContainer.appendChild(closeButton);
+        
+        // Add title
+        const title = document.createElement('h3');
+        title.textContent = 'Socket Connection Details';
+        title.className = 'text-lg font-medium mb-4';
+        detailsContainer.appendChild(title);
+        
+        // Add details
+        const details = document.createElement('div');
+        details.className = 'space-y-2 text-sm';
+        details.innerHTML = `
+            <div><strong>Connected:</strong> ${status.connected ? '✅' : '❌'}</div>
+            <div><strong>Authenticated:</strong> ${status.authenticated ? '✅' : '❌'}</div>
+            <div><strong>Socket ID:</strong> ${status.socketId || 'None'}</div>
+            <div><strong>User ID:</strong> ${status.userId || 'None'}</div>
+            <div><strong>Username:</strong> ${status.username || 'None'}</div>
+            <div><strong>Current Room:</strong> ${this.chatType === 'channel' ? `channel-${this.targetId}` : `dm-room-${this.targetId}`}</div>
+            <div><strong>Last Error:</strong> ${status.lastError ? JSON.stringify(status.lastError) : 'None'}</div>
+        `;
+        detailsContainer.appendChild(details);
+        
+        // Add action buttons
+        const actionsContainer = document.createElement('div');
+        actionsContainer.className = 'flex gap-2 mt-4';
+        
+        const reconnectButton = document.createElement('button');
+        reconnectButton.textContent = 'Reconnect Socket';
+        reconnectButton.className = 'bg-discord-primary hover:bg-blue-700 text-white text-xs px-2 py-1 rounded flex-1';
+        reconnectButton.addEventListener('click', () => {
+            if (window.globalSocketManager) {
+                window.globalSocketManager.disconnect();
+                setTimeout(() => {
+                    window.globalSocketManager.connect();
+                    setTimeout(() => {
+                        detailsContainer.remove();
+                        this.showSocketDetails(); // Refresh the modal
+                    }, 1000);
+                }, 500);
+            }
+        });
+        actionsContainer.appendChild(reconnectButton);
+        
+        const rejoinButton = document.createElement('button');
+        rejoinButton.textContent = 'Rejoin Room';
+        rejoinButton.className = 'bg-green-600 hover:bg-green-700 text-white text-xs px-2 py-1 rounded flex-1';
+        rejoinButton.addEventListener('click', () => {
+            this.joinChannel();
+            setTimeout(() => {
+                detailsContainer.remove();
+                this.showSocketDetails(); // Refresh the modal
+            }, 1000);
+        });
+        actionsContainer.appendChild(rejoinButton);
+        
+        detailsContainer.appendChild(actionsContainer);
+        
+        // Add to document
+        document.body.appendChild(detailsContainer);
+    }
+    
+    runSocketDiagnostics() {
+        if (!window.ChatAPI) {
+            alert('ChatAPI not available!');
+            return;
+        }
+        
+        // Run socket diagnostics
+        const results = window.ChatAPI.debugSocketConnection(this.targetId, this.chatType);
+        
+        // Create a diagnostic modal
+        const modalContainer = document.createElement('div');
+        modalContainer.className = 'fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-gray-800 text-white p-4 rounded-lg shadow-lg z-50 max-w-md w-full';
+        
+        // Add close button
+        const closeButton = document.createElement('button');
+        closeButton.innerHTML = '×';
+        closeButton.className = 'absolute top-2 right-2 text-gray-400 hover:text-white text-xl';
+        closeButton.addEventListener('click', () => {
+            modalContainer.remove();
+        });
+        modalContainer.appendChild(closeButton);
+        
+        // Add title
+        const title = document.createElement('h3');
+        title.textContent = 'Socket Connection Diagnostics';
+        title.className = 'text-lg font-medium mb-4';
+        modalContainer.appendChild(title);
+        
+        // Add results
+        const resultsList = document.createElement('div');
+        resultsList.className = 'space-y-2 text-sm mb-4';
+        
+        // Format results as list
+        const items = [
+            { label: 'Socket Manager Exists', value: results.socketManagerExists ? '✅' : '❌' },
+            { label: 'Socket Ready', value: results.socketReady ? '✅' : '❌' },
+            { label: 'Socket Connected', value: results.socketConnected ? '✅' : '❌' },
+            { label: 'Socket ID', value: results.socketId },
+            { label: 'User ID', value: results.userId },
+            { label: 'Username', value: results.username },
+            { label: 'Target ID', value: results.targetId },
+            { label: 'Chat Type', value: results.chatType },
+            { label: 'Test Message Sent', value: results.testSent ? '✅' : '❌' }
+        ];
+        
+        items.forEach(item => {
+            const row = document.createElement('div');
+            row.className = 'flex justify-between';
+            row.innerHTML = `<strong>${item.label}:</strong> <span>${item.value}</span>`;
+            resultsList.appendChild(row);
+        });
+        
+        modalContainer.appendChild(resultsList);
+        
+        // Add action buttons
+        const actionsContainer = document.createElement('div');
+        actionsContainer.className = 'flex gap-2 mt-4';
+        
+        const reconnectButton = document.createElement('button');
+        reconnectButton.textContent = 'Reconnect Socket';
+        reconnectButton.className = 'bg-discord-primary hover:bg-blue-700 text-white text-xs px-2 py-1 rounded flex-1';
+        reconnectButton.addEventListener('click', () => {
+            if (window.globalSocketManager) {
+                window.globalSocketManager.disconnect();
+                setTimeout(() => {
+                    window.globalSocketManager.connect();
+                    setTimeout(() => {
+                        modalContainer.remove();
+                        this.runSocketDiagnostics(); // Refresh the modal
+                    }, 1000);
+                }, 500);
+            }
+        });
+        actionsContainer.appendChild(reconnectButton);
+        
+        const testDirectButton = document.createElement('button');
+        testDirectButton.textContent = 'Test Direct Socket';
+        testDirectButton.className = 'bg-green-600 hover:bg-green-700 text-white text-xs px-2 py-1 rounded flex-1';
+        testDirectButton.addEventListener('click', () => {
+            if (window.ChatAPI) {
+                window.ChatAPI.sendDirectSocketMessage(this.targetId, `Direct socket test at ${new Date().toISOString()}`, this.chatType);
+                this.showTestNotification('Direct socket message sent!', 'info');
+            }
+        });
+        actionsContainer.appendChild(testDirectButton);
+        
+        modalContainer.appendChild(actionsContainer);
+        
+        // Add to document
+        document.body.appendChild(modalContainer);
+    }
+    
+    sendTestMessage() {
+        if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
+            console.error('Socket not ready for test message');
+            alert('Socket not connected. Check console for details.');
+            return;
+        }
+        
+        const testContent = `Test message from ${this.username} at ${new Date().toISOString()}`;
+        
+        // Create a small popup menu for test options
+        const testMenu = document.createElement('div');
+        testMenu.className = 'absolute bg-gray-800 text-white p-2 rounded-lg shadow-lg z-50 flex flex-col gap-1 text-sm';
+        testMenu.style.bottom = '60px';
+        testMenu.style.right = '10px';
+        
+        // Socket-only test button
+        const socketOnlyBtn = document.createElement('button');
+        socketOnlyBtn.textContent = '🔌 Socket Only Test';
+        socketOnlyBtn.className = 'bg-blue-600 hover:bg-blue-700 px-2 py-1 rounded text-left';
+        socketOnlyBtn.addEventListener('click', () => {
+            this.performSocketOnlyTest(testContent);
+            testMenu.remove();
+        });
+        
+        // DB + Socket test button
+        const dbSocketBtn = document.createElement('button');
+        dbSocketBtn.textContent = '💾 DB + Socket Test';
+        dbSocketBtn.className = 'bg-green-600 hover:bg-green-700 px-2 py-1 rounded text-left';
+        dbSocketBtn.addEventListener('click', () => {
+            this.performDatabaseSocketTest(testContent);
+            testMenu.remove();
+        });
+        
+        // Cancel button
+        const cancelBtn = document.createElement('button');
+        cancelBtn.textContent = '❌ Cancel';
+        cancelBtn.className = 'bg-gray-600 hover:bg-gray-700 px-2 py-1 rounded text-left';
+        cancelBtn.addEventListener('click', () => {
+            testMenu.remove();
+        });
+        
+        testMenu.appendChild(socketOnlyBtn);
+        testMenu.appendChild(dbSocketBtn);
+        testMenu.appendChild(cancelBtn);
+        document.body.appendChild(testMenu);
+        
+        // Auto-remove menu after 5 seconds
+        setTimeout(() => {
+            if (document.body.contains(testMenu)) {
+                testMenu.remove();
+            }
+        }, 5000);
+    }
+    
+    performSocketOnlyTest(testContent) {
+        console.log(`🧪 Sending direct test message to socket: ${testContent}`);
+        
+        // Send test message to the socket server
+        if (this.chatType === 'channel' && this.targetId) {
+            // Test channel message
+            window.globalSocketManager.socket.emit('new-channel-message', {
+                channelId: this.targetId,
+                content: testContent,
+                messageType: 'text',
+                userId: this.userId,
+                username: this.username,
+                timestamp: Date.now(),
+                source: 'test-button'
+            });
+            
+            // Also test typing indicators
+            window.globalSocketManager.sendTyping(this.targetId);
+            setTimeout(() => {
+                window.globalSocketManager.sendStopTyping(this.targetId);
+            }, 2000);
+        } 
+        else if ((this.chatType === 'direct' || this.chatType === 'dm') && this.targetId) {
+            // Test DM message
+            window.globalSocketManager.socket.emit('user-message-dm', {
+                roomId: this.targetId,
+                content: testContent,
+                messageType: 'text',
+                userId: this.userId,
+                username: this.username,
+                timestamp: Date.now(),
+                source: 'test-button'
+            });
+            
+            // Also test typing indicators
+            window.globalSocketManager.sendTyping(null, this.targetId);
+            setTimeout(() => {
+                window.globalSocketManager.sendStopTyping(null, this.targetId);
+            }, 2000);
+        }
+        
+        this.showTestNotification('Socket-only message sent! Check server logs.');
+    }
+    
+    performDatabaseSocketTest(testContent) {
+        console.log(`🧪 Sending test message via dual-path (database + socket): ${testContent}`);
+        
+        // Use the ChatAPI to send the message through the regular flow
+        if (!window.ChatAPI) {
+            console.error('ChatAPI not available');
+            this.showTestNotification('Error: ChatAPI not available', 'error');
+            return;
+        }
+        
+        // Show a notification that we're testing both paths
+        this.showTestNotification('Sending message via both paths (DB + Socket)...', 'info');
+        
+        // Send the message using the dual-path method
+        window.ChatAPI.sendMessage(this.targetId, testContent, this.chatType)
+            .then(response => {
+                console.log('✅ DB path response:', response);
+                this.showTestNotification('Message sent through both paths! Check server logs.', 'success');
+            })
+            .catch(error => {
+                console.error('❌ DB path failed:', error);
+                this.showTestNotification('Error in DB path, but socket path may have succeeded', 'warning');
+            });
+    }
+    
+    showTestNotification(message, type = 'success') {
+        // Show temporary notification
+        const notification = document.createElement('div');
+        notification.textContent = message;
+        
+        // Set color based on type
+        let bgColor = 'bg-discord-primary';
+        if (type === 'error') bgColor = 'bg-red-600';
+        else if (type === 'warning') bgColor = 'bg-yellow-500';
+        else if (type === 'info') bgColor = 'bg-blue-500';
+        
+        notification.className = `fixed bottom-28 right-4 ${bgColor} text-white px-3 py-2 rounded-lg shadow-lg text-sm z-50`;
+        document.body.appendChild(notification);
+        
+        // Remove notification after 3 seconds
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
     }
 }

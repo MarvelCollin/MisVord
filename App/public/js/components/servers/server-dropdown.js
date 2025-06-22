@@ -104,7 +104,7 @@ function initServerActions() {
                     showInvitePeopleModal();
                     break;
                 case 'Server Settings':
-                    showServerSettingsModal();
+                    redirectToServerSettings();
                     break;
                 case 'Create Channel':
                     showCreateChannelModal();
@@ -151,35 +151,6 @@ function showInvitePeopleModal() {
         if (closeBtn && !closeBtn.hasAttribute('data-listener')) {
             closeBtn.addEventListener('click', () => closeModal('invite-people-modal'));
             closeBtn.setAttribute('data-listener', 'true');
-        }
-    }
-}
-
-function showServerSettingsModal() {
-    const serverId = getCurrentServerId();
-    const modal = document.getElementById('server-settings-modal');
-
-    if (modal) {
-        modal.classList.remove('hidden');
-        loadServerSettings(serverId);
-
-        const form = document.getElementById('server-settings-form');
-        const closeBtn = document.getElementById('close-server-settings-modal');
-        const cancelBtn = document.getElementById('cancel-server-settings');
-
-        if (form && !form.hasAttribute('data-listener')) {
-            form.addEventListener('submit', (e) => updateServerSettings(e, serverId));
-            form.setAttribute('data-listener', 'true');
-        }
-
-        if (closeBtn && !closeBtn.hasAttribute('data-listener')) {
-            closeBtn.addEventListener('click', () => closeModal('server-settings-modal'));
-            closeBtn.setAttribute('data-listener', 'true');
-        }
-
-        if (cancelBtn && !cancelBtn.hasAttribute('data-listener')) {
-            cancelBtn.addEventListener('click', () => closeModal('server-settings-modal'));
-            cancelBtn.setAttribute('data-listener', 'true');
         }
     }
 }
@@ -422,50 +393,6 @@ function generateNewInvite(serverId) {
         });
 }
 
-function loadServerSettings(serverId) {
-    ServerAPI.getServer(serverId)
-        .then(data => {
-            if (data.success) {
-                const server = data.server;
-                document.getElementById('settings-server-name').value = server.name || '';
-                document.getElementById('settings-server-description').value = server.description || '';
-                document.getElementById('settings-server-public').checked = server.is_public || false;
-            }
-        })
-        .catch(error => {
-            console.error('Error loading server settings:', error);
-            showToast('Failed to load server settings', 'error');
-        });
-}
-
-function updateServerSettings(e, serverId) {
-    e.preventDefault();
-
-    const formData = new FormData(e.target);
-    const data = {
-        server_id: serverId,
-        name: formData.get('name'),
-        description: formData.get('description'),
-        is_public: formData.has('is_public')
-    };
-
-    ServerAPI.updateServerSettings(serverId, data)
-        .then(data => {
-            if (data.success) {
-                showToast('Server settings updated successfully!', 'success');
-                closeModal('server-settings-modal');
-
-                setTimeout(() => window.location.reload(), 1000);
-            } else {
-                throw new Error(data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error updating server settings:', error);
-            showToast('Failed to update server settings', 'error');
-        });
-}
-
 function loadCategories(serverId) {
     ServerAPI.getServerChannels(serverId)
         .then(data => {
@@ -688,4 +615,14 @@ function refreshChannelList(serverId) {
         .catch(error => {
             console.error('Error fetching channels:', error);
         });
+}
+
+function redirectToServerSettings() {
+    const serverId = getCurrentServerId();
+    if (serverId) {
+        window.location.href = `/settings-server?server_id=${serverId}&section=profile`;
+    } else {
+        console.error('Cannot redirect to server settings: Server ID not found');
+        showToast('Error: Could not determine server ID', 'error');
+    }
 }

@@ -8,7 +8,19 @@ class ServerAPI {
         
         if (text.trim().startsWith('<') || text.includes('<br />') || text.includes('</html>') || text.includes('<!DOCTYPE')) {
             console.error('Server returned HTML instead of JSON:', text.substring(0, 200));
-            throw new Error('Server error occurred. Please try again.');
+            
+            // Extract the actual error message if possible
+            let errorMessage = 'Server error occurred. Please try again.';
+            
+            if (text.includes('Warning') || text.includes('Error') || text.includes('Fatal error')) {
+                // Try to extract the actual error message
+                const errorMatch = text.match(/<b>(Warning|Error|Fatal error)<\/b>:\s*(.*?)(<br|<\/)/);
+                if (errorMatch && errorMatch[2]) {
+                    errorMessage = `Server error: ${errorMatch[2].trim()}`;
+                }
+            }
+            
+            throw new Error(errorMessage);
         }
         
         if (text.includes('Fatal error') || text.includes('Parse error') || text.includes('Warning:') || text.includes('Notice:')) {
@@ -23,7 +35,7 @@ class ServerAPI {
         try {
             return JSON.parse(text);
         } catch (e) {
-            console.error('Failed to parse JSON response:', text);
+            console.error('Failed to parse JSON response:', text.substring(0, 200));
             throw new Error('Invalid response from server');
         }
     }
@@ -47,13 +59,25 @@ class ServerAPI {
             };
 
             const response = await fetch(url, mergedOptions);
-            const data = await this.parseResponse(response);
             
+            // Handle network errors
             if (!response.ok) {
-                const errorMessage = data.error || data.message || `HTTP error! status: ${response.status}`;
-                throw new Error(errorMessage);
+                // Try to parse the response first
+                try {
+                    const errorData = await this.parseResponse(response);
+                    const errorMessage = errorData.error || errorData.message || `HTTP error! status: ${response.status}`;
+                    throw new Error(errorMessage);
+                } catch (parseError) {
+                    // If parsing fails, throw a generic error with status code
+                    if (parseError.message && parseError.message !== 'Invalid response from server') {
+                        throw parseError;
+                    } else {
+                        throw new Error(`Server error (${response.status}). Please try again later.`);
+                    }
+                }
             }
-
+            
+            const data = await this.parseResponse(response);
             return data;
         } catch (error) {
             console.error('Server API request failed:', error);
@@ -146,9 +170,24 @@ class ServerAPI {
     }
 
     async getSidebar() {
-        return await this.makeRequest('/api/servers/sidebar', {
-            method: 'GET'
-        });
+        try {
+            const response = await fetch('/api/servers/sidebar', {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'text/html'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Server error (${response.status}). Please try again later.`);
+            }
+            
+            return await response.text();
+        } catch (error) {
+            console.error('Error fetching server sidebar:', error);
+            throw error;
+        }
     }
 
     async joinServer(serverData) {
@@ -169,9 +208,52 @@ class ServerAPI {
     }
 
     async redirectToServer(serverId) {
-        return await this.makeRequest(`/server/${serverId}`, {
-            method: 'GET'
-        });
+        try {
+            const response = await fetch(`/server/${serverId}`, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'text/html'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Server error (${response.status}). Please try again later.`);
+            }
+            
+            const text = await response.text();
+            return text; // Return the raw HTML
+        } catch (error) {
+            console.error('Error redirecting to server:', error);
+            throw error;
+        }
+    }
+
+    // Helper method to fetch HTML content for server pages
+    async getServerPageHTML(serverId, activeChannelId = null) {
+        let url = `/server/${serverId}?render_html=1`;
+        if (activeChannelId) {
+            url += `&channel=${activeChannelId}`;
+        }
+        
+        try {
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'text/html'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Server error (${response.status}). Please try again later.`);
+            }
+            
+            return await response.text();
+        } catch (error) {
+            console.error('Error fetching server page HTML:', error);
+            throw error;
+        }
     }
 }
 

@@ -66,9 +66,7 @@ class ServerController extends BaseController
                     logger()->debug("Loaded server data", [
                         'server_id' => $id,
                         'channels_count' => count($channels),
-                        'categories_count' => count($categories),
-                        'channels' => $channels,
-                        'categories' => $categories
+                        'categories_count' => count($categories)
                     ]);
                 }
 
@@ -107,7 +105,7 @@ class ServerController extends BaseController
                     }
                 }
 
-                if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                if ($this->isApiRoute() || ($this->isAjaxRequest() && !isset($_GET['render_html']))) {
                     return $this->success([
                         'server' => $this->formatServer($server),
                         'channels' => array_map([$this, 'formatChannel'], $channels),
@@ -116,6 +114,7 @@ class ServerController extends BaseController
                         'messages' => $channelMessages
                     ]);
                 }
+                
                 $GLOBALS['server'] = $server;
                 $GLOBALS['currentServer'] = $server;
                 $GLOBALS['serverChannels'] = $channels;
@@ -255,7 +254,6 @@ class ServerController extends BaseController
             $server->category = $input['category'];
         }
 
-        // Handle server icon upload
         if (isset($_FILES['server_icon']) && $_FILES['server_icon']['error'] === UPLOAD_ERR_OK) {
             $imageUrl = $this->uploadImage($_FILES['server_icon'], 'servers');
             if ($imageUrl !== false) {
@@ -263,7 +261,6 @@ class ServerController extends BaseController
             }
         }
         
-        // Handle server banner upload
         if (isset($_FILES['server_banner']) && $_FILES['server_banner']['error'] === UPLOAD_ERR_OK) {
             $bannerUrl = $this->uploadImage($_FILES['server_banner'], 'banners');
             if ($bannerUrl !== false) {
