@@ -290,4 +290,5 @@ document.addEventListener('DOMContentLoaded', function() {
 window.GlobalSocketManager = GlobalSocketManager;
 window.globalSocketManager = globalSocketManager;
 
+export { GlobalSocketManager, globalSocketManager };
 export default globalSocketManager; 

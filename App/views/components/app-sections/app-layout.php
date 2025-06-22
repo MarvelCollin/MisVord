@@ -23,8 +23,6 @@ if (isset($_SERVER['REQUEST_URI']) && preg_match('/\/server\/(\d+)/', $_SERVER['
 }
 
 $additional_js[] = 'components/app-layout';
-$additional_js[] = 'components/messaging/misvord-messaging';
-$additional_js[] = 'components/messaging/direct-message-manager';
 ?>
 
 <div class="flex h-screen" 

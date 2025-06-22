@@ -6,5 +6,3 @@ export * from "./servers/server-dropdown.js";
 export * from "./channels/channel-manager.js";
 export * from "./channels/channel-drag.js";
 export * from "./channels/channel-loader.js";
-
-export * from "./messaging/misvord-messaging.js";

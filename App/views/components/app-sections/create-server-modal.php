@@ -12,19 +12,47 @@ $additional_js[] = 'components/servers/create-server-modal';
 
         <p class="text-gray-400 mb-4">Your server is where you and your friends hang out. Make yours and start talking.</p>
 
+        <style>
+            .upload-container::after {
+                content: attr(data-tooltip);
+                position: absolute;
+                opacity: 0;
+                transition: opacity 0.3s;
+                background-color: rgba(32, 34, 37, 0.9);
+                color: white;
+                padding: 4px 8px;
+                border-radius: 4px;
+                font-size: 12px;
+                pointer-events: none;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                white-space: nowrap;
+                z-index: 10;
+            }
+            
+            .upload-container:hover::after {
+                opacity: 1;
+            }
+            
+            .upload-container:hover i {
+                transform: scale(1.2);
+            }
+        </style>
+
         <form id="create-server-form" action="/api/servers/create" method="POST" class="space-y-4">
-            <div id="server-icon-container" class="group relative w-24 h-24 mx-auto mb-4 rounded-full bg-discord-dark flex items-center justify-center overflow-hidden border-2 border-dashed border-gray-600 hover:border-discord-blue transition-colors cursor-pointer">
+            <div id="server-icon-container" class="upload-container group relative w-24 h-24 mx-auto mb-4 rounded-full bg-discord-dark flex items-center justify-center overflow-hidden border-2 border-dashed border-gray-600 hover:border-discord-blue transition-colors cursor-pointer">
                 <img id="server-icon-preview" class="hidden w-full h-full object-cover" src="" alt="Server icon">
                 <div id="server-icon-placeholder" class="flex flex-col items-center justify-center">
-                    <i class="fas fa-user-plus text-gray-400 text-xl"></i>
+                    <i class="fas fa-user text-gray-400 text-xl transition-transform duration-200"></i>
                 </div>
                 <input type="file" id="server-icon-input" name="server_icon" class="absolute inset-0 opacity-0 cursor-pointer" accept="image/*">
             </div>
 
-            <div id="server-banner-container" class="group relative w-full h-32 mx-auto mb-4 rounded-lg bg-discord-dark flex items-center justify-center overflow-hidden border-2 border-dashed border-gray-600 hover:border-discord-blue transition-colors cursor-pointer">
+            <div id="server-banner-container" class="upload-container group relative w-full h-32 mx-auto mb-4 rounded-lg bg-discord-dark flex items-center justify-center overflow-hidden border-2 border-dashed border-gray-600 hover:border-discord-blue transition-colors cursor-pointer">
                 <img id="server-banner-preview" class="hidden w-full h-full object-cover" src="" alt="Server banner">
                 <div id="server-banner-placeholder" class="flex flex-col items-center justify-center">
-                    <i class="fas fa-images text-gray-400 text-xl"></i>
+                    <i class="fas fa-image text-gray-400 text-xl transition-transform duration-200"></i>
                 </div>
                 <input type="file" id="server-banner-input" name="server_banner" class="absolute inset-0 opacity-0 cursor-pointer" accept="image/*">
             </div>
@@ -51,7 +79,7 @@ $additional_js[] = 'components/servers/create-server-modal';
             </div>
 
             <div>
-                <button type="submit" class="w-full bg-discord-blue text-white font-medium py-2 px-4 rounded hover:bg-opacity-80 transition-colors">
+                <button type="submit" class="w-full bg-discord-blue text-white font-medium py-2 px-4 rounded hover:bg-green-500 transition-colors duration-300">
                     Create Server
                 </button>
             </div>

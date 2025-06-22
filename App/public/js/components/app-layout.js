@@ -1,7 +1,5 @@
-import { DirectMessageAPI } from '../api/direct-message-api.js';
 import '../api/friend-api.js';
 
-const directMessageAPI = DirectMessageAPI;
 const friendAPI = window.FriendAPI;
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -197,22 +195,30 @@ function selectFriendForDM(element) {
 function createDirectMessage(userId) {
     const modal = document.getElementById('new-direct-modal');
     
-    DirectMessageAPI.createDirectMessage({ user_id: userId })
-        .then(data => {
-            if (modal) {
-                modal.classList.add('hidden');
-            }
-            
-            if (data.success && data.data && data.data.channel_id) {
-                window.location.href = `/app/channels/dm/${data.data.channel_id}`;
-            } else {
-                showToast('Failed to create conversation: ' + (data.message || 'Unknown error'), 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error creating direct message:', error);
-            showToast('Failed to create conversation. Please try again.', 'error');
-        });
+    fetch('/api/chat/create', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ user_id: userId })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (modal) {
+            modal.classList.add('hidden');
+        }
+        
+        if (data.success && data.data && data.data.channel_id) {
+            window.location.href = `/app/channels/dm/${data.data.channel_id}`;
+        } else {
+            showToast('Failed to create conversation: ' + (data.message || 'Unknown error'), 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error creating direct message:', error);
+        showToast('Failed to create conversation. Please try again.', 'error');
+    });
 }
 
 function initTabHandling() {
@@ -268,7 +274,7 @@ function activateTab(tabName) {
             } else if (tabName === 'pending') {
                 loadPendingRequests();
             } else if (tabName === 'blocked') {
-                loadBlockedUsers();
+            loadBlockedUsers();
             }
         } else {
             content.classList.add('hidden');

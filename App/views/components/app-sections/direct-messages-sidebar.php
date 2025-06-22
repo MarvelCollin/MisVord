@@ -118,14 +118,8 @@ if (file_exists($tooltipPath)) {
                 const friendId = this.dataset.friendId;
                 const friendUsername = this.dataset.username;
                 
-                // First try to use the unified chat manager if available
-                if (window.unifiedChatManager) {
-                    window.unifiedChatManager.openDirectMessage(friendId);
-                    return;
-                }
-                
-                // Otherwise make an API call to get or create a DM room
-                fetch('/api/chat/dm/create', {
+                // Make an API call to get or create a DM room
+                fetch('/api/chat/create', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -133,7 +127,7 @@ if (file_exists($tooltipPath)) {
                         'X-Requested-With': 'XMLHttpRequest'
                     },
                     body: JSON.stringify({
-                        friend_id: friendId
+                        user_id: friendId
                     }),
                     credentials: 'same-origin'
                 })
@@ -149,69 +143,21 @@ if (file_exists($tooltipPath)) {
                     return response.json();
                 })
                 .then(data => {
-                    if (data.success && data.chat_room) {
-                        const chatRoom = data.chat_room;
-                        
-                        // Replace the current content with chat section
-                        const appContent = document.querySelector('.flex-col.flex-1');
-                        if (appContent) {
-                            // Set global variables for the chat section
-                            window.GLOBALS = window.GLOBALS || {};
-                            window.GLOBALS.chatType = 'direct';
-                            window.GLOBALS.targetId = chatRoom.id;
-                            window.GLOBALS.chatData = {
-                                friend_username: friendUsername,
-                                friend_id: friendId
-                            };
-                            
-                            // Load the chat section
-                            fetch(`/api/chat/dm/${chatRoom.id}/messages`)
-                                .then(response => response.json())
-                                .then(data => {
-                                    if (!data.success) {
-                                        console.error('Failed to load messages:', data.message || 'Unknown error');
-                                        return;
-                                    }
-                                    
-                                    window.GLOBALS.messages = data.messages || [];
-                                    
-                                    // Set proper globals for PHP
-                                    window.chatType = 'direct';
-                                    window.targetId = chatRoom.id;
-                                    window.chatData = {
-                                        friend_username: friendUsername,
-                                        friend_id: friendId
-                                    };
-                                    window.messages = data.messages || [];
-                                    
-                                    // Load chat section template using the API endpoint
-                                    fetch(`/api/chat/render/direct/${chatRoom.id}`)
-                                        .then(response => {
-                                            if (!response.ok) {
-                                                throw new Error(`HTTP error! status: ${response.status}`);
-                                            }
-                                            return response.text();
-                                        })
-                                        .then(html => {
-                                            appContent.innerHTML = html;
-                                            
-                                            // Initialize the messaging component
-                                            if (window.MisVordMessaging) {
-                                                window.MisVordMessaging.switchToChat(chatRoom.id, 'direct');
-                                            }
-                                        })
-                                        .catch(error => {
-                                            console.error('Error loading chat section:', error);
-                                        });
-                                })
-                                .catch(error => {
-                                    console.error('Error loading messages:', error);
-                                });
+                    if (data.success && data.data && data.data.channel_id) {
+                        // Redirect to the chat page
+                        window.location.href = `/app/channels/dm/${data.data.channel_id}`;
+                    } else {
+                        console.error('Failed to create chat room:', data.message || 'Unknown error');
+                        if (window.showToast) {
+                            window.showToast('Failed to create conversation: ' + (data.message || 'Unknown error'), 'error');
                         }
                     }
                 })
                 .catch(error => {
                     console.error('Error opening direct message:', error);
+                    if (window.showToast) {
+                        window.showToast('Error opening conversation. Please try again.', 'error');
+                    }
                 });
             });
         });

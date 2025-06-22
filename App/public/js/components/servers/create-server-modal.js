@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initServerBannerUpload();
     initServerFormSubmission();
     initToggleAnimation();
+    initTooltips();
 });
 
 function initServerIconUpload() {
@@ -469,5 +470,20 @@ function initToggleAnimation() {
                 setTimeout(() => toggleSwitch.classList.remove('scale-95'), 200);
             }
         });
+    }
+}
+
+function initTooltips() {
+    const iconContainer = document.getElementById('server-icon-container');
+    const bannerContainer = document.getElementById('server-banner-container');
+    
+    if (iconContainer) {
+        iconContainer.setAttribute('title', 'Upload server icon (1:1 ratio)');
+        iconContainer.setAttribute('data-tooltip', 'click here');
+    }
+    
+    if (bannerContainer) {
+        bannerContainer.setAttribute('title', 'Upload server banner (2:1 ratio)');
+        bannerContainer.setAttribute('data-tooltip', 'Click or drop image here');
     }
 }

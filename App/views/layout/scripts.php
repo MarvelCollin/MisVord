@@ -20,14 +20,11 @@ $core_scripts = ['core/ui/toast', 'core/ajax/ajax-handler', 'core/socket/global-
 })();
 </script>
 
-<script src="<?php echo js('utils/socket-status'); ?>?v=<?php echo time(); ?>"></script>
-
 <script src="<?php echo js('api/friend-api'); ?>?v=<?php echo time(); ?>"></script>
 <script src="<?php echo js('api/chat-api'); ?>?v=<?php echo time(); ?>"></script>
 
 <script src="<?php echo js('utils/lazy-loader'); ?>?v=<?php echo time(); ?>" type="module"></script>
 <script src="<?php echo js('utils/debug-logging'); ?>?v=<?php echo time(); ?>" type="module"></script>
-<script src="<?php echo js('components/messaging/unified-chat-manager'); ?>?v=<?php echo time(); ?>" type="module"></script>
 <script src="<?php echo js('main'); ?>?v=<?php echo time(); ?>" type="module"></script>
 
 <?php if (isset($page_js)): ?>

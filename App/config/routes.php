@@ -379,6 +379,11 @@ Route::post('/api/chat/send', function() {
     $controller->sendMessage();
 });
 
+Route::post('/api/chat/create', function() {
+    $controller = new ChatController();
+    $controller->create();
+});
+
 Route::post('/api/chat/dm/create', function() {
     $controller = new ChatController();
     $controller->createDirectMessage();

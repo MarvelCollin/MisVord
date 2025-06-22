@@ -23,4 +23,5 @@ socketController.setup(io);
 const PORT = process.env.SOCKET_PORT || 1002;
 server.listen(PORT, () => {
     console.log(`Socket server running on port ${PORT}`);
+    console.log('Socket server is ready to accept connections');
 });

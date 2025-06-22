@@ -23,10 +23,7 @@ $page_css = 'app';
 $page_js = 'pages/app';
 $additional_js = [
     'components/servers/server-dropdown', 
-    'components/servers/server-sidebar',
-    'components/messaging/misvord-messaging',
-    'components/messaging/direct-message-manager',
-    'components/messaging/unified-chat-manager'
+    'components/servers/server-sidebar'
 ];
 $head_scripts = ['logger-init'];
 $contentType = 'home';

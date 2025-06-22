@@ -304,6 +304,58 @@ class ChatController extends BaseController
         }
     }
 
+    public function create()
+    {
+        $this->requireAuth();
+        $userId = $this->getCurrentUserId();
+
+        $input = $this->getInput();
+        $input = $this->sanitize($input);
+
+        $this->validate($input, ['user_id' => 'required']);
+
+        $friendId = $input['user_id'];
+
+        if ($friendId == $userId) {
+            return $this->validationError(['user_id' => 'Cannot create chat with yourself']);
+        }
+
+        $friendship = $this->friendListRepository->findFriendshipBetweenUsers($userId, $friendId);
+        if (!$friendship || $friendship->status !== 'accepted') {
+            return $this->forbidden('You can only message friends');
+        }
+
+        try {
+            $existingRoom = $this->chatRoomRepository->findDirectMessageRoom($userId, $friendId);
+            if ($existingRoom) {
+                return $this->success([
+                    'data' => [
+                        'channel_id' => $existingRoom->id
+                    ]
+                ]);
+            }
+
+            $friend = $this->userRepository->find($friendId);
+            if (!$friend) {
+                return $this->notFound('Friend not found');
+            }
+            
+            $chatRoom = $this->chatRoomRepository->createDirectMessageRoom($userId, $friendId);
+            if (!$chatRoom || !$chatRoom->id) {
+                return $this->serverError('Failed to create chat room');
+            }
+
+            return $this->success([
+                'data' => [
+                    'channel_id' => $chatRoom->id
+                ]
+            ], 'Direct message created');
+        } catch (Exception $e) {
+            error_log('Create Chat Error: ' . $e->getMessage());
+            return $this->serverError('Failed to create direct message: ' . $e->getMessage());
+        }
+    }
+
     public function getDirectMessageRooms()
     {
         $this->requireAuth();

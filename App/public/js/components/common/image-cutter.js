@@ -94,7 +94,6 @@ class ImageCutter {
         this.placeholder.style.color = '#666';
         this.placeholder.style.fontSize = '14px';
         this.placeholder.style.textAlign = 'center';
-        this.placeholder.innerHTML = '<i class="fas fa-image"></i><br>Drop image here<br>or click to upload';
         container.appendChild(this.placeholder);
 
         // Attach event listeners
