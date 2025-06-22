@@ -48,6 +48,10 @@ class Route {
 Route::get('/', 'pages/landing-page.php');
 Route::get('/home', 'pages/home.php');
 Route::get('/app', 'pages/home.php');
+Route::get('/app/channels/dm/([0-9]+)', function($dmId) {
+    $_SESSION['active_dm'] = $dmId;
+    require_once __DIR__ . '/../views/pages/home.php';
+});
 Route::get('/login', 'pages/authentication-page.php');
 Route::get('/register', 'pages/authentication-page.php');
 Route::get('/explore', function() {

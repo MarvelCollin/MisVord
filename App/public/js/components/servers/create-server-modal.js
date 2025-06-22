@@ -20,12 +20,29 @@ function initServerIconUpload() {
         const iconCutter = new ImageCutter({
             container: iconContainer,
             type: 'profile',
-            width: 96,
-            height: 96
+            modalTitle: 'Crop Server Icon',
+            onCrop: (result) => {
+                // Update preview with cropped image
+                iconPreview.src = result.dataUrl;
+                iconPreview.classList.remove('hidden');
+                iconPlaceholder.classList.add('hidden');
+                console.log('Icon crop completed');
+            }
         });
         
         // Store the cutter instance for later use
         window.serverIconCutter = iconCutter;
+        
+        // Listen for crop completion event
+        iconContainer.addEventListener('imageCropComplete', (e) => {
+            // Update the preview with the cropped image
+            iconPreview.src = e.detail.dataUrl;
+            iconPreview.classList.remove('hidden');
+            iconPlaceholder.classList.add('hidden');
+            
+            // Store the cropped image data to use during form submission
+            iconContainer.dataset.croppedImage = e.detail.dataUrl;
+        });
     }
 
     if (iconInput) {
@@ -36,7 +53,6 @@ function initServerIconUpload() {
                     // If we have the image cutter, use it
                     if (window.serverIconCutter) {
                         window.serverIconCutter.loadImage(e.target.result);
-                        iconPlaceholder.classList.add('hidden');
                     } else {
                         // Fallback to simple preview
                         iconPreview.src = e.target.result;
@@ -61,12 +77,29 @@ function initServerBannerUpload() {
         const bannerCutter = new ImageCutter({
             container: bannerContainer,
             type: 'banner',
-            width: 300,
-            height: 150
+            modalTitle: 'Crop Server Banner',
+            onCrop: (result) => {
+                // Update preview with cropped image
+                bannerPreview.src = result.dataUrl;
+                bannerPreview.classList.remove('hidden');
+                bannerPlaceholder.classList.add('hidden');
+                console.log('Banner crop completed');
+            }
         });
         
         // Store the cutter instance for later use
         window.serverBannerCutter = bannerCutter;
+        
+        // Listen for crop completion event
+        bannerContainer.addEventListener('imageCropComplete', (e) => {
+            // Update the preview with the cropped image
+            bannerPreview.src = e.detail.dataUrl;
+            bannerPreview.classList.remove('hidden');
+            bannerPlaceholder.classList.add('hidden');
+            
+            // Store the cropped image data to use during form submission
+            bannerContainer.dataset.croppedImage = e.detail.dataUrl;
+        });
     }
 
     if (bannerInput) {
@@ -77,7 +110,6 @@ function initServerBannerUpload() {
                     // If we have the image cutter, use it
                     if (window.serverBannerCutter) {
                         window.serverBannerCutter.loadImage(e.target.result);
-                        bannerPlaceholder.classList.add('hidden');
                     } else {
                         // Fallback to simple preview
                         bannerPreview.src = e.target.result;
@@ -97,44 +129,48 @@ function initServerFormSubmission() {
         serverForm.addEventListener('submit', function(e) {
             e.preventDefault();
             
-            // Get cropped images if available
-            if (window.serverIconCutter && window.serverIconCutter.image.src) {
-                const iconResult = window.serverIconCutter.getCroppedImage();
-                // Create a blob from data URL and append to form
-                fetch(iconResult.dataUrl)
-                    .then(res => res.blob())
-                    .then(blob => {
-                        const iconFile = new File([blob], 'icon.png', { type: 'image/png' });
-                        updateFormDataWithFile(this, 'server_icon', iconFile);
-                        
-                        // Continue with banner if available
-                        if (window.serverBannerCutter && window.serverBannerCutter.image.src) {
-                            const bannerResult = window.serverBannerCutter.getCroppedImage();
-                            return fetch(bannerResult.dataUrl)
-                                .then(res => res.blob())
-                                .then(blob => {
-                                    const bannerFile = new File([blob], 'banner.png', { type: 'image/png' });
-                                    updateFormDataWithFile(this, 'server_banner', bannerFile);
-                                    handleServerCreation(this);
-                                });
-                        } else {
-                            handleServerCreation(this);
-                        }
-                    });
-            } 
-            // If only banner is available
-            else if (window.serverBannerCutter && window.serverBannerCutter.image.src) {
-                const bannerResult = window.serverBannerCutter.getCroppedImage();
-                fetch(bannerResult.dataUrl)
-                    .then(res => res.blob())
-                    .then(blob => {
-                        const bannerFile = new File([blob], 'banner.png', { type: 'image/png' });
-                        updateFormDataWithFile(this, 'server_banner', bannerFile);
+            // Get cropped images from data attributes if available
+            const iconContainer = document.getElementById('server-icon-container');
+            const bannerContainer = document.getElementById('server-banner-container');
+            let iconDataUrl = iconContainer ? iconContainer.dataset.croppedImage : null;
+            let bannerDataUrl = bannerContainer ? bannerContainer.dataset.croppedImage : null;
+            
+            // If we have cropped images, use them
+            if (iconDataUrl || bannerDataUrl) {
+                const promises = [];
+                
+                if (iconDataUrl) {
+                    promises.push(
+                        fetch(iconDataUrl)
+                            .then(res => res.blob())
+                            .then(blob => {
+                                const iconFile = new File([blob], 'icon.png', { type: 'image/png' });
+                                updateFormDataWithFile(this, 'server_icon', iconFile);
+                            })
+                    );
+                }
+                
+                if (bannerDataUrl) {
+                    promises.push(
+                        fetch(bannerDataUrl)
+                            .then(res => res.blob())
+                            .then(blob => {
+                                const bannerFile = new File([blob], 'banner.png', { type: 'image/png' });
+                                updateFormDataWithFile(this, 'server_banner', bannerFile);
+                            })
+                    );
+                }
+                
+                // Wait for all promises to resolve then submit the form
+                Promise.all(promises)
+                    .then(() => {
+                        handleServerCreation(this);
+                    })
+                    .catch(err => {
+                        console.error('Error processing cropped images:', err);
                         handleServerCreation(this);
                     });
-            }
-            // If no cutters or images, just submit the form as is
-            else {
+            } else {
                 handleServerCreation(this);
             }
         });

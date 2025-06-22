@@ -17,6 +17,54 @@ $currentUserId = $homeData['currentUserId'];
 $userServers = $homeData['userServers'];
 $memberships = $homeData['memberships'];
 
+// Check if we have an active direct message
+$contentType = 'home';
+if (isset($_SESSION['active_dm']) && !empty($_SESSION['active_dm'])) {
+    $contentType = 'dm';
+    $activeDmId = $_SESSION['active_dm'];
+    
+    // Load the direct message data
+    require_once dirname(__DIR__) . '/../controllers/ChatController.php';
+    $chatController = new ChatController();
+    
+    // Set globals that will be used by the chat section
+    $GLOBALS['chatType'] = 'direct';
+    $GLOBALS['targetId'] = $activeDmId;
+    
+    // Get the chat room data
+    require_once dirname(__DIR__) . '/../database/repositories/ChatRoomRepository.php';
+    $chatRoomRepository = new ChatRoomRepository();
+    
+    $chatRoom = $chatRoomRepository->find($activeDmId);
+    if ($chatRoom) {
+        $participants = $chatRoomRepository->getParticipants($activeDmId);
+        $friend = null;
+        
+        foreach ($participants as $participant) {
+            if ($participant['user_id'] != $currentUserId) {
+                $friend = [
+                    'id' => $participant['user_id'],
+                    'username' => $participant['username'],
+                    'avatar_url' => $participant['avatar_url']
+                ];
+                break;
+            }
+        }
+        
+        $chatData = [
+            'friend_username' => $friend['username'] ?? 'Unknown User',
+            'friend_id' => $friend['id'] ?? null,
+            'friend_avatar_url' => $friend['avatar_url'] ?? null
+        ];
+        
+        $GLOBALS['chatData'] = $chatData;
+        
+        // Get messages
+        $messages = $chatRoomRepository->getMessages($activeDmId, 20, 0);
+        $GLOBALS['messages'] = $messages;
+    }
+}
+
 $page_title = 'misvord - Home';
 $body_class = 'bg-discord-dark text-white';
 $page_css = 'app';
@@ -26,7 +74,6 @@ $additional_js = [
     'components/servers/server-sidebar'
 ];
 $head_scripts = ['logger-init'];
-$contentType = 'home';
 ?>
 
 <?php ob_start(); ?>

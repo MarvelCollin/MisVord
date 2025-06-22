@@ -1,8 +1,18 @@
 <?php
 require_once dirname(dirname(dirname(__DIR__))) . '/controllers/FriendController.php';
+require_once dirname(dirname(dirname(__DIR__))) . '/controllers/ChatController.php';
 
 $friendController = new FriendController();
+$chatController = new ChatController();
+
 $friendData = $friendController->getUserFriends();
+
+// Get direct message rooms using a direct database query instead of the controller
+// to avoid the JSON output issue
+require_once dirname(dirname(dirname(__DIR__))) . '/database/repositories/ChatRoomRepository.php';
+$chatRoomRepository = new ChatRoomRepository();
+$userId = $_SESSION['user_id'] ?? 0;
+$chatRooms = $chatRoomRepository->getUserDirectRooms($userId);
 
 $currentUser = $friendData['currentUser'];
 $friends = $friendData['friends'];
@@ -50,45 +60,50 @@ if (file_exists($tooltipPath)) {
     </div>
 
     <div class="px-2 mt-1 flex-grow overflow-y-auto">
-        <?php if (empty($friends)): ?>
+        <?php if (empty($chatRooms)): ?>
             <div class="text-discord-lighter text-xs p-2">
-                No friends to message yet. Add some friends!
+                No direct messages yet. Start a conversation!
             </div>
         <?php else: ?>
-            <?php foreach ($friends as $index => $friend): ?>
+            <?php foreach ($chatRooms as $chatRoom): ?>
                 <?php 
-                $statusColor = 'bg-gray-500'; 
-                if ($friend['status'] === 'online') {
-                    $statusColor = 'bg-discord-green';
-                } elseif ($friend['status'] === 'away') {
-                    $statusColor = 'bg-discord-yellow';
-                } elseif ($friend['status'] === 'dnd') {
-                    $statusColor = 'bg-discord-red';
+                $statusColor = 'bg-gray-500'; // Default offline
+                $otherUserId = $chatRoom['other_user_id'] ?? 0;
+                $otherUsername = $chatRoom['other_username'] ?? 'Unknown';
+                $otherAvatar = $chatRoom['other_avatar'] ?? '';
+                $roomId = $chatRoom['id'] ?? 0;
+                
+                // Check if this user is in the online friends list
+                foreach ($friends as $friend) {
+                    if ($friend['id'] == $otherUserId) {
+                        if ($friend['status'] === 'online') {
+                            $statusColor = 'bg-discord-green';
+                        } elseif ($friend['status'] === 'away') {
+                            $statusColor = 'bg-discord-yellow';
+                        } elseif ($friend['status'] === 'dnd') {
+                            $statusColor = 'bg-discord-red';
+                        }
+                        break;
+                    }
                 }
 
-                $specialLabel = null;
-                if ($index === 1) {
-                    $specialLabel = '<span class="ml-auto flex items-center text-xs bg-discord-darker px-1.5 py-0.5 rounded text-blue-400 font-medium"><i class="fas fa-code mr-1"></i> CODE</span>';
-                } elseif ($index === 2) {
-                    $specialLabel = '<span class="ml-auto flex items-center text-xs bg-discord-darker px-1.5 py-0.5 rounded text-purple-400 font-medium">DF</span>';
-                }
+                $activeDmId = $_SESSION['active_dm'] ?? null;
+                $isActive = ($activeDmId == $roomId);
+                $activeClass = $isActive ? 'bg-discord-light' : 'hover:bg-discord-light';
                 ?>
-                <div class="dm-friend-item flex items-center p-1.5 rounded hover:bg-discord-light text-discord-lighter hover:text-white cursor-pointer group"
-                     data-friend-id="<?php echo htmlspecialchars($friend['id']); ?>"
+                <div class="dm-friend-item flex items-center p-1.5 rounded <?php echo $activeClass; ?> text-discord-lighter hover:text-white cursor-pointer group"
+                     data-friend-id="<?php echo htmlspecialchars($otherUserId); ?>"
+                     data-chat-room-id="<?php echo htmlspecialchars($roomId); ?>"
                      data-chat-type="direct"
-                     data-username="<?php echo htmlspecialchars($friend['username']); ?>">
+                     data-username="<?php echo htmlspecialchars($otherUsername); ?>">
                     <div class="relative mr-3">
                         <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
-                            <img src="<?php echo getUserAvatar($friend['avatar_url'] ?? '', $friend['username'] ?? 'User'); ?>" 
+                            <img src="<?php echo getUserAvatar($otherAvatar, $otherUsername); ?>" 
                                 alt="Avatar" class="w-full h-full object-cover">
                         </div>
                         <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark <?php echo $statusColor; ?>"></span>
                     </div>
-                    <span class="font-medium truncate"><?php echo htmlspecialchars($friend['username']); ?></span>
-
-                    <?php if ($specialLabel): ?>
-                        <?php echo $specialLabel; ?>
-                    <?php else: ?>
+                    <span class="font-medium truncate"><?php echo htmlspecialchars($otherUsername); ?></span>
 
                     <div class="ml-auto hidden group-hover:flex items-center space-x-1">
                         <button class="text-discord-lighter hover:text-white p-1 rounded hover:bg-discord-background">
@@ -98,7 +113,6 @@ if (file_exists($tooltipPath)) {
                             <i class="fas fa-video text-xs"></i>
                         </button>
                     </div>
-                    <?php endif; ?>
                 </div>
             <?php endforeach; ?>
         <?php endif; ?>
@@ -116,49 +130,54 @@ if (file_exists($tooltipPath)) {
         dmFriendItems.forEach(item => {
             item.addEventListener('click', function() {
                 const friendId = this.dataset.friendId;
-                const friendUsername = this.dataset.username;
+                const chatRoomId = this.dataset.chatRoomId;
                 
-                // Make an API call to get or create a DM room
-                fetch('/api/chat/create', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    body: JSON.stringify({
-                        user_id: friendId
-                    }),
-                    credentials: 'same-origin'
-                })
-                .then(response => {
-                    const contentType = response.headers.get('content-type');
-                    if (!contentType || !contentType.includes('application/json')) {
-                        console.error('Server returned HTML instead of JSON');
-                        if (window.showToast) {
-                            window.showToast('Error: Server returned HTML error page', 'error');
+                if (chatRoomId) {
+                    // If we already have a chat room, redirect directly to it
+                    window.location.href = `/app/channels/dm/${chatRoomId}`;
+                } else {
+                    // Otherwise create a new chat room
+                    fetch('/api/chat/create', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({
+                            user_id: friendId
+                        }),
+                        credentials: 'same-origin'
+                    })
+                    .then(response => {
+                        const contentType = response.headers.get('content-type');
+                        if (!contentType || !contentType.includes('application/json')) {
+                            console.error('Server returned HTML instead of JSON');
+                            if (window.showToast) {
+                                window.showToast('Error: Server returned HTML error page', 'error');
+                            }
+                            throw new Error('Server returned HTML error page');
                         }
-                        throw new Error('Server returned HTML error page');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success && data.data && data.data.channel_id) {
-                        // Redirect to the chat page
-                        window.location.href = `/app/channels/dm/${data.data.channel_id}`;
-                    } else {
-                        console.error('Failed to create chat room:', data.message || 'Unknown error');
-                        if (window.showToast) {
-                            window.showToast('Failed to create conversation: ' + (data.message || 'Unknown error'), 'error');
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success && data.data && data.data.channel_id) {
+                            // Redirect to the chat page
+                            window.location.href = `/app/channels/dm/${data.data.channel_id}`;
+                        } else {
+                            console.error('Failed to create chat room:', data.message || 'Unknown error');
+                            if (window.showToast) {
+                                window.showToast('Failed to create conversation: ' + (data.message || 'Unknown error'), 'error');
+                            }
                         }
-                    }
-                })
-                .catch(error => {
-                    console.error('Error opening direct message:', error);
-                    if (window.showToast) {
-                        window.showToast('Error opening conversation. Please try again.', 'error');
-                    }
-                });
+                    })
+                    .catch(error => {
+                        console.error('Error opening direct message:', error);
+                        if (window.showToast) {
+                            window.showToast('Error opening conversation. Please try again.', 'error');
+                        }
+                    });
+                }
             });
         });
     });

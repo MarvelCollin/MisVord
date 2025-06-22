@@ -21,15 +21,7 @@
                 </div>
 
             <div id="dm-friends-list" class="max-h-60 overflow-y-auto py-2 space-y-2 custom-scrollbar">
-                <div class="flex items-center p-2 rounded-md hover:bg-discord-dark-hover cursor-pointer transition-colors duration-150" data-user-id="user-kolina-id">
-                    <div class="w-8 h-8 rounded-full mr-3 bg-discord-primary flex items-center justify-center">
-                        <i class="fas fa-user text-white text-sm"></i>
-                    </div>
-                    <div>
-                        <p class="text-white font-medium">kolina</p>
-                        <p class="text-gray-400 text-sm">Offline</p>
-                    </div>
-                </div>
+                <!-- Friends will be loaded here dynamically -->
                 <div class="text-gray-400 text-center py-4 hidden" id="no-dm-friends">
                     <i class="fas fa-user-friends text-2xl mb-2"></i>
                     <p>No friends found</p>
@@ -46,3 +38,230 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const createButton = document.getElementById('create-new-direct');
+    const modal = document.getElementById('new-direct-modal');
+    let selectedUserId = null;
+
+    function loadFriendsForDM() {
+        const friendsList = document.getElementById('dm-friends-list');
+        const noFriendsMsg = document.getElementById('no-dm-friends');
+        
+        if (!friendsList) return;
+        
+        // Show loading state
+        friendsList.innerHTML = generateSkeletonItems(5);
+        
+        // Use the global FriendAPI to get friends
+        if (window.FriendAPI) {
+            window.FriendAPI.getFriends()
+                .then(friends => {
+                    friendsList.innerHTML = '';
+                    
+                    if (friends && friends.length > 0) {
+                        friends.forEach(friend => {
+                            const statusColor = getStatusColor(friend.status || 'offline');
+                            const statusText = getStatusText(friend.status || 'offline');
+                            
+                            const friendItem = document.createElement('div');
+                            friendItem.className = 'dm-friend-item flex items-center p-2 rounded hover:bg-discord-dark cursor-pointer';
+                            friendItem.setAttribute('data-username', friend.username);
+                            friendItem.setAttribute('data-user-id', friend.id);
+                            
+                            friendItem.innerHTML = `
+                                <div class="relative mr-3">
+                                    <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
+                                        <img src="${friend.avatar_url || '/public/assets/default-avatar.svg'}" 
+                                             alt="Avatar" class="w-full h-full object-cover">
+                                    </div>
+                                    <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-darker ${statusColor}"></span>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-white">${escapeHtml(friend.username)}</p>
+                                    <p class="text-gray-400 text-sm">${statusText}</p>
+                                </div>
+                            `;
+                            
+                            friendItem.addEventListener('click', function() {
+                                selectFriendForDM(this);
+                            });
+                            
+                            friendsList.appendChild(friendItem);
+                        });
+                        
+                        if (noFriendsMsg) {
+                            noFriendsMsg.classList.add('hidden');
+                        }
+                    } else {
+                        if (noFriendsMsg) {
+                            noFriendsMsg.classList.remove('hidden');
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading friends:', error);
+                    friendsList.innerHTML = '<div class="text-gray-400 text-center py-2">Failed to load friends</div>';
+                });
+        } else {
+            friendsList.innerHTML = '<div class="text-gray-400 text-center py-2">Friend API not available</div>';
+        }
+    }
+
+    function generateSkeletonItems(count) {
+        let skeletonHtml = '';
+        
+        for (let i = 0; i < count; i++) {
+            skeletonHtml += `
+                <div class="skeleton-item flex items-center p-2">
+                    <div class="skeleton skeleton-avatar mr-3"></div>
+                    <div class="flex-1">
+                        <div class="skeleton skeleton-text"></div>
+                        <div class="skeleton skeleton-text skeleton-text-sm mt-1"></div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        return skeletonHtml;
+    }
+
+    function selectFriendForDM(element) {
+        const allFriends = document.querySelectorAll('.dm-friend-item');
+        
+        allFriends.forEach(friend => {
+            friend.classList.remove('bg-discord-light');
+            friend.classList.add('hover:bg-discord-dark');
+        });
+        
+        element.classList.add('bg-discord-light');
+        element.classList.remove('hover:bg-discord-dark');
+        
+        selectedUserId = element.getAttribute('data-user-id');
+        
+        if (createButton) {
+            createButton.disabled = false;
+            createButton.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+    }
+
+    function createDirectMessage() {
+        if (!selectedUserId) return;
+        
+        fetch('/api/chat/create', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({ user_id: selectedUserId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (modal) {
+                modal.classList.add('hidden');
+            }
+            
+            if (data.success && data.data && data.data.channel_id) {
+                window.location.href = `/app/channels/dm/${data.data.channel_id}`;
+            } else {
+                if (window.showToast) {
+                    window.showToast('Failed to create conversation: ' + (data.message || 'Unknown error'), 'error');
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error creating direct message:', error);
+            if (window.showToast) {
+                window.showToast('Failed to create conversation. Please try again.', 'error');
+            }
+        });
+    }
+
+    function getStatusColor(status) {
+        switch (status) {
+            case 'online': return 'bg-discord-green';
+            case 'away': return 'bg-discord-yellow';
+            case 'dnd': return 'bg-discord-red';
+            default: return 'bg-gray-500';
+        }
+    }
+
+    function getStatusText(status) {
+        switch (status) {
+            case 'online': return 'Online';
+            case 'away': return 'Away';
+            case 'dnd': return 'Do Not Disturb';
+            default: return 'Offline';
+        }
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Initialize event listeners
+    const newDirectMessageBtn = document.getElementById('new-direct-message-btn');
+    const closeBtn = document.getElementById('close-new-direct-modal');
+    const cancelBtn = document.getElementById('cancel-new-direct');
+    const searchInput = document.getElementById('dm-search-input');
+    
+    if (newDirectMessageBtn && modal) {
+        newDirectMessageBtn.addEventListener('click', function() {
+            modal.classList.remove('hidden');
+            loadFriendsForDM();
+        });
+    }
+
+    if (closeBtn && modal) {
+        closeBtn.addEventListener('click', function() {
+            modal.classList.add('hidden');
+        });
+    }
+
+    if (cancelBtn && modal) {
+        cancelBtn.addEventListener('click', function() {
+            modal.classList.add('hidden');
+        });
+    }
+
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                modal.classList.add('hidden');
+            }
+        });
+    }
+
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const query = this.value.toLowerCase();
+            const friends = document.querySelectorAll('.dm-friend-item');
+            
+            let hasVisibleFriends = false;
+            
+            friends.forEach(friend => {
+                const username = friend.getAttribute('data-username').toLowerCase();
+                if (username.includes(query)) {
+                    friend.classList.remove('hidden');
+                    hasVisibleFriends = true;
+                } else {
+                    friend.classList.add('hidden');
+                }
+            });
+            
+            const noFriendsMsg = document.getElementById('no-dm-friends');
+            if (noFriendsMsg) {
+                noFriendsMsg.classList.toggle('hidden', hasVisibleFriends);
+            }
+        });
+    }
+
+    if (createButton) {
+        createButton.addEventListener('click', createDirectMessage);
+    }
+});
+</script>

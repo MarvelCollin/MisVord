@@ -34,7 +34,7 @@ $additional_js[] = 'components/app-layout';
     <?php include dirname(__DIR__) . '/app-sections/server-sidebar.php'; ?>
 
     <div class="flex flex-1 overflow-hidden">
-        <?php if ($contentType === 'home'): ?>
+        <?php if ($contentType === 'home' || $contentType === 'dm'): ?>
             <?php include dirname(__DIR__) . '/app-sections/direct-messages-sidebar.php'; ?>
         <?php endif; ?>
 
@@ -153,12 +153,16 @@ $additional_js[] = 'components/app-layout';
                     include dirname(__DIR__) . '/app-sections/chat-section.php';
                 }
                 ?>
+            <?php elseif ($contentType === 'dm'): ?>
+                <?php include dirname(__DIR__) . '/app-sections/chat-section.php'; ?>
             <?php endif; ?>
         </div>
 
         <?php if ($contentType === 'home'): ?>
             <?php include dirname(__DIR__) . '/app-sections/active-now-section.php'; ?>
         <?php elseif ($contentType === 'server'): ?>
+            <?php include dirname(__DIR__) . '/app-sections/participant-section.php'; ?>
+        <?php elseif ($contentType === 'dm'): ?>
             <?php include dirname(__DIR__) . '/app-sections/participant-section.php'; ?>
         <?php endif; ?>
     </div>
