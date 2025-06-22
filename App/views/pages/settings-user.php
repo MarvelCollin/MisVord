@@ -33,12 +33,12 @@ $section = $_GET['section'] ?? 'my-account';
 
 <div class="flex min-h-screen max-w-[1480px] mx-auto">
     <!-- Left Sidebar with Settings Categories -->
-    <div class="w-60 bg-discord-light border-r border-discord-dark">
+    <div class="w-72 bg-discord-light border-r border-discord-dark pl-8 pr-4">
         <div class="p-4">
             <input type="text" placeholder="Search" class="w-full bg-discord-darker text-white border-none rounded p-2 focus:outline-none focus:ring-2 focus:ring-discord-blue" />
         </div>
         
-        <nav class="mt-2">
+        <nav class="mt-6">
             <ul>
                 <!-- User Settings Categories -->
                 <li>
@@ -57,51 +57,8 @@ $section = $_GET['section'] ?? 'my-account';
                     </a>
                 </li>
                 <li>
-                    <a href="?section=privacy" class="sidebar-item <?php echo $section === 'privacy' ? 'active bg-discord-selected' : ''; ?>">
-                        Privacy & Safety
-                    </a>
-                </li>
-                <li>
                     <a href="?section=connections" class="sidebar-item <?php echo $section === 'connections' ? 'active bg-discord-selected' : ''; ?>">
                         Connections
-                    </a>
-                </li>
-                <li>
-                    <a href="?section=family-center" class="sidebar-item <?php echo $section === 'family-center' ? 'active bg-discord-selected' : ''; ?>">
-                        Family Center
-                    </a>
-                </li>
-                
-                <!-- Billing Settings Categories -->
-                <li>
-                    <div class="sidebar-category mt-6">
-                        <span>BILLING SETTINGS</span>
-                    </div>
-                </li>
-                <li>
-                    <a href="?section=nitro" class="sidebar-item <?php echo $section === 'nitro' ? 'active bg-discord-selected' : ''; ?>">
-                        Nitro
-                        <span class="sidebar-item-badge">NEW</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="?section=server-boost" class="sidebar-item <?php echo $section === 'server-boost' ? 'active bg-discord-selected' : ''; ?>">
-                        Server Boost
-                    </a>
-                </li>
-                <li>
-                    <a href="?section=subscriptions" class="sidebar-item <?php echo $section === 'subscriptions' ? 'active bg-discord-selected' : ''; ?>">
-                        Subscriptions
-                    </a>
-                </li>
-                <li>
-                    <a href="?section=inventory" class="sidebar-item <?php echo $section === 'inventory' ? 'active bg-discord-selected' : ''; ?>">
-                        Gift Inventory
-                    </a>
-                </li>
-                <li>
-                    <a href="?section=billing" class="sidebar-item <?php echo $section === 'billing' ? 'active bg-discord-selected' : ''; ?>">
-                        Billing
                     </a>
                 </li>
                 
@@ -112,14 +69,9 @@ $section = $_GET['section'] ?? 'my-account';
                     </div>
                 </li>
                 <li>
-                    <a href="?section=appearance" class="sidebar-item <?php echo $section === 'appearance' ? 'active bg-discord-selected' : ''; ?>">
-                        Appearance
+                    <a href="?section=nitro" class="sidebar-item <?php echo $section === 'nitro' ? 'active bg-discord-selected' : ''; ?>">
+                        Nitro
                         <span class="sidebar-item-badge">NEW</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="?section=accessibility" class="sidebar-item <?php echo $section === 'accessibility' ? 'active bg-discord-selected' : ''; ?>">
-                        Accessibility
                     </a>
                 </li>
                 <li>
@@ -137,48 +89,6 @@ $section = $_GET['section'] ?? 'my-account';
                         Notifications
                     </a>
                 </li>
-                <li>
-                    <a href="?section=keybinds" class="sidebar-item <?php echo $section === 'keybinds' ? 'active bg-discord-selected' : ''; ?>">
-                        Keybinds
-                    </a>
-                </li>
-                <li>
-                    <a href="?section=language" class="sidebar-item <?php echo $section === 'language' ? 'active bg-discord-selected' : ''; ?>">
-                        Language
-                    </a>
-                </li>
-                <li>
-                    <a href="?section=windows" class="sidebar-item <?php echo $section === 'windows' ? 'active bg-discord-selected' : ''; ?>">
-                        Windows Settings
-                    </a>
-                </li>
-                <li>
-                    <a href="?section=streamer" class="sidebar-item <?php echo $section === 'streamer' ? 'active bg-discord-selected' : ''; ?>">
-                        Streamer Mode
-                    </a>
-                </li>
-                <li>
-                    <a href="?section=advanced" class="sidebar-item <?php echo $section === 'advanced' ? 'active bg-discord-selected' : ''; ?>">
-                        Advanced
-                    </a>
-                </li>
-                
-                <!-- Activity Category -->
-                <li>
-                    <div class="sidebar-category mt-6">
-                        <span>ACTIVITY SETTINGS</span>
-                    </div>
-                </li>
-                <li>
-                    <a href="?section=activity-privacy" class="sidebar-item <?php echo $section === 'activity-privacy' ? 'active bg-discord-selected' : ''; ?>">
-                        Activity Privacy
-                    </a>
-                </li>
-                <li>
-                    <a href="?section=registered-games" class="sidebar-item <?php echo $section === 'registered-games' ? 'active bg-discord-selected' : ''; ?>">
-                        Registered Games
-                    </a>
-                </li>
             </ul>
         </nav>
         
@@ -194,16 +104,16 @@ $section = $_GET['section'] ?? 'my-account';
     </div>
 
     <!-- Main Content Area -->
-    <div class="flex-1 bg-discord-dark overflow-y-auto">
+    <div class="flex-1 bg-discord-dark overflow-y-auto px-10">
         <?php if ($section === 'my-account'): ?>
             <!-- Page Header -->
-            <div class="p-10 max-w-[740px]">
+            <div class="py-10 max-w-[740px]">
                 <h1 class="text-2xl font-bold mb-2">My Account</h1>
                 
                 <!-- Tabs -->
-                <div class="border-b border-discord-dark mb-6">
+                <div class="border-b border-gray-700 mb-6">
                     <div class="flex">
-                        <button class="text-discord-blue border-b-2 border-discord-blue py-2 px-4 font-medium">
+                        <button class="text-[#5865f2] border-b-2 border-[#5865f2] py-2 px-4 font-medium">
                             Security
                         </button>
                         <button class="text-discord-lighter hover:text-white py-2 px-4 font-medium">
@@ -215,14 +125,14 @@ $section = $_GET['section'] ?? 'my-account';
                 <!-- User Profile Card -->
                 <div class="bg-discord-darkest rounded-lg overflow-hidden mb-8">
                     <!-- Banner -->
-                    <div class="h-32 bg-discord-purple relative">
+                    <div class="h-32 bg-[#5865f2] relative">
                         <?php if (isset($user->banner_url) && $user->banner_url): ?>
                             <img src="<?php echo htmlspecialchars($user->banner_url); ?>" alt="Banner" class="w-full h-full object-cover">
                         <?php endif; ?>
                         
                         <!-- Avatar -->
                         <div class="absolute -bottom-8 left-4">
-                            <div class="w-16 h-16 rounded-full bg-discord-darkest p-1">
+                            <div class="w-20 h-20 rounded-full bg-discord-darkest p-1">
                                 <div class="w-full h-full rounded-full bg-discord-darker overflow-hidden">
                                     <img src="<?php echo htmlspecialchars($user->avatar_url ?? asset('/default-avatar.svg')); ?>" alt="Avatar" class="w-full h-full object-cover">
                                 </div>
@@ -238,7 +148,7 @@ $section = $_GET['section'] ?? 'my-account';
                     </div>
                     
                     <!-- User Info Section -->
-                    <div class="pt-10 pb-4 px-4">
+                    <div class="pt-12 pb-4 px-4">
                         <!-- Name with status indicators -->
                         <div class="flex items-center mb-4">
                             <h2 class="text-xl font-semibold mr-2">
@@ -269,7 +179,7 @@ $section = $_GET['section'] ?? 'my-account';
                             <h3 class="font-medium">Display Name</h3>
                             <p class="text-discord-lighter"><?php echo htmlspecialchars($user->display_name ?? $user->username ?? $_SESSION['username']); ?></p>
                         </div>
-                        <button class="bg-discord-dark hover:bg-discord-darkest text-white rounded px-4 py-1.5 text-sm font-medium">
+                        <button class="bg-[#4e5058] hover:bg-[#6d6f78] text-white rounded px-4 py-1.5 text-sm font-medium">
                             Edit
                         </button>
                     </div>
@@ -280,7 +190,7 @@ $section = $_GET['section'] ?? 'my-account';
                             <h3 class="font-medium">Username</h3>
                             <p class="text-discord-lighter"><?php echo htmlspecialchars(strtolower($user->username ?? $_SESSION['username'])); ?></p>
                         </div>
-                        <button class="bg-discord-dark hover:bg-discord-darkest text-white rounded px-4 py-1.5 text-sm font-medium">
+                        <button class="bg-[#4e5058] hover:bg-[#6d6f78] text-white rounded px-4 py-1.5 text-sm font-medium">
                             Edit
                         </button>
                     </div>
@@ -298,7 +208,7 @@ $section = $_GET['section'] ?? 'my-account';
                                 <button class="ml-2 text-blue-500 hover:underline text-xs">Reveal</button>
                             </div>
                         </div>
-                        <button class="bg-discord-dark hover:bg-discord-darkest text-white rounded px-4 py-1.5 text-sm font-medium">
+                        <button class="bg-[#4e5058] hover:bg-[#6d6f78] text-white rounded px-4 py-1.5 text-sm font-medium">
                             Edit
                         </button>
                     </div>
@@ -309,17 +219,17 @@ $section = $_GET['section'] ?? 'my-account';
                             <h3 class="font-medium">Phone Number</h3>
                             <p class="text-discord-lighter">You haven't added a phone number yet.</p>
                         </div>
-                        <button class="bg-discord-dark hover:bg-discord-darkest text-white rounded px-4 py-1.5 text-sm font-medium">
+                        <button class="bg-[#4e5058] hover:bg-[#6d6f78] text-white rounded px-4 py-1.5 text-sm font-medium">
                             Add
                         </button>
                     </div>
                 </div>
                 
                 <!-- Password and Authentication Section -->
-                <div class="mt-10">
+                <div class="mt-10 border-t border-gray-700 pt-8">
                     <h2 class="text-xl font-bold mb-6">Password and Authentication</h2>
                     
-                    <button class="bg-discord-blue hover:bg-discord-blue-dark text-white rounded px-4 py-2 text-sm font-medium">
+                    <button class="bg-[#5865f2] hover:bg-[#4752c4] text-white rounded px-4 py-2 text-sm font-medium">
                         Change Password
                     </button>
                     
@@ -332,14 +242,14 @@ $section = $_GET['section'] ?? 'my-account';
                             order to sign in.
                         </p>
                         
-                        <button class="bg-discord-blue hover:bg-discord-blue-dark text-white rounded px-4 py-2 text-sm font-medium">
+                        <button class="bg-[#5865f2] hover:bg-[#4752c4] text-white rounded px-4 py-2 text-sm font-medium">
                             Enable Authenticator App
                         </button>
                     </div>
                 </div>
             </div>
         <?php else: ?>
-            <div class="p-10 max-w-[740px]">
+            <div class="py-10 max-w-[740px]">
                 <h1 class="text-2xl font-bold mb-6"><?php echo ucfirst(str_replace('-', ' ', $section)); ?></h1>
                 <p class="text-discord-lighter">This section is under development.</p>
             </div>
@@ -347,7 +257,7 @@ $section = $_GET['section'] ?? 'my-account';
     </div>
     
     <!-- User Preview Panel -->
-    <div class="w-80 bg-discord-dark border-l border-discord-light p-6">
+    <div class="w-80 bg-discord-dark border-l border-discord-light p-6 pr-10">
         <div class="user-preview-card bg-[#1e1f22] rounded-lg overflow-hidden">
             <!-- User Banner Preview -->
             <div class="user-banner h-40 bg-gradient-to-b from-[#5865f2] to-[#4752c4] relative">
@@ -416,12 +326,12 @@ $section = $_GET['section'] ?? 'my-account';
     </div>
     
     <!-- Close button to return to previous page -->
-    <div class="absolute top-0 right-0 flex items-center">
-        <a href="javascript:history.back()" class="close-button flex items-center justify-center py-2 px-4">
-            <div class="close-button-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-white"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+    <div class="absolute top-6 right-6 flex items-center">
+        <a href="javascript:history.back()" class="close-button flex items-center justify-center py-2">
+            <div class="close-button-icon bg-[#4e5058] hover:bg-[#6d6f78] w-9 h-9 rounded-full flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-white"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </div>
-            <span class="close-button-text">ESC</span>
+            <span class="close-button-text ml-2 text-xs">ESC</span>
         </a>
     </div>
 </div>

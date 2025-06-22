@@ -495,6 +495,11 @@ Route::post('/api/servers/([0-9]+)/settings', function($serverId) {
     $controller->updateServerSettings($serverId);
 });
 
+Route::get('/api/servers/([0-9]+)/members', function($serverId) {
+    $controller = new ServerController();
+    $controller->getServerMembers($serverId);
+});
+
 return array_merge(Route::getRoutes(), [
     '404' => 'pages/404.php'
 ]);

@@ -9,6 +9,14 @@ function initServerSettingsPage() {
     initServerIconUpload();
     initServerProfileForm();
     initCloseButton();
+    
+    // Check if we're on the members tab
+    const urlParams = new URLSearchParams(window.location.search);
+    const section = urlParams.get('section');
+    
+    if (section === 'members') {
+        initMembersTab();
+    }
 }
 
 /**
@@ -152,6 +160,186 @@ function initServerIconUpload() {
             resetServerPreviewIcon();
         });
     }
+}
+
+/**
+ * Initialize the members tab functionality
+ */
+function initMembersTab() {
+    const membersList = document.getElementById('members-list');
+    const memberSearch = document.getElementById('member-search');
+    const memberTemplate = document.getElementById('member-template');
+    const serverId = document.querySelector('meta[name="server-id"]')?.content;
+    
+    if (!membersList || !memberTemplate || !serverId) return;
+    
+    let allMembers = [];
+    
+    // Load server members
+    async function loadMembers() {
+        try {
+            const response = await ServerAPI.getServerMembers(serverId);
+            
+            if (response && response.success) {
+                allMembers = response.members || [];
+                renderMembers(allMembers);
+            } else {
+                throw new Error(response.message || 'Failed to load server members');
+            }
+        } catch (error) {
+            console.error('Error loading server members:', error);
+            membersList.innerHTML = `
+                <div class="flex items-center justify-center p-8 text-discord-lighter">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-[#ed4245]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Error loading members. Please try again.</span>
+                </div>
+            `;
+        }
+    }
+    
+    // Render members to the list
+    function renderMembers(members) {
+        if (!members.length) {
+            membersList.innerHTML = `
+                <div class="flex items-center justify-center p-8 text-discord-lighter">
+                    <span>No members found</span>
+                </div>
+            `;
+            return;
+        }
+        
+        membersList.innerHTML = '';
+        
+        members.forEach(member => {
+            const memberElement = document.importNode(memberTemplate.content, true).firstElementChild;
+            
+            // Set member avatar
+            const avatarImg = memberElement.querySelector('.member-avatar img');
+            if (avatarImg) {
+                if (member.avatar_url) {
+                    avatarImg.src = member.avatar_url;
+                } else {
+                    // Use first letter of username as avatar placeholder
+                    avatarImg.parentNode.innerHTML = `
+                        <div class="w-full h-full flex items-center justify-center bg-discord-dark text-white">
+                            ${member.username.charAt(0).toUpperCase()}
+                        </div>
+                    `;
+                }
+            }
+            
+            // Set username and discriminator
+            const usernameElement = memberElement.querySelector('.member-username');
+            const discriminatorElement = memberElement.querySelector('.member-discriminator');
+            
+            if (usernameElement) {
+                usernameElement.textContent = member.display_name || member.username;
+            }
+            
+            if (discriminatorElement) {
+                discriminatorElement.textContent = `#${member.discriminator}`;
+            }
+            
+            // Set status indicator
+            const statusIndicator = memberElement.querySelector('.status-indicator');
+            if (statusIndicator) {
+                const statusColors = {
+                    'online': 'bg-green-500',
+                    'idle': 'bg-yellow-500',
+                    'dnd': 'bg-red-500',
+                    'offline': 'bg-gray-500'
+                };
+                
+                statusIndicator.classList.add(statusColors[member.status] || 'bg-gray-500');
+            }
+            
+            // Set role
+            const roleElement = memberElement.querySelector('.member-role');
+            if (roleElement) {
+                roleElement.textContent = member.role.charAt(0).toUpperCase() + member.role.slice(1);
+                
+                // Add role-specific styling
+                const roleColors = {
+                    'owner': 'bg-[#f1c40f] text-black',
+                    'admin': 'bg-[#e74c3c] text-white',
+                    'moderator': 'bg-[#3498db] text-white',
+                    'member': 'bg-[#95a5a6] text-white'
+                };
+                
+                roleElement.classList.add(...(roleColors[member.role] || 'bg-[#95a5a6] text-white').split(' '));
+            }
+            
+            // Set joined date
+            const joinedElement = memberElement.querySelector('.member-joined');
+            if (joinedElement && member.joined_at) {
+                const joinedDate = new Date(member.joined_at);
+                joinedElement.textContent = joinedDate.toLocaleDateString();
+            }
+            
+            // Set member ID as data attribute
+            memberElement.dataset.memberId = member.id;
+            
+            // Handle action buttons visibility based on permissions
+            const editRoleBtn = memberElement.querySelector('.edit-role-btn');
+            const kickMemberBtn = memberElement.querySelector('.kick-member-btn');
+            
+            // Disable actions for owner (can't edit owner's role or kick them)
+            if (member.is_owner) {
+                if (editRoleBtn) editRoleBtn.disabled = true;
+                if (kickMemberBtn) kickMemberBtn.disabled = true;
+                
+                // Add disabled styling
+                if (editRoleBtn) editRoleBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                if (kickMemberBtn) kickMemberBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+            
+            // Add event listeners for action buttons
+            if (editRoleBtn) {
+                editRoleBtn.addEventListener('click', () => {
+                    // Role editing functionality would go here
+                    alert(`Edit role for ${member.username} (ID: ${member.id})`);
+                });
+            }
+            
+            if (kickMemberBtn) {
+                kickMemberBtn.addEventListener('click', () => {
+                    // Kick member functionality would go here
+                    if (confirm(`Are you sure you want to kick ${member.username} from the server?`)) {
+                        alert(`Kicked ${member.username} (ID: ${member.id})`);
+                    }
+                });
+            }
+            
+            membersList.appendChild(memberElement);
+        });
+    }
+    
+    // Handle member search
+    if (memberSearch) {
+        memberSearch.addEventListener('input', debounce(function() {
+            const searchTerm = this.value.toLowerCase().trim();
+            
+            if (!searchTerm) {
+                renderMembers(allMembers);
+                return;
+            }
+            
+            const filteredMembers = allMembers.filter(member => {
+                return (
+                    member.username.toLowerCase().includes(searchTerm) ||
+                    (member.display_name && member.display_name.toLowerCase().includes(searchTerm)) ||
+                    member.role.toLowerCase().includes(searchTerm)
+                );
+            });
+            
+            renderMembers(filteredMembers);
+        }, 300));
+    }
+    
+    // Initial load
+    loadMembers();
 }
 
 /**

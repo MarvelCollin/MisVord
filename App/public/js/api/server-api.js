@@ -255,6 +255,10 @@ class ServerAPI {
             throw error;
         }
     }
+
+    async getServerMembers(serverId) {
+        return await this.makeRequest(`/api/servers/${serverId}/members`);
+    }
 }
 
 const serverAPI = new ServerAPI();

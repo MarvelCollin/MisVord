@@ -507,6 +507,159 @@ a:active {
   transform: translateY(0);
 }
 
+/* Members Tab Styles */
+#members-list {
+  max-height: 500px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--discord-background-tertiary) var(--discord-background-secondary);
+}
+
+#members-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+#members-list::-webkit-scrollbar-track {
+  background: var(--discord-background-secondary);
+  border-radius: 4px;
+}
+
+#members-list::-webkit-scrollbar-thumb {
+  background-color: var(--discord-background-tertiary);
+  border-radius: 4px;
+}
+
+.member-item {
+  border-bottom: 1px solid var(--discord-dark);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  transition: background-color 0.2s ease;
+}
+
+.member-item:hover {
+  background-color: var(--discord-dark-hover);
+}
+
+.member-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  background-color: var(--discord-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.member-username {
+  font-weight: 500;
+  color: var(--discord-white);
+}
+
+.member-discriminator {
+  font-size: 12px;
+  color: var(--discord-lighter);
+}
+
+.member-role {
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-weight: 500;
+  display: inline-block;
+  text-align: center;
+}
+
+/* Role colors */
+.member-role.owner {
+  background-color: #f1c40f;
+  color: #000;
+}
+
+.member-role.admin {
+  background-color: #e74c3c;
+  color: #fff;
+}
+
+.member-role.moderator {
+  background-color: #3498db;
+  color: #fff;
+}
+
+.member-role.member {
+  background-color: #95a5a6;
+  color: #fff;
+}
+
+/* Status indicators */
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 4px;
+}
+
+.status-indicator.bg-green-500 {
+  background-color: #3ba55d;
+}
+
+.status-indicator.bg-yellow-500 {
+  background-color: #faa61a;
+}
+
+.status-indicator.bg-red-500 {
+  background-color: #ed4245;
+}
+
+.status-indicator.bg-gray-500 {
+  background-color: #747f8d;
+}
+
+/* Action buttons */
+.edit-role-btn,
+.kick-member-btn {
+  padding: 6px;
+  border-radius: 4px;
+  background-color: transparent;
+  color: var(--discord-lighter);
+  transition: background-color 0.2s ease, color 0.2s ease;
+  cursor: pointer;
+}
+
+.edit-role-btn:hover,
+.kick-member-btn:hover {
+  background-color: var(--discord-light);
+  color: var(--discord-white);
+}
+
+.edit-role-btn:disabled,
+.kick-member-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Search input */
+#member-search {
+  background-color: var(--discord-dark-input);
+  color: var(--discord-white);
+  border: none;
+  border-radius: 4px;
+  padding: 10px 16px 10px 36px;
+  width: 100%;
+  font-size: 14px;
+  transition: background-color 0.2s ease;
+}
+
+#member-search:focus {
+  outline: none;
+  background-color: var(--discord-dark-hover);
+}
+
+#member-search::placeholder {
+  color: var(--discord-lighter);
+}
+
 /* Responsive adjustments */
 @media (max-width: 1200px) {
   .flex.min-h-screen {

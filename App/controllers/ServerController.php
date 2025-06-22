@@ -701,6 +701,72 @@ class ServerController extends BaseController
         }
     }
 
+    public function getServerMembers($serverId)
+    {
+        $this->requireAuth();
+
+        if (!$serverId) {
+            return $this->validationError(['server_id' => 'Server ID is required']);
+        }
+
+        try {
+            $server = $this->serverRepository->find($serverId);
+            if (!$server) {
+                return $this->notFound('Server not found');
+            }
+
+            if (!$this->userServerMembershipRepository->isMember($this->getCurrentUserId(), $serverId)) {
+                return $this->forbidden('You do not have access to this server');
+            }
+
+            $members = $this->userServerMembershipRepository->getServerMembers($serverId);
+            $ownerId = $server->getOwnerId();
+
+            // Format member data and add additional information
+            $formattedMembers = array_map(function($member) use ($ownerId) {
+                $isOwner = $member['id'] == $ownerId;
+                
+                return [
+                    'id' => $member['id'],
+                    'username' => $member['username'],
+                    'discriminator' => $member['discriminator'] ?? '0000',
+                    'display_name' => $member['display_name'] ?? $member['username'],
+                    'avatar_url' => $member['avatar_url'],
+                    'role' => $isOwner ? 'owner' : ($member['role'] ?? 'member'),
+                    'is_owner' => $isOwner,
+                    'status' => $member['status'] ?? 'offline',
+                    'joined_at' => $member['created_at']
+                ];
+            }, $members);
+
+            // Sort members: owner first, then by role, then by username
+            usort($formattedMembers, function($a, $b) {
+                if ($a['is_owner'] && !$b['is_owner']) return -1;
+                if (!$a['is_owner'] && $b['is_owner']) return 1;
+                
+                if ($a['role'] !== $b['role']) {
+                    $roleOrder = ['owner' => 0, 'admin' => 1, 'moderator' => 2, 'member' => 3];
+                    return $roleOrder[$a['role']] <=> $roleOrder[$b['role']];
+                }
+                
+                return strcasecmp($a['username'], $b['username']);
+            });
+
+            $this->logActivity('server_members_viewed', ['server_id' => $serverId]);
+
+            return $this->success([
+                'members' => $formattedMembers,
+                'total' => count($formattedMembers)
+            ]);
+        } catch (Exception $e) {
+            $this->logActivity('server_members_error', [
+                'server_id' => $serverId,
+                'error' => $e->getMessage()
+            ]);
+            return $this->serverError('Failed to load server members');
+        }
+    }
+
     private function formatServer($server)
     {
         return [
