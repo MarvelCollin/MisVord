@@ -29,11 +29,12 @@ ob_start();
 
 <meta name="server-id" content="<?php echo $serverId; ?>">
 
-<div class="flex min-h-screen">
+<div class="flex min-h-screen max-w-[1480px] mx-auto">
     <!-- Left Sidebar with Settings Categories -->
     <div class="w-60 bg-discord-light border-r border-discord-dark">
         <div class="p-4">
-            <div class="text-xs font-bold text-discord-lighter mb-2"><?php echo htmlspecialchars($server->name); ?></div>
+            <div class="text-sm font-semibold text-white"><?php echo htmlspecialchars($server->name); ?></div>
+            <div class="text-xs text-discord-lighter mt-1">Server Settings</div>
         </div>
         
         <nav class="mt-2">
@@ -163,6 +164,7 @@ ob_start();
                 <li>
                     <a href="?server_id=<?php echo $serverId; ?>&section=boost" class="flex items-center p-2 px-4 text-discord-light-gray hover:bg-discord-dark-hover <?php echo $section === 'boost' ? 'bg-discord-dark-hover text-white' : ''; ?>">
                         Server Boost Status
+                        <span class="ml-2 text-xs bg-[#5865f2] text-white px-1 rounded flex items-center justify-center w-5 h-5">⬆</span>
                     </a>
                 </li>
                 <li>
@@ -178,7 +180,7 @@ ob_start();
     <div class="flex-1 bg-discord-dark overflow-y-auto">
         <?php if ($section === 'profile'): ?>
             <!-- Server Profile Section -->
-            <div class="p-10">
+            <div class="p-10 max-w-[740px]">
                 <h1 class="text-2xl font-bold mb-2">Server Profile</h1>
                 <p class="text-discord-lighter mb-6">Customize how your server appears in invite links and, if enabled, in Server Discovery and Announcement Channel messages</p>
                 
@@ -194,7 +196,7 @@ ob_start();
                     <!-- Server Icon -->
                     <div class="form-group">
                         <label class="block text-sm font-medium text-white mb-2">Icon</label>
-                        <p class="text-discord-lighter text-sm mb-2">We recommend an image of at least 512x512 for the server.</p>
+                        <p class="text-discord-lighter text-sm mb-2">We recommend an image of at least 512x512.</p>
                         
                         <div class="flex items-center space-x-4">
                             <div id="server-icon-container" class="relative w-24 h-24 bg-discord-dark-input rounded-full overflow-hidden border border-gray-700">
@@ -207,13 +209,13 @@ ob_start();
                                 <?php endif; ?>
                             </div>
                             
-                            <button type="button" id="change-server-icon-btn" class="bg-discord-blue hover:bg-discord-blue-dark text-white font-medium py-2 px-4 rounded-md">
-                                Change Icon
+                            <button type="button" id="change-server-icon-btn" class="bg-[#5865f2] hover:bg-[#4752c4] text-white font-medium py-2 px-4 rounded-md">
+                                Change Server Icon
                             </button>
                             
                             <?php if ($server->image_url): ?>
-                                <button type="button" id="remove-server-icon-btn" class="bg-transparent hover:bg-discord-red/10 text-discord-red font-medium py-2 px-4 rounded-md">
-                                    Remove
+                                <button type="button" id="remove-server-icon-btn" class="text-[#ed4245] hover:underline font-medium py-2 px-4">
+                                    Remove Icon
                                 </button>
                             <?php endif; ?>
                             
@@ -246,52 +248,46 @@ ob_start();
                         <p class="text-discord-lighter text-sm mb-4">Add up to 5 traits to show off your server's interests and personality.</p>
                         
                         <div class="grid grid-cols-3 gap-4">
-                            <div class="bg-discord-dark-input rounded-md p-4 flex items-center space-x-3 cursor-pointer border border-gray-700 hover:bg-discord-dark-hover">
-                                <div class="bg-gray-800 rounded-full w-10 h-10 flex items-center justify-center">
+                            <div class="bg-[#2b2d31] rounded-md p-4 flex items-center space-x-3 cursor-pointer hover:bg-[#35373c]">
+                                <div class="bg-[#1e1f22] rounded-full w-10 h-10 flex items-center justify-center">
                                     <span class="text-xl">😊</span>
                                 </div>
                                 <span class="text-discord-lighter">Add trait</span>
                             </div>
                             
-                            <div class="bg-discord-dark-input rounded-md p-4 flex items-center space-x-3 cursor-pointer border border-gray-700 hover:bg-discord-dark-hover">
-                                <div class="bg-gray-800 rounded-full w-10 h-10 flex items-center justify-center">
+                            <div class="bg-[#2b2d31] rounded-md p-4 flex items-center space-x-3 cursor-pointer hover:bg-[#35373c]">
+                                <div class="bg-[#1e1f22] rounded-full w-10 h-10 flex items-center justify-center">
                                     <span class="text-xl">😎</span>
                                 </div>
                                 <span class="text-discord-lighter">Add trait</span>
                             </div>
                             
-                            <div class="bg-discord-dark-input rounded-md p-4 flex items-center space-x-3 cursor-pointer border border-gray-700 hover:bg-discord-dark-hover">
-                                <div class="bg-gray-800 rounded-full w-10 h-10 flex items-center justify-center">
+                            <div class="bg-[#2b2d31] rounded-md p-4 flex items-center space-x-3 cursor-pointer hover:bg-[#35373c]">
+                                <div class="bg-[#1e1f22] rounded-full w-10 h-10 flex items-center justify-center">
                                     <span class="text-xl">🤓</span>
                                 </div>
                                 <span class="text-discord-lighter">Add trait</span>
                             </div>
                             
-                            <div class="bg-discord-dark-input rounded-md p-4 flex items-center space-x-3 cursor-pointer border border-gray-700 hover:bg-discord-dark-hover">
-                                <div class="bg-gray-800 rounded-full w-10 h-10 flex items-center justify-center">
+                            <div class="bg-[#2b2d31] rounded-md p-4 flex items-center space-x-3 cursor-pointer hover:bg-[#35373c]">
+                                <div class="bg-[#1e1f22] rounded-full w-10 h-10 flex items-center justify-center">
                                     <span class="text-xl">🎮</span>
                                 </div>
                                 <span class="text-discord-lighter">Add trait</span>
                             </div>
                             
-                            <div class="bg-discord-dark-input rounded-md p-4 flex items-center space-x-3 cursor-pointer border border-gray-700 hover:bg-discord-dark-hover">
-                                <div class="bg-gray-800 rounded-full w-10 h-10 flex items-center justify-center">
+                            <div class="bg-[#2b2d31] rounded-md p-4 flex items-center space-x-3 cursor-pointer hover:bg-[#35373c]">
+                                <div class="bg-[#1e1f22] rounded-full w-10 h-10 flex items-center justify-center">
                                     <span class="text-xl">🎲</span>
                                 </div>
                                 <span class="text-discord-lighter">Add trait</span>
                             </div>
                         </div>
                     </div>
-                    
-                    <div class="mt-6">
-                        <button type="submit" class="bg-discord-blue hover:bg-discord-blue-dark text-white font-medium py-2 px-4 rounded-md">
-                            Save Changes
-                        </button>
-                    </div>
                 </form>
             </div>
         <?php else: ?>
-            <div class="p-10">
+            <div class="p-10 max-w-[740px]">
                 <h1 class="text-2xl font-bold mb-6"><?php echo ucfirst($section); ?></h1>
                 <p class="text-discord-lighter">This section is under development.</p>
             </div>
@@ -300,11 +296,11 @@ ob_start();
     
     <!-- Server Preview -->
     <div class="w-80 bg-discord-dark border-l border-discord-light p-6">
-        <div class="bg-discord-light rounded-lg overflow-hidden">
+        <div class="bg-[#1e1f22] rounded-lg overflow-hidden">
             <!-- Server Banner Preview -->
             <div class="h-40 bg-gradient-to-b from-[#e3e5e8] to-[#c7ccd1] relative">
                 <!-- Server Icon Preview -->
-                <div class="absolute -bottom-8 left-4 w-16 h-16 bg-discord-dark rounded-full border-4 border-discord-dark overflow-hidden">
+                <div class="absolute -bottom-8 left-4 w-16 h-16 bg-discord-dark rounded-full border-4 border-[#1e1f22] overflow-hidden">
                     <?php if ($server->image_url): ?>
                         <img src="<?php echo htmlspecialchars($server->image_url); ?>" alt="Server Icon" class="w-full h-full object-cover">
                     <?php else: ?>
@@ -330,9 +326,14 @@ ob_start();
     </div>
     
     <!-- Close button to return to server page -->
-    <a href="/server/<?php echo $serverId; ?>" class="absolute top-4 right-4 w-8 h-8 bg-discord-dark rounded-full flex items-center justify-center hover:bg-discord-light">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-white"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-    </a>
+    <div class="absolute top-0 right-0 flex items-center">
+        <a href="/server/<?php echo $serverId; ?>" class="close-button flex items-center justify-center py-2 px-4">
+            <div class="close-button-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-white"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </div>
+            <span class="close-button-text">ESC</span>
+        </a>
+    </div>
 </div>
 
 <?php 

@@ -23,18 +23,18 @@ function setup(io) {
         socket.on('leave-channel', (data) => handleLeaveChannel(socket, data));
         socket.on('join-dm-room', (data) => handleJoinDMRoom(socket, data));
         socket.on('channel-message', (data) => handleChannelMessage(io, socket, data));
-        socket.on('typing', (data) => handleTyping(socket, data));
-        socket.on('stop-typing', (data) => handleStopTyping(socket, data));
+        socket.on('typing', (data) => handleTyping(socket, data, io));
+        socket.on('stop-typing', (data) => handleStopTyping(socket, data, io));
         socket.on('update-presence', (data) => handleUpdatePresence(socket, data));
         
         // Direct socket events for messaging
-        socket.on('new-channel-message', (data) => forwardEvent(socket, 'new-channel-message', data, `channel-${data.channelId}`));
-        socket.on('user-message-dm', (data) => forwardEvent(socket, 'user-message-dm', data, `dm-room-${data.roomId}`));
-        socket.on('message-updated', (data) => forwardEvent(socket, 'message-updated', data, getTargetRoom(data)));
-        socket.on('message-deleted', (data) => forwardEvent(socket, 'message-deleted', data, getTargetRoom(data)));
-        socket.on('reaction-added', (data) => forwardEvent(socket, 'reaction-added', data));
-        socket.on('reaction-removed', (data) => forwardEvent(socket, 'reaction-removed', data));
-        socket.on('message-pinned', (data) => forwardEvent(socket, 'message-pinned', data));
+        socket.on('new-channel-message', (data) => forwardEvent(socket, 'new-channel-message', data, `channel-${data.channelId}`, io));
+        socket.on('user-message-dm', (data) => forwardEvent(socket, 'user-message-dm', data, `dm-room-${data.roomId}`, io));
+        socket.on('message-updated', (data) => forwardEvent(socket, 'message-updated', data, getTargetRoom(data), io));
+        socket.on('message-deleted', (data) => forwardEvent(socket, 'message-deleted', data, getTargetRoom(data), io));
+        socket.on('reaction-added', (data) => forwardEvent(socket, 'reaction-added', data, null, io));
+        socket.on('reaction-removed', (data) => forwardEvent(socket, 'reaction-removed', data, null, io));
+        socket.on('message-pinned', (data) => forwardEvent(socket, 'message-pinned', data, null, io));
         
         socket.on('debug-rooms', () => handleDebugRooms(io, socket));
         socket.on('get-room-info', () => handleGetRoomInfo(io, socket));
@@ -160,10 +160,13 @@ function handleChannelMessage(io, socket, data) {
         timestamp: Date.now(),
     };
     
+    // Emit to all clients in the room including the sender
     io.to(room).emit('new-channel-message', message);
+    
+    console.log(`📢 Sent channel message to ALL in room ${room} (including sender)`);
 }
 
-function handleTyping(socket, data) {
+function handleTyping(socket, data, io) {
     if (!socket.data.authenticated) return;
     
     const { channelId, roomId } = data;
@@ -172,22 +175,50 @@ function handleTyping(socket, data) {
     
     if (channelId) {
         const room = `channel-${channelId}`;
-        socket.to(room).emit('user-typing', { 
-            userId, 
-            username, 
-            channelId 
-        });
+        if (io) {
+            io.to(room).emit('user-typing', { 
+                userId, 
+                username, 
+                channelId 
+            });
+        } else if (socket.nsp) {
+            socket.nsp.to(room).emit('user-typing', { 
+                userId, 
+                username, 
+                channelId 
+            });
+        } else {
+            socket.to(room).emit('user-typing', { 
+                userId, 
+                username, 
+                channelId 
+            });
+        }
     } else if (roomId) {
         const room = `dm-room-${roomId}`;
-        socket.to(room).emit('user-typing-dm', { 
-            userId, 
-            username, 
-            roomId 
-        });
+        if (io) {
+            io.to(room).emit('user-typing-dm', { 
+                userId, 
+                username, 
+                roomId 
+            });
+        } else if (socket.nsp) {
+            socket.nsp.to(room).emit('user-typing-dm', { 
+                userId, 
+                username, 
+                roomId 
+            });
+        } else {
+            socket.to(room).emit('user-typing-dm', { 
+                userId, 
+                username, 
+                roomId 
+            });
+        }
     }
 }
 
-function handleStopTyping(socket, data) {
+function handleStopTyping(socket, data, io) {
     if (!socket.data.authenticated) return;
     
     const { channelId, roomId } = data;
@@ -196,18 +227,46 @@ function handleStopTyping(socket, data) {
     
     if (channelId) {
         const room = `channel-${channelId}`;
-        socket.to(room).emit('user-stop-typing', { 
-            userId, 
-            username, 
-            channelId 
-        });
+        if (io) {
+            io.to(room).emit('user-stop-typing', { 
+                userId, 
+                username, 
+                channelId 
+            });
+        } else if (socket.nsp) {
+            socket.nsp.to(room).emit('user-stop-typing', { 
+                userId, 
+                username, 
+                channelId 
+            });
+        } else {
+            socket.to(room).emit('user-stop-typing', { 
+                userId, 
+                username, 
+                channelId 
+            });
+        }
     } else if (roomId) {
         const room = `dm-room-${roomId}`;
-        socket.to(room).emit('user-stop-typing-dm', { 
-            userId, 
-            username, 
-            roomId 
-        });
+        if (io) {
+            io.to(room).emit('user-stop-typing-dm', { 
+                userId, 
+                username, 
+                roomId 
+            });
+        } else if (socket.nsp) {
+            socket.nsp.to(room).emit('user-stop-typing-dm', { 
+                userId, 
+                username, 
+                roomId 
+            });
+        } else {
+            socket.to(room).emit('user-stop-typing-dm', { 
+                userId, 
+                username, 
+                roomId 
+            });
+        }
     }
 }
 
@@ -295,7 +354,7 @@ function handleGetRoomInfo(io, socket) {
     });
 }
 
-function forwardEvent(socket, eventName, data, specificRoom = null) {
+function forwardEvent(socket, eventName, data, specificRoom = null, io) {
     if (!socket.data.authenticated) {
         socket.emit('error', { message: 'Authentication required' });
         return;
@@ -333,23 +392,50 @@ function forwardEvent(socket, eventName, data, specificRoom = null) {
         console.log(`👤 ${username} (${userId}) ${eventName.replace('-', ' ')} ${data.emoji} to message ${data.message_id}`);
     }
     
-    // Remove debug properties before forwarding to other clients
-    if (data._debug) {
-        const cleanData = {...data};
-        delete cleanData._debug;
-        data = cleanData;
+    // Add debug info to track message flow
+    const enhancedData = {
+        ...data,
+        _serverDebug: {
+            timestamp: new Date().toISOString(),
+            emittedTo: specificRoom || 'all',
+            emittedBy: username,
+            userId: userId,
+            socketId: socket.id,
+            includingSender: true
+        }
+    };
+    
+    // Remove client debug properties before forwarding
+    if (enhancedData._debug) {
+        delete enhancedData._debug;
     }
     
     // Forward the event
     if (specificRoom) {
-        socket.to(specificRoom).emit(eventName, data);
-        
-        // Log room size for debugging
-        const roomSize = socket.adapter.rooms && socket.adapter.rooms.get(specificRoom)?.size || 0;
-        console.log(`📢 Sent to room ${specificRoom} (${roomSize} clients connected)`);
+        // Use io.to to send to all clients in the room including the sender
+        if (io) {
+            io.to(specificRoom).emit(eventName, enhancedData);
+            
+            // Log room size for debugging
+            const roomSize = socket.adapter.rooms && socket.adapter.rooms.get(specificRoom)?.size || 0;
+            console.log(`📢 Sent to ALL in room ${specificRoom} (${roomSize} clients connected, including sender)`);
+        } else {
+            // Fallback if io is not available
+            socket.to(specificRoom).emit(eventName, enhancedData);
+            socket.emit(eventName, enhancedData);
+            console.log(`📢 Sent to room ${specificRoom} (including sender via direct emit)`);
+        }
     } else {
-        socket.broadcast.emit(eventName, data);
-        console.log(`📢 Broadcasted to all other clients`);
+        // Broadcast to everyone including the sender
+        if (io) {
+            io.emit(eventName, enhancedData);
+            console.log(`📢 Broadcasted to all clients including sender`);
+        } else {
+            // Fallback
+            socket.broadcast.emit(eventName, enhancedData);
+            socket.emit(eventName, enhancedData);
+            console.log(`📢 Broadcasted to all clients (including sender via direct emit)`);
+        }
     }
 }
 

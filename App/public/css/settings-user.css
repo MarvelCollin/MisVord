@@ -1,0 +1,82 @@
+/* Settings User Page CSS */
+
+.settings-sidebar {
+  min-width: 256px;
+  border-right: 1px solid #26282c;
+}
+
+.bg-discord-selected {
+  background-color: rgba(79, 84, 92, 0.32);
+}
+
+.settings-item:hover {
+  background-color: rgba(79, 84, 92, 0.16);
+}
+
+.settings-item.selected {
+  background-color: rgba(79, 84, 92, 0.32);
+  color: #fff;
+}
+
+.bg-discord-purple {
+  background-color: #5865f2;
+}
+
+.bg-discord-blue-dark {
+  background-color: #4752c4;
+}
+
+/* Animation for the ESC button */
+.settings-content button[onclick="window.history.back()"]:hover {
+  transform: scale(1.05);
+  transition: transform 0.2s ease;
+}
+
+/* Tab focus effect */
+.settings-content button:focus {
+  outline: none;
+}
+
+/* Custom scrollbar for the settings page */
+.settings-sidebar::-webkit-scrollbar,
+.settings-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.settings-sidebar::-webkit-scrollbar-thumb,
+.settings-content::-webkit-scrollbar-thumb {
+  background-color: #202225;
+  border-radius: 4px;
+}
+
+.settings-sidebar::-webkit-scrollbar-track,
+.settings-content::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+/* Hover effects for buttons */
+button.bg-discord-blue:hover {
+  background-color: #4752c4;
+}
+
+button.bg-discord-dark:hover {
+  background-color: #18191c;
+}
+
+/* Edit buttons hover animation */
+.settings-content button:not(.text-blue-500):hover {
+  transform: translateY(-1px);
+  transition: transform 0.2s ease;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .settings-page {
+    flex-direction: column;
+  }
+  
+  .settings-sidebar {
+    width: 100%;
+    max-height: 200px;
+  }
+}

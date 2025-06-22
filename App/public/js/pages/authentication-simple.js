@@ -316,6 +316,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initAuthForms();
     initPasswordToggle();
     initPasswordStrength();
+    initCaptcha();
     setupSocketInitialization();
 });
 
@@ -447,6 +448,93 @@ function checkPasswordsMatch(password, confirm) {
         matchText.classList.remove('hidden');
     } else {
         matchText.classList.add('hidden');
+    }
+}
+
+function initCaptcha() {
+    if (typeof window.TextCaptcha !== 'function') {
+        console.error('TextCaptcha is not loaded');
+        return;
+    }
+    
+    // Initialize login form captcha
+    const loginCaptchaContainer = document.getElementById('login-captcha-container');
+    if (loginCaptchaContainer) {
+        window.loginCaptcha = new TextCaptcha('login-captcha-container', {
+            length: 6
+        });
+    }
+    
+    // Initialize register form captcha
+    const registerCaptchaContainer = document.getElementById('register-captcha-container');
+    if (registerCaptchaContainer) {
+        window.registerCaptcha = new TextCaptcha('register-captcha-container', {
+            length: 6
+        });
+    }
+    
+    // Add captcha validation to the forms
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
+    
+    if (loginForm) {
+        const originalSubmit = loginForm.onsubmit;
+        loginForm.onsubmit = function(e) {
+            const captchaInput = document.getElementById('login_captcha');
+            if (!window.loginCaptcha || !window.loginCaptcha.verify(captchaInput.value)) {
+                e.preventDefault();
+                
+                // Show validation error
+                const existingError = loginForm.querySelector('.captcha-error');
+                if (existingError) existingError.remove();
+                
+                const errorMsg = document.createElement('p');
+                errorMsg.className = 'text-red-500 text-sm mt-1 captcha-error';
+                errorMsg.innerHTML = 'Invalid captcha code <i class="fa-solid fa-xmark"></i>';
+                captchaInput.parentElement.appendChild(errorMsg);
+                
+                // Refresh captcha
+                window.loginCaptcha.refresh();
+                captchaInput.value = '';
+                captchaInput.focus();
+                
+                return false;
+            }
+            
+            if (originalSubmit) {
+                return originalSubmit.call(this, e);
+            }
+        };
+    }
+    
+    if (registerForm) {
+        const originalSubmit = registerForm.onsubmit;
+        registerForm.onsubmit = function(e) {
+            const captchaInput = document.getElementById('register_captcha');
+            if (!window.registerCaptcha || !window.registerCaptcha.verify(captchaInput.value)) {
+                e.preventDefault();
+                
+                // Show validation error
+                const existingError = registerForm.querySelector('.captcha-error');
+                if (existingError) existingError.remove();
+                
+                const errorMsg = document.createElement('p');
+                errorMsg.className = 'text-red-500 text-sm mt-1 captcha-error';
+                errorMsg.innerHTML = 'Invalid captcha code <i class="fa-solid fa-xmark"></i>';
+                captchaInput.parentElement.appendChild(errorMsg);
+                
+                // Refresh captcha
+                window.registerCaptcha.refresh();
+                captchaInput.value = '';
+                captchaInput.focus();
+                
+                return false;
+            }
+            
+            if (originalSubmit) {
+                return originalSubmit.call(this, e);
+            }
+        };
     }
 }
 

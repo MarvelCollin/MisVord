@@ -89,12 +89,14 @@ class ChatSection {
                 
                 socket.on('new-channel-message', (data) => {
                     if (this.chatType === 'channel' && data.channelId == this.targetId) {
+                        this.showReceiveNotification('channel', data);
                         this.addMessage(data);
                     }
                 });
                 
                 socket.on('user-message-dm', (data) => {
                     if ((this.chatType === 'direct' || this.chatType === 'dm') && data.roomId == this.targetId) {
+                        this.showReceiveNotification('dm', data);
                         this.addMessage(data);
                     }
                 });
@@ -339,6 +341,11 @@ class ChatSection {
             return;
         }
         
+        // Log server debug info if present
+        if (message._serverDebug) {
+            console.log('🔄 Server debug info:', message._serverDebug);
+        }
+        
         const msg = {
             id: message.id || message.messageId || Date.now().toString(),
             content: message.content || message.message?.content || '',
@@ -348,26 +355,27 @@ class ChatSection {
             sent_at: message.timestamp || message.sent_at || Date.now()
         };
         
+        // Check if this is the current user's message
+        const isOwnMessage = msg.user_id == this.userId;
+        
         const lastMessageGroup = this.chatMessages.lastElementChild;
         const lastSenderId = lastMessageGroup?.getAttribute('data-user-id');
         
         if (lastSenderId === msg.user_id && lastMessageGroup?.classList.contains('message-group')) {
-            const messageContent = this.createMessageContent(msg);
+            const messageContent = this.createMessageContent(msg, isOwnMessage);
             const contents = lastMessageGroup.querySelector('.message-contents');
             if (contents) {
                 contents.appendChild(messageContent);
             }
         } else {
-            const messageGroup = this.createMessageGroup(msg);
+            const messageGroup = this.createMessageGroup(msg, isOwnMessage);
             this.chatMessages.appendChild(messageGroup);
         }
         
         this.scrollToBottom();
     }
     
-    createMessageGroup(message) {
-        const isOwnMessage = message.user_id == this.userId;
-        
+    createMessageGroup(message, isOwnMessage = false) {
         const messageGroup = document.createElement('div');
         messageGroup.className = 'message-group flex mb-4';
         messageGroup.setAttribute('data-user-id', message.user_id);
@@ -392,6 +400,14 @@ class ChatSection {
         usernameSpan.className = isOwnMessage ? 'font-semibold text-discord-primary' : 'font-semibold text-white';
         usernameSpan.textContent = message.username;
         
+        // Add "You" badge for own messages
+        if (isOwnMessage) {
+            const youBadge = document.createElement('span');
+            youBadge.className = 'text-xs bg-discord-primary text-white px-1 py-0.5 rounded ml-2';
+            youBadge.textContent = 'You';
+            headerRow.appendChild(youBadge);
+        }
+        
         const timeSpan = document.createElement('span');
         timeSpan.className = 'text-xs text-gray-400 ml-2';
         timeSpan.textContent = this.formatTimestamp(message.sent_at);
@@ -402,7 +418,7 @@ class ChatSection {
         const messageContents = document.createElement('div');
         messageContents.className = 'message-contents text-gray-100 break-words';
         
-        const firstMessage = this.createMessageContent(message);
+        const firstMessage = this.createMessageContent(message, isOwnMessage);
         messageContents.appendChild(firstMessage);
         
         messageContent.appendChild(headerRow);
@@ -414,13 +430,17 @@ class ChatSection {
         return messageGroup;
     }
     
-    createMessageContent(message) {
+    createMessageContent(message, isOwnMessage = false) {
         const messageElement = document.createElement('div');
         messageElement.className = 'message-content py-1';
         messageElement.setAttribute('data-message-id', message.id);
         
+        if (isOwnMessage) {
+            messageElement.classList.add('own-message');
+        }
+        
         const contentElement = document.createElement('div');
-        contentElement.className = 'message-text';
+        contentElement.className = isOwnMessage ? 'message-text own-message-text' : 'message-text';
         contentElement.innerHTML = this.formatMessageContent(message.content);
         
         messageElement.appendChild(contentElement);
@@ -914,5 +934,32 @@ class ChatSection {
         setTimeout(() => {
             notification.remove();
         }, 3000);
+    }
+    
+    showReceiveNotification(type, data) {
+        // Only show for debugging purposes
+        const isDebug = localStorage.getItem('debug_socket_messages') === 'true';
+        if (!isDebug) return;
+        
+        const isOwnMessage = (data.userId || data.user_id) == this.userId;
+        const source = data._serverDebug ? 'server' : 'direct';
+        
+        console.log(`📩 Received ${type} message from ${isOwnMessage ? 'myself' : 'other user'} (${source}):`, data);
+        
+        // Show a small notification for debugging
+        const notification = document.createElement('div');
+        notification.className = `fixed top-4 right-4 bg-gray-800 text-white text-xs p-2 rounded shadow-lg z-50 ${isOwnMessage ? 'border-l-4 border-discord-primary' : ''}`;
+        notification.innerHTML = `
+            <div class="font-bold">${isOwnMessage ? 'Your message received' : 'Message from ' + (data.username || 'unknown')}</div>
+            <div class="text-gray-300">Source: ${source}</div>
+            <div class="text-gray-300 truncate max-w-xs">${data.content || 'No content'}</div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Remove after 2 seconds
+        setTimeout(() => {
+            notification.remove();
+        }, 2000);
     }
 }

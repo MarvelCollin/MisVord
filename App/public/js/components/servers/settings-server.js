@@ -10,6 +10,7 @@ function initServerSettingsPage() {
     initBannerSelection();
     initTraitSelection();
     initServerProfileForm();
+    initCloseButton();
 }
 
 /**
@@ -29,7 +30,8 @@ function initServerIconUpload() {
         const iconCutter = new ImageCutter({
             container: iconContainer,
             type: 'profile',
-            modalTitle: 'Crop Server Icon',
+            modalTitle: 'Upload Server Icon',
+            aspectRatio: 1,
             onCrop: (result) => {
                 if (result && result.error) {
                     console.error('Error cropping server icon:', result.message);
@@ -52,6 +54,9 @@ function initServerIconUpload() {
                 if (removeIconBtn && removeIconBtn.classList.contains('hidden')) {
                     removeIconBtn.classList.remove('hidden');
                 }
+                
+                // Also update the server preview icon
+                updateServerPreviewIcon(result.dataUrl);
             }
         });
         
@@ -105,6 +110,9 @@ function initServerIconUpload() {
                         }
                         
                         iconContainer.dataset.croppedImage = e.target.result;
+                        
+                        // Update server preview icon
+                        updateServerPreviewIcon(e.target.result);
                     }
                 } catch (error) {
                     console.error('Error processing server icon:', error);
@@ -141,7 +149,52 @@ function initServerIconUpload() {
             if (iconInput) {
                 iconInput.value = '';
             }
+            
+            // Reset server preview icon
+            resetServerPreviewIcon();
         });
+    }
+}
+
+/**
+ * Update the server icon in the preview panel
+ */
+function updateServerPreviewIcon(imageUrl) {
+    const previewIcon = document.querySelector('.server-icon-preview img');
+    const previewPlaceholder = document.querySelector('.server-icon-preview div');
+    
+    if (previewIcon) {
+        previewIcon.src = imageUrl;
+        previewIcon.classList.remove('hidden');
+        
+        if (previewPlaceholder) {
+            previewPlaceholder.classList.add('hidden');
+        }
+    } else if (previewPlaceholder) {
+        // If there's no img element yet, create one
+        const img = document.createElement('img');
+        img.src = imageUrl;
+        img.alt = "Server Icon";
+        img.className = "w-full h-full object-cover";
+        
+        previewPlaceholder.parentNode.appendChild(img);
+        previewPlaceholder.classList.add('hidden');
+    }
+}
+
+/**
+ * Reset the server icon in the preview panel
+ */
+function resetServerPreviewIcon() {
+    const previewIcon = document.querySelector('.server-icon-preview img');
+    const previewPlaceholder = document.querySelector('.server-icon-preview div');
+    
+    if (previewIcon) {
+        previewIcon.classList.add('hidden');
+    }
+    
+    if (previewPlaceholder) {
+        previewPlaceholder.classList.remove('hidden');
     }
 }
 
@@ -150,7 +203,7 @@ function initServerIconUpload() {
  */
 function initBannerSelection() {
     const bannerOptions = document.querySelectorAll('.form-group[class*="banner"] .grid > div');
-    const serverBannerPreview = document.querySelector('.server-preview-card .server-banner');
+    const serverBannerPreview = document.querySelector('.server-preview-card .server-banner, .server-banner');
     
     if (!bannerOptions.length || !serverBannerPreview) return;
     
@@ -185,8 +238,8 @@ function initTraitSelection() {
     traitCards.forEach((card) => {
         card.addEventListener('click', function() {
             // Toggle selected class
-            this.classList.toggle('border-discord-blue');
-            this.classList.toggle('bg-discord-primary/10');
+            this.classList.toggle('border-[#5865f2]');
+            this.classList.toggle('bg-[#5865f2]/10');
         });
     });
 }
@@ -196,8 +249,40 @@ function initTraitSelection() {
  */
 function initServerProfileForm() {
     const form = document.getElementById('server-profile-form');
+    const serverNameInput = document.getElementById('server-name');
     
     if (!form) return;
+    
+    // Auto-save when server name changes
+    if (serverNameInput) {
+        serverNameInput.addEventListener('input', debounce(function() {
+            // Update the server name in the preview
+            updateServerNamePreview(this.value);
+            
+            // Auto-save after a short delay
+            const formData = new FormData(form);
+            const serverId = formData.get('server_id');
+            
+            if (!serverId) return;
+            
+            // Only send name update
+            const nameFormData = new FormData();
+            nameFormData.append('server_id', serverId);
+            nameFormData.append('name', this.value);
+            
+            const serverApi = new ServerAPI();
+            serverApi.updateServerSettings(serverId, nameFormData)
+                .then(response => {
+                    if (response.success) {
+                        // Update the server name in the sidebar
+                        updateServerNameInUI(this.value);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating server name:', error);
+                });
+        }, 1000));
+    }
     
     form.addEventListener('submit', function(e) {
         e.preventDefault();
@@ -247,22 +332,61 @@ function initServerProfileForm() {
 }
 
 /**
+ * Initialize close button
+ */
+function initCloseButton() {
+    const closeButton = document.querySelector('a[href^="/server/"]');
+    
+    if (closeButton) {
+        closeButton.addEventListener('click', function(e) {
+            // Check if there are unsaved changes
+            const serverNameInput = document.getElementById('server-name');
+            const iconContainer = document.getElementById('server-icon-container');
+            const serverBannerPreview = document.querySelector('.server-banner');
+            
+            let hasChanges = false;
+            
+            // Check for icon changes
+            if (iconContainer && iconContainer.dataset.croppedImage) {
+                hasChanges = true;
+            }
+            
+            // Check for banner changes
+            if (serverBannerPreview && serverBannerPreview.dataset.selectedBanner) {
+                hasChanges = true;
+            }
+            
+            // If there are unsaved changes, confirm before leaving
+            if (hasChanges) {
+                if (!confirm('You have unsaved changes. Are you sure you want to leave?')) {
+                    e.preventDefault();
+                }
+            }
+        });
+    }
+}
+
+/**
  * Update server name in UI elements
  */
 function updateServerNameInUI(newName) {
-    // Update page title
-    document.title = `misvord - ${newName}`;
-    
     // Update server name in sidebar
-    const serverNameElement = document.querySelector('.w-60 .text-xs.font-bold.text-discord-lighter');
+    const serverNameElement = document.querySelector('.p-4 .text-sm');
     if (serverNameElement) {
         serverNameElement.textContent = newName;
     }
     
-    // Update server name in preview card
-    const previewNameElement = document.querySelector('.server-preview-card .server-info h3');
-    if (previewNameElement) {
-        previewNameElement.textContent = newName;
+    // Update server name in preview
+    updateServerNamePreview(newName);
+}
+
+/**
+ * Update server name in preview panel
+ */
+function updateServerNamePreview(newName) {
+    const serverNamePreview = document.querySelector('.server-info h3, .pt-10 h3');
+    if (serverNamePreview) {
+        serverNamePreview.textContent = newName;
     }
 }
 
@@ -284,14 +408,24 @@ function dataURLtoBlob(dataURL) {
 }
 
 /**
+ * Debounce function to limit how often a function is called
+ */
+function debounce(func, wait) {
+    let timeout;
+    return function(...args) {
+        const context = this;
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(context, args), wait);
+    };
+}
+
+/**
  * Show toast notification
  */
 function showToast(message, type = 'info') {
-    // Check if we have a toast function in the global scope
-    if (typeof window.showToast === 'function') {
-        window.showToast(message, type);
+    if (window.Toast) {
+        window.Toast.show(message, type);
     } else {
-        // Fallback to alert
-        alert(message);
+        console.log(`Toast (${type}):`, message);
     }
 }

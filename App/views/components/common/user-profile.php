@@ -68,9 +68,9 @@ if ($hasTooltip) {
                 </button>';
                 echo tooltip($headphonesContent, 'Deafen', 'top');
                 
-                $settingsContent = '<button class="text-discord-lighter hover:text-white p-1">
+                $settingsContent = '<a href="/settings/user" class="text-discord-lighter hover:text-white p-1">
                     <i class="fas fa-cog"></i>
-                </button>';
+                </a>';
                 echo tooltip($settingsContent, 'User Settings', 'top');
             ?>
         <?php else: ?>
@@ -80,9 +80,9 @@ if ($hasTooltip) {
             <button class="text-discord-lighter hover:text-white p-1" title="Deafen">
                 <i class="fas fa-headphones"></i>
             </button>
-            <button class="text-discord-lighter hover:text-white p-1" title="User Settings">
+            <a href="/settings/user" class="text-discord-lighter hover:text-white p-1" title="User Settings">
                 <i class="fas fa-cog"></i>
-            </button>
+            </a>
         <?php endif; ?>
     </div>
 </div> 
