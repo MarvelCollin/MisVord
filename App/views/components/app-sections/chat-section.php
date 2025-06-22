@@ -263,28 +263,16 @@ $additional_css[] = 'messaging';
             </form>
         </div>
     </div>
+
+    <div class="chat-connection-controls">
+        <button id="refresh-chat-connection" title="Refresh chat connection" class="btn-icon refresh-connection">
+            <i class="fas fa-sync-alt"></i>
+        </button>
+        <span class="connection-status" id="chat-connection-status">
+            <span class="status-indicator connected"><i class="fas fa-circle"></i></span>
+            <span class="status-text">Connected</span>
+        </span>
+    </div>
 </div>
 
-<script>
-// Initialize chat when messaging system is ready
-document.addEventListener('DOMContentLoaded', function() {
-    // Wait for messaging system to be available
-    const initializeChat = () => {
-        if (window.MisVordMessaging) {
-            const chatType = document.querySelector('meta[name="chat-type"]')?.content;
-            const chatId = document.querySelector('meta[name="chat-id"]')?.content;
-            
-            if (chatId && chatType) {
-                console.log('🚀 Initializing chat:', { chatType, chatId });
-                window.MisVordMessaging.switchToChat(chatId, chatType);
-            }
-        } else {
-            // Retry after a short delay if messaging system isn't ready yet
-            setTimeout(initializeChat, 500);
-        }
-    };
-    
-    // Start initialization after DOM is ready
-    setTimeout(initializeChat, 100);
-});
 </script>

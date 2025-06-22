@@ -32,6 +32,7 @@ $page_css = 'authentication-page';
 $page_js = 'pages/authentication-simple';
 $additional_js = [];
 $head_scripts = ['logger-init'];
+$include_socket_io = true; // Add Socket.IO CDN
 $data_page = 'auth';
 
 $debugInfo = '';
@@ -269,6 +270,8 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
         </div>
     </div>
 </div>
+
+<script src="/js/core/socket/global-socket-manager.js" type="module"></script>
 
 <?php 
 

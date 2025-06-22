@@ -1,4 +1,5 @@
 import { ServerAPI } from '../../api/server-api.js';
+import ImageCutter from '../common/image-cutter.js';
 
 document.addEventListener('DOMContentLoaded', function() {
     initServerIconUpload();
@@ -8,18 +9,39 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function initServerIconUpload() {
+    const iconContainer = document.getElementById('server-icon-container');
     const iconInput = document.getElementById('server-icon-input');
     const iconPreview = document.getElementById('server-icon-preview');
     const iconPlaceholder = document.getElementById('server-icon-placeholder');
+    
+    // Create image cutter for profile/icon (1:1 aspect ratio)
+    if (iconContainer) {
+        const iconCutter = new ImageCutter({
+            container: iconContainer,
+            type: 'profile',
+            width: 96,
+            height: 96
+        });
+        
+        // Store the cutter instance for later use
+        window.serverIconCutter = iconCutter;
+    }
 
     if (iconInput) {
         iconInput.addEventListener('change', function() {
             if (this.files && this.files[0]) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    iconPreview.src = e.target.result;
-                    iconPreview.classList.remove('hidden');
-                    iconPlaceholder.classList.add('hidden');
+                    // If we have the image cutter, use it
+                    if (window.serverIconCutter) {
+                        window.serverIconCutter.loadImage(e.target.result);
+                        iconPlaceholder.classList.add('hidden');
+                    } else {
+                        // Fallback to simple preview
+                        iconPreview.src = e.target.result;
+                        iconPreview.classList.remove('hidden');
+                        iconPlaceholder.classList.add('hidden');
+                    }
                 }
                 reader.readAsDataURL(this.files[0]);
             }
@@ -28,18 +50,39 @@ function initServerIconUpload() {
 }
 
 function initServerBannerUpload() {
+    const bannerContainer = document.getElementById('server-banner-container');
     const bannerInput = document.getElementById('server-banner-input');
     const bannerPreview = document.getElementById('server-banner-preview');
     const bannerPlaceholder = document.getElementById('server-banner-placeholder');
+    
+    // Create image cutter for banner (2:1 aspect ratio)
+    if (bannerContainer) {
+        const bannerCutter = new ImageCutter({
+            container: bannerContainer,
+            type: 'banner',
+            width: 300,
+            height: 150
+        });
+        
+        // Store the cutter instance for later use
+        window.serverBannerCutter = bannerCutter;
+    }
 
     if (bannerInput) {
         bannerInput.addEventListener('change', function() {
             if (this.files && this.files[0]) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    bannerPreview.src = e.target.result;
-                    bannerPreview.classList.remove('hidden');
-                    bannerPlaceholder.classList.add('hidden');
+                    // If we have the image cutter, use it
+                    if (window.serverBannerCutter) {
+                        window.serverBannerCutter.loadImage(e.target.result);
+                        bannerPlaceholder.classList.add('hidden');
+                    } else {
+                        // Fallback to simple preview
+                        bannerPreview.src = e.target.result;
+                        bannerPreview.classList.remove('hidden');
+                        bannerPlaceholder.classList.add('hidden');
+                    }
                 }
                 reader.readAsDataURL(this.files[0]);
             }
@@ -52,9 +95,70 @@ function initServerFormSubmission() {
     if (serverForm) {
         serverForm.addEventListener('submit', function(e) {
             e.preventDefault();
-            handleServerCreation(this);
+            
+            // Get cropped images if available
+            if (window.serverIconCutter && window.serverIconCutter.image.src) {
+                const iconResult = window.serverIconCutter.getCroppedImage();
+                // Create a blob from data URL and append to form
+                fetch(iconResult.dataUrl)
+                    .then(res => res.blob())
+                    .then(blob => {
+                        const iconFile = new File([blob], 'icon.png', { type: 'image/png' });
+                        updateFormDataWithFile(this, 'server_icon', iconFile);
+                        
+                        // Continue with banner if available
+                        if (window.serverBannerCutter && window.serverBannerCutter.image.src) {
+                            const bannerResult = window.serverBannerCutter.getCroppedImage();
+                            return fetch(bannerResult.dataUrl)
+                                .then(res => res.blob())
+                                .then(blob => {
+                                    const bannerFile = new File([blob], 'banner.png', { type: 'image/png' });
+                                    updateFormDataWithFile(this, 'server_banner', bannerFile);
+                                    handleServerCreation(this);
+                                });
+                        } else {
+                            handleServerCreation(this);
+                        }
+                    });
+            } 
+            // If only banner is available
+            else if (window.serverBannerCutter && window.serverBannerCutter.image.src) {
+                const bannerResult = window.serverBannerCutter.getCroppedImage();
+                fetch(bannerResult.dataUrl)
+                    .then(res => res.blob())
+                    .then(blob => {
+                        const bannerFile = new File([blob], 'banner.png', { type: 'image/png' });
+                        updateFormDataWithFile(this, 'server_banner', bannerFile);
+                        handleServerCreation(this);
+                    });
+            }
+            // If no cutters or images, just submit the form as is
+            else {
+                handleServerCreation(this);
+            }
         });
     }
+}
+
+function updateFormDataWithFile(form, fieldName, file) {
+    // Remove existing file input if it exists
+    const existingInput = form.querySelector(`input[name="${fieldName}"]`);
+    if (existingInput) {
+        existingInput.remove();
+    }
+    
+    // Create new file input with the cropped image
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.name = fieldName;
+    input.style.display = 'none';
+    
+    // Use DataTransfer to set the file
+    const dataTransfer = new DataTransfer();
+    dataTransfer.items.add(file);
+    input.files = dataTransfer.files;
+    
+    form.appendChild(input);
 }
 
 function handleServerCreation(form) {
@@ -282,7 +386,11 @@ function showPageLoading(container) {
 
 function closeModal(modal) {
     if (modal) {
-        modal.classList.add('hidden');
+        modal.classList.add('opacity-0', 'scale-95');
+        modal.querySelector('.bg-discord-background').classList.add('scale-95');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 300);
     }
 }
 
@@ -318,6 +426,10 @@ window.openCreateServerModal = function() {
     const modal = document.getElementById('create-server-modal');
     if (modal) {
         modal.classList.remove('hidden');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0', 'scale-95');
+            modal.querySelector('.bg-discord-background').classList.remove('scale-95');
+        }, 10);
         const nameInput = document.getElementById('server-name');
         if (nameInput) {
             nameInput.focus();

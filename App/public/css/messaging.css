@@ -587,3 +587,81 @@
 .message-row:hover .message-timestamp-hover {
     opacity: 1;
 }
+
+.chat-connection-controls {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  z-index: 10;
+  opacity: 0.7;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.chat-connection-controls:hover {
+  opacity: 1;
+}
+
+.btn-icon.refresh-connection {
+  background: transparent;
+  border: none;
+  color: #7289da;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 5px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease-in-out;
+}
+
+.btn-icon.refresh-connection:hover {
+  background-color: #7289da;
+  color: white;
+  transform: rotate(180deg);
+}
+
+.btn-icon.refresh-connection:active {
+  transform: rotate(360deg);
+}
+
+.connection-status {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  color: #72767d;
+}
+
+.status-indicator {
+  display: inline-block;
+  margin-right: 5px;
+  font-size: 8px;
+}
+
+.status-indicator.connected {
+  color: #43b581;
+}
+
+.status-indicator.disconnected {
+  color: #f04747;
+}
+
+.status-indicator.connecting {
+  color: #faa61a;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.5;
+  }
+}

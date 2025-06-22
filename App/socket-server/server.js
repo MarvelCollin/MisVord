@@ -1,83 +1,26 @@
-const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
-const cors = require('cors');
-const dotenv = require('dotenv');
-
-dotenv.config({ path: '../.env' });
-
 const socketConfig = require('./config/socket');
-const db = require('./config/database');
 const socketController = require('./controllers/socketController');
+const eventController = require('./controllers/eventController');
 
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-const server = http.createServer(app);
-
-const io = new Server(server, {
-  cors: {
-    origin: socketConfig.corsAllowedOrigins,
-    methods: ["GET", "POST"],
-    credentials: true,
-    allowedHeaders: ["my-custom-header"]
-  },
-  path: socketConfig.basePath + socketConfig.subPath,
-  pingTimeout: socketConfig.pingTimeout,
-  pingInterval: socketConfig.pingInterval,
-  transports: socketConfig.transports,
-  allowEIO3: true
-});
-
-const apiRoutes = require('./routes/api')(io);
-app.use('/api', apiRoutes);
-
-socketController.setupSocketHandlers(io);
-
-app.get('/health', (req, res) => {
-  res.json({
-    status: 'ok',
-    uptime: process.uptime(),
-    timestamp: new Date().toISOString(),
-    connections: io.engine.clientsCount
-  });
-});
-
-const PORT = process.env.SOCKET_PORT || socketConfig.port;
-server.listen(PORT, async () => {
-  console.log(`🚀 Socket server running on port ${PORT}`);
-  console.log(`🔌 Socket.IO path: ${socketConfig.basePath}${socketConfig.subPath}`);
-  console.log(`🌐 CORS allowed origins:`, socketConfig.corsAllowedOrigins);
-  console.log(`🚛 Transports:`, socketConfig.transports);
-  console.log(`⚡ Ping timeout: ${socketConfig.pingTimeout}ms`);
-  console.log(`💓 Ping interval: ${socketConfig.pingInterval}ms`);
-  
-  try {
-    const dbConnected = await db.initDatabase();
-    if (dbConnected) {
-      console.log('📊 Database connected successfully');
+const server = http.createServer((req, res) => {
+    if (req.url === '/health') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ status: 'ok', uptime: process.uptime() }));
+    } else if (req.url.startsWith('/api')) {
+        eventController.handleApiRequest(req, res);
     } else {
-      console.warn('⚠️ Running without database connectivity - some features may be limited');
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Not Found' }));
     }
-  } catch (error) {
-    console.error('❌ Database initialization error:', error.message);
-    console.warn('⚠️ Running without database connectivity - some features may be limited');
-  }
 });
 
-process.on('SIGTERM', shutdown);
-process.on('SIGINT', shutdown);
+const io = new Server(server, socketConfig.options);
 
-function shutdown() {
-  console.log('🛑 Shutting down socket server...');
-  server.close(() => {
-    console.log('✅ Socket server closed');
-    process.exit(0);
-  });
-  
-  setTimeout(() => {
-    console.error('⚠️ Could not close connections in time, forcefully shutting down');
-    process.exit(1);
-  }, 10000);
-}
+socketController.setup(io);
+
+const PORT = process.env.SOCKET_PORT || 1002;
+server.listen(PORT, () => {
+    console.log(`Socket server running on port ${PORT}`);
+});

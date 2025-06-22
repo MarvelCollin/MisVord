@@ -311,3 +311,151 @@ if (typeof window.logger !== 'undefined') {
         initAuthPage();
     }
 })();
+
+document.addEventListener('DOMContentLoaded', () => {
+    initAuthForms();
+    initPasswordToggle();
+    initPasswordStrength();
+    setupSocketInitialization();
+});
+
+function initAuthForms() {
+    const formToggles = document.querySelectorAll('.form-toggle');
+    const formsContainer = document.getElementById('formsContainer');
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
+    const forgotForm = document.getElementById('forgotForm');
+    const authTitle = document.getElementById('authTitle');
+    
+    formToggles.forEach(toggle => {
+        toggle.addEventListener('click', (e) => {
+            e.preventDefault();
+            const formType = e.target.getAttribute('data-form');
+            
+            if (formType === 'login') {
+                loginForm.classList.remove('hidden');
+                registerForm.classList.add('hidden');
+                forgotForm.classList.add('hidden');
+                authTitle.innerHTML = '<span>Welcome back!</span>';
+                history.pushState({}, '', '/login');
+            } else if (formType === 'register') {
+                loginForm.classList.add('hidden');
+                registerForm.classList.remove('hidden');
+                forgotForm.classList.add('hidden');
+                authTitle.innerHTML = '<span>Create an account</span>';
+                history.pushState({}, '', '/register');
+            } else if (formType === 'forgot') {
+                loginForm.classList.add('hidden');
+                registerForm.classList.add('hidden');
+                forgotForm.classList.remove('hidden');
+                authTitle.innerHTML = '<span>Reset Password</span>';
+                history.pushState({}, '', '/forgot-password');
+            }
+        });
+    });
+}
+
+function initPasswordToggle() {
+    const toggleButtons = document.querySelectorAll('.password-toggle');
+    
+    toggleButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const input = button.parentElement.querySelector('input');
+            const icon = button.querySelector('i');
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        });
+    });
+}
+
+function initPasswordStrength() {
+    const passwordInput = document.getElementById('reg_password');
+    const confirmInput = document.getElementById('password_confirm');
+    const strengthBar = document.getElementById('passwordStrength');
+    const matchText = document.getElementById('passwordsMatch');
+    
+    if (passwordInput && strengthBar) {
+        passwordInput.addEventListener('input', () => {
+            const strength = calculatePasswordStrength(passwordInput.value);
+            strengthBar.classList.remove('hidden');
+            strengthBar.querySelector('div').style.width = `${strength}%`;
+            
+            if (strength < 30) {
+                strengthBar.querySelector('div').classList.remove('bg-yellow-500', 'bg-discord-green');
+                strengthBar.querySelector('div').classList.add('bg-red-500');
+            } else if (strength < 70) {
+                strengthBar.querySelector('div').classList.remove('bg-red-500', 'bg-discord-green');
+                strengthBar.querySelector('div').classList.add('bg-yellow-500');
+            } else {
+                strengthBar.querySelector('div').classList.remove('bg-red-500', 'bg-yellow-500');
+                strengthBar.querySelector('div').classList.add('bg-discord-green');
+            }
+            
+            if (confirmInput && confirmInput.value) {
+                checkPasswordsMatch(passwordInput.value, confirmInput.value);
+            }
+        });
+    }
+    
+    if (confirmInput && passwordInput && matchText) {
+        confirmInput.addEventListener('input', () => {
+            checkPasswordsMatch(passwordInput.value, confirmInput.value);
+        });
+    }
+}
+
+function calculatePasswordStrength(password) {
+    if (!password) return 0;
+    
+    let strength = 0;
+    
+    if (password.length >= 8) {
+        strength += 25;
+    }
+    
+    if (password.match(/[a-z]/)) {
+        strength += 10;
+    }
+    
+    if (password.match(/[A-Z]/)) {
+        strength += 20;
+    }
+    
+    if (password.match(/[0-9]/)) {
+        strength += 20;
+    }
+    
+    if (password.match(/[^a-zA-Z0-9]/)) {
+        strength += 25;
+    }
+    
+    return Math.min(strength, 100);
+}
+
+function checkPasswordsMatch(password, confirm) {
+    const matchText = document.getElementById('passwordsMatch');
+    
+    if (password && confirm && password === confirm) {
+        matchText.classList.remove('hidden');
+    } else {
+        matchText.classList.add('hidden');
+    }
+}
+
+function setupSocketInitialization() {
+    const loginForm = document.getElementById('loginForm');
+    
+    if (loginForm) {
+        loginForm.addEventListener('submit', function(event) {
+            localStorage.setItem('connect_socket_on_login', 'true');
+        });
+    }
+}

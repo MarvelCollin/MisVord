@@ -1,254 +1,82 @@
-const userService = require('../services/userService');
-const messageService = require('../services/messageService');
+let io = null;
 
-function handleEmitRequest(io, req, res) {
-  try {
-    const { event, data } = req.body;
-    
-    if (!event) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Missing event parameter' 
-      });
+const setIO = (ioInstance) => {
+    io = ioInstance;
+};
+
+const handleApiRequest = (req, res) => {
+    if (req.method === 'POST' && req.url === '/api/emit') {
+        let body = '';
+        
+        req.on('data', chunk => {
+            body += chunk.toString();
+        });
+        
+        req.on('end', () => {
+            try {
+                const data = JSON.parse(body);
+                
+                if (!data.event || !data.data) {
+                    sendResponse(res, 400, { success: false, message: 'Invalid request format' });
+                    return;
+                }
+                
+                if (data.event === 'broadcast') {
+                    io.emit(data.data.event, data.data.data);
+                } else if (data.event === 'notify-user' && data.data.userId) {
+                    io.to(`user-${data.data.userId}`).emit(data.data.event, data.data.data);
+                } else if (data.event === 'broadcast-to-room' && data.data.room) {
+                    io.to(data.data.room).emit(data.data.event, data.data.data);
+                } else if (data.event === 'channel-message' && data.data.channelId) {
+                    const room = `channel-${data.data.channelId}`;
+                    io.to(room).emit('new-channel-message', data.data);
+                } else if (data.event === 'direct-message' && data.data.roomId) {
+                    const room = `dm-room-${data.data.roomId}`;
+                    io.to(room).emit('user-message-dm', data.data);
+                } else {
+                    io.emit(data.event, data.data);
+                }
+                
+                sendResponse(res, 200, { success: true, message: 'Event emitted' });
+            } catch (error) {
+                sendResponse(res, 500, { success: false, message: 'Server error', error: error.message });
+            }
+        });
+    } else if (req.method === 'GET' && req.url === '/api/health') {
+        sendResponse(res, 200, { 
+            status: 'ok', 
+            uptime: process.uptime(),
+            timestamp: new Date().toISOString() 
+        });
+    } else if (req.method === 'GET' && req.url === '/api/online-users') {
+        if (!io) {
+            sendResponse(res, 503, { success: false, message: 'Socket.io not initialized' });
+            return;
+        }
+        
+        const onlineUsers = {};
+        for (const [socketId, socket] of io.of('/').sockets) {
+            if (socket.data?.userId) {
+                onlineUsers[socket.data.userId] = {
+                    socketId,
+                    username: socket.data.username,
+                    status: socket.data.status || 'online'
+                };
+            }
+        }
+        
+        sendResponse(res, 200, { success: true, users: onlineUsers });
+    } else {
+        sendResponse(res, 404, { success: false, message: 'Endpoint not found' });
     }
-    
-    console.log(`📤 Server-to-socket event: ${event}`, data);
-    
-    switch (event) {
-      case 'notify-user':
-        return handleNotifyUser(io, data, res);
-      
-      case 'broadcast-to-room':
-        return handleBroadcastToRoom(io, data, res);
-      
-      case 'broadcast':
-        return handleBroadcast(io, data, res);
-      
-      case 'emoji-created':
-      case 'emoji-updated':
-      case 'emoji-deleted':
-        return handleEmojiEvent(io, event, data, res);
-        case 'channel-message':
-        return handleChannelMessageEvent(io, data, res);
-      
-      case 'direct-message':
-        return handleDirectMessageEvent(io, data, res);
-      
-      case 'reaction-added':
-      case 'reaction-removed':
-        return handleReactionEvent(io, event, data, res);
-      
-      case 'friend-request-received':
-      case 'friend-request-accepted':
-      case 'friend-request-declined':
-      case 'friend-removed':
-        return handleFriendEvent(io, event, data, res);
-      
-      default:
-        io.emit(event, data);
-        return res.json({ success: true });
-    }
-  } catch (error) {
-    console.error('❌ Error processing emit request:', error);
-    return res.status(500).json({ 
-      success: false, 
-      error: error.message 
-    });
-  }
-}
+};
 
-function handleNotifyUser(io, data, res) {
-  const { userId, event: userEvent, data: userData } = data;
-  
-  if (!userId || !userEvent) {
-    return res.status(400).json({ 
-      success: false, 
-      error: 'Missing required parameters for notify-user' 
-    });
-  }
-  
-  const userSockets = userService.getUserSockets(userId);
-  
-  if (userSockets.length === 0) {
-    console.log(`⚠️ No active sockets found for user ${userId}`);
-  } else {
-    console.log(`🔔 Notifying user ${userId} on ${userSockets.length} socket(s)`);
-    
-    userSockets.forEach(socketId => {
-      io.to(socketId).emit(userEvent, userData);
-    });
-  }
-  
-  return res.json({ success: true, notified: userSockets.length });
-}
-
-function handleBroadcastToRoom(io, data, res) {
-  const { room, event: roomEvent, data: roomData } = data;
-  
-  if (!room || !roomEvent) {
-    return res.status(400).json({ 
-      success: false, 
-      error: 'Missing required parameters for broadcast-to-room' 
-    });
-  }
-  
-  console.log(`📢 Broadcasting to room ${room}: ${roomEvent}`);
-  io.to(room).emit(roomEvent, roomData);
-  
-  return res.json({ success: true, room });
-}
-
-function handleBroadcast(io, data, res) {
-  const { event: broadcastEvent, data: broadcastData } = data;
-  
-  if (!broadcastEvent) {
-    return res.status(400).json({ 
-      success: false, 
-      error: 'Missing required parameters for broadcast' 
-    });
-  }
-  
-  console.log(`📢 Broadcasting to all: ${broadcastEvent}`);
-  io.emit(broadcastEvent, broadcastData);
-  
-  return res.json({ success: true });
-}
-
-function handleEmojiEvent(io, event, data, res) {
-  console.log(`😀 ${event} event`);
-  io.to(`server-${data.server_id}`).emit(event, data);
-  return res.json({ success: true });
-}
-
-function handleReactionEvent(io, event, data, res) {
-  console.log(`👍 ${event} event`);
-  io.to(`channel-${data.channel_id}`).emit(event, data);
-  return res.json({ success: true });
-}
-
-function handleFriendEvent(io, event, data, res) {
-  let targetUserId;
-  
-  switch (event) {
-    case 'friend-request-received':
-      targetUserId = data.recipient_id;
-      break;
-    case 'friend-request-accepted':
-    case 'friend-request-declined':
-      targetUserId = data.sender_id;
-      break;
-    case 'friend-removed':
-      targetUserId = data.user_id;
-      break;
-  }
-  
-  console.log(`👥 ${event} event for user: ${targetUserId}`);
-  
-  const targetSockets = userService.getUserSockets(targetUserId);
-  
-  targetSockets.forEach(socketId => {
-    io.to(socketId).emit(event, data);
-  });
-  
-  return res.json({ success: true });
-}
-
-function handleChannelMessageEvent(io, data, res) {
-  console.log('\n=== 📨 PHP BACKEND MESSAGE EVENT ===');
-  console.log(`💬 Channel message event from PHP backend:`, JSON.stringify(data, null, 2));
-  
-  const { channelId, content, messageType, timestamp, message, user_id, username } = data;
-  
-  if (!channelId || !content) {
-    console.log('❌ Missing required parameters:', { channelId: !!channelId, content: !!content });
-    return res.status(400).json({ 
-      success: false, 
-      error: 'Missing required parameters for channel-message' 
-    });
-  }
-  
-  // Create standardized message data structure
-  const messageData = {
-    id: message?.id || null,
-    channelId: channelId,
-    channel_id: channelId,
-    content: content,
-    messageType: messageType || 'text',
-    message_type: messageType || 'text',
-    timestamp: timestamp || Date.now(),
-    created_at: message?.created_at || timestamp || new Date().toISOString(),
-    sent_at: message?.sent_at || timestamp || new Date().toISOString(),
-    user_id: user_id,
-    userId: user_id,
-    username: username,
-    source: 'php-backend',
-    chatType: 'channel',
-    ...message
-  };
-  
-  console.log(`📤 Broadcasting to channel-${channelId}:`, JSON.stringify(messageData, null, 2));
-  
-  // Get room info
-  const roomName = `channel-${channelId}`;
-  const clientsInRoom = io.sockets.adapter.rooms.get(roomName);
-  console.log(`👥 Clients in room ${roomName}:`, clientsInRoom ? Array.from(clientsInRoom) : 'No clients');
-  
-  // Note: Using io.to() here because this is called from PHP backend without a specific socket
-  // For real-time socket messages, we use socket.to() in socketController.js
-  io.to(`channel-${channelId}`).emit('new-channel-message', messageData);
-  
-  console.log('✅ PHP message broadcast completed');
-  console.log('=== END PHP BACKEND MESSAGE ===\n');
-  
-  return res.json({ success: true, channelId });
-}
-
-function handleDirectMessageEvent(io, data, res) {
-  console.log(`💬 Direct message event from PHP backend:`, data);
-  
-  const { roomId, content, messageType, timestamp, message, user_id, username } = data;
-  
-  if (!roomId || !content) {
-    return res.status(400).json({ 
-      success: false, 
-      error: 'Missing required parameters for direct-message' 
-    });
-  }
-  
-  // Create standardized message data structure
-  const messageData = {
-    id: message?.id || null,
-    messageId: message?.id || null,
-    roomId: roomId,
-    chatRoomId: roomId,
-    content: content,
-    messageType: messageType || 'text',
-    message_type: messageType || 'text',
-    timestamp: timestamp || Date.now(),
-    created_at: message?.created_at || timestamp || new Date().toISOString(),
-    sent_at: message?.sent_at || timestamp || new Date().toISOString(),
-    source: 'php-backend',
-    chatType: 'direct',
-    user_id: user_id,
-    userId: user_id,
-    username: username,
-    ...message
-  };
-  
-  const roomName = `dm-room-${roomId}`;
-  const room = io.sockets.adapter.rooms.get(roomName);
-  const clientCount = room ? room.size : 0;
-  
-  console.log(`📤 Broadcasting to ${roomName} (${clientCount} clients):`, messageData);
-  console.log(`${username} direct message to room ${roomId} : ${content}`);
-  
-  // Note: Using io.to() here because this is called from PHP backend without a specific socket
-  // For real-time socket messages, we use socket.to() in socketController.js
-  io.to(roomName).emit('user-message-dm', messageData);
-  
-  return res.json({ success: true, roomId });
-}
+const sendResponse = (res, statusCode, data) => {
+    res.writeHead(statusCode, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(data));
+};
 
 module.exports = {
-  handleEmitRequest
+    setIO,
+    handleApiRequest
 };

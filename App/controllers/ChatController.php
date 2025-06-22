@@ -479,13 +479,33 @@ class ChatController extends BaseController
     {
         try {
             $wsClient = new WebSocketClient();
-            if ($targetUserId) {
-                $wsClient->notifyUser($targetUserId, $event, $data);
-            } else {
-                $wsClient->broadcast($event, $data);
+            $wsClient->setDebug(true);
+            
+            error_log("📨 Sending WebSocket notification: " . $event . ", Data: " . json_encode($data));
+            
+            // For channel and direct messages, broadcast directly to the specific room
+            if ($event === 'channel-message' && isset($data['channelId'])) {
+                $roomName = 'channel-' . $data['channelId'];
+                error_log("📢 Broadcasting to channel room: " . $roomName);
+                return $wsClient->broadcastToRoom($roomName, 'new-channel-message', $data);
+            } 
+            else if ($event === 'direct-message' && isset($data['roomId'])) {
+                $roomName = 'dm-room-' . $data['roomId'];
+                error_log("📢 Broadcasting to DM room: " . $roomName);
+                return $wsClient->broadcastToRoom($roomName, 'user-message-dm', $data);
+            }
+            else if ($targetUserId) {
+                error_log("📝 Notifying specific user: " . $targetUserId);
+                return $wsClient->notifyUser($targetUserId, $event, $data);
+            } 
+            else {
+                error_log("📣 Broadcasting general event: " . $event);
+                return $wsClient->broadcast($event, $data);
             }
         } catch (Exception $e) {
-            error_log('WebSocket notification failed: ' . $e->getMessage());
+            error_log('❌ WebSocket notification failed: ' . $e->getMessage());
+            error_log('❌ Stack trace: ' . $e->getTraceAsString());
+            return false;
         }
     }
 
