@@ -11,6 +11,8 @@ class GlobalSocketManager {
         this.reconnectAttempts = 0;
         this.maxReconnectAttempts = 5;
         this.reconnectDelay = 3000;
+        this.joinedChannels = new Set();
+        this.joinedDMRooms = new Set();
     }
     
     init() {
@@ -159,8 +161,14 @@ class GlobalSocketManager {
             return false;
         }
         
+        if (this.joinedChannels.has(channelId)) {
+            this.log(`Already joined channel: ${channelId}`);
+            return true;
+        }
+        
         this.log(`Joining channel: ${channelId}`);
         this.io.emit('join-channel', { channelId });
+        this.joinedChannels.add(channelId);
         return true;
     }
     
@@ -169,6 +177,7 @@ class GlobalSocketManager {
         
         this.log(`Leaving channel: ${channelId}`);
         this.io.emit('leave-channel', { channelId });
+        this.joinedChannels.delete(channelId);
         return true;
     }
     
@@ -178,8 +187,14 @@ class GlobalSocketManager {
             return false;
         }
         
+        if (this.joinedDMRooms.has(roomId)) {
+            this.log(`Already joined DM room: ${roomId}`);
+            return true;
+        }
+        
         this.log(`Joining DM room: ${roomId}`);
         this.io.emit('join-dm-room', { roomId });
+        this.joinedDMRooms.add(roomId);
         return true;
     }
     
@@ -226,6 +241,8 @@ class GlobalSocketManager {
         
         this.connected = false;
         this.authenticated = false;
+        this.joinedChannels.clear();
+        this.joinedDMRooms.clear();
         this.log('Socket manually disconnected');
     }
     

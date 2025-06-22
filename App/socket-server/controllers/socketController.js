@@ -2,6 +2,7 @@ const eventController = require('./eventController');
 
 const userSockets = new Map();
 const userStatus = new Map();
+const recentMessages = new Map(); // Track recent messages to prevent duplicates
 
 function setup(io) {
     eventController.setIO(io);
@@ -159,12 +160,20 @@ function handleChannelMessage(io, client, data) {
         userId: client.data.userId,
         username: client.data.username,
         timestamp: Date.now(),
+        channelId: channelId
     };
     
-    // Emit to all clients in the room including the sender
-    io.to(room).emit('new-channel-message', message);
+    // Emit only to other clients in the room, not back to the sender
+    client.to(room).emit('new-channel-message', message);
     
-    console.log(`📢 Sent channel message to ALL in room ${room} (including sender)`);
+    // Send confirmation back to sender with the final message ID
+    client.emit('message-sent', {
+        id: message.id,
+        channelId: channelId,
+        localMessageId: data.localMessageId || null
+    });
+    
+    console.log(`📢 Sent channel message to others in room ${room} (excluding sender)`);
 }
 
 function handleTyping(io, client, data) {
@@ -176,14 +185,16 @@ function handleTyping(io, client, data) {
     
     if (channelId) {
         const room = `channel-${channelId}`;
-        io.to(room).emit('user-typing', { 
+        // Only broadcast to others, not back to sender
+        client.to(room).emit('user-typing', { 
             userId, 
             username, 
             channelId 
         });
     } else if (roomId) {
         const room = `dm-room-${roomId}`;
-        io.to(room).emit('user-typing-dm', { 
+        // Only broadcast to others, not back to sender
+        client.to(room).emit('user-typing-dm', { 
             userId, 
             username, 
             roomId 
@@ -200,14 +211,16 @@ function handleStopTyping(io, client, data) {
     
     if (channelId) {
         const room = `channel-${channelId}`;
-        io.to(room).emit('user-stop-typing', { 
+        // Only broadcast to others, not back to sender
+        client.to(room).emit('user-stop-typing', { 
             userId, 
             username, 
             channelId 
         });
     } else if (roomId) {
         const room = `dm-room-${roomId}`;
-        io.to(room).emit('user-stop-typing-dm', { 
+        // Only broadcast to others, not back to sender
+        client.to(room).emit('user-stop-typing-dm', { 
             userId, 
             username, 
             roomId 
@@ -315,6 +328,29 @@ function forwardEvent(io, client, eventName, data, specificRoom = null) {
     if (cleanData._debug) delete cleanData._debug;
     if (cleanData._serverDebug) delete cleanData._serverDebug;
     
+    // Generate a message signature to detect duplicates
+    let messageSignature = null;
+    if (eventName === 'new-channel-message' || eventName === 'user-message-dm') {
+        messageSignature = `${eventName}_${client.data.userId}_${Date.now().toString().slice(0, -3)}_${cleanData.content?.substring(0, 20)}`;
+        
+        // Check if this is a duplicate message (sent in the last 2 seconds)
+        if (recentMessages.has(messageSignature)) {
+            console.log(`Dropping duplicate message: ${messageSignature}`);
+            return;
+        }
+        
+        // Store this message signature briefly to prevent duplicates
+        recentMessages.set(messageSignature, Date.now());
+        
+        // Clean up old message signatures (older than 2 seconds)
+        const now = Date.now();
+        for (const [key, timestamp] of recentMessages.entries()) {
+            if (now - timestamp > 2000) {
+                recentMessages.delete(key);
+            }
+        }
+    }
+    
     // Log event info
     const username = client.data.username || 'Unknown';
     const userId = client.data.userId || 'unknown';
@@ -327,13 +363,15 @@ function forwardEvent(io, client, eventName, data, specificRoom = null) {
         console.log(`Message from ${username} (${userId}) in DM room ${roomId}: "${cleanData.content}"`);
     }
     
-    // Always use io for messaging
+    // For messaging events, only send to others in the room to avoid duplicates
     if (specificRoom) {
-        io.to(specificRoom).emit(eventName, cleanData);
-        console.log(`Event ${eventName} sent to room: ${specificRoom}`);
+        // Use client.to() to send only to other clients in the room, not back to the sender
+        client.to(specificRoom).emit(eventName, cleanData);
+        console.log(`Event ${eventName} sent to others in room: ${specificRoom}`);
     } else {
-        io.emit(eventName, cleanData);
-        console.log(`Event ${eventName} broadcast to all clients`);
+        // For non-room-specific events, broadcast to all except sender
+        client.broadcast.emit(eventName, cleanData);
+        console.log(`Event ${eventName} broadcast to all clients except sender`);
     }
 }
 

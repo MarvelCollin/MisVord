@@ -80,51 +80,93 @@ class ChatSection {
     }
     
     setupIoListeners() {
-        window.addEventListener('globalSocketReady', () => {
-            this.joinChannel();
+        // Store reference to this
+        const self = this;
+        
+        // Define a function we can use to set up our socket handlers
+        const setupSocketHandlers = function() {
+            const io = window.globalSocketManager.io;
             
+            // First, remove any existing listeners to prevent duplicates
+            io.removeAllListeners('new-channel-message');
+            io.removeAllListeners('user-message-dm');
+            io.removeAllListeners('message-sent');
+            io.removeAllListeners('user-typing');
+            io.removeAllListeners('user-typing-dm');
+            io.removeAllListeners('user-stop-typing');
+            io.removeAllListeners('user-stop-typing-dm');
+            
+            // Set up new listeners
+            io.on('new-channel-message', function(data) {
+                console.log('Received channel message:', data);
+                if (self.chatType === 'channel' && data.channelId == self.targetId) {
+                    self.showReceiveNotification('channel', data);
+                    // Only add messages from other users
+                    if (data.userId != self.userId) {
+                        self.addMessage(data);
+                    }
+                }
+            });
+            
+            io.on('user-message-dm', function(data) {
+                console.log('Received DM message:', data);
+                if ((self.chatType === 'direct' || self.chatType === 'dm') && data.roomId == self.targetId) {
+                    self.showReceiveNotification('dm', data);
+                    // Only add messages from other users
+                    if (data.userId != self.userId) {
+                        self.addMessage(data);
+                    }
+                }
+            });
+            
+            io.on('message-sent', function(data) {
+                console.log('Message confirmation received:', data);
+                // Update temporary message with confirmed ID
+                const tempMessage = document.querySelector(`.message-content[data-message-id^="local-"]`);
+                if (tempMessage) {
+                    tempMessage.setAttribute('data-message-id', data.id);
+                }
+            });
+            
+            io.on('user-typing', function(data) {
+                if (self.chatType === 'channel' && data.channelId == self.targetId && data.userId != self.userId) {
+                    self.showTypingIndicator(data.userId, data.username);
+                }
+            });
+            
+            io.on('user-typing-dm', function(data) {
+                if ((self.chatType === 'direct' || self.chatType === 'dm') && data.roomId == self.targetId && data.userId != self.userId) {
+                    self.showTypingIndicator(data.userId, data.username);
+                }
+            });
+            
+            io.on('user-stop-typing', function(data) {
+                if (self.chatType === 'channel' && data.channelId == self.targetId && data.userId != self.userId) {
+                    self.removeTypingIndicator(data.userId);
+                }
+            });
+            
+            io.on('user-stop-typing-dm', function(data) {
+                if ((self.chatType === 'direct' || self.chatType === 'dm') && data.roomId == self.targetId && data.userId != self.userId) {
+                    self.removeTypingIndicator(data.userId);
+                }
+            });
+            
+            // Join the appropriate channel
+            self.joinChannel();
+        };
+        
+        // Set up event listener for socket ready
+        window.addEventListener('globalSocketReady', function() {
             if (window.globalSocketManager && window.globalSocketManager.io) {
-                const io = window.globalSocketManager.io;
-                
-                io.on('new-channel-message', (data) => {
-                    if (this.chatType === 'channel' && data.channelId == this.targetId) {
-                        this.showReceiveNotification('channel', data);
-                        this.addMessage(data);
-                    }
-                });
-                
-                io.on('user-message-dm', (data) => {
-                    if ((this.chatType === 'direct' || this.chatType === 'dm') && data.roomId == this.targetId) {
-                        this.showReceiveNotification('dm', data);
-                        this.addMessage(data);
-                    }
-                });
-                
-                io.on('user-typing', (data) => {
-                    if (this.chatType === 'channel' && data.channelId == this.targetId && data.userId != this.userId) {
-                        this.showTypingIndicator(data.userId, data.username);
-                    }
-                });
-                
-                io.on('user-typing-dm', (data) => {
-                    if ((this.chatType === 'direct' || this.chatType === 'dm') && data.roomId == this.targetId) {
-                        this.showTypingIndicator(data.userId, data.username);
-                    }
-                });
-                
-                io.on('user-stop-typing', (data) => {
-                    if (this.chatType === 'channel' && data.channelId == this.targetId) {
-                        this.removeTypingIndicator(data.userId);
-                    }
-                });
-                
-                io.on('user-stop-typing-dm', (data) => {
-                    if ((this.chatType === 'direct' || this.chatType === 'dm') && data.roomId == this.targetId) {
-                        this.removeTypingIndicator(data.userId);
-                    }
-                });
+                setupSocketHandlers();
             }
         });
+        
+        // If socket is already ready, set up handlers now
+        if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+            setupSocketHandlers();
+        }
     }
     
     joinChannel() {
@@ -203,17 +245,29 @@ class ChatSection {
                 id: messageId,
                 content: content,
                 user_id: this.userId,
+                userId: this.userId,
                 username: this.username,
                 avatar_url: document.querySelector('meta[name="user-avatar"]')?.content || '/assets/common/main-logo.png',
                 sent_at: timestamp,
+                timestamp: timestamp,
                 isLocalOnly: true,
                 messageType: 'text',
                 _localMessage: true
             };
             
+            // Add for channel type message
+            if (this.chatType === 'channel') {
+                tempMessage.channelId = this.targetId;
+            } else if (this.chatType === 'direct' || this.chatType === 'dm') {
+                tempMessage.roomId = this.targetId;
+            }
+            
             this.addMessage(tempMessage);
             
-            await window.ChatAPI.sendMessage(this.targetId, content, this.chatType);
+            // Pass the local message ID when sending through API
+            await window.ChatAPI.sendMessage(this.targetId, content, this.chatType, {
+                localMessageId: messageId
+            });
             
         } catch (error) {
             console.error('Failed to send message:', error);
@@ -406,19 +460,13 @@ class ChatSection {
             isLocalOnly: message.isLocalOnly || false
         };
         
-        const isOwnMessage = msg.user_id == this.userId;
-        
-        let shouldAddMessage = true;
-        if (!msg.isLocalOnly) {
-            const existingMessageElement = document.querySelector(`[data-message-id="${msg.id}"]`);
-            if (existingMessageElement) {
-                shouldAddMessage = false;
-            }
-        }
-        
-        if (!shouldAddMessage) {
+        // Check if message already exists in DOM to avoid duplication
+        const existingMessageElement = document.querySelector(`[data-message-id="${msg.id}"]`);
+        if (existingMessageElement) {
             return;
         }
+        
+        const isOwnMessage = msg.user_id == this.userId;
         
         const lastMessageGroup = this.chatMessages.lastElementChild;
         const lastSenderId = lastMessageGroup?.getAttribute('data-user-id');
