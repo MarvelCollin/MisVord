@@ -92,11 +92,15 @@ class ChatAPI {
         const userId = window.globalSocketManager.userId;
         const username = window.globalSocketManager.username;
         const timestamp = Date.now();
+        const socket = window.globalSocketManager.socket;
         
         try {
+            let eventName, messageData;
+            
             if (chatType === 'channel') {
-                // Send channel message directly to socket
-                window.globalSocketManager.socket.emit('new-channel-message', {
+                // Prepare channel message data
+                eventName = 'new-channel-message';
+                messageData = {
                     channelId: targetId,
                     content: content,
                     messageType: 'text',
@@ -105,16 +109,17 @@ class ChatAPI {
                     username: username,
                     _debug: {
                         timestamp: new Date().toISOString(),
-                        clientId: window.globalSocketManager.socket.id,
+                        clientId: socket.id,
                         emittedBy: username || 'Unknown',
                         type: 'direct-socket-path'
                     }
-                });
+                };
                 console.log(`🔌 Direct socket message to channel ${targetId}: "${content}"`);
             } 
             else if (chatType === 'direct' || chatType === 'dm') {
-                // Send DM directly to socket
-                window.globalSocketManager.socket.emit('user-message-dm', {
+                // Prepare DM message data
+                eventName = 'user-message-dm';
+                messageData = {
                     roomId: targetId,
                     content: content,
                     messageType: 'text',
@@ -123,13 +128,29 @@ class ChatAPI {
                     username: username,
                     _debug: {
                         timestamp: new Date().toISOString(),
-                        clientId: window.globalSocketManager.socket.id,
+                        clientId: socket.id,
                         emittedBy: username || 'Unknown',
                         type: 'direct-socket-path'
                     }
-                });
+                };
                 console.log(`🔌 Direct socket message to DM room ${targetId}: "${content}"`);
             }
+            
+            // Emit the event to the server
+            if (eventName && messageData) {
+                socket.emit(eventName, messageData);
+                
+                // Also emit the event to ourselves to ensure we see our own messages
+                // This is a fallback in case the server doesn't echo back to the sender
+                socket.emit(eventName, {
+                    ...messageData,
+                    _debug: {
+                        ...messageData._debug,
+                        type: 'local-echo'
+                    }
+                });
+            }
+            
             return true;
         } catch (e) {
             console.error('Failed to send direct socket message:', e);
@@ -427,3 +448,4 @@ class ChatAPI {
 }
 
 window.ChatAPI = new ChatAPI();
+

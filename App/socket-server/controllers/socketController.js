@@ -414,11 +414,21 @@ function forwardEvent(socket, eventName, data, specificRoom = null, io) {
     if (specificRoom) {
         // Use io.to to send to all clients in the room including the sender
         if (io) {
+            // Emit to all clients in the room INCLUDING the sender
             io.to(specificRoom).emit(eventName, enhancedData);
             
             // Log room size for debugging
             const roomSize = socket.adapter.rooms && socket.adapter.rooms.get(specificRoom)?.size || 0;
             console.log(`📢 Sent to ALL in room ${specificRoom} (${roomSize} clients connected, including sender)`);
+            
+            // Always ensure the sender gets the message too
+            socket.emit(eventName, {
+                ...enhancedData,
+                _serverDebug: {
+                    ...enhancedData._serverDebug,
+                    directlySentToSender: true
+                }
+            });
         } else {
             // Fallback if io is not available
             socket.to(specificRoom).emit(eventName, enhancedData);

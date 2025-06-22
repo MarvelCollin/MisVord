@@ -60,19 +60,25 @@ body {
 
 .form-input {
   width: 100%;
-  background-color: var(--discord-dark-input);
+  background-color: white;
   border: none;
   border-radius: 3px;
   padding: 10px;
-  color: var(--discord-white);
+  color: black;
   font-size: 16px;
   height: 40px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.form-input:hover {
+  background-color: #f7f7f7;
 }
 
 .form-input:focus {
   outline: none;
   border: none;
   box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.3);
+  background-color: white;
 }
 
 /* Toggle Switch */
@@ -128,23 +134,36 @@ input:checked + .slider:before {
   border-radius: 4px;
   cursor: pointer;
   border: 2px solid transparent;
-  transition: border-color 0.2s ease;
+  transition: border-color 0.2s ease, transform 0.1s ease;
 }
 
-.banner-color-option:hover,
+.banner-color-option:hover {
+  border-color: var(--discord-white);
+  transform: translateY(-2px);
+}
+
 .banner-color-option.selected {
   border-color: var(--discord-white);
+}
+
+.banner-color-option:active {
+  transform: translateY(0);
 }
 
 /* Server Icon Container */
 #server-icon-container {
   position: relative;
   cursor: pointer;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
 #server-icon-container:hover {
-  opacity: 0.8;
+  opacity: 0.9;
+  transform: scale(1.02);
+}
+
+#server-icon-container:active {
+  transform: scale(0.98);
 }
 
 #server-icon-container::after {
@@ -163,6 +182,7 @@ input:checked + .slider:before {
   font-weight: 500;
   opacity: 0;
   transition: opacity 0.2s ease;
+  border-radius: 50%;
 }
 
 #server-icon-container:hover::after {
@@ -177,11 +197,17 @@ input:checked + .slider:before {
   display: flex;
   align-items: center;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
 }
 
 .trait-card:hover {
   background-color: #35373c;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.trait-card:active {
+  transform: translateY(0);
 }
 
 .trait-emoji {
@@ -194,6 +220,11 @@ input:checked + .slider:before {
   justify-content: center;
   margin-right: 12px;
   font-size: 20px;
+  transition: transform 0.2s ease;
+}
+
+.trait-card:hover .trait-emoji {
+  transform: scale(1.05);
 }
 
 /* Server Preview Card */
@@ -201,6 +232,12 @@ input:checked + .slider:before {
   background-color: #1e1f22;
   border-radius: 8px;
   overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.server-preview-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .server-banner {
@@ -218,6 +255,11 @@ input:checked + .slider:before {
   border: 4px solid #1e1f22;
   overflow: hidden;
   background-color: #313338;
+  transition: transform 0.2s ease;
+}
+
+.server-preview-card:hover .server-icon-preview {
+  transform: scale(1.02);
 }
 
 .server-info {
@@ -255,8 +297,17 @@ input:checked + .slider:before {
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
   border: none;
+}
+
+.btn:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.btn:active {
+  transform: translateY(1px);
+  box-shadow: none;
 }
 
 .btn-primary {
@@ -275,6 +326,7 @@ input:checked + .slider:before {
 
 .btn-secondary:hover {
   text-decoration: underline;
+  background-color: rgba(255, 255, 255, 0.05);
 }
 
 .btn-danger {
@@ -284,6 +336,7 @@ input:checked + .slider:before {
 
 .btn-danger:hover {
   text-decoration: underline;
+  background-color: rgba(237, 66, 69, 0.05);
 }
 
 /* Close button */
@@ -293,6 +346,11 @@ input:checked + .slider:before {
   right: 16px;
   display: flex;
   align-items: center;
+  transition: opacity 0.2s ease;
+}
+
+.close-button:hover {
+  opacity: 0.9;
 }
 
 .close-button-icon {
@@ -306,17 +364,27 @@ input:checked + .slider:before {
   justify-content: center;
   font-size: 12px;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.2s ease, transform 0.1s ease;
   margin-right: 8px;
 }
 
 .close-button-icon:hover {
   background-color: #35373c;
+  transform: scale(1.05);
+}
+
+.close-button-icon:active {
+  transform: scale(0.95);
 }
 
 .close-button-text {
   font-size: 12px;
   color: white;
+  transition: color 0.2s ease;
+}
+
+.close-button:hover .close-button-text {
+  color: #dcddde;
 }
 
 /* Sidebar categories */
@@ -337,12 +405,13 @@ input:checked + .slider:before {
   cursor: pointer;
   border-radius: 4px;
   margin: 2px 8px;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.1s ease;
 }
 
 .sidebar-item:hover {
   background-color: #35373c;
   color: white;
+  transform: translateX(2px);
 }
 
 .sidebar-item.active {
@@ -357,6 +426,24 @@ input:checked + .slider:before {
   padding: 2px 4px;
   border-radius: 3px;
   margin-left: 8px;
+  transition: transform 0.2s ease;
+}
+
+.sidebar-item:hover .sidebar-item-badge {
+  transform: scale(1.05);
+}
+
+/* Navigation links */
+a {
+  transition: color 0.2s ease, background-color 0.2s ease, transform 0.1s ease;
+}
+
+a:hover {
+  text-decoration: none;
+}
+
+a:active {
+  transform: translateY(1px);
 }
 
 /* Image cropper modal */
@@ -371,6 +458,12 @@ input:checked + .slider:before {
   display: flex;
   align-items: center;
   justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .cropper-container {
@@ -379,6 +472,13 @@ input:checked + .slider:before {
   padding: 24px;
   max-width: 600px;
   width: 100%;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.24);
+  animation: scaleIn 0.2s ease;
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }
 
 .cropper-title {
@@ -396,6 +496,15 @@ input:checked + .slider:before {
 
 .cropper-actions button {
   margin-left: 8px;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.cropper-actions button:hover {
+  transform: translateY(-1px);
+}
+
+.cropper-actions button:active {
+  transform: translateY(0);
 }
 
 /* Responsive adjustments */

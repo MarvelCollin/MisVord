@@ -41,135 +41,47 @@ ob_start();
             <ul>
                 <!-- Server Settings Categories -->
                 <li>
-                    <a href="?server_id=<?php echo $serverId; ?>&section=profile" class="flex items-center p-2 px-4 text-discord-light-gray hover:bg-discord-dark-hover <?php echo $section === 'profile' ? 'bg-discord-dark-hover text-white' : ''; ?>">
+                    <a href="?server_id=<?php echo $serverId; ?>&section=profile" class="sidebar-item <?php echo $section === 'profile' ? 'active' : ''; ?>">
                         Server Profile
-                    </a>
-                </li>
-                <li>
-                    <a href="?server_id=<?php echo $serverId; ?>&section=tag" class="flex items-center p-2 px-4 text-discord-light-gray hover:bg-discord-dark-hover <?php echo $section === 'tag' ? 'bg-discord-dark-hover text-white' : ''; ?>">
-                        Server Tag
-                        <span class="ml-2 text-xs bg-discord-primary text-white px-1 rounded">NEW</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="?server_id=<?php echo $serverId; ?>&section=engagement" class="flex items-center p-2 px-4 text-discord-light-gray hover:bg-discord-dark-hover <?php echo $section === 'engagement' ? 'bg-discord-dark-hover text-white' : ''; ?>">
-                        Engagement
-                    </a>
-                </li>
-                <li>
-                    <a href="?server_id=<?php echo $serverId; ?>&section=perks" class="flex items-center p-2 px-4 text-discord-light-gray hover:bg-discord-dark-hover <?php echo $section === 'perks' ? 'bg-discord-dark-hover text-white' : ''; ?>">
-                        Boost Perks
-                    </a>
-                </li>
-                
-                <!-- Expression Category -->
-                <li class="mt-6">
-                    <div class="px-4 py-1">
-                        <span class="text-xs font-bold text-discord-lighter">EXPRESSION</span>
-                    </div>
-                </li>
-                <li>
-                    <a href="?server_id=<?php echo $serverId; ?>&section=emoji" class="flex items-center p-2 px-4 text-discord-light-gray hover:bg-discord-dark-hover <?php echo $section === 'emoji' ? 'bg-discord-dark-hover text-white' : ''; ?>">
-                        Emoji
-                    </a>
-                </li>
-                <li>
-                    <a href="?server_id=<?php echo $serverId; ?>&section=stickers" class="flex items-center p-2 px-4 text-discord-light-gray hover:bg-discord-dark-hover <?php echo $section === 'stickers' ? 'bg-discord-dark-hover text-white' : ''; ?>">
-                        Stickers
-                    </a>
-                </li>
-                <li>
-                    <a href="?server_id=<?php echo $serverId; ?>&section=soundboard" class="flex items-center p-2 px-4 text-discord-light-gray hover:bg-discord-dark-hover <?php echo $section === 'soundboard' ? 'bg-discord-dark-hover text-white' : ''; ?>">
-                        Soundboard
                     </a>
                 </li>
                 
                 <!-- People Category -->
                 <li class="mt-6">
-                    <div class="px-4 py-1">
-                        <span class="text-xs font-bold text-discord-lighter">PEOPLE</span>
+                    <div class="sidebar-category">
+                        <span>PEOPLE</span>
                     </div>
                 </li>
                 <li>
-                    <a href="?server_id=<?php echo $serverId; ?>&section=members" class="flex items-center p-2 px-4 text-discord-light-gray hover:bg-discord-dark-hover <?php echo $section === 'members' ? 'bg-discord-dark-hover text-white' : ''; ?>">
+                    <a href="?server_id=<?php echo $serverId; ?>&section=members" class="sidebar-item <?php echo $section === 'members' ? 'active' : ''; ?>">
                         Members
                     </a>
                 </li>
                 <li>
-                    <a href="?server_id=<?php echo $serverId; ?>&section=roles" class="flex items-center p-2 px-4 text-discord-light-gray hover:bg-discord-dark-hover <?php echo $section === 'roles' ? 'bg-discord-dark-hover text-white' : ''; ?>">
+                    <a href="?server_id=<?php echo $serverId; ?>&section=roles" class="sidebar-item <?php echo $section === 'roles' ? 'active' : ''; ?>">
                         Roles
                     </a>
                 </li>
                 <li>
-                    <a href="?server_id=<?php echo $serverId; ?>&section=invites" class="flex items-center p-2 px-4 text-discord-light-gray hover:bg-discord-dark-hover <?php echo $section === 'invites' ? 'bg-discord-dark-hover text-white' : ''; ?>">
+                    <a href="?server_id=<?php echo $serverId; ?>&section=invites" class="sidebar-item <?php echo $section === 'invites' ? 'active' : ''; ?>">
                         Invites
                     </a>
                 </li>
                 <li>
-                    <a href="?server_id=<?php echo $serverId; ?>&section=access" class="flex items-center p-2 px-4 text-discord-light-gray hover:bg-discord-dark-hover <?php echo $section === 'access' ? 'bg-discord-dark-hover text-white' : ''; ?>">
+                    <a href="?server_id=<?php echo $serverId; ?>&section=access" class="sidebar-item <?php echo $section === 'access' ? 'active' : ''; ?>">
                         Access
-                    </a>
-                </li>
-                
-                <!-- Apps Category -->
-                <li class="mt-6">
-                    <div class="px-4 py-1">
-                        <span class="text-xs font-bold text-discord-lighter">APPS</span>
-                    </div>
-                </li>
-                <li>
-                    <a href="?server_id=<?php echo $serverId; ?>&section=integrations" class="flex items-center p-2 px-4 text-discord-light-gray hover:bg-discord-dark-hover <?php echo $section === 'integrations' ? 'bg-discord-dark-hover text-white' : ''; ?>">
-                        Integrations
-                    </a>
-                </li>
-                <li>
-                    <a href="?server_id=<?php echo $serverId; ?>&section=app-directory" class="flex items-center p-2 px-4 text-discord-light-gray hover:bg-discord-dark-hover <?php echo $section === 'app-directory' ? 'bg-discord-dark-hover text-white' : ''; ?>">
-                        App Directory
                     </a>
                 </li>
                 
                 <!-- Moderation Category -->
                 <li class="mt-6">
-                    <div class="px-4 py-1">
-                        <span class="text-xs font-bold text-discord-lighter">MODERATION</span>
+                    <div class="sidebar-category">
+                        <span>MODERATION</span>
                     </div>
                 </li>
                 <li>
-                    <a href="?server_id=<?php echo $serverId; ?>&section=safety" class="flex items-center p-2 px-4 text-discord-light-gray hover:bg-discord-dark-hover <?php echo $section === 'safety' ? 'bg-discord-dark-hover text-white' : ''; ?>">
-                        Safety Setup
-                    </a>
-                </li>
-                <li>
-                    <a href="?server_id=<?php echo $serverId; ?>&section=audit-log" class="flex items-center p-2 px-4 text-discord-light-gray hover:bg-discord-dark-hover <?php echo $section === 'audit-log' ? 'bg-discord-dark-hover text-white' : ''; ?>">
-                        Audit Log
-                    </a>
-                </li>
-                <li>
-                    <a href="?server_id=<?php echo $serverId; ?>&section=bans" class="flex items-center p-2 px-4 text-discord-light-gray hover:bg-discord-dark-hover <?php echo $section === 'bans' ? 'bg-discord-dark-hover text-white' : ''; ?>">
+                    <a href="?server_id=<?php echo $serverId; ?>&section=bans" class="sidebar-item <?php echo $section === 'bans' ? 'active' : ''; ?>">
                         Bans
-                    </a>
-                </li>
-                <li>
-                    <a href="?server_id=<?php echo $serverId; ?>&section=automod" class="flex items-center p-2 px-4 text-discord-light-gray hover:bg-discord-dark-hover <?php echo $section === 'automod' ? 'bg-discord-dark-hover text-white' : ''; ?>">
-                        AutoMod
-                    </a>
-                </li>
-                
-                <!-- Community & Status -->
-                <li class="mt-6">
-                    <a href="?server_id=<?php echo $serverId; ?>&section=community" class="flex items-center p-2 px-4 text-discord-light-gray hover:bg-discord-dark-hover <?php echo $section === 'community' ? 'bg-discord-dark-hover text-white' : ''; ?>">
-                        Enable Community
-                    </a>
-                </li>
-                <li>
-                    <a href="?server_id=<?php echo $serverId; ?>&section=boost" class="flex items-center p-2 px-4 text-discord-light-gray hover:bg-discord-dark-hover <?php echo $section === 'boost' ? 'bg-discord-dark-hover text-white' : ''; ?>">
-                        Server Boost Status
-                        <span class="ml-2 text-xs bg-[#5865f2] text-white px-1 rounded flex items-center justify-center w-5 h-5">⬆</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="?server_id=<?php echo $serverId; ?>&section=template" class="flex items-center p-2 px-4 text-discord-light-gray hover:bg-discord-dark-hover <?php echo $section === 'template' ? 'bg-discord-dark-hover text-white' : ''; ?>">
-                        Server Template
                     </a>
                 </li>
             </ul>
@@ -190,7 +102,7 @@ ob_start();
                     <!-- Server Name -->
                     <div class="form-group">
                         <label for="server-name" class="block text-sm font-medium text-white mb-2">Name</label>
-                        <input type="text" id="server-name" name="name" class="bg-discord-dark-input text-white p-2 w-full max-w-md rounded-md focus:ring-2 focus:ring-discord-blue focus:outline-none border border-gray-700" value="<?php echo htmlspecialchars($server->name); ?>">
+                        <input type="text" id="server-name" name="name" class="form-input" value="<?php echo htmlspecialchars($server->name); ?>">
                     </div>
                     
                     <!-- Server Icon -->
@@ -228,17 +140,17 @@ ob_start();
                         <label class="block text-sm font-medium text-white mb-2">Banner</label>
                         
                         <div class="grid grid-cols-5 gap-2 mb-4">
-                            <div class="bg-gradient-to-b from-[#e3e5e8] to-[#c7ccd1] h-16 rounded-md cursor-pointer border-2 border-transparent hover:border-white"></div>
-                            <div class="bg-gradient-to-b from-[#ff73fa] to-[#ff295b] h-16 rounded-md cursor-pointer border-2 border-transparent hover:border-white"></div>
-                            <div class="bg-gradient-to-b from-[#ff4747] to-[#ff7b7b] h-16 rounded-md cursor-pointer border-2 border-transparent hover:border-white"></div>
-                            <div class="bg-gradient-to-b from-[#faa61a] to-[#fbcf4c] h-16 rounded-md cursor-pointer border-2 border-transparent hover:border-white"></div>
-                            <div class="bg-gradient-to-b from-[#ffd659] to-[#e7af27] h-16 rounded-md cursor-pointer border-2 border-transparent hover:border-white"></div>
+                            <div class="banner-color-option bg-gradient-to-b from-[#e3e5e8] to-[#c7ccd1] h-16 rounded-md cursor-pointer border-2 border-transparent"></div>
+                            <div class="banner-color-option bg-gradient-to-b from-[#ff73fa] to-[#ff295b] h-16 rounded-md cursor-pointer border-2 border-transparent"></div>
+                            <div class="banner-color-option bg-gradient-to-b from-[#ff4747] to-[#ff7b7b] h-16 rounded-md cursor-pointer border-2 border-transparent"></div>
+                            <div class="banner-color-option bg-gradient-to-b from-[#faa61a] to-[#fbcf4c] h-16 rounded-md cursor-pointer border-2 border-transparent"></div>
+                            <div class="banner-color-option bg-gradient-to-b from-[#ffd659] to-[#e7af27] h-16 rounded-md cursor-pointer border-2 border-transparent"></div>
                             
-                            <div class="bg-gradient-to-b from-[#b78dff] to-[#9e55ff] h-16 rounded-md cursor-pointer border-2 border-transparent hover:border-white"></div>
-                            <div class="bg-gradient-to-b from-[#46ddff] to-[#2ea6ff] h-16 rounded-md cursor-pointer border-2 border-transparent hover:border-white"></div>
-                            <div class="bg-gradient-to-b from-[#45e5ce] to-[#1bdbb3] h-16 rounded-md cursor-pointer border-2 border-transparent hover:border-white"></div>
-                            <div class="bg-gradient-to-b from-[#98ee99] to-[#57ba5e] h-16 rounded-md cursor-pointer border-2 border-transparent hover:border-white"></div>
-                            <div class="bg-gradient-to-b from-[#7a8087] to-[#36393f] h-16 rounded-md cursor-pointer border-2 border-transparent hover:border-white"></div>
+                            <div class="banner-color-option bg-gradient-to-b from-[#b78dff] to-[#9e55ff] h-16 rounded-md cursor-pointer border-2 border-transparent"></div>
+                            <div class="banner-color-option bg-gradient-to-b from-[#46ddff] to-[#2ea6ff] h-16 rounded-md cursor-pointer border-2 border-transparent"></div>
+                            <div class="banner-color-option bg-gradient-to-b from-[#45e5ce] to-[#1bdbb3] h-16 rounded-md cursor-pointer border-2 border-transparent"></div>
+                            <div class="banner-color-option bg-gradient-to-b from-[#98ee99] to-[#57ba5e] h-16 rounded-md cursor-pointer border-2 border-transparent"></div>
+                            <div class="banner-color-option bg-gradient-to-b from-[#7a8087] to-[#36393f] h-16 rounded-md cursor-pointer border-2 border-transparent"></div>
                         </div>
                     </div>
                     
@@ -248,36 +160,36 @@ ob_start();
                         <p class="text-discord-lighter text-sm mb-4">Add up to 5 traits to show off your server's interests and personality.</p>
                         
                         <div class="grid grid-cols-3 gap-4">
-                            <div class="bg-[#2b2d31] rounded-md p-4 flex items-center space-x-3 cursor-pointer hover:bg-[#35373c]">
-                                <div class="bg-[#1e1f22] rounded-full w-10 h-10 flex items-center justify-center">
+                            <div class="trait-card">
+                                <div class="trait-emoji">
                                     <span class="text-xl">😊</span>
                                 </div>
                                 <span class="text-discord-lighter">Add trait</span>
                             </div>
                             
-                            <div class="bg-[#2b2d31] rounded-md p-4 flex items-center space-x-3 cursor-pointer hover:bg-[#35373c]">
-                                <div class="bg-[#1e1f22] rounded-full w-10 h-10 flex items-center justify-center">
+                            <div class="trait-card">
+                                <div class="trait-emoji">
                                     <span class="text-xl">😎</span>
                                 </div>
                                 <span class="text-discord-lighter">Add trait</span>
                             </div>
                             
-                            <div class="bg-[#2b2d31] rounded-md p-4 flex items-center space-x-3 cursor-pointer hover:bg-[#35373c]">
-                                <div class="bg-[#1e1f22] rounded-full w-10 h-10 flex items-center justify-center">
+                            <div class="trait-card">
+                                <div class="trait-emoji">
                                     <span class="text-xl">🤓</span>
                                 </div>
                                 <span class="text-discord-lighter">Add trait</span>
                             </div>
                             
-                            <div class="bg-[#2b2d31] rounded-md p-4 flex items-center space-x-3 cursor-pointer hover:bg-[#35373c]">
-                                <div class="bg-[#1e1f22] rounded-full w-10 h-10 flex items-center justify-center">
+                            <div class="trait-card">
+                                <div class="trait-emoji">
                                     <span class="text-xl">🎮</span>
                                 </div>
                                 <span class="text-discord-lighter">Add trait</span>
                             </div>
                             
-                            <div class="bg-[#2b2d31] rounded-md p-4 flex items-center space-x-3 cursor-pointer hover:bg-[#35373c]">
-                                <div class="bg-[#1e1f22] rounded-full w-10 h-10 flex items-center justify-center">
+                            <div class="trait-card">
+                                <div class="trait-emoji">
                                     <span class="text-xl">🎲</span>
                                 </div>
                                 <span class="text-discord-lighter">Add trait</span>
@@ -296,11 +208,11 @@ ob_start();
     
     <!-- Server Preview -->
     <div class="w-80 bg-discord-dark border-l border-discord-light p-6">
-        <div class="bg-[#1e1f22] rounded-lg overflow-hidden">
+        <div class="server-preview-card bg-[#1e1f22] rounded-lg overflow-hidden">
             <!-- Server Banner Preview -->
-            <div class="h-40 bg-gradient-to-b from-[#e3e5e8] to-[#c7ccd1] relative">
+            <div class="server-banner h-40 bg-gradient-to-b from-[#e3e5e8] to-[#c7ccd1] relative">
                 <!-- Server Icon Preview -->
-                <div class="absolute -bottom-8 left-4 w-16 h-16 bg-discord-dark rounded-full border-4 border-[#1e1f22] overflow-hidden">
+                <div class="server-icon-preview absolute -bottom-8 left-4 w-16 h-16 bg-discord-dark rounded-full border-4 border-[#1e1f22] overflow-hidden">
                     <?php if ($server->image_url): ?>
                         <img src="<?php echo htmlspecialchars($server->image_url); ?>" alt="Server Icon" class="w-full h-full object-cover">
                     <?php else: ?>
@@ -312,15 +224,15 @@ ob_start();
             </div>
             
             <!-- Server Info Preview -->
-            <div class="pt-10 px-4 pb-4">
-                <h3 class="text-white font-bold"><?php echo htmlspecialchars($server->name); ?></h3>
-                <div class="flex items-center text-xs text-discord-lighter mt-1">
-                    <span class="inline-block w-2 h-2 bg-green-500 rounded-full mr-1"></span>
+            <div class="server-info pt-10 px-4 pb-4">
+                <h3 class="server-name text-white font-bold"><?php echo htmlspecialchars($server->name); ?></h3>
+                <div class="server-meta flex items-center text-xs text-discord-lighter mt-1">
+                    <span class="online-indicator inline-block w-2 h-2 bg-green-500 rounded-full mr-1"></span>
                     <span>10 Online</span>
                     <span class="mx-1">•</span>
                     <span>45 Members</span>
                 </div>
-                <div class="text-xs text-discord-lighter mt-1">Est. Feb 2024</div>
+                <div class="server-meta text-xs text-discord-lighter mt-1">Est. Feb 2024</div>
             </div>
         </div>
     </div>

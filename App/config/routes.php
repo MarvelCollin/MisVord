@@ -60,6 +60,7 @@ Route::get('/explore', function() {
 });
 Route::get('/explore-servers', 'pages/explore-servers.php');
 Route::get('/settings', 'pages/settings.php');
+Route::get('/settings/user', 'pages/settings-user.php');
 Route::get('/settings-server', 'pages/settings-server.php');
 Route::get('/call', 'pages/call.php');
 Route::get('/dev', 'pages/dev.php');
