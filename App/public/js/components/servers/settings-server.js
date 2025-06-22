@@ -81,8 +81,6 @@ function initServerIconUpload() {
     const iconContainer = document.getElementById('server-icon-container');
     const iconInput = document.getElementById('server-icon-input');
     const iconPreview = document.getElementById('server-icon-preview');
-    const changeIconBtn = document.getElementById('change-server-icon-btn');
-    const removeIconBtn = document.getElementById('remove-server-icon-btn');
     
     if (!iconContainer || !iconInput) return;
     
@@ -111,11 +109,6 @@ function initServerIconUpload() {
                 // Store the cropped image data to use during form submission
                 iconContainer.dataset.croppedImage = result.dataUrl;
                 
-                // Show remove button if it exists
-                if (removeIconBtn && removeIconBtn.classList.contains('hidden')) {
-                    removeIconBtn.classList.remove('hidden');
-                }
-                
                 // Also update the server preview icon
                 updateServerPreviewIcon(result.dataUrl);
                 
@@ -129,15 +122,7 @@ function initServerIconUpload() {
         console.error('Error initializing image cutter:', error);
     }
     
-    // Change icon button click handler
-    if (changeIconBtn) {
-        changeIconBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            iconInput.click();
-        });
-    }
-    
-    // Icon container click handler (alternative way to upload)
+    // Icon container click handler
     if (iconContainer) {
         iconContainer.addEventListener('click', function(e) {
             e.preventDefault();
@@ -179,54 +164,12 @@ function initServerIconUpload() {
                         // Update server preview icon
                         updateServerPreviewIcon(e.target.result);
                     }
-                    
-                    // Show remove button if exists and hidden
-                    if (removeIconBtn && removeIconBtn.classList.contains('hidden')) {
-                        removeIconBtn.classList.remove('hidden');
-                    }
                 } catch (error) {
                     showToast('Error processing server icon', 'error');
                 }
             };
             
             reader.readAsDataURL(file);
-        });
-    }
-    
-    // Remove icon button click handler
-    if (removeIconBtn) {
-        removeIconBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation(); // Prevent triggering the container click
-            
-            // Clear the preview and show placeholder
-            if (iconPreview) {
-                iconPreview.src = '';
-                iconPreview.classList.add('hidden');
-                
-                const placeholder = document.getElementById('server-icon-placeholder');
-                if (placeholder) placeholder.classList.remove('hidden');
-            }
-            
-            // Clear the stored image data
-            if (iconContainer) {
-                delete iconContainer.dataset.croppedImage;
-                iconContainer.dataset.removeIcon = 'true';
-            }
-            
-            // Hide the remove button
-            removeIconBtn.classList.add('hidden');
-            
-            // Clear the file input
-            if (iconInput) {
-                iconInput.value = '';
-            }
-            
-            // Reset server preview icon
-            resetServerPreviewIcon();
-            
-            // Show toast confirmation
-            showToast('Server icon will be removed on save', 'info');
         });
     }
 }
@@ -629,15 +572,9 @@ function initServerProfileForm() {
             
             // Add server icon if changed
             const iconContainer = document.getElementById('server-icon-container');
-            if (iconContainer) {
-                if (iconContainer.dataset.croppedImage) {
-                    const iconBlob = dataURLtoBlob(iconContainer.dataset.croppedImage);
-                    formData.append('server_icon', iconBlob, 'server_icon.png');
-                }
-                
-                if (iconContainer.dataset.removeIcon === 'true') {
-                    formData.append('remove_icon', '1');
-                }
+            if (iconContainer && iconContainer.dataset.croppedImage) {
+                const iconBlob = dataURLtoBlob(iconContainer.dataset.croppedImage);
+                formData.append('server_icon', iconBlob, 'server_icon.png');
             }
             
             // Add server banner if changed
@@ -656,11 +593,6 @@ function initServerProfileForm() {
                 // Update server name in UI if needed
                 if (serverNameInput && serverNameInput.value.trim()) {
                     updateServerNameInUI(serverNameInput.value.trim());
-                }
-                
-                // Reset the change flags
-                if (iconContainer) {
-                    delete iconContainer.dataset.removeIcon;
                 }
                 
                 // Refresh the page after 1.5 seconds to show updated images

@@ -100,34 +100,20 @@ ob_start();
                         <label class="block text-sm font-medium text-white mb-2">Icon</label>
                         <p class="text-discord-lighter text-sm mb-4">We recommend an image of at least 512x512.</p>
                         
-                        <div class="flex items-center space-x-4">
-                            <div id="server-icon-container" class="relative w-24 h-24 bg-discord-dark-input rounded-full overflow-hidden border border-discord-darker cursor-pointer hover:opacity-90 transition-opacity">
-                                <?php if ($server->image_url): ?>
-                                    <img id="server-icon-preview" src="<?php echo htmlspecialchars($server->image_url); ?>" alt="Server Icon" class="w-full h-full object-cover">
-                                <?php else: ?>
-                                    <div id="server-icon-placeholder" class="w-full h-full flex items-center justify-center text-2xl font-bold text-white">
-                                        <?php echo strtoupper(substr($server->name, 0, 1)); ?>
-                                    </div>
-                                <?php endif; ?>
-                                <div class="absolute inset-0 bg-black bg-opacity-50 opacity-0 hover:opacity-100 flex items-center justify-center transition-opacity">
-                                    <div class="text-white text-sm font-medium">CHANGE</div>
+                        <div id="server-icon-container" class="relative w-24 h-24 bg-discord-dark-input rounded-full overflow-hidden border border-discord-darker cursor-pointer hover:opacity-90 transition-opacity">
+                            <?php if ($server->image_url): ?>
+                                <img id="server-icon-preview" src="<?php echo htmlspecialchars($server->image_url); ?>" alt="Server Icon" class="w-full h-full object-cover">
+                            <?php else: ?>
+                                <div id="server-icon-placeholder" class="w-full h-full flex items-center justify-center text-2xl font-bold text-white">
+                                    <?php echo strtoupper(substr($server->name, 0, 1)); ?>
                                 </div>
+                            <?php endif; ?>
+                            <div class="absolute inset-0 bg-black bg-opacity-50 opacity-0 hover:opacity-100 flex items-center justify-center transition-opacity">
+                                <div class="text-white text-sm font-medium">CHANGE</div>
                             </div>
-                            
-                            <div class="flex space-x-3">
-                                <button type="button" id="change-server-icon-btn" class="bg-discord-primary hover:bg-discord-primary-dark text-white font-medium py-2 px-4 rounded-md">
-                                    Change Icon
-                                </button>
-                                
-                                <?php if ($server->image_url): ?>
-                                    <button type="button" id="remove-server-icon-btn" class="text-discord-red hover:underline font-medium py-2 px-4">
-                                        Remove
-                                    </button>
-                                <?php endif; ?>
-                            </div>
-                            
-                            <input type="file" id="server-icon-input" name="server_icon" class="hidden" accept="image/*">
                         </div>
+                        
+                        <input type="file" id="server-icon-input" name="server_icon" class="hidden" accept="image/*">
                     </div>
                     
                     <!-- Server Banner -->

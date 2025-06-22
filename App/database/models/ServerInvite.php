@@ -8,15 +8,16 @@ class ServerInvite extends Model {
     protected $fillable = ['server_id', 'inviter_user_id', 'target_user_id', 'invite_link', 'created_at', 'updated_at'];
 
     public static function findByCode($code) {
-        $result = static::where('invite_code', $code)->first();
+        $result = static::where('invite_link', $code)->first();
         return $result ? new static($result) : null;
-    }    public static function findActiveByCode($code) {
-        // Use raw SQL to handle complex OR conditions that the Query builder doesn't support well
+    }    
+    
+    public static function findActiveByCode($code) {
         $query = new Query();
         $pdo = $query->getPdo();
         
         $sql = "SELECT * FROM " . static::getTable() . " 
-                WHERE invite_code = ? 
+                WHERE invite_link = ? 
                 AND (expires_at IS NULL OR expires_at > ?) 
                 AND (max_uses IS NULL OR uses < max_uses)
                 LIMIT 1";
@@ -68,18 +69,17 @@ class ServerInvite extends Model {
                     CREATE TABLE IF NOT EXISTS server_invites (
                         id INT AUTO_INCREMENT PRIMARY KEY,
                         server_id INT NOT NULL,
-                        created_by INT NOT NULL,
-                        invite_code VARCHAR(255) UNIQUE NOT NULL,
-                        expires_at TIMESTAMP NULL,
-                        max_uses INT NULL,
-                        uses INT DEFAULT 0,
+                        inviter_user_id INT NOT NULL,
+                        target_user_id INT NULL,
+                        invite_link VARCHAR(255) UNIQUE NOT NULL,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                         INDEX server_idx (server_id),
-                        INDEX code_idx (invite_code),
-                        INDEX creator_idx (created_by),
+                        INDEX code_idx (invite_link),
+                        INDEX creator_idx (inviter_user_id),
                         FOREIGN KEY (server_id) REFERENCES servers(id) ON DELETE CASCADE,
-                        FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
+                        FOREIGN KEY (inviter_user_id) REFERENCES users(id) ON DELETE CASCADE,
+                        FOREIGN KEY (target_user_id) REFERENCES users(id) ON DELETE SET NULL
                     )
                 ");
 

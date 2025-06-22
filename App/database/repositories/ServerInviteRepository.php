@@ -26,11 +26,8 @@ class ServerInviteRepository extends Repository {
         
         return $this->create([
             'server_id' => $serverId,
-            'created_by' => $createdBy,
-            'invite_code' => $code,
-            'expires_at' => $expiresAt,
-            'max_uses' => $maxUses,
-            'uses' => 0
+            'inviter_user_id' => $createdBy,
+            'invite_link' => $code
         ]);
     }
     

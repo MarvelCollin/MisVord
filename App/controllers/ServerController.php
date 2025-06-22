@@ -339,7 +339,49 @@ class ServerController extends BaseController
     {
         $this->requireAuth();
 
-        return $this->notFound('Server invite not found');
+        try {
+            $invite = $this->inviteRepository->findByCode($inviteCode);
+            
+            if (!$invite) {
+                return $this->notFound('Server invite not found or expired');
+            }
+            
+            $server = $this->serverRepository->find($invite->server_id);
+            if (!$server) {
+                return $this->notFound('Server not found');
+            }
+            
+            if ($this->userServerMembershipRepository->isMember($this->getCurrentUserId(), $server->id)) {
+                return $this->success([
+                    'server' => $server,
+                    'redirect' => "/server/{$server->id}"
+                ], 'You are already a member of this server');
+            }
+            
+            $joinResult = $this->userServerMembershipRepository->addMembership($this->getCurrentUserId(), $server->id);
+            
+            if ($joinResult) {
+                $this->logActivity('server_joined', [
+                    'server_id' => $server->id,
+                    'server_name' => $server->name,
+                    'invite_code' => $inviteCode
+                ]);
+                
+                return $this->success([
+                    'server' => $server,
+                    'redirect' => "/server/{$server->id}"
+                ], 'Successfully joined server');
+            } else {
+                throw new Exception('Failed to join server');
+            }
+        } catch (Exception $e) {
+            $this->logActivity('server_join_error', [
+                'invite_code' => $inviteCode,
+                'error' => $e->getMessage()
+            ]);
+            
+            return $this->serverError('Failed to join server: ' . $e->getMessage());
+        }
     }
 
     public function leave($id)
@@ -601,11 +643,11 @@ class ServerController extends BaseController
                 return $this->forbidden('You do not have permission to generate invite links');
             }
             $inviteCode = bin2hex(random_bytes(8));
-            $inviteUrl = $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['HTTP_HOST'] . '/join/' . $inviteCode;
+            
             $invite = $this->inviteRepository->create([
                 'server_id' => $serverId,
                 'inviter_user_id' => $this->getCurrentUserId(),
-                'invite_link' => $inviteUrl
+                'invite_link' => $inviteCode
             ]);
 
             if ($invite) {
@@ -614,6 +656,8 @@ class ServerController extends BaseController
                     'invite_code' => $inviteCode
                 ]);
 
+                $inviteUrl = $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['HTTP_HOST'] . '/join/' . $inviteCode;
+                
                 return $this->success([
                     'invite_code' => $inviteCode,
                     'invite_url' => $inviteUrl
