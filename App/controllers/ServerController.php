@@ -641,25 +641,42 @@ class ServerController extends BaseController
             if (!$this->userServerMembershipRepository->isOwner($this->getCurrentUserId(), $serverId)) {
                 return $this->forbidden('You do not have permission to generate invite links');
             }
+            
+            $input = $this->getInput();
+            $expiresAt = null;
+            
+            if (isset($input['expires_in'])) {
+                // expires_in is in hours
+                $hours = (int)$input['expires_in'];
+                if ($hours > 0) {
+                    $expiresAt = date('Y-m-d H:i:s', strtotime("+{$hours} hours"));
+                }
+            } else if (isset($input['expires_at'])) {
+                // Direct date input
+                $expiresAt = date('Y-m-d H:i:s', strtotime($input['expires_at']));
+            }
+            
             $inviteCode = bin2hex(random_bytes(8));
             
-            $invite = $this->inviteRepository->create([
-                'server_id' => $serverId,
-                'inviter_user_id' => $this->getCurrentUserId(),
-                'invite_link' => $inviteCode
-            ]);
+            $invite = $this->inviteRepository->createInvite(
+                $serverId, 
+                $this->getCurrentUserId(),
+                $expiresAt
+            );
 
             if ($invite) {
                 $this->logActivity('invite_generated', [
                     'server_id' => $serverId,
-                    'invite_code' => $inviteCode
+                    'invite_code' => $inviteCode,
+                    'expires_at' => $expiresAt
                 ]);
 
                 $inviteUrl = $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['HTTP_HOST'] . '/join/' . $inviteCode;
                 
                 return $this->success([
                     'invite_code' => $inviteCode,
-                    'invite_url' => $inviteUrl
+                    'invite_url' => $inviteUrl,
+                    'expires_at' => $expiresAt
                 ]);
             } else {
                 return $this->serverError('Failed to generate invite');

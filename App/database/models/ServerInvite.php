@@ -5,7 +5,7 @@ require_once __DIR__ . '/../query.php';
 
 class ServerInvite extends Model {
     protected static $table = 'server_invites';
-    protected $fillable = ['server_id', 'inviter_user_id', 'invite_link', 'created_at', 'updated_at'];
+    protected $fillable = ['server_id', 'inviter_user_id', 'invite_link', 'expires_at', 'created_at', 'updated_at'];
 
     public static function findByCode($code) {
         $result = static::where('invite_link', $code)->first();
@@ -18,16 +18,20 @@ class ServerInvite extends Model {
         
         $sql = "SELECT * FROM " . static::getTable() . " 
                 WHERE invite_link = ? 
+                AND (expires_at IS NULL OR expires_at > ?)
                 LIMIT 1";
         
         $stmt = $pdo->prepare($sql);
-        $stmt->execute([$code]);
+        $stmt->execute([$code, date('Y-m-d H:i:s')]);
         $data = $stmt->fetch(PDO::FETCH_ASSOC);
         
         return $data ? new static($data) : null;
     }
 
     public function isValid() {
+        if ($this->expires_at && strtotime($this->expires_at) < time()) {
+            return false;
+        }
         return true;
     }
 
@@ -60,6 +64,7 @@ class ServerInvite extends Model {
                         server_id INT NOT NULL,
                         inviter_user_id INT NOT NULL,
                         invite_link VARCHAR(255) UNIQUE NOT NULL,
+                        expires_at TIMESTAMP NULL,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                         INDEX server_idx (server_id),

@@ -41,6 +41,29 @@ class UserRepository extends Repository {
         return false;
     }
     
+    public function setSecurityQuestion($userId, $question, $answer) {
+        $user = $this->find($userId);
+        if ($user) {
+            $user->security_question = $question;
+            $user->security_answer = password_hash($answer, PASSWORD_DEFAULT);
+            return $user->save();
+        }
+        return false;
+    }
+    
+    public function verifySecurityAnswer($userId, $answer) {
+        $user = $this->find($userId);
+        if ($user && isset($user->security_answer) && !empty($user->security_answer)) {
+            return password_verify($answer, $user->security_answer);
+        }
+        return false;
+    }
+    
+    public function hasSecurityQuestion($userId) {
+        $user = $this->find($userId);
+        return $user && isset($user->security_question) && !empty($user->security_question);
+    }
+    
     public function getUserServers($userId) {
         $user = $this->find($userId);
         return $user ? $user->servers() : [];

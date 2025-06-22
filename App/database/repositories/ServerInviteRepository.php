@@ -24,11 +24,17 @@ class ServerInviteRepository extends Repository {
             $code = ServerInvite::generateCode();
         }
         
-        return $this->create([
+        $data = [
             'server_id' => $serverId,
             'inviter_user_id' => $createdBy,
             'invite_link' => $code
-        ]);
+        ];
+        
+        if ($expiresAt) {
+            $data['expires_at'] = $expiresAt;
+        }
+        
+        return $this->create($data);
     }
     
     public function useInvite($code) {

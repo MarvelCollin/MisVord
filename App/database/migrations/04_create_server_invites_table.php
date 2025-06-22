@@ -7,6 +7,7 @@ class CreateServerInvitesMigration {
             $table->integer('server_id');
             $table->integer('inviter_user_id');
             $table->string('invite_link');
+            $table->timestamp('expires_at')->nullable();
             $table->timestamps();
             
             

@@ -56,7 +56,6 @@ class UserController extends BaseController
             $updateData = [];
             $errors = [];
             
-            // Validate username if provided
             if (isset($input['username'])) {
                 $username = trim($input['username']);
                 
@@ -71,7 +70,6 @@ class UserController extends BaseController
                 }
             }
             
-            // Validate display name if provided
             if (isset($input['display_name'])) {
                 $displayName = trim($input['display_name']);
                 
@@ -84,7 +82,6 @@ class UserController extends BaseController
                 }
             }
             
-            // Validate email if provided
             if (isset($input['email'])) {
                 $email = trim($input['email']);
                 
@@ -97,7 +94,6 @@ class UserController extends BaseController
                 }
             }
             
-            // Validate phone if provided
             if (isset($input['phone'])) {
                 $phone = preg_replace('/\D/', '', $input['phone']);
                 
@@ -108,12 +104,10 @@ class UserController extends BaseController
                         $updateData['phone'] = $phone;
                     }
                 } else {
-                    // Empty phone is allowed (removing phone)
                     $updateData['phone'] = '';
                 }
             }
             
-            // Validate status if provided
             if (isset($input['status'])) {
                 $validStatuses = ['appear', 'invisible', 'do_not_disturb', 'offline', 'banned'];
                 if (in_array($input['status'], $validStatuses)) {
@@ -123,7 +117,18 @@ class UserController extends BaseController
                 }
             }
             
-            // Return errors if any
+            if (isset($input['security_question']) && isset($input['security_answer'])) {
+                if (empty($input['security_question'])) {
+                    $errors['security_question'] = 'Security question cannot be empty';
+                }
+                
+                if (empty($input['security_answer'])) {
+                    $errors['security_answer'] = 'Security answer cannot be empty';
+                } else if (strlen($input['security_answer']) < 3) {
+                    $errors['security_answer'] = 'Security answer must be at least 3 characters long';
+                }
+            }
+            
             if (!empty($errors)) {
                 return $this->error('Validation failed', 400, $errors);
             }
@@ -138,12 +143,15 @@ class UserController extends BaseController
                 return $this->serverError('Failed to update user profile');
             }
             
+            if (isset($input['security_question']) && isset($input['security_answer'])) {
+                $this->userRepository->setSecurityQuestion($userId, $input['security_question'], $input['security_answer']);
+            }
+            
             $this->logActivity('user_profile_updated', [
                 'user_id' => $userId,
                 'updated_fields' => array_keys($updateData)
             ]);
             
-            // Update session data if relevant fields were updated
             if (isset($updateData['username'])) {
                 $_SESSION['username'] = $updateData['username'];
             }
@@ -271,10 +279,8 @@ class UserController extends BaseController
         $input = $this->getInput();
         
         try {
-            // Enhanced validation
             $errors = [];
             
-            // Check if all required fields are present
             if (!isset($input['current_password']) || empty($input['current_password'])) {
                 $errors['current_password'] = 'Current password is required';
             }
@@ -287,7 +293,6 @@ class UserController extends BaseController
                 $errors['confirm_password'] = 'Confirm password is required';
             }
             
-            // If we have errors at this point, return them
             if (!empty($errors)) {
                 return $this->error('Missing required fields', 400, $errors);
             }
@@ -296,7 +301,6 @@ class UserController extends BaseController
             $newPassword = $input['new_password'];
             $confirmPassword = $input['confirm_password'];
             
-            // Validate password requirements
             if ($newPassword !== $confirmPassword) {
                 $errors['confirm_password'] = 'New passwords do not match';
             }
@@ -313,7 +317,6 @@ class UserController extends BaseController
                 $errors['new_password'] = 'Password must contain at least one number';
             }
             
-            // If we have validation errors, return them
             if (!empty($errors)) {
                 return $this->error('Password validation failed', 400, $errors);
             }
@@ -361,12 +364,6 @@ class UserController extends BaseController
         }
     }
     
-    /**
-     * Get detailed user profile information
-     * 
-     * @param int $userId The ID of the user to get profile information for
-     * @return array User profile data with roles and relationship information
-     */
     public function getUserProfile($userId = null)
     {
         $this->requireAuth();
@@ -379,17 +376,14 @@ class UserController extends BaseController
         $serverId = isset($_GET['server_id']) ? $_GET['server_id'] : null;
         
         try {
-            // Get basic user data
             $user = $this->userRepository->find($userId);
             
             if (!$user) {
                 return $this->error('User not found', 404);
             }
             
-            // Check if this is the current user
             $user->is_self = ($userId == $currentUserId);
             
-            // Check friendship status
             $friendStatus = $this->friendListRepository->getFriendshipStatus($currentUserId, $userId);
             $user->is_friend = ($friendStatus === 'friends');
             $user->friend_request_sent = ($friendStatus === 'pending_sent');
@@ -399,14 +393,12 @@ class UserController extends BaseController
                 'user' => $user
             ];
             
-            // If server context is provided, get user roles in that server
             if ($serverId) {
                 require_once __DIR__ . '/../database/repositories/RoleRepository.php';
                 $roleRepository = new RoleRepository();
                 $roles = $roleRepository->getUserRolesInServer($userId, $serverId);
                 $responseData['roles'] = $roles;
                 
-                // Get user's join date for this server
                 require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
                 $membershipRepository = new UserServerMembershipRepository();
                 $membership = $membershipRepository->getUserServerMembership($userId, $serverId);
@@ -433,6 +425,138 @@ class UserController extends BaseController
     
     public function findUsers()
     {
-        // Implementation of findUsers method
+    }
+
+    public function setSecurityQuestion()
+    {
+        $this->requireAuth();
+        $userId = $this->getCurrentUserId();
+        $input = $this->getInput();
+        
+        try {
+            $errors = [];
+            
+            if (!isset($input['security_question']) || empty($input['security_question'])) {
+                $errors['security_question'] = 'Security question is required';
+            }
+            
+            if (!isset($input['security_answer']) || empty($input['security_answer'])) {
+                $errors['security_answer'] = 'Security answer is required';
+            }
+            
+            if (!empty($errors)) {
+                return $this->error('Missing required fields', 400, $errors);
+            }
+            
+            $question = $input['security_question'];
+            $answer = $input['security_answer'];
+            
+            if (strlen($answer) < 3) {
+                return $this->error('Security answer must be at least 3 characters long', 400);
+            }
+            
+            $result = $this->userRepository->setSecurityQuestion($userId, $question, $answer);
+            
+            if (!$result) {
+                return $this->serverError('Failed to set security question');
+            }
+            
+            $this->logActivity('user_security_question_set', [
+                'user_id' => $userId
+            ]);
+            
+            return $this->success(null, 'Security question set successfully');
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while setting security question: ' . $e->getMessage());
+        }
+    }
+    
+    public function verifySecurityAnswer()
+    {
+        $input = $this->getInput();
+        
+        try {
+            $errors = [];
+            
+            if (!isset($input['email']) || empty($input['email'])) {
+                $errors['email'] = 'Email is required';
+            }
+            
+            if (!isset($input['security_answer']) || empty($input['security_answer'])) {
+                $errors['security_answer'] = 'Security answer is required';
+            }
+            
+            if (!empty($errors)) {
+                return $this->error('Missing required fields', 400, $errors);
+            }
+            
+            $user = $this->userRepository->findByEmail($input['email']);
+            
+            if (!$user) {
+                return $this->error('User not found', 404);
+            }
+            
+            if (!isset($user->security_question) || empty($user->security_question)) {
+                return $this->error('No security question set for this account', 400);
+            }
+            
+            $verified = $this->userRepository->verifySecurityAnswer($user->id, $input['security_answer']);
+            
+            if (!$verified) {
+                $this->logActivity('security_answer_failed', [
+                    'user_id' => $user->id,
+                    'email' => $input['email']
+                ]);
+                return $this->error('Incorrect security answer', 401);
+            }
+            
+            $this->logActivity('security_answer_verified', [
+                'user_id' => $user->id
+            ]);
+            
+            $resetToken = bin2hex(random_bytes(32));
+            $_SESSION['password_reset_token'] = $resetToken;
+            $_SESSION['password_reset_user_id'] = $user->id;
+            $_SESSION['password_reset_expires'] = time() + 3600;
+            
+            return $this->success([
+                'reset_token' => $resetToken,
+                'user_id' => $user->id
+            ], 'Security answer verified successfully');
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while verifying security answer: ' . $e->getMessage());
+        }
+    }
+    
+    public function getSecurityQuestion()
+    {
+        $input = $this->getInput();
+        
+        try {
+            if (!isset($input['email']) || empty($input['email'])) {
+                return $this->error('Email is required', 400);
+            }
+            
+            $user = $this->userRepository->findByEmail($input['email']);
+            
+            if (!$user) {
+                return $this->error('User not found', 404);
+            }
+            
+            if (!isset($user->security_question) || empty($user->security_question)) {
+                return $this->error('No security question set for this account', 400);
+            }
+            
+            $this->logActivity('security_question_requested', [
+                'user_id' => $user->id,
+                'email' => $input['email']
+            ]);
+            
+            return $this->success([
+                'security_question' => $user->security_question
+            ]);
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while retrieving security question: ' . $e->getMessage());
+        }
     }
 } 
