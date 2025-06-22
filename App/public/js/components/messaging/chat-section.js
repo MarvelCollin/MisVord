@@ -206,7 +206,7 @@ class ChatSection {
                 content: content,
                 user_id: this.userId,
                 username: this.username,
-                avatar_url: document.querySelector('meta[name="user-avatar"]')?.content || '/assets/default-avatar.svg',
+                avatar_url: document.querySelector('meta[name="user-avatar"]')?.content || '/assets/common/main-logo.png',
                 sent_at: timestamp,
                 isLocalOnly: true,
                 messageType: 'text',
@@ -407,7 +407,7 @@ class ChatSection {
             content: message.content || message.message?.content || '',
             user_id: message.userId || message.user_id || '',
             username: message.username || message.message?.username || 'Unknown User',
-            avatar_url: message.avatar_url || message.message?.avatar_url || '/assets/default-avatar.svg',
+            avatar_url: message.avatar_url || message.message?.avatar_url || '/assets/common/main-logo.png',
             sent_at: message.timestamp || message.sent_at || Date.now(),
             isLocalOnly: message.isLocalOnly || false
         };
@@ -415,11 +415,14 @@ class ChatSection {
         // Check if this is the current user's message
         const isOwnMessage = msg.user_id == this.userId;
         
-        // Check if this message is already displayed (to avoid duplicates)
-        const existingMessage = this.findExistingMessage(msg.content, msg.user_id);
-        if (existingMessage && !msg.isLocalOnly) {
-            console.log('Message already exists, not adding duplicate:', msg.content);
-            return;
+        // Only check for duplicates for server-sourced messages (not local temporary messages)
+        // And only for messages that aren't explicitly marked as isLocalOnly
+        if (!msg.isLocalOnly && !message._localMessage) {
+            const existingMessage = this.findExistingMessage(msg.content, msg.user_id, msg.id);
+            if (existingMessage) {
+                // Skip duplicate messages from the server
+                return;
+            }
         }
         
         const lastMessageGroup = this.chatMessages.lastElementChild;
@@ -439,7 +442,7 @@ class ChatSection {
         this.scrollToBottom();
     }
     
-    findExistingMessage(content, userId) {
+    findExistingMessage(content, userId, messageId = null) {
         // This helps prevent duplicate messages
         if (!this.chatMessages || !content || !userId) return false;
         
@@ -453,7 +456,20 @@ class ChatSection {
             if (senderId !== userId) continue;
             
             const messageText = element.querySelector('.message-text')?.textContent;
+            
+            // If the same user sends the same text in a short time, it's probably a duplicate
             if (messageText === content) {
+                // If we have a message ID, check if this is truly the same message or just the same content
+                if (messageId) {
+                    const existingId = element.getAttribute('data-message-id');
+                    
+                    // If IDs are different, it's not the same message, just same content
+                    if (existingId && existingId !== messageId && existingId.startsWith('local-')) {
+                        // This is likely a local message being replaced by server message
+                        // We'll let it continue and the local message will be updated
+                        continue;
+                    }
+                }
                 return element;
             }
         }
@@ -470,7 +486,7 @@ class ChatSection {
         avatarContainer.className = 'flex-shrink-0 mr-3 mt-1';
         
         const avatar = document.createElement('img');
-        avatar.src = message.avatar_url || '/assets/default-avatar.svg';
+        avatar.src = message.avatar_url || '/assets/common/main-logo.png';
         avatar.className = 'w-10 h-10 rounded-full';
         avatar.alt = `${message.username}'s avatar`;
         

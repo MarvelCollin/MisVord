@@ -5,6 +5,13 @@ require_once __DIR__ . '/../models/UserServerMembership.php';
 require_once __DIR__ . '/../query.php';
 
 class UserServerMembershipRepository extends Repository {
+    protected $db;
+    
+    public function __construct() {
+        parent::__construct();
+        $this->db = new Query();
+    }
+    
     protected function getModelClass() {
         return UserServerMembership::class;
     }
@@ -54,29 +61,41 @@ class UserServerMembershipRepository extends Repository {
     
     public function getServerMembers($serverId)
     {
-        $query = "SELECT u.id, u.username, u.discriminator, u.avatar_url, u.status, usm.created_at as joined_at
-                  FROM users u
-                  JOIN user_server_memberships usm ON u.id = usm.user_id
-                  WHERE usm.server_id = :server_id
-                  ORDER BY usm.created_at ASC";
-        
-        $params = [':server_id' => $serverId];
-        
-        return $this->db->fetchAll($query, $params);
+        try {
+            $pdo = $this->db->getPdo();
+            $query = "SELECT u.id, u.username, u.discriminator, u.avatar_url, u.status, usm.created_at as joined_at
+                      FROM users u
+                      JOIN user_server_memberships usm ON u.id = usm.user_id
+                      WHERE usm.server_id = :server_id
+                      ORDER BY usm.created_at ASC";
+            
+            $stmt = $pdo->prepare($query);
+            $stmt->bindParam(':server_id', $serverId, PDO::PARAM_INT);
+            $stmt->execute();
+            
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            return [];
+        }
     }
     
     public function getUserServerMembership($userId, $serverId)
     {
-        $query = "SELECT * FROM user_server_memberships
-                  WHERE user_id = :user_id AND server_id = :server_id
-                  LIMIT 1";
-        
-        $params = [
-            ':user_id' => $userId,
-            ':server_id' => $serverId
-        ];
-        
-        return $this->db->fetchOne($query, $params);
+        try {
+            $pdo = $this->db->getPdo();
+            $query = "SELECT * FROM user_server_memberships
+                      WHERE user_id = :user_id AND server_id = :server_id
+                      LIMIT 1";
+            
+            $stmt = $pdo->prepare($query);
+            $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
+            $stmt->bindParam(':server_id', $serverId, PDO::PARAM_INT);
+            $stmt->execute();
+            
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            return null;
+        }
     }
     
     public function updateNotificationSettings($userId, $serverId, $settings) {

@@ -14,7 +14,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $page_title = 'User Settings - misvord';
-$body_class = 'bg-discord-dark text-white overflow-hidden';
+$body_class = 'bg-discord-dark text-white';
 $page_css = 'settings-user';
 $page_js = 'components/auth/settings-user';
 $head_scripts = ['logger-init'];
@@ -33,7 +33,7 @@ $section = $_GET['section'] ?? 'my-account';
 
 <div class="flex min-h-screen max-w-[1480px] mx-auto">
     <!-- Left Sidebar with Settings Categories -->
-    <div class="w-72 bg-discord-light border-r border-discord-dark pl-8 pr-4">
+    <div class="w-72 bg-discord-light border-r border-discord-dark pl-8 pr-4 overflow-y-auto" style="height: 100vh;">
                         <div class="p-4">
             <input placeholder="Search" class="w-full bg-discord-darker text-white border-none rounded p-2 focus:outline-none focus:ring-2 focus:ring-discord-blue" />
         </div>
@@ -115,7 +115,7 @@ $section = $_GET['section'] ?? 'my-account';
     </div>
 
     <!-- Main Content Area -->
-    <div class="flex-1 bg-discord-dark overflow-y-auto px-10">
+    <div class="flex-1 bg-discord-dark overflow-y-auto px-10" style="height: 100vh;">
         <?php if ($section === 'my-account'): ?>
             <!-- Page Header -->
             <div class="py-10 max-w-[740px]">
@@ -268,7 +268,7 @@ $section = $_GET['section'] ?? 'my-account';
     </div>
     
     <!-- User Preview Panel -->
-    <div class="w-80 bg-discord-dark border-l border-discord-light p-6 pr-10">
+    <div class="w-80 bg-discord-dark border-l border-discord-light p-6 pr-10 overflow-y-auto" style="height: 100vh;">
         <div class="user-preview-card bg-[#1e1f22] rounded-lg overflow-hidden">
             <!-- User Banner Preview -->
             <div class="user-banner h-40 bg-gradient-to-b from-[#5865f2] to-[#4752c4] relative">
