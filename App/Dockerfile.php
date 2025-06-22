@@ -31,8 +31,6 @@ RUN composer install --optimize-autoloader --no-dev
 
 RUN mkdir -p /var/www/html/storage
 
-RUN chmod +x /var/www/html/artisan
-
 COPY docker/php/php.ini /usr/local/etc/php/php.ini
 
 ENV IS_DOCKER=true

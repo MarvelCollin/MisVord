@@ -115,7 +115,12 @@ class UserController extends BaseController
             
             // Validate status if provided
             if (isset($input['status'])) {
-                $updateData['status'] = $input['status'];
+                $validStatuses = ['appear', 'invisible', 'do_not_disturb', 'offline', 'banned'];
+                if (in_array($input['status'], $validStatuses)) {
+                    $updateData['status'] = $input['status'];
+                } else {
+                    $errors['status'] = 'Invalid status value';
+                }
             }
             
             // Return errors if any

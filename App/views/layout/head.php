@@ -96,8 +96,8 @@ $cache_version = time();
 document.addEventListener('DOMContentLoaded', function() {
     if (window.addEventListener) {
         window.addEventListener('globalSocketReady', function(event) {
-            if (event.detail?.manager?.socket) {
-                event.detail.manager.socket.on('debug-test-response', function(response) {
+            if (event.detail?.manager?.io) {
+                event.detail.manager.io.on('debug-test-response', function(response) {
                     if (response.success) {
                         console.log('✅ Debug test acknowledged by server:', response);
                     } else {
@@ -115,7 +115,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (window.globalSocketManager && window.globalSocketManager.isReady()) {
                 const username = document.querySelector('meta[name="username"]')?.content || 'unknown';
                 
-                window.globalSocketManager.socket.emit('debug-test', username);
+                window.globalSocketManager.io.emit('debug-test', username);
                 console.log('🧪 Debug ping sent:', username);
                 
                 if (window.showToast) {
@@ -299,9 +299,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     window.MisVordMessaging.chatType = 'direct';
                     console.log('✅ DM context set');
                     
-                    if (window.globalSocketManager && window.globalSocketManager.socket) {
+                    if (window.globalSocketManager && window.globalSocketManager.io) {
                         console.log('📡 Emitting join-dm-room event:', { roomId: dmParam });
-                        window.globalSocketManager.socket.emit('join-dm-room', { roomId: dmParam });
+                        window.globalSocketManager.io.emit('join-dm-room', { roomId: dmParam });
                         console.log('✅ Join DM room event sent');
                     }
                     
@@ -333,13 +333,13 @@ document.addEventListener('DOMContentLoaded', function() {
             
             console.log('🔧 Room status debug triggered...');
             
-            if (window.globalSocketManager && window.globalSocketManager.socket) {
+            if (window.globalSocketManager && window.globalSocketManager.io) {
                 console.log('📡 Requesting room debug info...');
-                window.globalSocketManager.socket.emit('debug-rooms');
+                window.globalSocketManager.io.emit('debug-rooms');
                 
                 console.log('📊 Socket room membership check:', {
-                    socketId: window.globalSocketManager.socket.id,
-                    rooms: Array.from(window.globalSocketManager.socket.rooms || [])
+                    socketId: window.globalSocketManager.io?.id,
+                    rooms: Array.from(window.globalSocketManager.io?.rooms || [])
                 });
                 
                 if (window.showToast) {
@@ -376,9 +376,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (window.globalSocketManager) {
             status.socketConnected = window.globalSocketManager.connected;
             status.userAuthenticated = window.globalSocketManager.authenticated;
-            status.socketId = window.globalSocketManager.socket?.id;
-            status.socketUrl = window.globalSocketManager.socket?.io?.uri;
-            status.connectionAttempts = window.globalSocketManager.socket?.io?._reconnectionAttempts || 0;
+            status.socketId = window.globalSocketManager.io?.id;
+            status.socketUrl = window.globalSocketManager.io?.uri;
+            status.connectionAttempts = window.globalSocketManager.io?._reconnectionAttempts || 0;
             status.lastConnectionError = window.globalSocketManager.lastError;
             
             if (!status.socketConnected) {

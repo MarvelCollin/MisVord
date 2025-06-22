@@ -735,7 +735,7 @@ class ServerController extends BaseController
                     'role' => $isOwner ? 'owner' : ($member['role'] ?? 'member'),
                     'is_owner' => $isOwner,
                     'status' => $member['status'] ?? 'offline',
-                    'joined_at' => $member['created_at']
+                    'joined_at' => $member['joined_at'] ?? date('Y-m-d H:i:s')
                 ];
             }, $members);
 
@@ -763,7 +763,7 @@ class ServerController extends BaseController
                 'server_id' => $serverId,
                 'error' => $e->getMessage()
             ]);
-            return $this->serverError('Failed to load server members');
+            return $this->serverError('Failed to load server members: ' . $e->getMessage());
         }
     }
 

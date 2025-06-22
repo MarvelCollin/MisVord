@@ -90,16 +90,24 @@
   border: 4px solid var(--discord-darker);
 }
 
-.user-status-indicator.offline {
+.user-status-indicator.appear {
+  background-color: var(--discord-green);
+}
+
+.user-status-indicator.invisible {
   background-color: var(--discord-lighter);
 }
 
-.user-status-indicator.idle {
-  background-color: #faa61a;
+.user-status-indicator.do_not_disturb {
+  background-color: var(--discord-red);
 }
 
-.user-status-indicator.dnd {
-  background-color: var(--discord-red);
+.user-status-indicator.offline {
+  background-color: #747f8d;
+}
+
+.user-status-indicator.banned {
+  background-color: #000000;
 }
 
 .user-detail-close-btn {

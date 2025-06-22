@@ -323,15 +323,16 @@ function initStatusSelector() {
     const statusOptions = document.querySelectorAll('.status-option');
     if (!statusOptions.length) return;
     
-    let currentStatus = 'online';
+    let currentStatus = 'appear';
     
     statusOptions.forEach(option => {
         option.addEventListener('click', function() {
             const statusIndicator = this.querySelector('span:first-child');
             const statusText = this.querySelector('span:last-child').textContent.toLowerCase();
+            const statusValue = this.dataset.status;
             
             // Update status in user interface
-            currentStatus = statusText;
+            currentStatus = statusValue;
             
             // Add visual indicator that this option is selected
             statusOptions.forEach(opt => {
@@ -347,19 +348,42 @@ function initStatusSelector() {
             if (profileStatusIndicator) {
                 profileStatusIndicator.className = 'absolute bottom-0 right-0.5 w-3 h-3 rounded-full border-2 border-discord-darker';
                 
-                if (statusText === 'online') {
-                    profileStatusIndicator.classList.add('bg-discord-green');
-                } else if (statusText === 'idle') {
-                    profileStatusIndicator.classList.add('bg-yellow-500');
-                } else if (statusText.includes('disturb')) {
-                    profileStatusIndicator.classList.add('bg-discord-red');
-                } else {
-                    profileStatusIndicator.classList.add('bg-gray-500');
+                switch(statusValue) {
+                    case 'appear':
+                        profileStatusIndicator.classList.add('bg-discord-green');
+                        break;
+                    case 'invisible':
+                        profileStatusIndicator.classList.add('bg-gray-500');
+                        break;
+                    case 'do_not_disturb':
+                        profileStatusIndicator.classList.add('bg-discord-red');
+                        break;
+                    case 'offline':
+                        profileStatusIndicator.classList.add('bg-[#747f8d]');
+                        break;
+                    case 'banned':
+                        profileStatusIndicator.classList.add('bg-black');
+                        break;
+                    default:
+                        profileStatusIndicator.classList.add('bg-discord-green');
                 }
             }
             
-            // In a real app, this would make an API call to update the status
-            console.log('Status updated to:', statusText);
+            // Make an API call to update the status
+            fetch('/api/user/status', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ status: statusValue })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Status updated:', data);
+            })
+            .catch(error => {
+                console.error('Error updating status:', error);
+            });
         });
     });
 }

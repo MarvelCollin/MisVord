@@ -36,12 +36,24 @@ if ($hasTooltip) {
           <?php 
         $statusColor = 'bg-gray-500';
         if ($currentUser && isset($currentUser->status)) {
-            if ($currentUser->status === 'online') {
-                $statusColor = 'bg-discord-green';
-            } elseif ($currentUser->status === 'away') {
-                $statusColor = 'bg-discord-yellow';
-            } elseif ($currentUser->status === 'dnd') {
-                $statusColor = 'bg-discord-red';
+            switch ($currentUser->status) {
+                case 'appear':
+                    $statusColor = 'bg-discord-green';
+                    break;
+                case 'invisible':
+                    $statusColor = 'bg-gray-500';
+                    break;
+                case 'do_not_disturb':
+                    $statusColor = 'bg-discord-red';
+                    break;
+                case 'offline':
+                    $statusColor = 'bg-[#747f8d]';
+                    break;
+                case 'banned':
+                    $statusColor = 'bg-black';
+                    break;
+                default:
+                    $statusColor = 'bg-discord-green';
             }
         } else {
             $statusColor = 'bg-discord-green';

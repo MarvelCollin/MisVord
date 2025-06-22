@@ -51,14 +51,26 @@ $onlineCount = array_reduce($members, function($count, $member) {
                     </h3>
                     <div class="space-y-0.5">
                         <?php foreach ($onlineRoleMembers as $member):
-                            $statusColor = 'bg-gray-500';
+                            $statusColor = 'bg-discord-green';
                             
-                            if ($member['status'] === 'online') {
-                                $statusColor = 'bg-discord-green';
-                            } elseif ($member['status'] === 'away') {
-                                $statusColor = 'bg-discord-yellow';
-                            } elseif ($member['status'] === 'dnd') {
-                                $statusColor = 'bg-discord-red';
+                            switch ($member['status']) {
+                                case 'appear':
+                                    $statusColor = 'bg-discord-green';
+                                    break;
+                                case 'invisible':
+                                    $statusColor = 'bg-gray-500';
+                                    break;
+                                case 'do_not_disturb':
+                                    $statusColor = 'bg-discord-red';
+                                    break;
+                                case 'offline':
+                                    $statusColor = 'bg-[#747f8d]';
+                                    break;
+                                case 'banned':
+                                    $statusColor = 'bg-black';
+                                    break;
+                                default:
+                                    $statusColor = 'bg-discord-green';
                             }
                         ?>
                             <div class="flex items-center px-2 py-1 rounded hover:bg-discord-light group">
@@ -100,12 +112,26 @@ $onlineCount = array_reduce($members, function($count, $member) {
                     </h3>
                     <div class="space-y-0.5">
                         <?php foreach ($onlineDefaultMembers as $member):
-                            $statusColor = 'bg-discord-green';
+                            $statusColor = 'bg-gray-500';
                             
-                            if ($member['status'] === 'away') {
-                                $statusColor = 'bg-discord-yellow';
-                            } elseif ($member['status'] === 'dnd') {
-                                $statusColor = 'bg-discord-red';
+                            switch ($member['status']) {
+                                case 'appear':
+                                    $statusColor = 'bg-discord-green';
+                                    break;
+                                case 'invisible':
+                                    $statusColor = 'bg-gray-500';
+                                    break;
+                                case 'do_not_disturb':
+                                    $statusColor = 'bg-discord-red';
+                                    break;
+                                case 'offline':
+                                    $statusColor = 'bg-[#747f8d]';
+                                    break;
+                                case 'banned':
+                                    $statusColor = 'bg-black';
+                                    break;
+                                default:
+                                    $statusColor = 'bg-discord-green';
                             }
                         ?>
                             <div class="flex items-center px-2 py-1 rounded hover:bg-discord-light group">
@@ -166,12 +192,26 @@ $onlineCount = array_reduce($members, function($count, $member) {
                     });
                     
                     foreach ($onlineMembers as $member):
-                        $statusColor = 'bg-discord-green';
+                        $statusColor = 'bg-gray-500';
                         
-                        if ($member['status'] === 'away') {
-                            $statusColor = 'bg-discord-yellow';
-                        } elseif ($member['status'] === 'dnd') {
-                            $statusColor = 'bg-discord-red';
+                        switch ($member['status']) {
+                            case 'appear':
+                                $statusColor = 'bg-discord-green';
+                                break;
+                            case 'invisible':
+                                $statusColor = 'bg-gray-500';
+                                break;
+                            case 'do_not_disturb':
+                                $statusColor = 'bg-discord-red';
+                                break;
+                            case 'offline':
+                                $statusColor = 'bg-[#747f8d]';
+                                break;
+                            case 'banned':
+                                $statusColor = 'bg-black';
+                                break;
+                            default:
+                                $statusColor = 'bg-discord-green';
                         }
                     ?>
                         <div class="flex items-center px-2 py-1 rounded hover:bg-discord-light group">

@@ -19,7 +19,17 @@ class DebugController extends BaseController
             require_once dirname(__DIR__) . '/database/query.php';
             require_once dirname(__DIR__) . '/config/env.php';
 
-            $dbHost = EnvLoader::get('DB_HOST', 'db');
+            // Check if running in Docker
+            $isDocker = (
+                getenv('IS_DOCKER') === 'true' || 
+                isset($_SERVER['IS_DOCKER']) || 
+                getenv('CONTAINER') !== false ||
+                isset($_SERVER['CONTAINER']) ||
+                file_exists('/.dockerenv')
+            );
+
+            // If in Docker, use 'db' as the host name, otherwise use the value from .env
+            $dbHost = $isDocker ? 'db' : EnvLoader::get('DB_HOST', 'localhost');
             $port = EnvLoader::get('DB_PORT', '3306');
             $dbname = EnvLoader::get('DB_NAME', 'misvord');
             $dsn = "mysql:host=" . $dbHost . ";port=" . $port .
@@ -31,6 +41,7 @@ class DebugController extends BaseController
             echo 'Port: ' . $port . '<br>';
             echo 'Database: ' . $dbname . '<br>';
             echo 'User: ' . EnvLoader::get('DB_USER', 'root') . '<br>';
+            echo 'Docker: ' . ($isDocker ? 'Yes' : 'No') . '<br>';
             echo '</div>';
 
             $options = [

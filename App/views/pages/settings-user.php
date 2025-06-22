@@ -291,21 +291,21 @@ $section = $_GET['section'] ?? 'my-account';
                 
                 <!-- Status Selector -->
                 <div class="status-selector mt-4">
-                    <div class="status-option flex items-center p-2 hover:bg-discord-dark rounded cursor-pointer">
+                    <div class="status-option flex items-center p-2 hover:bg-discord-dark rounded cursor-pointer" data-status="appear">
                         <span class="w-3 h-3 bg-green-500 rounded-full mr-2"></span>
-                        <span class="text-sm text-white">Online</span>
+                        <span class="text-sm text-white">Appear</span>
                     </div>
-                    <div class="status-option flex items-center p-2 hover:bg-discord-dark rounded cursor-pointer">
-                        <span class="w-3 h-3 bg-yellow-500 rounded-full mr-2"></span>
-                        <span class="text-sm text-white">Idle</span>
+                    <div class="status-option flex items-center p-2 hover:bg-discord-dark rounded cursor-pointer" data-status="invisible">
+                        <span class="w-3 h-3 bg-gray-500 rounded-full mr-2"></span>
+                        <span class="text-sm text-white">Invisible</span>
                     </div>
-                    <div class="status-option flex items-center p-2 hover:bg-discord-dark rounded cursor-pointer">
+                    <div class="status-option flex items-center p-2 hover:bg-discord-dark rounded cursor-pointer" data-status="do_not_disturb">
                         <span class="w-3 h-3 bg-red-500 rounded-full mr-2"></span>
                         <span class="text-sm text-white">Do Not Disturb</span>
                     </div>
-                    <div class="status-option flex items-center p-2 hover:bg-discord-dark rounded cursor-pointer">
-                        <span class="w-3 h-3 bg-gray-500 rounded-full mr-2"></span>
-                        <span class="text-sm text-white">Invisible</span>
+                    <div class="status-option flex items-center p-2 hover:bg-discord-dark rounded cursor-pointer" data-status="offline">
+                        <span class="w-3 h-3 bg-[#747f8d] rounded-full mr-2"></span>
+                        <span class="text-sm text-white">Offline</span>
                     </div>
                 </div>
                 

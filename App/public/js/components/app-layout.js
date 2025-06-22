@@ -547,10 +547,11 @@ function loadBlockedUsers() {
 
 function getStatusColor(status) {
     const statusColors = {
-        'online': 'bg-discord-green',
-        'away': 'bg-discord-yellow',
-        'dnd': 'bg-discord-red',
-        'offline': 'bg-gray-500'
+        'appear': 'bg-discord-green',
+        'invisible': 'bg-gray-500',
+        'do_not_disturb': 'bg-discord-red',
+        'offline': 'bg-[#747f8d]',
+        'banned': 'bg-black'
     };
     
     return statusColors[status] || 'bg-gray-500';
@@ -558,10 +559,11 @@ function getStatusColor(status) {
 
 function getStatusText(status) {
     const statusTexts = {
-        'online': 'Online',
-        'away': 'Away',
-        'dnd': 'Do Not Disturb',
-        'offline': 'Offline'
+        'appear': 'Appear',
+        'invisible': 'Invisible',
+        'do_not_disturb': 'Do Not Disturb',
+        'offline': 'Offline',
+        'banned': 'Banned'
     };
     
     return statusTexts[status] || 'Offline';

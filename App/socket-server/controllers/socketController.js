@@ -6,147 +6,148 @@ const userStatus = new Map();
 function setup(io) {
     eventController.setIO(io);
     
-    io.on('connection', (socket) => {
-        console.log(`Socket connected: ${socket.id}`);
+    io.on('connection', (client) => {
+        console.log(`Client connected: ${client.id}`);
         
         // Debug all incoming events
-        const originalOnEvent = socket.onevent;
-        socket.onevent = function(packet) {
+        const originalOnEvent = client.onevent;
+        client.onevent = function(packet) {
             const args = packet.data || [];
             const eventName = args[0];
-            console.log(`📥 RECEIVED EVENT: ${eventName}`, socket.id, args.length > 1 ? `args: ${JSON.stringify(args[1]).substring(0, 100)}...` : 'no args');
+            console.log(`📥 RECEIVED EVENT: ${eventName}`, client.id, args.length > 1 ? `args: ${JSON.stringify(args[1]).substring(0, 100)}...` : 'no args');
             originalOnEvent.call(this, packet);
         };
         
-        socket.on('authenticate', (data) => handleAuthenticate(socket, data));
-        socket.on('join-channel', (data) => handleJoinChannel(socket, data));
-        socket.on('leave-channel', (data) => handleLeaveChannel(socket, data));
-        socket.on('join-dm-room', (data) => handleJoinDMRoom(socket, data));
-        socket.on('channel-message', (data) => handleChannelMessage(io, socket, data));
-        socket.on('typing', (data) => handleTyping(socket, data, io));
-        socket.on('stop-typing', (data) => handleStopTyping(socket, data, io));
-        socket.on('update-presence', (data) => handleUpdatePresence(socket, data));
+        client.on('authenticate', (data) => handleAuthenticate(io, client, data));
+        client.on('join-channel', (data) => handleJoinChannel(io, client, data));
+        client.on('leave-channel', (data) => handleLeaveChannel(io, client, data));
+        client.on('join-dm-room', (data) => handleJoinDMRoom(io, client, data));
+        client.on('channel-message', (data) => handleChannelMessage(io, client, data));
+        client.on('typing', (data) => handleTyping(io, client, data));
+        client.on('stop-typing', (data) => handleStopTyping(io, client, data));
+        client.on('update-presence', (data) => handleUpdatePresence(io, client, data));
         
         // Direct socket events for messaging
-        socket.on('new-channel-message', (data) => forwardEvent(socket, 'new-channel-message', data, `channel-${data.channelId}`, io));
-        socket.on('user-message-dm', (data) => forwardEvent(socket, 'user-message-dm', data, `dm-room-${data.roomId}`, io));
-        socket.on('message-updated', (data) => forwardEvent(socket, 'message-updated', data, getTargetRoom(data), io));
-        socket.on('message-deleted', (data) => forwardEvent(socket, 'message-deleted', data, getTargetRoom(data), io));
-        socket.on('reaction-added', (data) => forwardEvent(socket, 'reaction-added', data, null, io));
-        socket.on('reaction-removed', (data) => forwardEvent(socket, 'reaction-removed', data, null, io));
-        socket.on('message-pinned', (data) => forwardEvent(socket, 'message-pinned', data, null, io));
+        client.on('new-channel-message', (data) => forwardEvent(io, client, 'new-channel-message', data, `channel-${data.channelId}`));
+        client.on('user-message-dm', (data) => forwardEvent(io, client, 'user-message-dm', data, `dm-room-${data.roomId}`));
+        client.on('message-updated', (data) => forwardEvent(io, client, 'message-updated', data, getTargetRoom(data)));
+        client.on('message-deleted', (data) => forwardEvent(io, client, 'message-deleted', data, getTargetRoom(data)));
+        client.on('reaction-added', (data) => forwardEvent(io, client, 'reaction-added', data, null));
+        client.on('reaction-removed', (data) => forwardEvent(io, client, 'reaction-removed', data, null));
+        client.on('message-pinned', (data) => forwardEvent(io, client, 'message-pinned', data, null));
         
-        socket.on('debug-rooms', () => handleDebugRooms(io, socket));
-        socket.on('get-room-info', () => handleGetRoomInfo(io, socket));
-        socket.on('heartbeat', () => socket.emit('heartbeat-response', { time: Date.now() }));
+        client.on('debug-rooms', () => handleDebugRooms(io, client));
+        client.on('get-room-info', () => handleGetRoomInfo(io, client));
+        client.on('heartbeat', () => client.emit('heartbeat-response', { time: Date.now() }));
         
-        socket.on('disconnect', () => handleDisconnect(io, socket));
+        client.on('disconnect', () => handleDisconnect(io, client));
     });
 }
 
-function handleAuthenticate(socket, data) {
+function handleAuthenticate(io, client, data) {
     const { userId, username } = data;
     
     if (!userId) {
-        socket.emit('auth-error', { message: 'User ID is required' });
+        client.emit('auth-error', { message: 'User ID is required' });
         return;
     }
     
-    socket.data.userId = userId;
-    socket.data.username = username || `User-${userId}`;
-    socket.data.authenticated = true;
+    client.data = client.data || {};
+    client.data.userId = userId;
+    client.data.username = username || `User-${userId}`;
+    client.data.authenticated = true;
     
     const userRoom = `user-${userId}`;
-    socket.join(userRoom);
+    client.join(userRoom);
     
     if (userSockets.has(userId)) {
-        userSockets.get(userId).add(socket.id);
+        userSockets.get(userId).add(client.id);
     } else {
-        userSockets.set(userId, new Set([socket.id]));
+        userSockets.set(userId, new Set([client.id]));
     }
     
-    socket.emit('auth-success', { 
+    client.emit('auth-success', { 
         userId, 
-        socketId: socket.id,
+        socketId: client.id,
         message: 'Authentication successful'
     });
     
-    console.log(`User ${userId} (${username}) authenticated on socket ${socket.id}`);
+    console.log(`User ${userId} (${username}) authenticated on client ${client.id}`);
 }
 
-function handleJoinChannel(socket, data) {
-    if (!socket.data.authenticated) {
-        socket.emit('error', { message: 'Authentication required' });
+function handleJoinChannel(io, client, data) {
+    if (!client.data?.authenticated) {
+        client.emit('error', { message: 'Authentication required' });
         return;
     }
     
     const channelId = data.channelId;
     if (!channelId) {
-        socket.emit('error', { message: 'Channel ID is required' });
+        client.emit('error', { message: 'Channel ID is required' });
         return;
     }
     
     const room = `channel-${channelId}`;
-    socket.join(room);
+    client.join(room);
     
-    socket.emit('channel-joined', { 
+    client.emit('channel-joined', { 
         channelId,
         room, 
         message: `Joined channel ${channelId}`
     });
     
-    console.log(`User ${socket.data.userId} joined channel ${channelId}`);
+    console.log(`User ${client.data.userId} joined channel ${channelId}`);
 }
 
-function handleLeaveChannel(socket, data) {
+function handleLeaveChannel(io, client, data) {
     if (!data.channelId) {
-        socket.emit('error', { message: 'Channel ID is required' });
+        client.emit('error', { message: 'Channel ID is required' });
         return;
     }
     
     const room = `channel-${data.channelId}`;
-    socket.leave(room);
+    client.leave(room);
     
-    socket.emit('channel-left', { 
+    client.emit('channel-left', { 
         channelId: data.channelId,
         message: `Left channel ${data.channelId}`
     });
 }
 
-function handleJoinDMRoom(socket, data) {
-    if (!socket.data.authenticated) {
-        socket.emit('error', { message: 'Authentication required' });
+function handleJoinDMRoom(io, client, data) {
+    if (!client.data?.authenticated) {
+        client.emit('error', { message: 'Authentication required' });
         return;
     }
     
     const roomId = data.roomId;
     if (!roomId) {
-        socket.emit('error', { message: 'Room ID is required' });
+        client.emit('error', { message: 'Room ID is required' });
         return;
     }
     
     const room = `dm-room-${roomId}`;
-    socket.join(room);
+    client.join(room);
     
-    socket.emit('dm-room-joined', { 
+    client.emit('dm-room-joined', { 
         roomId,
         room, 
         message: `Joined DM room ${roomId}`
     });
     
-    console.log(`User ${socket.data.userId} joined DM room ${roomId}`);
+    console.log(`User ${client.data.userId} joined DM room ${roomId}`);
 }
 
-function handleChannelMessage(io, socket, data) {
-    if (!socket.data.authenticated) {
-        socket.emit('error', { message: 'Authentication required' });
+function handleChannelMessage(io, client, data) {
+    if (!client.data?.authenticated) {
+        client.emit('error', { message: 'Authentication required' });
         return;
     }
     
     const { channelId, content, messageType = 'text' } = data;
     
     if (!channelId || !content) {
-        socket.emit('error', { message: 'Channel ID and content are required' });
+        client.emit('error', { message: 'Channel ID and content are required' });
         return;
     }
     
@@ -155,8 +156,8 @@ function handleChannelMessage(io, socket, data) {
         id: Date.now().toString(),
         content,
         messageType,
-        userId: socket.data.userId,
-        username: socket.data.username,
+        userId: client.data.userId,
+        username: client.data.username,
         timestamp: Date.now(),
     };
     
@@ -166,118 +167,62 @@ function handleChannelMessage(io, socket, data) {
     console.log(`📢 Sent channel message to ALL in room ${room} (including sender)`);
 }
 
-function handleTyping(socket, data, io) {
-    if (!socket.data.authenticated) return;
+function handleTyping(io, client, data) {
+    if (!client.data?.authenticated) return;
     
     const { channelId, roomId } = data;
-    const userId = socket.data.userId;
-    const username = socket.data.username;
+    const userId = client.data.userId;
+    const username = client.data.username;
     
     if (channelId) {
         const room = `channel-${channelId}`;
-        if (io) {
-            io.to(room).emit('user-typing', { 
-                userId, 
-                username, 
-                channelId 
-            });
-        } else if (socket.nsp) {
-            socket.nsp.to(room).emit('user-typing', { 
-                userId, 
-                username, 
-                channelId 
-            });
-        } else {
-        socket.to(room).emit('user-typing', { 
+        io.to(room).emit('user-typing', { 
             userId, 
             username, 
             channelId 
         });
-        }
     } else if (roomId) {
         const room = `dm-room-${roomId}`;
-        if (io) {
-            io.to(room).emit('user-typing-dm', { 
-                userId, 
-                username, 
-                roomId 
-            });
-        } else if (socket.nsp) {
-            socket.nsp.to(room).emit('user-typing-dm', { 
-                userId, 
-                username, 
-                roomId 
-            });
-        } else {
-        socket.to(room).emit('user-typing-dm', { 
+        io.to(room).emit('user-typing-dm', { 
             userId, 
             username, 
             roomId 
         });
-        }
     }
 }
 
-function handleStopTyping(socket, data, io) {
-    if (!socket.data.authenticated) return;
+function handleStopTyping(io, client, data) {
+    if (!client.data?.authenticated) return;
     
     const { channelId, roomId } = data;
-    const userId = socket.data.userId;
-    const username = socket.data.username;
+    const userId = client.data.userId;
+    const username = client.data.username;
     
     if (channelId) {
         const room = `channel-${channelId}`;
-        if (io) {
-            io.to(room).emit('user-stop-typing', { 
-                userId, 
-                username, 
-                channelId 
-            });
-        } else if (socket.nsp) {
-            socket.nsp.to(room).emit('user-stop-typing', { 
-                userId, 
-                username, 
-                channelId 
-            });
-        } else {
-        socket.to(room).emit('user-stop-typing', { 
+        io.to(room).emit('user-stop-typing', { 
             userId, 
             username, 
             channelId 
         });
-        }
     } else if (roomId) {
         const room = `dm-room-${roomId}`;
-        if (io) {
-            io.to(room).emit('user-stop-typing-dm', { 
-                userId, 
-                username, 
-                roomId 
-            });
-        } else if (socket.nsp) {
-            socket.nsp.to(room).emit('user-stop-typing-dm', { 
-                userId, 
-                username, 
-                roomId 
-            });
-        } else {
-        socket.to(room).emit('user-stop-typing-dm', { 
+        io.to(room).emit('user-stop-typing-dm', { 
             userId, 
             username, 
             roomId 
         });
-        }
     }
 }
 
-function handleUpdatePresence(socket, data) {
-    if (!socket.data.authenticated || !socket.data.userId) return;
+function handleUpdatePresence(io, client, data) {
+    if (!client.data?.authenticated || !client.data.userId) return;
     
     const { status, activityDetails } = data;
-    const userId = socket.data.userId;
+    const userId = client.data.userId;
     
-    socket.data.status = status;
-    socket.data.activityDetails = activityDetails;
+    client.data.status = status;
+    client.data.activityDetails = activityDetails;
     
     userStatus.set(userId, { 
         status, 
@@ -285,41 +230,41 @@ function handleUpdatePresence(socket, data) {
         lastUpdated: Date.now() 
     });
     
-    socket.broadcast.emit('user-presence-update', {
+    io.emit('user-presence-update', {
         userId,
-        username: socket.data.username,
+        username: client.data.username,
         status,
         activityDetails
     });
 }
 
-function handleDisconnect(io, socket) {
-    const userId = socket.data.userId;
+function handleDisconnect(io, client) {
+    const userId = client.data?.userId;
     
-    console.log(`Socket disconnected: ${socket.id}, User: ${userId}`);
+    console.log(`Client disconnected: ${client.id}, User: ${userId}`);
     
     if (userId && userSockets.has(userId)) {
-        userSockets.get(userId).delete(socket.id);
+        userSockets.get(userId).delete(client.id);
         
         if (userSockets.get(userId).size === 0) {
             userSockets.delete(userId);
             
             io.emit('user-offline', {
                 userId,
-                username: socket.data.username,
+                username: client.data.username,
                 timestamp: Date.now()
             });
         }
     }
 }
 
-function handleDebugRooms(io, socket) {
-    if (!socket.data.authenticated) {
-        socket.emit('error', { message: 'Authentication required' });
+function handleDebugRooms(io, client) {
+    if (!client.data?.authenticated) {
+        client.emit('error', { message: 'Authentication required' });
         return;
     }
     
-    const socketRooms = Array.from(socket.rooms).filter(room => room !== socket.id);
+    const clientRooms = Array.from(client.rooms).filter(room => room !== client.id);
     
     const roomData = {};
     if (io.sockets && io.sockets.adapter && io.sockets.adapter.rooms) {
@@ -333,30 +278,30 @@ function handleDebugRooms(io, socket) {
         }
     }
     
-    socket.emit('debug-rooms-info', {
-        yourSocketId: socket.id,
-        yourUserId: socket.data.userId,
-        yourRooms: socketRooms,
+    client.emit('debug-rooms-info', {
+        yourSocketId: client.id,
+        yourUserId: client.data.userId,
+        yourRooms: clientRooms,
         allRooms: roomData
     });
 }
 
-function handleGetRoomInfo(io, socket) {
-    if (!socket.data.authenticated) {
-        socket.emit('error', { message: 'Authentication required' });
+function handleGetRoomInfo(io, client) {
+    if (!client.data?.authenticated) {
+        client.emit('error', { message: 'Authentication required' });
         return;
     }
     
-    const socketRooms = Array.from(socket.rooms).filter(room => room !== socket.id);
+    const clientRooms = Array.from(client.rooms).filter(room => room !== client.id);
     
-    socket.emit('room-info', {
-        rooms: socketRooms
+    client.emit('room-info', {
+        rooms: clientRooms
     });
 }
 
-function forwardEvent(socket, eventName, data, specificRoom = null, io) {
-    if (!socket.data.authenticated) {
-        socket.emit('error', { message: 'Authentication required' });
+function forwardEvent(io, client, eventName, data, specificRoom = null) {
+    if (!client.data?.authenticated) {
+        client.emit('error', { message: 'Authentication required' });
         return;
     }
     
@@ -365,87 +310,30 @@ function forwardEvent(socket, eventName, data, specificRoom = null, io) {
         specificRoom = getTargetRoom(data);
     }
     
-    // Basic event logging
-    console.log(`Forwarding event ${eventName}${specificRoom ? ' to room: ' + specificRoom : ''}`);
+    // Clean the message data
+    const cleanData = { ...data };
+    if (cleanData._debug) delete cleanData._debug;
+    if (cleanData._serverDebug) delete cleanData._serverDebug;
     
-    // Get username from debug data or from socket data
-    const username = data._debug?.emittedBy || socket.data.username || 'Unknown';
-    const userId = socket.data.userId || data.user_id || data.userId || 'unknown';
-    const source = data._debug?.type || 'direct-socket';
+    // Log event info
+    const username = client.data.username || 'Unknown';
+    const userId = client.data.userId || 'unknown';
     
-    // Detailed message logging based on event type
     if (eventName === 'new-channel-message') {
-        const channelId = data.channelId || data.channel_id;
-        console.log(`👤 ${username} (${userId}) chat in channel ${channelId} : "${data.content}"`);
+        const channelId = cleanData.channelId || 'unknown';
+        console.log(`Message from ${username} (${userId}) in channel ${channelId}: "${cleanData.content}"`);
     } else if (eventName === 'user-message-dm') {
-        const roomId = data.roomId || data.chatRoomId || data.room_id;
-        console.log(`👤 ${username} (${userId}) chat in room ${roomId} : "${data.content}"`);
-    } else if (eventName === 'message-updated') {
-        const targetType = data.target_type || 'unknown';
-        const roomId = data.target_id || data.roomId || data.channelId;
-        console.log(`👤 ${username} (${userId}) edited message in ${targetType} ${roomId} : "${data.message?.content || data.content || 'unknown content'}"`);
-    } else if (eventName === 'message-deleted') {
-        const targetType = data.target_type || 'unknown';
-        const roomId = data.target_id || data.roomId || data.channelId;
-        console.log(`👤 ${username} (${userId}) deleted message ${data.message_id} in ${targetType} ${roomId}`);
-    } else if (eventName === 'reaction-added' || eventName === 'reaction-removed') {
-        console.log(`👤 ${username} (${userId}) ${eventName.replace('-', ' ')} ${data.emoji} to message ${data.message_id}`);
+        const roomId = cleanData.roomId || 'unknown';
+        console.log(`Message from ${username} (${userId}) in DM room ${roomId}: "${cleanData.content}"`);
     }
     
-    // Add debug info to track message flow
-    const enhancedData = {
-        ...data,
-        _serverDebug: {
-            timestamp: new Date().toISOString(),
-            emittedTo: specificRoom || 'all',
-            emittedBy: username,
-            userId: userId,
-            socketId: socket.id,
-            includingSender: true
-        }
-    };
-    
-    // Remove client debug properties before forwarding
-    if (enhancedData._debug) {
-        delete enhancedData._debug;
-    }
-    
-    // Forward the event
+    // Always use io for messaging
     if (specificRoom) {
-        // Use io.to to send to all clients in the room including the sender
-        if (io) {
-            // Emit to all clients in the room INCLUDING the sender
-            io.to(specificRoom).emit(eventName, enhancedData);
-            
-            // Log room size for debugging
-            const roomSize = socket.adapter.rooms && socket.adapter.rooms.get(specificRoom)?.size || 0;
-            console.log(`📢 Sent to ALL in room ${specificRoom} (${roomSize} clients connected, including sender)`);
-            
-            // Always ensure the sender gets the message too
-            socket.emit(eventName, {
-                ...enhancedData,
-                _serverDebug: {
-                    ...enhancedData._serverDebug,
-                    directlySentToSender: true
-                }
-            });
-        } else {
-            // Fallback if io is not available
-            socket.to(specificRoom).emit(eventName, enhancedData);
-            socket.emit(eventName, enhancedData);
-            console.log(`📢 Sent to room ${specificRoom} (including sender via direct emit)`);
-        }
+        io.to(specificRoom).emit(eventName, cleanData);
+        console.log(`Event ${eventName} sent to room: ${specificRoom}`);
     } else {
-        // Broadcast to everyone including the sender
-        if (io) {
-            io.emit(eventName, enhancedData);
-            console.log(`📢 Broadcasted to all clients including sender`);
-        } else {
-            // Fallback
-            socket.broadcast.emit(eventName, enhancedData);
-            socket.emit(eventName, enhancedData);
-            console.log(`📢 Broadcasted to all clients (including sender via direct emit)`);
-        }
+        io.emit(eventName, cleanData);
+        console.log(`Event ${eventName} broadcast to all clients`);
     }
 }
 

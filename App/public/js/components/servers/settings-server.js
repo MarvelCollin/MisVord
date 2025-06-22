@@ -6,17 +6,70 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function initServerSettingsPage() {
-    initServerIconUpload();
-    initServerProfileForm();
-    initCloseButton();
+    // Check if user is authenticated
+    if (!document.body.classList.contains('authenticated')) {
+        console.error('User is not authenticated');
+        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
+        return;
+    }
     
-    // Check if we're on the members tab
+    // Initialize tabs
+    const tabs = document.querySelectorAll('.settings-tab');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    // Get active tab from URL parameter
     const urlParams = new URLSearchParams(window.location.search);
-    const section = urlParams.get('section');
+    const activeSection = urlParams.get('section') || 'profile';
     
-    if (section === 'members') {
+    // Initialize the active tab
+    tabs.forEach(tab => {
+        if (tab.dataset.tab === activeSection) {
+            tab.classList.add('active');
+        } else {
+            tab.classList.remove('active');
+        }
+        
+        tab.addEventListener('click', () => {
+            const tabId = tab.dataset.tab;
+            
+            // Update URL without reloading the page
+            const url = new URL(window.location);
+            url.searchParams.set('section', tabId);
+            window.history.pushState({}, '', url);
+            
+            // Update active tab
+            tabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            
+            // Show active content
+            tabContents.forEach(content => {
+                if (content.id === `${tabId}-tab`) {
+                    content.classList.remove('hidden');
+                } else {
+                    content.classList.add('hidden');
+                }
+            });
+        });
+    });
+    
+    // Show active content
+    tabContents.forEach(content => {
+        if (content.id === `${activeSection}-tab`) {
+            content.classList.remove('hidden');
+        } else {
+            content.classList.add('hidden');
+        }
+    });
+    
+    // Initialize specific tab functionality
+    if (activeSection === 'profile') {
+        initServerProfileForm();
+    } else if (activeSection === 'members') {
         initMembersTab();
     }
+    
+    // Initialize close button
+    initCloseButton();
 }
 
 /**
@@ -181,13 +234,31 @@ function initMembersTab() {
             const response = await ServerAPI.getServerMembers(serverId);
             
             if (response && response.success) {
-                allMembers = response.members || [];
+                // Handle both response formats (with data wrapper and without)
+                if (response.data && response.data.members) {
+                    allMembers = response.data.members;
+                } else if (response.members) {
+                    allMembers = response.members;
+                } else {
+                    allMembers = [];
+                }
                 renderMembers(allMembers);
+            } else if (response && response.error && response.error.code === 401) {
+                // User is not authenticated, redirect to login
+                window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
+                return;
             } else {
                 throw new Error(response.message || 'Failed to load server members');
             }
         } catch (error) {
             console.error('Error loading server members:', error);
+            
+            // Check if it's an authentication error
+            if (error.message && error.message.toLowerCase().includes('unauthorized')) {
+                window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
+                return;
+            }
+            
             membersList.innerHTML = `
                 <div class="flex items-center justify-center p-8 text-discord-lighter">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-[#ed4245]" fill="none" viewBox="0 0 24 24" stroke="currentColor">

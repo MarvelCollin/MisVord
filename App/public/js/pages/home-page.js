@@ -6,7 +6,7 @@ const friendAPI = FriendAPI;
 document.addEventListener('DOMContentLoaded', function() {
     initFriendProfileCards();
     initSearchFilter();
-    setupFriendSocketListeners();
+    setupSocketListeners();
     initPendingRequests();
 });
 
@@ -178,18 +178,16 @@ function filterFriends() {
     });
 }
 
-function setupFriendSocketListeners() {
+function setupSocketListeners() {
     if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
-        window.logger?.warn('home', 'Global socket manager not ready for friend listeners');
         return;
     }
-
-    const socket = window.globalSocketManager.socket;
-    if (!socket) return;
-
-    socket.on('friend-request', handleFriendRequest);
-    socket.on('friend-status-update', updateFriendStatus);
-    socket.on('friend-activity-update', updateFriendActivity);
+    
+    const io = window.globalSocketManager.io;
+    
+    io.on('friend-request', handleFriendRequest);
+    io.on('friend-status-update', updateFriendStatus);
+    io.on('friend-activity-update', updateFriendActivity);
 }
 
 function handleFriendRequest(data) {
@@ -209,17 +207,19 @@ function updateFriendStatus(data) {
     const friendItems = document.querySelectorAll(`.friend-item[data-user-id="${userId}"]`);
 
     const statusColors = {
-        'online': 'bg-discord-green',
-        'away': 'bg-discord-yellow',
-        'dnd': 'bg-discord-red',
-        'offline': 'bg-gray-500'
+        'appear': 'bg-discord-green',
+        'invisible': 'bg-gray-500',
+        'do_not_disturb': 'bg-discord-red',
+        'offline': 'bg-[#747f8d]',
+        'banned': 'bg-black'
     };
 
     const statusTexts = {
-        'online': 'Online',
-        'away': 'Away',
-        'dnd': 'Do Not Disturb',
-        'offline': 'Offline'
+        'appear': 'Appear',
+        'invisible': 'Invisible',
+        'do_not_disturb': 'Do Not Disturb',
+        'offline': 'Offline',
+        'banned': 'Banned'
     };
 
     friendItems.forEach(item => {
@@ -407,56 +407,36 @@ function createOutgoingRequestItem(user) {
 }
 
 function acceptFriendRequest(userId) {
-    if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {        window.logger?.warn('home', 'Socket not ready for friend request acceptance');
-        return;
+    const io = window.globalSocketManager.io;
+    io.emit('friend-request-response', { userId, action: 'accept' });
+    
+    const requestElement = document.querySelector(`.pending-request[data-user-id="${userId}"]`);
+    if (requestElement) {
+        requestElement.remove();
     }
 
-    const socket = window.globalSocketManager.socket;
-    if (socket) {
-        socket.emit('friend-request-response', { userId, action: 'accept' });
-
-        const requestElement = document.querySelector(`.pending-request[data-user-id="${userId}"]`);
-        if (requestElement) {
-            requestElement.remove();
-        }
-
-        updatePendingCount();
-    }
+    updatePendingCount();
 }
 
 function ignoreFriendRequest(userId) {
-    if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
-        window.logger?.warn('home', 'Socket not ready for friend request ignore');
-        return;
+    const io = window.globalSocketManager.io;
+    io.emit('friend-request-response', { userId, action: 'ignore' });
+    
+    const requestElement = document.querySelector(`.pending-request[data-user-id="${userId}"]`);
+    if (requestElement) {
+        requestElement.remove();
     }
 
-    const socket = window.globalSocketManager.socket;
-    if (socket) {
-        socket.emit('friend-request-response', { userId, action: 'ignore' });
-
-        const requestElement = document.querySelector(`.pending-request[data-user-id="${userId}"]`);
-        if (requestElement) {
-            requestElement.remove();
-        }
-
-        updatePendingCount();
-    }
+    updatePendingCount();
 }
 
 function cancelFriendRequest(userId) {
-    if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
-        window.logger?.warn('home', 'Socket not ready for friend request cancellation');
-        return;
-    }
-
-    const socket = window.globalSocketManager.socket;
-    if (socket) {
-        socket.emit('friend-request-response', { userId, action: 'cancel' });
-
-        const requestElement = document.querySelector(`.pending-request[data-user-id="${userId}"]`);
-        if (requestElement) {
-            requestElement.remove();
-        }
+    const io = window.globalSocketManager.io;
+    io.emit('friend-request-response', { userId, action: 'cancel' });
+    
+    const requestElement = document.querySelector(`.pending-request[data-user-id="${userId}"]`);
+    if (requestElement) {
+        requestElement.remove();
     }
 }
 

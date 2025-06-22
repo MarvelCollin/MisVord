@@ -25,7 +25,7 @@ class ChatSection {
         this.loadChatParams();
         this.setupEventListeners();
         this.loadMessages();
-        this.setupSocketListeners();
+        this.setupIoListeners();
     }
     
     loadElements() {
@@ -79,46 +79,46 @@ class ChatSection {
         }
     }
     
-    setupSocketListeners() {
+    setupIoListeners() {
         window.addEventListener('globalSocketReady', () => {
             this.joinChannel();
             
-            if (window.globalSocketManager && window.globalSocketManager.socket) {
-                const socket = window.globalSocketManager.socket;
+            if (window.globalSocketManager && window.globalSocketManager.io) {
+                const io = window.globalSocketManager.io;
                 
-                socket.on('new-channel-message', (data) => {
+                io.on('new-channel-message', (data) => {
                     if (this.chatType === 'channel' && data.channelId == this.targetId) {
                         this.showReceiveNotification('channel', data);
                         this.addMessage(data);
                     }
                 });
                 
-                socket.on('user-message-dm', (data) => {
+                io.on('user-message-dm', (data) => {
                     if ((this.chatType === 'direct' || this.chatType === 'dm') && data.roomId == this.targetId) {
                         this.showReceiveNotification('dm', data);
                         this.addMessage(data);
                     }
                 });
                 
-                socket.on('user-typing', (data) => {
+                io.on('user-typing', (data) => {
                     if (this.chatType === 'channel' && data.channelId == this.targetId && data.userId != this.userId) {
                         this.showTypingIndicator(data.userId, data.username);
                     }
                 });
                 
-                socket.on('user-typing-dm', (data) => {
+                io.on('user-typing-dm', (data) => {
                     if ((this.chatType === 'direct' || this.chatType === 'dm') && data.roomId == this.targetId) {
                         this.showTypingIndicator(data.userId, data.username);
                     }
                 });
                 
-                socket.on('user-stop-typing', (data) => {
+                io.on('user-stop-typing', (data) => {
                     if (this.chatType === 'channel' && data.channelId == this.targetId) {
                         this.removeTypingIndicator(data.userId);
                     }
                 });
                 
-                socket.on('user-stop-typing-dm', (data) => {
+                io.on('user-stop-typing-dm', (data) => {
                     if ((this.chatType === 'direct' || this.chatType === 'dm') && data.roomId == this.targetId) {
                         this.removeTypingIndicator(data.userId);
                     }
@@ -190,7 +190,6 @@ class ChatSection {
         const messageId = `local-${timestamp}`;
         
         try {
-            // Clear input field and reset textarea height
             this.messageInput.value = '';
             this.resizeTextarea();
             this.sendStopTyping();
@@ -200,7 +199,6 @@ class ChatSection {
                 return;
             }
             
-            // Create a temporary message object to display immediately
             const tempMessage = {
                 id: messageId,
                 content: content,
@@ -213,18 +211,14 @@ class ChatSection {
                 _localMessage: true
             };
             
-            // Add the message to the UI immediately
             this.addMessage(tempMessage);
             
-            // Send the message to the server
             await window.ChatAPI.sendMessage(this.targetId, content, this.chatType);
             
         } catch (error) {
             console.error('Failed to send message:', error);
-            // If there was an error, put the content back in the input
             this.messageInput.value = content;
             
-            // Remove the temporary message from the UI
             const tempMessageElement = document.querySelector(`[data-message-id="${messageId}"]`);
             if (tempMessageElement) {
                 const messageGroup = tempMessageElement.closest('.message-group');
@@ -412,17 +406,18 @@ class ChatSection {
             isLocalOnly: message.isLocalOnly || false
         };
         
-        // Check if this is the current user's message
         const isOwnMessage = msg.user_id == this.userId;
         
-        // Only check for duplicates for server-sourced messages (not local temporary messages)
-        // And only for messages that aren't explicitly marked as isLocalOnly
-        if (!msg.isLocalOnly && !message._localMessage) {
-            const existingMessage = this.findExistingMessage(msg.content, msg.user_id, msg.id);
-            if (existingMessage) {
-                // Skip duplicate messages from the server
-                return;
+        let shouldAddMessage = true;
+        if (!msg.isLocalOnly) {
+            const existingMessageElement = document.querySelector(`[data-message-id="${msg.id}"]`);
+            if (existingMessageElement) {
+                shouldAddMessage = false;
             }
+        }
+        
+        if (!shouldAddMessage) {
+            return;
         }
         
         const lastMessageGroup = this.chatMessages.lastElementChild;
@@ -440,41 +435,6 @@ class ChatSection {
         }
         
         this.scrollToBottom();
-    }
-    
-    findExistingMessage(content, userId, messageId = null) {
-        // This helps prevent duplicate messages
-        if (!this.chatMessages || !content || !userId) return false;
-        
-        const messageElements = this.chatMessages.querySelectorAll('.message-content');
-        
-        for (const element of messageElements) {
-            const messageGroup = element.closest('.message-group');
-            if (!messageGroup) continue;
-            
-            const senderId = messageGroup.getAttribute('data-user-id');
-            if (senderId !== userId) continue;
-            
-            const messageText = element.querySelector('.message-text')?.textContent;
-            
-            // If the same user sends the same text in a short time, it's probably a duplicate
-            if (messageText === content) {
-                // If we have a message ID, check if this is truly the same message or just the same content
-                if (messageId) {
-                    const existingId = element.getAttribute('data-message-id');
-                    
-                    // If IDs are different, it's not the same message, just same content
-                    if (existingId && existingId !== messageId && existingId.startsWith('local-')) {
-                        // This is likely a local message being replaced by server message
-                        // We'll let it continue and the local message will be updated
-                        continue;
-                    }
-                }
-                return element;
-            }
-        }
-        
-        return null;
     }
     
     createMessageGroup(message, isOwnMessage = false) {

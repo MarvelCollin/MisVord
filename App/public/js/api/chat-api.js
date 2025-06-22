@@ -74,38 +74,37 @@ class ChatAPI {
             console.error(`❌ Failed to fetch messages for ${apiChatType} ${targetId}:`, error);
             throw error;
         }
-    }async sendMessage(targetId, content, chatType = 'channel') {
+    }    async sendMessage(targetId, content, chatType = 'channel') {
         const url = `${this.baseURL}/send`;
         const apiChatType = chatType === 'direct' ? 'dm' : chatType;
         
         try {
             // First, send to database via API
             const response = await this.makeRequest(url, {
-            method: 'POST',
-            body: JSON.stringify({
-                target_type: apiChatType,
-                target_id: targetId,
-                content: content
-            })
-        });
+                method: 'POST',
+                body: JSON.stringify({
+                    target_type: apiChatType,
+                    target_id: targetId,
+                    content: content
+                })
+            });
             
-            // Then, send directly to socket regardless of API response
-            this.sendDirectSocketMessage(targetId, content, chatType);
+            // ONLY send socket message if database save was successful
+            if (response && response.success !== false) {
+                this.sendDirectSocketMessage(targetId, content, chatType);
+            }
             
             // Return the API response
             return response;
         } catch (error) {
             console.error('Error sending message to database:', error);
-            
-            // Even if DB fails, try socket
-            this.sendDirectSocketMessage(targetId, content, chatType);
-            
+            // Do not emit socket events if database save failed
             throw error;
         }
     }
 
     sendDirectSocketMessage(targetId, content, chatType = 'channel') {
-        if (!window.globalSocketManager || !window.globalSocketManager.isReady() || !window.globalSocketManager.socket) {
+        if (!window.globalSocketManager || !window.globalSocketManager.isReady() || !window.globalSocketManager.io) {
             console.warn('⚠️ Socket not ready, cannot send direct socket message');
             return false;
         }
@@ -113,13 +112,12 @@ class ChatAPI {
         const userId = window.globalSocketManager.userId;
         const username = window.globalSocketManager.username;
         const timestamp = Date.now();
-        const socket = window.globalSocketManager.socket;
+        const io = window.globalSocketManager.io;
         
         try {
             let eventName, messageData;
             
             if (chatType === 'channel') {
-                // Prepare channel message data
                 eventName = 'new-channel-message';
                 messageData = {
                     channelId: targetId,
@@ -127,18 +125,10 @@ class ChatAPI {
                     messageType: 'text',
                     timestamp: timestamp,
                     userId: userId,
-                    username: username,
-                    _debug: {
-                        timestamp: new Date().toISOString(),
-                        clientId: socket.id,
-                        emittedBy: username || 'Unknown',
-                        type: 'direct-socket-path'
-                    }
+                    username: username
                 };
-                console.log(`🔌 Direct socket message to channel ${targetId}: "${content}"`);
             } 
             else if (chatType === 'direct' || chatType === 'dm') {
-                // Prepare DM message data
                 eventName = 'user-message-dm';
                 messageData = {
                     roomId: targetId,
@@ -146,30 +136,12 @@ class ChatAPI {
                     messageType: 'text',
                     timestamp: timestamp,
                     userId: userId,
-                    username: username,
-                    _debug: {
-                        timestamp: new Date().toISOString(),
-                        clientId: socket.id,
-                        emittedBy: username || 'Unknown',
-                        type: 'direct-socket-path'
-                    }
+                    username: username
                 };
-                console.log(`🔌 Direct socket message to DM room ${targetId}: "${content}"`);
             }
             
-            // Emit the event to the server
             if (eventName && messageData) {
-                socket.emit(eventName, messageData);
-                
-                // Also emit the event to ourselves to ensure we see our own messages
-                // This is a fallback in case the server doesn't echo back to the sender
-                socket.emit(eventName, {
-                    ...messageData,
-                    _debug: {
-                        ...messageData._debug,
-                        type: 'local-echo'
-                    }
-                });
+                io.emit(eventName, messageData);
             }
             
             return true;
@@ -183,7 +155,6 @@ class ChatAPI {
         const url = `/api/messages/${messageId}`;
         
         try {
-            // First, update in database via API
             const response = await this.makeRequest(url, {
                 method: 'PUT',
                 body: JSON.stringify({
@@ -191,13 +162,11 @@ class ChatAPI {
                 })
             });
             
-            // Then, send directly to socket regardless of API response
             if (response && response.data) {
                 const messageData = response.data;
                 this.sendDirectSocketUpdate(messageId, content, messageData.target_type, messageData.target_id);
             }
             
-            // Return the API response
             return response;
         } catch (error) {
             console.error('Error updating message in database:', error);
@@ -206,7 +175,7 @@ class ChatAPI {
     }
     
     sendDirectSocketUpdate(messageId, content, targetType, targetId) {
-        if (!window.globalSocketManager || !window.globalSocketManager.isReady() || !window.globalSocketManager.socket) {
+        if (!window.globalSocketManager || !window.globalSocketManager.isReady() || !window.globalSocketManager.io) {
             console.warn('⚠️ Socket not ready, cannot send direct socket update');
             return false;
         }
@@ -215,7 +184,7 @@ class ChatAPI {
         const username = window.globalSocketManager.username;
         
         try {
-            window.globalSocketManager.socket.emit('message-updated', {
+            window.globalSocketManager.io.emit('message-updated', {
                 message_id: messageId,
                 content: content,
                 target_type: targetType,
@@ -225,7 +194,7 @@ class ChatAPI {
                 timestamp: Date.now(),
                 _debug: {
                     timestamp: new Date().toISOString(),
-                    clientId: window.globalSocketManager.socket.id,
+                    clientId: window.globalSocketManager.io.id,
                     emittedBy: username || 'Unknown',
                     type: 'direct-socket-path'
                 }
@@ -262,7 +231,7 @@ class ChatAPI {
     }
     
     sendDirectSocketDelete(messageId, targetType, targetId) {
-        if (!window.globalSocketManager || !window.globalSocketManager.isReady() || !window.globalSocketManager.socket) {
+        if (!window.globalSocketManager || !window.globalSocketManager.isReady() || !window.globalSocketManager.io) {
             console.warn('⚠️ Socket not ready, cannot send direct socket delete');
             return false;
         }
@@ -271,7 +240,7 @@ class ChatAPI {
         const username = window.globalSocketManager.username;
         
         try {
-            window.globalSocketManager.socket.emit('message-deleted', {
+            window.globalSocketManager.io.emit('message-deleted', {
                 message_id: messageId,
                 target_type: targetType,
                 target_id: targetId,
@@ -280,7 +249,7 @@ class ChatAPI {
                 timestamp: Date.now(),
                 _debug: {
                     timestamp: new Date().toISOString(),
-                    clientId: window.globalSocketManager.socket.id,
+                    clientId: window.globalSocketManager.io.id,
                     emittedBy: username || 'Unknown',
                     type: 'direct-socket-path'
                 }
@@ -342,7 +311,7 @@ class ChatAPI {
     }
     
     sendDirectSocketReaction(messageId, emoji, action, userId) {
-        if (!window.globalSocketManager || !window.globalSocketManager.isReady() || !window.globalSocketManager.socket) {
+        if (!window.globalSocketManager || !window.globalSocketManager.isReady() || !window.globalSocketManager.io) {
             console.warn('⚠️ Socket not ready, cannot send direct socket reaction');
             return false;
         }
@@ -351,7 +320,7 @@ class ChatAPI {
         const eventName = action === 'add' ? 'reaction-added' : 'reaction-removed';
         
         try {
-            window.globalSocketManager.socket.emit(eventName, {
+            window.globalSocketManager.io.emit(eventName, {
                 message_id: messageId,
                 emoji: emoji,
                 user_id: userId,
@@ -359,7 +328,7 @@ class ChatAPI {
                 timestamp: Date.now(),
                 _debug: {
                     timestamp: new Date().toISOString(),
-                    clientId: window.globalSocketManager.socket.id,
+                    clientId: window.globalSocketManager.io.id,
                     emittedBy: username || 'Unknown',
                     type: 'direct-socket-path'
                 }
@@ -376,7 +345,7 @@ class ChatAPI {
         console.warn('⚠️ DEPRECATED: emitSocketEvent is deprecated. Use direct socket emission instead.');
         console.warn('This method will be removed in a future update.');
         
-        if (window.globalSocketManager && window.globalSocketManager.isReady() && window.globalSocketManager.socket) {
+        if (window.globalSocketManager && window.globalSocketManager.isReady() && window.globalSocketManager.io) {
             const userId = window.globalSocketManager.userId;
             const username = window.globalSocketManager.username;
             
@@ -385,13 +354,13 @@ class ChatAPI {
                 ...data,
                 _debug: {
                     timestamp: new Date().toISOString(),
-                    clientId: window.globalSocketManager.socket.id,
+                    clientId: window.globalSocketManager.io.id,
                     emittedBy: username || 'Unknown',
                     type: 'api-relay-deprecated'
                 }
             };
             
-            window.globalSocketManager.socket.emit(eventName, enhancedData);
+            window.globalSocketManager.io.emit(eventName, enhancedData);
             
             // More detailed console logging based on event type
             if (eventName === 'new-channel-message') {

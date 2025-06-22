@@ -69,12 +69,12 @@ const handleApiRequest = (req, res) => {
         }
         
         const onlineUsers = {};
-        for (const [socketId, socket] of io.of('/').sockets) {
-            if (socket.data?.userId) {
-                onlineUsers[socket.data.userId] = {
-                    socketId,
-                    username: socket.data.username,
-                    status: socket.data.status || 'online'
+        for (const [clientId, client] of io.of('/').sockets) {
+            if (client.data?.userId) {
+                onlineUsers[client.data.userId] = {
+                    clientId,
+                    username: client.data.username,
+                    status: client.data.status || 'online'
                 };
             }
         }

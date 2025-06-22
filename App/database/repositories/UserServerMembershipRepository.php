@@ -63,7 +63,7 @@ class UserServerMembershipRepository extends Repository {
     {
         try {
             $pdo = $this->db->getPdo();
-            $query = "SELECT u.id, u.username, u.discriminator, u.avatar_url, u.status, usm.created_at as joined_at
+            $query = "SELECT u.id, u.username, u.discriminator, u.avatar_url, u.status, usm.role, usm.created_at as joined_at
                       FROM users u
                       JOIN user_server_memberships usm ON u.id = usm.user_id
                       WHERE usm.server_id = :server_id
@@ -73,8 +73,15 @@ class UserServerMembershipRepository extends Repository {
             $stmt->bindParam(':server_id', $serverId, PDO::PARAM_INT);
             $stmt->execute();
             
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Debug info
+            error_log("Server ID: " . $serverId);
+            error_log("Members found: " . count($results));
+            
+            return $results;
         } catch (Exception $e) {
+            error_log("Error getting server members: " . $e->getMessage());
             return [];
         }
     }

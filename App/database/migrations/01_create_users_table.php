@@ -11,7 +11,7 @@ class CreateUsersTableMigration {
             $table->string('google_id', 255, true); 
             $table->string('avatar_url', 255, true); 
             $table->string('banner_url', 255, true); 
-            $table->string('status', 255, true); 
+            $table->string('status', 255, true, 'appear');
             $table->timestamps();
         });
     }

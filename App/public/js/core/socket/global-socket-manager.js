@@ -1,6 +1,6 @@
 class GlobalSocketManager {
     constructor() {
-        this.socket = null;
+        this.io = null;
         this.connected = false;
         this.authenticated = false;
         this.userId = null;
@@ -40,7 +40,7 @@ class GlobalSocketManager {
     }
     
     connect() {
-        if (this.socket && this.connected) {
+        if (this.io && this.connected) {
             this.log('Socket already connected');
             return;
         }
@@ -49,7 +49,7 @@ class GlobalSocketManager {
         this.log(`Connecting to socket: ${socketUrl}`);
         
         try {
-            this.socket = io(socketUrl, {
+            this.io = io(socketUrl, {
                 transports: ['websocket', 'polling'],
                 reconnection: true,
                 reconnectionDelay: 1000,
@@ -65,17 +65,17 @@ class GlobalSocketManager {
     }
     
     setupEventHandlers() {
-        if (!this.socket) return;
+        if (!this.io) return;
         
-        this.socket.on('connect', () => {
+        this.io.on('connect', () => {
             this.connected = true;
             this.reconnectAttempts = 0;
-            this.log(`Socket connected: ${this.socket.id}`);
+            this.log(`Socket connected: ${this.io.id}`);
             
             const event = new CustomEvent('globalSocketReady', {
                 detail: {
                     manager: this,
-                    socketId: this.socket.id
+                    socketId: this.io.id
                 }
             });
             
@@ -86,7 +86,7 @@ class GlobalSocketManager {
             }
         });
         
-        this.socket.on('disconnect', () => {
+        this.io.on('disconnect', () => {
             this.connected = false;
             this.authenticated = false;
             this.log('Socket disconnected');
@@ -94,7 +94,7 @@ class GlobalSocketManager {
             window.dispatchEvent(new Event('globalSocketDisconnected'));
         });
         
-        this.socket.on('connect_error', (error) => {
+        this.io.on('connect_error', (error) => {
             this.error('Socket connection error', error);
             this.lastError = error;
             this.reconnectAttempts++;
@@ -109,7 +109,7 @@ class GlobalSocketManager {
             }
         });
         
-        this.socket.on('auth-success', (data) => {
+        this.io.on('auth-success', (data) => {
             this.authenticated = true;
             this.log('Authentication successful', data);
             
@@ -122,18 +122,18 @@ class GlobalSocketManager {
             }));
         });
         
-        this.socket.on('auth-error', (error) => {
+        this.io.on('auth-error', (error) => {
             this.authenticated = false;
             this.error('Authentication error', error);
         });
         
-        this.socket.on('error', (error) => {
+        this.io.on('error', (error) => {
             this.error('Socket error', error);
         });
     }
     
     authenticate() {
-        if (!this.connected || !this.socket) {
+        if (!this.connected || !this.io) {
             this.error('Cannot authenticate: socket not connected');
             return false;
         }
@@ -145,7 +145,7 @@ class GlobalSocketManager {
         
         this.log(`Authenticating user: ${this.userId} (${this.username || 'Unknown'})`);
         
-        this.socket.emit('authenticate', {
+        this.io.emit('authenticate', {
             userId: this.userId,
             username: this.username || `User-${this.userId}`
         });
@@ -160,7 +160,7 @@ class GlobalSocketManager {
         }
         
         this.log(`Joining channel: ${channelId}`);
-        this.socket.emit('join-channel', { channelId });
+        this.io.emit('join-channel', { channelId });
         return true;
     }
     
@@ -168,7 +168,7 @@ class GlobalSocketManager {
         if (!this.isReady()) return false;
         
         this.log(`Leaving channel: ${channelId}`);
-        this.socket.emit('leave-channel', { channelId });
+        this.io.emit('leave-channel', { channelId });
         return true;
     }
     
@@ -179,7 +179,7 @@ class GlobalSocketManager {
         }
         
         this.log(`Joining DM room: ${roomId}`);
-        this.socket.emit('join-dm-room', { roomId });
+        this.io.emit('join-dm-room', { roomId });
         return true;
     }
     
@@ -187,9 +187,9 @@ class GlobalSocketManager {
         if (!this.isReady()) return false;
         
         if (channelId) {
-            this.socket.emit('typing', { channelId });
+            this.io.emit('typing', { channelId });
         } else if (roomId) {
-            this.socket.emit('typing', { roomId });
+            this.io.emit('typing', { roomId });
         }
         
         return true;
@@ -199,9 +199,9 @@ class GlobalSocketManager {
         if (!this.isReady()) return false;
         
         if (channelId) {
-            this.socket.emit('stop-typing', { channelId });
+            this.io.emit('stop-typing', { channelId });
         } else if (roomId) {
-            this.socket.emit('stop-typing', { roomId });
+            this.io.emit('stop-typing', { roomId });
         }
         
         return true;
@@ -210,7 +210,7 @@ class GlobalSocketManager {
     updatePresence(status, activityDetails = null) {
         if (!this.isReady()) return false;
         
-        this.socket.emit('update-presence', { 
+        this.io.emit('update-presence', { 
             status, 
             activityDetails 
         });
@@ -219,9 +219,9 @@ class GlobalSocketManager {
     }
     
     disconnect() {
-        if (this.socket) {
-            this.socket.disconnect();
-            this.socket = null;
+        if (this.io) {
+            this.io.disconnect();
+            this.io = null;
         }
         
         this.connected = false;
@@ -230,14 +230,14 @@ class GlobalSocketManager {
     }
     
     isReady() {
-        return this.socket && this.connected && this.authenticated;
+        return this.io && this.connected && this.authenticated;
     }
     
     getStatus() {
         return {
             connected: this.connected,
             authenticated: this.authenticated,
-            socketId: this.socket?.id,
+            socketId: this.io?.id,
             userId: this.userId,
             username: this.username,
             isGuest: !this.userId,
