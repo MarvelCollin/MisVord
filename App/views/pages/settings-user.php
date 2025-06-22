@@ -24,6 +24,7 @@ $page_css = 'settings-user';
 $page_js = 'components/auth/settings-user';
 $head_scripts = ['logger-init'];
 $data_page = 'settings-user';
+$additional_js = ['components/common/image-cutter'];
 $user_id = $_SESSION['user_id'];
 
 // Get user data
@@ -46,7 +47,7 @@ ob_start();
 <!-- Meta tags for JavaScript access -->
 <meta name="user-status" content="<?php echo htmlspecialchars($user->status ?? 'offline'); ?>">
 <meta name="user-id" content="<?php echo htmlspecialchars($user->id ?? ''); ?>">
-<meta name="user-avatar" content="<?php echo htmlspecialchars($user->avatar_url ?? '/assets/common/main-logo.png'); ?>">
+<meta name="user-avatar" content="<?php echo htmlspecialchars($user->avatar_url ?? '/public/assets/common/main-logo.png'); ?>">
 
 <div class="flex min-h-screen max-w-[1480px] mx-auto">
     <!-- Left Sidebar with Settings Categories -->
@@ -162,9 +163,7 @@ ob_start();
                                 <?php if ($user->avatar_url): ?>
                                     <img id="server-icon-preview" src="<?php echo htmlspecialchars($user->avatar_url); ?>" alt="User Avatar" class="w-full h-full object-cover">
                                 <?php else: ?>
-                                    <div id="server-icon-placeholder" class="w-full h-full flex items-center justify-center text-2xl font-bold text-white">
-                                        <?php echo strtoupper(substr($user->username ?? '', 0, 1)); ?>
-                                    </div>
+                                    <img id="server-icon-preview" src="/public/assets/common/main-logo.png" alt="Default Avatar" class="w-full h-full object-cover">
                                 <?php endif; ?>
                                 
                                 <!-- Status indicator -->
@@ -189,13 +188,6 @@ ob_start();
                             
                             <input type="file" id="avatar-input" name="avatar" class="hidden" accept="image/*">
                         </div>
-                    </div>
-                    
-                    <!-- Display Name -->
-                    <div class="form-group">
-                        <label for="display-name" class="block text-sm font-medium text-white mb-2">Display Name</label>
-                        <input type="text" id="display-name" name="display_name" class="form-input" value="<?php echo htmlspecialchars($user->display_name ?? $user->username ?? ''); ?>">
-                        <p class="text-discord-lighter text-xs mt-1">This is how others see you. You can use special characters and emojis.</p>
                     </div>
                     
                     <!-- Username -->
@@ -310,9 +302,7 @@ ob_start();
                     <?php if ($user->avatar_url): ?>
                         <img src="<?php echo htmlspecialchars($user->avatar_url); ?>" alt="User Avatar" class="w-full h-full object-cover">
                     <?php else: ?>
-                        <div class="w-full h-full flex items-center justify-center text-xl font-bold text-white">
-                            <?php echo strtoupper(substr($user->username ?? '', 0, 1)); ?>
-                        </div>
+                        <img src="/public/assets/common/main-logo.png" alt="Default Avatar" class="w-full h-full object-cover">
                     <?php endif; ?>
                     
                     <!-- Status indicator in preview -->

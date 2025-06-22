@@ -130,6 +130,27 @@ ob_start();
                         </div>
                     </div>
                     
+                    <!-- Server Banner -->
+                    <div class="form-group">
+                        <label class="block text-sm font-medium text-white mb-2">Banner</label>
+                        <p class="text-discord-lighter text-sm mb-4">We recommend an image of at least 960x540.</p>
+                        
+                        <div id="server-banner-container" class="relative w-full h-44 bg-discord-dark-input rounded-md overflow-hidden border border-discord-darker cursor-pointer hover:opacity-90 transition-opacity mb-4">
+                            <?php if ($server->banner_url): ?>
+                                <img id="server-banner-preview" src="<?php echo htmlspecialchars($server->banner_url); ?>" alt="Server Banner" class="w-full h-full object-cover">
+                            <?php else: ?>
+                                <div id="server-banner-placeholder" class="w-full h-full flex items-center justify-center bg-gradient-to-b from-[#7a8087] to-[#36393f]">
+                                    <div class="text-white text-sm font-medium">UPLOAD BANNER</div>
+                                </div>
+                            <?php endif; ?>
+                            <div class="absolute inset-0 bg-black bg-opacity-50 opacity-0 hover:opacity-100 flex items-center justify-center transition-opacity">
+                                <div class="text-white text-sm font-medium">CHANGE BANNER</div>
+                            </div>
+                        </div>
+                        
+                        <input type="file" id="server-banner-input" name="server_banner" class="hidden" accept="image/*">
+                    </div>
+                    
                     <!-- Server Description -->
                     <div class="form-group">
                         <label for="server-description" class="block text-sm font-medium text-white mb-2">Description</label>

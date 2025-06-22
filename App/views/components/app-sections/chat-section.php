@@ -205,23 +205,23 @@ $additional_css[] = 'messaging';
         <hr class="border-[#3c3f45] my-1">
         
         <div class="px-1">
-            <button class="flex items-center w-full px-2 py-1.5 text-sm text-[#dcddde] hover:bg-[#5865f2] hover:text-white rounded">
+            <button data-action="edit" class="flex items-center w-full px-2 py-1.5 text-sm text-[#dcddde] hover:bg-[#5865f2] hover:text-white rounded">
                 <i class="fas fa-pen-to-square w-4 mr-2"></i>
                 <span>Edit Message</span>
             </button>
-            <button class="flex items-center w-full px-2 py-1.5 text-sm text-[#dcddde] hover:bg-[#5865f2] hover:text-white rounded">
+            <button data-action="reply" class="flex items-center w-full px-2 py-1.5 text-sm text-[#dcddde] hover:bg-[#5865f2] hover:text-white rounded">
                 <i class="fas fa-reply w-4 mr-2"></i>
                 <span>Reply</span>
             </button>
-            <button class="flex items-center w-full px-2 py-1.5 text-sm text-[#dcddde] hover:bg-[#5865f2] hover:text-white rounded">
-                <i class="fas fa-share w-4 mr-2"></i>
-                <span>Forward</span>
+            <button data-action="reaction" class="flex items-center w-full px-2 py-1.5 text-sm text-[#dcddde] hover:bg-[#5865f2] hover:text-white rounded">
+                <i class="far fa-face-smile w-4 mr-2"></i>
+                <span>Add Reaction</span>
             </button>
-            <button class="flex items-center w-full px-2 py-1.5 text-sm text-[#dcddde] hover:bg-[#5865f2] hover:text-white rounded">
+            <button data-action="copy" class="flex items-center w-full px-2 py-1.5 text-sm text-[#dcddde] hover:bg-[#5865f2] hover:text-white rounded">
                 <i class="fas fa-copy w-4 mr-2"></i>
                 <span>Copy Text</span>
             </button>
-            <button class="flex items-center w-full px-2 py-1.5 text-sm text-[#dcddde] hover:bg-[#5865f2] hover:text-white rounded">
+            <button data-action="pin" class="flex items-center w-full px-2 py-1.5 text-sm text-[#dcddde] hover:bg-[#5865f2] hover:text-white rounded">
                 <i class="fas fa-thumbtack w-4 mr-2"></i>
                 <span>Pin Message</span>
             </button>
@@ -230,33 +230,28 @@ $additional_css[] = 'messaging';
         <hr class="border-[#3c3f45] my-1">
         
         <div class="px-1">
-            <button class="flex items-center w-full px-2 py-1.5 text-sm text-[#dcddde] hover:bg-[#5865f2] hover:text-white rounded">
-                <i class="fas fa-puzzle-piece w-4 mr-2"></i>
-                <span>Apps</span>
-                <i class="fas fa-chevron-right ml-auto text-xs"></i>
-            </button>
-            <button class="flex items-center w-full px-2 py-1.5 text-sm text-[#dcddde] hover:bg-[#5865f2] hover:text-white rounded">
+            <button data-action="mark-unread" class="flex items-center w-full px-2 py-1.5 text-sm text-[#dcddde] hover:bg-[#5865f2] hover:text-white rounded">
                 <i class="fas fa-eye-slash w-4 mr-2"></i>
                 <span>Mark Unread</span>
             </button>
-            <button class="flex items-center w-full px-2 py-1.5 text-sm text-[#dcddde] hover:bg-[#5865f2] hover:text-white rounded">
+            <button data-action="copy-link" class="flex items-center w-full px-2 py-1.5 text-sm text-[#dcddde] hover:bg-[#5865f2] hover:text-white rounded">
                 <i class="fas fa-link w-4 mr-2"></i>
                 <span>Copy Message Link</span>
             </button>
-            <button class="flex items-center w-full px-2 py-1.5 text-sm text-[#dcddde] hover:bg-[#5865f2] hover:text-white rounded">
-                <i class="fas fa-volume-high w-4 mr-2"></i>
-                <span>Speak Message</span>
+            <button data-action="thread" class="flex items-center w-full px-2 py-1.5 text-sm text-[#dcddde] hover:bg-[#5865f2] hover:text-white rounded">
+                <i class="fas fa-comment-dots w-4 mr-2"></i>
+                <span>Start Thread</span>
             </button>
         </div>
         
         <hr class="border-[#3c3f45] my-1">
         
         <div class="px-1">
-            <button class="flex items-center w-full px-2 py-1.5 text-sm text-[#dcddde] hover:bg-[#ed4245] hover:text-white rounded">
+            <button data-action="delete" class="flex items-center w-full px-2 py-1.5 text-sm text-[#dcddde] hover:bg-[#ed4245] hover:text-white rounded">
                 <i class="fas fa-trash w-4 mr-2"></i>
                 <span>Delete Message</span>
             </button>
-            <button class="flex items-center w-full px-2 py-1.5 text-sm text-[#dcddde] hover:bg-[#5865f2] hover:text-white rounded">
+            <button data-action="copy-id" class="flex items-center w-full px-2 py-1.5 text-sm text-[#dcddde] hover:bg-[#5865f2] hover:text-white rounded">
                 <i class="fas fa-hashtag w-4 mr-2"></i>
                 <span>Copy Message ID</span>
             </button>

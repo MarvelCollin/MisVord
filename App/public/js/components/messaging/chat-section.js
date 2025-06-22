@@ -22,6 +22,12 @@ class ChatSection {
         this.processedMessageIds = new Set(); // To prevent duplicate messages
         this.joinedRooms = new Set(); // Track joined rooms/channels
         this.contextMenuVisible = false;
+        this.activeMessageActions = null;
+        this.currentEditingMessage = null;
+        this.scrollListenerActive = false;
+        this.loadingOlderMessages = false;
+        this.messagesPerPage = 20;
+        this.totalMessagesLoaded = 0;
     }
     
     init() {
@@ -91,14 +97,16 @@ class ChatSection {
             });
         }
 
-        // Handle context menu positioning and visibility
         document.addEventListener('click', (e) => {
             if (this.contextMenuVisible && !this.contextMenu.contains(e.target)) {
                 this.hideContextMenu();
             }
+            
+            if (!e.target.closest('.message-actions') && this.activeMessageActions) {
+                this.hideAllMessageActions();
+            }
         });
 
-        // Attach click listeners to message groups for context menu
         this.chatMessages.addEventListener('contextmenu', (e) => {
             const messageGroup = e.target.closest('.message-group');
             if (messageGroup) {
@@ -106,52 +114,324 @@ class ChatSection {
                 this.showContextMenu(e.clientX, e.clientY, messageGroup);
             }
         });
-
-        // Individual message hover handling
+        
         this.chatMessages.addEventListener('mouseover', (e) => {
             const messageContent = e.target.closest('.message-content');
             if (messageContent) {
-                const messageGroup = messageContent.closest('.message-group');
-                if (messageGroup) {
-                    this.showMessageActions(messageGroup);
-                }
+                this.showMessageActions(messageContent);
             }
         });
 
         this.chatMessages.addEventListener('mouseout', (e) => {
             const messageContent = e.target.closest('.message-content');
-            if (messageContent) {
-                const relatedTarget = e.relatedTarget;
-                // Only hide if we're not still hovering over the message or its actions
-                if (!messageContent.contains(relatedTarget) && 
-                    !relatedTarget?.closest('.message-actions') && 
-                    !relatedTarget?.closest('.message-content')) {
-                    const messageGroup = messageContent.closest('.message-group');
-                    if (messageGroup) {
-                        this.hideMessageActions(messageGroup);
-                    }
-                }
-            }
+            const relatedTarget = e.relatedTarget;
             
-            // Also hide when leaving the message actions
-            if (e.target.closest('.message-actions')) {
-                const relatedTarget = e.relatedTarget;
-                const messageGroup = e.target.closest('.message-group');
-                if (messageGroup && !messageGroup.contains(relatedTarget)) {
-                    this.hideMessageActions(messageGroup);
-                }
+            if (messageContent && !messageContent.contains(relatedTarget) && 
+                !relatedTarget?.closest('.message-actions')) {
+                this.hideMessageActions(messageContent);
+            }
+        });
+        
+        this.chatMessages.addEventListener('click', (e) => {
+            const reactionBtn = e.target.closest('.message-action-reaction');
+            const replyBtn = e.target.closest('.message-action-reply');
+            const editBtn = e.target.closest('.message-action-edit');
+            const moreBtn = e.target.closest('.message-action-more');
+            
+            if (reactionBtn) {
+                const messageContent = reactionBtn.closest('.message-content');
+                const messageId = messageContent.dataset.messageId;
+                this.showEmojiPicker(messageId, reactionBtn);
+            } else if (replyBtn) {
+                const messageContent = replyBtn.closest('.message-content');
+                const messageId = messageContent.dataset.messageId;
+                this.replyToMessage(messageId);
+            } else if (editBtn) {
+                const messageContent = editBtn.closest('.message-content');
+                const messageId = messageContent.dataset.messageId;
+                this.editMessage(messageId);
+            } else if (moreBtn) {
+                const messageContent = moreBtn.closest('.message-content');
+                this.showContextMenu(
+                    moreBtn.getBoundingClientRect().right, 
+                    moreBtn.getBoundingClientRect().top, 
+                    messageContent
+                );
             }
         });
     }
 
-    showContextMenu(x, y, messageGroup) {
+    showContextMenu(x, y, messageContent) {
         if (!this.contextMenu) return;
+        
+        const messageId = messageContent.dataset.messageId || '';
+        const isOwnMessage = messageContent.dataset.userId === this.userId;
         
         this.contextMenu.style.left = `${x}px`;
         this.contextMenu.style.top = `${y}px`;
         this.contextMenu.classList.remove('hidden');
-        this.contextMenu.dataset.messageId = messageGroup.querySelector('.message-content')?.dataset.messageId || '';
+        this.contextMenu.dataset.messageId = messageId;
         this.contextMenuVisible = true;
+        
+        const editBtn = this.contextMenu.querySelector('[data-action="edit"]');
+        const deleteBtn = this.contextMenu.querySelector('[data-action="delete"]');
+        
+        if (editBtn) {
+            editBtn.style.display = isOwnMessage ? 'flex' : 'none';
+        }
+        
+        if (deleteBtn) {
+            deleteBtn.style.display = isOwnMessage ? 'flex' : 'none';
+        }
+        
+        // Add event listeners to context menu buttons
+        this.setupContextMenuListeners();
+    }
+    
+    setupContextMenuListeners() {
+        if (!this.contextMenu) return;
+        
+        // Remove existing listeners
+        const buttons = this.contextMenu.querySelectorAll('button[data-action]');
+        buttons.forEach(button => {
+            button.replaceWith(button.cloneNode(true));
+        });
+        
+        // Re-select buttons after replacing
+        const newButtons = this.contextMenu.querySelectorAll('button[data-action]');
+        newButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                const action = button.getAttribute('data-action');
+                const messageId = this.contextMenu.dataset.messageId;
+                
+                this.hideContextMenu();
+                
+                switch (action) {
+                    case 'edit':
+                        this.editMessage(messageId);
+                        break;
+                    case 'delete':
+                        this.deleteMessage(messageId);
+                        break;
+                    case 'reply':
+                        this.replyToMessage(messageId);
+                        break;
+                    case 'reaction':
+                        this.showEmojiPicker(messageId, button);
+                        break;
+                    case 'copy':
+                        this.copyMessageText(messageId);
+                        break;
+                    case 'pin':
+                        this.pinMessage(messageId);
+                        break;
+                    case 'thread':
+                        this.startThread(messageId);
+                        break;
+                    case 'copy-id':
+                        this.copyToClipboard(messageId);
+                        break;
+                    case 'copy-link':
+                        this.copyMessageLink(messageId);
+                        break;
+                    case 'mark-unread':
+                        this.markAsUnread(messageId);
+                        break;
+                }
+            });
+        });
+    }
+    
+    editMessage(messageId) {
+        const messageElement = document.querySelector(`.message-content[data-message-id="${messageId}"]`);
+        if (!messageElement) return;
+        
+        const messageText = messageElement.querySelector('div').innerText;
+        const messageGroup = messageElement.closest('.message-group');
+        
+        // Create edit form
+        const editForm = document.createElement('form');
+        editForm.className = 'edit-message-form w-full';
+        
+        const editTextarea = document.createElement('textarea');
+        editTextarea.className = 'w-full bg-[#383a40] text-[#dcddde] p-2 rounded focus:outline-none focus:ring-1 focus:ring-[#5865f2] resize-none';
+        editTextarea.value = messageText;
+        
+        const buttonContainer = document.createElement('div');
+        buttonContainer.className = 'flex items-center justify-between mt-2 text-xs';
+        
+        const cancelButton = document.createElement('button');
+        cancelButton.type = 'button';
+        cancelButton.className = 'text-[#b5bac1] hover:underline';
+        cancelButton.textContent = 'Cancel';
+        
+        const saveButton = document.createElement('button');
+        saveButton.type = 'submit';
+        saveButton.className = 'bg-[#5865f2] hover:bg-[#4752c4] text-white px-3 py-1 rounded';
+        saveButton.textContent = 'Save';
+        
+        const escapeHint = document.createElement('div');
+        escapeHint.className = 'text-[#b5bac1]';
+        escapeHint.textContent = 'press ESC to cancel • enter to save';
+        
+        buttonContainer.appendChild(cancelButton);
+        buttonContainer.appendChild(escapeHint);
+        buttonContainer.appendChild(saveButton);
+        
+        editForm.appendChild(editTextarea);
+        editForm.appendChild(buttonContainer);
+        
+        // Replace message content with edit form
+        const originalContent = messageElement.innerHTML;
+        messageElement.innerHTML = '';
+        messageElement.appendChild(editForm);
+        
+        // Auto focus and resize textarea
+        editTextarea.focus();
+        editTextarea.style.height = 'auto';
+        editTextarea.style.height = `${editTextarea.scrollHeight}px`;
+        
+        // Set current editing message
+        this.currentEditingMessage = {
+            id: messageId,
+            element: messageElement,
+            originalContent: originalContent
+        };
+        
+        // Event listeners
+        editForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const newContent = editTextarea.value.trim();
+            if (newContent && newContent !== messageText) {
+                this.saveEditedMessage(messageId, newContent);
+            } else {
+                this.cancelEditMessage();
+            }
+        });
+        
+        cancelButton.addEventListener('click', () => {
+            this.cancelEditMessage();
+        });
+        
+        editTextarea.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                this.cancelEditMessage();
+            } else if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                editForm.dispatchEvent(new Event('submit'));
+            }
+        });
+        
+        editTextarea.addEventListener('input', () => {
+            editTextarea.style.height = 'auto';
+            editTextarea.style.height = `${editTextarea.scrollHeight}px`;
+        });
+    }
+    
+    cancelEditMessage() {
+        if (!this.currentEditingMessage) return;
+        
+        const { element, originalContent } = this.currentEditingMessage;
+        element.innerHTML = originalContent;
+        this.currentEditingMessage = null;
+    }
+    
+    async saveEditedMessage(messageId, newContent) {
+        try {
+            if (!window.ChatAPI) {
+                throw new Error('ChatAPI not available');
+            }
+            
+            await window.ChatAPI.updateMessage(messageId, newContent);
+            
+            const messageElement = document.querySelector(`.message-content[data-message-id="${messageId}"]`);
+            if (messageElement) {
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'text-[#dbdee1] whitespace-pre-wrap break-words';
+                contentDiv.innerHTML = this.formatMessageContent(newContent);
+                
+                messageElement.innerHTML = '';
+                messageElement.appendChild(contentDiv);
+                
+                const editedBadge = document.createElement('span');
+                editedBadge.className = 'text-xs text-[#a3a6aa] ml-1';
+                editedBadge.textContent = '(edited)';
+                contentDiv.appendChild(editedBadge);
+            }
+            
+            this.currentEditingMessage = null;
+            
+        } catch (error) {
+            console.error('Failed to update message:', error);
+            this.showNotification('Failed to update message', 'error');
+            this.cancelEditMessage();
+        }
+    }
+    
+    async deleteMessage(messageId) {
+        if (!confirm('Are you sure you want to delete this message?')) {
+            return;
+        }
+        
+        try {
+            if (!window.ChatAPI) {
+                throw new Error('ChatAPI not available');
+            }
+            
+            await window.ChatAPI.deleteMessage(messageId);
+            
+            const messageElement = document.querySelector(`.message-content[data-message-id="${messageId}"]`);
+            if (messageElement) {
+                const messageGroup = messageElement.closest('.message-group');
+                
+                if (messageGroup.querySelectorAll('.message-content').length === 1) {
+                    messageGroup.remove();
+                } else {
+                    messageElement.remove();
+                }
+            }
+            
+        } catch (error) {
+            console.error('Failed to delete message:', error);
+            this.showNotification('Failed to delete message', 'error');
+        }
+    }
+    
+    copyMessageText(messageId) {
+        const messageElement = document.querySelector(`.message-content[data-message-id="${messageId}"]`);
+        if (!messageElement) return;
+        
+        const text = messageElement.querySelector('div').innerText;
+        this.copyToClipboard(text);
+        this.showNotification('Message copied to clipboard');
+    }
+    
+    copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            this.showNotification('Copied to clipboard');
+        }).catch(err => {
+            console.error('Failed to copy text:', err);
+            this.showNotification('Failed to copy to clipboard', 'error');
+        });
+    }
+    
+    copyMessageLink(messageId) {
+        const url = `${window.location.href}?messageId=${messageId}`;
+        this.copyToClipboard(url);
+    }
+    
+    markAsUnread(messageId) {
+        this.showNotification('Message marked as unread');
+    }
+    
+    pinMessage(messageId) {
+        this.showNotification('Feature coming soon: Pin message');
+    }
+    
+    startThread(messageId) {
+        this.showNotification('Feature coming soon: Thread messages');
     }
 
     hideContextMenu() {
@@ -161,20 +441,85 @@ class ChatSection {
         this.contextMenuVisible = false;
     }
 
-    showMessageActions(messageGroup) {
-        const actions = messageGroup.querySelector('.message-actions');
+    showMessageActions(messageContent) {
+        let actions = messageContent.querySelector('.message-actions');
+        
+        if (!actions) {
+            actions = this.createMessageActions(messageContent);
+            messageContent.appendChild(actions);
+        }
+        
         if (actions) {
             actions.classList.remove('hidden');
             actions.classList.add('visible');
+            this.activeMessageActions = actions;
         }
     }
 
-    hideMessageActions(messageGroup) {
-        const actions = messageGroup.querySelector('.message-actions');
+    hideMessageActions(messageContent) {
+        const actions = messageContent.querySelector('.message-actions');
         if (actions) {
             actions.classList.add('hidden');
             actions.classList.remove('visible');
         }
+    }
+    
+    hideAllMessageActions() {
+        if (this.activeMessageActions) {
+            this.activeMessageActions.classList.add('hidden');
+            this.activeMessageActions.classList.remove('visible');
+            this.activeMessageActions = null;
+        }
+        
+        document.querySelectorAll('.message-actions.visible').forEach(element => {
+            element.classList.add('hidden');
+            element.classList.remove('visible');
+        });
+    }
+    
+    createMessageActions(messageContent) {
+        const isOwnMessage = messageContent.dataset.userId === this.userId;
+        
+        const actions = document.createElement('div');
+        actions.className = 'message-actions absolute right-2 top-0 bg-[#2f3136] rounded-lg shadow-md flex items-center p-0.5 hidden z-10';
+        
+        const reactionBtn = document.createElement('button');
+        reactionBtn.className = 'message-action-reaction w-8 h-8 flex items-center justify-center text-[#b9bbbe] hover:text-white rounded-lg hover:bg-[rgba(255,255,255,0.1)]';
+        reactionBtn.innerHTML = '<i class="far fa-face-smile"></i>';
+        reactionBtn.title = 'Add Reaction';
+        
+        const replyBtn = document.createElement('button');
+        replyBtn.className = 'message-action-reply w-8 h-8 flex items-center justify-center text-[#b9bbbe] hover:text-white rounded-lg hover:bg-[rgba(255,255,255,0.1)]';
+        replyBtn.innerHTML = '<i class="fas fa-reply"></i>';
+        replyBtn.title = 'Reply';
+        
+        const moreBtn = document.createElement('button');
+        moreBtn.className = 'message-action-more w-8 h-8 flex items-center justify-center text-[#b9bbbe] hover:text-white rounded-lg hover:bg-[rgba(255,255,255,0.1)]';
+        moreBtn.innerHTML = '<i class="fas fa-ellipsis-vertical"></i>';
+        moreBtn.title = 'More';
+        
+        actions.appendChild(reactionBtn);
+        actions.appendChild(replyBtn);
+        actions.appendChild(moreBtn);
+        
+        if (isOwnMessage) {
+            const editBtn = document.createElement('button');
+            editBtn.className = 'message-action-edit w-8 h-8 flex items-center justify-center text-[#b9bbbe] hover:text-white rounded-lg hover:bg-[rgba(255,255,255,0.1)]';
+            editBtn.innerHTML = '<i class="fas fa-pen-to-square"></i>';
+            editBtn.title = 'Edit';
+            
+            actions.insertBefore(editBtn, moreBtn);
+        }
+        
+        return actions;
+    }
+    
+    showEmojiPicker(messageId, targetElement) {
+        console.log('Show emoji picker for message:', messageId);
+    }
+    
+    replyToMessage(messageId) {
+        console.log('Reply to message:', messageId);
     }
     
     setupIoListeners() {
@@ -299,7 +644,7 @@ class ChatSection {
         }
     }
     
-    async loadMessages() {
+    async loadMessages(offset = 0, limit = 20) {
         if (!this.targetId || !this.chatType) {
             console.error('Cannot load messages: missing chat target ID or type');
             return;
@@ -311,14 +656,24 @@ class ChatSection {
                 return;
             }
             
-            this.showLoadingIndicator();
+            if (offset === 0) {
+                this.showLoadingSkeletons();
+            } else {
+                this.showLoadMoreIndicator();
+            }
             
             const response = await window.ChatAPI.getMessages(
                 this.chatType === 'direct' ? 'dm' : this.chatType, 
-                this.targetId
+                this.targetId,
+                limit,
+                offset
             );
             
-            this.hideLoadingIndicator();
+            if (offset === 0) {
+                this.hideLoadingIndicator();
+            } else {
+                this.hideLoadMoreIndicator();
+            }
             
             if (response && response.data && response.data.messages) {
                 console.log('Loaded messages from database:', response.data.messages);
@@ -328,20 +683,228 @@ class ChatSection {
                     this.processedMessageIds.add(msg.id);
                 });
                 
-                this.renderMessages(response.data.messages);
-                this.scrollToBottom();
+                if (offset === 0) {
+                    // First load - render and add "load more" button if needed
+                    this.renderMessages(response.data.messages);
+                    
+                    if (response.data.messages.length >= limit) {
+                        this.addLoadMoreButton();
+                    }
+                } else {
+                    // Append older messages at the top
+                    this.prependMessages(response.data.messages);
+                    
+                    if (response.data.messages.length < limit) {
+                        this.removeLoadMoreButton();
+                    }
+                }
+                
+                if (offset === 0) {
+                    this.scrollToBottom();
+                }
             } else {
                 console.error('No messages found in response:', response);
-                this.showErrorMessage('No messages found');
+                if (offset === 0) {
+                    this.showEmptyState();
+                }
             }
             
             this.messagesLoaded = true;
             
         } catch (error) {
             this.hideLoadingIndicator();
+            this.hideLoadMoreIndicator();
             console.error('Failed to load messages:', error);
             this.showErrorMessage('Failed to load messages');
         }
+    }
+    
+    showLoadingSkeletons() {
+        if (!this.chatMessages) return;
+        
+        this.chatMessages.innerHTML = '';
+        
+        for (let i = 0; i < 5; i++) {
+            const skeleton = this.createMessageSkeleton(i % 2 === 0);
+            this.chatMessages.appendChild(skeleton);
+        }
+    }
+    
+    createMessageSkeleton(isAlternate = false) {
+        const skeletonGroup = document.createElement('div');
+        skeletonGroup.className = 'message-group flex p-1 px-4 py-1 relative animate-pulse';
+        
+        const avatarContainer = document.createElement('div');
+        avatarContainer.className = 'flex-shrink-0 mr-3 mt-0.5';
+        
+        const avatar = document.createElement('div');
+        avatar.className = 'w-10 h-10 rounded-full bg-[#3c3f45]';
+        
+        avatarContainer.appendChild(avatar);
+        
+        const messageContent = document.createElement('div');
+        messageContent.className = 'flex-grow';
+        
+        const headerRow = document.createElement('div');
+        headerRow.className = 'flex items-center mb-1';
+        
+        const usernameBar = document.createElement('div');
+        usernameBar.className = 'h-4 bg-[#3c3f45] rounded w-24';
+        
+        const timeBar = document.createElement('div');
+        timeBar.className = 'h-3 bg-[#3c3f45] rounded w-12 ml-2';
+        
+        headerRow.appendChild(usernameBar);
+        headerRow.appendChild(timeBar);
+        
+        const contentBar1 = document.createElement('div');
+        contentBar1.className = 'h-4 bg-[#3c3f45] rounded w-full max-w-lg mb-1';
+        
+        const contentBar2 = document.createElement('div');
+        contentBar2.className = 'h-4 bg-[#3c3f45] rounded w-3/4 max-w-md';
+        
+        if (isAlternate) {
+            contentBar2.classList.add('w-1/2');
+            contentBar2.classList.remove('w-3/4');
+        }
+        
+        messageContent.appendChild(headerRow);
+        messageContent.appendChild(contentBar1);
+        messageContent.appendChild(contentBar2);
+        
+        skeletonGroup.appendChild(avatarContainer);
+        skeletonGroup.appendChild(messageContent);
+        
+        return skeletonGroup;
+    }
+    
+    addLoadMoreButton() {
+        if (!this.chatMessages) return;
+        
+        const loadMoreDiv = document.createElement('div');
+        loadMoreDiv.id = 'load-more-messages';
+        loadMoreDiv.className = 'flex justify-center items-center p-3 mb-2';
+        
+        const loadMoreBtn = document.createElement('button');
+        loadMoreBtn.className = 'text-[#b5bac1] hover:text-white bg-[#3c3f45] hover:bg-[#4d5158] px-4 py-1 rounded text-sm transition-colors';
+        loadMoreBtn.textContent = 'Load older messages';
+        loadMoreBtn.addEventListener('click', () => this.loadOlderMessages());
+        
+        loadMoreDiv.appendChild(loadMoreBtn);
+        
+        // Insert at the beginning of chat
+        this.chatMessages.insertBefore(loadMoreDiv, this.chatMessages.firstChild);
+        
+        // Add scroll event listener to automatically load more when scrolling to top
+        this.setupScrollListener();
+    }
+    
+    setupScrollListener() {
+        if (!this.chatMessages) return;
+        
+        this.scrollListenerActive = true;
+        
+        this.chatMessages.addEventListener('scroll', () => {
+            if (!this.scrollListenerActive) return;
+            
+            const { scrollTop } = this.chatMessages;
+            if (scrollTop < 100) {
+                this.scrollListenerActive = false; // Prevent multiple triggers
+                this.loadOlderMessages();
+            }
+        });
+    }
+    
+    loadOlderMessages() {
+        if (this.loadingOlderMessages) return;
+        
+        this.loadingOlderMessages = true;
+        
+        const messageCount = this.chatMessages.querySelectorAll('.message-group:not(#load-more-messages):not(.loading-indicator)').length;
+        this.loadMessages(messageCount, 20);
+        
+        setTimeout(() => {
+            this.loadingOlderMessages = false;
+            this.scrollListenerActive = true;
+        }, 1000);
+    }
+    
+    removeLoadMoreButton() {
+        const loadMoreElem = document.getElementById('load-more-messages');
+        if (loadMoreElem) {
+            loadMoreElem.remove();
+        }
+    }
+    
+    showLoadMoreIndicator() {
+        const loadMoreElem = document.getElementById('load-more-messages');
+        if (loadMoreElem) {
+            loadMoreElem.innerHTML = `
+                <div class="flex items-center">
+                    <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-[#5865f2] mr-2"></div>
+                    <span class="text-[#b5bac1]">Loading older messages...</span>
+                </div>
+            `;
+        }
+    }
+    
+    hideLoadMoreIndicator() {
+        const loadMoreElem = document.getElementById('load-more-messages');
+        if (loadMoreElem) {
+            const loadMoreBtn = document.createElement('button');
+            loadMoreBtn.className = 'text-[#b5bac1] hover:text-white bg-[#3c3f45] hover:bg-[#4d5158] px-4 py-1 rounded text-sm transition-colors';
+            loadMoreBtn.textContent = 'Load older messages';
+            loadMoreBtn.addEventListener('click', () => this.loadOlderMessages());
+            
+            loadMoreElem.innerHTML = '';
+            loadMoreElem.appendChild(loadMoreBtn);
+        }
+    }
+    
+    prependMessages(messages) {
+        if (!this.chatMessages) return;
+        
+        // Find insertion point - after load more button, if it exists
+        let insertionPoint = this.chatMessages.firstChild;
+        if (insertionPoint && insertionPoint.id === 'load-more-messages') {
+            insertionPoint = insertionPoint.nextSibling;
+        }
+        
+        let lastSenderId = null;
+        let messageGroup = null;
+        
+        // Process in reverse to maintain chronological order
+        [...messages].reverse().forEach(message => {
+            if (message.user_id !== lastSenderId) {
+                messageGroup = this.createMessageGroup(message);
+                if (insertionPoint) {
+                    this.chatMessages.insertBefore(messageGroup, insertionPoint);
+                } else {
+                    this.chatMessages.appendChild(messageGroup);
+                }
+                lastSenderId = message.user_id;
+            } else {
+                const messageContent = this.createMessageContent(message);
+                const contents = messageGroup.querySelector('.message-contents');
+                if (contents) {
+                    contents.prepend(messageContent);
+                }
+            }
+        });
+    }
+    
+    showEmptyState() {
+        if (!this.chatMessages) return;
+        
+        this.chatMessages.innerHTML = `
+            <div class="flex flex-col items-center justify-center p-8 text-[#b5bac1] h-full">
+                <svg class="w-16 h-16 mb-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" d="M18 10c0 4.418-3.582 8-8 8s-8-3.582-8-8 3.582-8 8-8 8 3.582 8 8zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                </svg>
+                <p class="text-lg font-medium">No messages yet</p>
+                <p class="text-sm mt-2">Start the conversation by sending a message!</p>
+            </div>
+        `;
     }
     
     async sendMessage() {
@@ -637,7 +1200,7 @@ class ChatSection {
     
     createMessageGroup(message, isOwnMessage = false) {
         const messageGroup = document.createElement('div');
-        messageGroup.className = 'message-group flex p-1 px-4 py-1 relative';
+        messageGroup.className = 'message-group flex p-1 px-4 py-1 relative hover:bg-[rgba(4,4,5,0.07)]';
         messageGroup.setAttribute('data-user-id', message.user_id);
         
         const avatarContainer = document.createElement('div');
@@ -661,7 +1224,7 @@ class ChatSection {
         headerRow.className = 'flex items-center mb-0.5';
         
         const usernameSpan = document.createElement('span');
-        usernameSpan.className = isOwnMessage ? 'font-medium text-[#f2f3f5]' : 'font-medium text-[#f2f3f5]';
+        usernameSpan.className = 'font-medium text-[#f2f3f5] hover:underline cursor-pointer';
         usernameSpan.textContent = message.username;
         
         const timeSpan = document.createElement('span');
@@ -683,47 +1246,14 @@ class ChatSection {
         messageGroup.appendChild(avatarContainer);
         messageGroup.appendChild(messageContent);
         
-        // Create message actions element (hidden by default)
-        const messageActions = document.createElement('div');
-        messageActions.className = 'message-actions hidden absolute -top-2 right-4 bg-[#2b2d31] shadow-lg rounded items-center p-1 z-10';
-        
-        // Add emoji reaction button
-        const addReactionBtn = document.createElement('button');
-        addReactionBtn.title = 'Add Reaction';
-        addReactionBtn.className = 'w-8 h-8 flex items-center justify-center text-[#b5bac1] hover:text-white hover:bg-[rgba(255,255,255,0.1)] rounded';
-        addReactionBtn.innerHTML = '<i class="far fa-face-smile"></i>';
-        messageActions.appendChild(addReactionBtn);
-
-        // Add reply button
-        const replyBtn = document.createElement('button');
-        replyBtn.title = 'Reply';
-        replyBtn.className = 'w-8 h-8 flex items-center justify-center text-[#b5bac1] hover:text-white hover:bg-[rgba(255,255,255,0.1)] rounded';
-        replyBtn.innerHTML = '<i class="fas fa-reply"></i>';
-        messageActions.appendChild(replyBtn);
-        
-        // Add thread button
-        const threadBtn = document.createElement('button');
-        threadBtn.title = 'Create Thread';
-        threadBtn.className = 'w-8 h-8 flex items-center justify-center text-[#b5bac1] hover:text-white hover:bg-[rgba(255,255,255,0.1)] rounded';
-        threadBtn.innerHTML = '<i class="fas fa-comment-dots"></i>';
-        messageActions.appendChild(threadBtn);
-        
-        // Add more options button
-        const moreBtn = document.createElement('button');
-        moreBtn.title = 'More Actions';
-        moreBtn.className = 'w-8 h-8 flex items-center justify-center text-[#b5bac1] hover:text-white hover:bg-[rgba(255,255,255,0.1)] rounded';
-        moreBtn.innerHTML = '<i class="fas fa-ellipsis-vertical"></i>';
-        messageActions.appendChild(moreBtn);
-        
-        messageContent.appendChild(messageActions);
-        
         return messageGroup;
     }
     
     createMessageContent(message, isOwnMessage = false) {
         const messageElement = document.createElement('div');
-        messageElement.className = 'message-content py-0.5 hover:bg-[rgba(4,4,5,0.07)] rounded px-1 -ml-1';
+        messageElement.className = 'message-content py-0.5 hover:bg-[rgba(4,4,5,0.07)] rounded px-1 -ml-1 relative';
         messageElement.setAttribute('data-message-id', message.id);
+        messageElement.setAttribute('data-user-id', message.user_id || message.userId);
         
         if (isOwnMessage) {
             messageElement.classList.add('own-message');

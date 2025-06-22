@@ -95,7 +95,7 @@ function initServerIconUpload() {
             aspectRatio: 1,
             onCrop: (result) => {
                 if (result && result.error) {
-                    console.error('Error cropping server icon:', result.message);
+                    showToast(result.message || 'Error cropping server icon', 'error');
                     return;
                 }
                 
@@ -118,6 +118,8 @@ function initServerIconUpload() {
                 
                 // Also update the server preview icon
                 updateServerPreviewIcon(result.dataUrl);
+                
+                showToast('Server icon updated. Save changes to apply.', 'info');
             }
         });
         
@@ -129,14 +131,16 @@ function initServerIconUpload() {
     
     // Change icon button click handler
     if (changeIconBtn) {
-        changeIconBtn.addEventListener('click', function() {
+        changeIconBtn.addEventListener('click', function(e) {
+            e.preventDefault();
             iconInput.click();
         });
     }
     
     // Icon container click handler (alternative way to upload)
     if (iconContainer) {
-        iconContainer.addEventListener('click', function() {
+        iconContainer.addEventListener('click', function(e) {
+            e.preventDefault();
             iconInput.click();
         });
     }
@@ -150,7 +154,7 @@ function initServerIconUpload() {
             
             // Validate file type
             if (!file.type.match('image.*')) {
-                alert('Please select a valid image file');
+                showToast('Please select a valid image file', 'error');
                 return;
             }
             
@@ -175,8 +179,13 @@ function initServerIconUpload() {
                         // Update server preview icon
                         updateServerPreviewIcon(e.target.result);
                     }
+                    
+                    // Show remove button if exists and hidden
+                    if (removeIconBtn && removeIconBtn.classList.contains('hidden')) {
+                        removeIconBtn.classList.remove('hidden');
+                    }
                 } catch (error) {
-                    console.error('Error processing server icon:', error);
+                    showToast('Error processing server icon', 'error');
                 }
             };
             
@@ -187,6 +196,7 @@ function initServerIconUpload() {
     // Remove icon button click handler
     if (removeIconBtn) {
         removeIconBtn.addEventListener('click', function(e) {
+            e.preventDefault();
             e.stopPropagation(); // Prevent triggering the container click
             
             // Clear the preview and show placeholder
@@ -201,6 +211,7 @@ function initServerIconUpload() {
             // Clear the stored image data
             if (iconContainer) {
                 delete iconContainer.dataset.croppedImage;
+                iconContainer.dataset.removeIcon = 'true';
             }
             
             // Hide the remove button
@@ -213,6 +224,9 @@ function initServerIconUpload() {
             
             // Reset server preview icon
             resetServerPreviewIcon();
+            
+            // Show toast confirmation
+            showToast('Server icon will be removed on save', 'info');
         });
     }
 }
@@ -548,8 +562,9 @@ function initServerProfileForm() {
     
     if (!form || !serverId) return;
     
-    // Initialize server icon upload
+    // Initialize server icon and banner upload
     initServerIconUpload();
+    initServerBannerUpload();
     
     // Update server name preview as user types
     if (serverNameInput) {
@@ -614,9 +629,22 @@ function initServerProfileForm() {
             
             // Add server icon if changed
             const iconContainer = document.getElementById('server-icon-container');
-            if (iconContainer && iconContainer.dataset.croppedImage) {
-                const iconBlob = dataURLtoBlob(iconContainer.dataset.croppedImage);
-                formData.append('server_icon', iconBlob, 'server_icon.png');
+            if (iconContainer) {
+                if (iconContainer.dataset.croppedImage) {
+                    const iconBlob = dataURLtoBlob(iconContainer.dataset.croppedImage);
+                    formData.append('server_icon', iconBlob, 'server_icon.png');
+                }
+                
+                if (iconContainer.dataset.removeIcon === 'true') {
+                    formData.append('remove_icon', '1');
+                }
+            }
+            
+            // Add server banner if changed
+            const bannerContainer = document.getElementById('server-banner-container');
+            if (bannerContainer && bannerContainer.dataset.croppedImage) {
+                const bannerBlob = dataURLtoBlob(bannerContainer.dataset.croppedImage);
+                formData.append('server_banner', bannerBlob, 'server_banner.png');
             }
             
             // Call the API to update the server
@@ -629,6 +657,16 @@ function initServerProfileForm() {
                 if (serverNameInput && serverNameInput.value.trim()) {
                     updateServerNameInUI(serverNameInput.value.trim());
                 }
+                
+                // Reset the change flags
+                if (iconContainer) {
+                    delete iconContainer.dataset.removeIcon;
+                }
+                
+                // Refresh the page after 1.5 seconds to show updated images
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
             } else {
                 throw new Error(response.message || 'Failed to update server settings');
             }
@@ -779,9 +817,7 @@ function initRolesTab() {
     // Handle create role button
     if (createRoleBtn) {
         createRoleBtn.addEventListener('click', () => {
-            // Role creation functionality would go here
-            alert('Create new role');
-            // Ideally, this would open a modal to create a new role
+            showToast('Create new role functionality coming soon', 'info');
         });
     }
     
@@ -1034,4 +1070,128 @@ function initRolesTab() {
     
     // Initial load
     loadRoles();
+}
+
+/**
+ * Initialize server banner upload
+ */
+function initServerBannerUpload() {
+    const bannerContainer = document.getElementById('server-banner-container');
+    const bannerInput = document.getElementById('server-banner-input');
+    const bannerPreview = document.getElementById('server-banner-preview');
+    
+    if (!bannerContainer || !bannerInput) return;
+    
+    // Create image cutter for banner (16:9 aspect ratio)
+    try {
+        const bannerCutter = new ImageCutter({
+            container: bannerContainer,
+            type: 'banner',
+            modalTitle: 'Upload Server Banner',
+            aspectRatio: 16/9,
+            onCrop: (result) => {
+                if (result && result.error) {
+                    showToast(result.message || 'Error cropping server banner', 'error');
+                    return;
+                }
+                
+                // Update preview with cropped image
+                if (bannerPreview) {
+                    bannerPreview.src = result.dataUrl;
+                    bannerPreview.classList.remove('hidden');
+                    
+                    const placeholder = document.getElementById('server-banner-placeholder');
+                    if (placeholder) placeholder.classList.add('hidden');
+                }
+                
+                // Store the cropped image data to use during form submission
+                bannerContainer.dataset.croppedImage = result.dataUrl;
+                
+                // Also update the server preview banner
+                updateServerPreviewBanner(result.dataUrl);
+                
+                showToast('Server banner updated. Save changes to apply.', 'info');
+            }
+        });
+        
+        // Store the cutter instance for later use
+        window.serverBannerCutter = bannerCutter;
+    } catch (error) {
+        console.error('Error initializing banner cutter:', error);
+    }
+    
+    // Banner container click handler
+    if (bannerContainer) {
+        bannerContainer.addEventListener('click', function(e) {
+            e.preventDefault();
+            bannerInput.click();
+        });
+    }
+    
+    // File input change handler
+    if (bannerInput) {
+        bannerInput.addEventListener('change', function() {
+            if (!this.files || !this.files[0]) return;
+            
+            const file = this.files[0];
+            
+            // Validate file type
+            if (!file.type.match('image.*')) {
+                showToast('Please select a valid image file', 'error');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    // If we have the banner cutter, use it
+                    if (window.serverBannerCutter) {
+                        window.serverBannerCutter.loadImage(e.target.result);
+                    } else {
+                        // Fallback to simple preview
+                        if (bannerPreview) {
+                            bannerPreview.src = e.target.result;
+                            bannerPreview.classList.remove('hidden');
+                            
+                            const placeholder = document.getElementById('server-banner-placeholder');
+                            if (placeholder) placeholder.classList.add('hidden');
+                        }
+                        
+                        bannerContainer.dataset.croppedImage = e.target.result;
+                        
+                        // Update server preview banner
+                        updateServerPreviewBanner(e.target.result);
+                    }
+                } catch (error) {
+                    showToast('Error processing server banner', 'error');
+                }
+            };
+            
+            reader.readAsDataURL(file);
+        });
+    }
+}
+
+/**
+ * Update the server banner in the preview panel
+ */
+function updateServerPreviewBanner(imageUrl) {
+    const previewBanner = document.querySelector('.server-banner');
+    
+    if (previewBanner) {
+        previewBanner.style.backgroundImage = `url('${imageUrl}')`;
+        previewBanner.classList.remove('bg-gradient-to-b', 'from-[#7a8087]', 'to-[#36393f]');
+    }
+}
+
+/**
+ * Reset the server banner in the preview panel
+ */
+function resetServerPreviewBanner() {
+    const previewBanner = document.querySelector('.server-banner');
+    
+    if (previewBanner) {
+        previewBanner.style.backgroundImage = '';
+        previewBanner.classList.add('bg-gradient-to-b', 'from-[#7a8087]', 'to-[#36393f]');
+    }
 }

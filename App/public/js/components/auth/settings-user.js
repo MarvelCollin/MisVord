@@ -94,45 +94,53 @@ function initUserAvatarUpload() {
     
     if (!iconContainer || !iconInput || !changeIconBtn) return;
     
-    // Check if we have the ImageCutter module
-    let avatarCutter = null;
-    if (window.ImageCutter) {
+    // Initialize ImageCutter if available
+    if (typeof ImageCutter !== 'undefined') {
         try {
-            avatarCutter = new ImageCutter({
-                container: iconContainer,
-                type: 'profile',
-                modalTitle: 'Upload Profile Picture',
-                aspectRatio: 1,
-                onCrop: (result) => {
-                    if (result && result.error) {
-                        console.error('Error cropping avatar:', result.message);
-                        return;
-                    }
+            // Import the ImageCutter module dynamically
+            import('/js/components/common/image-cutter.js')
+                .then(module => {
+                    const ImageCutter = module.default;
+                    // Create image cutter instance
+                    const avatarCutter = new ImageCutter({
+                        container: iconContainer,
+                        type: 'profile',
+                        modalTitle: 'Upload Profile Picture',
+                        aspectRatio: 1,
+                        onCrop: (result) => {
+                            if (result && result.error) {
+                                console.error('Error cropping avatar:', result.message);
+                                return;
+                            }
+                            
+                            // Update preview with cropped image
+                            if (iconPreview) {
+                                iconPreview.src = result.dataUrl;
+                                iconPreview.classList.remove('hidden');
+                                
+                                const placeholder = document.getElementById('server-icon-placeholder');
+                                if (placeholder) placeholder.classList.add('hidden');
+                            }
+                            
+                            // Store the cropped image data to use during form submission
+                            iconContainer.dataset.croppedImage = result.dataUrl;
+                            
+                            // Show remove button if it exists
+                            if (removeIconBtn && removeIconBtn.classList.contains('hidden')) {
+                                removeIconBtn.classList.remove('hidden');
+                            }
+                            
+                            // Upload the avatar immediately
+                            uploadAvatar(result.dataUrl);
+                        }
+                    });
                     
-                    // Update preview with cropped image
-                    if (iconPreview) {
-                        iconPreview.src = result.dataUrl;
-                        iconPreview.classList.remove('hidden');
-                        
-                        const placeholder = document.getElementById('server-icon-placeholder');
-                        if (placeholder) placeholder.classList.add('hidden');
-                    }
-                    
-                    // Store the cropped image data to use during form submission
-                    iconContainer.dataset.croppedImage = result.dataUrl;
-                    
-                    // Show remove button if it exists
-                    if (removeIconBtn && removeIconBtn.classList.contains('hidden')) {
-                        removeIconBtn.classList.remove('hidden');
-                    }
-                    
-                    // Upload the avatar immediately
-                    uploadAvatar(result.dataUrl);
-                }
-            });
-            
-            // Store the cutter instance for later use
-            window.userAvatarCutter = avatarCutter;
+                    // Store the cutter instance for later use
+                    window.userAvatarCutter = avatarCutter;
+                })
+                .catch(error => {
+                    console.error('Error loading ImageCutter module:', error);
+                });
         } catch (error) {
             console.error('Error initializing image cutter:', error);
         }
@@ -217,13 +225,9 @@ function initUserAvatarUpload() {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Clear the preview and show placeholder
+                    // Clear the preview and show default avatar
                     if (iconPreview) {
-                        iconPreview.src = '';
-                        iconPreview.classList.add('hidden');
-                        
-                        const placeholder = document.getElementById('server-icon-placeholder');
-                        if (placeholder) placeholder.classList.remove('hidden');
+                        iconPreview.src = '/public/assets/common/main-logo.png';
                     }
                     
                     // Clear the stored image data
@@ -237,6 +241,12 @@ function initUserAvatarUpload() {
                     // Clear the file input
                     if (iconInput) {
                         iconInput.value = '';
+                    }
+                    
+                    // Update avatar in preview panel
+                    const previewAvatar = document.querySelector('.server-icon-preview img');
+                    if (previewAvatar) {
+                        previewAvatar.src = '/public/assets/common/main-logo.png';
                     }
                     
                     showToast('Profile picture removed successfully', 'success');
@@ -278,7 +288,7 @@ function uploadAvatar(dataUrl) {
             showToast('Profile picture updated successfully', 'success');
             
             // Update avatar in all places
-            const avatars = document.querySelectorAll('.user-avatar img, .user-avatar-preview img');
+            const avatars = document.querySelectorAll('.user-avatar img, .user-avatar-preview img, .server-icon-preview img');
             avatars.forEach(avatar => {
                 avatar.src = data.avatar_url || dataUrl;
             });
@@ -368,16 +378,16 @@ function initStatusSelector() {
  */
 function updateUserStatus(status) {
     fetch('/user/status', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
             'X-Requested-With': 'XMLHttpRequest'
-        },
+                },
         body: JSON.stringify({ status }),
         credentials: 'same-origin'
-    })
-    .then(response => response.json())
-    .then(data => {
+            })
+            .then(response => response.json())
+            .then(data => {
         if (data.success) {
             // Update status indicators
             updateStatusIndicators(status);
@@ -385,9 +395,9 @@ function updateUserStatus(status) {
         } else {
             showToast(data.message || 'Failed to update status', 'error');
         }
-    })
-    .catch(error => {
-        console.error('Error updating status:', error);
+            })
+            .catch(error => {
+                console.error('Error updating status:', error);
         showToast('Error updating status', 'error');
     });
 }
