@@ -94,25 +94,30 @@ class MessageHandler {
     
     let isForCurrentChat = false;
     let targetId = null;
+    let chatType = null;
     
-    if (data.chatRoomId) {
-      targetId = data.chatRoomId;
-      isForCurrentChat = String(data.chatRoomId) === String(this.messaging.activeChatRoom);
-    } else if (data.roomId) {
-      targetId = data.roomId;
-      isForCurrentChat = String(data.roomId) === String(this.messaging.activeChatRoom);
+    // Standardize the data structure
+    if (data.chatRoomId || data.roomId) {
+      targetId = data.chatRoomId || data.roomId;
+      chatType = "direct";
+      isForCurrentChat = String(targetId) === String(this.messaging.activeChatRoom);
     } else if (data.channelId) {
       targetId = data.channelId;
-      isForCurrentChat = String(data.channelId) === String(this.messaging.activeChannel);
+      chatType = "channel";
+      isForCurrentChat = String(targetId) === String(this.messaging.activeChannel);
     } else {
       console.log("❌ REJECTED: Missing target ID (chatRoomId, roomId or channelId)");
       return;
     }
     
     const isOwnMessage = String(data.user_id) === String(this.messaging.userId);
+    
+    // Standardize timestamp handling
+    data.timestamp = data.timestamp || data.created_at || data.sent_at || new Date().toISOString();
 
     console.log("🔍 MESSAGE CHECK:", {
       targetId: targetId,
+      chatType: chatType,
       activeChannel: this.messaging.activeChannel,
       activeChatRoom: this.messaging.activeChatRoom,
       isForCurrentChat: isForCurrentChat,
@@ -121,20 +126,22 @@ class MessageHandler {
       isOwnMessage: isOwnMessage,
     });
 
-    if (isForCurrentChat && !isOwnMessage) {
-      console.log("✅ DISPLAYING MESSAGE FROM OTHER USER");
+    // Always display messages for current chat, even if they're our own
+    // (except for temp messages that will be handled separately)
+    if (isForCurrentChat && !data.temp) {
+      console.log("✅ DISPLAYING MESSAGE");
       this.addMessageToContainerWithAnimation(data);
-    } else {
-      console.log("❌ MESSAGE REJECTED:", {
-        reason: !isForCurrentChat ? "Not for current chat" : "Own message",
-      });
+    } else if (!isForCurrentChat) {
+      console.log("❌ MESSAGE REJECTED: Not for current chat");
     }
 
     this.trackMessage("MESSAGE_RECEIVED", {
       messageId: data.id,
       targetId: targetId,
+      chatType: chatType,
       fromUser: data.user_id,
       isForCurrentChat: isForCurrentChat,
+      isOwnMessage: isOwnMessage
     });
   }
 

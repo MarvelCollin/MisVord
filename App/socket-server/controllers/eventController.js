@@ -167,17 +167,26 @@ function handleChannelMessageEvent(io, data, res) {
     });
   }
   
+  // Create standardized message data structure
   const messageData = {
-    channelId,
-    content,
+    id: message?.id || null,
+    channelId: channelId,
+    channel_id: channelId,
+    content: content,
     messageType: messageType || 'text',
+    message_type: messageType || 'text',
     timestamp: timestamp || Date.now(),
+    created_at: message?.created_at || timestamp || new Date().toISOString(),
+    sent_at: message?.sent_at || timestamp || new Date().toISOString(),
+    user_id: user_id,
+    userId: user_id,
+    username: username,
     source: 'php-backend',
-    user_id,
-    username,
+    chatType: 'channel',
     ...message
   };
-    console.log(`📤 Broadcasting to channel-${channelId}:`, JSON.stringify(messageData, null, 2));
+  
+  console.log(`📤 Broadcasting to channel-${channelId}:`, JSON.stringify(messageData, null, 2));
   
   // Get room info
   const roomName = `channel-${channelId}`;
@@ -206,22 +215,31 @@ function handleDirectMessageEvent(io, data, res) {
     });
   }
   
+  // Create standardized message data structure
   const messageData = {
-    roomId,
-    content,
-    messageType: messageType || 'text',
-    timestamp: timestamp || Date.now(),
-    source: 'php-backend',
+    id: message?.id || null,
+    messageId: message?.id || null,
+    roomId: roomId,
     chatRoomId: roomId,
-    user_id,
-    username,
+    content: content,
+    messageType: messageType || 'text',
+    message_type: messageType || 'text',
+    timestamp: timestamp || Date.now(),
+    created_at: message?.created_at || timestamp || new Date().toISOString(),
+    sent_at: message?.sent_at || timestamp || new Date().toISOString(),
+    source: 'php-backend',
+    chatType: 'direct',
+    user_id: user_id,
+    userId: user_id,
+    username: username,
     ...message
   };
   
   const roomName = `dm-room-${roomId}`;
   const room = io.sockets.adapter.rooms.get(roomName);
   const clientCount = room ? room.size : 0;
-    console.log(`📤 Broadcasting to ${roomName} (${clientCount} clients):`, messageData);
+  
+  console.log(`📤 Broadcasting to ${roomName} (${clientCount} clients):`, messageData);
   console.log(`${username} direct message to room ${roomId} : ${content}`);
   
   // Note: Using io.to() here because this is called from PHP backend without a specific socket

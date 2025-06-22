@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initServerIconUpload();
     initServerBannerUpload();
     initServerFormSubmission();
+    initToggleAnimation();
 });
 
 function initServerIconUpload() {
@@ -341,3 +342,20 @@ document.addEventListener('keydown', function(e) {
         }
     }
 });
+
+function initToggleAnimation() {
+    const toggleCheckbox = document.getElementById('is-public');
+    const toggleSwitch = toggleCheckbox?.nextElementSibling;
+    
+    if (toggleCheckbox && toggleSwitch) {
+        toggleCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                toggleSwitch.classList.add('scale-105');
+                setTimeout(() => toggleSwitch.classList.remove('scale-105'), 200);
+            } else {
+                toggleSwitch.classList.add('scale-95');
+                setTimeout(() => toggleSwitch.classList.remove('scale-95'), 200);
+            }
+        });
+    }
+}

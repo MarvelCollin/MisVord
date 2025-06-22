@@ -1,3 +1,5 @@
+import { showToast } from "../../core/ui/toast.js";
+
 class FormHandler {
   constructor(messaging) {
     this.messaging = messaging;
@@ -125,14 +127,21 @@ class FormHandler {
 
     if (!chatId || !chatType) {
       this.messaging.debugUtils.error("❌ Cannot send message: no active chat");
+      showToast("Cannot send message: no active chat", "error");
       return;
     }
 
     // Create temporary message for instant feedback
     let tempMessageElement = null;
+    let messageSubmitted = false;
+    let retryCount = 0;
+    const maxRetries = 2;
 
     try {
       this.setFormState(true);
+      
+      // Show sending toast
+      showToast(`Sending message to ${chatType}...`, "info", 1000);
 
       // Show temporary message immediately
       tempMessageElement = this.messaging.messageHandler.createTemporaryMessage(
@@ -145,12 +154,40 @@ class FormHandler {
       const originalContent = content;
       this.messageInput.value = "";
 
-      // Send the message
-      await this.messaging.messageHandler.sendMessage(
-        chatType,
-        chatId,
-        originalContent
-      );
+      const sendMessageWithRetry = async (attempt = 0) => {
+        try {
+          if (attempt > 0) {
+            showToast(`Retrying message send (${attempt}/${maxRetries})...`, "warning", 1000);
+          }
+          
+          // Send the message
+          const result = await this.messaging.messageHandler.sendMessage(
+            chatType,
+            chatId,
+            originalContent
+          );
+          messageSubmitted = true;
+          
+          // Show success toast with details
+          const targetName = chatType === 'channel' ? `#${result?.channelName || chatId}` : `DM ${result?.username || chatId}`;
+          showToast(`Message sent to ${targetName}`, "success");
+          
+          return result;
+        } catch (error) {
+          if (attempt < maxRetries) {
+            this.messaging.debugUtils.log(
+              `⚠️ Message send failed, retrying (${attempt + 1}/${maxRetries})...`,
+              error
+            );
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s before retry
+            return sendMessageWithRetry(attempt + 1);
+          } else {
+            throw error;
+          }
+        }
+      };
+
+      await sendMessageWithRetry();
 
       // Remove temporary message on success
       if (tempMessageElement) {
@@ -163,16 +200,46 @@ class FormHandler {
       this.messaging.typingManager.stopTyping(chatType, chatId);
     } catch (error) {
       this.messaging.debugUtils.error("❌ Failed to send message:", error);
+      
+      // Show error toast
+      showToast(`Failed to send message: ${error.message || "Connection error"}`, "error");
 
-      // Remove temporary message and restore input on error
-      if (tempMessageElement) {
-        this.messaging.messageHandler.removeTemporaryMessage(
-          tempMessageElement
-        );
+      // Keep temporary message visible but mark as error
+      if (tempMessageElement && tempMessageElement.parentNode) {
+        tempMessageElement.classList.add("message-error");
+        const errorIndicator = document.createElement("div");
+        errorIndicator.className = "text-red-400 text-xs mt-1";
+        errorIndicator.innerHTML = '<i class="fas fa-exclamation-circle mr-1"></i> Failed to send. <span class="underline cursor-pointer retry-send">Try again</span>';
+        tempMessageElement.appendChild(errorIndicator);
+        
+        // Add retry functionality
+        const retryButton = errorIndicator.querySelector(".retry-send");
+        if (retryButton) {
+          retryButton.addEventListener("click", async (e) => {
+            e.preventDefault();
+            errorIndicator.textContent = "Retrying...";
+            try {
+              await this.messaging.messageHandler.sendMessage(
+                chatType,
+                chatId,
+                originalContent
+              );
+              this.messaging.messageHandler.removeTemporaryMessage(tempMessageElement);
+              showToast("Message sent successfully on retry", "success");
+            } catch (retryError) {
+              errorIndicator.innerHTML = '<i class="fas fa-exclamation-circle mr-1"></i> Failed to send. <span class="underline cursor-pointer retry-send">Try again</span>';
+              const newRetryButton = errorIndicator.querySelector(".retry-send");
+              if (newRetryButton) {
+                newRetryButton.addEventListener("click", (e) => this.retryFailedMessage(e, chatType, chatId, originalContent, tempMessageElement));
+              }
+              showToast(`Retry failed: ${retryError.message || "Connection error"}`, "error");
+            }
+          });
+        }
       }
 
-      // Restore message content on error
-      if (this.messageInput.value === "") {
+      // Don't restore message content unless really needed
+      if (!messageSubmitted && this.messageInput.value === "") {
         this.messageInput.value = content;
       }
     } finally {
@@ -346,6 +413,43 @@ class FormHandler {
 
   getInputValue() {
     return this.messageInput ? this.messageInput.value : "";
+  }
+
+  async retryFailedMessage(event, chatType, chatId, content, tempElement) {
+    if (event) event.preventDefault();
+    
+    if (!tempElement || !tempElement.parentNode) return;
+    
+    const errorIndicator = tempElement.querySelector(".text-red-400");
+    if (errorIndicator) {
+      errorIndicator.textContent = "Retrying...";
+    }
+    
+    showToast("Retrying message send...", "info");
+    
+    try {
+      await this.messaging.messageHandler.sendMessage(
+        chatType,
+        chatId,
+        content
+      );
+      
+      if (tempElement && tempElement.parentNode) {
+        this.messaging.messageHandler.removeTemporaryMessage(tempElement);
+      }
+      
+      showToast("Message sent successfully on retry", "success");
+      
+    } catch (error) {
+      if (errorIndicator) {
+        errorIndicator.innerHTML = '<i class="fas fa-exclamation-circle mr-1"></i> Failed to send. <span class="underline cursor-pointer retry-send">Try again</span>';
+        const retryButton = errorIndicator.querySelector(".retry-send");
+        if (retryButton) {
+          retryButton.addEventListener("click", (e) => this.retryFailedMessage(e, chatType, chatId, content, tempElement));
+        }
+      }
+      showToast(`Retry failed: ${error.message || "Connection error"}`, "error");
+    }
   }
 }
 

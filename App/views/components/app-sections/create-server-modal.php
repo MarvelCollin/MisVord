@@ -39,7 +39,14 @@ $additional_js[] = 'components/servers/create-server-modal';
             <div class="mb-4">
                 <label class="flex items-center cursor-pointer">
                     <input type="checkbox" id="is-public" name="is_public" value="1" class="sr-only peer">
-                    <div class="relative w-11 h-6 bg-discord-dark border-2 border-gray-600 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-discord-blue"></div>
+                    <div class="relative w-11 h-6 bg-discord-dark rounded-full peer 
+                        peer-focus:ring-2 peer-focus:ring-discord-blue 
+                        peer-checked:bg-discord-blue transition-colors duration-300 ease-in-out
+                        before:content-[''] before:absolute before:top-[2px] before:left-[2px] 
+                        before:bg-white before:rounded-full before:h-5 before:w-5 
+                        before:transition-all before:duration-300 before:ease-in-out
+                        peer-checked:before:translate-x-5 before:shadow-sm">
+                    </div>
                     <span class="ms-3 text-sm font-medium text-gray-300">Make server public</span>
                 </label>
                 <p class="text-xs text-gray-400 mt-1">Public servers can be found in the explore page</p>

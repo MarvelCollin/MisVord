@@ -1,3 +1,5 @@
+import { showToast } from "../../core/ui/toast.js";
+
 class SocketManager {
   constructor(messaging) {
     this.messaging = messaging;
@@ -301,94 +303,107 @@ class SocketManager {
     }
 
     this.messaging.log("📡 Registering socket event listeners...");
-    this.socket.on("message", (data) => {
-      this.messaging.log("📨 Received socket message:", data);
-      console.log(
-        "🔍 MESSAGE EVENT - Full data:",
-        JSON.stringify(data, null, 2)
-      );
-      this.messaging.onNewMessage(data);
-    });
     
-    this.socket.on("new-channel-message", (data) => {
-      this.messaging.log("📨 Received new channel message:", data);
-      console.log(
-        "🔍 NEW-CHANNEL-MESSAGE EVENT - Full data:",
-        JSON.stringify(data, null, 2)
-      );
-      console.log("🔍 NEW-CHANNEL-MESSAGE EVENT - Data structure check:", {
-        hasChannelId: "channelId" in data,
-        hasMessage: "message" in data,
-        hasType: "type" in data,
-        hasTargetType: "target_type" in data,
-        hasTargetId: "target_id" in data,
-        directProperties: Object.keys(data),
-      });
+    // Standard message event handler with data normalization
+    const normalizeAndProcessMessage = (data, source) => {
+      // Standardize message data structure
+      if (!data.chatType) {
+        if (data.channelId || data.channel_id) {
+          data.chatType = 'channel';
+        } else if (data.chatRoomId || data.roomId) {
+          data.chatType = 'direct';
+        }
+      }
+      
+      // Ensure we have consistent property naming
+      if (data.channel_id && !data.channelId) data.channelId = data.channel_id;
+      if (data.chatRoomId && !data.roomId) data.roomId = data.chatRoomId;
+      if (data.roomId && !data.chatRoomId) data.chatRoomId = data.roomId;
+      
+      // Standardize timestamp
+      data.timestamp = data.timestamp || data.created_at || data.sent_at || new Date().toISOString();
+      
+      // Add source information for debugging
+      data._source = source;
+      
+      this.messaging.log(`📨 Normalized message from ${source}:`, data);
       this.messaging.onNewMessage(data);
-    });
+    };
     
-    this.socket.on("user-message-dm", (data) => {
-      this.messaging.log("📨 Received user message DM:", data);
-      this.messaging.onNewMessage(data);
-    });
+    // Register all message event handlers with standardized processing
+    this.socket.on("message", (data) => normalizeAndProcessMessage(data, "generic"));
+    this.socket.on("new-channel-message", (data) => normalizeAndProcessMessage(data, "channel"));
+    this.socket.on("user-message-dm", (data) => normalizeAndProcessMessage(data, "dm"));
+    this.socket.on("new-direct-message", (data) => normalizeAndProcessMessage(data, "direct"));
+    this.socket.on("direct-message", (data) => normalizeAndProcessMessage(data, "php-direct"));
     
-    this.socket.on("new-direct-message", (data) => {
-      this.messaging.log("📨 Received new direct message:", data);
-      this.messaging.onNewMessage(data);
-    });
-
-    this.socket.on("direct-message", (data) => {
-      console.log("📨 Received direct message from PHP backend:", data);
-      this.messaging.onNewMessage(data);
-    });
-
+    // Standardize typing events
     this.socket.on("user-typing", (data) => {
+      data.chatType = 'channel';
       this.messaging.onUserTyping(data);
     });
 
     this.socket.on("user-stop-typing", (data) => {
+      data.chatType = 'channel';
       this.messaging.onUserStopTyping(data);
     });
 
     this.socket.on("user-typing-dm", (data) => {
+      data.chatType = 'direct';
+      // Ensure consistent property naming
+      if (data.chatRoomId && !data.roomId) data.roomId = data.chatRoomId;
+      if (data.roomId && !data.chatRoomId) data.chatRoomId = data.roomId;
       this.messaging.onUserTyping(data);
     });
     
     this.socket.on("user-stop-typing-dm", (data) => {
+      data.chatType = 'direct';
+      // Ensure consistent property naming
+      if (data.chatRoomId && !data.roomId) data.roomId = data.chatRoomId;
+      if (data.roomId && !data.chatRoomId) data.chatRoomId = data.roomId;
       this.messaging.onUserStopTyping(data);
     });
 
     // Room join/leave confirmations
     this.socket.on("room-joined", (data) => {
       console.log("✅ Room join confirmed:", data);
+      showToast(`Room join confirmed: ${data.roomName || data.roomId}`, "success", 2000);
     });
 
     this.socket.on("dm-room-joined", (data) => {
       console.log("✅ DM room join confirmed:", data);
+      const roomName = data.roomName || `DM ${data.roomId}`;
+      showToast(`Joined ${roomName}`, "success", 2000);
     });
 
     this.socket.on("dm-room-join-failed", (data) => {
       console.error("❌ DM room join failed:", data);
+      showToast(`Failed to join DM room: ${data.error || "Unknown error"}`, "error");
     });
 
     this.socket.on("user-joined-dm-room", (data) => {
       console.log("👤 User joined DM room:", data);
+      showToast(`${data.username || 'User'} joined the conversation`, "info", 2000);
     });
+    
     this.socket.on("user_status_change", (data) => {
       this.messaging.onUserStatusChange(data);
     });
 
     this.socket.on("channel-joined", (data) => {
       this.messaging.onChannelJoined(data);
+      showToast(`Joined channel #${data.channelName || data.channelId}`, "success", 2000);
     });
 
     this.socket.on("channel-left", (data) => {
       this.messaging.onChannelLeft(data);
     });
+    
     this.socket.on("dm-room-joined", (data) => {
       this.messaging.log("🏠 DM room joined:", data);
       console.log("✅ DM ROOM JOINED:", JSON.stringify(data, null, 2));
       this.messaging.onDMRoomJoined(data);
+      showToast(`Connected to direct message conversation`, "success", 2000);
     });
 
     this.socket.on("dm-room-left", (data) => {
@@ -401,12 +416,33 @@ class SocketManager {
       this.messaging.log("🟢 Socket connected");
       this.connected = true;
       this.messaging.trackConnection("SOCKET_CONNECTED");
+      showToast("Connected to messaging server", "success", 2000);
     });
 
     this.socket.on("disconnect", () => {
       this.messaging.log("🔴 Socket disconnected");
       this.connected = false;
       this.messaging.trackConnection("SOCKET_DISCONNECTED");
+      showToast("Disconnected from messaging server", "error");
+    });
+
+    // Message confirmation events
+    this.socket.on("message-sent-confirmation", (data) => {
+      this.messaging.log("✅ Message sent confirmed:", data);
+      this.messaging.onMessageSentConfirmation?.(data);
+      
+      // Create a detailed toast about the message confirmation
+      const target = data.chatType === 'channel' ? 
+        `channel #${data.channelId}` : 
+        `direct message ${data.roomId || data.chatRoomId}`;
+      
+      showToast(`Message #${data.messageId || data.id} saved to database and sent to ${target}`, "success", 2000);
+    });
+
+    this.socket.on("message_error", (data) => {
+      this.messaging.log("❌ Message error:", data);
+      this.messaging.onMessageError?.(data);
+      showToast(`Message error: ${data.error || "Unknown error"}`, "error");
     });
 
     this.messaging.log("✅ Socket event listeners registered");

@@ -20,12 +20,12 @@ class Message extends Model {
                 ->join('channel_messages cm', 'm.id', '=', 'cm.message_id')
                 ->join('users u', 'm.user_id', '=', 'u.id')
                 ->where('cm.channel_id', $channelId)
-                ->orderBy('m.sent_at', 'DESC') 
+                ->orderBy('m.sent_at', 'ASC')
                 ->limit($limit)
                 ->offset($offset)
                 ->get();
         
-        return array_reverse($results);
+        return $results;
     }
       public static function getRecentForChannel($channelId, $limit = 10) {
         $query = new Query();

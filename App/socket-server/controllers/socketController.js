@@ -280,10 +280,22 @@ function handleChannelMessage(io, socket, data) {
       .then(message => {
         console.log('✅ Message saved successfully:', message);
         
+        // Create a standardized message object with consistent property names
         const messageData = {
-          ...message,
+          id: message.id,
+          channelId: channelId,
+          channel_id: channelId,
+          user_id: user.userId,
+          userId: user.userId,
           username: user.username,
-          tempId: data.tempId
+          content: content,
+          message_type: messageType,
+          messageType: messageType,
+          sent_at: message.created_at || new Date().toISOString(),
+          created_at: message.created_at || new Date().toISOString(),
+          timestamp: message.created_at || new Date().toISOString(),
+          tempId: data.tempId,
+          chatType: 'channel'
         };
         
         messageService.trackMessageProcessing(user.userId, timestamp, message.id, content);
@@ -295,15 +307,20 @@ function handleChannelMessage(io, socket, data) {
         const roomName = `channel-${channelId}`;
         const clientsInRoom = io.sockets.adapter.rooms.get(roomName);
         console.log(`👥 Clients in room ${roomName}:`, clientsInRoom ? Array.from(clientsInRoom) : 'No clients');
-          console.log(`${user.username} to #channel-${channelId} : ${content}`);
+        console.log(`${user.username} to #channel-${channelId} : ${content}`);
         
         // Send to all users in the channel except the sender (like typing system)
         socket.to(`channel-${channelId}`).emit('new-channel-message', messageData);
         
+        // Send confirmation to sender with standardized property names
         socket.emit('message-sent-confirmation', { 
           tempId: data.tempId, 
           messageId: message.id,
-          channelId
+          id: message.id,
+          channelId: channelId,
+          channel_id: channelId,
+          chatType: 'channel',
+          success: true
         });
         
         console.log('✅ Message broadcast completed');
@@ -313,7 +330,8 @@ function handleChannelMessage(io, socket, data) {
         console.error('❌ Error saving message:', error);
         socket.emit('message_error', { 
           error: 'Failed to save message',
-          tempId: data.tempId
+          tempId: data.tempId,
+          channelId: channelId
         });
       });
   } catch (error) {
@@ -362,7 +380,8 @@ function handleDirectMessage(io, socket, data) {
       
       socket.emit('message_error', { 
         error: 'Invalid direct message data',
-        tempId: data.tempId
+        tempId: data.tempId,
+        roomId: roomId
       });
       return;
     }
@@ -381,8 +400,12 @@ function handleDirectMessage(io, socket, data) {
       socket.emit('message-sent-confirmation', { 
         tempId: data.tempId, 
         messageId: duplicateId,
-        roomId,
-        duplicate: true
+        id: duplicateId,
+        roomId: roomId,
+        chatRoomId: roomId,
+        chatType: 'direct',
+        duplicate: true,
+        success: true
       });
       return;
     }
@@ -394,16 +417,23 @@ function handleDirectMessage(io, socket, data) {
       .then(message => {
         console.log('✅ Direct message saved successfully:', message);
         
+        // Create a standardized message object with consistent property names
         const messageData = {
           id: message.id,
+          messageId: message.id,
           content: content,
           user_id: user.userId,
+          userId: user.userId,
           username: user.username,
           chatRoomId: roomId,
           roomId: roomId,
           message_type: messageType,
+          messageType: messageType,
           created_at: message.created_at || message.sent_at,
-          tempId: data.tempId
+          sent_at: message.sent_at || message.created_at,
+          timestamp: message.created_at || message.sent_at || new Date().toISOString(),
+          tempId: data.tempId,
+          chatType: 'direct'
         };
         
         messageService.trackMessageProcessing(user.userId, timestamp, message.id, content);
@@ -413,15 +443,21 @@ function handleDirectMessage(io, socket, data) {
         
         // Get room info
         const roomName = `dm-room-${roomId}`;
-        const clientsInRoom = io.sockets.adapter.rooms.get(roomName);        console.log(`👥 Clients in room ${roomName}:`, clientsInRoom ? Array.from(clientsInRoom) : 'No clients');
+        const clientsInRoom = io.sockets.adapter.rooms.get(roomName);        
+        console.log(`👥 Clients in room ${roomName}:`, clientsInRoom ? Array.from(clientsInRoom) : 'No clients');
         
         // Broadcast to all clients in room except sender (like typing system)
         socket.to(roomName).emit('user-message-dm', messageData);
         
+        // Send confirmation to sender with standardized property names
         socket.emit('message-sent-confirmation', { 
           tempId: data.tempId, 
           messageId: message.id,
-          roomId
+          id: message.id,
+          roomId: roomId,
+          chatRoomId: roomId,
+          chatType: 'direct',
+          success: true
         });
         
         console.log(`💬 ${user.username} sent message to DM room ${roomId}: ${content}`);
@@ -440,7 +476,8 @@ function handleDirectMessage(io, socket, data) {
         
         socket.emit('message_error', { 
           error: 'Failed to save direct message',
-          tempId: data.tempId
+          tempId: data.tempId,
+          roomId: roomId
         });
       });
   } catch (error) {

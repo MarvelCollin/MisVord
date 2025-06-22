@@ -166,94 +166,107 @@ class MisVordMessaging {
   }
   joinChannel(channelId) {
     console.log("🏠 MisVordMessaging.joinChannel called:", channelId);
-    console.log("🔍 CHANNEL JOIN DEBUG - Current state:", {
-      userId: this.userId,
-      username: this.username,
-      activeChannel: this.activeChannel,
-      chatType: this.chatType,
-      socketConnected: this.socketManager?.connected,
-      hasSocket: !!this.socketManager?.socket,
-    });
-
+    
     // Set the active channel immediately
     this.activeChannel = channelId;
     this.chatType = "channel";
-
-    console.log("🔍 CHANNEL JOIN - Updated active channel to:", this.activeChannel);
-
-    // Attempt room join with retry logic
-    const attemptJoin = (retryCount = 0) => {
+    
+    // Leave any active DM room first to prevent cross-chat issues
+    if (this.activeChatRoom) {
+      console.log("🔀 Leaving active DM room before joining channel:", this.activeChatRoom);
+      this.socketManager.leaveDMRoom(this.activeChatRoom);
+      this.activeChatRoom = null;
+    }
+    
+    const attemptJoin = (retryCount = 0, maxRetries = 5) => {
       if (!this.socketManager || !this.socketManager.connected) {
-        if (retryCount < 3) {
-          console.log(`⚠️ Socket not ready for channel join, retrying in 1s (attempt ${retryCount + 1}/3)`);
-          setTimeout(() => attemptJoin(retryCount + 1), 1000);
+        if (retryCount < maxRetries) {
+          console.log(`⏳ Socket not ready for channel join, retrying in 1s (attempt ${retryCount + 1}/${maxRetries})`);
+          setTimeout(() => attemptJoin(retryCount + 1, maxRetries), 1000);
         } else {
           console.error("❌ Failed to join channel: socket not available after retries");
+          this.debugUtils.trackError("CHANNEL_JOIN_FAILED", 
+            new Error(`Socket not available after ${maxRetries} retries`));
         }
         return;
       }
-
+      
       this.socketManager.joinChannel(channelId);
+      
+      // Verify room join after a short delay
+      setTimeout(() => {
+        // Request room debug info to verify join
+        if (this.socketManager.socket) {
+          this.socketManager.socket.emit("debug-rooms");
+        }
+      }, 1000);
     };
-
-    attemptJoin();
-
-    // Add a verification step after attempting to join
-    setTimeout(() => {
-      console.log("🔍 CHANNEL JOIN VERIFICATION - After 2 seconds:", {
-        activeChannel: this.activeChannel,
-        chatType: this.chatType,
-        expectedRoom: `channel-${channelId}`,
-      });
-    }, 2000);
-  }  joinDMRoom(chatRoomId) {
-    console.log(
-      "🏠 MisVordMessaging.joinDMRoom called with chatRoomId:",
-      chatRoomId
-    );
-    console.log("🔍 ROOM JOIN DEBUG - Current state:", {
-      userId: this.userId,
-      username: this.username,
-      activeChatRoom: this.activeChatRoom,
-      chatType: this.chatType,
-      socketConnected: this.socketManager?.connected,
-      hasSocket: !!this.socketManager?.socket,
-    });
-
+    
+    // First try to join immediately if socket is ready
+    if (this.socketManager && this.socketManager.connected) {
+      this.socketManager.joinChannel(channelId);
+    } else {
+      // Otherwise use retry logic
+      attemptJoin();
+    }
+    
+    // Request initial messages once channel is set
+    this.loadMessages(channelId, "channel");
+    
+    return channelId;
+  }
+  
+  joinDMRoom(chatRoomId) {
+    console.log("🏠 MisVordMessaging.joinDMRoom called with chatRoomId:", chatRoomId);
+    
     // Set the active chat room immediately
     this.activeChatRoom = chatRoomId;
     this.chatType = "direct";
-
-    console.log(
-      "🔍 ROOM JOIN - Updated active chat room to:",
-      this.activeChatRoom
-    );
-
-    // Attempt room join with retry logic
-    const attemptJoin = (retryCount = 0) => {
+    
+    // Leave any active channel first to prevent cross-chat issues
+    if (this.activeChannel) {
+      console.log("🔀 Leaving active channel before joining DM:", this.activeChannel);
+      this.socketManager.leaveChannel(this.activeChannel);
+      this.activeChannel = null;
+    }
+    
+    const attemptJoin = (retryCount = 0, maxRetries = 5) => {
       if (!this.socketManager || !this.socketManager.connected) {
-        if (retryCount < 3) {
-          console.log(`⚠️ Socket not ready for DM join, retrying in 1s (attempt ${retryCount + 1}/3)`);
-          setTimeout(() => attemptJoin(retryCount + 1), 1000);
+        if (retryCount < maxRetries) {
+          console.log(`⏳ Socket not ready for DM join, retrying in 1s (attempt ${retryCount + 1}/${maxRetries})`);
+          setTimeout(() => attemptJoin(retryCount + 1, maxRetries), 1000);
         } else {
           console.error("❌ Failed to join DM room: socket not available after retries");
+          this.debugUtils.trackError("DM_JOIN_FAILED", 
+            new Error(`Socket not available after ${maxRetries} retries`));
         }
         return;
       }
-
+      
+      console.log("🔌 Calling socketManager.joinDMRoom with room ID:", chatRoomId);
       this.socketManager.joinDMRoom(chatRoomId);
+      
+      // Verify room join after a short delay
+      setTimeout(() => {
+        // Request room debug info to verify join
+        if (this.socketManager.socket) {
+          this.socketManager.socket.emit("debug-rooms");
+        }
+      }, 1000);
     };
-
-    attemptJoin();
-
-    // Add a verification step after attempting to join
-    setTimeout(() => {
-      console.log("🔍 ROOM JOIN VERIFICATION - After 2 seconds:", {
-        activeChatRoom: this.activeChatRoom,
-        chatType: this.chatType,
-        expectedRoom: `dm-room-${chatRoomId}`,
-      });
-    }, 2000);
+    
+    // First try to join immediately if socket is ready
+    if (this.socketManager && this.socketManager.connected) {
+      this.socketManager.joinDMRoom(chatRoomId);
+    } else {
+      // Otherwise use retry logic
+      attemptJoin();
+    }
+    
+    // Request initial messages once room is set
+    this.loadMessages(chatRoomId, "direct");
+    
+    return chatRoomId;
   }
   leaveDMRoom(chatRoomId) {
     this.socketManager.leaveDMRoom(chatRoomId);
