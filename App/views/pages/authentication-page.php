@@ -16,6 +16,10 @@ if ($path === '/register') {
     $mode = 'register';
 } elseif ($path === '/forgot-password') {
     $mode = 'forgot-password';
+} elseif ($path === '/set-security-question') {
+    $mode = 'security-question';
+} elseif (isset($_SESSION['google_auth_completed']) && $_SESSION['google_auth_completed'] === true && !isset($_SESSION['security_question_set'])) {
+    $mode = 'security-question';
 }
 
 $errors = $_SESSION['errors'] ?? [];
@@ -58,6 +62,8 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                 <span>Welcome back!</span>
             <?php elseif ($mode === 'register'): ?>
                 <span>Create an account</span>
+            <?php elseif ($mode === 'security-question'): ?>
+                <span>Set Security Question</span>
             <?php else: ?>
                 <span>Reset Password</span>
             <?php endif; ?>
@@ -214,6 +220,38 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                 </div>
 
                 <div class="form-group">
+                    <label for="security_question" class="block text-sm font-medium text-gray-300 mb-1">Security Question</label>
+                    <select 
+                        id="security_question" 
+                        name="security_question" 
+                        class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all"
+                    >
+                        <option value="">Select a security question</option>
+                        <option value="What was the name of your first pet?">What was the name of your first pet?</option>
+                        <option value="In what city were you born?">In what city were you born?</option>
+                        <option value="What was the name of your first school?">What was the name of your first school?</option>
+                        <option value="What is your mother's maiden name?">What is your mother's maiden name?</option>
+                        <option value="What was your childhood nickname?">What was your childhood nickname?</option>
+                    </select>
+                    <?php if (isset($errors['security_question'])): ?>
+                        <p class="text-red-500 text-sm mt-1"><?php echo $errors['security_question']; ?></p>
+                    <?php endif; ?>
+                </div>
+
+                <div class="form-group">
+                    <label for="security_answer" class="block text-sm font-medium text-gray-300 mb-1">Security Answer</label>
+                    <input 
+                        id="security_answer" 
+                        name="security_answer" 
+                        class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
+                        placeholder="Answer to your security question"
+                    >
+                    <?php if (isset($errors['security_answer'])): ?>
+                        <p class="text-red-500 text-sm mt-1"><?php echo $errors['security_answer']; ?></p>
+                    <?php endif; ?>
+                </div>
+
+                <div class="form-group">
                     <label class="block text-sm font-medium text-gray-300 mb-1">Verification</label>
                     <div id="register-captcha-container" class="mb-2"></div>
                     <input 
@@ -272,6 +310,52 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                 <div class="text-center mt-6">
                     <a href="#" class="text-discord-blue hover:underline text-sm form-toggle" data-form="login">Back to Login</a>
                 </div>
+            </form>
+
+            <form action="/set-security-question" method="POST" class="space-y-4 sm:space-y-5 <?php echo $mode === 'security-question' ? 'block' : 'hidden'; ?>" id="securityQuestionForm">
+                <p class="text-gray-300 text-sm mb-4">
+                    Please set a security question and answer to protect your account.
+                </p>
+
+                <input type="hidden" name="user_id" value="<?php echo $_SESSION['user_id'] ?? ''; ?>">
+
+                <div class="form-group">
+                    <label for="google_security_question" class="block text-sm font-medium text-gray-300 mb-1">Security Question</label>
+                    <select 
+                        id="google_security_question" 
+                        name="security_question" 
+                        class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all"
+                        required
+                    >
+                        <option value="">Select a security question</option>
+                        <option value="What was the name of your first pet?">What was the name of your first pet?</option>
+                        <option value="In what city were you born?">In what city were you born?</option>
+                        <option value="What was the name of your first school?">What was the name of your first school?</option>
+                        <option value="What is your mother's maiden name?">What is your mother's maiden name?</option>
+                        <option value="What was your childhood nickname?">What was your childhood nickname?</option>
+                    </select>
+                    <?php if (isset($errors['security_question'])): ?>
+                        <p class="text-red-500 text-sm mt-1"><?php echo $errors['security_question']; ?></p>
+                    <?php endif; ?>
+                </div>
+
+                <div class="form-group">
+                    <label for="google_security_answer" class="block text-sm font-medium text-gray-300 mb-1">Security Answer</label>
+                    <input 
+                        id="google_security_answer" 
+                        name="security_answer" 
+                        class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
+                        placeholder="Answer to your security question"
+                        required
+                    >
+                    <?php if (isset($errors['security_answer'])): ?>
+                        <p class="text-red-500 text-sm mt-1"><?php echo $errors['security_answer']; ?></p>
+                    <?php endif; ?>
+                </div>
+
+                <button type="submit" class="w-full py-2.5 bg-discord-blue hover:bg-discord-blue/90 text-white font-medium rounded-md transition-all">
+                    Save Security Question
+                </button>
             </form>
         </div>
     </div>

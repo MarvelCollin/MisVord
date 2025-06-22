@@ -189,6 +189,22 @@ $categories = $GLOBALS['serverCategories'] ?? [];
                         </button>
                     </div>
                     
+                    <div id="invite-expiration-info" class="text-sm text-gray-400 hidden">
+                        <i class="fas fa-clock mr-1"></i>
+                        <span>Expires...</span>
+                    </div>
+                    
+                    <div class="mt-2">
+                        <label for="invite-expiration" class="block text-sm font-medium text-gray-300 mb-1">Expire after</label>
+                        <select id="invite-expiration" class="w-full bg-discord-dark border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-discord-primary">
+                            <option value="never">Never</option>
+                            <option value="hour">1 hour</option>
+                            <option value="day">24 hours</option>
+                            <option value="week">7 days</option>
+                            <option value="month">30 days</option>
+                        </select>
+                    </div>
+                    
                     <div class="pt-4 flex justify-center">
                         <button id="generate-new-invite" class="text-discord-primary hover:underline text-sm">
                             Generate a new link

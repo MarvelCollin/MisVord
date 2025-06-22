@@ -8,6 +8,7 @@ function initAuth() {
         loginForm: document.getElementById('loginForm'),
         registerForm: document.getElementById('registerForm'),
         forgotForm: document.getElementById('forgotForm'),
+        securityQuestionForm: document.getElementById('securityQuestionForm'),
         passwordFields: document.querySelectorAll('.password-toggle'),
         regPassword: document.getElementById('reg_password'),
         confirmPassword: document.getElementById('password_confirm'),
@@ -43,6 +44,8 @@ function initAuth() {
             return 'register';
         } else if (elements.forgotForm && !elements.forgotForm.classList.contains('hidden')) {
             return 'forgot';
+        } else if (elements.securityQuestionForm && !elements.securityQuestionForm.classList.contains('hidden')) {
+            return 'security';
         }
         return 'login';
     }
@@ -194,14 +197,22 @@ function initAuth() {
                 elements.loginForm.classList.add('hidden');
                 elements.registerForm.classList.remove('hidden');
                 elements.forgotForm.classList.add('hidden');
+                elements.securityQuestionForm.classList.add('hidden');
             } else if (targetForm === 'login') {
                 elements.loginForm.classList.remove('hidden');
                 elements.registerForm.classList.add('hidden');
                 elements.forgotForm.classList.add('hidden');
+                elements.securityQuestionForm.classList.add('hidden');
             } else if (targetForm === 'forgot') {
                 elements.loginForm.classList.add('hidden');
                 elements.registerForm.classList.add('hidden');
                 elements.forgotForm.classList.remove('hidden');
+                elements.securityQuestionForm.classList.add('hidden');
+            } else if (targetForm === 'security') {
+                elements.loginForm.classList.add('hidden');
+                elements.registerForm.classList.add('hidden');
+                elements.forgotForm.classList.add('hidden');
+                elements.securityQuestionForm.classList.remove('hidden');
             }
 
             updateFormHeight();
@@ -256,6 +267,7 @@ function initAuth() {
             case 'login': return 'Welcome back!';
             case 'register': return 'Create an account';
             case 'forgot': return 'Reset Password';
+            case 'security': return 'Set Security Question';
             default: return 'misvord';
         }
     }

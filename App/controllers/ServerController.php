@@ -505,6 +505,7 @@ class ServerController extends BaseController
 
             $GLOBALS['inviteServer'] = $server;
             $GLOBALS['inviteCode'] = $code;
+            $GLOBALS['invite'] = $invite;
 
             return [
                 'server' => $server,

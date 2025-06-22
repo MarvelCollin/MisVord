@@ -9,11 +9,9 @@ class ServerAPI {
         if (text.trim().startsWith('<') || text.includes('<br />') || text.includes('</html>') || text.includes('<!DOCTYPE')) {
             console.error('Server returned HTML instead of JSON:', text.substring(0, 200));
             
-            // Extract the actual error message if possible
             let errorMessage = 'Server error occurred. Please try again.';
             
             if (text.includes('Warning') || text.includes('Error') || text.includes('Fatal error')) {
-                // Try to extract the actual error message
                 const errorMatch = text.match(/<b>(Warning|Error|Fatal error)<\/b>:\s*(.*?)(<br|<\/)/);
                 if (errorMatch && errorMatch[2]) {
                     errorMessage = `Server error: ${errorMatch[2].trim()}`;
@@ -60,15 +58,12 @@ class ServerAPI {
 
             const response = await fetch(url, mergedOptions);
             
-            // Handle network errors
             if (!response.ok) {
-                // Try to parse the response first
                 try {
                     const errorData = await this.parseResponse(response);
                     const errorMessage = errorData.error || errorData.message || `HTTP error! status: ${response.status}`;
                     throw new Error(errorMessage);
                 } catch (parseError) {
-                    // If parsing fails, throw a generic error with status code
                     if (parseError.message && parseError.message !== 'Invalid response from server') {
                         throw parseError;
                     } else {
@@ -152,9 +147,10 @@ class ServerAPI {
         });
     }
 
-    async generateInvite(serverId) {
+    async generateInvite(serverId, options = {}) {
         return await this.makeRequest(`/api/servers/${serverId}/invite`, {
-            method: 'POST'
+            method: 'POST',
+            body: options && Object.keys(options).length > 0 ? JSON.stringify(options) : undefined
         });
     }
 
@@ -222,14 +218,13 @@ class ServerAPI {
             }
             
             const text = await response.text();
-            return text; // Return the raw HTML
+            return text;
         } catch (error) {
             console.error('Error redirecting to server:', error);
             throw error;
         }
     }
 
-    // Helper method to fetch HTML content for server pages
     async getServerPageHTML(serverId, activeChannelId = null) {
         let url = `/server/${serverId}?render_html=1`;
         if (activeChannelId) {

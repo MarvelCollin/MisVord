@@ -137,6 +137,8 @@ function showInvitePeopleModal() {
         const copyBtn = document.getElementById('copy-invite-link');
         const generateBtn = document.getElementById('generate-new-invite');
         const closeBtn = document.getElementById('close-invite-modal');
+        const expirationSelect = document.getElementById('invite-expiration');
+        const expirationInfo = document.getElementById('invite-expiration-info');
 
         if (copyBtn && !copyBtn.hasAttribute('data-listener')) {
             copyBtn.addEventListener('click', copyInviteLink);
@@ -144,7 +146,10 @@ function showInvitePeopleModal() {
         }
 
         if (generateBtn && !generateBtn.hasAttribute('data-listener')) {
-            generateBtn.addEventListener('click', () => generateNewInvite(serverId));
+            generateBtn.addEventListener('click', () => {
+                const expirationValue = expirationSelect ? expirationSelect.value : null;
+                generateNewInvite(serverId, expirationValue);
+            });
             generateBtn.setAttribute('data-listener', 'true');
         }
 
@@ -348,7 +353,7 @@ function copyInviteLink() {
     showToast('Invite link copied to clipboard!', 'success');
 }
 
-function generateNewInvite(serverId) {
+function generateNewInvite(serverId, expirationValue = null) {
     console.log('generateNewInvite called from server-dropdown.js with serverId:', serverId);
 
     const generateBtn = document.getElementById('generate-new-invite');
@@ -356,7 +361,23 @@ function generateNewInvite(serverId) {
     generateBtn.textContent = 'Generating...';
     generateBtn.disabled = true;
 
-    ServerAPI.generateInvite(serverId)
+    const options = {};
+    if (expirationValue) {
+        // Convert expiration value to hours
+        if (expirationValue === 'never') {
+            // No expiration
+        } else if (expirationValue === 'hour') {
+            options.expires_in = 1;
+        } else if (expirationValue === 'day') {
+            options.expires_in = 24;
+        } else if (expirationValue === 'week') {
+            options.expires_in = 168; // 24 * 7
+        } else if (expirationValue === 'month') {
+            options.expires_in = 720; // 24 * 30
+        }
+    }
+
+    ServerAPI.generateInvite(serverId, options)
         .then(data => {
             console.log('Invite generation response:', data);
             if (data.success) {
@@ -374,6 +395,18 @@ function generateNewInvite(serverId) {
 
                     inviteLinkInput.value = fullInviteLink;
                     inviteLinkInput.select(); 
+                    
+                    // Display expiration info if available
+                    const expirationInfo = document.getElementById('invite-expiration-info');
+                    if (expirationInfo) {
+                        if (data.expires_at) {
+                            const expiryDate = new Date(data.expires_at);
+                            expirationInfo.textContent = `Expires on: ${expiryDate.toLocaleString()}`;
+                            expirationInfo.classList.remove('hidden');
+                        } else {
+                            expirationInfo.classList.add('hidden');
+                        }
+                    }
 
                     showToast('New invite link generated!', 'success');
                 } else {

@@ -319,6 +319,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initCaptcha();
     setupSocketInitialization();
     initPasswordFieldMasking();
+    initSecurityQuestionForm();
 });
 
 function initAuthForms() {
@@ -327,9 +328,9 @@ function initAuthForms() {
     const loginForm = document.getElementById('loginForm');
     const registerForm = document.getElementById('registerForm');
     const forgotForm = document.getElementById('forgotForm');
+    const securityQuestionForm = document.getElementById('securityQuestionForm');
     const authTitle = document.getElementById('authTitle');
     
-    // Add form validation
     if (loginForm) {
         loginForm.addEventListener('submit', validateLoginForm);
     }
@@ -340,6 +341,10 @@ function initAuthForms() {
     
     if (forgotForm) {
         forgotForm.addEventListener('submit', validateForgotForm);
+    }
+    
+    if (securityQuestionForm) {
+        securityQuestionForm.addEventListener('submit', validateSecurityQuestionForm);
     }
     
     formToggles.forEach(toggle => {
@@ -365,6 +370,13 @@ function initAuthForms() {
                 forgotForm.classList.remove('hidden');
                 authTitle.innerHTML = '<span>Reset Password</span>';
                 history.pushState({}, '', '/forgot-password');
+            } else if (formType === 'security') {
+                loginForm.classList.add('hidden');
+                registerForm.classList.add('hidden');
+                forgotForm.classList.add('hidden');
+                securityQuestionForm.classList.remove('hidden');
+                authTitle.innerHTML = '<span>Set Security Question</span>';
+                history.pushState({}, '', '/set-security-question');
             }
         });
     });
@@ -377,10 +389,8 @@ function validateLoginForm(e) {
     const captcha = form.querySelector('#login_captcha').value.trim();
     let isValid = true;
     
-    // Clear previous error messages
     clearErrors(form);
     
-    // Validate email
     if (!email) {
         showError(form.querySelector('#email'), 'Email is required');
         isValid = false;
@@ -389,13 +399,11 @@ function validateLoginForm(e) {
         isValid = false;
     }
     
-    // Validate password
     if (!password) {
         showError(form.querySelector('#password').parentNode, 'Password is required');
         isValid = false;
     }
     
-    // Validate captcha
     if (!captcha) {
         showError(form.querySelector('#login_captcha'), 'Please complete the captcha');
         isValid = false;
@@ -417,13 +425,13 @@ function validateRegisterForm(e) {
     const email = form.querySelector('#reg_email').value.trim();
     const password = form.querySelector('#reg_password').value;
     const confirmPassword = form.querySelector('#password_confirm').value;
+    const securityQuestion = form.querySelector('#security_question').value.trim();
+    const securityAnswer = form.querySelector('#security_answer').value.trim();
     const captcha = form.querySelector('#register_captcha').value.trim();
     let isValid = true;
     
-    // Clear previous error messages
     clearErrors(form);
     
-    // Validate username
     if (!username) {
         showError(form.querySelector('#username'), 'Username is required');
         isValid = false;
@@ -435,7 +443,6 @@ function validateRegisterForm(e) {
         isValid = false;
     }
     
-    // Validate email
     if (!email) {
         showError(form.querySelector('#reg_email'), 'Email is required');
         isValid = false;
@@ -444,7 +451,6 @@ function validateRegisterForm(e) {
         isValid = false;
     }
     
-    // Validate password
     if (!password) {
         showError(form.querySelector('#reg_password').parentNode, 'Password is required');
         isValid = false;
@@ -459,13 +465,24 @@ function validateRegisterForm(e) {
         isValid = false;
     }
     
-    // Validate password confirmation
     if (password !== confirmPassword) {
         showError(form.querySelector('#password_confirm').parentNode, 'Passwords do not match');
         isValid = false;
     }
     
-    // Validate captcha
+    if (!securityQuestion) {
+        showError(form.querySelector('#security_question'), 'Please select a security question');
+        isValid = false;
+    }
+    
+    if (!securityAnswer) {
+        showError(form.querySelector('#security_answer'), 'Security answer is required');
+        isValid = false;
+    } else if (securityAnswer.length < 3) {
+        showError(form.querySelector('#security_answer'), 'Security answer must be at least 3 characters');
+        isValid = false;
+    }
+    
     if (!captcha) {
         showError(form.querySelector('#register_captcha'), 'Please complete the captcha');
         isValid = false;
@@ -486,10 +503,8 @@ function validateForgotForm(e) {
     const email = form.querySelector('#forgot_email').value.trim();
     let isValid = true;
     
-    // Clear previous error messages
     clearErrors(form);
     
-    // Validate email
     if (!email) {
         showError(form.querySelector('#forgot_email'), 'Email is required');
         isValid = false;
@@ -503,12 +518,31 @@ function validateForgotForm(e) {
     }
 }
 
+function validateSecurityQuestionForm(e) {
+    const form = e.target;
+    const answer = form.querySelector('#security_answer').value.trim();
+    let isValid = true;
+    
+    clearErrors(form);
+    
+    if (!answer) {
+        showError(form.querySelector('#security_answer'), 'Security answer is required');
+        isValid = false;
+    } else if (answer.length < 3) {
+        showError(form.querySelector('#security_answer'), 'Security answer must be at least 3 characters');
+        isValid = false;
+    }
+    
+    if (!isValid) {
+        e.preventDefault();
+    }
+}
+
 function showError(element, message) {
     const errorMsg = document.createElement('p');
     errorMsg.className = 'text-red-500 text-sm mt-1 validation-error';
     errorMsg.innerHTML = message + ' <i class="fa-solid fa-xmark"></i>';
     
-    // If the element is inside a relative div (like password fields)
     const parent = element.parentNode;
     if (parent.classList.contains('relative')) {
         parent.parentNode.appendChild(errorMsg);
@@ -528,8 +562,6 @@ function isValidEmail(email) {
 }
 
 function initPasswordToggle() {
-    // This function is now replaced by initPasswordFieldMasking
-    // Kept for backward compatibility
 }
 
 function initPasswordStrength() {
@@ -606,13 +638,45 @@ function checkPasswordsMatch(password, confirm) {
     }
 }
 
+function validateSecurityQuestionField(field) {
+    const value = field.value.trim();
+    
+    if (!value) {
+        return {
+            valid: false,
+            message: 'Please select a security question'
+        };
+    }
+    
+    return { valid: true };
+}
+
+function validateSecurityAnswerField(field) {
+    const value = field.value.trim();
+    
+    if (!value) {
+        return {
+            valid: false,
+            message: 'Security answer is required'
+        };
+    }
+    
+    if (value.length < 3) {
+        return {
+            valid: false,
+            message: 'Security answer must be at least 3 characters'
+        };
+    }
+    
+    return { valid: true };
+}
+
 function initCaptcha() {
     if (typeof window.TextCaptcha !== 'function') {
         console.error('TextCaptcha is not loaded');
         return;
     }
     
-    // Initialize login form captcha
     const loginCaptchaContainer = document.getElementById('login-captcha-container');
     if (loginCaptchaContainer) {
         window.loginCaptcha = new TextCaptcha('login-captcha-container', {
@@ -620,7 +684,6 @@ function initCaptcha() {
         });
     }
     
-    // Initialize register form captcha
     const registerCaptchaContainer = document.getElementById('register-captcha-container');
     if (registerCaptchaContainer) {
         window.registerCaptcha = new TextCaptcha('register-captcha-container', {
@@ -628,7 +691,6 @@ function initCaptcha() {
         });
     }
     
-    // Add captcha validation to the forms
     const loginForm = document.getElementById('loginForm');
     const registerForm = document.getElementById('registerForm');
     
@@ -639,7 +701,6 @@ function initCaptcha() {
             if (!window.loginCaptcha || !window.loginCaptcha.verify(captchaInput.value)) {
                 e.preventDefault();
                 
-                // Show validation error
                 const existingError = loginForm.querySelector('.captcha-error');
                 if (existingError) existingError.remove();
                 
@@ -648,7 +709,6 @@ function initCaptcha() {
                 errorMsg.innerHTML = 'Invalid captcha code <i class="fa-solid fa-xmark"></i>';
                 captchaInput.parentElement.appendChild(errorMsg);
                 
-                // Refresh captcha
                 window.loginCaptcha.refresh();
                 captchaInput.value = '';
                 captchaInput.focus();
@@ -669,7 +729,6 @@ function initCaptcha() {
             if (!window.registerCaptcha || !window.registerCaptcha.verify(captchaInput.value)) {
                 e.preventDefault();
                 
-                // Show validation error
                 const existingError = registerForm.querySelector('.captcha-error');
                 if (existingError) existingError.remove();
                 
@@ -678,7 +737,6 @@ function initCaptcha() {
                 errorMsg.innerHTML = 'Invalid captcha code <i class="fa-solid fa-xmark"></i>';
                 captchaInput.parentElement.appendChild(errorMsg);
                 
-                // Refresh captcha
                 window.registerCaptcha.refresh();
                 captchaInput.value = '';
                 captchaInput.focus();
@@ -704,7 +762,6 @@ function setupSocketInitialization() {
 }
 
 function initPasswordFieldMasking() {
-    // Find all password-field class elements
     const passwordFields = document.querySelectorAll('.password-field');
     passwordFields.forEach(field => {
         setupPasswordField(field);
@@ -714,7 +771,6 @@ function initPasswordFieldMasking() {
         if (field.dataset.passwordFieldSetup) return;
         field.dataset.passwordFieldSetup = 'true';
         
-        // Create container for the field and toggle button if not already in one
         let container = field.parentNode;
         if (!container.classList.contains('relative')) {
             container = document.createElement('div');
@@ -723,10 +779,8 @@ function initPasswordFieldMasking() {
             container.appendChild(field);
         }
         
-        // Check if there's already a toggle button
         const existingToggle = container.querySelector('button.password-toggle');
         if (existingToggle) {
-            // Use the existing toggle button
             existingToggle.addEventListener('click', function() {
                 if (field.dataset.masked === 'true') {
                     unmaskPassword(field, existingToggle);
@@ -735,14 +789,12 @@ function initPasswordFieldMasking() {
                 }
             });
         } else {
-            // Create toggle button
             const toggleButton = document.createElement('button');
             toggleButton.type = 'button';
             toggleButton.className = 'absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors password-toggle';
             toggleButton.innerHTML = '<i class="fa-solid fa-eye"></i>';
             container.appendChild(toggleButton);
             
-            // Add event listener to toggle button
             toggleButton.addEventListener('click', function() {
                 if (field.dataset.masked === 'true') {
                     unmaskPassword(field, toggleButton);
@@ -752,7 +804,6 @@ function initPasswordFieldMasking() {
             });
         }
         
-        // Mask the password initially
         maskPassword(field);
     }
     
@@ -778,7 +829,6 @@ function initPasswordFieldMasking() {
         }
     }
     
-    // Add password font style to head if not already added
     if (!document.getElementById('password-font-style')) {
         const style = document.createElement('style');
         style.id = 'password-font-style';
@@ -792,4 +842,67 @@ function initPasswordFieldMasking() {
         `;
         document.head.appendChild(style);
     }
+}
+
+function initSecurityQuestionForm() {
+    const securityQuestionForm = document.getElementById('securityQuestionForm');
+    
+    if (!securityQuestionForm) return;
+    
+    const questionSelect = document.getElementById('google_security_question');
+    const answerInput = document.getElementById('google_security_answer');
+    
+    if (questionSelect && answerInput) {
+        questionSelect.addEventListener('change', function() {
+            if (this.value) {
+                this.classList.add('text-white');
+                this.classList.remove('text-gray-500');
+            } else {
+                this.classList.remove('text-white');
+                this.classList.add('text-gray-500');
+            }
+        });
+        
+        answerInput.addEventListener('input', function() {
+            if (this.value.length < 3 && this.value.length > 0) {
+                this.classList.add('border-red-500');
+            } else {
+                this.classList.remove('border-red-500');
+            }
+        });
+    }
+    
+    securityQuestionForm.addEventListener('submit', function(e) {
+        const question = questionSelect.value;
+        const answer = answerInput.value;
+        let isValid = true;
+        
+        document.querySelectorAll('.validation-error').forEach(el => el.remove());
+        
+        if (!question) {
+            const errorMsg = document.createElement('p');
+            errorMsg.className = 'text-red-500 text-sm mt-1 validation-error';
+            errorMsg.innerHTML = 'Please select a security question <i class="fa-solid fa-xmark"></i>';
+            questionSelect.parentNode.appendChild(errorMsg);
+            isValid = false;
+        }
+        
+        if (!answer) {
+            const errorMsg = document.createElement('p');
+            errorMsg.className = 'text-red-500 text-sm mt-1 validation-error';
+            errorMsg.innerHTML = 'Security answer is required <i class="fa-solid fa-xmark"></i>';
+            answerInput.parentNode.appendChild(errorMsg);
+            isValid = false;
+        } else if (answer.length < 3) {
+            const errorMsg = document.createElement('p');
+            errorMsg.className = 'text-red-500 text-sm mt-1 validation-error';
+            errorMsg.innerHTML = 'Security answer must be at least 3 characters <i class="fa-solid fa-xmark"></i>';
+            answerInput.parentNode.appendChild(errorMsg);
+            isValid = false;
+        }
+        
+        if (!isValid) {
+            e.preventDefault();
+        }
+    });
 }

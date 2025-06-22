@@ -559,4 +559,90 @@ class UserController extends BaseController
             return $this->serverError('An error occurred while retrieving security question: ' . $e->getMessage());
         }
     }
+    
+    public function resetPasswordWithSecurityAnswer()
+    {
+        $input = $this->getInput();
+        
+        try {
+            $errors = [];
+            
+            if (!isset($input['email']) || empty($input['email'])) {
+                $errors['email'] = 'Email is required';
+            }
+            
+            if (!isset($input['security_answer']) || empty($input['security_answer'])) {
+                $errors['security_answer'] = 'Security answer is required';
+            }
+            
+            if (!isset($input['new_password']) || empty($input['new_password'])) {
+                $errors['new_password'] = 'New password is required';
+            }
+            
+            if (!isset($input['confirm_password']) || empty($input['confirm_password'])) {
+                $errors['confirm_password'] = 'Confirm password is required';
+            }
+            
+            if (!empty($errors)) {
+                return $this->error('Missing required fields', 400, $errors);
+            }
+            
+            $user = $this->userRepository->findByEmail($input['email']);
+            
+            if (!$user) {
+                return $this->error('User not found', 404);
+            }
+            
+            if (!isset($user->security_question) || empty($user->security_question)) {
+                return $this->error('No security question set for this account', 400);
+            }
+            
+            $newPassword = $input['new_password'];
+            $confirmPassword = $input['confirm_password'];
+            
+            if ($newPassword !== $confirmPassword) {
+                return $this->error('Passwords do not match', 400);
+            }
+            
+            if (strlen($newPassword) < 8) {
+                return $this->error('Password must be at least 8 characters long', 400);
+            }
+            
+            if (!preg_match('/[A-Z]/', $newPassword)) {
+                return $this->error('Password must contain at least one uppercase letter', 400);
+            }
+            
+            if (!preg_match('/[0-9]/', $newPassword)) {
+                return $this->error('Password must contain at least one number', 400);
+            }
+            
+            $verified = $this->userRepository->verifySecurityAnswer($user->id, $input['security_answer']);
+            
+            if (!$verified) {
+                $this->logActivity('password_reset_failed_security_answer', [
+                    'user_id' => $user->id,
+                    'email' => $input['email']
+                ]);
+                return $this->error('Incorrect security answer', 401);
+            }
+            
+            $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+            
+            $result = $this->userRepository->update($user->id, [
+                'password' => $hashedPassword
+            ]);
+            
+            if (!$result) {
+                return $this->serverError('Failed to update password');
+            }
+            
+            $this->logActivity('password_reset_with_security_answer', [
+                'user_id' => $user->id
+            ]);
+            
+            return $this->success(null, 'Password reset successfully');
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while resetting password: ' . $e->getMessage());
+        }
+    }
 } 

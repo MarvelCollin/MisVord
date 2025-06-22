@@ -7,6 +7,7 @@ $additional_js = [];
 
 $server = $GLOBALS['inviteServer'] ?? null;
 $inviteCode = $GLOBALS['inviteCode'] ?? null;
+$invite = $GLOBALS['invite'] ?? null;
 
 require_once dirname(dirname(__DIR__)) . '/config/session.php';
 
@@ -48,6 +49,13 @@ ob_start();
 
                         <?php if ($server->description): ?>
                             <p class="text-gray-300 mt-2"><?php echo htmlspecialchars($server->description); ?></p>
+                        <?php endif; ?>
+                        
+                        <?php if ($invite && $invite->expires_at): ?>
+                            <p class="text-sm text-gray-400 mt-2">
+                                <i class="fas fa-clock mr-1"></i>
+                                This invite expires on <?php echo date('F j, Y, g:i a', strtotime($invite->expires_at)); ?>
+                            </p>
                         <?php endif; ?>
                     </div>
 
