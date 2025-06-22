@@ -36,6 +36,15 @@ $additional_js[] = 'components/servers/create-server-modal';
                 <input type="text" id="server-name" name="name" class="bg-discord-dark text-white w-full px-3 py-2 rounded border border-gray-700 focus:border-discord-blue focus:outline-none" placeholder="My Awesome Server" required>
             </div>
 
+            <div class="mb-4">
+                <label class="flex items-center cursor-pointer">
+                    <input type="checkbox" id="is-public" name="is_public" value="1" class="sr-only peer">
+                    <div class="relative w-11 h-6 bg-discord-dark border-2 border-gray-600 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-discord-blue"></div>
+                    <span class="ms-3 text-sm font-medium text-gray-300">Make server public</span>
+                </label>
+                <p class="text-xs text-gray-400 mt-1">Public servers can be found in the explore page</p>
+            </div>
+
             <div>
                 <button type="submit" class="w-full bg-discord-blue text-white font-medium py-2 px-4 rounded hover:bg-opacity-80 transition-colors">
                     Create Server

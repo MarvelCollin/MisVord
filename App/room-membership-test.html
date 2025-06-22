@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Room Membership Debug Test</title>
+    <style>
+        body { font-family: monospace; background: #2c2f36; color: #fff; padding: 20px; }
+        .test-section { background: #40444b; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .success { color: #57f287; }
+        .error { color: #ed4245; }
+        .warning { color: #faa61a; }
+        .info { color: #5865f2; }
+        button { background: #5865f2; color: white; border: none; padding: 8px 15px; margin: 5px; border-radius: 3px; cursor: pointer; }
+        input { background: #40444b; border: 1px solid #666; color: white; padding: 8px; margin: 5px; border-radius: 3px; }
+        #log { background: #36393f; padding: 10px; height: 400px; overflow-y: auto; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Room Membership Debug Test</h1>
+    
+    <div class="test-section">
+        <h3>Test Parameters:</h3>
+        <input type="text" id="channelId" placeholder="Channel ID (e.g., 1)" value="1">
+        <input type="text" id="dmRoomId" placeholder="DM Room ID (e.g., 1)" value="1">
+        <input type="text" id="testMessage" placeholder="Test message" value="Debug test message">
+    </div>
+    
+    <div class="test-section">
+        <h3>Connection Test:</h3>
+        <button onclick="testConnection()">🔌 Test Socket Connection</button>
+        <button onclick="testAuthentication()">🔐 Test Authentication</button>
+        <span id="connectionStatus"></span>
+    </div>
+    
+    <div class="test-section">
+        <h3>Room Tests:</h3>
+        <button onclick="testChannelJoin()">🏠 Test Channel Join</button>
+        <button onclick="testDMJoin()">💬 Test DM Join</button>
+        <button onclick="testRoomInfo()">📊 Get Room Info</button>
+    </div>
+    
+    <div class="test-section">
+        <h3>Message Tests:</h3>
+        <button onclick="testChannelMessage()">📨 Test Channel Message</button>
+        <button onclick="testDMMessage()">💬 Test DM Message</button>
+        <button onclick="testAPIMessage()">🌐 Test API Message</button>
+    </div>
+    
+    <div class="test-section">
+        <h3>Integration Tests:</h3>
+        <button onclick="testFullChannelFlow()">🔄 Full Channel Flow</button>
+        <button onclick="testFullDMFlow()">🔄 Full DM Flow</button>
+        <button onclick="clearLog()">🧹 Clear Log</button>
+    </div>
+
+    <h3>Debug Log:</h3>
+    <div id="log"></div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        let socket = null;
+        let isAuthenticated = false;
+        let logs = [];
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}`;
+            logs.push(logEntry);
+            
+            const logDiv = document.getElementById('log');
+            const className = type === 'success' ? 'success' : type === 'error' ? 'error' : type === 'warning' ? 'warning' : 'info';
+            logDiv.innerHTML += `<div class="${className}">${logEntry}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            
+            console.log(`[DEBUG] ${message}`);
+        }
+
+        function updateConnectionStatus(status) {
+            document.getElementById('connectionStatus').innerHTML = status;
+        }
+
+        async function testConnection() {
+            log('🔌 Testing socket connection...', 'info');
+            
+            if (socket) {
+                socket.disconnect();
+            }
+            
+            socket = io('http://localhost:1002', {
+                path: '/socket.io',
+                transports: ['polling', 'websocket'],
+                timeout: 5000
+            });
+            
+            socket.on('connect', () => {
+                log(`✅ Socket connected: ${socket.id}`, 'success');
+                updateConnectionStatus(`✅ Connected (ID: ${socket.id})`);
+                setupEventListeners();
+            });
+            
+            socket.on('disconnect', (reason) => {
+                log(`❌ Socket disconnected: ${reason}`, 'error');
+                updateConnectionStatus('❌ Disconnected');
+                isAuthenticated = false;
+            });
+            
+            socket.on('connect_error', (error) => {
+                log(`❌ Connection error: ${error.message}`, 'error');
+                updateConnectionStatus('❌ Connection Error');
+            });
+        }
+
+        function setupEventListeners() {
+            // Authentication events
+            socket.on('authenticated', (data) => {
+                log(`✅ Authenticated: ${JSON.stringify(data)}`, 'success');
+                isAuthenticated = true;
+            });
+
+            socket.on('authentication-failed', (data) => {
+                log(`❌ Authentication failed: ${JSON.stringify(data)}`, 'error');
+                isAuthenticated = false;
+            });
+
+            // Room join confirmations
+            socket.on('channel-joined', (data) => {
+                log(`✅ Channel joined: ${JSON.stringify(data)}`, 'success');
+            });
+
+            socket.on('dm-room-joined', (data) => {
+                log(`✅ DM room joined: ${JSON.stringify(data)}`, 'success');
+            });
+
+            socket.on('room-joined', (data) => {
+                log(`✅ Room joined: ${JSON.stringify(data)}`, 'success');
+            });
+
+            // Message events
+            socket.on('new-channel-message', (data) => {
+                log(`📨 Received channel message: ${JSON.stringify(data)}`, 'success');
+            });
+
+            socket.on('user-message-dm', (data) => {
+                log(`📨 Received DM message: ${JSON.stringify(data)}`, 'success');
+            });
+
+            socket.on('message-sent-confirmation', (data) => {
+                log(`✅ Message confirmed: ${JSON.stringify(data)}`, 'success');
+            });
+
+            socket.on('message_error', (data) => {
+                log(`❌ Message error: ${JSON.stringify(data)}`, 'error');
+            });
+
+            // Room info
+            socket.on('room-info', (data) => {
+                log(`📊 Room info: ${JSON.stringify(data)}`, 'info');
+            });
+        }
+
+        function testAuthentication() {
+            if (!socket || !socket.connected) {
+                log('❌ Cannot authenticate: not connected', 'error');
+                return;
+            }
+
+            const authData = {
+                userId: '1',
+                username: 'debug_user',
+                token: 'debug_token'
+            };
+
+            log(`🔐 Authenticating: ${JSON.stringify(authData)}`, 'info');
+            socket.emit('authenticate', authData);
+        }
+
+        function testChannelJoin() {
+            const channelId = document.getElementById('channelId').value;
+            
+            if (!socket || !socket.connected) {
+                log('❌ Cannot join channel: not connected', 'error');
+                return;
+            }
+
+            if (!isAuthenticated) {
+                log('❌ Cannot join channel: not authenticated', 'error');
+                return;
+            }
+
+            log(`🏠 Joining channel: ${channelId}`, 'info');
+            socket.emit('join-channel', { channelId: channelId });
+        }
+
+        function testDMJoin() {
+            const roomId = document.getElementById('dmRoomId').value;
+            
+            if (!socket || !socket.connected) {
+                log('❌ Cannot join DM: not connected', 'error');
+                return;
+            }
+
+            if (!isAuthenticated) {
+                log('❌ Cannot join DM: not authenticated', 'error');
+                return;
+            }
+
+            log(`💬 Joining DM room: ${roomId}`, 'info');
+            socket.emit('join-dm-room', { roomId: roomId });
+        }
+
+        function testRoomInfo() {
+            if (!socket || !socket.connected) {
+                log('❌ Cannot get room info: not connected', 'error');
+                return;
+            }
+
+            log('📊 Requesting room info...', 'info');
+            socket.emit('get-room-info');
+        }
+
+        function testChannelMessage() {
+            const channelId = document.getElementById('channelId').value;
+            const message = document.getElementById('testMessage').value;
+            
+            if (!socket || !socket.connected) {
+                log('❌ Cannot send message: not connected', 'error');
+                return;
+            }
+
+            if (!isAuthenticated) {
+                log('❌ Cannot send message: not authenticated', 'error');
+                return;
+            }
+
+            const messageData = {
+                channelId: channelId,
+                content: message,
+                messageType: 'text',
+                tempId: 'debug_' + Date.now(),
+                timestamp: Date.now()
+            };
+
+            log(`📨 Sending channel message: ${JSON.stringify(messageData)}`, 'info');
+            socket.emit('channel-message', messageData);
+        }
+
+        function testDMMessage() {
+            const roomId = document.getElementById('dmRoomId').value;
+            const message = document.getElementById('testMessage').value;
+            
+            if (!socket || !socket.connected) {
+                log('❌ Cannot send DM: not connected', 'error');
+                return;
+            }
+
+            if (!isAuthenticated) {
+                log('❌ Cannot send DM: not authenticated', 'error');
+                return;
+            }
+
+            const messageData = {
+                roomId: roomId,
+                content: message,
+                messageType: 'text',
+                tempId: 'debug_dm_' + Date.now(),
+                timestamp: Date.now()
+            };
+
+            log(`💬 Sending DM message: ${JSON.stringify(messageData)}`, 'info');
+            socket.emit('direct-message', messageData);
+        }
+
+        async function testAPIMessage() {
+            const channelId = document.getElementById('channelId').value;
+            const message = document.getElementById('testMessage').value + ' (via API)';
+            
+            const messageData = {
+                target_type: 'channel',
+                target_id: channelId,
+                content: message,
+                message_type: 'text'
+            };
+
+            log(`🌐 Sending API message: ${JSON.stringify(messageData)}`, 'info');
+
+            try {
+                const response = await fetch('/api/chat/send', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(messageData),
+                    credentials: 'include'
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    log(`✅ API message sent: ${JSON.stringify(result)}`, 'success');
+                } else {
+                    log(`❌ API error: ${JSON.stringify(result)}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ API request failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testFullChannelFlow() {
+            log('\n🔄 === FULL CHANNEL FLOW TEST ===', 'info');
+            
+            if (!socket) {
+                await testConnection();
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+            
+            if (!isAuthenticated) {
+                testAuthentication();
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+            
+            testChannelJoin();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            await testAPIMessage();
+            
+            log('✅ Full channel flow test completed', 'success');
+        }
+
+        async function testFullDMFlow() {
+            log('\n🔄 === FULL DM FLOW TEST ===', 'info');
+            
+            if (!socket) {
+                await testConnection();
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+            
+            if (!isAuthenticated) {
+                testAuthentication();
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+            
+            testDMJoin();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Test DM via API
+            const roomId = document.getElementById('dmRoomId').value;
+            const message = document.getElementById('testMessage').value + ' (DM via API)';
+            
+            const messageData = {
+                target_type: 'dm',
+                target_id: roomId,
+                content: message,
+                message_type: 'text'
+            };
+
+            log(`🌐 Sending DM API message: ${JSON.stringify(messageData)}`, 'info');
+
+            try {
+                const response = await fetch('/api/chat/send', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(messageData),
+                    credentials: 'include'
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    log(`✅ DM API message sent: ${JSON.stringify(result)}`, 'success');
+                } else {
+                    log(`❌ DM API error: ${JSON.stringify(result)}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ DM API request failed: ${error.message}`, 'error');
+            }
+            
+            log('✅ Full DM flow test completed', 'success');
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+            logs = [];
+        }
+
+        // Auto-start basic connection test
+        window.addEventListener('load', () => {
+            log('🚀 Room membership debug test loaded', 'info');
+            setTimeout(testConnection, 500);
+        });
+    </script>
+</body>
+</html>

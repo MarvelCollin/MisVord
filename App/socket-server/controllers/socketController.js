@@ -30,6 +30,26 @@ function setupSocketHandlers(io) {
       handleDirectMessage(io, socket, data);
     });
     socket.on('join-dm-room', (data) => handleJoinDMRoom(io, socket, data));
+    socket.on('leave-dm-room', (data) => handleLeaveDMRoom(io, socket, data));
+    socket.on('typing', (data) => handleTyping(io, socket, data));
+    socket.on('stop-typing', (data) => handleStopTyping(io, socket, data));
+    socket.on('user_typing_dm', (data) => handleTypingDM(io, socket, data));
+    socket.on('user_stop_typing_dm', (data) => handleStopTypingDM(io, socket, data));
+    socket.on('heartbeat', () => handleHeartbeat(socket));
+    socket.on('update-presence', (data) => handleUpdatePresence(io, socket, data));
+    socket.on('update-activity', (data) => handleUpdateActivity(io, socket, data));
+    socket.on('get-online-users', () => handleGetOnlineUsers(socket));
+    socket.on('get-user-presence', (data) => handleGetUserPresence(socket, data));
+    socket.on('notify-user', (data) => handleNotifyUser(io, socket, data));
+    socket.on('broadcast', (data) => handleBroadcast(io, socket, data));
+    socket.on('room-event', (data) => handleRoomEvent(io, socket, data));
+    socket.on('typing-start', (data) => handleTypingStart(io, socket, data));
+    socket.on('typing-stop', (data) => handleTypingStop(io, socket, data));
+    socket.on('reaction-added', (data) => handleReactionAdded(io, socket, data));    socket.on('user-presence-changed', (data) => handleUserPresenceChanged(io, socket, data));
+    socket.on('debug-test', (data) => handleDebugTest(io, socket, data));
+    socket.on('test-message', (data) => handleTestMessage(io, socket, data));
+    socket.on('debug-rooms', () => handleDebugRooms(io, socket));
+    socket.on('get-room-info', () => handleGetRoomInfo(io, socket));
     
     // Debug command to show current room status
     socket.on('debug-rooms', () => {
@@ -58,24 +78,6 @@ function setupSocketHandlers(io) {
       console.log('');
     }
   }, 30000);
-}socket.on('leave-dm-room', (data) => handleLeaveDMRoom(io, socket, data));
-    socket.on('typing', (data) => handleTyping(io, socket, data));
-    socket.on('stop-typing', (data) => handleStopTyping(io, socket, data));
-    socket.on('user_typing_dm', (data) => handleTypingDM(io, socket, data));
-    socket.on('user_stop_typing_dm', (data) => handleStopTypingDM(io, socket, data));
-    socket.on('heartbeat', () => handleHeartbeat(socket));
-    socket.on('update-presence', (data) => handleUpdatePresence(io, socket, data));
-    socket.on('update-activity', (data) => handleUpdateActivity(io, socket, data));
-    socket.on('get-online-users', () => handleGetOnlineUsers(socket));
-    socket.on('get-user-presence', (data) => handleGetUserPresence(socket, data));
-    socket.on('notify-user', (data) => handleNotifyUser(io, socket, data));
-    socket.on('broadcast', (data) => handleBroadcast(io, socket, data));
-    socket.on('room-event', (data) => handleRoomEvent(io, socket, data));    socket.on('typing-start', (data) => handleTypingStart(io, socket, data));    socket.on('typing-stop', (data) => handleTypingStop(io, socket, data));
-    socket.on('reaction-added', (data) => handleReactionAdded(io, socket, data));
-    socket.on('user-presence-changed', (data) => handleUserPresenceChanged(io, socket, data));
-    socket.on('debug-test', (data) => handleDebugTest(io, socket, data));
-    socket.on('test-message', (data) => handleTestMessage(io, socket, data));
-  });
 }
 
 function handleAuthentication(io, socket, data) {
@@ -165,13 +167,6 @@ function handleJoinChannel(io, socket, data) {
       success: true 
     });
     
-    console.log('=== END JOIN CHANNEL ===\n');
-  } catch (error) {
-    console.error('❌ Join channel error:', error);
-    socket.emit('channel-join-failed', { error: 'Failed to join channel' });
-  }
-}
-    
     socket.to(roomName).emit('user-joined-channel', {
       channelId,
       userId: user.userId,
@@ -190,6 +185,8 @@ function handleJoinChannel(io, socket, data) {
       .catch(error => {
         console.error(`❌ Error fetching channel history: ${error.message}`);
       });
+    
+    console.log('=== END JOIN CHANNEL ===\n');
   } catch (error) {
     console.error('❌ Join channel error:', error);
     socket.emit('channel-join-failed', { error: 'Failed to join channel' });
@@ -259,14 +256,12 @@ function handleChannelMessage(io, socket, data) {
       return;
     }
     
-    // 🐳 DOCKER SOCKET LOGS: Message validation passed
     console.log(`🐳 [DOCKER-SOCKET-LOG] Message validation PASSED for user: ${user.username} (${user.userId})`);
     
     const duplicateId = messageService.checkRecentDuplicate(user.userId, timestamp, content);
     if (duplicateId) {
       console.log('⚠️ Duplicate message detected, skipping...');
       
-      // 🐳 DOCKER SOCKET LOGS: Duplicate message detected
       console.log(`🐳 [DOCKER-SOCKET-LOG] DUPLICATE message detected - Skipping save`);
       console.log(`🐳 [DOCKER-SOCKET-LOG] Duplicate ID: ${duplicateId}`);
       
@@ -279,7 +274,6 @@ function handleChannelMessage(io, socket, data) {
       return;
     }
     
-    // 🐳 DOCKER SOCKET LOGS: Saving message to database
     console.log(`🐳 [DOCKER-SOCKET-LOG] Saving message to database...`);
     
     messageService.saveMessage(channelId, user.userId, content, messageType)
@@ -301,10 +295,10 @@ function handleChannelMessage(io, socket, data) {
         const roomName = `channel-${channelId}`;
         const clientsInRoom = io.sockets.adapter.rooms.get(roomName);
         console.log(`👥 Clients in room ${roomName}:`, clientsInRoom ? Array.from(clientsInRoom) : 'No clients');
+          console.log(`${user.username} to #channel-${channelId} : ${content}`);
         
-        console.log(`${user.username} to #channel-${channelId} : ${content}`);
-        
-        io.to(`channel-${channelId}`).emit('new-channel-message', messageData);
+        // Send to all users in the channel except the sender (like typing system)
+        socket.to(`channel-${channelId}`).emit('new-channel-message', messageData);
         
         socket.emit('message-sent-confirmation', { 
           tempId: data.tempId, 
@@ -375,7 +369,8 @@ function handleDirectMessage(io, socket, data) {
     
     // 🐳 DOCKER SOCKET LOGS: Direct message validation passed
     console.log(`🐳 [DOCKER-SOCKET-LOG] Direct message validation PASSED for user: ${user.username} (${user.userId})`);
-        const duplicateId = messageService.checkRecentDuplicate(user.userId, timestamp, content);
+    
+    const duplicateId = messageService.checkRecentDuplicate(user.userId, timestamp, content);
     if (duplicateId) {
       console.log('⚠️ Duplicate direct message detected, skipping...');
       
@@ -394,7 +389,8 @@ function handleDirectMessage(io, socket, data) {
 
     // 🐳 DOCKER SOCKET LOGS: Saving direct message to database
     console.log(`🐳 [DOCKER-SOCKET-LOG] Saving direct message to database...`);
-        messageService.saveDirectMessage(roomId, user.userId, content, messageType)
+    
+    messageService.saveDirectMessage(roomId, user.userId, content, messageType)
       .then(message => {
         console.log('✅ Direct message saved successfully:', message);
         
@@ -404,6 +400,7 @@ function handleDirectMessage(io, socket, data) {
           user_id: user.userId,
           username: user.username,
           chatRoomId: roomId,
+          roomId: roomId,
           message_type: messageType,
           created_at: message.created_at || message.sent_at,
           tempId: data.tempId
@@ -416,10 +413,10 @@ function handleDirectMessage(io, socket, data) {
         
         // Get room info
         const roomName = `dm-room-${roomId}`;
-        const clientsInRoom = io.sockets.adapter.rooms.get(roomName);
-        console.log(`👥 Clients in room ${roomName}:`, clientsInRoom ? Array.from(clientsInRoom) : 'No clients');
+        const clientsInRoom = io.sockets.adapter.rooms.get(roomName);        console.log(`👥 Clients in room ${roomName}:`, clientsInRoom ? Array.from(clientsInRoom) : 'No clients');
         
-        socket.to(`dm-room-${roomId}`).emit('user-message-dm', messageData);
+        // Broadcast to all clients in room except sender (like typing system)
+        socket.to(roomName).emit('user-message-dm', messageData);
         
         socket.emit('message-sent-confirmation', { 
           tempId: data.tempId, 
@@ -458,6 +455,8 @@ function handleDirectMessage(io, socket, data) {
       tempId: data.tempId
     });
   }
+}
+
 function handleJoinDMRoom(io, socket, data) {
   console.log('\n=== 🏠 DM ROOM JOIN REQUEST ===');
   console.log('Socket ID:', socket.id);
@@ -522,11 +521,6 @@ function handleJoinDMRoom(io, socket, data) {
   } catch (error) {
     console.error('❌ Error in handleJoinDMRoom:', error);
     socket.emit('dm-room-join-failed', { error: 'Failed to join room' });
-  }
-}
-  } catch (error) {
-    console.error('❌ Join DM room error:', error);
-    socket.emit('dm-room-join-failed', { error: 'Failed to join DM room' });
   }
 }
 
@@ -796,9 +790,8 @@ function handleRoomEvent(io, socket, data) {
       console.error('❌ Invalid room-event request - missing room or event');
       return;
     }
-    
-    // Emit to specific room
-    io.to(room).emit(event, eventData);
+      // Emit to specific room except sender (like typing and messaging)
+    socket.to(room).emit(event, eventData);
     console.log(`📡 Broadcast event ${event} to room ${room}`);
   } catch (error) {
     console.error('❌ Room event error:', error);
@@ -863,11 +856,10 @@ function handleReactionAdded(io, socket, data) {
       console.error('❌ Invalid reaction-added request');
       return;
     }
+      const roomName = `channel-${channel_id}`;
     
-    const roomName = `channel-${channel_id}`;
-    
-    // Broadcast reaction to channel
-    io.to(roomName).emit('reaction-added', {
+    // Broadcast reaction to channel except sender (like typing and messaging)
+    socket.to(roomName).emit('reaction-added', {
       channel_id,
       message_id,
       user_id,
@@ -944,6 +936,76 @@ function handleTestMessage(io, socket, data) {
       success: false,
       error: error.message
     });
+  }
+}
+
+function handleDebugRooms(io, socket) {
+  try {
+    console.log('\n=== 🔍 ROOM DEBUG INFO REQUESTED ===');
+    const user = userService.getConnectedUser(socket.id);
+    console.log(`Debug requested by: ${user ? `${user.username} (${user.userId})` : 'Unknown'}`);
+    
+    const rooms = io.sockets.adapter.rooms;
+    const allRooms = Array.from(rooms.keys());
+    
+    console.log('All rooms in server:', allRooms);
+    
+    const roomInfo = [];
+    rooms.forEach((clients, roomName) => {
+      if (roomName.startsWith('channel-') || roomName.startsWith('dm-room-')) {
+        const clientList = Array.from(clients);
+        const userList = clientList.map(clientId => {
+          const user = userService.getConnectedUser(clientId);
+          return user ? `${user.username} (${user.userId})` : 'Unknown';
+        });
+        
+        roomInfo.push({
+          roomName,
+          clientCount: clients.size,
+          clients: clientList,
+          users: userList
+        });
+        
+        console.log(`📊 ${roomName}: ${clients.size} clients`);
+        console.log(`   Clients: ${clientList.join(', ')}`);
+        console.log(`   Users: ${userList.join(', ')}`);
+      }
+    });
+    
+    // Send room info back to client
+    socket.emit('room-debug-info', {
+      totalRooms: allRooms.length,
+      chatRooms: roomInfo,
+      socketId: socket.id,
+      user: user
+    });
+    
+    console.log('=== END ROOM DEBUG ===\n');
+    
+  } catch (error) {
+    console.error('❌ Error in handleDebugRooms:', error);
+    socket.emit('room-debug-error', { error: error.message });
+  }
+}
+
+function handleGetRoomInfo(io, socket) {
+  try {
+    const user = userService.getConnectedUser(socket.id);
+    const socketRooms = Array.from(socket.rooms);
+    
+    console.log(`📊 Room info requested by: ${user ? `${user.username} (${user.userId})` : 'Unknown'}`);
+    console.log(`📊 Socket rooms: ${socketRooms.join(', ')}`);
+    
+    socket.emit('room-info', {
+      socketId: socket.id,
+      user: user,
+      rooms: socketRooms,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('❌ Error in handleGetRoomInfo:', error);
+    socket.emit('room-info-error', { error: error.message });
   }
 }
 

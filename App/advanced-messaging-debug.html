@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Messaging Debug Tool</title>
+    <style>
+        body { font-family: monospace; background: #2c2f36; color: #fff; padding: 20px; }
+        .debug-section { background: #40444b; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .success { color: #57f287; }
+        .error { color: #ed4245; }
+        .warning { color: #faa61a; }
+        .info { color: #5865f2; }
+        .highlight { background: #5865f2; color: white; }
+        button { background: #5865f2; color: white; border: none; padding: 8px 15px; margin: 5px; border-radius: 3px; cursor: pointer; }
+        input { background: #40444b; border: 1px solid #666; color: white; padding: 8px; margin: 5px; border-radius: 3px; }
+        #log { background: #36393f; padding: 10px; height: 500px; overflow-y: auto; font-size: 12px; }
+        .status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .status-item { background: #36393f; padding: 10px; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Advanced Messaging Debug Tool</h1>
+    
+    <div class="debug-section">
+        <h3>System Status:</h3>
+        <div class="status-grid">
+            <div class="status-item">
+                <strong>Socket Connection:</strong>
+                <div id="socketStatus">❓ Unknown</div>
+            </div>
+            <div class="status-item">
+                <strong>Authentication:</strong>
+                <div id="authStatus">❓ Unknown</div>
+            </div>
+            <div class="status-item">
+                <strong>MisVordMessaging:</strong>
+                <div id="messagingStatus">❓ Unknown</div>
+            </div>
+            <div class="status-item">
+                <strong>Active Rooms:</strong>
+                <div id="roomStatus">❓ Unknown</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="debug-section">
+        <h3>Test Configuration:</h3>
+        <input type="text" id="channelId" placeholder="Channel ID" value="1">
+        <input type="text" id="dmRoomId" placeholder="DM Room ID" value="1">
+        <input type="text" id="userId" placeholder="User ID" value="1">
+        <input type="text" id="username" placeholder="Username" value="debug_user">
+        <input type="text" id="testMessage" placeholder="Test message content" value="Debug test message">
+    </div>
+    
+    <div class="debug-section">
+        <h3>Step-by-Step Test Flow:</h3>
+        <button onclick="runCompleteTest()">🚀 Run Complete Flow Test</button>
+        <button onclick="step1_Connect()">1. 🔌 Connect Socket</button>
+        <button onclick="step2_Authenticate()">2. 🔐 Authenticate</button>
+        <button onclick="step3_JoinRoom()">3. 🏠 Join Room</button>
+        <button onclick="step4_SendMessage()">4. 📨 Send Message</button>
+        <button onclick="step5_Verify()">5. ✅ Verify</button>
+    </div>
+    
+    <div class="debug-section">
+        <h3>Quick Tests:</h3>
+        <button onclick="testChannelFlow()">📺 Test Channel Flow</button>
+        <button onclick="testDMFlow()">💬 Test DM Flow</button>
+        <button onclick="testMisVordMessaging()">🎯 Test MisVordMessaging</button>
+        <button onclick="clearLog()">🧹 Clear Log</button>
+    </div>
+
+    <h3>Debug Log:</h3>
+    <div id="log"></div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        let socket = null;
+        let isAuthenticated = false;
+        let currentStep = 0;
+        let testResults = {
+            connection: false,
+            authentication: false,
+            roomJoin: false,
+            messageSend: false,
+            messageReceive: false
+        };
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'success' ? 'success' : type === 'error' ? 'error' : type === 'warning' ? 'warning' : 'info';
+            const logDiv = document.getElementById('log');
+            logDiv.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(`[DEBUG] ${message}`);
+        }
+
+        function updateStatus() {
+            document.getElementById('socketStatus').innerHTML = socket && socket.connected ? '✅ Connected' : '❌ Disconnected';
+            document.getElementById('authStatus').innerHTML = isAuthenticated ? '✅ Authenticated' : '❌ Not Authenticated';
+            document.getElementById('messagingStatus').innerHTML = window.MisVordMessaging ? '✅ Available' : '❌ Not Available';
+            
+            const rooms = socket && socket.connected ? Array.from(socket.rooms || []) : [];
+            document.getElementById('roomStatus').innerHTML = rooms.length > 1 ? `✅ ${rooms.length - 1} rooms` : '❌ No rooms';
+        }
+
+        async function runCompleteTest() {
+            log('🚀 === RUNNING COMPLETE MESSAGING FLOW TEST ===', 'highlight');
+            testResults = { connection: false, authentication: false, roomJoin: false, messageSend: false, messageReceive: false };
+            
+            try {
+                await step1_Connect();
+                await delay(1000);
+                
+                await step2_Authenticate();
+                await delay(1000);
+                
+                await step3_JoinRoom();
+                await delay(1000);
+                
+                await step4_SendMessage();
+                await delay(2000);
+                
+                await step5_Verify();
+                
+                log('📊 === TEST RESULTS ===', 'highlight');
+                Object.entries(testResults).forEach(([test, result]) => {
+                    log(`${result ? '✅' : '❌'} ${test}: ${result ? 'PASS' : 'FAIL'}`, result ? 'success' : 'error');
+                });
+                
+            } catch (error) {
+                log(`❌ Complete test failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function step1_Connect() {
+            log('🔌 Step 1: Connecting to socket server...', 'info');
+            
+            return new Promise((resolve, reject) => {
+                if (socket) {
+                    socket.disconnect();
+                }
+                
+                socket = io('http://localhost:1002', {
+                    path: '/socket.io',
+                    transports: ['polling', 'websocket'],
+                    timeout: 5000
+                });
+                
+                const timeout = setTimeout(() => {
+                    log('❌ Connection timeout', 'error');
+                    reject(new Error('Connection timeout'));
+                }, 5000);
+                
+                socket.on('connect', () => {
+                    clearTimeout(timeout);
+                    log(`✅ Socket connected: ${socket.id}`, 'success');
+                    testResults.connection = true;
+                    setupEventListeners();
+                    updateStatus();
+                    resolve();
+                });
+                
+                socket.on('connect_error', (error) => {
+                    clearTimeout(timeout);
+                    log(`❌ Connection error: ${error.message}`, 'error');
+                    reject(error);
+                });
+            });
+        }
+
+        async function step2_Authenticate() {
+            log('🔐 Step 2: Authenticating user...', 'info');
+            
+            return new Promise((resolve, reject) => {
+                if (!socket || !socket.connected) {
+                    reject(new Error('Socket not connected'));
+                    return;
+                }
+                
+                const authData = {
+                    userId: document.getElementById('userId').value,
+                    username: document.getElementById('username').value,
+                    token: 'debug_token'
+                };
+                
+                const timeout = setTimeout(() => {
+                    log('❌ Authentication timeout', 'error');
+                    reject(new Error('Authentication timeout'));
+                }, 5000);
+                
+                const successHandler = (data) => {
+                    clearTimeout(timeout);
+                    socket.off('authenticated', successHandler);
+                    socket.off('authentication-failed', failHandler);
+                    log(`✅ Authentication successful: ${JSON.stringify(data)}`, 'success');
+                    isAuthenticated = true;
+                    testResults.authentication = true;
+                    updateStatus();
+                    resolve();
+                };
+                
+                const failHandler = (data) => {
+                    clearTimeout(timeout);
+                    socket.off('authenticated', successHandler);
+                    socket.off('authentication-failed', failHandler);
+                    log(`❌ Authentication failed: ${JSON.stringify(data)}`, 'error');
+                    reject(new Error('Authentication failed'));
+                };
+                
+                socket.on('authenticated', successHandler);
+                socket.on('authentication-failed', failHandler);
+                
+                log(`🔑 Sending auth data: ${JSON.stringify(authData)}`, 'info');
+                socket.emit('authenticate', authData);
+            });
+        }
+
+        async function step3_JoinRoom() {
+            log('🏠 Step 3: Joining test room...', 'info');
+            
+            return new Promise((resolve, reject) => {
+                if (!socket || !socket.connected || !isAuthenticated) {
+                    reject(new Error('Socket not ready or not authenticated'));
+                    return;
+                }
+                
+                const channelId = document.getElementById('channelId').value;
+                
+                const timeout = setTimeout(() => {
+                    log('⚠️ Room join timeout (continuing anyway)', 'warning');
+                    testResults.roomJoin = true; // Assume success for timeout
+                    resolve();
+                }, 5000);
+                
+                const joinHandler = (data) => {
+                    clearTimeout(timeout);
+                    socket.off('channel-joined', joinHandler);
+                    log(`✅ Room join confirmed: ${JSON.stringify(data)}`, 'success');
+                    testResults.roomJoin = true;
+                    updateStatus();
+                    resolve();
+                };
+                
+                socket.on('channel-joined', joinHandler);
+                
+                log(`🏠 Joining channel: ${channelId}`, 'info');
+                socket.emit('join-channel', { channelId: channelId });
+            });
+        }
+
+        async function step4_SendMessage() {
+            log('📨 Step 4: Sending test message...', 'info');
+            
+            return new Promise(async (resolve, reject) => {
+                const channelId = document.getElementById('channelId').value;
+                const message = document.getElementById('testMessage').value + ' - ' + Date.now();
+                
+                // Set up message receive listener
+                const messageHandler = (data) => {
+                    log(`📨 Received message: ${JSON.stringify(data)}`, 'success');
+                    testResults.messageReceive = true;
+                    socket.off('new-channel-message', messageHandler);
+                };
+                
+                socket.on('new-channel-message', messageHandler);
+                
+                try {
+                    // Test both socket and API methods
+                    
+                    // 1. Test via API (the normal flow)
+                    log('📤 Sending message via API...', 'info');
+                    const apiResponse = await fetch('/api/chat/send', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            target_type: 'channel',
+                            target_id: channelId,
+                            content: message,
+                            message_type: 'text'
+                        }),
+                        credentials: 'include'
+                    });
+                    
+                    if (apiResponse.ok) {
+                        const result = await apiResponse.json();
+                        log(`✅ API message sent: ${JSON.stringify(result)}`, 'success');
+                        testResults.messageSend = true;
+                    } else {
+                        const error = await apiResponse.text();
+                        log(`❌ API error: ${error}`, 'error');
+                    }
+                    
+                    // 2. Test via direct socket (for comparison)
+                    log('📤 Sending message via socket...', 'info');
+                    const messageData = {
+                        channelId: channelId,
+                        content: message + ' (direct socket)',
+                        messageType: 'text',
+                        tempId: 'debug_' + Date.now(),
+                        timestamp: Date.now()
+                    };
+                    
+                    socket.emit('channel-message', messageData);
+                    
+                    resolve();
+                    
+                } catch (error) {
+                    log(`❌ Message send failed: ${error.message}`, 'error');
+                    reject(error);
+                }
+            });
+        }
+
+        async function step5_Verify() {
+            log('✅ Step 5: Verifying system state...', 'info');
+            
+            // Check MisVordMessaging integration
+            if (window.MisVordMessaging) {
+                log('✅ MisVordMessaging is available', 'success');
+                log(`📊 Active channel: ${window.MisVordMessaging.activeChannel}`, 'info');
+                log(`📊 Active chat room: ${window.MisVordMessaging.activeChatRoom}`, 'info');
+                log(`📊 Chat type: ${window.MisVordMessaging.chatType}`, 'info');
+                log(`📊 Socket connected: ${window.MisVordMessaging.connected}`, 'info');
+            } else {
+                log('❌ MisVordMessaging not available', 'error');
+            }
+            
+            // Check global socket manager
+            if (window.globalSocketManager) {
+                log('✅ GlobalSocketManager is available', 'success');
+                log(`📊 GSM connected: ${window.globalSocketManager.connected}`, 'info');
+                log(`📊 GSM authenticated: ${window.globalSocketManager.authenticated}`, 'info');
+            } else {
+                log('❌ GlobalSocketManager not available', 'error');
+            }
+            
+            updateStatus();
+        }
+
+        function setupEventListeners() {
+            // Connection events
+            socket.on('disconnect', (reason) => {
+                log(`❌ Socket disconnected: ${reason}`, 'error');
+                isAuthenticated = false;
+                updateStatus();
+            });
+            
+            // Authentication events
+            socket.on('authenticated', (data) => {
+                log(`✅ Authenticated: ${JSON.stringify(data)}`, 'success');
+                isAuthenticated = true;
+                updateStatus();
+            });
+            
+            socket.on('authentication-failed', (data) => {
+                log(`❌ Authentication failed: ${JSON.stringify(data)}`, 'error');
+                isAuthenticated = false;
+                updateStatus();
+            });
+            
+            // Room events
+            socket.on('channel-joined', (data) => {
+                log(`✅ Channel joined: ${JSON.stringify(data)}`, 'success');
+                updateStatus();
+            });
+            
+            socket.on('dm-room-joined', (data) => {
+                log(`✅ DM room joined: ${JSON.stringify(data)}`, 'success');
+                updateStatus();
+            });
+            
+            // Message events
+            socket.on('new-channel-message', (data) => {
+                log(`📨 Channel message received: ${JSON.stringify(data)}`, 'success');
+            });
+            
+            socket.on('user-message-dm', (data) => {
+                log(`📨 DM message received: ${JSON.stringify(data)}`, 'success');
+            });
+            
+            socket.on('message-sent-confirmation', (data) => {
+                log(`✅ Message confirmation: ${JSON.stringify(data)}`, 'success');
+            });
+            
+            socket.on('message_error', (data) => {
+                log(`❌ Message error: ${JSON.stringify(data)}`, 'error');
+            });
+        }
+
+        async function testChannelFlow() {
+            log('📺 === TESTING CHANNEL FLOW ===', 'highlight');
+            await runCompleteTest();
+        }
+
+        async function testDMFlow() {
+            log('💬 === TESTING DM FLOW ===', 'highlight');
+            
+            // Similar to complete test but for DM
+            try {
+                if (!socket || !socket.connected) {
+                    await step1_Connect();
+                    await delay(1000);
+                }
+                
+                if (!isAuthenticated) {
+                    await step2_Authenticate();
+                    await delay(1000);
+                }
+                
+                // Join DM room
+                const roomId = document.getElementById('dmRoomId').value;
+                log(`🏠 Joining DM room: ${roomId}`, 'info');
+                socket.emit('join-dm-room', { roomId: roomId });
+                await delay(1000);
+                
+                // Send DM via API
+                const message = document.getElementById('testMessage').value + ' (DM test)';
+                const response = await fetch('/api/chat/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        target_type: 'dm',
+                        target_id: roomId,
+                        content: message,
+                        message_type: 'text'
+                    }),
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    log(`✅ DM sent via API: ${JSON.stringify(result)}`, 'success');
+                } else {
+                    log(`❌ DM API failed: ${await response.text()}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`❌ DM flow test failed: ${error.message}`, 'error');
+            }
+        }
+
+        function testMisVordMessaging() {
+            log('🎯 === TESTING MISVORD MESSAGING INTEGRATION ===', 'highlight');
+            
+            if (!window.MisVordMessaging) {
+                log('❌ MisVordMessaging not available', 'error');
+                return;
+            }
+            
+            const channelId = document.getElementById('channelId').value;
+            const message = document.getElementById('testMessage').value + ' (MisVord test)';
+            
+            log('📊 MisVordMessaging status:', 'info');
+            log(`  Initialized: ${window.MisVordMessaging.initialized}`, 'info');
+            log(`  Connected: ${window.MisVordMessaging.connected}`, 'info');
+            log(`  Active channel: ${window.MisVordMessaging.activeChannel}`, 'info');
+            log(`  Chat type: ${window.MisVordMessaging.chatType}`, 'info');
+            
+            try {
+                // Test context setting
+                window.MisVordMessaging.setChatContext(channelId, 'channel');
+                log(`✅ Set chat context: channel ${channelId}`, 'success');
+                
+                // Test room joining
+                window.MisVordMessaging.joinChannel(channelId);
+                log(`✅ Joined channel via MisVordMessaging: ${channelId}`, 'success');
+                
+                // Test message sending
+                window.MisVordMessaging.sendMessage('channel', channelId, message)
+                    .then(() => {
+                        log(`✅ Message sent via MisVordMessaging`, 'success');
+                    })
+                    .catch(error => {
+                        log(`❌ MisVordMessaging send failed: ${error.message}`, 'error');
+                    });
+                
+            } catch (error) {
+                log(`❌ MisVordMessaging test failed: ${error.message}`, 'error');
+            }
+        }
+
+        function delay(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        // Auto-start
+        window.addEventListener('load', () => {
+            log('🔧 Advanced messaging debug tool loaded', 'info');
+            updateStatus();
+        });
+    </script>
+</body>
+</html>

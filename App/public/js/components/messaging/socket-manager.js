@@ -309,6 +309,7 @@ class SocketManager {
       );
       this.messaging.onNewMessage(data);
     });
+    
     this.socket.on("new-channel-message", (data) => {
       this.messaging.log("📨 Received new channel message:", data);
       console.log(
@@ -325,8 +326,14 @@ class SocketManager {
       });
       this.messaging.onNewMessage(data);
     });
+    
     this.socket.on("user-message-dm", (data) => {
       this.messaging.log("📨 Received user message DM:", data);
+      this.messaging.onNewMessage(data);
+    });
+    
+    this.socket.on("new-direct-message", (data) => {
+      this.messaging.log("📨 Received new direct message:", data);
       this.messaging.onNewMessage(data);
     });
 
@@ -346,6 +353,7 @@ class SocketManager {
     this.socket.on("user-typing-dm", (data) => {
       this.messaging.onUserTyping(data);
     });
+    
     this.socket.on("user-stop-typing-dm", (data) => {
       this.messaging.onUserStopTyping(data);
     });
@@ -437,11 +445,10 @@ class SocketManager {
       chatRoomId: chatRoomId,
     });
   }
-
   joinChannel(channelId) {
     if (this.socket && this.connected) {
       this.messaging.log("🏠 Joining channel:", channelId);
-      this.socket.emit("join_channel", { channelId: channelId });
+      this.socket.emit("join-channel", { channelId: channelId });
       this.messaging.activeChannel = channelId;
       this.messaging.chatType = "channel";
     }

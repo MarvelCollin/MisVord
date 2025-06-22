@@ -163,9 +163,7 @@ class ServerController extends BaseController
 
         $name = $input['name'];
         $description = $input['description'] ?? '';
-        $server->is_public = isset($input['is_public']) ? (bool)$input['is_public'] : false;
-        $server->category = $input['category'] ?? null;
-
+        
         try {
             $server = new Server();
             $server->name = $name;

@@ -177,14 +177,15 @@ function handleChannelMessageEvent(io, data, res) {
     username,
     ...message
   };
-  
-  console.log(`📤 Broadcasting to channel-${channelId}:`, JSON.stringify(messageData, null, 2));
+    console.log(`📤 Broadcasting to channel-${channelId}:`, JSON.stringify(messageData, null, 2));
   
   // Get room info
   const roomName = `channel-${channelId}`;
   const clientsInRoom = io.sockets.adapter.rooms.get(roomName);
   console.log(`👥 Clients in room ${roomName}:`, clientsInRoom ? Array.from(clientsInRoom) : 'No clients');
   
+  // Note: Using io.to() here because this is called from PHP backend without a specific socket
+  // For real-time socket messages, we use socket.to() in socketController.js
   io.to(`channel-${channelId}`).emit('new-channel-message', messageData);
   
   console.log('✅ PHP message broadcast completed');
@@ -220,11 +221,12 @@ function handleDirectMessageEvent(io, data, res) {
   const roomName = `dm-room-${roomId}`;
   const room = io.sockets.adapter.rooms.get(roomName);
   const clientCount = room ? room.size : 0;
-  
-  console.log(`📤 Broadcasting to ${roomName} (${clientCount} clients):`, messageData);
+    console.log(`📤 Broadcasting to ${roomName} (${clientCount} clients):`, messageData);
   console.log(`${username} direct message to room ${roomId} : ${content}`);
   
-  io.to(roomName).emit('new-direct-message', messageData);
+  // Note: Using io.to() here because this is called from PHP backend without a specific socket
+  // For real-time socket messages, we use socket.to() in socketController.js
+  io.to(roomName).emit('user-message-dm', messageData);
   
   return res.json({ success: true, roomId });
 }

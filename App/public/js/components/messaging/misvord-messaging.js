@@ -164,11 +164,49 @@ class MisVordMessaging {
   authenticate() {
     this.socketManager.authenticate();
   }
-
   joinChannel(channelId) {
-    this.socketManager.joinChannel(channelId);
-  }
-  joinDMRoom(chatRoomId) {
+    console.log("🏠 MisVordMessaging.joinChannel called:", channelId);
+    console.log("🔍 CHANNEL JOIN DEBUG - Current state:", {
+      userId: this.userId,
+      username: this.username,
+      activeChannel: this.activeChannel,
+      chatType: this.chatType,
+      socketConnected: this.socketManager?.connected,
+      hasSocket: !!this.socketManager?.socket,
+    });
+
+    // Set the active channel immediately
+    this.activeChannel = channelId;
+    this.chatType = "channel";
+
+    console.log("🔍 CHANNEL JOIN - Updated active channel to:", this.activeChannel);
+
+    // Attempt room join with retry logic
+    const attemptJoin = (retryCount = 0) => {
+      if (!this.socketManager || !this.socketManager.connected) {
+        if (retryCount < 3) {
+          console.log(`⚠️ Socket not ready for channel join, retrying in 1s (attempt ${retryCount + 1}/3)`);
+          setTimeout(() => attemptJoin(retryCount + 1), 1000);
+        } else {
+          console.error("❌ Failed to join channel: socket not available after retries");
+        }
+        return;
+      }
+
+      this.socketManager.joinChannel(channelId);
+    };
+
+    attemptJoin();
+
+    // Add a verification step after attempting to join
+    setTimeout(() => {
+      console.log("🔍 CHANNEL JOIN VERIFICATION - After 2 seconds:", {
+        activeChannel: this.activeChannel,
+        chatType: this.chatType,
+        expectedRoom: `channel-${channelId}`,
+      });
+    }, 2000);
+  }  joinDMRoom(chatRoomId) {
     console.log(
       "🏠 MisVordMessaging.joinDMRoom called with chatRoomId:",
       chatRoomId
@@ -191,7 +229,22 @@ class MisVordMessaging {
       this.activeChatRoom
     );
 
-    this.socketManager.joinDMRoom(chatRoomId);
+    // Attempt room join with retry logic
+    const attemptJoin = (retryCount = 0) => {
+      if (!this.socketManager || !this.socketManager.connected) {
+        if (retryCount < 3) {
+          console.log(`⚠️ Socket not ready for DM join, retrying in 1s (attempt ${retryCount + 1}/3)`);
+          setTimeout(() => attemptJoin(retryCount + 1), 1000);
+        } else {
+          console.error("❌ Failed to join DM room: socket not available after retries");
+        }
+        return;
+      }
+
+      this.socketManager.joinDMRoom(chatRoomId);
+    };
+
+    attemptJoin();
 
     // Add a verification step after attempting to join
     setTimeout(() => {

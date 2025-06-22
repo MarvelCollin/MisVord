@@ -21,10 +21,8 @@ $cache_version = time();
 <meta name="user-authenticated" content="false">
 <?php endif; ?>
 
-<!-- Socket Configuration -->
 <meta name="socket-host" content="<?php 
-    // Browser connects to localhost, Docker containers communicate internally
-    $socketHost = 'localhost';  // Always localhost for browser connections
+    $socketHost = 'localhost'; 
     echo htmlspecialchars($socketHost);
 ?>">
 <meta name="socket-port" content="<?php echo htmlspecialchars($_ENV['SOCKET_PORT'] ?? '1002'); ?>">

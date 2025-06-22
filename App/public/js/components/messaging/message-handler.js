@@ -87,18 +87,34 @@ class MessageHandler {
   onNewMessage(data) {
     console.log("📨 NEW MESSAGE RECEIVED:", data);
 
-    if (!data || !data.chatRoomId) {
-      console.log("❌ REJECTED: Missing chatRoomId");
+    if (!data) {
+      console.log("❌ REJECTED: Missing data");
       return;
     }
-
-    const isForCurrentChat =
-      String(data.chatRoomId) === String(this.messaging.activeChatRoom);
+    
+    let isForCurrentChat = false;
+    let targetId = null;
+    
+    if (data.chatRoomId) {
+      targetId = data.chatRoomId;
+      isForCurrentChat = String(data.chatRoomId) === String(this.messaging.activeChatRoom);
+    } else if (data.roomId) {
+      targetId = data.roomId;
+      isForCurrentChat = String(data.roomId) === String(this.messaging.activeChatRoom);
+    } else if (data.channelId) {
+      targetId = data.channelId;
+      isForCurrentChat = String(data.channelId) === String(this.messaging.activeChannel);
+    } else {
+      console.log("❌ REJECTED: Missing target ID (chatRoomId, roomId or channelId)");
+      return;
+    }
+    
     const isOwnMessage = String(data.user_id) === String(this.messaging.userId);
 
     console.log("🔍 MESSAGE CHECK:", {
-      receivedChatRoomId: data.chatRoomId,
-      currentActiveChatRoom: this.messaging.activeChatRoom,
+      targetId: targetId,
+      activeChannel: this.messaging.activeChannel,
+      activeChatRoom: this.messaging.activeChatRoom,
       isForCurrentChat: isForCurrentChat,
       messageUserId: data.user_id,
       currentUserId: this.messaging.userId,
@@ -116,7 +132,7 @@ class MessageHandler {
 
     this.trackMessage("MESSAGE_RECEIVED", {
       messageId: data.id,
-      chatRoomId: data.chatRoomId,
+      targetId: targetId,
       fromUser: data.user_id,
       isForCurrentChat: isForCurrentChat,
     });
@@ -419,7 +435,7 @@ class MessageHandler {
                 <div class="typing-dot w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.1s;"></div>
                 <div class="typing-dot w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s;"></div>
             </div>
-            <strong>${this.escapeHtml(username)}</strong> is typing...
+            <strong>${this.escapeHtml(username)}</strong> 
         `;
 
     messagesContainer.appendChild(typingDiv);

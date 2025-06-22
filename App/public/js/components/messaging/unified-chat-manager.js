@@ -116,13 +116,22 @@ class UnifiedChatManager {
         return response.text();
       })
       .then((html) => {
-        this.chatContainer.innerHTML = html;
-
-        setTimeout(() => {
+        this.chatContainer.innerHTML = html;        setTimeout(() => {
           if (window.MisVordMessaging) {
             window.MisVordMessaging.initMessageForm();
             window.MisVordMessaging.setChatContext(chatId, chatType);
             console.log("✅ Messaging context updated for:", chatType, chatId);
+            
+            // Ensure room joining after context is set
+            setTimeout(() => {
+              if (chatType === "channel") {
+                console.log("🔄 UnifiedChatManager: Ensuring channel join:", chatId);
+                window.MisVordMessaging.joinChannel(chatId);
+              } else if (chatType === "direct" || chatType === "dm") {
+                console.log("🔄 UnifiedChatManager: Ensuring DM room join:", chatId);
+                window.MisVordMessaging.joinDMRoom(chatId);
+              }
+            }, 500);
           } else {
             console.warn(
               "⚠️ MisVordMessaging not available after chat UI update"
@@ -134,29 +143,42 @@ class UnifiedChatManager {
           );
           if (!existingScript) {
             const script = document.createElement("script");
-            script.src = `/public/js/components/messaging/chat-section.js?v=${Date.now()}`;
-            script.onload = function () {
+            script.src = `/public/js/components/messaging/chat-section.js?v=${Date.now()}`;            script.onload = function () {
               console.log("Chat section script loaded");
               if (window.MisVordMessaging) {
                 window.MisVordMessaging.setChatContext(chatId, chatType);
+                
+                // Ensure room joining after script load
+                setTimeout(() => {
+                  if (chatType === "channel") {
+                    console.log("🔄 Script load: Ensuring channel join:", chatId);
+                    window.MisVordMessaging.joinChannel(chatId);
+                  } else if (chatType === "direct" || chatType === "dm") {
+                    console.log("🔄 Script load: Ensuring DM room join:", chatId);
+                    window.MisVordMessaging.joinDMRoom(chatId);
+                  }
+                }, 500);
               }
             };
             document.head.appendChild(script);
           } else if (window.MisVordMessaging) {
             window.MisVordMessaging.setChatContext(chatId, chatType);
           }
-        }, 100);
-
-        if (this.messaging && this.messaging.switchToChat) {
+        }, 100);        if (this.messaging && this.messaging.switchToChat) {
           this.messaging.switchToChat(chatId, chatType);
         }
 
-        if (this.socketAPI && this.socketReady) {
+        // Use MisVordMessaging for room joining since window.socketAPI may not exist
+        if (window.MisVordMessaging && window.MisVordMessaging.initialized) {
           if (chatType === "channel") {
-            this.socketAPI.joinChannel(chatId);
+            console.log("🏠 UnifiedChatManager: Joining channel via MisVordMessaging:", chatId);
+            window.MisVordMessaging.joinChannel(chatId);
           } else if (chatType === "direct" || chatType === "dm") {
-            this.socketAPI.joinDMRoom(chatId);
+            console.log("🏠 UnifiedChatManager: Joining DM room via MisVordMessaging:", chatId);
+            window.MisVordMessaging.joinDMRoom(chatId);
           }
+        } else {
+          console.warn("⚠️ UnifiedChatManager: MisVordMessaging not available for room joining");
         }
       })
       .catch((error) => {
