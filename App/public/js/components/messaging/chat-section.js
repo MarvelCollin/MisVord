@@ -19,8 +19,8 @@ class ChatSection {
         this.lastTypingUpdate = 0;
         this.typingDebounceTime = 2000;
         this.messageIdCounter = 0;
-        this.processedMessageIds = new Set(); // To prevent duplicate messages
-        this.joinedRooms = new Set(); // Track joined rooms/channels
+        this.processedMessageIds = new Set();
+        this.joinedRooms = new Set();
         this.contextMenuVisible = false;
         this.activeMessageActions = null;
         this.currentEditingMessage = null;
@@ -28,6 +28,7 @@ class ChatSection {
         this.loadingOlderMessages = false;
         this.messagesPerPage = 20;
         this.totalMessagesLoaded = 0;
+        this.activeReplyingTo = null;
     }
     
     init() {
@@ -184,20 +185,17 @@ class ChatSection {
             deleteBtn.style.display = isOwnMessage ? 'flex' : 'none';
         }
         
-        // Add event listeners to context menu buttons
         this.setupContextMenuListeners();
     }
     
     setupContextMenuListeners() {
         if (!this.contextMenu) return;
         
-        // Remove existing listeners
         const buttons = this.contextMenu.querySelectorAll('button[data-action]');
         buttons.forEach(button => {
             button.replaceWith(button.cloneNode(true));
         });
         
-        // Re-select buttons after replacing
         const newButtons = this.contextMenu.querySelectorAll('button[data-action]');
         newButtons.forEach(button => {
             button.addEventListener('click', (e) => {
@@ -250,7 +248,6 @@ class ChatSection {
         const messageText = messageElement.querySelector('div').innerText;
         const messageGroup = messageElement.closest('.message-group');
         
-        // Create edit form
         const editForm = document.createElement('form');
         editForm.className = 'edit-message-form w-full';
         
@@ -282,24 +279,20 @@ class ChatSection {
         editForm.appendChild(editTextarea);
         editForm.appendChild(buttonContainer);
         
-        // Replace message content with edit form
         const originalContent = messageElement.innerHTML;
         messageElement.innerHTML = '';
         messageElement.appendChild(editForm);
         
-        // Auto focus and resize textarea
         editTextarea.focus();
         editTextarea.style.height = 'auto';
         editTextarea.style.height = `${editTextarea.scrollHeight}px`;
         
-        // Set current editing message
         this.currentEditingMessage = {
             id: messageId,
             element: messageElement,
             originalContent: originalContent
         };
         
-        // Event listeners
         editForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const newContent = editTextarea.value.trim();
@@ -519,9 +512,592 @@ class ChatSection {
     }
     
     replyToMessage(messageId) {
-        console.log('Reply to message:', messageId);
+        const messageElement = document.querySelector(`.message-content[data-message-id="${messageId}"]`);
+        if (!messageElement) return;
+        
+        const messageText = messageElement.querySelector('div').innerText;
+        const messageGroup = messageElement.closest('.message-group');
+        const userId = messageElement.dataset.userId;
+        
+        const usernameElement = messageGroup.querySelector('.font-medium');
+        const username = usernameElement ? usernameElement.textContent.trim() : 'Unknown User';
+        
+        this.activeReplyingTo = {
+            messageId,
+            content: messageText,
+            userId,
+            username
+        };
+        
+        this.showReplyingUI(username, messageText);
+        
+        if (this.messageInput) {
+            this.messageInput.focus();
+        }
     }
     
+    showReplyingUI(username, messageText) {
+        let replyContainer = document.getElementById('reply-container');
+        if (!replyContainer) {
+            replyContainer = document.createElement('div');
+            replyContainer.id = 'reply-container';
+            replyContainer.className = 'bg-[#2b2d31] border-t border-[#1e1f22] p-2 flex items-center';
+            
+            if (this.messageForm && this.messageForm.parentNode) {
+                this.messageForm.parentNode.insertBefore(replyContainer, this.messageForm);
+            }
+        } else {
+            replyContainer.innerHTML = '';
+        }
+        
+        const replyPreview = document.createElement('div');
+        replyPreview.className = 'flex-grow flex items-center text-sm';
+        
+        const replyIcon = document.createElement('span');
+        replyIcon.className = 'text-[#b9bbbe] mr-2';
+        replyIcon.innerHTML = '<i class="fas fa-reply"></i>';
+        
+        const replyInfo = document.createElement('div');
+        replyInfo.className = 'flex-grow';
+        
+        const replyingTo = document.createElement('div');
+        replyingTo.className = 'text-[#dcddde] font-medium';
+        replyingTo.textContent = `Replying to ${username}`;
+        
+        const replyContent = document.createElement('div');
+        replyContent.className = 'text-[#b9bbbe] truncate max-w-md';
+        replyContent.textContent = messageText;
+        
+        replyInfo.appendChild(replyingTo);
+        replyInfo.appendChild(replyContent);
+        
+        const cancelButton = document.createElement('button');
+        cancelButton.className = 'ml-2 text-[#b9bbbe] hover:text-white';
+        cancelButton.innerHTML = '<i class="fas fa-times"></i>';
+        cancelButton.title = 'Cancel Reply';
+        cancelButton.addEventListener('click', () => this.cancelReply());
+        
+        replyPreview.appendChild(replyIcon);
+        replyPreview.appendChild(replyInfo);
+        replyContainer.appendChild(replyPreview);
+        replyContainer.appendChild(cancelButton);
+    }
+    
+    cancelReply() {
+        this.activeReplyingTo = null;
+        const replyContainer = document.getElementById('reply-container');
+        if (replyContainer) {
+            replyContainer.remove();
+        }
+    }
+    
+    async sendMessage() {
+        if (!this.messageInput || !this.messageInput.value.trim()) {
+            return;
+        }
+        
+        const content = this.messageInput.value.trim();
+        const timestamp = Date.now();
+        const messageId = `local-${timestamp}`;
+        
+        try {
+            this.messageInput.value = '';
+            this.resizeTextarea();
+            this.updateSendButton();
+            this.sendStopTyping();
+            
+            if (!window.ChatAPI) {
+                console.error('ChatAPI not available');
+                return;
+            }
+            
+            const tempMessage = {
+                id: messageId,
+                content: content,
+                user_id: this.userId,
+                userId: this.userId,
+                username: this.username,
+                avatar_url: document.querySelector('meta[name="user-avatar"]')?.content || '/assets/common/main-logo.png',
+                sent_at: timestamp,
+                timestamp: timestamp,
+                isLocalOnly: true,
+                messageType: 'text',
+                _localMessage: true
+            };
+            
+            if (this.chatType === 'channel') {
+                tempMessage.channelId = this.targetId;
+            } else if (this.chatType === 'direct' || this.chatType === 'dm') {
+                tempMessage.roomId = this.targetId;
+            }
+            
+            const options = {};
+            
+            if (this.activeReplyingTo) {
+                tempMessage.reply_message_id = this.activeReplyingTo.messageId;
+                tempMessage.reply_data = this.activeReplyingTo;
+                
+                options.replyToMessageId = this.activeReplyingTo.messageId;
+                options.replyData = this.activeReplyingTo;
+                
+                this.cancelReply();
+            }
+            
+            this.processedMessageIds.add(messageId);
+            this.addMessage(tempMessage);
+            
+            await window.ChatAPI.sendMessage(this.targetId, content, this.chatType, options);
+            
+        } catch (error) {
+            console.error('Failed to send message:', error);
+            this.messageInput.value = content;
+            this.updateSendButton();
+            
+            const tempMessageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+            if (tempMessageElement) {
+                const messageGroup = tempMessageElement.closest('.message-group');
+                if (messageGroup && messageGroup.querySelectorAll('.message-content').length === 1) {
+                    messageGroup.remove();
+                } else {
+                    tempMessageElement.remove();
+                }
+            }
+            
+            this.processedMessageIds.delete(messageId);
+            
+            this.showNotification('Failed to send message', 'error');
+        }
+    }
+    
+    updateSendButton() {
+        if (!this.sendButton) return;
+        
+        const hasContent = this.messageInput && this.messageInput.value.trim().length > 0;
+        
+        if (hasContent) {
+            this.sendButton.disabled = false;
+            this.sendButton.classList.add('text-white');
+            this.sendButton.classList.add('bg-[#5865f2]');
+            this.sendButton.classList.add('rounded-full');
+        } else {
+            this.sendButton.disabled = true;
+            this.sendButton.classList.remove('text-white');
+            this.sendButton.classList.remove('bg-[#5865f2]');
+            this.sendButton.classList.remove('rounded-full');
+        }
+    }
+    
+    handleTyping() {
+        const now = Date.now();
+        
+        if (now - this.lastTypingUpdate > this.typingDebounceTime) {
+            this.lastTypingUpdate = now;
+            
+            if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+                if (this.chatType === 'channel') {
+                    window.globalSocketManager.sendTyping(this.targetId);
+                } else if (this.chatType === 'direct' || this.chatType === 'dm') {
+                    window.globalSocketManager.sendTyping(null, this.targetId);
+                }
+            }
+        }
+        
+        this.resetTypingTimeout();
+    }
+    
+    resetTypingTimeout() {
+        if (this.typingTimeout) {
+            clearTimeout(this.typingTimeout);
+        }
+        
+        this.typingTimeout = setTimeout(() => {
+            this.sendStopTyping();
+        }, 3000);
+    }
+    
+    sendStopTyping() {
+        if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+            if (this.chatType === 'channel') {
+                window.globalSocketManager.sendStopTyping(this.targetId);
+            } else if (this.chatType === 'direct' || this.chatType === 'dm') {
+                window.globalSocketManager.sendStopTyping(null, this.targetId);
+            }
+        }
+    }
+    
+    showTypingIndicator(userId, username) {
+        if (userId === this.userId) return;
+        
+        this.typingUsers.set(userId, {
+            username,
+            timestamp: Date.now()
+        });
+        
+        this.updateTypingIndicatorDisplay();
+    }
+    
+    removeTypingIndicator(userId) {
+        this.typingUsers.delete(userId);
+        this.updateTypingIndicatorDisplay();
+    }
+    
+    updateTypingIndicatorDisplay() {
+        let typingIndicator = document.getElementById('typing-indicator');
+        
+        if (this.typingUsers.size === 0) {
+            if (typingIndicator) {
+                typingIndicator.classList.add('hidden');
+            }
+            return;
+        }
+        
+        if (!typingIndicator) {
+            typingIndicator = document.createElement('div');
+            typingIndicator.id = 'typing-indicator';
+            typingIndicator.className = 'text-xs text-[#b5bac1] pb-1 pl-5 flex items-center';
+            
+            const dotsContainer = document.createElement('div');
+            dotsContainer.className = 'flex items-center mr-2';
+            
+            const dot1 = document.createElement('span');
+            dot1.className = 'h-1 w-1 bg-[#b5bac1] rounded-full animate-bounce mr-0.5';
+            dot1.style.animationDelay = '0ms';
+            
+            const dot2 = document.createElement('span');
+            dot2.className = 'h-1 w-1 bg-[#b5bac1] rounded-full animate-bounce mx-0.5';
+            dot2.style.animationDelay = '200ms';
+            
+            const dot3 = document.createElement('span');
+            dot3.className = 'h-1 w-1 bg-[#b5bac1] rounded-full animate-bounce ml-0.5';
+            dot3.style.animationDelay = '400ms';
+            
+            const textElement = document.createElement('span');
+            
+            dotsContainer.appendChild(dot1);
+            dotsContainer.appendChild(dot2);
+            dotsContainer.appendChild(dot3);
+            
+            typingIndicator.appendChild(dotsContainer);
+            typingIndicator.appendChild(textElement);
+            
+            if (this.chatMessages) {
+                const messageForm = document.getElementById('message-form');
+                if (messageForm) {
+                    messageForm.parentNode.insertBefore(typingIndicator, messageForm);
+                } else {
+                    this.chatMessages.appendChild(typingIndicator);
+                }
+            }
+        }
+        
+        typingIndicator.classList.remove('hidden');
+        
+        const textElement = typingIndicator.querySelector('span:not(.h-1)');
+        if (textElement) {
+            if (this.typingUsers.size === 1) {
+                const [user] = this.typingUsers.values();
+                textElement.textContent = `${user.username} is typing...`;
+            } else if (this.typingUsers.size === 2) {
+                const usernames = [...this.typingUsers.values()].map(user => user.username);
+                textElement.textContent = `${usernames.join(' and ')} are typing...`;
+            } else {
+                textElement.textContent = `Several people are typing...`;
+            }
+        }
+        
+        this.scrollToBottom();
+    }
+    
+    renderMessages(messages) {
+        if (!this.chatMessages) {
+            return;
+        }
+        
+        this.chatMessages.innerHTML = '';
+        
+        if (!messages || messages.length === 0) {
+            const emptyState = document.createElement('div');
+            emptyState.className = 'flex flex-col items-center justify-center p-8 text-[#b5bac1] h-full';
+            emptyState.innerHTML = `
+                <svg class="w-16 h-16 mb-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" d="M18 10c0 4.418-3.582 8-8 8s-8-3.582-8-8 3.582-8 8-8 8 3.582 8 8zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                </svg>
+                <p class="text-lg font-medium">No messages yet</p>
+                <p class="text-sm mt-2">Start the conversation by sending a message!</p>
+            `;
+            this.chatMessages.appendChild(emptyState);
+            return;
+        }
+        
+        let lastSenderId = null;
+        let messageGroup = null;
+        
+        messages.forEach(message => {
+            if (message.user_id !== lastSenderId) {
+                messageGroup = this.createMessageGroup(message);
+                this.chatMessages.appendChild(messageGroup);
+                lastSenderId = message.user_id;
+            } else {
+                const messageContent = this.createMessageContent(message);
+                const contents = messageGroup.querySelector('.message-contents');
+                if (contents) {
+                    contents.appendChild(messageContent);
+                }
+            }
+        });
+    }
+    
+    addMessage(message) {
+        if (!this.chatMessages || !message) {
+            return;
+        }
+        
+        const msg = {
+            id: message.id || message.messageId || Date.now().toString(),
+            content: message.content || message.message?.content || '',
+            user_id: message.userId || message.user_id || '',
+            username: message.username || message.message?.username || 'Unknown User',
+            avatar_url: message.avatar_url || message.message?.avatar_url || '/assets/common/main-logo.png',
+            sent_at: message.timestamp || message.sent_at || Date.now(),
+            isLocalOnly: message.isLocalOnly || false
+        };
+        
+        const existingMessageElement = document.querySelector(`[data-message-id="${msg.id}"]`);
+        if (existingMessageElement) {
+            return;
+        }
+        
+        const isOwnMessage = msg.user_id == this.userId;
+        
+        const lastMessageGroup = this.chatMessages.lastElementChild;
+        const lastSenderId = lastMessageGroup?.getAttribute('data-user-id');
+        
+        if (lastSenderId === msg.user_id && lastMessageGroup?.classList.contains('message-group')) {
+            const messageContent = this.createMessageContent(msg, isOwnMessage);
+            const contents = lastMessageGroup.querySelector('.message-contents');
+            if (contents) {
+                contents.appendChild(messageContent);
+            }
+        } else {
+            const messageGroup = this.createMessageGroup(msg, isOwnMessage);
+            this.chatMessages.appendChild(messageGroup);
+        }
+        
+        this.scrollToBottom();
+    }
+    
+    createMessageGroup(message, isOwnMessage = false) {
+        const messageGroup = document.createElement('div');
+        messageGroup.className = 'message-group flex p-1 px-4 py-1 relative hover:bg-[rgba(4,4,5,0.07)]';
+        messageGroup.setAttribute('data-user-id', message.user_id);
+        
+        const avatarContainer = document.createElement('div');
+        avatarContainer.className = 'flex-shrink-0 mr-3 mt-0.5';
+        
+        const avatar = document.createElement('img');
+        avatar.src = message.avatar_url || '/assets/common/main-logo.png';
+        avatar.className = 'w-10 h-10 rounded-full';
+        avatar.alt = `${message.username}'s avatar`;
+        avatar.onerror = function() {
+            this.onerror = null;
+            this.src = '/assets/common/main-logo.png';
+        };
+        
+        avatarContainer.appendChild(avatar);
+        
+        const messageContent = document.createElement('div');
+        messageContent.className = 'flex-grow relative';
+        
+        const headerRow = document.createElement('div');
+        headerRow.className = 'flex items-center mb-0.5';
+        
+        const usernameSpan = document.createElement('span');
+        usernameSpan.className = 'font-medium text-[#f2f3f5] hover:underline cursor-pointer';
+        usernameSpan.textContent = message.username;
+        
+        const timeSpan = document.createElement('span');
+        timeSpan.className = 'text-xs text-[#a3a6aa] ml-2';
+        timeSpan.textContent = this.formatTimestamp(message.sent_at);
+        
+        headerRow.appendChild(usernameSpan);
+        headerRow.appendChild(timeSpan);
+        
+        const messageContents = document.createElement('div');
+        messageContents.className = 'message-contents text-[#dcddde] break-words';
+        
+        const firstMessage = this.createMessageContent(message, isOwnMessage);
+        messageContents.appendChild(firstMessage);
+        
+        messageContent.appendChild(headerRow);
+        messageContent.appendChild(messageContents);
+        
+        messageGroup.appendChild(avatarContainer);
+        messageGroup.appendChild(messageContent);
+        
+        return messageGroup;
+    }
+    
+    createMessageContent(message, isOwnMessage = false) {
+        const messageElement = document.createElement('div');
+        messageElement.className = 'message-content py-0.5 hover:bg-[rgba(4,4,5,0.07)] rounded px-1 -ml-1 relative';
+        messageElement.setAttribute('data-message-id', message.id);
+        messageElement.setAttribute('data-user-id', message.user_id || message.userId);
+        
+        if (isOwnMessage) {
+            messageElement.classList.add('own-message');
+        }
+        
+        if (message.reply_message_id || message.reply_data) {
+            const replyInfo = document.createElement('div');
+            replyInfo.className = 'reply-info text-xs text-[#b9bbbe] flex items-center mb-1';
+            
+            const replyIcon = document.createElement('span');
+            replyIcon.className = 'mr-1';
+            replyIcon.innerHTML = '<i class="fas fa-reply"></i>';
+            
+            const replyText = document.createElement('span');
+            
+            if (message.reply_data) {
+                replyText.innerHTML = `<span class="text-[#dcddde] hover:underline cursor-pointer">@${message.reply_data.username}</span>: ${this.truncateText(message.reply_data.content, 60)}`;
+                
+                replyText.addEventListener('click', () => {
+                    const repliedMessage = document.querySelector(`.message-content[data-message-id="${message.reply_data.messageId}"]`);
+                    if (repliedMessage) {
+                        repliedMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        repliedMessage.classList.add('highlight-message');
+                        setTimeout(() => {
+                            repliedMessage.classList.remove('highlight-message');
+                        }, 2000);
+                    }
+                });
+            } else {
+                replyText.textContent = 'Replying to a message';
+            }
+            
+            replyInfo.appendChild(replyIcon);
+            replyInfo.appendChild(replyText);
+            messageElement.appendChild(replyInfo);
+        }
+        
+        const contentElement = document.createElement('div');
+        contentElement.className = 'text-[#dbdee1] whitespace-pre-wrap break-words';
+        contentElement.innerHTML = this.formatMessageContent(message.content);
+        
+        messageElement.appendChild(contentElement);
+        
+        return messageElement;
+    }
+    
+    formatMessageContent(content) {
+        if (!content) return '';
+        
+        const escapedContent = content
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+            
+        // Simple markdown-like formatting
+        let formattedContent = escapedContent
+            .replace(/\n/g, '<br>')
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            .replace(/```([\s\S]*?)```/g, '<div class="bg-[#2b2d31] p-2 my-1 rounded text-sm font-mono"><code>$1</code></div>')
+            .replace(/`(.*?)`/g, '<code class="bg-[#2b2d31] px-1 py-0.5 rounded text-sm font-mono">$1</code>');
+            
+        return formattedContent;
+    }
+    
+    formatTimestamp(timestamp) {
+        if (!timestamp) return '';
+        
+        try {
+            const date = new Date(timestamp);
+            
+            if (isNaN(date.getTime())) {
+                return '';
+            }
+            
+            const now = new Date();
+            const isToday = date.getDate() === now.getDate() && 
+                            date.getMonth() === now.getMonth() && 
+                            date.getFullYear() === now.getFullYear();
+            
+            if (isToday) {
+                return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            } else {
+                return date.toLocaleDateString();
+            }
+        } catch (e) {
+            console.error('Error formatting timestamp:', e);
+            return '';
+        }
+    }
+    
+    scrollToBottom() {
+        if (this.chatMessages) {
+            this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+        }
+    }
+    
+    resizeTextarea() {
+        if (!this.messageInput) return;
+        
+        this.messageInput.style.height = 'auto';
+        this.messageInput.style.height = Math.min(this.messageInput.scrollHeight, 200) + 'px';
+    }
+    
+    showLoadingIndicator() {
+        if (this.chatMessages) {
+            this.chatMessages.innerHTML = `
+                <div class="flex justify-center items-center h-full">
+                    <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#5865f2]"></div>
+                </div>
+            `;
+        }
+    }
+    
+    hideLoadingIndicator() {
+        if (this.chatMessages) {
+            this.chatMessages.innerHTML = '';
+        }
+    }
+    
+    showErrorMessage(message) {
+        if (this.chatMessages) {
+            const errorElement = document.createElement('div');
+            errorElement.className = 'text-[#ed4245] p-4 text-center';
+            errorElement.textContent = message;
+            
+            this.chatMessages.appendChild(errorElement);
+        }
+        
+        if (window.showToast) {
+            window.showToast(message, 'error');
+        }
+    }
+    
+    showNotification(message, type = 'success') {
+        // Show temporary notification
+        const notification = document.createElement('div');
+        notification.textContent = message;
+        
+        // Set color based on type
+        let bgColor = 'bg-[#5865f2]';
+        if (type === 'error') bgColor = 'bg-[#ed4245]';
+        else if (type === 'warning') bgColor = 'bg-yellow-500';
+        else if (type === 'info') bgColor = 'bg-blue-500';
+        
+        notification.className = `fixed bottom-28 right-4 ${bgColor} text-white px-3 py-2 rounded-lg shadow-lg text-sm z-50`;
+        document.body.appendChild(notification);
+        
+        // Remove notification after 3 seconds
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    }
+
     setupIoListeners() {
         const self = this;
         
@@ -898,7 +1474,7 @@ class ChatSection {
         
         this.chatMessages.innerHTML = `
             <div class="flex flex-col items-center justify-center p-8 text-[#b5bac1] h-full">
-                <svg class="w-16 h-16 mb-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <svg class="w-16 h-16 mb-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http:
                     <path fill-rule="evenodd" d="M18 10c0 4.418-3.582 8-8 8s-8-3.582-8-8 3.582-8 8-8 8 3.582 8 8zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
                 </svg>
                 <p class="text-lg font-medium">No messages yet</p>
@@ -906,476 +1482,10 @@ class ChatSection {
             </div>
         `;
     }
-    
-    async sendMessage() {
-        if (!this.messageInput || !this.messageInput.value.trim()) {
-            return;
-        }
-        
-        const content = this.messageInput.value.trim();
-        const timestamp = Date.now();
-        const messageId = `local-${timestamp}`;
-        
-        try {
-            this.messageInput.value = '';
-            this.resizeTextarea();
-            this.updateSendButton();
-            this.sendStopTyping();
-            
-            if (!window.ChatAPI) {
-                console.error('ChatAPI not available');
-                return;
-            }
-            
-            const tempMessage = {
-                id: messageId,
-                content: content,
-                user_id: this.userId,
-                userId: this.userId,
-                username: this.username,
-                avatar_url: document.querySelector('meta[name="user-avatar"]')?.content || '/assets/common/main-logo.png',
-                sent_at: timestamp,
-                timestamp: timestamp,
-                isLocalOnly: true,
-                messageType: 'text',
-                _localMessage: true
-            };
-            
-            if (this.chatType === 'channel') {
-                tempMessage.channelId = this.targetId;
-            } else if (this.chatType === 'direct' || this.chatType === 'dm') {
-                tempMessage.roomId = this.targetId;
-            }
-            
-            // Add the message to our processed set to avoid duplicates
-            this.processedMessageIds.add(messageId);
-            this.addMessage(tempMessage);
-            
-            await window.ChatAPI.sendMessage(this.targetId, content, this.chatType, {
-                localMessageId: messageId
-            });
-            
-        } catch (error) {
-            console.error('Failed to send message:', error);
-            this.messageInput.value = content;
-            this.updateSendButton();
-            
-            const tempMessageElement = document.querySelector(`[data-message-id="${messageId}"]`);
-            if (tempMessageElement) {
-                const messageGroup = tempMessageElement.closest('.message-group');
-                if (messageGroup && messageGroup.querySelectorAll('.message-content').length === 1) {
-                    messageGroup.remove();
-                } else {
-                    tempMessageElement.remove();
-                }
-            }
-            
-            // Remove from processed set if it failed
-            this.processedMessageIds.delete(messageId);
-            
-            // Show error notification
-            this.showNotification('Failed to send message', 'error');
-        }
-    }
-    
-    updateSendButton() {
-        if (!this.sendButton) return;
-        
-        const hasContent = this.messageInput && this.messageInput.value.trim().length > 0;
-        
-        if (hasContent) {
-            this.sendButton.disabled = false;
-            this.sendButton.classList.add('text-white');
-            this.sendButton.classList.add('bg-[#5865f2]');
-            this.sendButton.classList.add('rounded-full');
-        } else {
-            this.sendButton.disabled = true;
-            this.sendButton.classList.remove('text-white');
-            this.sendButton.classList.remove('bg-[#5865f2]');
-            this.sendButton.classList.remove('rounded-full');
-        }
-    }
-    
-    handleTyping() {
-        const now = Date.now();
-        
-        if (now - this.lastTypingUpdate > this.typingDebounceTime) {
-            this.lastTypingUpdate = now;
-            
-            if (window.globalSocketManager && window.globalSocketManager.isReady()) {
-                if (this.chatType === 'channel') {
-                    window.globalSocketManager.sendTyping(this.targetId);
-                } else if (this.chatType === 'direct' || this.chatType === 'dm') {
-                    window.globalSocketManager.sendTyping(null, this.targetId);
-                }
-            }
-        }
-        
-        this.resetTypingTimeout();
-    }
-    
-    resetTypingTimeout() {
-        if (this.typingTimeout) {
-            clearTimeout(this.typingTimeout);
-        }
-        
-        this.typingTimeout = setTimeout(() => {
-            this.sendStopTyping();
-        }, 3000);
-    }
-    
-    sendStopTyping() {
-        if (window.globalSocketManager && window.globalSocketManager.isReady()) {
-            if (this.chatType === 'channel') {
-                window.globalSocketManager.sendStopTyping(this.targetId);
-            } else if (this.chatType === 'direct' || this.chatType === 'dm') {
-                window.globalSocketManager.sendStopTyping(null, this.targetId);
-            }
-        }
-    }
-    
-    showTypingIndicator(userId, username) {
-        if (userId === this.userId) return;
-        
-        this.typingUsers.set(userId, {
-            username,
-            timestamp: Date.now()
-        });
-        
-        this.updateTypingIndicatorDisplay();
-    }
-    
-    removeTypingIndicator(userId) {
-        this.typingUsers.delete(userId);
-        this.updateTypingIndicatorDisplay();
-    }
-    
-    updateTypingIndicatorDisplay() {
-        let typingIndicator = document.getElementById('typing-indicator');
-        
-        if (this.typingUsers.size === 0) {
-            if (typingIndicator) {
-                typingIndicator.classList.add('hidden');
-            }
-            return;
-        }
-        
-        if (!typingIndicator) {
-            typingIndicator = document.createElement('div');
-            typingIndicator.id = 'typing-indicator';
-            typingIndicator.className = 'text-xs text-[#b5bac1] pb-1 pl-5 flex items-center';
-            
-            const dotsContainer = document.createElement('div');
-            dotsContainer.className = 'flex items-center mr-2';
-            
-            const dot1 = document.createElement('span');
-            dot1.className = 'h-1 w-1 bg-[#b5bac1] rounded-full animate-bounce mr-0.5';
-            dot1.style.animationDelay = '0ms';
-            
-            const dot2 = document.createElement('span');
-            dot2.className = 'h-1 w-1 bg-[#b5bac1] rounded-full animate-bounce mx-0.5';
-            dot2.style.animationDelay = '200ms';
-            
-            const dot3 = document.createElement('span');
-            dot3.className = 'h-1 w-1 bg-[#b5bac1] rounded-full animate-bounce ml-0.5';
-            dot3.style.animationDelay = '400ms';
-            
-            const textElement = document.createElement('span');
-            
-            dotsContainer.appendChild(dot1);
-            dotsContainer.appendChild(dot2);
-            dotsContainer.appendChild(dot3);
-            
-            typingIndicator.appendChild(dotsContainer);
-            typingIndicator.appendChild(textElement);
-            
-            if (this.chatMessages) {
-                // Insert before the message input area
-                const messageForm = document.getElementById('message-form');
-                if (messageForm) {
-                    messageForm.parentNode.insertBefore(typingIndicator, messageForm);
-                } else {
-                    this.chatMessages.appendChild(typingIndicator);
-                }
-            }
-        }
-        
-        typingIndicator.classList.remove('hidden');
-        
-        const textElement = typingIndicator.querySelector('span:not(.h-1)');
-        if (textElement) {
-            if (this.typingUsers.size === 1) {
-                const [user] = this.typingUsers.values();
-                textElement.textContent = `${user.username} is typing...`;
-            } else if (this.typingUsers.size === 2) {
-                const usernames = [...this.typingUsers.values()].map(user => user.username);
-                textElement.textContent = `${usernames.join(' and ')} are typing...`;
-            } else {
-                textElement.textContent = `Several people are typing...`;
-            }
-        }
-        
-        this.scrollToBottom();
-    }
-    
-    renderMessages(messages) {
-        if (!this.chatMessages) {
-            return;
-        }
-        
-        // Clear existing messages
-        this.chatMessages.innerHTML = '';
-        
-        if (!messages || messages.length === 0) {
-            const emptyState = document.createElement('div');
-            emptyState.className = 'flex flex-col items-center justify-center p-8 text-[#b5bac1] h-full';
-            emptyState.innerHTML = `
-                <svg class="w-16 h-16 mb-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" d="M18 10c0 4.418-3.582 8-8 8s-8-3.582-8-8 3.582-8 8-8 8 3.582 8 8zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-                </svg>
-                <p class="text-lg font-medium">No messages yet</p>
-                <p class="text-sm mt-2">Start the conversation by sending a message!</p>
-            `;
-            this.chatMessages.appendChild(emptyState);
-            return;
-        }
-        
-        let lastSenderId = null;
-        let messageGroup = null;
-        
-        messages.forEach(message => {
-            if (message.user_id !== lastSenderId) {
-                messageGroup = this.createMessageGroup(message);
-                this.chatMessages.appendChild(messageGroup);
-                lastSenderId = message.user_id;
-            } else {
-                const messageContent = this.createMessageContent(message);
-                const contents = messageGroup.querySelector('.message-contents');
-                if (contents) {
-                    contents.appendChild(messageContent);
-                }
-            }
-        });
-    }
-    
-    addMessage(message) {
-        if (!this.chatMessages || !message) {
-            return;
-        }
-        
-        const msg = {
-            id: message.id || message.messageId || Date.now().toString(),
-            content: message.content || message.message?.content || '',
-            user_id: message.userId || message.user_id || '',
-            username: message.username || message.message?.username || 'Unknown User',
-            avatar_url: message.avatar_url || message.message?.avatar_url || '/assets/common/main-logo.png',
-            sent_at: message.timestamp || message.sent_at || Date.now(),
-            isLocalOnly: message.isLocalOnly || false
-        };
-        
-        // Check if message already exists in DOM to avoid duplication
-        const existingMessageElement = document.querySelector(`[data-message-id="${msg.id}"]`);
-        if (existingMessageElement) {
-            return;
-        }
-        
-        const isOwnMessage = msg.user_id == this.userId;
-        
-        const lastMessageGroup = this.chatMessages.lastElementChild;
-        const lastSenderId = lastMessageGroup?.getAttribute('data-user-id');
-        
-        if (lastSenderId === msg.user_id && lastMessageGroup?.classList.contains('message-group')) {
-            const messageContent = this.createMessageContent(msg, isOwnMessage);
-            const contents = lastMessageGroup.querySelector('.message-contents');
-            if (contents) {
-                contents.appendChild(messageContent);
-            }
-        } else {
-            const messageGroup = this.createMessageGroup(msg, isOwnMessage);
-            this.chatMessages.appendChild(messageGroup);
-        }
-        
-        this.scrollToBottom();
-    }
-    
-    createMessageGroup(message, isOwnMessage = false) {
-        const messageGroup = document.createElement('div');
-        messageGroup.className = 'message-group flex p-1 px-4 py-1 relative hover:bg-[rgba(4,4,5,0.07)]';
-        messageGroup.setAttribute('data-user-id', message.user_id);
-        
-        const avatarContainer = document.createElement('div');
-        avatarContainer.className = 'flex-shrink-0 mr-3 mt-0.5';
-        
-        const avatar = document.createElement('img');
-        avatar.src = message.avatar_url || '/assets/common/main-logo.png';
-        avatar.className = 'w-10 h-10 rounded-full';
-        avatar.alt = `${message.username}'s avatar`;
-        avatar.onerror = function() {
-            this.onerror = null;
-            this.src = '/assets/common/main-logo.png';
-        };
-        
-        avatarContainer.appendChild(avatar);
-        
-        const messageContent = document.createElement('div');
-        messageContent.className = 'flex-grow relative';
-        
-        const headerRow = document.createElement('div');
-        headerRow.className = 'flex items-center mb-0.5';
-        
-        const usernameSpan = document.createElement('span');
-        usernameSpan.className = 'font-medium text-[#f2f3f5] hover:underline cursor-pointer';
-        usernameSpan.textContent = message.username;
-        
-        const timeSpan = document.createElement('span');
-        timeSpan.className = 'text-xs text-[#a3a6aa] ml-2';
-        timeSpan.textContent = this.formatTimestamp(message.sent_at);
-        
-        headerRow.appendChild(usernameSpan);
-        headerRow.appendChild(timeSpan);
-        
-        const messageContents = document.createElement('div');
-        messageContents.className = 'message-contents text-[#dcddde] break-words';
-        
-        const firstMessage = this.createMessageContent(message, isOwnMessage);
-        messageContents.appendChild(firstMessage);
-        
-        messageContent.appendChild(headerRow);
-        messageContent.appendChild(messageContents);
-        
-        messageGroup.appendChild(avatarContainer);
-        messageGroup.appendChild(messageContent);
-        
-        return messageGroup;
-    }
-    
-    createMessageContent(message, isOwnMessage = false) {
-        const messageElement = document.createElement('div');
-        messageElement.className = 'message-content py-0.5 hover:bg-[rgba(4,4,5,0.07)] rounded px-1 -ml-1 relative';
-        messageElement.setAttribute('data-message-id', message.id);
-        messageElement.setAttribute('data-user-id', message.user_id || message.userId);
-        
-        if (isOwnMessage) {
-            messageElement.classList.add('own-message');
-        }
-        
-        const contentElement = document.createElement('div');
-        contentElement.className = 'text-[#dbdee1] whitespace-pre-wrap break-words';
-        contentElement.innerHTML = this.formatMessageContent(message.content);
-        
-        messageElement.appendChild(contentElement);
-        
-        return messageElement;
-    }
-    
-    formatMessageContent(content) {
-        if (!content) return '';
-        
-        // Escape HTML to prevent XSS
-        const escapedContent = content
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
-            
-        // Simple markdown-like formatting
-        let formattedContent = escapedContent
-            .replace(/\n/g, '<br>')
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            .replace(/\*(.*?)\*/g, '<em>$1</em>')
-            .replace(/```([\s\S]*?)```/g, '<div class="bg-[#2b2d31] p-2 my-1 rounded text-sm font-mono"><code>$1</code></div>')
-            .replace(/`(.*?)`/g, '<code class="bg-[#2b2d31] px-1 py-0.5 rounded text-sm font-mono">$1</code>');
-            
-        return formattedContent;
-    }
-    
-    formatTimestamp(timestamp) {
-        if (!timestamp) return '';
-        
-        try {
-            const date = new Date(timestamp);
-            
-            if (isNaN(date.getTime())) {
-                return '';
-            }
-            
-            const now = new Date();
-            const isToday = date.getDate() === now.getDate() && 
-                            date.getMonth() === now.getMonth() && 
-                            date.getFullYear() === now.getFullYear();
-            
-            if (isToday) {
-                return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            } else {
-                return date.toLocaleDateString();
-            }
-        } catch (e) {
-            console.error('Error formatting timestamp:', e);
-            return '';
-        }
-    }
-    
-    scrollToBottom() {
-        if (this.chatMessages) {
-            this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
-        }
-    }
-    
-    resizeTextarea() {
-        if (!this.messageInput) return;
-        
-        this.messageInput.style.height = 'auto';
-        this.messageInput.style.height = Math.min(this.messageInput.scrollHeight, 200) + 'px';
-    }
-    
-    showLoadingIndicator() {
-        if (this.chatMessages) {
-            this.chatMessages.innerHTML = `
-                <div class="flex justify-center items-center h-full">
-                    <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#5865f2]"></div>
-                </div>
-            `;
-        }
-    }
-    
-    hideLoadingIndicator() {
-        if (this.chatMessages) {
-            this.chatMessages.innerHTML = '';
-        }
-    }
-    
-    showErrorMessage(message) {
-        if (this.chatMessages) {
-            const errorElement = document.createElement('div');
-            errorElement.className = 'text-[#ed4245] p-4 text-center';
-            errorElement.textContent = message;
-            
-            this.chatMessages.appendChild(errorElement);
-        }
-        
-        if (window.showToast) {
-            window.showToast(message, 'error');
-        }
-    }
-    
-    showNotification(message, type = 'success') {
-        // Show temporary notification
-        const notification = document.createElement('div');
-        notification.textContent = message;
-        
-        // Set color based on type
-        let bgColor = 'bg-[#5865f2]';
-        if (type === 'error') bgColor = 'bg-[#ed4245]';
-        else if (type === 'warning') bgColor = 'bg-yellow-500';
-        else if (type === 'info') bgColor = 'bg-blue-500';
-        
-        notification.className = `fixed bottom-28 right-4 ${bgColor} text-white px-3 py-2 rounded-lg shadow-lg text-sm z-50`;
-        document.body.appendChild(notification);
-        
-        // Remove notification after 3 seconds
-        setTimeout(() => {
-            notification.remove();
-        }, 3000);
+
+    truncateText(text, maxLength) {
+        if (!text) return '';
+        if (text.length <= maxLength) return text;
+        return text.substring(0, maxLength) + '...';
     }
 }

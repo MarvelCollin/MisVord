@@ -130,22 +130,22 @@ class ChatController extends BaseController
         $messageType = $input['message_type'] ?? 'text';
         $attachmentUrl = $input['attachment_url'] ?? null;
         $mentions = $input['mentions'] ?? [];
-
+        $replyMessageId = $input['reply_message_id'] ?? null;
 
         if (empty($content) && empty($attachmentUrl)) {
             return $this->validationError(['content' => 'Message must have content or an attachment']);
         }
 
         if ($targetType === 'channel') {
-            return $this->sendChannelMessage($targetId, $content, $userId, $messageType, $attachmentUrl, $mentions);
+            return $this->sendChannelMessage($targetId, $content, $userId, $messageType, $attachmentUrl, $mentions, $replyMessageId);
         } elseif ($targetType === 'dm' || $targetType === 'direct') {
-            return $this->sendDirectMessage($targetId, $content, $userId, $messageType, $attachmentUrl, $mentions);
+            return $this->sendDirectMessage($targetId, $content, $userId, $messageType, $attachmentUrl, $mentions, $replyMessageId);
         } else {
             return $this->validationError(['target_type' => 'Invalid target type']);
         }
     }
 
-    private function sendChannelMessage($channelId, $content, $userId, $messageType = 'text', $attachmentUrl = null, $mentions = [])
+    private function sendChannelMessage($channelId, $content, $userId, $messageType = 'text', $attachmentUrl = null, $mentions = [], $replyMessageId = null)
     {
         $channel = $this->channelRepository->find($channelId);
         if (!$channel) {
@@ -161,13 +161,38 @@ class ChatController extends BaseController
         try {
             $message = new Message();
             $message->content = $content;
-            $message->channel_id = $channelId;
             $message->user_id = $userId;
             $message->message_type = $messageType;
             $message->attachment_url = $attachmentUrl;
+            
+            // Set reply message ID if provided
+            if ($replyMessageId) {
+                // Verify the replied message exists
+                $repliedMessage = $this->messageRepository->find($replyMessageId);
+                if ($repliedMessage) {
+                    $message->reply_message_id = $replyMessageId;
+                }
+            }
 
             if ($message->save()) {
+                // Associate message with channel
+                $message->associateWithChannel($channelId);
+                
                 $formattedMessage = $this->formatMessage($message);
+                
+                // Add reply data if this is a reply message
+                if ($message->reply_message_id) {
+                    $repliedMessage = $this->messageRepository->find($message->reply_message_id);
+                    if ($repliedMessage) {
+                        $repliedUser = $this->userRepository->find($repliedMessage->user_id);
+                        $formattedMessage['reply_message_id'] = $message->reply_message_id;
+                        $formattedMessage['reply_data'] = [
+                            'content' => $repliedMessage->content,
+                            'user_id' => $repliedMessage->user_id,
+                            'username' => $repliedUser ? $repliedUser->username : 'Unknown'
+                        ];
+                    }
+                }
 
                 if (!empty($mentions)) {
                     $formattedMessage['mentions'] = $mentions;
@@ -197,7 +222,7 @@ class ChatController extends BaseController
         }
     }
 
-    private function sendDirectMessage($chatRoomId, $content, $userId, $messageType = 'text', $attachmentUrl = null, $mentions = [])
+    private function sendDirectMessage($chatRoomId, $content, $userId, $messageType = 'text', $attachmentUrl = null, $mentions = [], $replyMessageId = null)
     {
         $chatRoom = $this->chatRoomRepository->find($chatRoomId);
         if (!$chatRoom) {
@@ -213,11 +238,34 @@ class ChatController extends BaseController
             $message->user_id = $userId;
             $message->message_type = $messageType;
             $message->attachment_url = $attachmentUrl;
+            
+            // Set reply message ID if provided
+            if ($replyMessageId) {
+                // Verify the replied message exists
+                $repliedMessage = $this->messageRepository->find($replyMessageId);
+                if ($repliedMessage) {
+                    $message->reply_message_id = $replyMessageId;
+                }
+            }
 
             if ($message->save()) {
                 $this->chatRoomRepository->addMessageToRoom($chatRoomId, $message->id);
 
                 $formattedMessage = $this->formatMessage($message);
+
+                // Add reply data if this is a reply message
+                if ($message->reply_message_id) {
+                    $repliedMessage = $this->messageRepository->find($message->reply_message_id);
+                    if ($repliedMessage) {
+                        $repliedUser = $this->userRepository->find($repliedMessage->user_id);
+                        $formattedMessage['reply_message_id'] = $message->reply_message_id;
+                        $formattedMessage['reply_data'] = [
+                            'content' => $repliedMessage->content,
+                            'user_id' => $repliedMessage->user_id,
+                            'username' => $repliedUser ? $repliedUser->username : 'Unknown'
+                        ];
+                    }
+                }
 
                 if (!empty($mentions)) {
                     $formattedMessage['mentions'] = $mentions;
@@ -529,7 +577,6 @@ class ChatController extends BaseController
 
     private function formatMessage($message)
     {
-
         $userId = is_array($message) ? $message['user_id'] : $message->user_id;
         $user = $this->userRepository->find($userId);
 
@@ -537,7 +584,7 @@ class ChatController extends BaseController
         $avatarUrl = $user && $user->avatar_url ? $user->avatar_url :
             getUserAvatar('', $username);
 
-        return [
+        $formatted = [
             'id' => is_array($message) ? $message['id'] : $message->id,
             'content' => is_array($message) ? $message['content'] : $message->content,
             'user_id' => $userId,
@@ -547,6 +594,29 @@ class ChatController extends BaseController
             'edited_at' => is_array($message) ? ($message['edited_at'] ?? null) : ($message->edited_at ?? null),
             'type' => is_array($message) ? ($message['message_type'] ?? 'text') : ($message->type ?? 'text')
         ];
+        
+        // Add reply information if this message is a reply
+        $replyMessageId = is_array($message) ? ($message['reply_message_id'] ?? null) : ($message->reply_message_id ?? null);
+        
+        if ($replyMessageId) {
+            $formatted['reply_message_id'] = $replyMessageId;
+            
+            // Get reply message details
+            $repliedMessage = $this->messageRepository->find($replyMessageId);
+            if ($repliedMessage) {
+                $repliedUserId = $repliedMessage->user_id;
+                $repliedUser = $this->userRepository->find($repliedUserId);
+                
+                $formatted['reply_data'] = [
+                    'messageId' => $replyMessageId,
+                    'content' => $repliedMessage->content,
+                    'userId' => $repliedUserId,
+                    'username' => $repliedUser ? $repliedUser->username : 'Unknown User'
+                ];
+            }
+        }
+        
+        return $formatted;
     }
 
     public function renderChatSection($chatType, $chatId)

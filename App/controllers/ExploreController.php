@@ -23,7 +23,6 @@ class ExploreController extends BaseController
         $userServerId = [];        try {
             $servers = $this->serverRepository->getPublicServersWithMemberCount();
             
-            // Ensure servers are arrays, not objects
             $servers = array_map(function($server) {
                 if (!is_array($server)) {
                     return (array) $server;
@@ -50,7 +49,6 @@ class ExploreController extends BaseController
         $userServerId = [];        try {
             $featuredServers = $this->serverRepository->getFeaturedServersWithMemberCount($limit);
             
-            // Ensure servers are arrays, not objects
             $featuredServers = array_map(function($server) {
                 return is_array($server) ? $server : (array) $server;
             }, $featuredServers);
@@ -75,7 +73,6 @@ class ExploreController extends BaseController
         try {
             $servers = $this->serverRepository->getServersByCategoryWithMemberCount($category);
             
-            // Ensure servers are arrays, not objects
             $servers = array_map(function($server) {
                 return is_array($server) ? $server : (array) $server;
             }, $servers);
@@ -93,14 +90,10 @@ class ExploreController extends BaseController
         ];
     }    public function prepareExploreData()
     {
-        // Temporarily disable auth requirement for testing
-        // $this->requireAuth();
 
-        // Use a default user ID for testing, or 0 if no session
         $currentUserId = $_SESSION['user_id'] ?? 0;
 
         $userServers = $this->serverRepository->getForUser($currentUserId);
-        // Convert Server objects to arrays
         $userServers = array_map(function($server) {
             return is_array($server) ? $server : (array) $server;
         }, $userServers);

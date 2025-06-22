@@ -560,9 +560,6 @@ class ChannelController extends BaseController
         }
     }
 
-    /**
-     * Get server channels data for the channel section component
-     */
     public function getServerChannels($serverId)
     {
         $this->requireAuth();
@@ -570,7 +567,6 @@ class ChannelController extends BaseController
         $currentUserId = $this->getCurrentUserId();
         
         try {
-            // Check if user has access to the server
             if (!$this->membershipRepository->isMember($currentUserId, $serverId)) {
                 if (function_exists('logger')) {
                     logger()->warning("User attempted to access server channels without membership", [
@@ -585,19 +581,15 @@ class ChannelController extends BaseController
                 ];
             }
 
-            // Get channels for the server
-            $channels = $this->channelRepository->getByServerId($serverId);            // Get categories
+            $channels = $this->channelRepository->getByServerId($serverId);
             $categories = $this->categoryRepository->getForServer($serverId);
             
-            // Determine active channel ID from request
             $activeChannelId = $_GET['channel'] ?? null;
             
-            // If no channel specified, use the first available channel
             if (!$activeChannelId && !empty($channels)) {
                 $activeChannelId = $channels[0]['id'] ?? null;
             }
             
-            // Set globals for use by other components
             $GLOBALS['serverChannels'] = $channels;
             $GLOBALS['serverCategories'] = $categories;
             $GLOBALS['activeChannelId'] = $activeChannelId;

@@ -83,98 +83,113 @@ ob_start();
         <?php if ($section === 'profile'): ?>
             <!-- Server Profile Section -->
             <div class="p-10 max-w-[740px]">
-                <h1 class="text-2xl font-bold mb-2">Server Profile</h1>
-                <p class="text-discord-lighter mb-6">Customize your server's appearance and profile information</p>
+                <div class="mb-8">
+                    <h1 class="text-2xl font-bold mb-2">Server Profile</h1>
+                    <p class="text-discord-lighter">Customize your server's appearance and profile information</p>
+                </div>
                 
                 <form id="server-profile-form" class="space-y-8">
                     <input type="hidden" name="server_id" value="<?php echo $serverId; ?>">
                     
-                    <!-- Server Name -->
-                    <div class="form-group">
-                        <label for="server-name" class="block text-sm font-medium text-white mb-2">Name</label>
-                        <input type="text" id="server-name" name="name" class="form-input bg-discord-dark-input text-white border-none focus:ring-2 focus:ring-discord-primary" value="<?php echo htmlspecialchars($server->name); ?>">
-                    </div>
-                    
-                    <!-- Server Icon -->
-                    <div class="form-group">
-                        <label class="block text-sm font-medium text-white mb-2">Icon</label>
-                        <p class="text-discord-lighter text-sm mb-4">We recommend an image of at least 512x512.</p>
-                        
-                        <div id="server-icon-container" class="relative w-24 h-24 bg-discord-dark-input rounded-full overflow-hidden border border-discord-darker cursor-pointer hover:opacity-90 transition-opacity">
-                            <?php if ($server->image_url): ?>
-                                <img id="server-icon-preview" src="<?php echo htmlspecialchars($server->image_url); ?>" alt="Server Icon" class="w-full h-full object-cover">
-                            <?php else: ?>
-                                <div id="server-icon-placeholder" class="w-full h-full flex items-center justify-center text-2xl font-bold text-white">
-                                    <?php echo strtoupper(substr($server->name, 0, 1)); ?>
-                                </div>
-                            <?php endif; ?>
-                            <div class="absolute inset-0 bg-black bg-opacity-50 opacity-0 hover:opacity-100 flex items-center justify-center transition-opacity">
-                                <div class="text-white text-sm font-medium">CHANGE</div>
-                            </div>
+                    <div class="bg-discord-darker rounded-lg p-6 space-y-6">
+                        <!-- Server Name -->
+                        <div class="form-group">
+                            <label for="server-name" class="block text-sm font-medium text-white mb-2">Server Name</label>
+                            <input type="text" id="server-name" name="name" class="form-input bg-discord-dark-input text-white border-none focus:ring-2 focus:ring-discord-primary" value="<?php echo htmlspecialchars($server->name); ?>">
                         </div>
                         
-                        <input type="file" id="server-icon-input" name="server_icon" class="hidden" accept="image/*">
+                        <!-- Server Description -->
+                        <div class="form-group">
+                            <label for="server-description" class="block text-sm font-medium text-white mb-2">Description</label>
+                            <textarea id="server-description" name="description" class="form-input bg-discord-dark-input text-white border-none h-24 resize-none focus:ring-2 focus:ring-discord-primary" placeholder="Tell people what your server is about..."><?php echo htmlspecialchars($server->description ?? ''); ?></textarea>
+                            <p class="text-xs text-discord-lighter mt-1">This description will be shown in server discovery and invites.</p>
+                        </div>
                     </div>
                     
-                    <!-- Server Banner -->
-                    <div class="form-group">
-                        <label class="block text-sm font-medium text-white mb-2">Banner</label>
-                        <p class="text-discord-lighter text-sm mb-4">We recommend an image of at least 960x540.</p>
+                    <div class="bg-discord-darker rounded-lg p-6">
+                        <h3 class="text-lg font-medium mb-4">Server Identity</h3>
                         
-                        <div id="server-banner-container" class="relative w-full h-44 bg-discord-dark-input rounded-md overflow-hidden border border-discord-darker cursor-pointer hover:opacity-90 transition-opacity mb-4">
-                            <?php if ($server->banner_url): ?>
-                                <img id="server-banner-preview" src="<?php echo htmlspecialchars($server->banner_url); ?>" alt="Server Banner" class="w-full h-full object-cover">
-                            <?php else: ?>
-                                <div id="server-banner-placeholder" class="w-full h-full flex items-center justify-center bg-gradient-to-b from-[#7a8087] to-[#36393f]">
-                                    <div class="text-white text-sm font-medium">UPLOAD BANNER</div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Server Icon -->
+                            <div class="form-group">
+                                <label class="block text-sm font-medium text-white mb-2">Icon</label>
+                                <p class="text-discord-lighter text-xs mb-3">Recommended: 512x512 or larger square image</p>
+                                
+                                <div id="server-icon-container" class="relative w-24 h-24 bg-discord-dark-input rounded-full overflow-hidden border border-discord-darker cursor-pointer hover:opacity-90 transition-opacity">
+                                    <?php if ($server->image_url): ?>
+                                        <img id="server-icon-preview" src="<?php echo htmlspecialchars($server->image_url); ?>" alt="Server Icon" class="w-full h-full object-cover">
+                                    <?php else: ?>
+                                        <div id="server-icon-placeholder" class="w-full h-full flex items-center justify-center text-2xl font-bold text-white">
+                                            <?php echo strtoupper(substr($server->name, 0, 1)); ?>
+                                        </div>
+                                    <?php endif; ?>
+                                    <div class="absolute inset-0 bg-black bg-opacity-50 opacity-0 hover:opacity-100 flex items-center justify-center transition-opacity">
+                                        <div class="text-white text-sm font-medium">CHANGE</div>
+                                    </div>
                                 </div>
-                            <?php endif; ?>
-                            <div class="absolute inset-0 bg-black bg-opacity-50 opacity-0 hover:opacity-100 flex items-center justify-center transition-opacity">
-                                <div class="text-white text-sm font-medium">CHANGE BANNER</div>
+                                
+                                <input type="file" id="server-icon-input" name="server_icon" class="hidden" accept="image/*">
+                            </div>
+                            
+                            <!-- Server Banner -->
+                            <div class="form-group">
+                                <label class="block text-sm font-medium text-white mb-2">Banner</label>
+                                <p class="text-discord-lighter text-xs mb-3">Recommended: 960x540 or larger (16:9 ratio)</p>
+                                
+                                <div id="server-banner-container" class="relative w-full h-32 bg-discord-dark-input rounded-md overflow-hidden border border-discord-darker cursor-pointer hover:opacity-90 transition-opacity">
+                                    <?php if ($server->banner_url): ?>
+                                        <img id="server-banner-preview" src="<?php echo htmlspecialchars($server->banner_url); ?>" alt="Server Banner" class="w-full h-full object-cover">
+                                    <?php else: ?>
+                                        <div id="server-banner-placeholder" class="w-full h-full flex items-center justify-center bg-gradient-to-b from-[#7a8087] to-[#36393f]">
+                                            <div class="text-white text-sm font-medium">UPLOAD BANNER</div>
+                                        </div>
+                                    <?php endif; ?>
+                                    <div class="absolute inset-0 bg-black bg-opacity-50 opacity-0 hover:opacity-100 flex items-center justify-center transition-opacity">
+                                        <div class="text-white text-sm font-medium">CHANGE BANNER</div>
+                                    </div>
+                                </div>
+                                
+                                <input type="file" id="server-banner-input" name="server_banner" class="hidden" accept="image/*">
                             </div>
                         </div>
+                    </div>
+                    
+                    <div class="bg-discord-darker rounded-lg p-6 space-y-6">
+                        <h3 class="text-lg font-medium mb-4">Discovery Settings</h3>
                         
-                        <input type="file" id="server-banner-input" name="server_banner" class="hidden" accept="image/*">
-                    </div>
-                    
-                    <!-- Server Description -->
-                    <div class="form-group">
-                        <label for="server-description" class="block text-sm font-medium text-white mb-2">Description</label>
-                        <textarea id="server-description" name="description" class="form-input bg-discord-dark-input text-white border-none h-24 resize-none focus:ring-2 focus:ring-discord-primary" placeholder="Tell people what your server is about..."><?php echo htmlspecialchars($server->description ?? ''); ?></textarea>
-                    </div>
-                    
-                    <!-- Server Privacy -->
-                    <div class="form-group pb-4 border-b border-discord-lighter border-opacity-20">
-                        <label class="block text-sm font-medium text-white mb-2">Privacy Setting</label>
-                        <div class="flex items-center space-x-3">
-                            <div class="relative inline-flex items-center">
-                                <input type="checkbox" id="is-public" name="is_public" class="custom-checkbox absolute opacity-0 w-0 h-0" <?php echo $server->is_public ? 'checked' : ''; ?>>
-                                <div class="checkbox-wrapper flex items-center justify-center w-5 h-5 bg-discord-dark-input rounded border border-discord-darker">
-                                    <svg class="checkbox-check w-3.5 h-3.5 text-white opacity-0 transform scale-50 transition-all duration-100" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                                    </svg>
+                        <!-- Server Privacy -->
+                        <div class="form-group">
+                            <div class="flex items-center space-x-3 mb-2">
+                                <div class="relative inline-flex items-center">
+                                    <input type="checkbox" id="is-public" name="is_public" class="custom-checkbox absolute opacity-0 w-0 h-0" <?php echo $server->is_public ? 'checked' : ''; ?>>
+                                    <div class="checkbox-wrapper flex items-center justify-center w-5 h-5 bg-discord-dark-input rounded border border-discord-darker">
+                                        <svg class="checkbox-check w-3.5 h-3.5 text-white opacity-0 transform scale-50 transition-all duration-100" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                        </svg>
+                                    </div>
+                                    <label for="is-public" class="ml-2 text-sm text-white cursor-pointer">Make this server public</label>
                                 </div>
-                                <label for="is-public" class="ml-2 text-sm text-white cursor-pointer">Make this server public</label>
                             </div>
+                            <p class="text-discord-lighter text-xs ml-8">Public servers can be found by anyone in Server Discovery</p>
                         </div>
-                        <p class="text-discord-lighter text-xs mt-1 ml-8">Public servers can be found by anyone in Server Discovery</p>
-                    </div>
-                    
-                    <!-- Server Category -->
-                    <div class="form-group mt-6">
-                        <label for="server-category" class="block text-sm font-medium text-white mb-2">Category</label>
-                        <select id="server-category" name="category" class="form-input bg-discord-dark-input text-white border-none focus:ring-2 focus:ring-discord-primary">
-                            <option value="">Select a category</option>
-                            <option value="gaming" <?php echo ($server->category === 'gaming') ? 'selected' : ''; ?>>Gaming</option>
-                            <option value="music" <?php echo ($server->category === 'music') ? 'selected' : ''; ?>>Music</option>
-                            <option value="education" <?php echo ($server->category === 'education') ? 'selected' : ''; ?>>Education</option>
-                            <option value="science" <?php echo ($server->category === 'science') ? 'selected' : ''; ?>>Science & Tech</option>
-                            <option value="entertainment" <?php echo ($server->category === 'entertainment') ? 'selected' : ''; ?>>Entertainment</option>
-                        </select>
+                        
+                        <!-- Server Category -->
+                        <div class="form-group">
+                            <label for="server-category" class="block text-sm font-medium text-white mb-2">Category</label>
+                            <select id="server-category" name="category" class="form-input bg-discord-dark-input text-white border-none focus:ring-2 focus:ring-discord-primary">
+                                <option value="">Select a category</option>
+                                <option value="gaming" <?php echo ($server->category === 'gaming') ? 'selected' : ''; ?>>Gaming</option>
+                                <option value="music" <?php echo ($server->category === 'music') ? 'selected' : ''; ?>>Music</option>
+                                <option value="education" <?php echo ($server->category === 'education') ? 'selected' : ''; ?>>Education</option>
+                                <option value="science" <?php echo ($server->category === 'science') ? 'selected' : ''; ?>>Science & Tech</option>
+                                <option value="entertainment" <?php echo ($server->category === 'entertainment') ? 'selected' : ''; ?>>Entertainment</option>
+                            </select>
+                            <p class="text-xs text-discord-lighter mt-1">Choose a category that best describes your server</p>
+                        </div>
                     </div>
                     
                     <!-- Save Button -->
-                    <div class="form-group mt-8">
+                    <div class="flex justify-end pt-4">
                         <button type="submit" id="save-changes-btn" class="bg-discord-primary hover:bg-discord-primary-dark text-white font-medium py-2 px-6 rounded-md transition-colors">
                             Save Changes
                         </button>
@@ -431,34 +446,43 @@ ob_start();
     
     <!-- Server Preview -->
     <div class="w-80 bg-discord-dark border-l border-discord-light p-6">
-        <div class="server-preview-card bg-[#1e1f22] rounded-lg overflow-hidden">
-            <!-- Server Banner Preview -->
-            <div class="server-banner h-40 <?php echo $server->banner_url ? '' : 'bg-gradient-to-b from-[#7a8087] to-[#36393f]'; ?>" 
-                 <?php echo $server->banner_url ? 'style="background-image: url(\'' . htmlspecialchars($server->banner_url) . '\'); background-size: cover; background-position: center;"' : ''; ?>>
-                <!-- Server Icon Preview -->
-                <div class="server-icon-preview absolute -bottom-8 left-4 w-16 h-16 bg-discord-dark rounded-full border-4 border-[#1e1f22] overflow-hidden">
-                    <?php if ($server->image_url): ?>
-                        <img src="<?php echo htmlspecialchars($server->image_url); ?>" alt="Server Icon" class="w-full h-full object-cover">
-                    <?php else: ?>
-                        <div class="w-full h-full flex items-center justify-center text-xl font-bold text-white">
-                            <?php echo strtoupper(substr($server->name, 0, 1)); ?>
-                        </div>
+        <div class="sticky top-6">
+            <h3 class="text-sm font-semibold text-discord-lighter uppercase mb-4">Preview</h3>
+            
+            <div class="server-preview-card bg-[#1e1f22] rounded-lg overflow-hidden">
+                <!-- Server Banner Preview -->
+                <div class="server-banner h-40 <?php echo $server->banner_url ? '' : 'bg-gradient-to-b from-[#7a8087] to-[#36393f]'; ?>" 
+                     <?php echo $server->banner_url ? 'style="background-image: url(\'' . htmlspecialchars($server->banner_url) . '\'); background-size: cover; background-position: center;"' : ''; ?>>
+                    <!-- Server Icon Preview -->
+                    <div class="server-icon-preview absolute -bottom-8 left-4 w-16 h-16 bg-discord-dark rounded-full border-4 border-[#1e1f22] overflow-hidden">
+                        <?php if ($server->image_url): ?>
+                            <img src="<?php echo htmlspecialchars($server->image_url); ?>" alt="Server Icon" class="w-full h-full object-cover">
+                        <?php else: ?>
+                            <div class="w-full h-full flex items-center justify-center text-xl font-bold text-white">
+                                <?php echo strtoupper(substr($server->name, 0, 1)); ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                
+                <!-- Server Info Preview -->
+                <div class="server-info pt-10 px-4 pb-4">
+                    <h3 class="server-name text-white font-bold"><?php echo htmlspecialchars($server->name); ?></h3>
+                    <div class="server-meta flex items-center text-xs text-discord-lighter mt-1">
+                        <span class="online-indicator inline-block w-2 h-2 bg-green-500 rounded-full mr-1"></span>
+                        <span>Online</span>
+                        <span class="mx-1">•</span>
+                        <span>Members</span>
+                    </div>
+                    <?php if ($server->description): ?>
+                        <div class="server-description text-xs text-discord-lighter mt-3"><?php echo htmlspecialchars($server->description); ?></div>
                     <?php endif; ?>
                 </div>
             </div>
             
-            <!-- Server Info Preview -->
-            <div class="server-info pt-10 px-4 pb-4">
-                <h3 class="server-name text-white font-bold"><?php echo htmlspecialchars($server->name); ?></h3>
-                <div class="server-meta flex items-center text-xs text-discord-lighter mt-1">
-                    <span class="online-indicator inline-block w-2 h-2 bg-green-500 rounded-full mr-1"></span>
-                    <span>Online</span>
-                    <span class="mx-1">•</span>
-                    <span>Members</span>
-                </div>
-                <?php if ($server->description): ?>
-                    <div class="server-description text-xs text-discord-lighter mt-3"><?php echo htmlspecialchars($server->description); ?></div>
-                <?php endif; ?>
+            <div class="mt-4 text-xs text-discord-lighter">
+                <p class="mb-2">This is how your server will appear to others.</p>
+                <p>Changes will be applied after saving.</p>
             </div>
         </div>
     </div>

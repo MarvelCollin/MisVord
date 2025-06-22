@@ -5,7 +5,6 @@ function setupStorageDirectories() {
     $storagePath = $basePath . '/storage';
     $publicStoragePath = $basePath . '/public/storage';
     
-    // Ensure base storage directory exists
     if (!is_dir($storagePath)) {
         if (!mkdir($storagePath, 0755, true)) {
             error_log("Failed to create storage directory");
@@ -13,7 +12,6 @@ function setupStorageDirectories() {
         }
     }
     
-    // Create necessary subdirectories
     $directories = [
         $storagePath . '/uploads',
         $storagePath . '/uploads/servers',
@@ -30,7 +28,6 @@ function setupStorageDirectories() {
         }
     }
     
-    // Create public storage directory if it doesn't exist
     if (!is_dir($publicStoragePath)) {
         if (!mkdir($publicStoragePath, 0755, true)) {
             error_log("Failed to create public storage directory");
@@ -38,7 +35,6 @@ function setupStorageDirectories() {
         }
     }
     
-    // Create symbolic links for uploads subdirectories
     $uploadsPublicPath = $publicStoragePath . '/uploads';
     if (!is_dir($uploadsPublicPath)) {
         if (!mkdir($uploadsPublicPath, 0755, true)) {
@@ -46,7 +42,6 @@ function setupStorageDirectories() {
         }
     }
     
-    // Create subdirectories in the public storage path
     $publicDirs = [
         $uploadsPublicPath . '/servers',
         $uploadsPublicPath . '/banners',
@@ -64,5 +59,4 @@ function setupStorageDirectories() {
     return true;
 }
 
-// Run the setup
 setupStorageDirectories(); 

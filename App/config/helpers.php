@@ -84,10 +84,8 @@ function getBaseUrl() {
         return 'http://localhost:8000/public';
     }
 
-    // Get the actual host and port from the request
     $host = $_SERVER['HTTP_HOST'] ?? 'localhost:8000';
     
-    // If no port is specified in HTTP_HOST, check SERVER_PORT
     if (!strpos($host, ':') && isset($_SERVER['SERVER_PORT'])) {
         $port = $_SERVER['SERVER_PORT'];
         if ($port != '80' && $port != '443') {

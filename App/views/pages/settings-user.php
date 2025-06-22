@@ -27,30 +27,25 @@ $data_page = 'settings-user';
 $additional_js = ['components/common/image-cutter'];
 $user_id = $_SESSION['user_id'];
 
-// Get user data
 $userController = new UserController();
 $user = $userController->getUserData($user_id);
 
-// Get user badges if they exist
 $userBadges = [];
 if (class_exists('UserBadgeRepository')) {
     $badgeRepository = new UserBadgeRepository();
     $userBadges = $badgeRepository->getForUser($user_id);
 }
 
-// Get section from query params
 $section = $_GET['section'] ?? 'my-account';
 
 ob_start();
 ?>
 
-<!-- Meta tags for JavaScript access -->
 <meta name="user-status" content="<?php echo htmlspecialchars($user->status ?? 'offline'); ?>">
 <meta name="user-id" content="<?php echo htmlspecialchars($user->id ?? ''); ?>">
 <meta name="user-avatar" content="<?php echo htmlspecialchars($user->avatar_url ?? '/public/assets/common/main-logo.png'); ?>">
 
 <div class="flex min-h-screen max-w-[1480px] mx-auto">
-    <!-- Left Sidebar with Settings Categories -->
     <div class="w-60 bg-discord-light border-r border-discord-dark">
         <div class="p-4">
             <div class="text-sm font-semibold text-white"><?php echo htmlspecialchars($user->username ?? ''); ?></div>
@@ -59,7 +54,6 @@ ob_start();
         
         <nav class="mt-2">
             <ul>
-                <!-- User Settings Categories -->
                 <li>
                     <div class="sidebar-category">
                         <span>USER SETTINGS</span>
@@ -81,7 +75,6 @@ ob_start();
                     </a>
                 </li>
                 
-                <!-- App Settings Categories -->
                 <li class="mt-6">
                     <div class="sidebar-category">
                         <span>APP SETTINGS</span>
@@ -111,7 +104,6 @@ ob_start();
             </ul>
         </nav>
         
-        <!-- Log Out Button -->
         <div class="p-4 mt-6">
             <a href="/login" class="sidebar-item text-red-500 hover:text-red-400 flex items-center" onclick="event.preventDefault(); logoutUser();">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -123,24 +115,19 @@ ob_start();
         
         <script>
             function logoutUser() {
-                // Clear any user data from localStorage
                 localStorage.removeItem('user_token');
                 localStorage.removeItem('connect_socket_on_login');
                 
-                // Redirect to login page
                 window.location.href = '/login';
             }
         </script>
     </div>
 
-    <!-- Main Content Area -->
     <div class="flex-1 bg-discord-dark overflow-y-auto">
         <?php if ($section === 'my-account'): ?>
-            <!-- My Account Section -->
             <div class="p-10 max-w-[740px]">
                 <h1 class="text-2xl font-bold mb-2">My Account</h1>
-                
-                <!-- Tabs -->
+
                 <div class="border-b border-gray-700 mb-6">
                     <div class="flex">
                         <button class="text-[#5865f2] border-b-2 border-[#5865f2] py-2 px-4 font-medium">
@@ -153,7 +140,6 @@ ob_start();
                 </div>
                 
                 <form id="user-profile-form" class="space-y-8">
-                    <!-- User Avatar -->
                     <div class="form-group">
                         <label class="block text-sm font-medium text-white mb-2">Profile Picture</label>
                         <p class="text-discord-lighter text-sm mb-2">We recommend an image of at least 512x512.</p>
@@ -166,7 +152,6 @@ ob_start();
                                     <img id="server-icon-preview" src="/public/assets/common/main-logo.png" alt="Default Avatar" class="w-full h-full object-cover">
                                 <?php endif; ?>
                                 
-                                <!-- Status indicator -->
                                 <?php 
                                 $statusClass = 'bg-discord-green';
                                 if ($user->status === 'invisible') $statusClass = 'bg-gray-500';
@@ -190,7 +175,6 @@ ob_start();
                         </div>
                     </div>
                     
-                    <!-- Username -->
                     <div class="form-group">
                         <label for="username" class="block text-sm font-medium text-white mb-2">Username</label>
                         <div class="flex">
@@ -201,7 +185,6 @@ ob_start();
                         </div>
                     </div>
                     
-                    <!-- Email -->
                     <div class="form-group">
                         <label for="email" class="block text-sm font-medium text-white mb-2">Email</label>
                         <div class="flex items-center">
@@ -231,7 +214,6 @@ ob_start();
                         </div>
                     </div>
                     
-                    <!-- Phone Number -->
                     <div class="form-group">
                         <label for="phone" class="block text-sm font-medium text-white mb-2">Phone Number</label>
                         <div class="flex items-center">
@@ -242,7 +224,6 @@ ob_start();
                         </div>
                     </div>
                     
-                    <!-- Password and Authentication Section -->
                     <div class="border-t border-gray-700 pt-8 mt-8">
                         <h2 class="text-xl font-bold mb-6">Password and Authentication</h2>
                         
@@ -256,7 +237,6 @@ ob_start();
                             </button>
                         </div>
                         
-                        <!-- 2FA Section -->
                         <div class="mt-8">
                             <div class="flex items-center justify-between">
                                 <div>
@@ -290,14 +270,11 @@ ob_start();
         <?php endif; ?>
     </div>
     
-    <!-- User Preview Panel -->
     <div class="w-80 bg-discord-dark border-l border-discord-light p-6">
         <div class="server-preview-card bg-[#1e1f22] rounded-lg overflow-hidden">
-            <!-- User Banner Preview -->
             <div class="server-banner h-40 <?php echo $user->banner_url ? '' : 'bg-gradient-to-b from-[#5865f2] to-[#4752c4]'; ?>" 
                  <?php echo $user->banner_url ? 'style="background-image: url(\'' . htmlspecialchars($user->banner_url) . '\'); background-size: cover; background-position: center;"' : ''; ?>>
                 
-                <!-- User Avatar Preview -->
                 <div class="server-icon-preview absolute -bottom-8 left-4 w-16 h-16 bg-discord-dark rounded-full border-4 border-[#1e1f22] overflow-hidden relative">
                     <?php if ($user->avatar_url): ?>
                         <img src="<?php echo htmlspecialchars($user->avatar_url); ?>" alt="User Avatar" class="w-full h-full object-cover">
@@ -305,7 +282,6 @@ ob_start();
                         <img src="/public/assets/common/main-logo.png" alt="Default Avatar" class="w-full h-full object-cover">
                     <?php endif; ?>
                     
-                    <!-- Status indicator in preview -->
                     <?php 
                     $statusClass = 'bg-discord-green';
                     if ($user->status === 'invisible') $statusClass = 'bg-gray-500';
@@ -316,14 +292,12 @@ ob_start();
                 </div>
             </div>
             
-            <!-- User Info Preview -->
             <div class="server-info pt-10 px-4 pb-4">
                 <h3 class="server-name text-white font-bold"><?php echo htmlspecialchars($user->username ?? ''); ?></h3>
                 <div class="server-meta flex items-center text-xs text-discord-lighter mt-1">
                     <span class="mx-1">#<?php echo htmlspecialchars($user->discriminator ?? '0000'); ?></span>
                 </div>
                 
-                <!-- Status Selector -->
                 <div class="status-selector mt-4">
                     <div class="status-option flex items-center p-2 hover:bg-discord-dark rounded cursor-pointer <?php echo $user->status === 'appear' ? 'bg-discord-background-modifier-selected' : ''; ?>" data-status="appear">
                         <span class="w-3 h-3 bg-green-500 rounded-full mr-2"></span>
@@ -343,7 +317,6 @@ ob_start();
                     </div>
                 </div>
                 
-                <!-- Custom Status -->
                 <div class="custom-status mt-4 p-2 hover:bg-discord-dark rounded cursor-pointer">
                     <div class="flex items-center">
                         <span class="text-sm text-discord-lighter">Set a custom status</span>
@@ -353,7 +326,6 @@ ob_start();
             </div>
         </div>
         
-        <!-- Account Badges -->
         <div class="mt-6">
             <h4 class="text-sm font-medium text-discord-lighter mb-2">ACCOUNT BADGES</h4>
             <div class="flex flex-wrap gap-2">
@@ -364,7 +336,6 @@ ob_start();
                             <img src="<?php echo htmlspecialchars($badge->icon_url); ?>" alt="<?php echo htmlspecialchars($badge->name); ?>" class="w-5 h-5">
                         <?php else: ?>
                             <?php 
-                            // Default icons based on badge type
                             $iconClass = 'fas fa-shield-alt text-[#5865f2]';
                             if ($badge->badge_type === 'nitro') $iconClass = 'fas fa-rocket text-[#5865f2]';
                             elseif ($badge->badge_type === 'boost') $iconClass = 'fas fa-bolt text-[#ff73fa]';
@@ -374,7 +345,6 @@ ob_start();
                     </div>
                     <?php endforeach; ?>
                 <?php else: ?>
-                    <!-- Default badges for display if none from database -->
                     <div class="w-8 h-8 bg-discord-darkest rounded-md flex items-center justify-center" title="Discord Staff">
                         <i class="fas fa-shield-alt text-[#5865f2]"></i>
                     </div>
@@ -389,7 +359,6 @@ ob_start();
         </div>
     </div>
     
-    <!-- Close button to return to previous page -->
     <div class="absolute top-0 right-0 flex items-center">
         <a href="javascript:history.back()" class="close-button flex items-center justify-center py-2 px-4">
             <div class="close-button-icon">

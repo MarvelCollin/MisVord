@@ -2,17 +2,16 @@
 
 class CreateServerInvitesMigration {
     public function up($migration) {
-        $migration->createTable('server_invites', function($table) {            $table->id();
+        $migration->createTable('server_invites', function($table) {            
+            $table->id();
             $table->integer('server_id');
             $table->integer('inviter_user_id');
-            $table->integer('target_user_id')->nullable(); 
             $table->string('invite_link');
             $table->timestamps();
             
             
             $table->foreignKey('server_id', 'servers', 'id', 'CASCADE');
             $table->foreignKey('inviter_user_id', 'users', 'id', 'CASCADE');
-            $table->foreignKey('target_user_id', 'users', 'id', 'SET NULL');
         });
     }
 

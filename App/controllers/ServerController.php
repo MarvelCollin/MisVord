@@ -471,7 +471,6 @@ class ServerController extends BaseController
 
     public function showInvite($code = null)
     {
-
         if (!$code) {
             $input = $this->getInput();
             $code = $input['code'] ?? null;
@@ -480,8 +479,8 @@ class ServerController extends BaseController
         if (!$code) {
             return $this->notFound('Invalid invite code');
         }
+        
         try {
-
             $invite = $this->inviteRepository->findByCode($code);
             if (!$invite) {
                 return $this->notFound('Invite not found or expired');
@@ -504,8 +503,8 @@ class ServerController extends BaseController
                 ]);
             }
 
-            $GLOBALS['server'] = $server;
-            $GLOBALS['invite'] = $invite;
+            $GLOBALS['inviteServer'] = $server;
+            $GLOBALS['inviteCode'] = $code;
 
             return [
                 'server' => $server,
@@ -766,7 +765,6 @@ class ServerController extends BaseController
             $members = $this->userServerMembershipRepository->getServerMembers($serverId);
             $ownerId = $server->getOwnerId();
 
-            // Format member data and add additional information
             $formattedMembers = array_map(function($member) use ($ownerId) {
                 $isOwner = $member['id'] == $ownerId;
                 
@@ -783,7 +781,6 @@ class ServerController extends BaseController
                 ];
             }, $members);
 
-            // Sort members: owner first, then by role, then by username
             usort($formattedMembers, function($a, $b) {
                 if ($a['is_owner'] && !$b['is_owner']) return -1;
                 if (!$a['is_owner'] && $b['is_owner']) return 1;

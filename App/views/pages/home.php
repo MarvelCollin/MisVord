@@ -17,21 +17,17 @@ $currentUserId = $homeData['currentUserId'];
 $userServers = $homeData['userServers'];
 $memberships = $homeData['memberships'];
 
-// Check if we have an active direct message
 $contentType = 'home';
 if (isset($_SESSION['active_dm']) && !empty($_SESSION['active_dm'])) {
     $contentType = 'dm';
     $activeDmId = $_SESSION['active_dm'];
     
-    // Load the direct message data
     require_once dirname(__DIR__) . '/../controllers/ChatController.php';
     $chatController = new ChatController();
     
-    // Set globals that will be used by the chat section
     $GLOBALS['chatType'] = 'direct';
     $GLOBALS['targetId'] = $activeDmId;
     
-    // Get the chat room data
     require_once dirname(__DIR__) . '/../database/repositories/ChatRoomRepository.php';
     $chatRoomRepository = new ChatRoomRepository();
     
@@ -59,7 +55,6 @@ if (isset($_SESSION['active_dm']) && !empty($_SESSION['active_dm'])) {
         
         $GLOBALS['chatData'] = $chatData;
         
-        // Get messages
         $messages = $chatRoomRepository->getMessages($activeDmId, 20, 0);
         $GLOBALS['messages'] = $messages;
     }

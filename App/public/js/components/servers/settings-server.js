@@ -502,12 +502,40 @@ function initServerProfileForm() {
     const serverCategorySelect = document.getElementById('server-category');
     const saveButton = document.getElementById('save-changes-btn');
     const serverId = document.querySelector('meta[name="server-id"]')?.content;
+    const formCards = document.querySelectorAll('.bg-discord-darker');
     
     if (!form || !serverId) return;
     
     // Initialize server icon and banner upload
     initServerIconUpload();
     initServerBannerUpload();
+    
+    // Add subtle animations to form cards
+    if (formCards.length) {
+        formCards.forEach((card, index) => {
+            // Add staggered fade-in animation
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(10px)';
+            card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+            
+            setTimeout(() => {
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, 100 + (index * 100));
+        });
+    }
+    
+    // Add focus/blur effects to form inputs
+    const formInputs = form.querySelectorAll('input, textarea, select');
+    formInputs.forEach(input => {
+        input.addEventListener('focus', function() {
+            this.closest('.form-group')?.classList.add('is-focused');
+        });
+        
+        input.addEventListener('blur', function() {
+            this.closest('.form-group')?.classList.remove('is-focused');
+        });
+    });
     
     // Update server name preview as user types
     if (serverNameInput) {

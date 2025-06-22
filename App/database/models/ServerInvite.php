@@ -5,7 +5,7 @@ require_once __DIR__ . '/../query.php';
 
 class ServerInvite extends Model {
     protected static $table = 'server_invites';
-    protected $fillable = ['server_id', 'inviter_user_id', 'target_user_id', 'invite_link', 'created_at', 'updated_at'];
+    protected $fillable = ['server_id', 'inviter_user_id', 'invite_link', 'created_at', 'updated_at'];
 
     public static function findByCode($code) {
         $result = static::where('invite_link', $code)->first();
@@ -18,32 +18,21 @@ class ServerInvite extends Model {
         
         $sql = "SELECT * FROM " . static::getTable() . " 
                 WHERE invite_link = ? 
-                AND (expires_at IS NULL OR expires_at > ?) 
-                AND (max_uses IS NULL OR uses < max_uses)
                 LIMIT 1";
         
         $stmt = $pdo->prepare($sql);
-        $stmt->execute([$code, date('Y-m-d H:i:s')]);
+        $stmt->execute([$code]);
         $data = $stmt->fetch(PDO::FETCH_ASSOC);
         
         return $data ? new static($data) : null;
     }
 
     public function isValid() {
-        if ($this->expires_at && strtotime($this->expires_at) < time()) {
-            return false;
-        }
-        
-        if ($this->max_uses && $this->uses >= $this->max_uses) {
-            return false;
-        }
-        
         return true;
     }
 
     public function incrementUses() {
-        $this->uses = ($this->uses ?? 0) + 1;
-        return $this->save();
+        return true;
     }
 
     public static function generateCode() {
@@ -70,7 +59,6 @@ class ServerInvite extends Model {
                         id INT AUTO_INCREMENT PRIMARY KEY,
                         server_id INT NOT NULL,
                         inviter_user_id INT NOT NULL,
-                        target_user_id INT NULL,
                         invite_link VARCHAR(255) UNIQUE NOT NULL,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -78,8 +66,7 @@ class ServerInvite extends Model {
                         INDEX code_idx (invite_link),
                         INDEX creator_idx (inviter_user_id),
                         FOREIGN KEY (server_id) REFERENCES servers(id) ON DELETE CASCADE,
-                        FOREIGN KEY (inviter_user_id) REFERENCES users(id) ON DELETE CASCADE,
-                        FOREIGN KEY (target_user_id) REFERENCES users(id) ON DELETE SET NULL
+                        FOREIGN KEY (inviter_user_id) REFERENCES users(id) ON DELETE CASCADE
                     )
                 ");
 

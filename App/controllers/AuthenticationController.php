@@ -226,7 +226,6 @@ class AuthenticationController extends BaseController
 
         $errors = [];
         
-        // Enhanced username validation
         if (empty($username)) {
             $errors['username'] = 'Username is required';
         } elseif (strlen($username) < 3 || strlen($username) > 32) {
@@ -237,7 +236,6 @@ class AuthenticationController extends BaseController
             $errors['username'] = 'Username already exists';
         }
 
-        // Enhanced email validation
         if (empty($email)) {
             $errors['email'] = 'Email is required';
         } elseif (!preg_match('/^[^\s@]+@[^\s@]+\.[^\s@]+$/', $email)) {
@@ -246,7 +244,6 @@ class AuthenticationController extends BaseController
             $errors['email'] = 'Email already registered';
         }
 
-        // Enhanced password validation
         if (empty($password)) {
             $errors['password'] = 'Password is required';
         } elseif (strlen($password) < 8) {
@@ -261,7 +258,6 @@ class AuthenticationController extends BaseController
             $errors['password_confirm'] = 'Passwords do not match';
         }
         
-        // Captcha validation is handled by the JavaScript before form submission
 
         if (!empty($errors)) {
             $this->logActivity('registration_failed', ['email' => $email, 'errors' => array_keys($errors)]);

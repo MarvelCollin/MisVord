@@ -142,13 +142,10 @@ class FriendController extends BaseController
         $userId = $this->getCurrentUserId();
 
         try {
-            // Get incoming friend requests (people who sent requests to me)
             $incomingRequests = $this->friendListRepository->getPendingRequests($userId);
             
-            // Get outgoing friend requests (requests I sent to others)
             $outgoingRequests = $this->friendListRepository->getSentRequests($userId);            $this->logActivity('pending_requests_viewed');
 
-            // Return data directly without extra nesting
             $this->jsonResponse([
                 'incoming' => $incomingRequests ?: [],
                 'outgoing' => $outgoingRequests ?: []
@@ -201,7 +198,6 @@ class FriendController extends BaseController
 
             $friends = $this->friendListRepository->getUserFriends($currentUserId);            $onlineFriends = [];
               foreach ($friends as &$friend) {
-                // Set default offline status since socket functionality is removed
                 $friend['status'] = 'offline';
                 
                 if ($friend['status'] !== 'offline') {
@@ -236,7 +232,6 @@ class FriendController extends BaseController
         
         try {            $friends = $this->friendListRepository->getUserFriends($userId);
               foreach ($friends as &$friend) {
-                // Set default offline status and null activity since socket functionality is removed
                 $friend['status'] = 'offline';
                 $friend['activity'] = null;
                 $friend['last_seen'] = null;
@@ -259,8 +254,6 @@ class FriendController extends BaseController
             $friends = $this->friendListRepository->getUserFriends($userId);
             $onlineFriends = [];            
             foreach ($friends as $friend) {
-                // Since socket functionality is removed, no users will be online
-                // This will return an empty array
             }
               $this->logActivity('online_friends_viewed');
             
@@ -311,10 +304,8 @@ class FriendController extends BaseController
                 $targetUsername = $targetUser->username;            } else {
                 $username = $input['username'];
                 
-                // Debug the input
                 error_log("Debug: Searching for user: " . $username);
                 
-                // Support both username and username#discriminator formats
                 if (strpos($username, '#') !== false) {
                     $parts = explode('#', $username, 2);
                     if (count($parts) === 2) {
@@ -376,7 +367,6 @@ class FriendController extends BaseController
         $userId = $this->getCurrentUserId();
         
         try {
-            // Validate friendship ID
             if (!$friendshipId || !is_numeric($friendshipId)) {
                 return $this->validationError(['friendship_id' => 'Valid friendship ID is required']);
             }
@@ -427,7 +417,6 @@ class FriendController extends BaseController
         $userId = $this->getCurrentUserId();
         
         try {
-            // Validate friendship ID
             if (!$friendshipId || !is_numeric($friendshipId)) {
                 return $this->validationError(['friendship_id' => 'Valid friendship ID is required']);
             }

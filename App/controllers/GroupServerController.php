@@ -30,7 +30,6 @@ class GroupServerController extends BaseController {
         $userId = $this->getCurrentUserId();
         $input = $this->getInput();
         
-        // Validate input
         $this->validate($input, [
             'group_name' => 'required'
         ]);
@@ -42,13 +41,11 @@ class GroupServerController extends BaseController {
                 return $this->serverError('Failed to create group server');
             }
             
-            // Notify via socket if needed
             $this->broadcastViaSocket('group-server-created', [
                 'group' => $group->toArray(),
                 'user_id' => $userId
             ]);
             
-            // Log activity
             $this->logActivity('group_server_created', [
                 'group_id' => $group->id,
                 'group_name' => $group->group_name

@@ -74,24 +74,31 @@ class ChatAPI {
             console.error(`❌ Failed to fetch messages for ${apiChatType} ${targetId}:`, error);
             throw error;
         }
-    }    async sendMessage(targetId, content, chatType = 'channel') {
+    }    async sendMessage(targetId, content, chatType = 'channel', options = {}) {
         const url = `${this.baseURL}/send`;
         const apiChatType = chatType === 'direct' ? 'dm' : chatType;
         
         try {
             // First, send to database via API
+            const requestData = {
+                target_type: apiChatType,
+                target_id: targetId,
+                content: content
+            };
+            
+            // Add reply_message_id if provided
+            if (options.replyToMessageId) {
+                requestData.reply_message_id = options.replyToMessageId;
+            }
+            
             const response = await this.makeRequest(url, {
                 method: 'POST',
-                body: JSON.stringify({
-                    target_type: apiChatType,
-                    target_id: targetId,
-                    content: content
-                })
+                body: JSON.stringify(requestData)
             });
             
             // ONLY send socket message if database save was successful
             if (response && response.success !== false) {
-                this.sendDirectSocketMessage(targetId, content, chatType);
+                this.sendDirectSocketMessage(targetId, content, chatType, options);
             }
             
             // Return the API response
@@ -103,7 +110,7 @@ class ChatAPI {
         }
     }
 
-    sendDirectSocketMessage(targetId, content, chatType = 'channel') {
+    sendDirectSocketMessage(targetId, content, chatType = 'channel', options = {}) {
         if (!window.globalSocketManager || !window.globalSocketManager.isReady() || !window.globalSocketManager.io) {
             console.warn('⚠️ Socket not ready, cannot send direct socket message');
             return false;
@@ -129,6 +136,15 @@ class ChatAPI {
                     userId: userId,
                     username: username
                 };
+                
+                // Add reply data if present
+                if (options.replyToMessageId) {
+                    messageData.reply_message_id = options.replyToMessageId;
+                    
+                    if (options.replyData) {
+                        messageData.reply_data = options.replyData;
+                    }
+                }
             } 
             else if (chatType === 'direct' || chatType === 'dm') {
                 eventName = 'user-message-dm';
@@ -141,6 +157,15 @@ class ChatAPI {
                     userId: userId,
                     username: username
                 };
+                
+                // Add reply data if present
+                if (options.replyToMessageId) {
+                    messageData.reply_message_id = options.replyToMessageId;
+                    
+                    if (options.replyData) {
+                        messageData.reply_data = options.replyData;
+                    }
+                }
             }
             
             if (eventName && messageData) {

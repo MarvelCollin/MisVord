@@ -741,3 +741,25 @@
 .reaction-count {
     color: #b9bbbe;
 }
+
+/* Reply message styling */
+.reply-info {
+    color: #b9bbbe;
+    border-left: 2px solid #4f545c;
+    padding-left: 6px;
+    margin-top: 2px;
+    margin-bottom: 4px;
+}
+
+/* Highlight effect for replied messages */
+@keyframes highlight-pulse {
+    0% { background-color: rgba(88, 101, 242, 0.2); }
+    50% { background-color: rgba(88, 101, 242, 0.3); }
+    100% { background-color: rgba(88, 101, 242, 0.2); }
+}
+
+.highlight-message {
+    animation: highlight-pulse 1s ease-in-out;
+    background-color: rgba(88, 101, 242, 0.2);
+    border-radius: 4px;
+}
