@@ -34,8 +34,8 @@ $section = $_GET['section'] ?? 'my-account';
 <div class="flex min-h-screen max-w-[1480px] mx-auto">
     <!-- Left Sidebar with Settings Categories -->
     <div class="w-72 bg-discord-light border-r border-discord-dark pl-8 pr-4">
-        <div class="p-4">
-            <input type="text" placeholder="Search" class="w-full bg-discord-darker text-white border-none rounded p-2 focus:outline-none focus:ring-2 focus:ring-discord-blue" />
+                        <div class="p-4">
+            <input placeholder="Search" class="w-full bg-discord-darker text-white border-none rounded p-2 focus:outline-none focus:ring-2 focus:ring-discord-blue" />
         </div>
         
         <nav class="mt-6">
@@ -94,13 +94,24 @@ $section = $_GET['section'] ?? 'my-account';
         
         <!-- Log Out Button -->
         <div class="p-4 mt-6">
-            <a href="/logout" class="sidebar-item text-red-500 hover:text-red-400 flex items-center">
+            <a href="/login" class="sidebar-item text-red-500 hover:text-red-400 flex items-center" onclick="event.preventDefault(); logoutUser();">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>
                 Log Out
             </a>
         </div>
+        
+        <script>
+            function logoutUser() {
+                // Clear any user data from localStorage
+                localStorage.removeItem('user_token');
+                localStorage.removeItem('connect_socket_on_login');
+                
+                // Redirect to login page
+                window.location.href = '/login';
+            }
+        </script>
     </div>
 
     <!-- Main Content Area -->

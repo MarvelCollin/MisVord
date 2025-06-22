@@ -188,11 +188,11 @@ function handleTyping(socket, data, io) {
                 channelId 
             });
         } else {
-            socket.to(room).emit('user-typing', { 
-                userId, 
-                username, 
-                channelId 
-            });
+        socket.to(room).emit('user-typing', { 
+            userId, 
+            username, 
+            channelId 
+        });
         }
     } else if (roomId) {
         const room = `dm-room-${roomId}`;
@@ -209,11 +209,11 @@ function handleTyping(socket, data, io) {
                 roomId 
             });
         } else {
-            socket.to(room).emit('user-typing-dm', { 
-                userId, 
-                username, 
-                roomId 
-            });
+        socket.to(room).emit('user-typing-dm', { 
+            userId, 
+            username, 
+            roomId 
+        });
         }
     }
 }
@@ -240,11 +240,11 @@ function handleStopTyping(socket, data, io) {
                 channelId 
             });
         } else {
-            socket.to(room).emit('user-stop-typing', { 
-                userId, 
-                username, 
-                channelId 
-            });
+        socket.to(room).emit('user-stop-typing', { 
+            userId, 
+            username, 
+            channelId 
+        });
         }
     } else if (roomId) {
         const room = `dm-room-${roomId}`;
@@ -261,11 +261,11 @@ function handleStopTyping(socket, data, io) {
                 roomId 
             });
         } else {
-            socket.to(room).emit('user-stop-typing-dm', { 
-                userId, 
-                username, 
-                roomId 
-            });
+        socket.to(room).emit('user-stop-typing-dm', { 
+            userId, 
+            username, 
+            roomId 
+        });
         }
     }
 }

@@ -81,13 +81,13 @@ class ChatAPI {
         try {
             // First, send to database via API
             const response = await this.makeRequest(url, {
-                method: 'POST',
-                body: JSON.stringify({
-                    target_type: apiChatType,
-                    target_id: targetId,
-                    content: content
-                })
-            });
+            method: 'POST',
+            body: JSON.stringify({
+                target_type: apiChatType,
+                target_id: targetId,
+                content: content
+            })
+        });
             
             // Then, send directly to socket regardless of API response
             this.sendDirectSocketMessage(targetId, content, chatType);

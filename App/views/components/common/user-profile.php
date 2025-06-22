@@ -21,14 +21,14 @@ if ($hasTooltip) {
                 $userName = ($currentUser && isset($currentUser->username)) ? $currentUser->username : ($_SESSION['username'] ?? 'User');
                 $userDiscriminator = ($currentUser && isset($currentUser->discriminator)) ? $currentUser->discriminator : ($_SESSION['discriminator'] ?? '0000');
                 
-                $userAvatarContent = '<div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden mr-2">
+                $userAvatarContent = '<div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden mr-2 user-profile-trigger" data-user-id="' . htmlspecialchars($_SESSION['user_id'] ?? '') . '">
                     <img src="' . htmlspecialchars($userAvatar) . '" 
                          alt="Avatar" class="w-full h-full object-cover">
                 </div>';
                 
                 echo tooltip($userAvatarContent, htmlspecialchars($userName) . '#' . htmlspecialchars($userDiscriminator), 'top');
             ?>        <?php else: ?>
-            <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden mr-2">
+            <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden mr-2 user-profile-trigger" data-user-id="<?php echo htmlspecialchars($_SESSION['user_id'] ?? ''); ?>">
                 <img src="<?php echo ($currentUser && isset($currentUser->avatar_url) && $currentUser->avatar_url) ? htmlspecialchars($currentUser->avatar_url) : asset('/common/main-logo.png'); ?>" 
                      alt="Avatar" class="w-full h-full object-cover">
             </div>

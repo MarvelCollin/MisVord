@@ -127,3 +127,22 @@ function initializeServerModals() {
     });
   }
 }
+
+function renderMemberItem(member) {
+    const statusClass = getStatusClass(member.status || 'offline');
+    
+    return `
+        <div class="member-item flex items-center p-2 rounded hover:bg-discord-light cursor-pointer">
+            <div class="relative mr-3">
+                <div class="w-8 h-8 rounded-full bg-discord-light overflow-hidden user-profile-trigger" data-user-id="${member.id}" data-server-id="${getCurrentServerId()}">
+                    <img src="${member.avatar_url || '/assets/default-avatar.svg'}" alt="${member.username}" class="w-full h-full object-cover">
+                </div>
+                <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark ${statusClass}"></span>
+            </div>
+            <div>
+                <div class="text-sm font-medium ${member.role === 'owner' ? 'text-yellow-300' : member.role === 'admin' ? 'text-red-400' : 'text-white'}">${member.username}</div>
+                <div class="text-xs text-discord-lighter">${member.status || 'offline'}</div>
+            </div>
+        </div>
+    `;
+}

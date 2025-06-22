@@ -12,6 +12,7 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
     <?php if (!isset($data_page) || $data_page !== 'auth'): ?>
         <?php include_once dirname(__DIR__) . '/components/app-sections/create-server-modal.php'; ?>
         <?php include_once dirname(__DIR__) . '/components/app-sections/server-actions-modals.php'; ?>
+        <?php include_once dirname(__DIR__) . '/components/common/user-detail.php'; ?>
     <?php endif; ?>
     
     <?php include_once __DIR__ . '/scripts.php'; ?>
@@ -19,6 +20,9 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
     <?php if (!isset($data_page) || $data_page !== 'auth'): ?>
         <script type="module" src="<?php echo js('components/servers/server-manager'); ?>"></script>
     <?php endif; ?>
+    
+    <script type="module" src="<?= asset('/js/components/index.js') ?>"></script>
+    <script type="module" src="<?= asset('/js/pages/app.js') ?>"></script>
     
     <!-- CSRF token for AJAX calls -->
     <meta name="csrf-token" content="<?php echo isset($_SESSION['csrf_token']) ? $_SESSION['csrf_token'] : ''; ?>">

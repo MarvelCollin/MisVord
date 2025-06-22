@@ -15,6 +15,7 @@ require_once __DIR__ . '/../controllers/HomeController.php';
 require_once __DIR__ . '/../controllers/ExploreController.php';
 require_once __DIR__ . '/../controllers/SettingsController.php';
 require_once __DIR__ . '/../controllers/MediaController.php';
+require_once __DIR__ . '/../controllers/UserController.php';
 require_once __DIR__ . '/env.php';
 
 class Route {
@@ -372,6 +373,11 @@ Route::get('/api/users/search', function() {
 Route::post('/api/users/find', function() {
     $controller = new FriendController();
     $controller->findUsers();
+});
+
+Route::get('/api/users/([0-9]+)/profile', function($userId) {
+    $controller = new UserController();
+    $controller->getUserProfile($userId);
 });
 
 Route::get('/api/chat/(channel|dm)/([0-9]+)/messages', function($type, $id) {

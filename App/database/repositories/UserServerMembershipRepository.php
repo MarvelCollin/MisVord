@@ -52,13 +52,31 @@ class UserServerMembershipRepository extends Repository {
         return $membership && $membership->role === 'owner';
     }
     
-    public function getServerMembers($serverId) {
-        $query = new Query();
-        return $query->table('user_server_memberships usm')
-            ->join('users u', 'usm.user_id', '=', 'u.id')
-            ->select('u.id, u.username, u.avatar_url, usm.role, usm.created_at')
-            ->where('usm.server_id', $serverId)
-            ->get();
+    public function getServerMembers($serverId)
+    {
+        $query = "SELECT u.id, u.username, u.discriminator, u.avatar_url, u.status, usm.created_at as joined_at
+                  FROM users u
+                  JOIN user_server_memberships usm ON u.id = usm.user_id
+                  WHERE usm.server_id = :server_id
+                  ORDER BY usm.created_at ASC";
+        
+        $params = [':server_id' => $serverId];
+        
+        return $this->db->fetchAll($query, $params);
+    }
+    
+    public function getUserServerMembership($userId, $serverId)
+    {
+        $query = "SELECT * FROM user_server_memberships
+                  WHERE user_id = :user_id AND server_id = :server_id
+                  LIMIT 1";
+        
+        $params = [
+            ':user_id' => $userId,
+            ':server_id' => $serverId
+        ];
+        
+        return $this->db->fetchOne($query, $params);
     }
     
     public function updateNotificationSettings($userId, $serverId, $settings) {

@@ -15,7 +15,6 @@ class AuthenticationController extends BaseController
     }
     public function showLogin()
     {
-        // Debug session state
         if (function_exists('logger')) {
             logger()->debug("showLogin called", [
                 'session_status' => session_status(),
@@ -103,7 +102,7 @@ class AuthenticationController extends BaseController
                 header('Location: /login');
             }
             exit;
-        }        // Set session variables after successful authentication
+        }
         if (function_exists('logger')) {
             logger()->debug("User object before setting session", [
                 'user_id' => $user->id,
@@ -133,7 +132,6 @@ class AuthenticationController extends BaseController
         $_SESSION['avatar_url'] = $user->avatar_url;
         $_SESSION['banner_url'] = $user->banner_url;
 
-        // Debug session after setting
         if (function_exists('logger')) {
             logger()->debug("Session variables set after login", [
                 'user_id' => $_SESSION['user_id'],
@@ -143,13 +141,10 @@ class AuthenticationController extends BaseController
             ]);
         }
         
-        // Ensure session is written to storage
         session_write_close();
         
-        // Start session again to verify data was saved
         session_start();
         
-        // Debug session after write_close and restart
         if (function_exists('logger')) {
             logger()->debug("Session after write_close and restart", [
                 'user_id' => $_SESSION['user_id'] ?? 'not_set',
@@ -219,34 +214,54 @@ class AuthenticationController extends BaseController
             'username' => 'required',
             'email' => 'required',
             'password' => 'required',
-            'password_confirm' => 'required'
+            'password_confirm' => 'required',
+            'captcha' => 'required'
         ]);
 
         $username = $input['username'];
         $email = $input['email'];
         $password = $input['password'];
         $passwordConfirm = $input['password_confirm'];
+        $captcha = $input['captcha'] ?? '';
 
         $errors = [];
-        if (strlen($username) < 3) {
-            $errors['username'] = 'Username must be at least 3 characters';
+        
+        // Enhanced username validation
+        if (empty($username)) {
+            $errors['username'] = 'Username is required';
+        } elseif (strlen($username) < 3 || strlen($username) > 32) {
+            $errors['username'] = 'Username must be between 3 and 32 characters';
+        } elseif (!preg_match('/^[a-zA-Z0-9_]+$/', $username)) {
+            $errors['username'] = 'Username can only contain letters, numbers, and underscores';
         } elseif ($this->userRepository->findByUsername($username)) {
             $errors['username'] = 'Username already exists';
         }
 
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        // Enhanced email validation
+        if (empty($email)) {
+            $errors['email'] = 'Email is required';
+        } elseif (!preg_match('/^[^\s@]+@[^\s@]+\.[^\s@]+$/', $email)) {
             $errors['email'] = 'Invalid email format';
         } elseif ($this->userRepository->findByEmail($email)) {
             $errors['email'] = 'Email already registered';
         }
 
-        if (strlen($password) < 6) {
-            $errors['password'] = 'Password must be at least 6 characters';
+        // Enhanced password validation
+        if (empty($password)) {
+            $errors['password'] = 'Password is required';
+        } elseif (strlen($password) < 8) {
+            $errors['password'] = 'Password must be at least 8 characters';
+        } elseif (!preg_match('/[A-Z]/', $password)) {
+            $errors['password'] = 'Password must contain at least one uppercase letter';
+        } elseif (!preg_match('/[0-9]/', $password)) {
+            $errors['password'] = 'Password must contain at least one number';
         }
 
         if ($password !== $passwordConfirm) {
             $errors['password_confirm'] = 'Passwords do not match';
         }
+        
+        // Captcha validation is handled by the JavaScript before form submission
 
         if (!empty($errors)) {
             $this->logActivity('registration_failed', ['email' => $email, 'errors' => array_keys($errors)]);
@@ -274,7 +289,6 @@ class AuthenticationController extends BaseController
             'status' => 'online'
         ];
 
-        // Handle avatar upload if present
         if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
             $avatarUrl = $this->uploadImage($_FILES['avatar'], 'avatars');
             if ($avatarUrl !== false) {
@@ -282,7 +296,6 @@ class AuthenticationController extends BaseController
             }
         }
         
-        // Handle banner upload if present
         if (isset($_FILES['banner']) && $_FILES['banner']['error'] === UPLOAD_ERR_OK) {
             $bannerUrl = $this->uploadImage($_FILES['banner'], 'banners');
             if ($bannerUrl !== false) {
@@ -298,7 +311,6 @@ class AuthenticationController extends BaseController
             $user->discriminator = $discriminator;
             $user->status = 'online';
             
-            // Set avatar and banner URLs if available
             if (isset($userData['avatar_url'])) {
                 $user->avatar_url = $userData['avatar_url'];
             }

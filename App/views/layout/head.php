@@ -67,6 +67,7 @@ $cache_version = time();
 <link rel="stylesheet" href="<?php echo css('global'); ?>?v=<?php echo $cache_version; ?>">
 <link rel="stylesheet" href="<?php echo css('lazy-loading'); ?>?v=<?php echo $cache_version; ?>">
 <link rel="stylesheet" href="<?php echo css('message-context-menu'); ?>?v=<?php echo $cache_version; ?>">
+<link rel="stylesheet" href="<?= asset('/css/user-detail.css') ?>">
 
 <?php if (isset($page_css)): ?>
     <link rel="stylesheet" href="<?php echo css($page_css); ?>?v=<?php echo $cache_version; ?>">
@@ -131,12 +132,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.ctrlKey && e.key === '2') {
             e.preventDefault();
             
-            // Get comprehensive socket status
             const socketStatus = getDetailedSocketStatus();
             
             console.log('🔌 Socket Status Debug:', socketStatus);
             
-            // Check and potentially fix MisVordMessaging initialization
             if (window.MisVordMessaging && !window.MisVordMessaging.initialized) {
                 console.log('🔧 MisVordMessaging exists but not initialized, attempting manual initialization...');
                 try {
@@ -147,7 +146,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
 
-            // Also check if we need to force connection to global socket manager
             if (window.MisVordMessaging && window.globalSocketManager && 
                 !window.MisVordMessaging.connected && window.globalSocketManager.isReady()) {
                 console.log('🔧 Forcing MisVordMessaging connection to global socket manager...');
@@ -161,10 +159,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
             
-            // Re-check status after potential fixes
             const updatedSocketStatus = getDetailedSocketStatus();
             
-            // Prepare detailed status message
             const statusEmoji = updatedSocketStatus.overallStatus === 'fully-connected' ? '✅' : 
                                updatedSocketStatus.overallStatus === 'connected-but-issues' ? '⚠️' : '❌';
             
@@ -177,14 +173,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const toastType = updatedSocketStatus.overallStatus === 'fully-connected' ? 'success' : 
                              updatedSocketStatus.overallStatus === 'connected-but-issues' ? 'warning' : 'error';
             
-            // Show toast if available, otherwise fallback to alert
             if (window.showToast) {
                 window.showToast(statusText, toastType, 8000); // Show for 8 seconds
             } else {
                 alert(statusText);
             }
             
-            // Show detailed info in console
             console.group('🔍 Detailed Socket Status');
             console.table({
                 'Socket.IO Available': updatedSocketStatus.socketIOAvailable,
@@ -199,7 +193,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 'Issues': updatedSocketStatus.issues.join(', ') || 'None'
             });
             
-            // Additional MisVordMessaging debug info
             if (window.MisVordMessaging) {
                 console.log('📱 MisVordMessaging Debug Info:');
                 console.log('  - Available:', !!window.MisVordMessaging);
@@ -220,7 +213,6 @@ document.addEventListener('DOMContentLoaded', function() {
             console.groupEnd();
         }
         
-        // Ctrl+3: Force MisVordMessaging initialization
         if (e.ctrlKey && e.key === '3') {
             e.preventDefault();
             
@@ -241,20 +233,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     socketManager: !!window.MisVordMessaging.socketManager,
                     globalSocketManager: !!window.globalSocketManager
                 });
-                
-                // Force initialization if not initialized
+
                 if (!window.MisVordMessaging.initialized) {
                     console.log('🔄 Forcing initialization...');
                     window.MisVordMessaging.init();
                 }
                 
-                // Force connection to global socket manager
                 if (window.MisVordMessaging.socketManager && window.globalSocketManager) {
                     console.log('🔄 Forcing connection to global socket manager...');
                     window.MisVordMessaging.socketManager.connectToGlobalSocketManager();
                 }
                 
-                // Re-check DM context if we're on a DM page
                 const urlParams = new URLSearchParams(window.location.search);
                 const dmParam = urlParams.get('dm');
                 if (dmParam) {
@@ -279,7 +268,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        // Ctrl+4: Check and join DM room
         if (e.ctrlKey && e.key === '4') {
             e.preventDefault();
             
@@ -307,19 +295,16 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (window.MisVordMessaging) {
                 try {
-                    // Set DM context
                     window.MisVordMessaging.activeChatRoom = dmParam;
                     window.MisVordMessaging.chatType = 'direct';
                     console.log('✅ DM context set');
                     
-                    // Join DM room via socket
                     if (window.globalSocketManager && window.globalSocketManager.socket) {
                         console.log('📡 Emitting join-dm-room event:', { roomId: dmParam });
                         window.globalSocketManager.socket.emit('join-dm-room', { roomId: dmParam });
                         console.log('✅ Join DM room event sent');
                     }
                     
-                    // Also try the MisVordMessaging method
                     if (window.MisVordMessaging.joinDMRoom) {
                         console.log('📡 Calling MisVordMessaging.joinDMRoom');
                         window.MisVordMessaging.joinDMRoom(dmParam);
@@ -343,7 +328,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        // Ctrl+5: Debug room status and membership
         if (e.ctrlKey && e.key === '5') {
             e.preventDefault();
             
@@ -353,7 +337,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('📡 Requesting room debug info...');
                 window.globalSocketManager.socket.emit('debug-rooms');
                 
-                // Also check current socket rooms
                 console.log('📊 Socket room membership check:', {
                     socketId: window.globalSocketManager.socket.id,
                     rooms: Array.from(window.globalSocketManager.socket.rooms || [])
@@ -386,12 +369,10 @@ document.addEventListener('DOMContentLoaded', function() {
             overallStatus: 'disconnected'
         };
         
-        // Check Socket.IO availability
         if (!status.socketIOAvailable) {
             status.issues.push('Socket.IO library not loaded');
         }
         
-        // Check global socket manager
         if (window.globalSocketManager) {
             status.socketConnected = window.globalSocketManager.connected;
             status.userAuthenticated = window.globalSocketManager.authenticated;
@@ -409,8 +390,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             status.issues.push('Global socket manager not available');
         }
-        
-        // Check messaging system
+
         if (window.MisVordMessaging) {
             status.messagingReady = window.MisVordMessaging.initialized && window.MisVordMessaging.connected;
             if (!status.messagingReady) {
@@ -425,14 +405,12 @@ document.addEventListener('DOMContentLoaded', function() {
             status.issues.push('MisVordMessaging not available');
         }
         
-        // Check server connectivity
         const socketHost = document.querySelector('meta[name="socket-host"]')?.content;
         const socketPort = document.querySelector('meta[name="socket-port"]')?.content;
         if (!socketHost || !socketPort) {
             status.issues.push('Socket connection config missing');
         }
         
-        // Determine overall status
         if (status.globalSocketReady && status.socketConnected && status.userAuthenticated && status.messagingReady) {
             status.overallStatus = 'fully-connected';
         } else if (status.globalSocketReady && status.socketConnected) {
@@ -448,7 +426,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     console.log('🧪 Debug mode active: Ctrl+1 (test message), Ctrl+2 (socket status), Ctrl+3 (force messaging init), Ctrl+4 (join DM room), Ctrl+5 (debug room status)');
     
-    // Check and potentially fix MisVordMessaging initialization
     if (window.MisVordMessaging && !window.MisVordMessaging.initialized) {
         console.log('🔧 MisVordMessaging exists but not initialized, attempting manual initialization...');
         try {
@@ -458,8 +435,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('❌ Manual MisVordMessaging initialization failed:', error);
         }
     }
-
-    // Also check if we need to force connection to global socket manager
+                
     if (window.MisVordMessaging && window.globalSocketManager && 
         !window.MisVordMessaging.connected && window.globalSocketManager.isReady()) {
         console.log('🔧 Forcing MisVordMessaging connection to global socket manager...');
@@ -481,10 +457,8 @@ document.addEventListener('DOMContentLoaded', function() {
     <?php endforeach; ?>
 <?php endif; ?>
 
-<!-- Lazyload components preload -->
 <script src="<?php echo js('utils/lazy-loader'); ?>?v=<?php echo $cache_version; ?>" type="module"></script>
 <?php 
-// Only load channel-loader on server pages where dynamic channel updates might be needed
 $current_path = $_SERVER['REQUEST_URI'] ?? '';
 if (strpos($current_path, '/server/') !== false): 
 ?>

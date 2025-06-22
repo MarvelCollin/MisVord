@@ -108,13 +108,15 @@ class FriendListRepository extends Repository {
         return $relationship ? $relationship->delete() : false;
     }
       public function getBlockedUsers($userId) {
-        $query = new Query();
-        return $query->table('friend_list fl')
-            ->join('users u', 'fl.user_id2', '=', 'u.id')
-            ->where('fl.user_id', $userId)
-            ->where('fl.status', 'blocked')
-            ->select('u.*, fl.id as block_id')
-            ->get();
+        $query = "SELECT u.id, u.username, u.discriminator, u.avatar_url, u.status, u.created_at
+                  FROM users u
+                  JOIN friend_list f ON u.id = f.friend_id
+                  WHERE f.user_id = :user_id AND f.status = 'blocked'
+                  ORDER BY u.username ASC";
+        
+        $params = [':user_id' => $userId];
+        
+        return $this->db->fetchAll($query, $params);
     }
     
     public function findFriendship($friendshipId) {
@@ -137,5 +139,57 @@ class FriendListRepository extends Repository {
         }
             
         return $result ? new FriendList($result) : null;
+    }
+    
+    /**
+     * Get the friendship status between two users
+     * 
+     * @param int $userId The current user's ID
+     * @param int $otherUserId The other user's ID
+     * @return string|null Friendship status: 'friends', 'pending_sent', 'pending_received', 'blocked', or null if no relationship
+     */
+    public function getFriendshipStatus($userId, $otherUserId)
+    {
+        // Check if there's a direct friendship (user is the initiator)
+        $query = "SELECT status FROM friend_list 
+                  WHERE user_id = :user_id AND friend_id = :friend_id 
+                  LIMIT 1";
+        
+        $params = [
+            ':user_id' => $userId,
+            ':friend_id' => $otherUserId
+        ];
+        
+        $result = $this->db->fetchOne($query, $params);
+        
+        if ($result) {
+            if ($result->status === 'friends') {
+                return 'friends';
+            } elseif ($result->status === 'pending') {
+                return 'pending_sent';
+            } elseif ($result->status === 'blocked') {
+                return 'blocked';
+            }
+        }
+        
+        // Check if there's a reverse friendship (other user is the initiator)
+        $query = "SELECT status FROM friend_list 
+                  WHERE user_id = :friend_id AND friend_id = :user_id 
+                  LIMIT 1";
+        
+        $result = $this->db->fetchOne($query, $params);
+        
+        if ($result) {
+            if ($result->status === 'friends') {
+                return 'friends';
+            } elseif ($result->status === 'pending') {
+                return 'pending_received';
+            } elseif ($result->status === 'blocked') {
+                return 'blocked_by';
+            }
+        }
+        
+        // No relationship found
+        return null;
     }
 }

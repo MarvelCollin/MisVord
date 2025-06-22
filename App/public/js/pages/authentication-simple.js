@@ -318,6 +318,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initPasswordStrength();
     initCaptcha();
     setupSocketInitialization();
+    initPasswordFieldMasking();
 });
 
 function initAuthForms() {
@@ -327,6 +328,19 @@ function initAuthForms() {
     const registerForm = document.getElementById('registerForm');
     const forgotForm = document.getElementById('forgotForm');
     const authTitle = document.getElementById('authTitle');
+    
+    // Add form validation
+    if (loginForm) {
+        loginForm.addEventListener('submit', validateLoginForm);
+    }
+    
+    if (registerForm) {
+        registerForm.addEventListener('submit', validateRegisterForm);
+    }
+    
+    if (forgotForm) {
+        forgotForm.addEventListener('submit', validateForgotForm);
+    }
     
     formToggles.forEach(toggle => {
         toggle.addEventListener('click', (e) => {
@@ -356,25 +370,166 @@ function initAuthForms() {
     });
 }
 
-function initPasswordToggle() {
-    const toggleButtons = document.querySelectorAll('.password-toggle');
+function validateLoginForm(e) {
+    const form = e.target;
+    const email = form.querySelector('#email').value.trim();
+    const password = form.querySelector('#password').value;
+    const captcha = form.querySelector('#login_captcha').value.trim();
+    let isValid = true;
     
-    toggleButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            const input = button.parentElement.querySelector('input');
-            const icon = button.querySelector('i');
-            
-            if (input.type === 'password') {
-                input.type = 'text';
-                icon.classList.remove('fa-eye');
-                icon.classList.add('fa-eye-slash');
-            } else {
-                input.type = 'password';
-                icon.classList.remove('fa-eye-slash');
-                icon.classList.add('fa-eye');
-            }
-        });
-    });
+    // Clear previous error messages
+    clearErrors(form);
+    
+    // Validate email
+    if (!email) {
+        showError(form.querySelector('#email'), 'Email is required');
+        isValid = false;
+    } else if (!isValidEmail(email)) {
+        showError(form.querySelector('#email'), 'Please enter a valid email address');
+        isValid = false;
+    }
+    
+    // Validate password
+    if (!password) {
+        showError(form.querySelector('#password').parentNode, 'Password is required');
+        isValid = false;
+    }
+    
+    // Validate captcha
+    if (!captcha) {
+        showError(form.querySelector('#login_captcha'), 'Please complete the captcha');
+        isValid = false;
+    } else if (!window.loginCaptcha || !window.loginCaptcha.verify(captcha)) {
+        showError(form.querySelector('#login_captcha'), 'Invalid captcha code');
+        window.loginCaptcha.refresh();
+        form.querySelector('#login_captcha').value = '';
+        isValid = false;
+    }
+    
+    if (!isValid) {
+        e.preventDefault();
+    }
+}
+
+function validateRegisterForm(e) {
+    const form = e.target;
+    const username = form.querySelector('#username').value.trim();
+    const email = form.querySelector('#reg_email').value.trim();
+    const password = form.querySelector('#reg_password').value;
+    const confirmPassword = form.querySelector('#password_confirm').value;
+    const captcha = form.querySelector('#register_captcha').value.trim();
+    let isValid = true;
+    
+    // Clear previous error messages
+    clearErrors(form);
+    
+    // Validate username
+    if (!username) {
+        showError(form.querySelector('#username'), 'Username is required');
+        isValid = false;
+    } else if (username.length < 3 || username.length > 32) {
+        showError(form.querySelector('#username'), 'Username must be between 3 and 32 characters');
+        isValid = false;
+    } else if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+        showError(form.querySelector('#username'), 'Username can only contain letters, numbers, and underscores');
+        isValid = false;
+    }
+    
+    // Validate email
+    if (!email) {
+        showError(form.querySelector('#reg_email'), 'Email is required');
+        isValid = false;
+    } else if (!isValidEmail(email)) {
+        showError(form.querySelector('#reg_email'), 'Please enter a valid email address');
+        isValid = false;
+    }
+    
+    // Validate password
+    if (!password) {
+        showError(form.querySelector('#reg_password').parentNode, 'Password is required');
+        isValid = false;
+    } else if (password.length < 8) {
+        showError(form.querySelector('#reg_password').parentNode, 'Password must be at least 8 characters');
+        isValid = false;
+    } else if (!/[A-Z]/.test(password)) {
+        showError(form.querySelector('#reg_password').parentNode, 'Password must contain at least one uppercase letter');
+        isValid = false;
+    } else if (!/[0-9]/.test(password)) {
+        showError(form.querySelector('#reg_password').parentNode, 'Password must contain at least one number');
+        isValid = false;
+    }
+    
+    // Validate password confirmation
+    if (password !== confirmPassword) {
+        showError(form.querySelector('#password_confirm').parentNode, 'Passwords do not match');
+        isValid = false;
+    }
+    
+    // Validate captcha
+    if (!captcha) {
+        showError(form.querySelector('#register_captcha'), 'Please complete the captcha');
+        isValid = false;
+    } else if (!window.registerCaptcha || !window.registerCaptcha.verify(captcha)) {
+        showError(form.querySelector('#register_captcha'), 'Invalid captcha code');
+        window.registerCaptcha.refresh();
+        form.querySelector('#register_captcha').value = '';
+        isValid = false;
+    }
+    
+    if (!isValid) {
+        e.preventDefault();
+    }
+}
+
+function validateForgotForm(e) {
+    const form = e.target;
+    const email = form.querySelector('#forgot_email').value.trim();
+    let isValid = true;
+    
+    // Clear previous error messages
+    clearErrors(form);
+    
+    // Validate email
+    if (!email) {
+        showError(form.querySelector('#forgot_email'), 'Email is required');
+        isValid = false;
+    } else if (!isValidEmail(email)) {
+        showError(form.querySelector('#forgot_email'), 'Please enter a valid email address');
+        isValid = false;
+    }
+    
+    if (!isValid) {
+        e.preventDefault();
+    }
+}
+
+function showError(element, message) {
+    const errorMsg = document.createElement('p');
+    errorMsg.className = 'text-red-500 text-sm mt-1 validation-error';
+    errorMsg.innerHTML = message + ' <i class="fa-solid fa-xmark"></i>';
+    
+    // If the element is inside a relative div (like password fields)
+    const parent = element.parentNode;
+    if (parent.classList.contains('relative')) {
+        parent.parentNode.appendChild(errorMsg);
+    } else {
+        element.parentNode.appendChild(errorMsg);
+    }
+}
+
+function clearErrors(form) {
+    const errors = form.querySelectorAll('.validation-error');
+    errors.forEach(error => error.remove());
+}
+
+function isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+}
+
+function initPasswordToggle() {
+    // This function is now replaced by initPasswordFieldMasking
+    // Kept for backward compatibility
 }
 
 function initPasswordStrength() {
@@ -545,5 +700,96 @@ function setupSocketInitialization() {
         loginForm.addEventListener('submit', function(event) {
             localStorage.setItem('connect_socket_on_login', 'true');
         });
+    }
+}
+
+function initPasswordFieldMasking() {
+    // Find all password-field class elements
+    const passwordFields = document.querySelectorAll('.password-field');
+    passwordFields.forEach(field => {
+        setupPasswordField(field);
+    });
+    
+    function setupPasswordField(field) {
+        if (field.dataset.passwordFieldSetup) return;
+        field.dataset.passwordFieldSetup = 'true';
+        
+        // Create container for the field and toggle button if not already in one
+        let container = field.parentNode;
+        if (!container.classList.contains('relative')) {
+            container = document.createElement('div');
+            container.className = 'relative';
+            field.parentNode.insertBefore(container, field);
+            container.appendChild(field);
+        }
+        
+        // Check if there's already a toggle button
+        const existingToggle = container.querySelector('button.password-toggle');
+        if (existingToggle) {
+            // Use the existing toggle button
+            existingToggle.addEventListener('click', function() {
+                if (field.dataset.masked === 'true') {
+                    unmaskPassword(field, existingToggle);
+                } else {
+                    maskPassword(field, existingToggle);
+                }
+            });
+        } else {
+            // Create toggle button
+            const toggleButton = document.createElement('button');
+            toggleButton.type = 'button';
+            toggleButton.className = 'absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors password-toggle';
+            toggleButton.innerHTML = '<i class="fa-solid fa-eye"></i>';
+            container.appendChild(toggleButton);
+            
+            // Add event listener to toggle button
+            toggleButton.addEventListener('click', function() {
+                if (field.dataset.masked === 'true') {
+                    unmaskPassword(field, toggleButton);
+                } else {
+                    maskPassword(field, toggleButton);
+                }
+            });
+        }
+        
+        // Mask the password initially
+        maskPassword(field);
+    }
+    
+    function maskPassword(field, toggleButton) {
+        field.dataset.masked = 'true';
+        field.style.fontFamily = 'password';
+        field.style.webkitTextSecurity = 'disc';
+        field.style.textSecurity = 'disc';
+        
+        if (toggleButton) {
+            toggleButton.innerHTML = '<i class="fa-solid fa-eye"></i>';
+        }
+    }
+    
+    function unmaskPassword(field, toggleButton) {
+        field.dataset.masked = 'false';
+        field.style.fontFamily = '';
+        field.style.webkitTextSecurity = '';
+        field.style.textSecurity = '';
+        
+        if (toggleButton) {
+            toggleButton.innerHTML = '<i class="fa-solid fa-eye-slash"></i>';
+        }
+    }
+    
+    // Add password font style to head if not already added
+    if (!document.getElementById('password-font-style')) {
+        const style = document.createElement('style');
+        style.id = 'password-font-style';
+        style.textContent = `
+            @font-face {
+                font-family: 'password';
+                font-style: normal;
+                font-weight: 400;
+                src: url(data:font/woff;base64,d09GRgABAAAAAAfsABAAAAAADAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABGRlRNAAAHwAAAABwAAAAcaFMWO0dERUYAAAfAAAAAHAAAAB4AJwAcT1MvMgAAAZgAAABHAAAAVi+vS9xjbWFwAAAB+AAAAEcAAAFS6CL7lGdhc3AAAAe4AAAACAAAAAj//wADZ2x5ZgAAAlgAAAEzAAABeLy/JLZoZWFkAAABMAAAAC0AAAA2/Jf3M2hoZWEAAAFgAAAAHAAAACQHMgOlaG10eAAAAeAAAAAPAAAAFAwAAABsb2NhAAACRAAAAA4AAAAOAKYAIG1heHAAAAF8AAAAHgAAACAATABubmFtZQAAA4wAAADkAAAB1H7x7HFwb3N0AAAEcAAAAC0AAABMM4xvuXjaY2BkYGAA4gVmC5Tj+W2+MnAzMYDApdl/rzDj+f+//+8xMTAeAHI5GMDSAACiegvPAHjaY2BkYGA88P8Agx4TAwPD/z8MDEwMQBEUwAcAW+IEDAAAAQAAAAEAAAAAAAAAAKYAIAAAAAEAAAAKAAYACAABAAAAAAAA7QCkAAEAAAAAAAEABgAAAAEAAAAAAAIABwAGAAEAAAAAAAMAIwANAAEAAAAAAAQABgAwAAEAAAAAAAUACwA2AAEAAAAAAAYABgBBAAMAAQQJAAEADAAHAAMAAQQJAAIADgATAAMAAQQJAAMARgAhAAMAAQQJAAQADAAHAAMAAQQJAAUAFgBBAAMAAQQJAAYADABXcGFzc3dvcmQAcABhAHMAcwB3AG8AcgBkVmVyc2lvbiAxLjAAVgBlAHIAcwBpAG8AbgAgADEALgAwcGFzc3dvcmQAcABhAHMAcwB3AG8AcgBkcGFzc3dvcmQAcABhAHMAcwB3AG8AcgBkUmVndWxhcgBSAGUAZwB1AGwAYQBycGFzc3dvcmQAcABhAHMAcwB3AG8AcgBkRm9udCBnZW5lcmF0ZWQgYnkgSWNvTW9vbi4ARgBvAG4AdAAgAGcAZQBuAGUAcgBhAHQAZQBkACAAYgB5ACAASQBjAG8ATQBvAG8AbgAuAAAAAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==) format('woff');
+            }
+        `;
+        document.head.appendChild(style);
     }
 }

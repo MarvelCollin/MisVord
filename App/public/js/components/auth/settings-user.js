@@ -21,6 +21,93 @@ function initUserSettingsPage() {
     initEmailReveal();
     initStatusSelector();
     initEditButtons();
+    initPasswordFieldMasking();
+}
+
+/**
+ * Initialize password field masking for text fields with password-field class
+ */
+function initPasswordFieldMasking() {
+    // Add event listener for dynamically created password fields
+    document.addEventListener('click', function(e) {
+        if (e.target && e.target.classList.contains('password-field')) {
+            setupPasswordField(e.target);
+        }
+    });
+    
+    // Add event listener for password fields created through innerHTML
+    document.addEventListener('DOMNodeInserted', function(e) {
+        if (e.target && e.target.querySelectorAll) {
+            const passwordFields = e.target.querySelectorAll('.password-field');
+            passwordFields.forEach(field => {
+                setupPasswordField(field);
+            });
+        }
+    });
+    
+    function setupPasswordField(field) {
+        if (field.dataset.passwordFieldSetup) return;
+        field.dataset.passwordFieldSetup = 'true';
+        
+        // Create container for the field and toggle button
+        const container = document.createElement('div');
+        container.className = 'relative';
+        field.parentNode.insertBefore(container, field);
+        container.appendChild(field);
+        
+        // Create toggle button
+        const toggleButton = document.createElement('button');
+        toggleButton.type = 'button';
+        toggleButton.className = 'absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors';
+        toggleButton.innerHTML = '<i class="fa-solid fa-eye"></i>';
+        container.appendChild(toggleButton);
+        
+        // Mask the password initially
+        maskPassword(field);
+        
+        // Add event listener to toggle button
+        toggleButton.addEventListener('click', function() {
+            if (field.dataset.masked === 'true') {
+                unmaskPassword(field, toggleButton);
+            } else {
+                maskPassword(field, toggleButton);
+            }
+        });
+    }
+    
+    function maskPassword(field, toggleButton) {
+        field.dataset.masked = 'true';
+        field.style.fontFamily = 'password';
+        field.style.webkitTextSecurity = 'disc';
+        field.style.textSecurity = 'disc';
+        
+        if (toggleButton) {
+            toggleButton.innerHTML = '<i class="fa-solid fa-eye"></i>';
+        }
+    }
+    
+    function unmaskPassword(field, toggleButton) {
+        field.dataset.masked = 'false';
+        field.style.fontFamily = '';
+        field.style.webkitTextSecurity = '';
+        field.style.textSecurity = '';
+        
+        if (toggleButton) {
+            toggleButton.innerHTML = '<i class="fa-solid fa-eye-slash"></i>';
+        }
+    }
+    
+    // Add password font style to head
+    const style = document.createElement('style');
+    style.textContent = `
+        @font-face {
+            font-family: 'password';
+            font-style: normal;
+            font-weight: 400;
+            src: url(data:font/woff;base64,d09GRgABAAAAAAfsABAAAAAADAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABGRlRNAAAHwAAAABwAAAAcaFMWO0dERUYAAAfAAAAAHAAAAB4AJwAcT1MvMgAAAZgAAABHAAAAVi+vS9xjbWFwAAAB+AAAAEcAAAFS6CL7lGdhc3AAAAe4AAAACAAAAAj//wADZ2x5ZgAAAlgAAAEzAAABeLy/JLZoZWFkAAABMAAAAC0AAAA2/Jf3M2hoZWEAAAFgAAAAHAAAACQHMgOlaG10eAAAAeAAAAAPAAAAFAwAAABsb2NhAAACRAAAAA4AAAAOAKYAIG1heHAAAAF8AAAAHgAAACAATABubmFtZQAAA4wAAADkAAAB1H7x7HFwb3N0AAAEcAAAAC0AAABMM4xvuXjaY2BkYGAA4gVmC5Tj+W2+MnAzMYDApdl/rzDj+f+//+8xMTAeAHI5GMDSAACiegvPAHjaY2BkYGA88P8Agx4TAwPD/z8MDEwMQBEUwAcAW+IEDAAAAQAAAAEAAAAAAAAAAKYAIAAAAAEAAAAKAAYACAABAAAAAAAA7QCkAAEAAAAAAAEABgAAAAEAAAAAAAIABwAGAAEAAAAAAAMAIwANAAEAAAAAAAQABgAwAAEAAAAAAAUACwA2AAEAAAAAAAYABgBBAAMAAQQJAAEADAAHAAMAAQQJAAIADgATAAMAAQQJAAMARgAhAAMAAQQJAAQADAAHAAMAAQQJAAUAFgBBAAMAAQQJAAYADABXcGFzc3dvcmQAcABhAHMAcwB3AG8AcgBkVmVyc2lvbiAxLjAAVgBlAHIAcwBpAG8AbgAgADEALgAwcGFzc3dvcmQAcABhAHMAcwB3AG8AcgBkcGFzc3dvcmQAcABhAHMAcwB3AG8AcgBkUmVndWxhcgBSAGUAZwB1AGwAYQBycGFzc3dvcmQAcABhAHMAcwB3AG8AcgBkRm9udCBnZW5lcmF0ZWQgYnkgSWNvTW9vbi4ARgBvAG4AdAAgAGcAZQBuAGUAcgBhAHQAZQBkACAAYgB5ACAASQBjAG8ATQBvAG8AbgAuAAAAAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==) format('woff');
+        }
+    `;
+    document.head.appendChild(style);
 }
 
 /**
@@ -299,7 +386,7 @@ function initEditButtons() {
                 
                 // Create an input field
                 const input = document.createElement('input');
-                input.type = label.toLowerCase().includes('email') ? 'email' : 'text';
+                input.type = 'text';
                 input.value = currentValue;
                 input.className = 'w-full bg-discord-dark text-white border-none rounded p-2 mt-1 focus:outline-none focus:ring-2 focus:ring-discord-blue';
                 
@@ -339,6 +426,38 @@ function initEditButtons() {
                 if (!input) return;
                 
                 const newValue = input.value.trim();
+                const fieldName = parentSection.querySelector('h3')?.textContent || '';
+                
+                // Validate input based on field type
+                if (fieldName.toLowerCase().includes('email')) {
+                    // Email validation
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailRegex.test(newValue)) {
+                        showToast('Please enter a valid email address', 'error');
+                        return;
+                    }
+                } else if (fieldName.toLowerCase().includes('phone')) {
+                    // Phone validation
+                    const phoneRegex = /^\d{10,15}$/;
+                    if (!phoneRegex.test(newValue.replace(/\D/g, ''))) {
+                        showToast('Please enter a valid phone number', 'error');
+                        return;
+                    }
+                } else if (fieldName.toLowerCase().includes('username')) {
+                    // Username validation
+                    if (newValue.length < 3 || newValue.length > 32) {
+                        showToast('Username must be between 3 and 32 characters', 'error');
+                        return;
+                    }
+                    
+                    if (!/^[a-zA-Z0-9_]+$/.test(newValue)) {
+                        showToast('Username can only contain letters, numbers, and underscores', 'error');
+                        return;
+                    }
+                } else if (newValue.length === 0) {
+                    showToast('Field cannot be empty', 'error');
+                    return;
+                }
                 
                 // Create paragraph with new value
                 const p = document.createElement('p');
@@ -372,7 +491,7 @@ function initEditButtons() {
                 
                 // Create an input field
                 const input = document.createElement('input');
-                input.type = 'tel';
+                input.type = 'text';
                 input.placeholder = 'Enter your phone number';
                 input.className = 'w-full bg-discord-dark text-white border-none rounded p-2 mt-1 focus:outline-none focus:ring-2 focus:ring-discord-blue';
                 
@@ -417,21 +536,21 @@ function initEditButtons() {
                 const currentPasswordGroup = document.createElement('div');
                 currentPasswordGroup.innerHTML = `
                     <label class="block text-sm font-medium text-white mb-1">Current Password</label>
-                    <input type="password" class="w-full bg-discord-dark text-white border-none rounded p-2 focus:outline-none focus:ring-2 focus:ring-discord-blue" placeholder="Enter current password">
+                    <input type="text" class="password-field w-full bg-discord-dark text-white border-none rounded p-2 focus:outline-none focus:ring-2 focus:ring-discord-blue" placeholder="Enter current password">
                 `;
                 
                 // New password
                 const newPasswordGroup = document.createElement('div');
                 newPasswordGroup.innerHTML = `
                     <label class="block text-sm font-medium text-white mb-1">New Password</label>
-                    <input type="password" class="w-full bg-discord-dark text-white border-none rounded p-2 focus:outline-none focus:ring-2 focus:ring-discord-blue" placeholder="Enter new password">
+                    <input type="text" class="password-field w-full bg-discord-dark text-white border-none rounded p-2 focus:outline-none focus:ring-2 focus:ring-discord-blue" placeholder="Enter new password">
                 `;
                 
                 // Confirm password
                 const confirmPasswordGroup = document.createElement('div');
                 confirmPasswordGroup.innerHTML = `
                     <label class="block text-sm font-medium text-white mb-1">Confirm New Password</label>
-                    <input type="password" class="w-full bg-discord-dark text-white border-none rounded p-2 focus:outline-none focus:ring-2 focus:ring-discord-blue" placeholder="Confirm new password">
+                    <input type="text" class="password-field w-full bg-discord-dark text-white border-none rounded p-2 focus:outline-none focus:ring-2 focus:ring-discord-blue" placeholder="Confirm new password">
                 `;
                 
                 // Button group
@@ -457,11 +576,35 @@ function initEditButtons() {
                 const cancelButton = buttonGroup.querySelector('button:last-child');
                 
                 saveButton.addEventListener('click', function() {
-                    // Implement password change logic here
-                    // In a real app, this would verify the current password,
-                    // check that new passwords match, and make an API call
+                    // Get password values
+                    const currentPassword = formContainer.querySelector('input:nth-child(1)').value;
+                    const newPassword = formContainer.querySelector('input:nth-child(2)').value;
+                    const confirmPassword = formContainer.querySelector('input:nth-child(3)').value;
                     
-                    // For this demo, just show a success message
+                    // Validate passwords
+                    if (!currentPassword) {
+                        showToast('Current password is required', 'error');
+                        return;
+                    }
+                    
+                    if (!newPassword) {
+                        showToast('New password is required', 'error');
+                        return;
+                    }
+                    
+                    if (newPassword !== confirmPassword) {
+                        showToast('New passwords do not match', 'error');
+                        return;
+                    }
+                    
+                    if (newPassword.length < 8) {
+                        showToast('Password must be at least 8 characters', 'error');
+                        return;
+                    }
+                    
+                    // In a real app, this would make an API call to change the password
+                    
+                    // Show success message
                     showToast('Password changed successfully', 'success');
                     
                     // Remove the form and show the original button

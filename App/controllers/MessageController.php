@@ -116,8 +116,8 @@ class MessageController extends BaseController
                 'message_id' => $messageId,
                 'socket_event' => 'message-pinned',
                 'socket_data' => [
-                    'message_id' => $messageId,
-                    'user_id' => $userId
+                'message_id' => $messageId,
+                'user_id' => $userId
                 ],
                 'client_should_emit_socket' => true
             ], 'Message pinned successfully');

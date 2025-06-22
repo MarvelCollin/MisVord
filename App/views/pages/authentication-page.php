@@ -82,12 +82,10 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                 <div class="form-group">
                     <label for="email" class="block text-sm font-medium text-gray-300 mb-1">Email</label>
                     <input 
-                        type="email" 
                         id="email" 
                         name="email" 
                         class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 sm:p-3 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all text-sm sm:text-base" 
                         value="<?php echo $oldInput['email'] ?? ''; ?>" 
-                        required
                     >
                     <?php if (isset($errors['email'])): ?>
                         <p class="text-red-500 text-sm mt-1"><?php echo $errors['email']; ?></p>
@@ -98,11 +96,9 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                     <label for="password" class="block text-sm font-medium text-gray-300 mb-1">Password</label>
                     <div class="relative">
                         <input 
-                            type="password" 
                             id="password" 
                             name="password" 
-                            class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 sm:p-3 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all text-sm sm:text-base" 
-                            required
+                            class="password-field w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 sm:p-3 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all text-sm sm:text-base" 
                         >
                         <button type="button" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors password-toggle">
                             <i class="fa-solid fa-eye"></i>
@@ -121,12 +117,10 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                     <label class="block text-sm font-medium text-gray-300 mb-1">Verification</label>
                     <div id="login-captcha-container" class="mb-2"></div>
                     <input 
-                        type="text" 
                         id="login_captcha" 
                         name="captcha" 
                         class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 sm:p-3 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all text-sm sm:text-base" 
                         placeholder="Enter the code above" 
-                        required
                     >
                 </div>
 
@@ -158,12 +152,10 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                 <div class="form-group">
                     <label for="username" class="block text-sm font-medium text-gray-300 mb-1">Username</label>
                     <input 
-                        type="text" 
                         id="username" 
                         name="username" 
                         class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 sm:p-3 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all text-sm sm:text-base" 
                         value="<?php echo $oldInput['username'] ?? ''; ?>" 
-                        required
                     >
                     <?php if (isset($errors['username'])): ?>
                         <p class="text-red-500 text-sm mt-1"><?php echo $errors['username']; ?></p>
@@ -173,12 +165,10 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                 <div class="form-group">
                     <label for="reg_email" class="block text-sm font-medium text-gray-300 mb-1">Email</label>
                     <input 
-                        type="email" 
                         id="reg_email" 
                         name="email" 
                         class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
                         value="<?php echo $oldInput['email'] ?? ''; ?>" 
-                        required
                     >
                     <?php if (isset($errors['email'])): ?>
                         <p class="text-red-500 text-sm mt-1"><?php echo $errors['email']; ?></p>
@@ -189,11 +179,9 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                     <label for="reg_password" class="block text-sm font-medium text-gray-300 mb-1">Password</label>
                     <div class="relative">
                         <input 
-                            type="password" 
                             id="reg_password" 
                             name="password" 
-                            class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
-                            required
+                            class="password-field w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
                         >
                         <button type="button" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors password-toggle">
                             <i class="fa-solid fa-eye"></i>
@@ -211,11 +199,9 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                     <label for="password_confirm" class="block text-sm font-medium text-gray-300 mb-1">Confirm Password</label>
                     <div class="relative">
                         <input 
-                            type="password" 
                             id="password_confirm" 
                             name="password_confirm" 
-                            class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
-                            required
+                            class="password-field w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
                         >
                         <button type="button" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors password-toggle">
                             <i class="fa-solid fa-eye"></i>
@@ -231,12 +217,10 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                     <label class="block text-sm font-medium text-gray-300 mb-1">Verification</label>
                     <div id="register-captcha-container" class="mb-2"></div>
                     <input 
-                        type="text" 
                         id="register_captcha" 
                         name="captcha" 
                         class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
                         placeholder="Enter the code above" 
-                        required
                     >
                 </div>
 
@@ -271,12 +255,10 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                 <div class="form-group">
                     <label for="forgot_email" class="block text-sm font-medium text-gray-300 mb-1">Email</label>
                     <input 
-                        type="email" 
                         id="forgot_email" 
                         name="email" 
                         class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
                         value="<?php echo $oldInput['email'] ?? ''; ?>" 
-                        required
                     >
                     <?php if (isset($errors['email'])): ?>
                         <p class="text-red-500 text-sm mt-1"><?php echo $errors['email']; ?></p>
