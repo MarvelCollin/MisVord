@@ -1,3 +1,83 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* Tailwind CSS */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Discord-inspired font stack */
+:root {
+  font-family: 'gg sans', 'Inter', 'Noto Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+/* Base styles */
+body {
+  @apply bg-[#313338] text-[#dcddde];
+  font-family: 'gg sans', 'Inter', 'Noto Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Discord colors for common elements */
+.bg-discord {
+  @apply bg-[#313338];
+}
+
+.bg-discord-dark {
+  @apply bg-[#2b2d31];
+}
+
+.bg-discord-darker {
+  @apply bg-[#1e1f22];
+}
+
+.bg-discord-light {
+  @apply bg-[#383a40];
+}
+
+.bg-discord-primary {
+  @apply bg-[#5865f2];
+}
+
+.bg-discord-primary-hover {
+  @apply bg-[#4752c4];
+}
+
+.bg-discord-green {
+  @apply bg-[#3ba55c];
+}
+
+.bg-discord-red {
+  @apply bg-[#ed4245];
+}
+
+.text-discord {
+  @apply text-[#dcddde];
+}
+
+.text-discord-muted {
+  @apply text-[#95999e];
+}
+
+/* Discord-style scrollbars */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #1e1f22 transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: #1e1f22;
+  border-radius: 4px;
+}
+
 #enable-autoplay-btn {
   transition: background-color 0.2s ease;
   position: relative;

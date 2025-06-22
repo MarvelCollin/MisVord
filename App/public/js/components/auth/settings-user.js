@@ -35,15 +35,24 @@ function initPasswordFieldMasking() {
         }
     });
     
-    // Add event listener for password fields created through innerHTML
-    document.addEventListener('DOMNodeInserted', function(e) {
-        if (e.target && e.target.querySelectorAll) {
-            const passwordFields = e.target.querySelectorAll('.password-field');
-            passwordFields.forEach(field => {
-                setupPasswordField(field);
-            });
-        }
+    // Use MutationObserver instead of deprecated DOMNodeInserted
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.addedNodes && mutation.addedNodes.length > 0) {
+                mutation.addedNodes.forEach(function(node) {
+                    if (node.querySelectorAll) {
+                        const passwordFields = node.querySelectorAll('.password-field');
+                        passwordFields.forEach(field => {
+                            setupPasswordField(field);
+                        });
+                    }
+                });
+            }
+        });
     });
+    
+    // Start observing the document with the configured parameters
+    observer.observe(document.body, { childList: true, subtree: true });
     
     function setupPasswordField(field) {
         if (field.dataset.passwordFieldSetup) return;
@@ -210,7 +219,7 @@ function initUserAvatarUpload() {
  */
 function updateUserAvatarInUI(imageUrl) {
     // Update avatar in the main card
-    const avatarImg = document.querySelector('.w-16.h-16 img');
+    const avatarImg = document.querySelector('.w-20.h-20 img');
     if (avatarImg) {
         avatarImg.src = imageUrl;
     }
@@ -226,6 +235,9 @@ function updateUserAvatarInUI(imageUrl) {
     if (sidebarAvatar) {
         sidebarAvatar.src = imageUrl;
     }
+    
+    // Show success message
+    showToast('Profile picture updated successfully', 'success');
 }
 
 /**
@@ -300,19 +312,23 @@ function initSettingsNavigation() {
  * Initialize email reveal functionality
  */
 function initEmailReveal() {
-    const revealButton = document.querySelector('.text-blue-500.hover\\:underline');
+    const revealButton = document.getElementById('reveal-email-btn');
     if (!revealButton) return;
     
     revealButton.addEventListener('click', function() {
-        const emailElement = this.previousElementSibling;
+        const emailElement = document.getElementById('user-email-display');
         if (!emailElement) return;
         
-        // In a real app, this would make an API call to get the real email
-        // For demo purposes we'll simulate it
-        emailElement.textContent = 'user@gmail.com';
+        const fullEmail = this.getAttribute('data-email');
+        if (!fullEmail) return;
         
-        // Hide the reveal button
+        emailElement.textContent = fullEmail;
         this.style.display = 'none';
+        
+        // Log this action
+        if (typeof window.logger !== 'undefined') {
+            window.logger.debug('settings', 'Email revealed');
+        }
     });
 }
 
@@ -323,69 +339,131 @@ function initStatusSelector() {
     const statusOptions = document.querySelectorAll('.status-option');
     if (!statusOptions.length) return;
     
-    let currentStatus = 'appear';
-    
     statusOptions.forEach(option => {
         option.addEventListener('click', function() {
-            const statusIndicator = this.querySelector('span:first-child');
-            const statusText = this.querySelector('span:last-child').textContent.toLowerCase();
             const statusValue = this.dataset.status;
             
-            // Update status in user interface
-            currentStatus = statusValue;
-            
-            // Add visual indicator that this option is selected
+            // Update visual state immediately for better UX
             statusOptions.forEach(opt => {
-                opt.style.backgroundColor = '';
+                opt.classList.remove('bg-discord-background-modifier-selected');
                 opt.style.fontWeight = '';
             });
             
-            this.style.backgroundColor = 'rgba(79, 84, 92, 0.32)';
+            this.classList.add('bg-discord-background-modifier-selected');
             this.style.fontWeight = 'bold';
             
-            // Update status indicator in user profile if exists
-            const profileStatusIndicator = document.querySelector('.absolute.bottom-0.right-0\\.5.rounded-full.border-2');
-            if (profileStatusIndicator) {
-                profileStatusIndicator.className = 'absolute bottom-0 right-0.5 w-3 h-3 rounded-full border-2 border-discord-darker';
-                
-                switch(statusValue) {
-                    case 'appear':
-                        profileStatusIndicator.classList.add('bg-discord-green');
-                        break;
-                    case 'invisible':
-                        profileStatusIndicator.classList.add('bg-gray-500');
-                        break;
-                    case 'do_not_disturb':
-                        profileStatusIndicator.classList.add('bg-discord-red');
-                        break;
-                    case 'offline':
-                        profileStatusIndicator.classList.add('bg-[#747f8d]');
-                        break;
-                    case 'banned':
-                        profileStatusIndicator.classList.add('bg-black');
-                        break;
-                    default:
-                        profileStatusIndicator.classList.add('bg-discord-green');
-                }
-            }
+            // Update status indicators in UI
+            updateStatusUI(statusValue);
             
             // Make an API call to update the status
             fetch('/api/user/status', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
                 },
                 body: JSON.stringify({ status: statusValue })
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Status update failed');
+                }
+                return response.json();
+            })
             .then(data => {
-                console.log('Status updated:', data);
+                if (typeof window.logger !== 'undefined') {
+                    window.logger.debug('settings', 'Status updated:', data);
+                }
+                
+                // If we need to refresh any other parts of the UI after the server confirms status change
+                if (data && data.success) {
+                    showToast('Status updated successfully', 'success');
+                }
             })
             .catch(error => {
                 console.error('Error updating status:', error);
+                showToast('Error updating status', 'error');
+                
+                // Revert UI changes on error, if we have access to current status
+                const currentStatusElement = document.querySelector('meta[name="user-status"]');
+                if (currentStatusElement) {
+                    const currentStatus = currentStatusElement.getAttribute('content');
+                    if (currentStatus) {
+                        updateStatusUI(currentStatus);
+                        
+                        // Re-select the correct status option
+                        statusOptions.forEach(opt => {
+                            opt.classList.remove('bg-discord-background-modifier-selected');
+                            opt.style.fontWeight = '';
+                            
+                            if (opt.dataset.status === currentStatus) {
+                                opt.classList.add('bg-discord-background-modifier-selected');
+                                opt.style.fontWeight = 'bold';
+                            }
+                        });
+                    }
+                }
             });
         });
     });
+    
+    function updateStatusUI(statusValue) {
+        // Update status indicator in user profile
+        const profileStatusIndicator = document.querySelector('.absolute.bottom-0.right-0\\.5.rounded-full.border-2');
+        const previewStatusIndicator = document.querySelector('.user-avatar-preview .absolute.bottom-0.right-0.rounded-full.border-2');
+        
+        if (profileStatusIndicator) {
+            updateStatusIndicator(profileStatusIndicator, statusValue);
+        }
+        
+        if (previewStatusIndicator) {
+            updateStatusIndicator(previewStatusIndicator, statusValue);
+        }
+        
+        // Update status icon indicators
+        const doNotDisturbIcon = document.querySelector('.w-5.h-5.rounded-full.bg-discord-red');
+        const onlineIcon = document.querySelector('.w-5.h-5.rounded-full.bg-discord-green');
+        
+        if (doNotDisturbIcon) {
+            doNotDisturbIcon.style.display = statusValue === 'do_not_disturb' ? 'flex' : 'none';
+        }
+        
+        if (onlineIcon) {
+            onlineIcon.style.display = statusValue === 'appear' ? 'flex' : 'none';
+        }
+    }
+    
+    function updateStatusIndicator(indicator, status) {
+        // Remove all status classes
+        indicator.classList.remove(
+            'bg-discord-green',
+            'bg-gray-500',
+            'bg-discord-red',
+            'bg-[#747f8d]',
+            'bg-black'
+        );
+        
+        // Add the appropriate class based on status
+        switch(status) {
+            case 'appear':
+                indicator.classList.add('bg-discord-green');
+                break;
+            case 'invisible':
+                indicator.classList.add('bg-gray-500');
+                break;
+            case 'do_not_disturb':
+                indicator.classList.add('bg-discord-red');
+                break;
+            case 'offline':
+                indicator.classList.add('bg-[#747f8d]');
+                break;
+            case 'banned':
+                indicator.classList.add('bg-black');
+                break;
+            default:
+                indicator.classList.add('bg-discord-green');
+        }
+    }
 }
 
 /**
@@ -661,7 +739,7 @@ function showToast(message, type = 'info') {
     } else {
         // Create a simple toast if the Toast module isn't available
         const toast = document.createElement('div');
-        toast.className = 'fixed bottom-4 right-4 py-2 px-4 rounded shadow-lg';
+        toast.className = 'fixed bottom-4 right-4 py-2 px-4 rounded shadow-lg z-50 transition-opacity duration-500';
         
         if (type === 'success') {
             toast.className += ' bg-green-500 text-white';
@@ -676,7 +754,6 @@ function showToast(message, type = 'info') {
         
         setTimeout(() => {
             toast.style.opacity = '0';
-            toast.style.transition = 'opacity 0.5s ease';
             
             setTimeout(() => {
                 document.body.removeChild(toast);

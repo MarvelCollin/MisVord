@@ -672,3 +672,197 @@ a:active {
     padding: 20px 10px;
   }
 }
+
+/* Filter Dropdown */
+#member-filter {
+  position: relative;
+  user-select: none;
+}
+
+#member-filter button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  font-weight: 400;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  background-color: #2b2d31;
+  border-radius: 4px;
+  width: 100%;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.1);
+}
+
+#member-filter button:hover {
+  background-color: #36393f;
+}
+
+.filter-dropdown {
+  min-width: 220px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.24);
+  border-radius: 4px;
+  overflow: hidden;
+  z-index: 100;
+  margin-top: 4px;
+  border: 1px solid #202225;
+  animation: dropdownFadeIn 0.1s ease;
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.filter-option {
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  transition: background-color 0.15s ease;
+  cursor: pointer;
+  position: relative;
+}
+
+.filter-option:hover {
+  background-color: #5865f2;
+}
+
+.filter-option input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+.radio-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  position: relative;
+}
+
+.radio-dot {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid #b5bac1;
+  transition: all 0.2s ease;
+}
+
+.filter-option:hover .radio-dot {
+  border-color: white;
+}
+
+input[type="radio"]:checked + .radio-dot {
+  border-color: #5865f2;
+  border-width: 2px;
+}
+
+input[type="radio"]:checked + .radio-dot:after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #5865f2;
+}
+
+.filter-option:hover input[type="radio"]:checked + .radio-dot {
+  border-color: white;
+}
+
+.filter-option:hover input[type="radio"]:checked + .radio-dot:after {
+  background-color: white;
+}
+
+.filter-selected-text {
+  color: #dcddde;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Override accent color for radio buttons in all browsers */
+input[type="radio"] {
+  accent-color: var(--discord-primary);
+}
+
+/* Role Tab Styles */
+.role-item {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  transition: background-color 0.2s ease;
+  position: relative;
+}
+
+.role-item:hover {
+  background-color: var(--discord-dark-hover);
+}
+
+.role-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 8px;
+}
+
+.role-name {
+  font-weight: 500;
+  color: var(--discord-white);
+}
+
+.role-actions {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.role-item:hover .role-actions {
+  opacity: 1;
+}
+
+.edit-role-btn,
+.delete-role-btn {
+  padding: 6px;
+  border-radius: 4px;
+  background-color: transparent;
+  color: var(--discord-lighter);
+  transition: background-color 0.2s ease, color 0.2s ease;
+  cursor: pointer;
+}
+
+.edit-role-btn:hover,
+.delete-role-btn:hover {
+  background-color: var(--discord-light);
+  color: var(--discord-white);
+}
+
+/* Create Role Button */
+.create-role-btn {
+  background-color: #5865f2;
+  color: white;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.create-role-btn:hover {
+  background-color: #4752c4;
+}

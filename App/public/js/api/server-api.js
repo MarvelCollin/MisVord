@@ -259,6 +259,10 @@ class ServerAPI {
     async getServerMembers(serverId) {
         return await this.makeRequest(`/api/servers/${serverId}/members`);
     }
+
+    async getServerRoles(serverId) {
+        return await this.makeRequest(`/api/servers/${serverId}/roles`);
+    }
 }
 
 const serverAPI = new ServerAPI();

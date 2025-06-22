@@ -18,6 +18,10 @@ class ChatSection {
         this.typingUsers = new Map();
         this.lastTypingUpdate = 0;
         this.typingDebounceTime = 2000;
+        this.messageIdCounter = 0;
+        this.processedMessageIds = new Set(); // To prevent duplicate messages
+        this.joinedRooms = new Set(); // Track joined rooms/channels
+        this.contextMenuVisible = false;
     }
     
     init() {
@@ -32,6 +36,8 @@ class ChatSection {
         this.chatMessages = document.getElementById('chat-messages');
         this.messageForm = document.getElementById('message-form');
         this.messageInput = document.getElementById('message-input');
+        this.sendButton = document.getElementById('send-button');
+        this.contextMenu = document.getElementById('message-context-menu');
         
         if (!this.chatMessages) {
             console.error('Chat messages element not found');
@@ -75,19 +81,110 @@ class ChatSection {
             
             this.messageInput.addEventListener('input', () => {
                 this.resizeTextarea();
+                this.updateSendButton();
             });
+        }
+        
+        if (this.sendButton) {
+            this.sendButton.addEventListener('click', () => {
+                this.sendMessage();
+            });
+        }
+
+        // Handle context menu positioning and visibility
+        document.addEventListener('click', (e) => {
+            if (this.contextMenuVisible && !this.contextMenu.contains(e.target)) {
+                this.hideContextMenu();
+            }
+        });
+
+        // Attach click listeners to message groups for context menu
+        this.chatMessages.addEventListener('contextmenu', (e) => {
+            const messageGroup = e.target.closest('.message-group');
+            if (messageGroup) {
+                e.preventDefault();
+                this.showContextMenu(e.clientX, e.clientY, messageGroup);
+            }
+        });
+
+        // Individual message hover handling
+        this.chatMessages.addEventListener('mouseover', (e) => {
+            const messageContent = e.target.closest('.message-content');
+            if (messageContent) {
+                const messageGroup = messageContent.closest('.message-group');
+                if (messageGroup) {
+                    this.showMessageActions(messageGroup);
+                }
+            }
+        });
+
+        this.chatMessages.addEventListener('mouseout', (e) => {
+            const messageContent = e.target.closest('.message-content');
+            if (messageContent) {
+                const relatedTarget = e.relatedTarget;
+                // Only hide if we're not still hovering over the message or its actions
+                if (!messageContent.contains(relatedTarget) && 
+                    !relatedTarget?.closest('.message-actions') && 
+                    !relatedTarget?.closest('.message-content')) {
+                    const messageGroup = messageContent.closest('.message-group');
+                    if (messageGroup) {
+                        this.hideMessageActions(messageGroup);
+                    }
+                }
+            }
+            
+            // Also hide when leaving the message actions
+            if (e.target.closest('.message-actions')) {
+                const relatedTarget = e.relatedTarget;
+                const messageGroup = e.target.closest('.message-group');
+                if (messageGroup && !messageGroup.contains(relatedTarget)) {
+                    this.hideMessageActions(messageGroup);
+                }
+            }
+        });
+    }
+
+    showContextMenu(x, y, messageGroup) {
+        if (!this.contextMenu) return;
+        
+        this.contextMenu.style.left = `${x}px`;
+        this.contextMenu.style.top = `${y}px`;
+        this.contextMenu.classList.remove('hidden');
+        this.contextMenu.dataset.messageId = messageGroup.querySelector('.message-content')?.dataset.messageId || '';
+        this.contextMenuVisible = true;
+    }
+
+    hideContextMenu() {
+        if (!this.contextMenu) return;
+        
+        this.contextMenu.classList.add('hidden');
+        this.contextMenuVisible = false;
+    }
+
+    showMessageActions(messageGroup) {
+        const actions = messageGroup.querySelector('.message-actions');
+        if (actions) {
+            actions.classList.remove('hidden');
+            actions.style.opacity = '1';
+            actions.style.visibility = 'visible';
+        }
+    }
+
+    hideMessageActions(messageGroup) {
+        const actions = messageGroup.querySelector('.message-actions');
+        if (actions) {
+            actions.classList.add('hidden');
+            actions.style.opacity = '0';
+            actions.style.visibility = 'hidden';
         }
     }
     
     setupIoListeners() {
-        // Store reference to this
         const self = this;
         
-        // Define a function we can use to set up our socket handlers
         const setupSocketHandlers = function() {
             const io = window.globalSocketManager.io;
             
-            // First, remove any existing listeners to prevent duplicates
             io.removeAllListeners('new-channel-message');
             io.removeAllListeners('user-message-dm');
             io.removeAllListeners('message-sent');
@@ -96,14 +193,17 @@ class ChatSection {
             io.removeAllListeners('user-stop-typing');
             io.removeAllListeners('user-stop-typing-dm');
             
-            // Set up new listeners
             io.on('new-channel-message', function(data) {
                 console.log('Received channel message:', data);
                 if (self.chatType === 'channel' && data.channelId == self.targetId) {
-                    self.showReceiveNotification('channel', data);
-                    // Only add messages from other users
-                    if (data.userId != self.userId) {
-                        self.addMessage(data);
+                    // Only add messages we haven't processed yet
+                    if (!self.processedMessageIds.has(data.id)) {
+                        self.processedMessageIds.add(data.id);
+                        
+                        // Only add messages from other users (our own are added when sent)
+                        if (data.userId != self.userId) {
+                            self.addMessage(data);
+                        }
                     }
                 }
             });
@@ -111,10 +211,14 @@ class ChatSection {
             io.on('user-message-dm', function(data) {
                 console.log('Received DM message:', data);
                 if ((self.chatType === 'direct' || self.chatType === 'dm') && data.roomId == self.targetId) {
-                    self.showReceiveNotification('dm', data);
-                    // Only add messages from other users
-                    if (data.userId != self.userId) {
-                        self.addMessage(data);
+                    // Only add messages we haven't processed yet
+                    if (!self.processedMessageIds.has(data.id)) {
+                        self.processedMessageIds.add(data.id);
+                        
+                        // Only add messages from other users (our own are added when sent)
+                        if (data.userId != self.userId) {
+                            self.addMessage(data);
+                        }
                     }
                 }
             });
@@ -125,16 +229,19 @@ class ChatSection {
                 const tempMessage = document.querySelector(`.message-content[data-message-id^="local-"]`);
                 if (tempMessage) {
                     tempMessage.setAttribute('data-message-id', data.id);
+                    self.processedMessageIds.add(data.id);
                 }
             });
             
             io.on('user-typing', function(data) {
+                // Only show typing indicators from users in the current channel
                 if (self.chatType === 'channel' && data.channelId == self.targetId && data.userId != self.userId) {
                     self.showTypingIndicator(data.userId, data.username);
                 }
             });
             
             io.on('user-typing-dm', function(data) {
+                // Only show typing indicators from users in the current DM
                 if ((self.chatType === 'direct' || self.chatType === 'dm') && data.roomId == self.targetId && data.userId != self.userId) {
                     self.showTypingIndicator(data.userId, data.username);
                 }
@@ -156,14 +263,12 @@ class ChatSection {
             self.joinChannel();
         };
         
-        // Set up event listener for socket ready
         window.addEventListener('globalSocketReady', function() {
             if (window.globalSocketManager && window.globalSocketManager.io) {
                 setupSocketHandlers();
             }
         });
         
-        // If socket is already ready, set up handlers now
         if (window.globalSocketManager && window.globalSocketManager.isReady()) {
             setupSocketHandlers();
         }
@@ -174,11 +279,17 @@ class ChatSection {
             setTimeout(() => this.joinChannel(), 1000);
             return;
         }
+
+        const roomId = this.chatType === 'channel' ? this.targetId : null;
+        const dmRoomId = (this.chatType === 'direct' || this.chatType === 'dm') ? this.targetId : null;
         
-        if (this.chatType === 'channel' && this.targetId) {
-            window.globalSocketManager.joinChannel(this.targetId);
-        } else if ((this.chatType === 'direct' || this.chatType === 'dm') && this.targetId) {
-            window.globalSocketManager.joinDMRoom(this.targetId);
+        // Only join if we haven't already joined this room
+        if (roomId && !this.joinedRooms.has(`channel-${roomId}`)) {
+            window.globalSocketManager.joinChannel(roomId);
+            this.joinedRooms.add(`channel-${roomId}`);
+        } else if (dmRoomId && !this.joinedRooms.has(`dm-${dmRoomId}`)) {
+            window.globalSocketManager.joinDMRoom(dmRoomId);
+            this.joinedRooms.add(`dm-${dmRoomId}`);
         }
     }
     
@@ -203,9 +314,14 @@ class ChatSection {
             
             this.hideLoadingIndicator();
             
-            // Check if the response has data.messages (standard API response structure)
             if (response && response.data && response.data.messages) {
                 console.log('Loaded messages from database:', response.data.messages);
+                
+                // Store message IDs to prevent duplicate messages
+                response.data.messages.forEach(msg => {
+                    this.processedMessageIds.add(msg.id);
+                });
+                
                 this.renderMessages(response.data.messages);
                 this.scrollToBottom();
             } else {
@@ -234,6 +350,7 @@ class ChatSection {
         try {
             this.messageInput.value = '';
             this.resizeTextarea();
+            this.updateSendButton();
             this.sendStopTyping();
             
             if (!window.ChatAPI) {
@@ -255,16 +372,16 @@ class ChatSection {
                 _localMessage: true
             };
             
-            // Add for channel type message
             if (this.chatType === 'channel') {
                 tempMessage.channelId = this.targetId;
             } else if (this.chatType === 'direct' || this.chatType === 'dm') {
                 tempMessage.roomId = this.targetId;
             }
             
+            // Add the message to our processed set to avoid duplicates
+            this.processedMessageIds.add(messageId);
             this.addMessage(tempMessage);
             
-            // Pass the local message ID when sending through API
             await window.ChatAPI.sendMessage(this.targetId, content, this.chatType, {
                 localMessageId: messageId
             });
@@ -272,21 +389,41 @@ class ChatSection {
         } catch (error) {
             console.error('Failed to send message:', error);
             this.messageInput.value = content;
+            this.updateSendButton();
             
             const tempMessageElement = document.querySelector(`[data-message-id="${messageId}"]`);
             if (tempMessageElement) {
                 const messageGroup = tempMessageElement.closest('.message-group');
                 if (messageGroup && messageGroup.querySelectorAll('.message-content').length === 1) {
-                    // If this is the only message in the group, remove the whole group
                     messageGroup.remove();
                 } else {
-                    // Otherwise just remove this message
                     tempMessageElement.remove();
                 }
             }
             
+            // Remove from processed set if it failed
+            this.processedMessageIds.delete(messageId);
+            
             // Show error notification
-            this.showTestNotification('Failed to send message', 'error');
+            this.showNotification('Failed to send message', 'error');
+        }
+    }
+    
+    updateSendButton() {
+        if (!this.sendButton) return;
+        
+        const hasContent = this.messageInput && this.messageInput.value.trim().length > 0;
+        
+        if (hasContent) {
+            this.sendButton.disabled = false;
+            this.sendButton.classList.add('text-white');
+            this.sendButton.classList.add('bg-[#5865f2]');
+            this.sendButton.classList.add('rounded-full');
+        } else {
+            this.sendButton.disabled = true;
+            this.sendButton.classList.remove('text-white');
+            this.sendButton.classList.remove('bg-[#5865f2]');
+            this.sendButton.classList.remove('rounded-full');
         }
     }
     
@@ -349,7 +486,7 @@ class ChatSection {
         
         if (this.typingUsers.size === 0) {
             if (typingIndicator) {
-                typingIndicator.remove();
+                typingIndicator.classList.add('hidden');
             }
             return;
         }
@@ -357,34 +494,46 @@ class ChatSection {
         if (!typingIndicator) {
             typingIndicator = document.createElement('div');
             typingIndicator.id = 'typing-indicator';
-            typingIndicator.className = 'text-sm text-gray-400 py-2 px-4 animate-pulse flex items-center';
+            typingIndicator.className = 'text-xs text-[#b5bac1] pb-1 pl-5 flex items-center';
             
-            const dot1 = document.createElement('div');
-            dot1.className = 'h-1.5 w-1.5 bg-gray-400 rounded-full mr-1 animate-bounce';
+            const dotsContainer = document.createElement('div');
+            dotsContainer.className = 'flex items-center mr-2';
+            
+            const dot1 = document.createElement('span');
+            dot1.className = 'h-1 w-1 bg-[#b5bac1] rounded-full animate-bounce mr-0.5';
             dot1.style.animationDelay = '0ms';
             
-            const dot2 = document.createElement('div');
-            dot2.className = 'h-1.5 w-1.5 bg-gray-400 rounded-full mx-1 animate-bounce';
+            const dot2 = document.createElement('span');
+            dot2.className = 'h-1 w-1 bg-[#b5bac1] rounded-full animate-bounce mx-0.5';
             dot2.style.animationDelay = '200ms';
             
-            const dot3 = document.createElement('div');
-            dot3.className = 'h-1.5 w-1.5 bg-gray-400 rounded-full ml-1 animate-bounce';
+            const dot3 = document.createElement('span');
+            dot3.className = 'h-1 w-1 bg-[#b5bac1] rounded-full animate-bounce ml-0.5';
             dot3.style.animationDelay = '400ms';
             
             const textElement = document.createElement('span');
-            textElement.className = 'ml-2';
             
-            typingIndicator.appendChild(dot1);
-            typingIndicator.appendChild(dot2);
-            typingIndicator.appendChild(dot3);
+            dotsContainer.appendChild(dot1);
+            dotsContainer.appendChild(dot2);
+            dotsContainer.appendChild(dot3);
+            
+            typingIndicator.appendChild(dotsContainer);
             typingIndicator.appendChild(textElement);
             
             if (this.chatMessages) {
-                this.chatMessages.appendChild(typingIndicator);
+                // Insert before the message input area
+                const messageForm = document.getElementById('message-form');
+                if (messageForm) {
+                    messageForm.parentNode.insertBefore(typingIndicator, messageForm);
+                } else {
+                    this.chatMessages.appendChild(typingIndicator);
+                }
             }
         }
         
-        const textElement = typingIndicator.querySelector('span');
+        typingIndicator.classList.remove('hidden');
+        
+        const textElement = typingIndicator.querySelector('span:not(.h-1)');
         if (textElement) {
             if (this.typingUsers.size === 1) {
                 const [user] = this.typingUsers.values();
@@ -410,7 +559,7 @@ class ChatSection {
         
         if (!messages || messages.length === 0) {
             const emptyState = document.createElement('div');
-            emptyState.className = 'flex flex-col items-center justify-center p-8 text-gray-400 h-full';
+            emptyState.className = 'flex flex-col items-center justify-center p-8 text-[#b5bac1] h-full';
             emptyState.innerHTML = `
                 <svg class="w-16 h-16 mb-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                     <path fill-rule="evenodd" d="M18 10c0 4.418-3.582 8-8 8s-8-3.582-8-8 3.582-8 8-8 8 3.582 8 8zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
@@ -443,11 +592,6 @@ class ChatSection {
     addMessage(message) {
         if (!this.chatMessages || !message) {
             return;
-        }
-        
-        // Log server debug info if present
-        if (message._serverDebug) {
-            console.log('🔄 Server debug info:', message._serverDebug);
         }
         
         const msg = {
@@ -487,46 +631,42 @@ class ChatSection {
     
     createMessageGroup(message, isOwnMessage = false) {
         const messageGroup = document.createElement('div');
-        messageGroup.className = 'message-group flex mb-4';
+        messageGroup.className = 'message-group flex p-1 px-4 py-1 relative';
         messageGroup.setAttribute('data-user-id', message.user_id);
         
         const avatarContainer = document.createElement('div');
-        avatarContainer.className = 'flex-shrink-0 mr-3 mt-1';
+        avatarContainer.className = 'flex-shrink-0 mr-3 mt-0.5';
         
         const avatar = document.createElement('img');
         avatar.src = message.avatar_url || '/assets/common/main-logo.png';
         avatar.className = 'w-10 h-10 rounded-full';
         avatar.alt = `${message.username}'s avatar`;
+        avatar.onerror = function() {
+            this.onerror = null;
+            this.src = '/assets/common/main-logo.png';
+        };
         
         avatarContainer.appendChild(avatar);
         
         const messageContent = document.createElement('div');
-        messageContent.className = 'flex-grow';
+        messageContent.className = 'flex-grow relative';
         
         const headerRow = document.createElement('div');
-        headerRow.className = 'flex items-center';
+        headerRow.className = 'flex items-center mb-0.5';
         
         const usernameSpan = document.createElement('span');
-        usernameSpan.className = isOwnMessage ? 'font-semibold text-discord-primary' : 'font-semibold text-white';
+        usernameSpan.className = isOwnMessage ? 'font-medium text-[#f2f3f5]' : 'font-medium text-[#f2f3f5]';
         usernameSpan.textContent = message.username;
         
-        // Add "You" badge for own messages
-        if (isOwnMessage) {
-            const youBadge = document.createElement('span');
-            youBadge.className = 'text-xs bg-discord-primary text-white px-1 py-0.5 rounded ml-2';
-            youBadge.textContent = 'You';
-            headerRow.appendChild(youBadge);
-        }
-        
         const timeSpan = document.createElement('span');
-        timeSpan.className = 'text-xs text-gray-400 ml-2';
+        timeSpan.className = 'text-xs text-[#a3a6aa] ml-2';
         timeSpan.textContent = this.formatTimestamp(message.sent_at);
         
         headerRow.appendChild(usernameSpan);
         headerRow.appendChild(timeSpan);
         
         const messageContents = document.createElement('div');
-        messageContents.className = 'message-contents text-gray-100 break-words';
+        messageContents.className = 'message-contents text-[#dcddde] break-words';
         
         const firstMessage = this.createMessageContent(message, isOwnMessage);
         messageContents.appendChild(firstMessage);
@@ -537,12 +677,49 @@ class ChatSection {
         messageGroup.appendChild(avatarContainer);
         messageGroup.appendChild(messageContent);
         
+        // Create message actions element (hidden by default)
+        const messageActions = document.createElement('div');
+        messageActions.className = 'message-actions hidden absolute -top-2 right-4 bg-[#2b2d31] shadow-lg rounded flex items-center p-1 z-10';
+        messageActions.style.opacity = '0';
+        messageActions.style.visibility = 'hidden';
+        messageActions.style.transition = 'opacity 0.1s ease, visibility 0.1s ease';
+        
+        // Add emoji reaction button
+        const addReactionBtn = document.createElement('button');
+        addReactionBtn.title = 'Add Reaction';
+        addReactionBtn.className = 'w-8 h-8 flex items-center justify-center text-[#b5bac1] hover:text-white hover:bg-[rgba(255,255,255,0.1)] rounded';
+        addReactionBtn.innerHTML = '<i class="far fa-face-smile"></i>';
+        messageActions.appendChild(addReactionBtn);
+
+        // Add reply button
+        const replyBtn = document.createElement('button');
+        replyBtn.title = 'Reply';
+        replyBtn.className = 'w-8 h-8 flex items-center justify-center text-[#b5bac1] hover:text-white hover:bg-[rgba(255,255,255,0.1)] rounded';
+        replyBtn.innerHTML = '<i class="fas fa-reply"></i>';
+        messageActions.appendChild(replyBtn);
+        
+        // Add thread button
+        const threadBtn = document.createElement('button');
+        threadBtn.title = 'Create Thread';
+        threadBtn.className = 'w-8 h-8 flex items-center justify-center text-[#b5bac1] hover:text-white hover:bg-[rgba(255,255,255,0.1)] rounded';
+        threadBtn.innerHTML = '<i class="fas fa-comment-dots"></i>';
+        messageActions.appendChild(threadBtn);
+        
+        // Add more options button
+        const moreBtn = document.createElement('button');
+        moreBtn.title = 'More Actions';
+        moreBtn.className = 'w-8 h-8 flex items-center justify-center text-[#b5bac1] hover:text-white hover:bg-[rgba(255,255,255,0.1)] rounded';
+        moreBtn.innerHTML = '<i class="fas fa-ellipsis-vertical"></i>';
+        messageActions.appendChild(moreBtn);
+        
+        messageContent.appendChild(messageActions);
+        
         return messageGroup;
     }
     
     createMessageContent(message, isOwnMessage = false) {
         const messageElement = document.createElement('div');
-        messageElement.className = 'message-content py-1';
+        messageElement.className = 'message-content py-0.5 hover:bg-[rgba(4,4,5,0.07)] rounded px-1 -ml-1';
         messageElement.setAttribute('data-message-id', message.id);
         
         if (isOwnMessage) {
@@ -550,7 +727,7 @@ class ChatSection {
         }
         
         const contentElement = document.createElement('div');
-        contentElement.className = isOwnMessage ? 'message-text own-message-text' : 'message-text';
+        contentElement.className = 'text-[#dbdee1] whitespace-pre-wrap break-words';
         contentElement.innerHTML = this.formatMessageContent(message.content);
         
         messageElement.appendChild(contentElement);
@@ -571,16 +748,11 @@ class ChatSection {
             
         // Simple markdown-like formatting
         let formattedContent = escapedContent
-            // Convert linebreaks
             .replace(/\n/g, '<br>')
-            // Bold
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            // Italic
             .replace(/\*(.*?)\*/g, '<em>$1</em>')
-            // Code
-            .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
-            // Inline code
-            .replace(/`(.*?)`/g, '<code>$1</code>');
+            .replace(/```([\s\S]*?)```/g, '<div class="bg-[#2b2d31] p-2 my-1 rounded text-sm font-mono"><code>$1</code></div>')
+            .replace(/`(.*?)`/g, '<code class="bg-[#2b2d31] px-1 py-0.5 rounded text-sm font-mono">$1</code>');
             
         return formattedContent;
     }
@@ -595,7 +767,6 @@ class ChatSection {
                 return '';
             }
             
-            // Format: HH:MM or MM/DD/YYYY if not today
             const now = new Date();
             const isToday = date.getDate() === now.getDate() && 
                             date.getMonth() === now.getMonth() && 
@@ -629,7 +800,7 @@ class ChatSection {
         if (this.chatMessages) {
             this.chatMessages.innerHTML = `
                 <div class="flex justify-center items-center h-full">
-                    <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-discord-primary"></div>
+                    <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#5865f2]"></div>
                 </div>
             `;
         }
@@ -644,7 +815,7 @@ class ChatSection {
     showErrorMessage(message) {
         if (this.chatMessages) {
             const errorElement = document.createElement('div');
-            errorElement.className = 'text-red-500 p-4 text-center';
+            errorElement.className = 'text-[#ed4245] p-4 text-center';
             errorElement.textContent = message;
             
             this.chatMessages.appendChild(errorElement);
@@ -655,14 +826,14 @@ class ChatSection {
         }
     }
     
-    showTestNotification(message, type = 'success') {
+    showNotification(message, type = 'success') {
         // Show temporary notification
         const notification = document.createElement('div');
         notification.textContent = message;
         
         // Set color based on type
-        let bgColor = 'bg-discord-primary';
-        if (type === 'error') bgColor = 'bg-red-600';
+        let bgColor = 'bg-[#5865f2]';
+        if (type === 'error') bgColor = 'bg-[#ed4245]';
         else if (type === 'warning') bgColor = 'bg-yellow-500';
         else if (type === 'info') bgColor = 'bg-blue-500';
         
@@ -673,32 +844,5 @@ class ChatSection {
         setTimeout(() => {
             notification.remove();
         }, 3000);
-    }
-    
-    showReceiveNotification(type, data) {
-        // Only show for debugging purposes
-        const isDebug = localStorage.getItem('debug_socket_messages') === 'true';
-        if (!isDebug) return;
-        
-        const isOwnMessage = (data.userId || data.user_id) == this.userId;
-        const source = data._serverDebug ? 'server' : 'direct';
-        
-        console.log(`📩 Received ${type} message from ${isOwnMessage ? 'myself' : 'other user'} (${source}):`, data);
-        
-        // Show a small notification for debugging
-        const notification = document.createElement('div');
-        notification.className = `fixed top-4 right-4 bg-gray-800 text-white text-xs p-2 rounded shadow-lg z-50 ${isOwnMessage ? 'border-l-4 border-discord-primary' : ''}`;
-        notification.innerHTML = `
-            <div class="font-bold">${isOwnMessage ? 'Your message received' : 'Message from ' + (data.username || 'unknown')}</div>
-            <div class="text-gray-300">Source: ${source}</div>
-            <div class="text-gray-300 truncate max-w-xs">${data.content || 'No content'}</div>
-        `;
-        
-        document.body.appendChild(notification);
-        
-        // Remove after 2 seconds
-        setTimeout(() => {
-            notification.remove();
-        }, 2000);
     }
 }

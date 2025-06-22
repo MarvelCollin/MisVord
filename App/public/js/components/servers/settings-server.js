@@ -66,6 +66,8 @@ function initServerSettingsPage() {
         initServerProfileForm();
     } else if (activeSection === 'members') {
         initMembersTab();
+    } else if (activeSection === 'roles') {
+        initRolesTab();
     }
     
     // Initialize close button
@@ -223,10 +225,13 @@ function initMembersTab() {
     const memberSearch = document.getElementById('member-search');
     const memberTemplate = document.getElementById('member-template');
     const serverId = document.querySelector('meta[name="server-id"]')?.content;
+    const memberFilter = document.getElementById('member-filter');
+    const memberFilterOptions = document.querySelectorAll('.filter-option');
     
     if (!membersList || !memberTemplate || !serverId) return;
     
     let allMembers = [];
+    let currentFilter = 'member-newest';
     
     // Load server members
     async function loadMembers() {
@@ -242,7 +247,9 @@ function initMembersTab() {
                 } else {
                     allMembers = [];
                 }
-                renderMembers(allMembers);
+                
+                // Apply sorting immediately after loading
+                sortMembers(currentFilter);
             } else if (response && response.error && response.error.code === 401) {
                 // User is not authenticated, redirect to login
                 window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
@@ -268,6 +275,78 @@ function initMembersTab() {
                 </div>
             `;
         }
+    }
+    
+    // Sort members based on selected filter
+    function sortMembers(filterType) {
+        let sortedMembers = [...allMembers];
+        
+        switch (filterType) {
+            case 'member-newest': 
+                sortedMembers.sort((a, b) => new Date(b.joined_at) - new Date(a.joined_at));
+                break;
+            case 'member-oldest':
+                sortedMembers.sort((a, b) => new Date(a.joined_at) - new Date(b.joined_at));
+                break;
+            case 'discord-newest':
+                sortedMembers.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                break;
+            case 'discord-oldest':
+                sortedMembers.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+                break;
+            default:
+                sortedMembers.sort((a, b) => new Date(b.joined_at) - new Date(a.joined_at));
+        }
+        
+        renderMembers(sortedMembers);
+    }
+    
+    // Filter option selection
+    if (memberFilterOptions) {
+        memberFilterOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                // Update UI
+                memberFilterOptions.forEach(opt => {
+                    opt.querySelector('input[type="radio"]').checked = false;
+                });
+                this.querySelector('input[type="radio"]').checked = true;
+                
+                // Update filter dropdown text
+                if (memberFilter) {
+                    memberFilter.querySelector('.filter-selected-text').textContent = this.textContent.trim();
+                    
+                    // Toggle dropdown visibility
+                    const filterDropdown = document.getElementById('filter-dropdown');
+                    if (filterDropdown) {
+                        filterDropdown.classList.add('hidden');
+                    }
+                }
+                
+                // Apply filter
+                currentFilter = this.dataset.filter;
+                sortMembers(currentFilter);
+            });
+        });
+    }
+    
+    // Toggle filter dropdown
+    if (memberFilter) {
+        memberFilter.addEventListener('click', function(e) {
+            const filterDropdown = document.getElementById('filter-dropdown');
+            if (filterDropdown) {
+                filterDropdown.classList.toggle('hidden');
+            }
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!memberFilter.contains(e.target)) {
+                const filterDropdown = document.getElementById('filter-dropdown');
+                if (filterDropdown && !filterDropdown.classList.contains('hidden')) {
+                    filterDropdown.classList.add('hidden');
+                }
+            }
+        });
     }
     
     // Render members to the list
@@ -393,7 +472,7 @@ function initMembersTab() {
             const searchTerm = this.value.toLowerCase().trim();
             
             if (!searchTerm) {
-                renderMembers(allMembers);
+                sortMembers(currentFilter);
                 return;
             }
             
@@ -667,4 +746,281 @@ function showToast(message, type = 'info') {
     } else {
         alert(message);
     }
+}
+
+/**
+ * Initialize the roles tab functionality
+ */
+function initRolesTab() {
+    const rolesList = document.getElementById('roles-list');
+    const roleSearch = document.getElementById('role-search');
+    const roleTemplate = document.getElementById('role-template');
+    const roleFilter = document.getElementById('role-filter');
+    const filterOptions = document.querySelectorAll('.filter-option');
+    const createRoleBtn = document.getElementById('create-role-btn');
+    const serverId = document.querySelector('meta[name="server-id"]')?.content;
+    
+    if (!rolesList || !roleTemplate || !serverId) return;
+    
+    let allRoles = [];
+    let currentFilter = 'role-name-asc';
+    
+    // Handle create role button
+    if (createRoleBtn) {
+        createRoleBtn.addEventListener('click', () => {
+            // Role creation functionality would go here
+            alert('Create new role');
+            // Ideally, this would open a modal to create a new role
+        });
+    }
+    
+    // Load server roles
+    async function loadRoles() {
+        try {
+            const response = await ServerAPI.getServerRoles(serverId);
+            
+            if (response && response.success) {
+                // Handle both response formats (with data wrapper and without)
+                if (response.data && response.data.roles) {
+                    allRoles = response.data.roles;
+                } else if (response.roles) {
+                    allRoles = response.roles;
+                } else {
+                    allRoles = [];
+                }
+                
+                // Apply sorting immediately after loading
+                sortRoles(currentFilter);
+            } else if (response && response.error && response.error.code === 401) {
+                // User is not authenticated, redirect to login
+                window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
+                return;
+            } else {
+                throw new Error(response.message || 'Failed to load server roles');
+            }
+        } catch (error) {
+            console.error('Error loading server roles:', error);
+            
+            // Check if it's an authentication error
+            if (error.message && error.message.toLowerCase().includes('unauthorized')) {
+                window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
+                return;
+            }
+            
+            rolesList.innerHTML = `
+                <div class="flex items-center justify-center p-8 text-discord-lighter">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-[#ed4245]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Error loading roles. Please try again.</span>
+                </div>
+            `;
+        }
+    }
+    
+    // Sort roles based on selected filter
+    function sortRoles(filterType) {
+        let sortedRoles = [...allRoles];
+        
+        switch (filterType) {
+            case 'role-name-asc': 
+                sortedRoles.sort((a, b) => a.name.localeCompare(b.name));
+                break;
+            case 'role-name-desc':
+                sortedRoles.sort((a, b) => b.name.localeCompare(a.name));
+                break;
+            default:
+                sortedRoles.sort((a, b) => a.name.localeCompare(b.name));
+        }
+        
+        renderRoles(sortedRoles);
+    }
+    
+    // Filter option selection
+    if (filterOptions) {
+        filterOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                // Update UI
+                filterOptions.forEach(opt => {
+                    opt.querySelector('input[type="radio"]').checked = false;
+                });
+                this.querySelector('input[type="radio"]').checked = true;
+                
+                // Update filter dropdown text
+                if (roleFilter) {
+                    roleFilter.querySelector('.filter-selected-text').textContent = this.textContent.trim();
+                    
+                    // Toggle dropdown visibility
+                    const filterDropdown = document.getElementById('filter-dropdown');
+                    if (filterDropdown) {
+                        filterDropdown.classList.add('hidden');
+                    }
+                }
+                
+                // Apply filter
+                currentFilter = this.dataset.filter;
+                sortRoles(currentFilter);
+            });
+        });
+    }
+    
+    // Toggle filter dropdown
+    if (roleFilter) {
+        roleFilter.addEventListener('click', function(e) {
+            const filterDropdown = document.getElementById('filter-dropdown');
+            if (filterDropdown) {
+                filterDropdown.classList.toggle('hidden');
+            }
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!roleFilter.contains(e.target)) {
+                const filterDropdown = document.getElementById('filter-dropdown');
+                if (filterDropdown && !filterDropdown.classList.contains('hidden')) {
+                    filterDropdown.classList.add('hidden');
+                }
+            }
+        });
+    }
+    
+    // Render roles to the list
+    function renderRoles(roles) {
+        if (!roles.length) {
+            rolesList.innerHTML = `
+                <div class="flex items-center justify-center p-8 text-discord-lighter">
+                    <span>No roles found</span>
+                </div>
+            `;
+            return;
+        }
+        
+        rolesList.innerHTML = '';
+        
+        // Add default role (everyone)
+        const everyoneRole = document.createElement('div');
+        everyoneRole.className = 'role-item p-4 border-b border-discord-dark flex items-center hover:bg-discord-dark';
+        everyoneRole.innerHTML = `
+            <div class="w-10 flex items-center justify-center">
+                <div class="role-color w-3 h-3 rounded-full bg-gray-500"></div>
+            </div>
+            <div class="flex-1">
+                <div class="role-name font-medium">@everyone</div>
+                <div class="text-xs text-discord-lighter flex items-center mt-1">
+                    <span>Default role for all members</span>
+                </div>
+            </div>
+            <div class="w-32 text-xs text-discord-lighter">
+                All Members
+            </div>
+            <div class="w-40">
+                <div class="role-actions flex space-x-2">
+                    <button class="edit-role-btn p-2 rounded hover:bg-discord-light" title="Edit Role">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        // Add event listener for the default role edit button
+        const defaultRoleEditBtn = everyoneRole.querySelector('.edit-role-btn');
+        if (defaultRoleEditBtn) {
+            defaultRoleEditBtn.addEventListener('click', () => {
+                alert('Edit @everyone role permissions');
+            });
+        }
+        
+        rolesList.appendChild(everyoneRole);
+        
+        roles.forEach(role => {
+            const roleElement = document.importNode(roleTemplate.content, true).firstElementChild;
+            
+            // Set role color
+            const roleColor = roleElement.querySelector('.role-color');
+            if (roleColor) {
+                roleColor.style.backgroundColor = role.color || '#95a5a6';
+            }
+            
+            // Set role name
+            const nameElement = roleElement.querySelector('.role-name');
+            if (nameElement) {
+                nameElement.textContent = role.name;
+                // Set the name color to match the role color for better visualization
+                nameElement.style.color = role.color || '#ffffff';
+            }
+            
+            // Set member count
+            const memberCountElement = roleElement.querySelector('.role-member-count');
+            if (memberCountElement) {
+                memberCountElement.textContent = `${role.member_count || 0} members`;
+            }
+            
+            // Set permissions info
+            const permissionsElement = roleElement.querySelector('.role-permissions');
+            if (permissionsElement) {
+                // Get a list of key permissions to display
+                const permissions = [];
+                if (role.permissions) {
+                    if (role.permissions.administrator) permissions.push('Administrator');
+                    else {
+                        if (role.permissions.manage_server) permissions.push('Manage Server');
+                        if (role.permissions.manage_channels) permissions.push('Manage Channels');
+                        if (role.permissions.manage_roles) permissions.push('Manage Roles');
+                        if (role.permissions.kick_members) permissions.push('Kick Members');
+                        if (role.permissions.ban_members) permissions.push('Ban Members');
+                    }
+                }
+                
+                permissionsElement.textContent = permissions.length ? permissions.join(', ') : 'No special permissions';
+            }
+            
+            // Set role ID as data attribute
+            roleElement.dataset.roleId = role.id;
+            
+            // Add event listeners for action buttons
+            const editRoleBtn = roleElement.querySelector('.edit-role-btn');
+            const deleteRoleBtn = roleElement.querySelector('.delete-role-btn');
+            
+            if (editRoleBtn) {
+                editRoleBtn.addEventListener('click', () => {
+                    // Role editing functionality would go here
+                    alert(`Edit role: ${role.name} (ID: ${role.id})`);
+                });
+            }
+            
+            if (deleteRoleBtn) {
+                deleteRoleBtn.addEventListener('click', () => {
+                    // Delete role functionality would go here
+                    if (confirm(`Are you sure you want to delete the role ${role.name}?`)) {
+                        alert(`Deleted role: ${role.name} (ID: ${role.id})`);
+                    }
+                });
+            }
+            
+            rolesList.appendChild(roleElement);
+        });
+    }
+    
+    // Handle role search
+    if (roleSearch) {
+        roleSearch.addEventListener('input', debounce(function() {
+            const searchTerm = this.value.toLowerCase().trim();
+            
+            if (!searchTerm) {
+                sortRoles(currentFilter);
+                return;
+            }
+            
+            const filteredRoles = allRoles.filter(role => {
+                return role.name.toLowerCase().includes(searchTerm);
+            });
+            
+            renderRoles(filteredRoles);
+        }, 300));
+    }
+    
+    // Initial load
+    loadRoles();
 }

@@ -57,6 +57,11 @@ ob_start();
                         Members
                     </a>
                 </li>
+                <li>
+                    <a href="?server_id=<?php echo $serverId; ?>&section=roles" class="sidebar-item <?php echo $section === 'roles' ? 'active' : ''; ?>">
+                        Roles
+                    </a>
+                </li>
                 
                 <!-- Moderation Category -->
                 <li class="mt-6">
@@ -163,13 +168,63 @@ ob_start();
                 <h1 class="text-2xl font-bold mb-2">Members</h1>
                 <p class="text-discord-lighter mb-6">Manage members and their roles in your server</p>
                 
-                <!-- Search Bar -->
-                <div class="relative mb-6">
-                    <input type="text" id="member-search" class="form-input pl-10" placeholder="Search members">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-discord-lighter" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
+                <!-- Search and Filter Bar -->
+                <div class="flex gap-4 mb-6">
+                    <!-- Search Bar -->
+                    <div class="relative flex-1">
+                        <input type="text" id="member-search" class="form-input pl-10" placeholder="Search members">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-discord-lighter" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+                    </div>
+                    
+                    <!-- Filter Options -->
+                    <div class="flex gap-2">
+                        <!-- Sort Dropdown -->
+                        <div id="member-filter" class="relative inline-block">
+                            <button type="button" class="bg-discord-darker flex items-center justify-between px-3 py-2 rounded-md text-white hover:bg-opacity-80 transition-colors min-w-[180px]">
+                                <span class="filter-selected-text text-sm">Member Since (Newest first)</span>
+                                <svg class="w-5 h-5 text-discord-lighter ml-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                            
+                            <!-- Dropdown Menu -->
+                            <div id="filter-dropdown" class="filter-dropdown hidden absolute z-10 w-full mt-1 rounded-md shadow-lg bg-discord-darker border border-gray-700 overflow-hidden">
+                                <div class="py-1">
+                                    <div class="filter-option px-3 py-2 text-white hover:bg-discord-primary hover:text-white cursor-pointer flex items-center gap-3" data-filter="member-newest">
+                                        <div class="radio-container">
+                                            <input type="radio" name="filter" checked class="w-4 h-4 accent-[#5865f2]">
+                                            <div class="radio-dot"></div>
+                                        </div>
+                                        <span class="text-sm">Member Since (Newest first)</span>
+                                    </div>
+                                    <div class="filter-option px-3 py-2 text-white hover:bg-discord-primary hover:text-white cursor-pointer flex items-center gap-3" data-filter="member-oldest">
+                                        <div class="radio-container">
+                                            <input type="radio" name="filter" class="w-4 h-4 accent-[#5865f2]">
+                                            <div class="radio-dot"></div>
+                                        </div>
+                                        <span class="text-sm">Member Since (Oldest first)</span>
+                                    </div>
+                                    <div class="filter-option px-3 py-2 text-white hover:bg-discord-primary hover:text-white cursor-pointer flex items-center gap-3" data-filter="discord-newest">
+                                        <div class="radio-container">
+                                            <input type="radio" name="filter" class="w-4 h-4 accent-[#5865f2]">
+                                            <div class="radio-dot"></div>
+                                        </div>
+                                        <span class="text-sm">Joined Discord (Newest first)</span>
+                                    </div>
+                                    <div class="filter-option px-3 py-2 text-white hover:bg-discord-primary hover:text-white cursor-pointer flex items-center gap-3" data-filter="discord-oldest">
+                                        <div class="radio-container">
+                                            <input type="radio" name="filter" class="w-4 h-4 accent-[#5865f2]">
+                                            <div class="radio-dot"></div>
+                                        </div>
+                                        <span class="text-sm">Joined Discord (Oldest first)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
@@ -227,6 +282,122 @@ ob_start();
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
                                 </svg>
                             </button>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        <?php elseif ($section === 'roles'): ?>
+            <!-- Roles Section -->
+            <div class="p-10 max-w-[740px]">
+                <h1 class="text-2xl font-bold mb-2">Roles</h1>
+                <p class="text-discord-lighter mb-6">Use roles to group your server members and assign permissions.</p>
+                
+                <!-- Search and Filter Bar -->
+                <div class="flex gap-4 mb-6">
+                    <!-- Search Bar -->
+                    <div class="relative flex-1">
+                        <input type="text" id="role-search" class="form-input pl-10" placeholder="Search roles">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-discord-lighter" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+                    </div>
+                    
+                    <!-- Filter Options -->
+                    <div class="flex gap-2">
+                        <!-- Sort Dropdown -->
+                        <div id="role-filter" class="relative inline-block">
+                            <button type="button" class="bg-discord-darker flex items-center justify-between px-3 py-2 rounded-md text-white hover:bg-opacity-80 transition-colors min-w-[180px]">
+                                <span class="filter-selected-text text-sm">Role Name (A-Z)</span>
+                                <svg class="w-5 h-5 text-discord-lighter ml-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                            
+                            <!-- Dropdown Menu -->
+                            <div id="filter-dropdown" class="filter-dropdown hidden absolute z-10 w-full mt-1 rounded-md shadow-lg bg-discord-darker border border-gray-700 overflow-hidden">
+                                <div class="py-1">
+                                    <div class="filter-option px-3 py-2 text-white hover:bg-discord-primary hover:text-white cursor-pointer flex items-center gap-3" data-filter="role-name-asc">
+                                        <div class="radio-container">
+                                            <input type="radio" name="filter" checked class="w-4 h-4 accent-[#5865f2]">
+                                            <div class="radio-dot"></div>
+                                        </div>
+                                        <span class="text-sm">Role Name (A-Z)</span>
+                                    </div>
+                                    <div class="filter-option px-3 py-2 text-white hover:bg-discord-primary hover:text-white cursor-pointer flex items-center gap-3" data-filter="role-name-desc">
+                                        <div class="radio-container">
+                                            <input type="radio" name="filter" class="w-4 h-4 accent-[#5865f2]">
+                                            <div class="radio-dot"></div>
+                                        </div>
+                                        <span class="text-sm">Role Name (Z-A)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Create Role Button -->
+                        <button type="button" id="create-role-btn" class="create-role-btn flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                            </svg>
+                            Create Role
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Roles List -->
+                <div class="bg-discord-darker rounded-md overflow-hidden">
+                    <div class="p-4 border-b border-discord-dark flex items-center text-sm font-medium text-discord-lighter">
+                        <div class="w-10">#</div>
+                        <div class="flex-1">ROLE NAME</div>
+                        <div class="w-32">PERMISSIONS</div>
+                        <div class="w-40">ACTIONS</div>
+                    </div>
+                    
+                    <!-- Roles will be loaded here via JavaScript -->
+                    <div id="roles-list" class="max-h-[500px] overflow-y-auto">
+                        <div class="flex items-center justify-center p-8 text-discord-lighter">
+                            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span>Loading roles...</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-xs text-discord-lighter mt-3">
+                    <p>Members use the color of the highest role they have on the list. Drag roles to reorder them.</p>
+                    <a href="#" class="text-blue-400 hover:underline">Need help with permissions?</a>
+                </div>
+                
+                <!-- Role Template (for JavaScript) -->
+                <template id="role-template">
+                    <div class="role-item p-4 border-b border-discord-dark flex items-center hover:bg-discord-dark">
+                        <div class="w-10 flex items-center justify-center">
+                            <div class="role-color w-3 h-3 rounded-full bg-gray-500"></div>
+                        </div>
+                        <div class="flex-1">
+                            <div class="role-name font-medium"></div>
+                            <div class="role-permissions text-xs text-discord-lighter"></div>
+                        </div>
+                        <div class="w-32 text-xs text-discord-lighter role-member-count">
+                            0 members
+                        </div>
+                        <div class="w-40">
+                            <div class="role-actions flex space-x-2">
+                                <button class="edit-role-btn p-2 rounded hover:bg-discord-light" title="Edit Role">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                </button>
+                                <button class="delete-role-btn p-2 rounded hover:bg-discord-light" title="Delete Role">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </template>
