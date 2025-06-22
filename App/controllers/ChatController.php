@@ -65,6 +65,8 @@ class ChatController extends BaseController
             $messages = $this->messageRepository->getForChannel($channelId, $limit, $offset);
             $formattedMessages = array_map([$this, 'formatMessage'], $messages);
 
+            error_log("Returning " . count($formattedMessages) . " messages for channel $channelId");
+
             return $this->success([
                 'type' => 'channel',
                 'target_id' => $channelId,
@@ -72,7 +74,8 @@ class ChatController extends BaseController
                 'has_more' => count($messages) == $limit
             ]);
         } catch (Exception $e) {
-            return $this->serverError('Failed to load channel messages');
+            error_log("Error getting channel messages: " . $e->getMessage());
+            return $this->serverError('Failed to load channel messages: ' . $e->getMessage());
         }
     }
 
@@ -94,6 +97,8 @@ class ChatController extends BaseController
             $messages = $this->chatRoomRepository->getMessages($chatRoomId, $limit, $offset);
             $formattedMessages = array_map([$this, 'formatMessage'], $messages);
 
+            error_log("Returning " . count($formattedMessages) . " messages for DM room $chatRoomId");
+
             return $this->success([
                 'type' => 'dm',
                 'target_id' => $chatRoomId,
@@ -101,7 +106,8 @@ class ChatController extends BaseController
                 'has_more' => count($messages) == $limit
             ]);
         } catch (Exception $e) {
-            return $this->serverError('Failed to load direct messages');
+            error_log("Error getting DM messages: " . $e->getMessage());
+            return $this->serverError('Failed to load direct messages: ' . $e->getMessage());
         }
     }
 

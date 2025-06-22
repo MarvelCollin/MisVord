@@ -83,6 +83,8 @@ class ChatRoomRepository extends Repository {
       public function getRoomMessages($roomId, $limit = 50, $offset = 0) {
         $query = new Query();
         
+        error_log("Getting messages for DM room $roomId with limit $limit and offset $offset");
+        
         $results = $query->table('messages m')
             ->join('chat_room_messages crm', 'm.id', '=', 'crm.message_id')
             ->join('users u', 'm.user_id', '=', 'u.id')
@@ -92,7 +94,10 @@ class ChatRoomRepository extends Repository {
             ->limit($limit)
             ->offset($offset)
             ->get();
-            
+        
+        error_log("Found " . count($results) . " messages for DM room $roomId");
+        
+        // Return messages in chronological order (oldest first)
         return array_reverse($results);
     }
     

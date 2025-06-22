@@ -1,29 +1,144 @@
-/* Settings User Page CSS */
+/* User Settings Page Styles */
 
-.settings-sidebar {
-  min-width: 256px;
-  border-right: 1px solid #26282c;
+:root {
+  --discord-primary: #5865f2;
+  --discord-primary-dark: #4752c4;
+  --discord-red: #ed4245;
+  --discord-green: #3ba55d;
+  --discord-dark: #313338;
+  --discord-darker: #2b2d31;
+  --discord-light: #1e1f22;
+  --discord-lighter: #b5bac1;
+  --discord-white: #ffffff;
+  --discord-background: #313338;
+  --discord-background-secondary: #2b2d31;
+  --discord-background-tertiary: #1e1f22;
+  --discord-background-modifier-hover: rgba(79, 84, 92, 0.16);
+  --discord-background-modifier-active: rgba(79, 84, 92, 0.24);
+  --discord-background-modifier-selected: rgba(79, 84, 92, 0.32);
+  --discord-text-normal: #dcddde;
+  --discord-text-muted: #a3a6aa;
+  --discord-dark-input: #1e1f22;
+  --discord-dark-hover: #35373c;
 }
 
-.bg-discord-selected {
+body {
+  background-color: var(--discord-background);
+  color: var(--discord-text-normal);
+  font-family: 'gg sans', 'Noto Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+/* Container layout */
+.flex.min-h-screen {
+  margin: 0 auto;
+  width: 100%;
+  max-width: 1480px;
+}
+
+/* Main content area */
+.flex-1.bg-discord-dark {
+  padding: 0 20px;
+}
+
+.flex-1.bg-discord-dark > div {
+  margin: 0 auto;
+}
+
+/* Sidebar categories */
+.sidebar-category {
+  font-size: 12px;
+  font-weight: 700;
+  color: #b5bac1;
+  padding: 4px 16px;
+  margin-top: 16px;
+  text-transform: uppercase;
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  color: #b5bac1;
+  cursor: pointer;
+  border-radius: 4px;
+  margin: 2px 8px;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.1s ease;
+}
+
+.sidebar-item:hover {
+  background-color: #35373c;
+  color: white;
+  transform: translateX(2px);
+}
+
+.sidebar-item.active {
   background-color: rgba(79, 84, 92, 0.32);
+  color: white;
 }
 
-.settings-item:hover {
-  background-color: rgba(79, 84, 92, 0.16);
-}
-
-.settings-item.selected {
-  background-color: rgba(79, 84, 92, 0.32);
-  color: #fff;
-}
-
-.bg-discord-purple {
+.sidebar-item-badge {
   background-color: #5865f2;
+  color: white;
+  font-size: 10px;
+  padding: 2px 4px;
+  border-radius: 3px;
+  margin-left: 8px;
+  transition: transform 0.2s ease;
 }
 
-.bg-discord-blue-dark {
-  background-color: #4752c4;
+.sidebar-item:hover .sidebar-item-badge {
+  transform: scale(1.05);
+}
+
+/* User Preview Card */
+.user-preview-card {
+  background-color: #1e1f22;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.user-preview-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.user-banner {
+  height: 160px;
+  position: relative;
+}
+
+.user-avatar-preview {
+  position: absolute;
+  bottom: -32px;
+  left: 16px;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 4px solid #1e1f22;
+  overflow: hidden;
+  background-color: #313338;
+  transition: transform 0.2s ease;
+}
+
+.user-preview-card:hover .user-avatar-preview {
+  transform: scale(1.02);
+}
+
+.user-info {
+  padding: 40px 16px 16px;
+}
+
+.user-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--discord-white);
+  margin-bottom: 4px;
+}
+
+.user-tag {
+  font-size: 12px;
+  color: var(--discord-lighter);
 }
 
 /* Animation for the ESC button */
@@ -32,9 +147,65 @@
   transition: transform 0.2s ease;
 }
 
-/* Tab focus effect */
-.settings-content button:focus {
-  outline: none;
+/* Close button */
+.close-button {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  transition: opacity 0.2s ease;
+}
+
+.close-button:hover {
+  opacity: 0.9;
+}
+
+.close-button-icon {
+  width: 32px;
+  height: 32px;
+  background-color: #2b2d31;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  margin-right: 8px;
+}
+
+.close-button-icon:hover {
+  background-color: #35373c;
+  transform: scale(1.05);
+}
+
+.close-button-icon:active {
+  transform: scale(0.95);
+}
+
+.close-button-text {
+  font-size: 12px;
+  color: white;
+  transition: color 0.2s ease;
+}
+
+.close-button:hover .close-button-text {
+  color: #dcddde;
+}
+
+/* Status Selector */
+.status-option {
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.status-option:hover {
+  transform: translateX(2px);
+}
+
+.custom-status {
+  transition: background-color 0.2s ease;
 }
 
 /* Custom scrollbar for the settings page */
@@ -54,29 +225,85 @@
   background-color: transparent;
 }
 
-/* Hover effects for buttons */
+/* Buttons */
+button {
+  transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+}
+
+button:hover {
+  transform: translateY(-1px);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+button.bg-discord-blue {
+  background-color: #5865f2;
+  color: white;
+}
+
 button.bg-discord-blue:hover {
   background-color: #4752c4;
 }
 
-button.bg-discord-dark:hover {
-  background-color: #18191c;
+button.bg-discord-dark {
+  background-color: #2b2d31;
+  color: white;
 }
 
-/* Edit buttons hover animation */
-.settings-content button:not(.text-blue-500):hover {
-  transform: translateY(-1px);
-  transition: transform 0.2s ease;
+button.bg-discord-dark:hover {
+  background-color: #35373c;
+}
+
+/* Form inputs */
+input {
+  background-color: #1e1f22;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  padding: 10px;
+  transition: box-shadow 0.2s ease;
+}
+
+input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.3);
+}
+
+/* Badge styles */
+.bg-discord-selected {
+  background-color: rgba(79, 84, 92, 0.32);
+}
+
+.bg-discord-purple {
+  background-color: #5865f2;
+}
+
+.bg-discord-blue-dark {
+  background-color: #4752c4;
 }
 
 /* Responsive adjustments */
+@media (max-width: 1200px) {
+  .flex.min-h-screen {
+    max-width: 100%;
+  }
+}
+
 @media (max-width: 768px) {
-  .settings-page {
+  .flex.min-h-screen {
     flex-direction: column;
   }
   
-  .settings-sidebar {
+  .w-60 {
     width: 100%;
     max-height: 200px;
+    overflow-y: auto;
+  }
+  
+  .w-80 {
+    width: 100%;
+    order: 3;
   }
 }

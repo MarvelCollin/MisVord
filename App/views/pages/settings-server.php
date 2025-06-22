@@ -57,21 +57,6 @@ ob_start();
                         Members
                     </a>
                 </li>
-                <li>
-                    <a href="?server_id=<?php echo $serverId; ?>&section=roles" class="sidebar-item <?php echo $section === 'roles' ? 'active' : ''; ?>">
-                        Roles
-                    </a>
-                </li>
-                <li>
-                    <a href="?server_id=<?php echo $serverId; ?>&section=invites" class="sidebar-item <?php echo $section === 'invites' ? 'active' : ''; ?>">
-                        Invites
-                    </a>
-                </li>
-                <li>
-                    <a href="?server_id=<?php echo $serverId; ?>&section=access" class="sidebar-item <?php echo $section === 'access' ? 'active' : ''; ?>">
-                        Access
-                    </a>
-                </li>
                 
                 <!-- Moderation Category -->
                 <li class="mt-6">
@@ -94,7 +79,7 @@ ob_start();
             <!-- Server Profile Section -->
             <div class="p-10 max-w-[740px]">
                 <h1 class="text-2xl font-bold mb-2">Server Profile</h1>
-                <p class="text-discord-lighter mb-6">Customize how your server appears in invite links and, if enabled, in Server Discovery and Announcement Channel messages</p>
+                <p class="text-discord-lighter mb-6">Customize your server's appearance and profile information</p>
                 
                 <form id="server-profile-form" class="space-y-8">
                     <input type="hidden" name="server_id" value="<?php echo $serverId; ?>">
@@ -135,66 +120,40 @@ ob_start();
                         </div>
                     </div>
                     
-                    <!-- Server Banner -->
-                    <div class="form-group mt-8">
-                        <label class="block text-sm font-medium text-white mb-2">Banner</label>
-                        
-                        <div class="grid grid-cols-5 gap-2 mb-4">
-                            <div class="banner-color-option bg-gradient-to-b from-[#e3e5e8] to-[#c7ccd1] h-16 rounded-md cursor-pointer border-2 border-transparent"></div>
-                            <div class="banner-color-option bg-gradient-to-b from-[#ff73fa] to-[#ff295b] h-16 rounded-md cursor-pointer border-2 border-transparent"></div>
-                            <div class="banner-color-option bg-gradient-to-b from-[#ff4747] to-[#ff7b7b] h-16 rounded-md cursor-pointer border-2 border-transparent"></div>
-                            <div class="banner-color-option bg-gradient-to-b from-[#faa61a] to-[#fbcf4c] h-16 rounded-md cursor-pointer border-2 border-transparent"></div>
-                            <div class="banner-color-option bg-gradient-to-b from-[#ffd659] to-[#e7af27] h-16 rounded-md cursor-pointer border-2 border-transparent"></div>
-                            
-                            <div class="banner-color-option bg-gradient-to-b from-[#b78dff] to-[#9e55ff] h-16 rounded-md cursor-pointer border-2 border-transparent"></div>
-                            <div class="banner-color-option bg-gradient-to-b from-[#46ddff] to-[#2ea6ff] h-16 rounded-md cursor-pointer border-2 border-transparent"></div>
-                            <div class="banner-color-option bg-gradient-to-b from-[#45e5ce] to-[#1bdbb3] h-16 rounded-md cursor-pointer border-2 border-transparent"></div>
-                            <div class="banner-color-option bg-gradient-to-b from-[#98ee99] to-[#57ba5e] h-16 rounded-md cursor-pointer border-2 border-transparent"></div>
-                            <div class="banner-color-option bg-gradient-to-b from-[#7a8087] to-[#36393f] h-16 rounded-md cursor-pointer border-2 border-transparent"></div>
-                        </div>
+                    <!-- Server Description -->
+                    <div class="form-group">
+                        <label for="server-description" class="block text-sm font-medium text-white mb-2">Description</label>
+                        <textarea id="server-description" name="description" class="form-input h-24 resize-none" placeholder="Tell people what your server is about..."><?php echo htmlspecialchars($server->description ?? ''); ?></textarea>
                     </div>
                     
-                    <!-- Traits Section -->
-                    <div class="form-group mt-8">
-                        <label class="block text-sm font-medium text-white mb-2">Traits</label>
-                        <p class="text-discord-lighter text-sm mb-4">Add up to 5 traits to show off your server's interests and personality.</p>
-                        
-                        <div class="grid grid-cols-3 gap-4">
-                            <div class="trait-card">
-                                <div class="trait-emoji">
-                                    <span class="text-xl">😊</span>
-                                </div>
-                                <span class="text-discord-lighter">Add trait</span>
-                            </div>
-                            
-                            <div class="trait-card">
-                                <div class="trait-emoji">
-                                    <span class="text-xl">😎</span>
-                                </div>
-                                <span class="text-discord-lighter">Add trait</span>
-                            </div>
-                            
-                            <div class="trait-card">
-                                <div class="trait-emoji">
-                                    <span class="text-xl">🤓</span>
-                                </div>
-                                <span class="text-discord-lighter">Add trait</span>
-                            </div>
-                            
-                            <div class="trait-card">
-                                <div class="trait-emoji">
-                                    <span class="text-xl">🎮</span>
-                                </div>
-                                <span class="text-discord-lighter">Add trait</span>
-                            </div>
-                            
-                            <div class="trait-card">
-                                <div class="trait-emoji">
-                                    <span class="text-xl">🎲</span>
-                                </div>
-                                <span class="text-discord-lighter">Add trait</span>
-                            </div>
+                    <!-- Server Privacy -->
+                    <div class="form-group">
+                        <label class="block text-sm font-medium text-white mb-2">Privacy Setting</label>
+                        <div class="flex items-center space-x-2">
+                            <input type="checkbox" id="is-public" name="is_public" class="w-5 h-5" <?php echo $server->is_public ? 'checked' : ''; ?>>
+                            <label for="is-public" class="text-sm text-white">Make this server public</label>
                         </div>
+                        <p class="text-discord-lighter text-xs mt-1">Public servers can be found by anyone in Server Discovery</p>
+                    </div>
+                    
+                    <!-- Server Category -->
+                    <div class="form-group">
+                        <label for="server-category" class="block text-sm font-medium text-white mb-2">Category</label>
+                        <select id="server-category" name="category" class="form-input">
+                            <option value="">Select a category</option>
+                            <option value="gaming" <?php echo ($server->category === 'gaming') ? 'selected' : ''; ?>>Gaming</option>
+                            <option value="music" <?php echo ($server->category === 'music') ? 'selected' : ''; ?>>Music</option>
+                            <option value="education" <?php echo ($server->category === 'education') ? 'selected' : ''; ?>>Education</option>
+                            <option value="science" <?php echo ($server->category === 'science') ? 'selected' : ''; ?>>Science & Tech</option>
+                            <option value="entertainment" <?php echo ($server->category === 'entertainment') ? 'selected' : ''; ?>>Entertainment</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Save Button -->
+                    <div class="form-group mt-8">
+                        <button type="submit" id="save-changes-btn" class="bg-[#5865f2] hover:bg-[#4752c4] text-white font-medium py-2 px-6 rounded-md">
+                            Save Changes
+                        </button>
                     </div>
                 </form>
             </div>
@@ -210,7 +169,8 @@ ob_start();
     <div class="w-80 bg-discord-dark border-l border-discord-light p-6">
         <div class="server-preview-card bg-[#1e1f22] rounded-lg overflow-hidden">
             <!-- Server Banner Preview -->
-            <div class="server-banner h-40 bg-gradient-to-b from-[#e3e5e8] to-[#c7ccd1] relative">
+            <div class="server-banner h-40 <?php echo $server->banner_url ? '' : 'bg-gradient-to-b from-[#7a8087] to-[#36393f]'; ?>" 
+                 <?php echo $server->banner_url ? 'style="background-image: url(\'' . htmlspecialchars($server->banner_url) . '\'); background-size: cover; background-position: center;"' : ''; ?>>
                 <!-- Server Icon Preview -->
                 <div class="server-icon-preview absolute -bottom-8 left-4 w-16 h-16 bg-discord-dark rounded-full border-4 border-[#1e1f22] overflow-hidden">
                     <?php if ($server->image_url): ?>
@@ -228,11 +188,13 @@ ob_start();
                 <h3 class="server-name text-white font-bold"><?php echo htmlspecialchars($server->name); ?></h3>
                 <div class="server-meta flex items-center text-xs text-discord-lighter mt-1">
                     <span class="online-indicator inline-block w-2 h-2 bg-green-500 rounded-full mr-1"></span>
-                    <span>10 Online</span>
+                    <span>Online</span>
                     <span class="mx-1">•</span>
-                    <span>45 Members</span>
+                    <span>Members</span>
                 </div>
-                <div class="server-meta text-xs text-discord-lighter mt-1">Est. Feb 2024</div>
+                <?php if ($server->description): ?>
+                    <div class="server-description text-xs text-discord-lighter mt-3"><?php echo htmlspecialchars($server->description); ?></div>
+                <?php endif; ?>
             </div>
         </div>
     </div>

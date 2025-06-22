@@ -490,6 +490,11 @@ Route::get('/api/debug/database', function() {
     }
 });
 
+Route::post('/api/servers/([0-9]+)/settings', function($serverId) {
+    $controller = new ServerController();
+    $controller->updateServerSettings($serverId);
+});
+
 return array_merge(Route::getRoutes(), [
     '404' => 'pages/404.php'
 ]);

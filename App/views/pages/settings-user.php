@@ -17,6 +17,7 @@ $page_title = 'User Settings - misvord';
 $body_class = 'bg-discord-dark text-white overflow-hidden';
 $page_css = 'settings-user';
 $page_js = 'components/auth/settings-user';
+$head_scripts = ['logger-init'];
 $data_page = 'settings-user';
 $user_id = $_SESSION['user_id'];
 
@@ -193,17 +194,11 @@ $section = $_GET['section'] ?? 'my-account';
     </div>
 
     <!-- Main Content Area -->
-    <div class="flex-1 bg-discord-dark overflow-y-auto relative">
-        <!-- Close Button -->
-        <button class="absolute top-4 right-4 text-discord-lighter hover:text-white bg-discord-dark hover:bg-discord-darkest rounded-full w-8 h-8 flex items-center justify-center" onclick="window.history.back()">
-            <i class="fas fa-times"></i>
-            <span class="sr-only">ESC</span>
-        </button>
-        
-        <div class="p-10 max-w-3xl">
-            <?php if ($section === 'my-account'): ?>
-                <!-- Page Header -->
-                <h1 class="text-2xl font-bold mb-6">My Account</h1>
+    <div class="flex-1 bg-discord-dark overflow-y-auto">
+        <?php if ($section === 'my-account'): ?>
+            <!-- Page Header -->
+            <div class="p-10 max-w-[740px]">
+                <h1 class="text-2xl font-bold mb-2">My Account</h1>
                 
                 <!-- Tabs -->
                 <div class="border-b border-discord-dark mb-6">
@@ -342,13 +337,13 @@ $section = $_GET['section'] ?? 'my-account';
                         </button>
                     </div>
                 </div>
-            <?php else: ?>
-                <div class="p-10 max-w-[740px]">
-                    <h1 class="text-2xl font-bold mb-6"><?php echo ucfirst(str_replace('-', ' ', $section)); ?></h1>
-                    <p class="text-discord-lighter">This section is under development.</p>
-                </div>
-            <?php endif; ?>
-        </div>
+            </div>
+        <?php else: ?>
+            <div class="p-10 max-w-[740px]">
+                <h1 class="text-2xl font-bold mb-6"><?php echo ucfirst(str_replace('-', ' ', $section)); ?></h1>
+                <p class="text-discord-lighter">This section is under development.</p>
+            </div>
+        <?php endif; ?>
     </div>
     
     <!-- User Preview Panel -->

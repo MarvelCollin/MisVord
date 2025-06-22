@@ -7,8 +7,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function initServerSettingsPage() {
     initServerIconUpload();
-    initBannerSelection();
-    initTraitSelection();
     initServerProfileForm();
     initCloseButton();
 }
@@ -199,135 +197,100 @@ function resetServerPreviewIcon() {
 }
 
 /**
- * Initialize banner selection
- */
-function initBannerSelection() {
-    const bannerOptions = document.querySelectorAll('.form-group[class*="banner"] .grid > div');
-    const serverBannerPreview = document.querySelector('.server-preview-card .server-banner, .server-banner');
-    
-    if (!bannerOptions.length || !serverBannerPreview) return;
-    
-    bannerOptions.forEach((option) => {
-        option.addEventListener('click', function() {
-            // Remove selected class from all options
-            bannerOptions.forEach(opt => opt.classList.remove('border-white'));
-            
-            // Add selected class to clicked option
-            this.classList.add('border-white');
-            
-            // Get the background style from the clicked option
-            const bgStyle = window.getComputedStyle(this).backgroundImage;
-            
-            // Apply the background to the server banner preview
-            serverBannerPreview.style.backgroundImage = bgStyle;
-            
-            // Store the selected banner in a data attribute for form submission
-            serverBannerPreview.dataset.selectedBanner = bgStyle;
-        });
-    });
-}
-
-/**
- * Initialize trait selection
- */
-function initTraitSelection() {
-    const traitCards = document.querySelectorAll('.form-group[class*="trait"] .grid > div');
-    
-    if (!traitCards.length) return;
-    
-    traitCards.forEach((card) => {
-        card.addEventListener('click', function() {
-            // Toggle selected class
-            this.classList.toggle('border-[#5865f2]');
-            this.classList.toggle('bg-[#5865f2]/10');
-        });
-    });
-}
-
-/**
  * Initialize server profile form submission
  */
 function initServerProfileForm() {
     const form = document.getElementById('server-profile-form');
     const serverNameInput = document.getElementById('server-name');
+    const serverDescriptionInput = document.getElementById('server-description');
+    const isPublicCheckbox = document.getElementById('is-public');
+    const serverCategorySelect = document.getElementById('server-category');
+    const saveButton = document.getElementById('save-changes-btn');
+    const serverId = document.querySelector('meta[name="server-id"]')?.content;
     
-    if (!form) return;
+    if (!form || !serverId) return;
     
-    // Auto-save when server name changes
+    // Update server name preview as user types
     if (serverNameInput) {
         serverNameInput.addEventListener('input', debounce(function() {
-            // Update the server name in the preview
             updateServerNamePreview(this.value);
-            
-            // Auto-save after a short delay
-            const formData = new FormData(form);
-            const serverId = formData.get('server_id');
-            
-            if (!serverId) return;
-            
-            // Only send name update
-            const nameFormData = new FormData();
-            nameFormData.append('server_id', serverId);
-            nameFormData.append('name', this.value);
-            
-            const serverApi = new ServerAPI();
-            serverApi.updateServerSettings(serverId, nameFormData)
-                .then(response => {
-                    if (response.success) {
-                        // Update the server name in the sidebar
-                        updateServerNameInUI(this.value);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error updating server name:', error);
-                });
-        }, 1000));
+        }, 300));
+    }
+
+    // Update server description preview as user types
+    if (serverDescriptionInput) {
+        serverDescriptionInput.addEventListener('input', debounce(function() {
+            updateServerDescriptionPreview(this.value);
+        }, 300));
     }
     
-    form.addEventListener('submit', function(e) {
+    // Form submission handler
+    form.addEventListener('submit', async function(e) {
         e.preventDefault();
         
-        const formData = new FormData(form);
-        const serverId = formData.get('server_id');
-        
         if (!serverId) {
-            console.error('Server ID is missing');
+            showToast('Server ID not found', 'error');
             return;
         }
         
-        // Add cropped server icon if available
-        const iconContainer = document.getElementById('server-icon-container');
-        if (iconContainer && iconContainer.dataset.croppedImage) {
-            const iconBlob = dataURLtoBlob(iconContainer.dataset.croppedImage);
-            formData.set('server_icon', iconBlob, 'server_icon.png');
-        }
-        
-        // Add selected banner if available
-        const serverBannerPreview = document.querySelector('.server-preview-card .server-banner');
-        if (serverBannerPreview && serverBannerPreview.dataset.selectedBanner) {
-            formData.set('banner_style', serverBannerPreview.dataset.selectedBanner);
-        }
-        
-        // Submit the form
-        const serverApi = new ServerAPI();
-        serverApi.updateServerSettings(serverId, formData)
-            .then(response => {
-                if (response.success) {
-                    showToast('Server settings updated successfully', 'success');
-                    
-                    // Update the server name in the sidebar if it was changed
-                    const newName = formData.get('name');
-                    if (newName) {
-                        updateServerNameInUI(newName);
-                    }
-                } else {
-                    showToast(response.message || 'Failed to update server settings', 'error');
+        try {
+            saveButton.disabled = true;
+            saveButton.textContent = 'Saving...';
+            
+            const formData = new FormData();
+            
+            // Add server name
+            if (serverNameInput && serverNameInput.value.trim()) {
+                formData.append('name', serverNameInput.value.trim());
+            } else {
+                showToast('Server name is required', 'error');
+                saveButton.disabled = false;
+                saveButton.textContent = 'Save Changes';
+                return;
+            }
+            
+            // Add server description
+            if (serverDescriptionInput) {
+                formData.append('description', serverDescriptionInput.value.trim());
+            }
+            
+            // Add public status
+            if (isPublicCheckbox) {
+                formData.append('is_public', isPublicCheckbox.checked ? '1' : '0');
+            }
+            
+            // Add category
+            if (serverCategorySelect && serverCategorySelect.value) {
+                formData.append('category', serverCategorySelect.value);
+            }
+            
+            // Add server icon if changed
+            const iconContainer = document.getElementById('server-icon-container');
+            if (iconContainer && iconContainer.dataset.croppedImage) {
+                const iconBlob = dataURLtoBlob(iconContainer.dataset.croppedImage);
+                formData.append('server_icon', iconBlob, 'server_icon.png');
+            }
+            
+            // Call the API to update the server
+            const response = await ServerAPI.updateServerSettings(serverId, formData);
+            
+            if (response && response.success) {
+                showToast('Server settings updated successfully', 'success');
+                
+                // Update server name in UI if needed
+                if (serverNameInput && serverNameInput.value.trim()) {
+                    updateServerNameInUI(serverNameInput.value.trim());
                 }
-            })
-            .catch(error => {
-                console.error('Error updating server settings:', error);
-                showToast('An error occurred while updating server settings', 'error');
-            });
+            } else {
+                throw new Error(response.message || 'Failed to update server settings');
+            }
+        } catch (error) {
+            console.error('Error updating server settings:', error);
+            showToast(error.message || 'Failed to update server settings', 'error');
+        } finally {
+            saveButton.disabled = false;
+            saveButton.textContent = 'Save Changes';
+        }
     });
 }
 
@@ -335,58 +298,76 @@ function initServerProfileForm() {
  * Initialize close button
  */
 function initCloseButton() {
-    const closeButton = document.querySelector('a[href^="/server/"]');
+    const closeButton = document.querySelector('.close-button');
+    if (!closeButton) return;
     
-    if (closeButton) {
-        closeButton.addEventListener('click', function(e) {
-            // Check if there are unsaved changes
-            const serverNameInput = document.getElementById('server-name');
-            const iconContainer = document.getElementById('server-icon-container');
-            const serverBannerPreview = document.querySelector('.server-banner');
-            
-            let hasChanges = false;
-            
-            // Check for icon changes
-            if (iconContainer && iconContainer.dataset.croppedImage) {
-                hasChanges = true;
+    closeButton.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        const serverId = document.querySelector('meta[name="server-id"]')?.content;
+        if (!serverId) {
+            window.location.href = '/home';
+            return;
+        }
+        
+        window.location.href = `/server/${serverId}`;
+    });
+    
+    // Also handle ESC key press
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const serverId = document.querySelector('meta[name="server-id"]')?.content;
+            if (!serverId) {
+                window.location.href = '/home';
+                return;
             }
             
-            // Check for banner changes
-            if (serverBannerPreview && serverBannerPreview.dataset.selectedBanner) {
-                hasChanges = true;
-            }
-            
-            // If there are unsaved changes, confirm before leaving
-            if (hasChanges) {
-                if (!confirm('You have unsaved changes. Are you sure you want to leave?')) {
-                    e.preventDefault();
-                }
-            }
-        });
-    }
+            window.location.href = `/server/${serverId}`;
+        }
+    });
 }
 
 /**
- * Update server name in UI elements
+ * Update server name in various UI elements
  */
 function updateServerNameInUI(newName) {
-    // Update server name in sidebar
-    const serverNameElement = document.querySelector('.p-4 .text-sm');
-    if (serverNameElement) {
-        serverNameElement.textContent = newName;
+    // Update in sidebar
+    const sidebarServerName = document.querySelector('.w-60.bg-discord-light .text-sm.font-semibold');
+    if (sidebarServerName) {
+        sidebarServerName.textContent = newName;
     }
     
-    // Update server name in preview
-    updateServerNamePreview(newName);
+    // Update page title
+    document.title = `misvord - ${newName} Settings`;
 }
 
 /**
- * Update server name in preview panel
+ * Update server name in preview
  */
 function updateServerNamePreview(newName) {
-    const serverNamePreview = document.querySelector('.server-info h3, .pt-10 h3');
+    const serverNamePreview = document.querySelector('.server-name');
     if (serverNamePreview) {
-        serverNamePreview.textContent = newName;
+        serverNamePreview.textContent = newName || 'Server Name';
+    }
+}
+
+/**
+ * Update server description in preview
+ */
+function updateServerDescriptionPreview(newDescription) {
+    let serverDescriptionPreview = document.querySelector('.server-description');
+    
+    if (newDescription) {
+        if (!serverDescriptionPreview) {
+            // Create description element if it doesn't exist
+            serverDescriptionPreview = document.createElement('div');
+            serverDescriptionPreview.className = 'server-description text-xs text-discord-lighter mt-3';
+            document.querySelector('.server-info').appendChild(serverDescriptionPreview);
+        }
+        serverDescriptionPreview.textContent = newDescription;
+    } else if (serverDescriptionPreview) {
+        // Remove description element if empty
+        serverDescriptionPreview.remove();
     }
 }
 
@@ -394,17 +375,17 @@ function updateServerNamePreview(newName) {
  * Convert data URL to Blob
  */
 function dataURLtoBlob(dataURL) {
-    const parts = dataURL.split(';base64,');
-    const contentType = parts[0].split(':')[1];
-    const raw = window.atob(parts[1]);
-    const rawLength = raw.length;
-    const uInt8Array = new Uint8Array(rawLength);
+    const arr = dataURL.split(',');
+    const mime = arr[0].match(/:(.*?);/)[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
     
-    for (let i = 0; i < rawLength; ++i) {
-        uInt8Array[i] = raw.charCodeAt(i);
+    while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
     }
     
-    return new Blob([uInt8Array], { type: contentType });
+    return new Blob([u8arr], { type: mime });
 }
 
 /**
@@ -413,9 +394,8 @@ function dataURLtoBlob(dataURL) {
 function debounce(func, wait) {
     let timeout;
     return function(...args) {
-        const context = this;
         clearTimeout(timeout);
-        timeout = setTimeout(() => func.apply(context, args), wait);
+        timeout = setTimeout(() => func.apply(this, args), wait);
     };
 }
 
@@ -423,9 +403,9 @@ function debounce(func, wait) {
  * Show toast notification
  */
 function showToast(message, type = 'info') {
-    if (window.Toast) {
-        window.Toast.show(message, type);
+    if (window.showToast) {
+        window.showToast(message, type);
     } else {
-        console.log(`Toast (${type}):`, message);
+        alert(message);
     }
 }

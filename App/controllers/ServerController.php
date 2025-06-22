@@ -629,6 +629,78 @@ class ServerController extends BaseController
             return $this->serverError('Failed to generate invite link');
         }
     }
+
+    public function updateServerSettings($id)
+    {
+        $this->requireAuth();
+
+        $server = $this->serverRepository->find($id);
+        if (!$server) {
+            return $this->notFound('Server not found');
+        }
+
+        if (!$this->canManageServer($server)) {
+            return $this->forbidden('You do not have permission to edit this server');
+        }
+
+        $input = $this->getInput();
+        $input = $this->sanitize($input);
+
+        $errors = [];
+
+        if (isset($input['name'])) {
+            if (empty($input['name'])) {
+                $errors['name'] = 'Server name is required';
+            } else {
+                $server->name = $input['name'];
+            }
+        }
+
+        if (isset($input['description'])) {
+            $server->description = $input['description'];
+        }
+        
+        if (isset($input['is_public'])) {
+            $server->is_public = (bool)$input['is_public'];
+        }
+        
+        if (isset($input['category'])) {
+            $server->category = $input['category'];
+        }
+
+        if (isset($_FILES['server_icon']) && $_FILES['server_icon']['error'] === UPLOAD_ERR_OK) {
+            $imageUrl = $this->uploadImage($_FILES['server_icon'], 'servers');
+            if ($imageUrl !== false) {
+                $server->image_url = $imageUrl;
+            }
+        }
+
+        if (!empty($errors)) {
+            return $this->validationError($errors);
+        }
+
+        try {
+            if ($server->save()) {
+                $this->logActivity('server_settings_updated', [
+                    'server_id' => $id,
+                    'changes' => array_keys($input)
+                ]);
+
+                return $this->success([
+                    'server' => $this->formatServer($server)
+                ], 'Server settings updated successfully');
+            } else {
+                throw new Exception('Failed to save server settings');
+            }
+        } catch (Exception $e) {
+            $this->logActivity('server_settings_update_error', [
+                'server_id' => $id,
+                'error' => $e->getMessage()
+            ]);
+            return $this->serverError('Failed to update server settings');
+        }
+    }
+
     private function formatServer($server)
     {
         return [

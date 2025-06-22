@@ -15,17 +15,23 @@ class Message extends Model {
     }
       public static function getForChannel($channelId, $limit = 50, $offset = 0) {
         $query = new Query();
+        
+        error_log("Getting messages for channel $channelId with limit $limit and offset $offset");
+        
         $results = $query->table('messages m')
                 ->select('m.*, u.username, u.avatar_url, m.sent_at as timestamp') 
                 ->join('channel_messages cm', 'm.id', '=', 'cm.message_id')
                 ->join('users u', 'm.user_id', '=', 'u.id')
                 ->where('cm.channel_id', $channelId)
-                ->orderBy('m.sent_at', 'ASC')
+                ->orderBy('m.sent_at', 'DESC')
                 ->limit($limit)
                 ->offset($offset)
                 ->get();
         
-        return $results;
+        error_log("Found " . count($results) . " messages for channel $channelId");
+        
+        // Return messages in chronological order (oldest first)
+        return array_reverse($results);
     }
       public static function getRecentForChannel($channelId, $limit = 10) {
         $query = new Query();

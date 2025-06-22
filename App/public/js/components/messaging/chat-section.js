@@ -162,9 +162,14 @@ class ChatSection {
             
             this.hideLoadingIndicator();
             
-            if (response && response.messages) {
-                this.renderMessages(response.messages);
+            // Check if the response has data.messages (standard API response structure)
+            if (response && response.data && response.data.messages) {
+                console.log('Loaded messages from database:', response.data.messages);
+                this.renderMessages(response.data.messages);
                 this.scrollToBottom();
+            } else {
+                console.error('No messages found in response:', response);
+                this.showErrorMessage('No messages found');
             }
             
             this.messagesLoaded = true;
@@ -349,14 +354,29 @@ class ChatSection {
     }
     
     renderMessages(messages) {
-        if (!this.chatMessages || !messages || messages.length === 0) {
+        if (!this.chatMessages) {
+            return;
+        }
+        
+        // Clear existing messages
+        this.chatMessages.innerHTML = '';
+        
+        if (!messages || messages.length === 0) {
+            const emptyState = document.createElement('div');
+            emptyState.className = 'flex flex-col items-center justify-center p-8 text-gray-400 h-full';
+            emptyState.innerHTML = `
+                <svg class="w-16 h-16 mb-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" d="M18 10c0 4.418-3.582 8-8 8s-8-3.582-8-8 3.582-8 8-8 8 3.582 8 8zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                </svg>
+                <p class="text-lg font-medium">No messages yet</p>
+                <p class="text-sm mt-2">Start the conversation by sending a message!</p>
+            `;
+            this.chatMessages.appendChild(emptyState);
             return;
         }
         
         let lastSenderId = null;
         let messageGroup = null;
-        
-        this.chatMessages.innerHTML = '';
         
         messages.forEach(message => {
             if (message.user_id !== lastSenderId) {

@@ -52,7 +52,28 @@ class ChatAPI {
     }    async getMessages(chatType, targetId, limit = 20, offset = 0) {
         const apiChatType = chatType === 'direct' ? 'dm' : chatType;
         const url = `${this.baseURL}/${apiChatType}/${targetId}/messages?limit=${limit}&offset=${offset}`;
-        return await this.makeRequest(url);
+        
+        console.log(`🔍 Fetching messages for ${apiChatType} ${targetId} from ${url}`);
+        
+        try {
+            const response = await this.makeRequest(url);
+            console.log('🔍 API response for getMessages:', response);
+            
+            // Debug the response structure
+            if (response) {
+                console.log('🔍 Response structure:', {
+                    hasData: !!response.data,
+                    dataType: response.data ? typeof response.data : 'N/A',
+                    hasMessages: response.data && Array.isArray(response.data.messages),
+                    messagesCount: response.data && response.data.messages ? response.data.messages.length : 0
+                });
+            }
+            
+            return response;
+        } catch (error) {
+            console.error(`❌ Failed to fetch messages for ${apiChatType} ${targetId}:`, error);
+            throw error;
+        }
     }async sendMessage(targetId, content, chatType = 'channel') {
         const url = `${this.baseURL}/send`;
         const apiChatType = chatType === 'direct' ? 'dm' : chatType;
