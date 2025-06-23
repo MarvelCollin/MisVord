@@ -48,6 +48,23 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
 
 <?php ob_start(); ?>
 
+<style>
+    select#security_question, select#google_security_question {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+        background-position: right 0.5rem center;
+        background-repeat: no-repeat;
+        background-size: 1.5em 1.5em;
+        padding-right: 2.5rem;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        appearance: none;
+    }
+    
+    select#security_question option, select#google_security_question option {
+        background-color: #202225;
+    }
+</style>
+
 <div class="authentication-page w-full min-h-screen flex items-center justify-center bg-[#202225] p-4 sm:p-6 md:p-8">
 
     <div class="w-full max-w-md mx-auto rounded-xl shadow-2xl relative z-10 glass-hero transform transition-all duration-700 ease-out bg-[#2f3136]/80 backdrop-filter backdrop-blur-md border border-white/10 p-6 sm:p-8" id="authContainer">
@@ -227,12 +244,13 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                         class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all"
                     >
                         <option value="">Select a security question</option>
-                        <option value="What was the name of your first pet?">What was the name of your first pet?</option>
-                        <option value="In what city were you born?">In what city were you born?</option>
-                        <option value="What was the name of your first school?">What was the name of your first school?</option>
-                        <option value="What is your mother's maiden name?">What is your mother's maiden name?</option>
-                        <option value="What was your childhood nickname?">What was your childhood nickname?</option>
+                        <option value="What was the name of your first pet?" <?php echo (isset($oldInput['security_question']) && $oldInput['security_question'] === 'What was the name of your first pet?') ? 'selected' : ''; ?>>What was the name of your first pet?</option>
+                        <option value="In what city were you born?" <?php echo (isset($oldInput['security_question']) && $oldInput['security_question'] === 'In what city were you born?') ? 'selected' : ''; ?>>In what city were you born?</option>
+                        <option value="What was the name of your first school?" <?php echo (isset($oldInput['security_question']) && $oldInput['security_question'] === 'What was the name of your first school?') ? 'selected' : ''; ?>>What was the name of your first school?</option>
+                        <option value="What is your mother's maiden name?" <?php echo (isset($oldInput['security_question']) && $oldInput['security_question'] === 'What is your mother\'s maiden name?') ? 'selected' : ''; ?>>What is your mother's maiden name?</option>
+                        <option value="What was your childhood nickname?" <?php echo (isset($oldInput['security_question']) && $oldInput['security_question'] === 'What was your childhood nickname?') ? 'selected' : ''; ?>>What was your childhood nickname?</option>
                     </select>
+                    <p class="text-gray-400 text-xs mt-1">Used for account recovery if you forget your password</p>
                     <?php if (isset($errors['security_question'])): ?>
                         <p class="text-red-500 text-sm mt-1"><?php echo $errors['security_question']; ?></p>
                     <?php endif; ?>
@@ -328,11 +346,11 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                         required
                     >
                         <option value="">Select a security question</option>
-                        <option value="What was the name of your first pet?">What was the name of your first pet?</option>
-                        <option value="In what city were you born?">In what city were you born?</option>
-                        <option value="What was the name of your first school?">What was the name of your first school?</option>
-                        <option value="What is your mother's maiden name?">What is your mother's maiden name?</option>
-                        <option value="What was your childhood nickname?">What was your childhood nickname?</option>
+                        <option value="What was the name of your first pet?" <?php echo (isset($oldInput['security_question']) && $oldInput['security_question'] === 'What was the name of your first pet?') ? 'selected' : ''; ?>>What was the name of your first pet?</option>
+                        <option value="In what city were you born?" <?php echo (isset($oldInput['security_question']) && $oldInput['security_question'] === 'In what city were you born?') ? 'selected' : ''; ?>>In what city were you born?</option>
+                        <option value="What was the name of your first school?" <?php echo (isset($oldInput['security_question']) && $oldInput['security_question'] === 'What was the name of your first school?') ? 'selected' : ''; ?>>What was the name of your first school?</option>
+                        <option value="What is your mother's maiden name?" <?php echo (isset($oldInput['security_question']) && $oldInput['security_question'] === 'What is your mother\'s maiden name?') ? 'selected' : ''; ?>>What is your mother's maiden name?</option>
+                        <option value="What was your childhood nickname?" <?php echo (isset($oldInput['security_question']) && $oldInput['security_question'] === 'What was your childhood nickname?') ? 'selected' : ''; ?>>What was your childhood nickname?</option>
                     </select>
                     <?php if (isset($errors['security_question'])): ?>
                         <p class="text-red-500 text-sm mt-1"><?php echo $errors['security_question']; ?></p>

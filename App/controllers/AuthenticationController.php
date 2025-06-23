@@ -209,6 +209,14 @@ class AuthenticationController extends BaseController
     {
         $input = $this->getInput();
         $input = $this->sanitize($input);
+        
+        // Debug incoming data
+        error_log('Registration data: ' . json_encode([
+            'has_security_question' => isset($input['security_question']),
+            'security_question' => isset($input['security_question']) ? substr($input['security_question'], 0, 10) . '...' : null,
+            'has_security_answer' => isset($input['security_answer']),
+            'all_keys' => array_keys($input)
+        ]));
 
         $this->validate($input, [
             'username' => 'required',
@@ -258,6 +266,18 @@ class AuthenticationController extends BaseController
             $errors['password_confirm'] = 'Passwords do not match';
         }
         
+        $securityQuestion = $input['security_question'] ?? '';
+        $securityAnswer = $input['security_answer'] ?? '';
+        
+        if (empty($securityQuestion)) {
+            $errors['security_question'] = 'Security question is required';
+        }
+        
+        if (empty($securityAnswer)) {
+            $errors['security_answer'] = 'Security answer is required';
+        } elseif (strlen($securityAnswer) < 3) {
+            $errors['security_answer'] = 'Security answer must be at least 3 characters';
+        }
 
         if (!empty($errors)) {
             $this->logActivity('registration_failed', ['email' => $email, 'errors' => array_keys($errors)]);
@@ -268,7 +288,8 @@ class AuthenticationController extends BaseController
             $_SESSION['errors'] = $errors;
             $_SESSION['old_input'] = [
                 'username' => $username,
-                'email' => $email
+                'email' => $email,
+                'security_question' => $securityQuestion
             ];
             if (!headers_sent()) {
                 header('Location: /register');
@@ -282,8 +303,17 @@ class AuthenticationController extends BaseController
             'discriminator' => $discriminator,
             'email' => $email,
             'password' => password_hash($password, PASSWORD_DEFAULT),
-            'status' => 'online'
+            'status' => 'online',
+            'security_question' => $securityQuestion,
+            'security_answer' => password_hash($securityAnswer, PASSWORD_DEFAULT)
         ];
+        
+        $this->logActivity('registration_data', [
+            'has_security_question' => !empty($securityQuestion),
+            'has_security_answer' => !empty($securityAnswer),
+            'security_question_length' => strlen($securityQuestion),
+            'security_answer_length' => strlen($securityAnswer)
+        ]);
 
         if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
             $avatarUrl = $this->uploadImage($_FILES['avatar'], 'avatars');
@@ -306,6 +336,13 @@ class AuthenticationController extends BaseController
             $user->setPassword($password);
             $user->discriminator = $discriminator;
             $user->status = 'online';
+            
+            if (empty($securityQuestion) || empty($securityAnswer)) {
+                throw new Exception('Security question and answer are required');
+            }
+            
+            $user->security_question = $securityQuestion;
+            $user->security_answer = password_hash($securityAnswer, PASSWORD_DEFAULT);
             
             if (isset($userData['avatar_url'])) {
                 $user->avatar_url = $userData['avatar_url'];
@@ -361,7 +398,8 @@ class AuthenticationController extends BaseController
             $_SESSION['errors'] = ['general' => $errorMessage];
             $_SESSION['old_input'] = [
                 'username' => $username,
-                'email' => $email
+                'email' => $email,
+                'security_question' => $securityQuestion
             ];
             if (!headers_sent()) {
                 header('Location: /register');
@@ -476,8 +514,23 @@ class AuthenticationController extends BaseController
             $_SESSION['discriminator'] = $user->discriminator;
             $_SESSION['avatar_url'] = $user->avatar_url;
             $_SESSION['banner_url'] = $user->banner_url;
+            $_SESSION['google_auth_completed'] = true;
 
             $redirect = $this->getRedirectUrl();
+            
+            // If no security question is set, redirect to security question page
+            if (!$user->security_question) {
+                if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                    return $this->success([
+                        'redirect' => '/set-security-question'
+                    ], 'Please set a security question');
+                }
+                
+                if (!headers_sent()) {
+                    header('Location: /set-security-question');
+                }
+                exit;
+            }
 
             if ($this->isApiRoute() || $this->isAjaxRequest()) {
                 return $this->success([
@@ -527,5 +580,123 @@ class AuthenticationController extends BaseController
         }
 
         return $username;
+    }
+
+    public function setSecurityQuestion()
+    {
+        $input = $this->getInput();
+        $input = $this->sanitize($input);
+
+        $userId = $_SESSION['user_id'] ?? null;
+        if (!$userId) {
+            if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                return $this->error('Not authenticated', 401);
+            }
+            if (!headers_sent()) {
+                header('Location: /login');
+            }
+            exit;
+        }
+
+        $this->validate($input, [
+            'security_question' => 'required',
+            'security_answer' => 'required'
+        ]);
+
+        $securityQuestion = $input['security_question'];
+        $securityAnswer = $input['security_answer'];
+
+        $errors = [];
+        
+        if (empty($securityQuestion)) {
+            $errors['security_question'] = 'Security question is required';
+        }
+        
+        if (empty($securityAnswer)) {
+            $errors['security_answer'] = 'Security answer is required';
+        } elseif (strlen($securityAnswer) < 3) {
+            $errors['security_answer'] = 'Security answer must be at least 3 characters';
+        }
+
+        if (!empty($errors)) {
+            if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                return $this->validationError($errors);
+            }
+            $_SESSION['errors'] = $errors;
+            $_SESSION['old_input'] = [
+                'security_question' => $securityQuestion
+            ];
+            if (!headers_sent()) {
+                header('Location: /set-security-question');
+            }
+            exit;
+        }
+
+        try {
+            $user = $this->userRepository->find($userId);
+            if (!$user) {
+                throw new Exception('User not found');
+            }
+            
+            $user->security_question = $securityQuestion;
+            $user->security_answer = password_hash($securityAnswer, PASSWORD_DEFAULT);
+            
+            if ($user->save()) {
+                $_SESSION['security_question_set'] = true;
+                
+                $this->logActivity('security_question_set', ['user_id' => $userId]);
+                
+                $redirect = $this->getRedirectUrl();
+                
+                if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                    return $this->success([
+                        'redirect' => $redirect
+                    ], 'Security question set successfully');
+                }
+                
+                if (!headers_sent()) {
+                    header('Location: ' . $redirect);
+                }
+                exit;
+            } else {
+                throw new Exception('Failed to save security question');
+            }
+        } catch (Exception $e) {
+            $this->logActivity('security_question_error', [
+                'user_id' => $userId,
+                'error' => $e->getMessage()
+            ]);
+            
+            $errorMessage = 'Failed to set security question. Please try again.';
+            
+            if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                return $this->serverError($errorMessage);
+            }
+            $_SESSION['errors'] = ['general' => $errorMessage];
+            if (!headers_sent()) {
+                header('Location: /set-security-question');
+            }
+            exit;
+        }
+    }
+
+    protected function getInput()
+    {
+        $input = [];
+        
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+            
+            if (strpos($contentType, 'application/json') !== false) {
+                $jsonData = file_get_contents('php://input');
+                $input = json_decode($jsonData, true) ?? [];
+            } else {
+                $input = $_POST;
+            }
+        } else if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            $input = $_GET;
+        }
+        
+        return $input;
     }
 }

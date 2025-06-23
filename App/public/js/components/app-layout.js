@@ -8,6 +8,25 @@ document.addEventListener('DOMContentLoaded', function() {
     initTabHandling();
     initFriendRequestForm();
     updatePendingCount();
+    
+    // Load appropriate tab content based on the current URL
+    if (window.location.pathname === '/app/friends') {
+        const urlParams = new URLSearchParams(window.location.search);
+        const tab = urlParams.get('tab') || 'online';
+        
+        // Initialize the content without changing the URL
+        const tabs = document.querySelectorAll('[data-tab]');
+        const tabContents = document.querySelectorAll('.tab-content');
+        
+        // Load the content for each tab type
+        if (tab === 'all') {
+            loadAllFriends();
+        } else if (tab === 'pending') {
+            loadPendingRequests();
+        } else if (tab === 'blocked') {
+            loadBlockedUsers();
+        }
+    }
 });
 
 function initServerModal() {
@@ -238,6 +257,13 @@ function activateTab(tabName) {
     const tabs = document.querySelectorAll('[data-tab]');
     const tabContents = document.querySelectorAll('.tab-content');
     
+    // First try to navigate to the tab via URL
+    if (window.location.pathname === '/app/friends') {
+        window.location.href = '/app/friends?tab=' + tabName;
+        return;
+    }
+    
+    // If we're still here, update the UI directly
     tabs.forEach(tab => {
         if (tab.getAttribute('data-tab') === tabName) {
             tab.classList.remove('text-gray-300');
@@ -274,7 +300,7 @@ function activateTab(tabName) {
             } else if (tabName === 'pending') {
                 loadPendingRequests();
             } else if (tabName === 'blocked') {
-            loadBlockedUsers();
+                loadBlockedUsers();
             }
         } else {
             content.classList.add('hidden');
@@ -652,7 +678,6 @@ function initFriendRequestForm() {
     sendFriendRequestBtn.addEventListener('click', async function() {
         const username = friendUsernameInput.value.trim();
         
-        // Validate input
         const validation = friendAPI.validateUsername(username);
         if (!validation.valid) {
             if (errorDiv) {
@@ -662,7 +687,6 @@ function initFriendRequestForm() {
             return;
         }
         
-        // Disable button and show loading state
         sendFriendRequestBtn.disabled = true;
         sendFriendRequestBtn.classList.add('opacity-50', 'cursor-not-allowed');
         
@@ -686,7 +710,6 @@ function initFriendRequestForm() {
             }
             if (successDiv) successDiv.classList.add('hidden');
         } finally {
-            // Re-enable button if input is still valid
             const currentValidation = friendAPI.validateUsername(friendUsernameInput.value.trim());
             sendFriendRequestBtn.disabled = !currentValidation.valid;
             if (currentValidation.valid) {
@@ -720,7 +743,6 @@ function showToast(message, type = 'info') {
     }
 }
 
-// Global functions for handling friend request actions
 window.acceptFriendRequest = async function(friendshipId) {
     try {
         console.log('Accepting friend request:', friendshipId);
@@ -728,9 +750,7 @@ window.acceptFriendRequest = async function(friendshipId) {
         
         if (result.success) {
             showToast('Friend request accepted!', 'success');
-            // Refresh the pending requests to update the UI
             loadPendingRequests();
-            // Update the pending count badge
             updatePendingCount();
         } else {
             showToast(result.message || 'Failed to accept friend request', 'error');
@@ -748,9 +768,7 @@ window.ignoreFriendRequest = async function(friendshipId) {
         
         if (result.success) {
             showToast('Friend request ignored', 'info');
-            // Refresh the pending requests to update the UI
             loadPendingRequests();
-            // Update the pending count badge
             updatePendingCount();
         } else {
             showToast(result.message || 'Failed to ignore friend request', 'error');

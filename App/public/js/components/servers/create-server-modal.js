@@ -17,13 +17,11 @@ function initServerIconUpload() {
         const iconPreview = document.getElementById('server-icon-preview');
         const iconPlaceholder = document.getElementById('server-icon-placeholder');
         
-        // Ensure all required elements exist
         if (!iconContainer || !iconInput || !iconPreview || !iconPlaceholder) {
             console.error('Missing required elements for server icon upload');
             return;
         }
         
-        // Create image cutter for profile/icon (1:1 aspect ratio)
         const iconCutter = new ImageCutter({
             container: iconContainer,
             type: 'profile',
@@ -34,27 +32,22 @@ function initServerIconUpload() {
                     return;
                 }
                 
-                // Update preview with cropped image
                 iconPreview.src = result.dataUrl;
                 iconPreview.classList.remove('hidden');
                 iconPlaceholder.classList.add('hidden');
                 console.log('Icon crop completed');
                 
-                // Store the cropped image data to use during form submission
                 iconContainer.dataset.croppedImage = result.dataUrl;
             }
         });
         
-        // Store the cutter instance for later use
         window.serverIconCutter = iconCutter;
         
-        // Listen for file input changes
         iconInput.addEventListener('change', function() {
             if (!this.files || !this.files[0]) return;
             
             const file = this.files[0];
             
-            // Validate file type
             if (!file.type.match('image.*')) {
                 alert('Please select a valid image file');
                 return;
@@ -63,11 +56,9 @@ function initServerIconUpload() {
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
-                    // If we have the image cutter, use it
                     if (window.serverIconCutter) {
                         window.serverIconCutter.loadImage(e.target.result);
                     } else {
-                        // Fallback to simple preview
                         iconPreview.src = e.target.result;
                         iconPreview.classList.remove('hidden');
                         iconPlaceholder.classList.add('hidden');
@@ -75,7 +66,6 @@ function initServerIconUpload() {
                     }
                 } catch (error) {
                     console.error('Error processing server icon:', error);
-                    // Fallback to simple preview
                     iconPreview.src = e.target.result;
                     iconPreview.classList.remove('hidden');
                     iconPlaceholder.classList.add('hidden');
@@ -101,13 +91,11 @@ function initServerBannerUpload() {
         const bannerPreview = document.getElementById('server-banner-preview');
         const bannerPlaceholder = document.getElementById('server-banner-placeholder');
         
-        // Ensure all required elements exist
         if (!bannerContainer || !bannerInput || !bannerPreview || !bannerPlaceholder) {
             console.error('Missing required elements for server banner upload');
             return;
         }
         
-        // Create image cutter for banner (2:1 aspect ratio)
         const bannerCutter = new ImageCutter({
             container: bannerContainer,
             type: 'banner',
@@ -118,27 +106,22 @@ function initServerBannerUpload() {
                     return;
                 }
                 
-                // Update preview with cropped image
                 bannerPreview.src = result.dataUrl;
                 bannerPreview.classList.remove('hidden');
                 bannerPlaceholder.classList.add('hidden');
                 console.log('Banner crop completed');
                 
-                // Store the cropped image data to use during form submission
                 bannerContainer.dataset.croppedImage = result.dataUrl;
             }
         });
         
-        // Store the cutter instance for later use
         window.serverBannerCutter = bannerCutter;
         
-        // Listen for file input changes
         bannerInput.addEventListener('change', function() {
             if (!this.files || !this.files[0]) return;
             
             const file = this.files[0];
             
-            // Validate file type
             if (!file.type.match('image.*')) {
                 alert('Please select a valid image file');
                 return;
@@ -147,11 +130,9 @@ function initServerBannerUpload() {
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
-                    // If we have the image cutter, use it
                     if (window.serverBannerCutter) {
                         window.serverBannerCutter.loadImage(e.target.result);
                     } else {
-                        // Fallback to simple preview
                         bannerPreview.src = e.target.result;
                         bannerPreview.classList.remove('hidden');
                         bannerPlaceholder.classList.add('hidden');
@@ -159,7 +140,6 @@ function initServerBannerUpload() {
                     }
                 } catch (error) {
                     console.error('Error processing server banner:', error);
-                    // Fallback to simple preview
                     bannerPreview.src = e.target.result;
                     bannerPreview.classList.remove('hidden');
                     bannerPlaceholder.classList.add('hidden');
@@ -187,13 +167,11 @@ function initServerFormSubmission() {
             const submitBtn = this.querySelector('button[type="submit"]');
             showLoading(submitBtn);
             
-            // Get cropped images from data attributes if available
             const iconContainer = document.getElementById('server-icon-container');
             const bannerContainer = document.getElementById('server-banner-container');
             let iconDataUrl = iconContainer ? iconContainer.dataset.croppedImage : null;
             let bannerDataUrl = bannerContainer ? bannerContainer.dataset.croppedImage : null;
             
-            // If we have cropped images, use them
             if (iconDataUrl || bannerDataUrl) {
                 try {
                     const promises = [];
@@ -234,7 +212,6 @@ function initServerFormSubmission() {
                         );
                     }
                     
-                    // Wait for all promises to resolve then submit the form
                     Promise.all(promises)
                         .then(() => {
                             handleServerCreation(this);
@@ -257,19 +234,16 @@ function initServerFormSubmission() {
 }
 
 function updateFormDataWithFile(form, fieldName, file) {
-    // Remove existing file input if it exists
     const existingInput = form.querySelector(`input[name="${fieldName}"]`);
     if (existingInput) {
         existingInput.remove();
     }
     
-    // Create new file input with the cropped image
     const input = document.createElement('input');
     input.type = 'file';
     input.name = fieldName;
     input.style.display = 'none';
     
-    // Use DataTransfer to set the file
     const dataTransfer = new DataTransfer();
     dataTransfer.items.add(file);
     input.files = dataTransfer.files;
@@ -294,8 +268,7 @@ function handleServerCreation(form) {
             return;
         }
         
-        const serverApi = new ServerAPI();
-        serverApi.createServer(formData)
+        ServerAPI.createServer(formData)
         .then(data => {
             hideLoading(submitBtn);
             if (data.success) {
@@ -442,13 +415,11 @@ function loadServerPage(serverId) {
     if (mainContent) {
         showPageLoading(mainContent);
         
-        // Use the better HTML-specific method
-        new ServerAPI().getServerPageHTML(serverId)
+        ServerAPI.getServerPageHTML(serverId)
         .then(html => {
             if (typeof html === 'string') {
                 pageUtils.updatePageContent(mainContent, html);
             } else {
-                // Fallback direct navigation
                 console.log('Received non-HTML response, redirecting...');
                 window.location.href = `/server/${serverId}`;
             }

@@ -210,6 +210,32 @@ $categories = $GLOBALS['serverCategories'] ?? [];
                             Generate a new link
                         </button>
                     </div>
+
+                    <hr class="border-gray-700 my-4">
+                    
+                    <div>
+                        <h3 class="text-white font-medium mb-2">Send to friends</h3>
+                        <div class="relative">
+                            <input type="text" id="friend-search" 
+                                class="w-full bg-discord-dark border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-discord-primary"
+                                placeholder="Search friends...">
+                            <div id="friend-search-results" class="absolute z-10 left-0 right-0 mt-1 bg-discord-dark border border-gray-700 rounded max-h-60 overflow-y-auto hidden">
+                                <!-- Friend results will be populated here -->
+                                <div class="text-gray-400 text-center p-2 text-sm hidden" id="no-friends-found">No friends found</div>
+                                <div class="text-gray-400 text-center p-2 text-sm hidden" id="search-friend-prompt">Type to search friends</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="selected-friends" class="flex flex-wrap gap-2">
+                        <!-- Selected friends will appear here as tags -->
+                    </div>
+                    
+                    <div id="invite-friends-actions" class="flex justify-end hidden">
+                        <button id="send-invites-btn" class="bg-discord-primary hover:bg-discord-primary/90 text-white px-4 py-2 rounded transition-colors">
+                            Send Invites
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

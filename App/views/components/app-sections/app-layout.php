@@ -5,18 +5,14 @@ if (!isset($contentType)) {
 
 $currentServer = $currentServer ?? $GLOBALS['currentServer'] ?? null;
 
-// Check if we're viewing a server based on the URL
 $serverIdFromUrl = null;
 if (isset($_SERVER['REQUEST_URI']) && preg_match('/\/server\/(\d+)/', $_SERVER['REQUEST_URI'], $matches)) {
     $serverIdFromUrl = $matches[1];
     
-    // If we have a server ID from URL but no current server object, load it through the controller
     if ($serverIdFromUrl && !$currentServer) {
         require_once dirname(dirname(dirname(__DIR__))) . '/controllers/ServerController.php';
         $tempServerController = new ServerController();
-        // This will redirect if necessary and set the GLOBALS
         $tempServerController->show($serverIdFromUrl);
-        // After the controller runs, we should have the server in GLOBALS
         $currentServer = $GLOBALS['currentServer'] ?? null;
         $contentType = 'server';
     }
@@ -48,19 +44,38 @@ $additional_js[] = 'components/app-layout';
                         </div>
                         <div class="border-l border-gray-800 h-6 mx-4"></div>
                         <div class="flex space-x-4 text-sm">
-                            <button class="text-white bg-discord-primary hover:bg-discord-primary/90 px-2 py-0.5 rounded" data-tab="online">Online</button>
-                            <button class="text-gray-300 hover:text-white hover:bg-discord-light px-2 py-0.5 rounded" data-tab="all">All</button>
-                            <button class="text-gray-300 hover:text-white hover:bg-discord-light px-2 py-0.5 rounded" data-tab="pending">Pending</button>
-                            <button class="text-gray-300 hover:text-white hover:bg-discord-light px-2 py-0.5 rounded" data-tab="blocked">Blocked</button>
-                            <button class="bg-discord-green hover:bg-discord-green/90 text-white px-3 py-1 rounded" data-tab="add-friend">Add Friend</button>
+                            <?php
+                            $activeTab = $GLOBALS['activeTab'] ?? 'online';
+                            $tabs = [
+                                'online' => 'Online',
+                                'all' => 'All',
+                                'pending' => 'Pending',
+                                'blocked' => 'Blocked'
+                            ];
+                            
+                            foreach ($tabs as $tab => $label) {
+                                $activeClass = ($activeTab === $tab) 
+                                    ? 'text-white bg-discord-primary hover:bg-discord-primary/90' 
+                                    : 'text-gray-300 hover:text-white hover:bg-discord-light';
+                                echo "<a href='/app/friends?tab={$tab}' class='{$activeClass} px-2 py-0.5 rounded' data-tab='{$tab}'>{$label}</a>";
+                            }
+                            
+                            $addFriendClass = ($activeTab === 'add-friend') 
+                                ? 'bg-discord-green hover:bg-discord-green/90' 
+                                : 'bg-discord-green hover:bg-discord-green/90';
+                            ?>
+                            <a href='/app/friends?tab=add-friend' class="<?php echo $addFriendClass; ?> text-white px-3 py-1 rounded" data-tab="add-friend">Add Friend</a>
                         </div>
                     </div>
 
-                    <div class="tab-content" id="online-tab">
+                    <?php
+                    $activeTab = $GLOBALS['activeTab'] ?? 'online';
+                    ?>
+                    <div class="tab-content <?php echo $activeTab === 'online' ? '' : 'hidden'; ?>" id="online-tab">
                         <?php include dirname(__DIR__) . '/app-sections/home-content.php'; ?>
                     </div>
                     
-                    <div class="tab-content hidden" id="all-tab">
+                    <div class="tab-content <?php echo $activeTab === 'all' ? '' : 'hidden'; ?>" id="all-tab">
                         <div class="flex-1 p-4 overflow-y-auto bg-discord-background">
                             <div class="flex items-center justify-between mb-4">
                                 <h2 class="text-gray-400 font-bold text-xs uppercase">All Friends</h2>
@@ -73,7 +88,7 @@ $additional_js[] = 'components/app-layout';
                         </div>
                     </div>
                     
-                    <div class="tab-content hidden" id="pending-tab">
+                    <div class="tab-content <?php echo $activeTab === 'pending' ? '' : 'hidden'; ?>" id="pending-tab">
                         <div class="flex-1 p-4 overflow-y-auto bg-discord-background">
                             <div class="flex items-center justify-between mb-4">
                                 <h2 class="text-gray-400 font-bold text-xs uppercase">Pending</h2>
@@ -86,7 +101,7 @@ $additional_js[] = 'components/app-layout';
                         </div>
                     </div>
                     
-                    <div class="tab-content hidden" id="blocked-tab">
+                    <div class="tab-content <?php echo $activeTab === 'blocked' ? '' : 'hidden'; ?>" id="blocked-tab">
                         <div class="flex-1 p-4 overflow-y-auto bg-discord-background">
                             <div class="flex items-center justify-between mb-4">
                                 <h2 class="text-gray-400 font-bold text-xs uppercase">Blocked</h2>
@@ -99,7 +114,7 @@ $additional_js[] = 'components/app-layout';
                         </div>
                     </div>
                     
-                    <div class="tab-content hidden" id="add-friend-tab">
+                    <div class="tab-content <?php echo $activeTab === 'add-friend' ? '' : 'hidden'; ?>" id="add-friend-tab">
                         <div class="flex-1 p-4 overflow-y-auto bg-discord-background">                            <h2 class="text-white font-bold text-lg mb-2">Add Friend</h2>
                             <p class="text-gray-400 text-sm mb-4">You can add friends with their MisVord username or full username#discriminator.</p>
                             
@@ -142,7 +157,6 @@ $additional_js[] = 'components/app-layout';
                     }
                 }
 
-                // Check if type is explicitly specified in URL
                 if (isset($_GET['type']) && $_GET['type'] === 'voice') {
                     $channelType = 'voice';
                 }

@@ -473,6 +473,10 @@ function validateRegisterForm(e) {
     if (!securityQuestion) {
         showError(form.querySelector('#security_question'), 'Please select a security question');
         isValid = false;
+        form.querySelector('#security_question').classList.add('border-red-500');
+    } else {
+        form.querySelector('#security_question').classList.remove('border-red-500');
+        form.querySelector('#security_question').classList.add('border-green-500');
     }
     
     if (!securityAnswer) {
@@ -596,6 +600,38 @@ function initPasswordStrength() {
     if (confirmInput && passwordInput && matchText) {
         confirmInput.addEventListener('input', () => {
             checkPasswordsMatch(passwordInput.value, confirmInput.value);
+        });
+    }
+    
+    // Add security question visual validation
+    const securityQuestion = document.getElementById('security_question');
+    if (securityQuestion) {
+        securityQuestion.addEventListener('change', function() {
+            if (this.value) {
+                this.classList.remove('border-red-500');
+                this.classList.add('border-green-500', 'text-white');
+                this.classList.remove('text-gray-500');
+            } else {
+                this.classList.remove('border-green-500', 'text-white');
+                this.classList.add('border-red-500', 'text-gray-500');
+            }
+        });
+    }
+    
+    const securityAnswer = document.getElementById('security_answer');
+    if (securityAnswer) {
+        securityAnswer.addEventListener('input', function() {
+            if (this.value.length >= 3) {
+                this.classList.remove('border-red-500');
+                this.classList.add('border-green-500');
+            } else {
+                this.classList.remove('border-green-500');
+                if (this.value.length > 0) {
+                    this.classList.add('border-red-500');
+                } else {
+                    this.classList.remove('border-red-500');
+                }
+            }
         });
     }
 }

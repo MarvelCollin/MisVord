@@ -17,9 +17,18 @@ class HomeController extends BaseController
         $this->serverRepository = new ServerRepository();
         $this->userServerMembershipRepository = new UserServerMembershipRepository();
         $this->userRepository = new UserRepository();
-    }    public function index()
+    }
+    
+    public function redirectToApp()
     {
-        // Debug session state when accessing home
+        $this->requireAuth();
+        // Redirect to the friends page when /app is accessed
+        header('Location: /app/friends');
+        exit;
+    }
+    
+    public function index()
+    {
         if (function_exists('logger')) {
             logger()->debug("HomeController index called", [
                 'session_status' => session_status(),
@@ -31,9 +40,18 @@ class HomeController extends BaseController
         
         $this->requireAuth();
 
+        // Set the active tab for the friends page if we're on /app/friends
+        if (strpos($_SERVER['REQUEST_URI'] ?? '', '/app/friends') === 0) {
+            $GLOBALS['contentType'] = 'home';
+            
+            // Check if a specific tab is requested in the query string
+            $tab = $_GET['tab'] ?? 'online';
+            $GLOBALS['activeTab'] = in_array($tab, ['online', 'all', 'pending', 'blocked', 'add-friend']) 
+                ? $tab : 'online';
+        }
+
         $currentUserId = $this->getCurrentUserId();
         $this->logActivity('home_page_accessed');
-          // Simplified version - just return basic data for now
         try {
             $userServers = $this->serverRepository->getForUser($currentUserId);
             $this->logActivity('servers_loaded', ['count' => count($userServers)]);

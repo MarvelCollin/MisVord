@@ -36,7 +36,6 @@ class TextCaptcha {
             </div>
         `;
         
-        // Add styles
         const style = document.createElement('style');
         style.textContent = `
             .captcha-wrapper {
@@ -74,6 +73,7 @@ class TextCaptcha {
             .captcha-refresh:hover {
                 background: #2f3136;
                 color: #ffffff;
+                z-index: 1000;
             }
             .captcha-char-0 { transform: rotate(-5deg) translateY(-1px); }
             .captcha-char-1 { transform: rotate(3deg) translateY(2px); }
@@ -119,13 +119,11 @@ class TextCaptcha {
         
         codeDisplay.innerHTML = '';
         
-        // Apply different styling to each character
         for (let i = 0; i < this.code.length; i++) {
             const charSpan = document.createElement('span');
             charSpan.textContent = this.code[i];
             charSpan.className = `captcha-char-${i % 6}`;
             
-            // Random styling
             const hue = Math.floor(Math.random() * 360);
             charSpan.style.color = `hsl(${hue}, 70%, 70%)`;
             charSpan.style.textShadow = `0px 1px 0px rgba(0,0,0,0.2)`;
@@ -133,7 +131,6 @@ class TextCaptcha {
             codeDisplay.appendChild(charSpan);
         }
         
-        // Add noise lines
         for (let i = 0; i < 3; i++) {
             const line = document.createElement('div');
             const top = Math.floor(Math.random() * 30) + 5;
@@ -155,7 +152,6 @@ class TextCaptcha {
             codeDisplay.appendChild(line);
         }
         
-        // Make sure text is above the lines
         codeDisplay.querySelectorAll('span').forEach(span => {
             span.style.position = 'relative';
             span.style.zIndex = '2';
@@ -186,5 +182,4 @@ class TextCaptcha {
     }
 }
 
-// Export the captcha class
 window.TextCaptcha = TextCaptcha;

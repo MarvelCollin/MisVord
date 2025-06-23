@@ -1,6 +1,7 @@
 import { showToast } from '../../core/ui/toast.js';
 import { ServerAPI } from '../../api/server-api.js';
 import { ChannelAPI } from '../../api/channel-api.js';
+import { ChatAPI } from '../../api/chat-api.js';
 
 if (typeof window !== 'undefined' && window.logger) {
     window.logger.info('server', 'server-dropdown.js loaded successfully - UPDATED VERSION');
@@ -139,6 +140,8 @@ function showInvitePeopleModal() {
         const closeBtn = document.getElementById('close-invite-modal');
         const expirationSelect = document.getElementById('invite-expiration');
         const expirationInfo = document.getElementById('invite-expiration-info');
+        const friendSearchInput = document.getElementById('friend-search');
+        const sendInvitesBtn = document.getElementById('send-invites-btn');
 
         if (copyBtn && !copyBtn.hasAttribute('data-listener')) {
             copyBtn.addEventListener('click', copyInviteLink);
@@ -157,7 +160,256 @@ function showInvitePeopleModal() {
             closeBtn.addEventListener('click', () => closeModal('invite-people-modal'));
             closeBtn.setAttribute('data-listener', 'true');
         }
+        
+        if (friendSearchInput && !friendSearchInput.hasAttribute('data-listener')) {
+            initFriendSearch(friendSearchInput);
+            friendSearchInput.setAttribute('data-listener', 'true');
+        }
+        
+        if (sendInvitesBtn && !sendInvitesBtn.hasAttribute('data-listener')) {
+            sendInvitesBtn.addEventListener('click', () => sendServerInvitesToFriends(serverId));
+            sendInvitesBtn.setAttribute('data-listener', 'true');
+        }
+        
+        // Clear selected friends when modal reopens
+        document.getElementById('selected-friends').innerHTML = '';
+        document.getElementById('invite-friends-actions').classList.add('hidden');
     }
+}
+
+// Initialize friend search functionality
+function initFriendSearch(searchInput) {
+    const resultsContainer = document.getElementById('friend-search-results');
+    const searchPrompt = document.getElementById('search-friend-prompt');
+    
+    // Show the search prompt by default
+    searchPrompt.classList.remove('hidden');
+    
+    searchInput.addEventListener('focus', () => {
+        resultsContainer.classList.remove('hidden');
+    });
+    
+    searchInput.addEventListener('blur', (e) => {
+        // Small delay to allow for click on results
+        setTimeout(() => {
+            if (!resultsContainer.contains(document.activeElement)) {
+                resultsContainer.classList.add('hidden');
+            }
+        }, 200);
+    });
+    
+    searchInput.addEventListener('input', debounce((e) => {
+        const query = e.target.value.trim();
+        
+        if (!window.FriendAPI) {
+            console.error('FriendAPI not available');
+            return;
+        }
+        
+        if (query.length === 0) {
+            resultsContainer.innerHTML = '';
+            searchPrompt.classList.remove('hidden');
+            document.getElementById('no-friends-found').classList.add('hidden');
+            return;
+        }
+        
+        searchPrompt.classList.add('hidden');
+        
+        // Make API call to search for friends
+        searchFriends(query);
+    }, 300));
+}
+
+// Search friends based on input query
+function searchFriends(query) {
+    const resultsContainer = document.getElementById('friend-search-results');
+    const noFriendsFoundMsg = document.getElementById('no-friends-found');
+    
+    // Show loading indicator
+    resultsContainer.innerHTML = '<div class="text-center p-2"><i class="fas fa-spinner fa-spin mr-2"></i>Searching...</div>';
+    
+    // Get friends using FriendAPI
+    if (!window.FriendAPI) {
+        resultsContainer.innerHTML = '<div class="text-red-500 text-center p-2">FriendAPI not available</div>';
+        return;
+    }
+    
+    window.FriendAPI.getFriends()
+        .then(friends => {
+            // Filter friends based on query
+            const filteredFriends = friends.filter(friend => 
+                friend.username.toLowerCase().includes(query.toLowerCase())
+            );
+            
+            resultsContainer.innerHTML = '';
+            
+            if (filteredFriends.length === 0) {
+                noFriendsFoundMsg.classList.remove('hidden');
+            } else {
+                noFriendsFoundMsg.classList.add('hidden');
+                
+                filteredFriends.forEach(friend => {
+                    const friendEl = createFriendElement(friend);
+                    resultsContainer.appendChild(friendEl);
+                });
+            }
+        })
+        .catch(err => {
+            console.error('Error fetching friends:', err);
+            resultsContainer.innerHTML = '<div class="text-red-500 text-center p-2">Error fetching friends</div>';
+        });
+}
+
+// Create a friend element for search results
+function createFriendElement(friend) {
+    const el = document.createElement('div');
+    el.className = 'flex items-center p-2 hover:bg-discord-hover cursor-pointer';
+    el.dataset.userId = friend.id;
+    el.dataset.username = friend.username;
+    
+    const avatarUrl = friend.avatar_url || '/assets/common/default-avatar.png';
+    
+    el.innerHTML = `
+        <div class="flex-shrink-0 mr-2">
+            <img src="${avatarUrl}" alt="${friend.username}" class="w-8 h-8 rounded-full">
+        </div>
+        <div class="flex-grow">
+            <div class="text-white font-medium">${friend.username}</div>
+            <div class="text-xs text-gray-400">${friend.status || 'offline'}</div>
+        </div>
+    `;
+    
+    // Handle click to select friend
+    el.addEventListener('click', () => {
+        selectFriend(friend);
+        document.getElementById('friend-search-results').classList.add('hidden');
+        document.getElementById('friend-search').value = '';
+    });
+    
+    return el;
+}
+
+// Select a friend and add them to the selected friends list
+function selectFriend(friend) {
+    const selectedFriendsContainer = document.getElementById('selected-friends');
+    const friendsActionsContainer = document.getElementById('invite-friends-actions');
+    
+    // Check if already selected
+    if (document.querySelector(`.selected-friend[data-user-id="${friend.id}"]`)) {
+        return;
+    }
+    
+    const friendTag = document.createElement('div');
+    friendTag.className = 'selected-friend bg-discord-dark border border-gray-700 rounded flex items-center py-1 px-2';
+    friendTag.dataset.userId = friend.id;
+    friendTag.dataset.username = friend.username;
+    
+    friendTag.innerHTML = `
+        <span class="text-white">${friend.username}</span>
+        <button class="ml-2 text-gray-400 hover:text-white" title="Remove">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    
+    // Handle remove friend
+    friendTag.querySelector('button').addEventListener('click', () => {
+        friendTag.remove();
+        
+        // Hide actions if no friends selected
+        if (selectedFriendsContainer.children.length === 0) {
+            friendsActionsContainer.classList.add('hidden');
+        }
+    });
+    
+    selectedFriendsContainer.appendChild(friendTag);
+    
+    // Show actions container
+    friendsActionsContainer.classList.remove('hidden');
+}
+
+// Send server invites to selected friends
+function sendServerInvitesToFriends(serverId) {
+    const selectedFriends = document.querySelectorAll('.selected-friend');
+    const inviteLink = document.getElementById('invite-link').value;
+    
+    if (selectedFriends.length === 0 || !inviteLink) {
+        showToast('Please select friends and generate an invite link', 'error');
+        return;
+    }
+    
+    const sendBtn = document.getElementById('send-invites-btn');
+    const originalText = sendBtn.textContent;
+    sendBtn.disabled = true;
+    sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Sending...';
+    
+    const serverName = getCurrentServerName();
+    const messageContent = `Hello! You're invited to join my server "${serverName}". Click here to join: ${inviteLink}`;
+    let sentCount = 0;
+    let failedCount = 0;
+    
+    if (!window.ChatAPI) {
+        showToast('Chat API not available. Cannot send invites.', 'error');
+        sendBtn.disabled = false;
+        sendBtn.textContent = originalText;
+        return;
+    }
+    
+    // Create a promise for each friend
+    const sendPromises = Array.from(selectedFriends).map(friendEl => {
+        const userId = friendEl.dataset.userId;
+        const username = friendEl.dataset.username;
+        
+        return window.ChatAPI.sendMessage(
+            userId, 
+            messageContent, 
+            'direct'
+        )
+        .then(() => {
+            sentCount++;
+            friendEl.classList.add('bg-green-800', 'border-green-700');
+            
+            // Add a success icon
+            const statusIcon = document.createElement('span');
+            statusIcon.className = 'ml-2 text-green-400';
+            statusIcon.innerHTML = '<i class="fas fa-check"></i>';
+            friendEl.appendChild(statusIcon);
+        })
+        .catch(err => {
+            console.error(`Failed to send invite to ${username}:`, err);
+            failedCount++;
+            friendEl.classList.add('bg-red-800', 'border-red-700');
+            
+            // Add an error icon
+            const statusIcon = document.createElement('span');
+            statusIcon.className = 'ml-2 text-red-400';
+            statusIcon.innerHTML = '<i class="fas fa-times"></i>';
+            friendEl.appendChild(statusIcon);
+        });
+    });
+    
+    // Handle all invites being sent
+    Promise.all(sendPromises)
+        .finally(() => {
+            sendBtn.disabled = false;
+            sendBtn.textContent = originalText;
+            
+            if (failedCount === 0) {
+                showToast(`Invites sent successfully to ${sentCount} friends`, 'success');
+            } else {
+                showToast(`Sent ${sentCount} invites, failed to send ${failedCount}`, 'warning');
+            }
+        });
+}
+
+// Utility function for debouncing input events
+function debounce(func, delay) {
+    let timeout;
+    return function() {
+        const context = this;
+        const args = arguments;
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(context, args), delay);
+    };
 }
 
 function showCreateChannelModal() {

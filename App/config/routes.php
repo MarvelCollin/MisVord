@@ -48,7 +48,11 @@ class Route {
 
 Route::get('/', 'pages/landing-page.php');
 Route::get('/home', 'pages/home.php');
-Route::get('/app', 'pages/home.php');
+Route::get('/app', function() {
+    $controller = new HomeController();
+    $controller->redirectToApp();
+});
+Route::get('/app/friends', 'pages/home.php');
 Route::get('/app/channels/dm/([0-9]+)', function($dmId) {
     $_SESSION['active_dm'] = $dmId;
     require_once __DIR__ . '/../views/pages/home.php';
@@ -66,6 +70,7 @@ Route::get('/settings-server', 'pages/settings-server.php');
 Route::get('/call', 'pages/call.php');
 Route::get('/dev', 'pages/dev.php');
 Route::get('/forgot-password', 'pages/authentication-page.php');
+Route::get('/set-security-question', 'pages/authentication-page.php');
 Route::get('/nitro', function() {
     $controller = new NitroController();
     $controller->index();
@@ -85,6 +90,11 @@ Route::post('/register', function() {
 Route::post('/forgot-password', function() {
     $controller = new AuthenticationController();
     $controller->forgotPassword();
+});
+
+Route::post('/set-security-question', function() {
+    $controller = new AuthenticationController();
+    $controller->setSecurityQuestion();
 });
 
 Route::get('/logout', function() {

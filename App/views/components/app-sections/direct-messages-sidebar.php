@@ -7,8 +7,6 @@ $chatController = new ChatController();
 
 $friendData = $friendController->getUserFriends();
 
-// Get direct message rooms using a direct database query instead of the controller
-// to avoid the JSON output issue
 require_once dirname(dirname(dirname(__DIR__))) . '/database/repositories/ChatRoomRepository.php';
 $chatRoomRepository = new ChatRoomRepository();
 $userId = $_SESSION['user_id'] ?? 0;
@@ -35,12 +33,14 @@ if (file_exists($tooltipPath)) {
 
     <div class="px-2 mb-2">
 
-        <div class="flex items-center p-2 rounded hover:bg-discord-light text-white cursor-pointer">
-            <div class="w-8 h-8 rounded-full bg-discord-background flex items-center justify-center mr-3">
-                <i class="fas fa-user-friends"></i>
+        <a href="/app/friends" class="block w-full">
+            <div class="flex items-center p-2 rounded hover:bg-discord-light text-white cursor-pointer">
+                <div class="w-8 h-8 rounded-full bg-discord-background flex items-center justify-center mr-3">
+                    <i class="fas fa-user-friends"></i>
+                </div>
+                <span class="font-medium">Friends</span>
             </div>
-            <span class="font-medium">Friends</span>
-        </div>
+        </a>
 
         <a href="/nitro" class="block w-full">
             <div class="flex items-center p-2 rounded hover:bg-discord-light text-discord-lighter hover:text-white cursor-pointer mt-1 relative">
@@ -67,13 +67,12 @@ if (file_exists($tooltipPath)) {
         <?php else: ?>
             <?php foreach ($chatRooms as $chatRoom): ?>
                 <?php 
-                $statusColor = 'bg-gray-500'; // Default offline
+                $statusColor = 'bg-gray-500';
                 $otherUserId = $chatRoom['other_user_id'] ?? 0;
                 $otherUsername = $chatRoom['other_username'] ?? 'Unknown';
                 $otherAvatar = $chatRoom['other_avatar'] ?? '';
                 $roomId = $chatRoom['id'] ?? 0;
                 
-                // Check if this user is in the online friends list
                 foreach ($friends as $friend) {
                     if ($friend['id'] == $otherUserId) {
                         if ($friend['status'] === 'online') {
@@ -160,7 +159,6 @@ if (file_exists($tooltipPath)) {
                     })
                     .then(data => {
                         if (data.success && data.data && data.data.channel_id) {
-                            // Redirect to the chat page
                             window.location.href = `/app/channels/dm/${data.data.channel_id}`;
                         } else {
                             console.error('Failed to create chat room:', data.message || 'Unknown error');
