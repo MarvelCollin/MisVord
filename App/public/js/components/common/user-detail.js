@@ -23,6 +23,10 @@ class UserDetailModal {
         this.rolesSection = this.modal.querySelector('#user-detail-roles');
         this.noteInput = this.modal.querySelector('#user-detail-note');
 
+        this.mutualSection = this.modal.querySelector('.user-detail-mutual');
+        this.mutualServersElement = this.modal.querySelector('#user-detail-mutual-servers');
+        this.mutualFriendsElement = this.modal.querySelector('#user-detail-mutual-friends');
+
         this.messageBtn = this.modal.querySelector('#user-detail-message-btn');
         this.addFriendBtn = this.modal.querySelector('#user-detail-add-friend-btn');
     }
@@ -135,6 +139,9 @@ class UserDetailModal {
         if (this.memberSinceSection) this.memberSinceSection.innerHTML = '<div class="loading-placeholder"></div>';
         if (this.rolesSection) this.rolesSection.innerHTML = '<div class="loading-placeholder"></div>';
 
+        if (this.mutualServersElement) this.mutualServersElement.textContent = 'Loading...';
+        if (this.mutualFriendsElement) this.mutualFriendsElement.textContent = 'Loading...';
+
         if (this.avatar) this.avatar.src = '';
         if (this.banner) this.banner.style.backgroundColor = '#5865f2';
     }
@@ -146,20 +153,43 @@ class UserDetailModal {
         if (this.aboutSection) this.aboutSection.textContent = 'Could not load user information.';
         if (this.memberSinceSection) this.memberSinceSection.textContent = 'Unknown';
         if (this.rolesSection) this.rolesSection.textContent = 'No roles available';
+        
+        if (this.mutualServersElement) this.mutualServersElement.textContent = '0 Mutual Servers';
+        if (this.mutualFriendsElement) this.mutualFriendsElement.textContent = '0 Mutual Friends';
     }
 
 
     async fetchUserData() {
         try {
+            let userData;
+            
             if (this.currentServerId) {
                 const response = await fetch(`/api/users/${this.currentUserId}?server_id=${this.currentServerId}`);
                 if (!response.ok) throw new Error('Failed to fetch user data');
-                return await response.json();
+                userData = await response.json();
             } else {
                 const response = await fetch(`/api/users/${this.currentUserId}`);
                 if (!response.ok) throw new Error('Failed to fetch user data');
-                return await response.json();
+                userData = await response.json();
             }
+            
+            // Don't fetch mutual data for current user
+            const currentUserId = document.getElementById('app-container')?.dataset.userId;
+            if (currentUserId && this.currentUserId !== currentUserId) {
+                try {
+                    const mutualResponse = await fetch(`/api/users/${this.currentUserId}/mutual`);
+                    if (mutualResponse.ok) {
+                        const mutualData = await mutualResponse.json();
+                        if (mutualData.success) {
+                            userData.mutualData = mutualData.data;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error fetching mutual data:', error);
+                }
+            }
+            
+            return userData;
         } catch (error) {
             console.error('Error fetching user data:', error);
             throw error;
@@ -173,6 +203,7 @@ class UserDetailModal {
         }
 
         const user = userData.user;
+        const isSelf = document.getElementById('app-container')?.dataset.userId === user.id.toString();
 
         if (this.nameElement) {
             this.nameElement.textContent = user.display_name || user.username;
@@ -238,6 +269,32 @@ class UserDetailModal {
             } else {
                 this.rolesSection.textContent = 'No roles';
                 this.rolesSection.classList.add('text-discord-lighter');
+            }
+        }
+
+        // Update mutual information if available
+        if (userData.mutualData && !isSelf) {
+            if (this.mutualServersElement) {
+                const count = userData.mutualData.mutual_server_count || 0;
+                this.mutualServersElement.textContent = `${count} Mutual Server${count !== 1 ? 's' : ''}`;
+            }
+            
+            if (this.mutualFriendsElement) {
+                const count = userData.mutualData.mutual_friend_count || 0;
+                this.mutualFriendsElement.textContent = `${count} Mutual Friend${count !== 1 ? 's' : ''}`;
+            }
+        } else {
+            // Hide mutual section if self or no data
+            if (this.mutualSection) {
+                this.mutualSection.style.display = isSelf ? 'none' : 'flex';
+            }
+            
+            if (this.mutualServersElement && !isSelf) {
+                this.mutualServersElement.textContent = '0 Mutual Servers';
+            }
+            
+            if (this.mutualFriendsElement && !isSelf) {
+                this.mutualFriendsElement.textContent = '0 Mutual Friends';
             }
         }
 

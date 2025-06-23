@@ -172,3 +172,17 @@
 .flex.h-full .w-\[72px\] .sidebar-server-icon:hover .absolute.left-0.group-hover\:h-5 {
   height: 20px !important;
 }
+
+/* Server sidebar explore icon active state */
+.w-\[72px\] a[href="/explore-servers"] .bg-discord-primary {
+  border-radius: 16px;
+  background-color: #5865f2;
+}
+
+.w-\[72px\] a[href="/explore-servers"] .text-white {
+  color: white;
+}
+
+.w-\[72px\] a[href="/explore-servers"] + .absolute.left-0.top-1\/2.-translate-y-1\/2 {
+  height: 40px;
+}

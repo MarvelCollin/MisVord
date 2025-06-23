@@ -240,187 +240,63 @@ const isAuthPage =
   document.body && document.body.getAttribute("data-page") === "auth";
 export const authManager = !isAuthPage ? new AuthManager() : null;
 
-// Update all redirects from /app to /home
+
 function updateRedirectUrls(response) {
-    if (response && response.redirect && response.redirect === '/app') {
-        response.redirect = '/home';
-    }
-    return response;
+  if (response && response.redirect && response.redirect === '/app') {
+    response.redirect = '/home';
+  }
+  return response;
 }
 
 function handleResponse(response) {
-    response = updateRedirectUrls(response);
-    const redirectUrl = response.redirect || "/home";
-    
-    if (redirectUrl) {
-        // Clear any cached data before redirecting
-        sessionStorage.removeItem('auth_in_progress');
-        
-        // Add a timestamp parameter to bust cache
-        const timestampedUrl = redirectUrl.includes('?') 
-            ? `${redirectUrl}&_t=${Date.now()}` 
-            : `${redirectUrl}?_t=${Date.now()}`;
-            
-        console.log("Redirecting to:", timestampedUrl);
-        window.location.replace(timestampedUrl);
-    }
+  response = updateRedirectUrls(response);
+  const redirectUrl = response.redirect || "/home";
+
+  if (redirectUrl) {
+
+    sessionStorage.removeItem('auth_in_progress');
+
+
+    const timestampedUrl = redirectUrl.includes('?')
+      ? `${redirectUrl}&_t=${Date.now()}`
+      : `${redirectUrl}?_t=${Date.now()}`;
+
+    console.log("Redirecting to:", timestampedUrl);
+    window.location.replace(timestampedUrl);
+  }
 }
 
-// Login form handler
-document.addEventListener('DOMContentLoaded', function() {
-    const loginForm = document.getElementById('loginForm');
-    
-    if (loginForm) {
-        loginForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            // Clear any existing error messages
-            const existingErrors = loginForm.querySelectorAll('.error-message, .bg-red-500');
-            existingErrors.forEach(el => el.remove());
-            
-            // Get form data
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const captcha = document.getElementById('login_captcha')?.value || '';
-            
-            // Validate form fields
-            let isValid = true;
-            if (!email) {
-                showFormError(loginForm, 'email', 'Email is required');
-                isValid = false;
-            }
-            
-            if (!password) {
-                showFormError(loginForm, 'password', 'Password is required');
-                isValid = false;
-            }
-            
-            if (!isValid) {
-                return false;
-            }
-            
-            // Disable the submit button and show loading state
-            const submitButton = loginForm.querySelector('button[type="submit"]');
-            if (submitButton) {
-                submitButton.disabled = true;
-                submitButton.innerHTML = 'Logging in...';
-            }
-            
-            // Create form data object
-            const formData = {
-                email: email,
-                password: password
-            };
-            
-            if (captcha) {
-                formData.captcha = captcha;
-            }
-            
-            // Send login request
-            fetch('/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: JSON.stringify(formData)
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log('Login response:', data);
-                
-                // Check if login was successful
-                if (data.status === 'success') {
-                    console.log('Login successful, redirecting to:', data.redirect);
-                    
-                    // Store authentication token
-                    localStorage.setItem('user_token', 'authenticated');
-                    localStorage.setItem('connect_socket_on_login', 'true');
-                    
-                    // Redirect to the target URL with cache-busting
-                    const redirectUrl = data.redirect || '/home';
-                    const timestamp = new Date().getTime();
-                    const finalUrl = redirectUrl.includes('?') ? 
-                        `${redirectUrl}&_t=${timestamp}` : 
-                        `${redirectUrl}?_t=${timestamp}`;
-                    
-                    // Use replace to prevent back button issues
-                    window.location.replace(finalUrl);
-                } else {
-                    // Handle login failure
-                    console.error('Login failed:', data.message || 'Unknown error');
-                    
-                    // Re-enable submit button
-                    if (submitButton) {
-                        submitButton.disabled = false;
-                        submitButton.innerHTML = 'Log In';
-                    }
-                    
-                    // Show error message
-                    const errorMsg = data.message || 'Login failed. Please check your credentials and try again.';
-                    const errorDiv = document.createElement('div');
-                    errorDiv.className = 'bg-red-500 text-white p-3 rounded-md mb-4 text-center animate-pulse';
-                    errorDiv.textContent = errorMsg;
-                    
-                    const firstFormGroup = loginForm.querySelector('.form-group');
-                    if (firstFormGroup) {
-                        loginForm.insertBefore(errorDiv, firstFormGroup);
-                    } else {
-                        loginForm.prepend(errorDiv);
-                    }
-                }
-            })
-            .catch(error => {
-                console.error('Error during login request:', error);
-                
-                // Re-enable submit button
-                if (submitButton) {
-                    submitButton.disabled = false;
-                    submitButton.innerHTML = 'Log In';
-                }
-                
-                // Show connection error
-                const errorDiv = document.createElement('div');
-                errorDiv.className = 'bg-red-500 text-white p-3 rounded-md mb-4 text-center animate-pulse';
-                errorDiv.textContent = 'Connection error. Please check your internet connection and try again.';
-                
-                const firstFormGroup = loginForm.querySelector('.form-group');
-                if (firstFormGroup) {
-                    loginForm.insertBefore(errorDiv, firstFormGroup);
-                } else {
-                    loginForm.prepend(errorDiv);
-                }
-            });
-        });
-    }
+
+document.addEventListener('DOMContentLoaded', function () {
+
 });
 
-// Helper function to display form errors
+
 function showFormError(form, fieldName, message) {
-    const field = form.querySelector(`#${fieldName}`) || form.querySelector(`[name="${fieldName}"]`);
-    if (field) {
-        field.classList.add('border-red-500');
-        
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'text-red-500 text-sm mt-1 error-message';
-        errorDiv.textContent = message;
-        
-        if (field.parentNode.classList.contains('relative')) {
-            field.parentNode.parentNode.appendChild(errorDiv);
-        } else {
-            field.parentNode.appendChild(errorDiv);
-        }
+  const field = form.querySelector(`#${fieldName}`) || form.querySelector(`[name="${fieldName}"]`);
+  if (field) {
+    field.classList.add('border-red-500');
+
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'text-red-500 text-sm mt-1 error-message';
+    errorDiv.textContent = message;
+
+    if (field.parentNode.classList.contains('relative')) {
+      field.parentNode.parentNode.appendChild(errorDiv);
     } else {
-        // If field not found, show a general error
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'bg-red-500 text-white p-3 rounded-md mb-4 text-center animate-pulse';
-        errorDiv.textContent = message;
-        
-        const firstFormGroup = form.querySelector('.form-group');
-        if (firstFormGroup) {
-            form.insertBefore(errorDiv, firstFormGroup);
-        } else {
-            form.prepend(errorDiv);
-        }
+      field.parentNode.appendChild(errorDiv);
     }
+  } else {
+
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'bg-red-500 text-white p-3 rounded-md mb-4 text-center animate-pulse';
+    errorDiv.textContent = message;
+
+    const firstFormGroup = form.querySelector('.form-group');
+    if (firstFormGroup) {
+      form.insertBefore(errorDiv, firstFormGroup);
+    } else {
+      form.prepend(errorDiv);
+    }
+  }
 }

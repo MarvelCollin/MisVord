@@ -9,7 +9,7 @@ $servers = $GLOBALS['userServers'] ?? [];
 
 $currentServerId = isset($currentServer) ? $currentServer->id : null;
 $currentPath = $_SERVER['REQUEST_URI'] ?? '';
-$isHomePage = !str_contains($currentPath, '/server/');
+$isHomePage = !str_contains($currentPath, '/server/') && !str_contains($currentPath, '/explore');
 $isExplorePage = str_contains($currentPath, '/explore');
 
 if (!$currentServerId && preg_match('/\/server\/(\d+)/', $currentPath, $matches)) {
@@ -97,9 +97,10 @@ if (file_exists($tooltipPath)) {
         
         <?php
         $exploreContent = '<a href="/explore-servers" class="block">
-            <div class="w-12 h-12 rounded-full hover:rounded-2xl bg-discord-dark hover:bg-discord-green flex items-center justify-center transition-all duration-200">
-                <i class="fas fa-compass text-green-500 hover:text-white text-xl transition-colors duration-200"></i>
+            <div class="w-12 h-12 rounded-' . ($isExplorePage ? '2xl bg-discord-primary' : 'full hover:rounded-2xl bg-discord-dark hover:bg-discord-green') . ' flex items-center justify-center transition-all duration-200">
+                <i class="fas fa-compass ' . ($isExplorePage ? 'text-white' : 'text-green-500 hover:text-white') . ' text-xl transition-colors duration-200"></i>
             </div>
+            ' . ($isExplorePage ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-10 bg-white rounded-r-md"></div>' : '') . '
         </a>';
         
         echo tooltip($exploreContent, 'Explore Public Servers', 'right');

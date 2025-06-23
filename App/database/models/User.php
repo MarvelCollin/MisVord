@@ -52,31 +52,14 @@ class User extends Model {
     }
 
     public function verifyPassword($password) {
-        if (function_exists('logger')) {
-            logger()->debug("verifyPassword called", [
-                'has_password_in_db' => isset($this->attributes['password']) && !empty($this->attributes['password']),
-                'password_hash_from_db' => isset($this->attributes['password']) ? substr($this->attributes['password'], 0, 20) . '...' : 'null',
-                'input_password' => $password
-            ]);
-        }
-        
-        if (!isset($this->attributes['password']) || $this->attributes['password'] === null || $this->attributes['password'] === '') {
-            if (function_exists('logger')) {
-                logger()->warning("No password set in database for user");
-            }
+        if (!isset($this->attributes['password']) || empty($this->attributes['password'])) {
             return false;
         }
         
-        $result = password_verify($password, $this->attributes['password']);
-        
-        if (function_exists('logger')) {
-            logger()->debug("Password verification result", [
-                'result' => $result ? 'success' : 'failed'
-            ]);
-        }
-        
-        return $result;
-    }public function setPassword($password) {
+        return password_verify($password, $this->attributes['password']);
+    }
+
+    public function setPassword($password) {
         $this->password = password_hash($password, PASSWORD_DEFAULT);
     }
 

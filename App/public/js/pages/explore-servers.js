@@ -10,7 +10,19 @@ document.addEventListener('DOMContentLoaded', function() {
     initSearchFilter();
     initJoinServerHandlers();
     initSidebarServerIcons();
+    highlightExploreButton();
 });
+
+function highlightExploreButton() {
+    // Makes sure the explore button is highlighted
+    const exploreButton = document.querySelector('a[href="/explore-servers"]');
+    if (exploreButton) {
+        const parentDiv = exploreButton.closest('div');
+        if (parentDiv) {
+            parentDiv.classList.add('active');
+        }
+    }
+}
 
 function initSidebarServerIcons() {
     const serverIcons = document.querySelectorAll('.sidebar-server-icon');

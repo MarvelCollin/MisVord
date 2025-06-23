@@ -107,9 +107,9 @@ function renderRoleSkeleton($count = 1) {
                             $textColorClass = $isOffline ? 'text-gray-500' : 'text-gray-300';
                             $imgOpacityClass = $isOffline ? 'opacity-70' : '';
                         ?>
-                            <div class="flex items-center px-2 py-1 rounded hover:bg-discord-light group">
+                            <div class="flex items-center px-2 py-1 rounded hover:bg-discord-light group cursor-pointer user-profile-trigger" data-user-id="<?php echo $member['id']; ?>" data-server-id="<?php echo $currentServerId; ?>">
                                 <div class="relative mr-2">
-                                    <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden user-profile-trigger" data-user-id="<?php echo $member['id']; ?>" data-server-id="<?php echo $currentServerId; ?>">
+                                    <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
                                         <img src="<?php echo getUserAvatar($member['avatar'] ?? '', $member['username'] ?? 'User'); ?>" 
                                              alt="Avatar" class="w-full h-full object-cover <?php echo $imgOpacityClass; ?>">
                                     </div>
@@ -168,9 +168,9 @@ function renderRoleSkeleton($count = 1) {
                             $textColorClass = $isOffline ? 'text-gray-500' : 'text-gray-300';
                             $imgOpacityClass = $isOffline ? 'opacity-70' : '';
                         ?>
-                            <div class="flex items-center px-2 py-1 rounded hover:bg-discord-light group">
+                            <div class="flex items-center px-2 py-1 rounded hover:bg-discord-light group cursor-pointer user-profile-trigger" data-user-id="<?php echo $member['id']; ?>" data-server-id="<?php echo $currentServerId; ?>">
                                 <div class="relative mr-2">
-                                    <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden user-profile-trigger" data-user-id="<?php echo $member['id']; ?>" data-server-id="<?php echo $currentServerId; ?>">
+                                    <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
                                         <img src="<?php echo getUserAvatar($member['avatar'] ?? '', $member['username'] ?? 'User'); ?>" 
                                              alt="Avatar" class="w-full h-full object-cover <?php echo $imgOpacityClass; ?>">
                                     </div>
@@ -219,9 +219,9 @@ function renderRoleSkeleton($count = 1) {
                         $textColorClass = $isOffline ? 'text-gray-500' : 'text-gray-300';
                         $imgOpacityClass = $isOffline ? 'opacity-70' : '';
                     ?>
-                        <div class="flex items-center px-2 py-1 rounded hover:bg-discord-light group">
+                        <div class="flex items-center px-2 py-1 rounded hover:bg-discord-light group cursor-pointer user-profile-trigger" data-user-id="<?php echo $member['id']; ?>" data-server-id="<?php echo $currentServerId; ?>">
                             <div class="relative mr-2">
-                                <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden user-profile-trigger" data-user-id="<?php echo $member['id']; ?>" data-server-id="<?php echo $currentServerId; ?>">
+                                <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
                                     <img src="<?php echo getUserAvatar($member['avatar'] ?? '', $member['username'] ?? 'User'); ?>" 
                                          alt="Avatar" class="w-full h-full object-cover <?php echo $imgOpacityClass; ?>">
                                 </div>
@@ -426,4 +426,18 @@ function getStatusClass(status) {
 }
 
 window.toggleParticipantLoading = toggleParticipantLoading;
+
+document.addEventListener('DOMContentLoaded', function() {
+    const participantItems = document.querySelectorAll('.participant-content .user-profile-trigger');
+    
+    participantItems.forEach(item => {
+        item.addEventListener('mouseover', function() {
+            this.classList.add('bg-discord-light');
+        });
+        
+        item.addEventListener('mouseout', function() {
+            this.classList.remove('bg-discord-light');
+        });
+    });
+});
 </script>

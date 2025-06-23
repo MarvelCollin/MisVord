@@ -70,76 +70,50 @@ class AuthenticationController extends BaseController
     public function login()
     {
         if ($this->isAuthenticated()) {
-            if ($this->isApiRoute() || $this->isAjaxRequest()) {
-                return $this->success([
-                    'status' => 'success',
-                    'redirect' => '/home'
-                ]);
-            }
             header('Location: /home');
             exit;
         }
 
-        $input = $this->getInput();
-        $input = $this->sanitize($input);
-
-        $this->validate($input, [
-            'email' => 'required',
-            'password' => 'required'
-        ]);
-
-        $email = $input['email'];
-        $password = $input['password'];
-
-        $user = $this->userRepository->findByEmail($email);
-
-        if (!$user || !$user->verifyPassword($password)) {
-            $this->logActivity('login_failed', ['email' => $email]);
-
-            if ($this->isApiRoute() || $this->isAjaxRequest()) {
-                return $this->error([
-                    'status' => 'error',
-                    'message' => 'Invalid email or password'
-                ], 401);
-            }
-
-            $_SESSION['errors'] = ['auth' => 'Invalid email or password'];
-            $_SESSION['old_input'] = ['email' => $email];
-            
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Location: /login');
             exit;
         }
 
-        // Clean session
+        $input = $this->getInput();
+        $email = isset($input['email']) ? trim($input['email']) : '';
+        $password = isset($input['password']) ? $input['password'] : '';
+
+        if (empty($email) || empty($password)) {
+            $_SESSION['errors'] = ['auth' => 'Email and password are required'];
+            $_SESSION['old_input'] = ['email' => $email];
+            header('Location: /login');
+            exit;
+        }
+
+            $user = $this->userRepository->findByEmail($email);
+
+    if (!$user) {
+        $_SESSION['errors'] = ['auth' => 'Invalid email or password'];
+        $_SESSION['old_input'] = ['email' => $email];
+        header('Location: /login');
+        exit;
+    }
+
+    if (!$user->verifyPassword($password)) {
+        $_SESSION['errors'] = ['auth' => 'Invalid email or password'];
+        $_SESSION['old_input'] = ['email' => $email];
+        header('Location: /login');
+        exit;
+    }
+
         $_SESSION = array();
-        
-        // Set user data in session
         $_SESSION['user_id'] = $user->id;
         $_SESSION['username'] = $user->username;
         $_SESSION['discriminator'] = $user->discriminator;
         $_SESSION['avatar_url'] = $user->avatar_url;
         $_SESSION['banner_url'] = $user->banner_url;
-        
-        $this->logActivity('login_success', ['user_id' => $user->id]);
 
-        $redirect = '/home';
-        
-        if ($this->isApiRoute() || $this->isAjaxRequest()) {
-            return $this->success([
-                'status' => 'success',
-                'message' => 'Login successful',
-                'redirect' => $redirect,
-                'user' => [
-                    'id' => $user->id,
-                    'username' => $user->username,
-                    'discriminator' => $user->discriminator,
-                    'avatar_url' => $user->avatar_url,
-                    'banner_url' => $user->banner_url
-                ]
-            ]);
-        }
-
-        header('Location: ' . $redirect);
+        header('Location: /home');
         exit;
     }
 

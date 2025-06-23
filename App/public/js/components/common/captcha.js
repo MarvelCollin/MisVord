@@ -73,6 +73,7 @@ class TextCaptcha {
                 padding: 10px 12px;
                 cursor: pointer;
                 transition: all 0.2s;
+                z-index: 1000;
             }
             .captcha-refresh:hover {
                 background: #2f3136;
@@ -173,7 +174,7 @@ class TextCaptcha {
 
     verify(input) {
         if (!input) return false;
-        if (!this.code) return true; // Allow bypassing if code wasn't generated properly
+        if (!this.code) return true; 
         
         if (this.options.caseSensitive) {
             return input === this.code;

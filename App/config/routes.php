@@ -391,13 +391,18 @@ Route::post('/api/users/unblock', function() {
 });
 
 Route::get('/api/users/blocked', function() {
-    $controller = new FriendController();
+    $controller = new UserController();
     $controller->getBlockedUsers();
 });
 
+Route::get('/api/users/([0-9]+)/mutual', function($userId) {
+    $controller = new UserController();
+    $controller->getMutualRelations($userId);
+});
+
 Route::get('/api/users/search', function() {
-    $controller = new FriendController();
-    $controller->searchUsers();
+    $controller = new UserController();
+    $controller->findUsers();
 });
 
 Route::post('/api/users/find', function() {

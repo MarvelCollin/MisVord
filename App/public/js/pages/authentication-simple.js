@@ -395,7 +395,42 @@ function initAuthForms() {
     const authTitle = document.getElementById('authTitle');
 
     if (loginForm) {
-        loginForm.addEventListener('submit', validateLoginForm);
+        const originalSubmitHandler = loginForm.onsubmit;
+        loginForm.onsubmit = function(e) {
+            const existingErrors = loginForm.querySelectorAll('.error-message, .bg-red-500');
+            existingErrors.forEach(el => el.remove());
+            
+            
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const captchaInput = document.getElementById('login_captcha');
+            
+            let isValid = true;
+            
+            if (!email) {
+                showFormError(loginForm, 'email', 'Email is required');
+                isValid = false;
+            }
+            
+            if (!password) {
+                showFormError(loginForm, 'password', 'Password is required');
+                isValid = false;
+            }
+            
+            
+            if (captchaInput) {
+                const captchaValue = captchaInput.value.trim();
+                if (!captchaValue) {
+                    showFormError(captchaInput, 'captcha', 'Please complete the captcha');
+                    isValid = false;
+                } else if (window.loginCaptcha && !window.loginCaptcha.verify(captchaValue)) {
+                    showFormError(captchaInput, 'captcha', 'Invalid captcha code');
+                    isValid = false;
+                }
+            }
+            
+            return isValid;
+        };
     }
 
     if (registerForm) {

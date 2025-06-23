@@ -636,4 +636,64 @@ class UserController extends BaseController
             return $this->serverError('An error occurred while resetting password: ' . $e->getMessage());
         }
     }
+
+    public function getMutualRelations($userId)
+    {
+        $this->requireAuth();
+        
+        if (!$userId) {
+            return $this->error('User ID is required', 400);
+        }
+        
+        $currentUserId = $this->getCurrentUserId();
+        
+        if ($currentUserId == $userId) {
+            return $this->error('Cannot get mutual relations with yourself', 400);
+        }
+        
+        try {
+            // Get mutual friends
+            $mutualFriends = [];
+            $currentUserFriends = $this->friendListRepository->getUserFriends($currentUserId);
+            $otherUserFriends = $this->friendListRepository->getUserFriends($userId);
+            
+            $currentUserFriendIds = array_column($currentUserFriends, 'id');
+            
+            foreach ($otherUserFriends as $friend) {
+                if (in_array($friend['id'], $currentUserFriendIds)) {
+                    $mutualFriends[] = $friend;
+                }
+            }
+            
+            // Get mutual servers
+            $mutualServers = [];
+            require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
+            $membershipRepository = new UserServerMembershipRepository();
+            
+            $currentUserServers = $membershipRepository->getServersForUser($currentUserId);
+            $otherUserServers = $membershipRepository->getServersForUser($userId);
+            
+            $currentUserServerIds = array_column($currentUserServers, 'id');
+            
+            foreach ($otherUserServers as $server) {
+                if (in_array($server['id'], $currentUserServerIds)) {
+                    $mutualServers[] = $server;
+                }
+            }
+            
+            return $this->success([
+                'mutual_friends' => $mutualFriends,
+                'mutual_friend_count' => count($mutualFriends),
+                'mutual_servers' => $mutualServers,
+                'mutual_server_count' => count($mutualServers)
+            ]);
+        } catch (Exception $e) {
+            $this->logActivity('mutual_relations_error', [
+                'user_id' => $userId,
+                'error' => $e->getMessage()
+            ]);
+            
+            return $this->serverError('Failed to retrieve mutual relations: ' . $e->getMessage());
+        }
+    }
 } 
