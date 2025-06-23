@@ -35,12 +35,10 @@ function initSidebarServerIcons() {
     
     serverIcons.forEach(icon => {
         const parent = icon.parentElement;
-        if (parent && parent.classList.contains('server-icon-wrapper') || 
-            (parent && parent.parentElement && parent.parentElement.classList.contains('server-icon-wrapper'))) {
-            icon.style.display = 'block';
-            icon.style.margin = '0 auto 8px auto';
-            icon.style.position = 'relative';
-        }
+        // Add any needed styling to sidebar server icons
+        icon.style.display = 'block';
+        icon.style.margin = '0 auto 8px auto';
+        icon.style.position = 'relative';
         
         if (!icon.getAttribute('data-initialized')) {
             icon.setAttribute('data-initialized', 'true');

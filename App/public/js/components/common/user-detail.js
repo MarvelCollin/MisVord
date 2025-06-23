@@ -212,7 +212,7 @@ class UserDetailModal {
         const isSelf = document.getElementById('app-container')?.dataset.userId === user.id?.toString();
 
         if (this.nameElement) {
-            this.nameElement.textContent = user.display_name || user.username || 'Unknown User';
+            this.nameElement.textContent = user.username || 'Unknown User';
         }
 
         if (this.discriminatorElement) {

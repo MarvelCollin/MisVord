@@ -75,18 +75,6 @@ class UserController extends BaseController
                 }
             }
             
-            if (isset($input['display_name'])) {
-                $displayName = trim($input['display_name']);
-                
-                if (empty($displayName)) {
-                    $errors['display_name'] = 'Display name cannot be empty';
-                } else if (strlen($displayName) > 32) {
-                    $errors['display_name'] = 'Display name cannot exceed 32 characters';
-                } else {
-                    $updateData['display_name'] = $displayName;
-                }
-            }
-            
             if (isset($input['email'])) {
                 $email = trim($input['email']);
                 
