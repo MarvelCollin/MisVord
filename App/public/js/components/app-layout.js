@@ -309,46 +309,13 @@ function activateTab(tabName) {
 function loadAllFriends() {
     const container = document.getElementById('all-friends-container');
     if (!container) return;
-
+    
     container.innerHTML = generateSkeletonFriends(5);
-
+    
+    // First get friends from the API
     friendAPI.getFriends()
-        .then(friends => {
-            if (friends && friends.length > 0) {
-                let friendsHtml = '';
-                friends.forEach(friend => {
-                    const statusColor = getStatusColor(friend.status || 'offline');
-                    const statusText = getStatusText(friend.status || 'offline');
-
-                    friendsHtml += `
-                        <div class="flex justify-between items-center p-2 rounded hover:bg-discord-light group friend-item" data-user-id="${friend.id}">
-                            <div class="flex items-center">
-                                <div class="relative mr-3">
-                                    <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
-                                        <img src="${friend.avatar_url || '/public/assets/common/main-logo.png'}" 
-                                             alt="Avatar" class="w-full h-full object-cover">
-                                    </div>
-                                    <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-background ${statusColor}"></span>
-                                </div>
-                                <div>
-                                    <div class="font-medium text-white friend-name">${escapeHtml(friend.username)}</div>
-                                    <div class="text-xs text-gray-400 friend-status">${statusText}</div>
-                                </div>
-                            </div>
-                            <div class="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button class="p-2 text-gray-400 hover:text-white hover:bg-discord-background rounded-full" title="Message">
-                                    <i class="fa-solid fa-message"></i>
-                                </button>
-                                <button class="p-2 text-gray-400 hover:text-white hover:bg-discord-background rounded-full" title="More">
-                                    <i class="fa-solid fa-ellipsis-vertical"></i>
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                });
-
-                container.innerHTML = friendsHtml;
-            } else {
+        .then(async friends => {
+            if (!friends || friends.length === 0) {
                 container.innerHTML = `
                     <div class="p-4 bg-discord-dark rounded text-center">
                         <div class="mb-2 text-gray-400">
@@ -358,7 +325,59 @@ function loadAllFriends() {
                         <p class="text-gray-500 text-sm">Add some friends to get started!</p>
                     </div>
                 `;
+                return;
             }
+            
+            // Now get online status from WebSocket
+            let onlineUsers = {};
+            try {
+                if (window.ChatAPI && typeof window.ChatAPI.getOnlineUsers === 'function') {
+                    onlineUsers = await window.ChatAPI.getOnlineUsers();
+                    console.log('Online users from WebSocket:', onlineUsers);
+                }
+            } catch (error) {
+                console.error('Error getting online users from WebSocket:', error);
+            }
+            
+            let friendsHtml = '';
+            friends.forEach(friend => {
+                // Check if user is online in WebSocket data
+                const isOnlineInSocket = onlineUsers[friend.id] !== undefined;
+                const socketStatus = isOnlineInSocket ? onlineUsers[friend.id].status || 'online' : 'offline';
+                
+                // Use WebSocket status if available, otherwise fallback to database status
+                const status = isOnlineInSocket ? socketStatus : (friend.status || 'offline');
+                const statusColor = getStatusColor(status);
+                const statusText = getStatusText(status);
+                
+                friendsHtml += `
+                    <div class="flex justify-between items-center p-2 rounded hover:bg-discord-light group friend-item" data-user-id="${friend.id}">
+                        <div class="flex items-center">
+                            <div class="relative mr-3">
+                                <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
+                                    <img src="${friend.avatar_url || '/public/assets/common/main-logo.png'}" 
+                                         alt="Avatar" class="w-full h-full object-cover">
+                                </div>
+                                <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-background ${statusColor}"></span>
+                            </div>
+                            <div>
+                                <div class="font-medium text-white friend-name">${escapeHtml(friend.username)}</div>
+                                <div class="text-xs text-gray-400 friend-status">${statusText}</div>
+                            </div>
+                        </div>
+                        <div class="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button class="p-2 text-gray-400 hover:text-white hover:bg-discord-background rounded-full" title="Message" onclick="createDirectMessage('${friend.id}')">
+                                <i class="fa-solid fa-message"></i>
+                            </button>
+                            <button class="p-2 text-gray-400 hover:text-white hover:bg-discord-background rounded-full" title="More">
+                                <i class="fa-solid fa-ellipsis-vertical"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = friendsHtml;
         })
         .catch(error => {
             console.error('Error loading friends:', error);

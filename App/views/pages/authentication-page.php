@@ -16,6 +16,10 @@ if ($path === '/register') {
     $mode = 'register';
 } elseif ($path === '/forgot-password') {
     $mode = 'forgot-password';
+} elseif ($path === '/security-verify') {
+    $mode = 'security-verify';
+} elseif ($path === '/reset-password') {
+    $mode = 'reset-password';
 } elseif ($path === '/set-security-question') {
     $mode = 'security-question';
 } elseif (isset($_SESSION['google_auth_completed']) && $_SESSION['google_auth_completed'] === true && !isset($_SESSION['security_question_set'])) {
@@ -25,6 +29,9 @@ if ($path === '/register') {
 $errors = $_SESSION['errors'] ?? [];
 $oldInput = $_SESSION['old_input'] ?? [];
 $success = $_SESSION['success'] ?? null;
+$securityQuestion = $_SESSION['security_question'] ?? null;
+$email = $_SESSION['reset_email'] ?? '';
+$token = $_SESSION['reset_token'] ?? '';
 
 unset($_SESSION['errors'], $_SESSION['old_input'], $_SESSION['success']);
 
@@ -329,10 +336,113 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                 <button type="submit" class="w-full py-2.5 bg-discord-blue hover:bg-discord-blue/90 text-white font-medium rounded-md transition-all">
                     Send Reset Link
                 </button>
+                
+                <div class="text-center mt-4">
+                    <a href="#" class="text-discord-blue hover:underline text-sm form-toggle" data-form="security-verify">Forgot account? Use security question</a>
+                </div>
 
                 <div class="text-center mt-6">
                     <a href="#" class="text-discord-blue hover:underline text-sm form-toggle" data-form="login">Back to Login</a>
                 </div>
+            </form>
+            
+            <form action="/verify-security-question" method="POST" class="space-y-5 <?php echo $mode === 'security-verify' ? 'block' : 'hidden'; ?>" id="securityVerifyForm">
+                <p class="text-gray-300 text-sm mb-6">
+                    Enter your email to retrieve your security question.
+                </p>
+
+                <div class="form-group">
+                    <label for="security_verify_email" class="block text-sm font-medium text-gray-300 mb-1">Email</label>
+                    <input 
+                        id="security_verify_email" 
+                        name="email" 
+                        class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
+                        value="<?php echo $oldInput['email'] ?? ''; ?>" 
+                    >
+                    <?php if (isset($errors['email'])): ?>
+                        <p class="text-red-500 text-sm mt-1"><?php echo $errors['email']; ?></p>
+                    <?php endif; ?>
+                </div>
+                
+                <?php if (isset($_SESSION['security_question'])): ?>
+                <div class="form-group">
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Security Question</label>
+                    <div class="bg-[#2f3136] p-3 rounded-md text-gray-200 mb-2"><?php echo $_SESSION['security_question']; ?></div>
+                    
+                    <label for="security_answer_verify" class="block text-sm font-medium text-gray-300 mb-1">Your Answer</label>
+                    <input 
+                        id="security_answer_verify" 
+                        name="security_answer" 
+                        class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
+                    >
+                    <?php if (isset($errors['security_answer'])): ?>
+                        <p class="text-red-500 text-sm mt-1"><?php echo $errors['security_answer']; ?></p>
+                    <?php endif; ?>
+                </div>
+                
+                <input type="hidden" name="step" value="verify_answer">
+                <?php else: ?>
+                <input type="hidden" name="step" value="get_question">
+                <?php endif; ?>
+                
+                <button type="submit" class="w-full py-2.5 bg-discord-blue hover:bg-discord-blue/90 text-white font-medium rounded-md transition-all">
+                    <?php echo isset($_SESSION['security_question']) ? 'Verify Answer' : 'Get Security Question'; ?>
+                </button>
+
+                <div class="text-center mt-6">
+                    <a href="#" class="text-discord-blue hover:underline text-sm form-toggle" data-form="forgot">Back to Password Reset</a>
+                </div>
+            </form>
+            
+            <form action="/reset-password" method="POST" class="space-y-5 <?php echo $mode === 'reset-password' ? 'block' : 'hidden'; ?>" id="resetPasswordForm">
+                <p class="text-gray-300 text-sm mb-6">
+                    Create a new password for your account.
+                </p>
+
+                <input type="hidden" name="token" value="<?php echo $_SESSION['reset_token'] ?? ''; ?>">
+                <input type="hidden" name="email" value="<?php echo $_SESSION['reset_email'] ?? ''; ?>">
+
+                <div class="form-group">
+                    <label for="new_password" class="block text-sm font-medium text-gray-300 mb-1">New Password</label>
+                    <div class="relative">
+                        <input 
+                            id="new_password" 
+                            name="password" 
+                            class="password-field w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
+                        >
+                        <button type="button" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors password-toggle">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
+                    <?php if (isset($errors['password'])): ?>
+                        <p class="text-red-500 text-sm mt-1"><?php echo $errors['password']; ?></p>
+                    <?php endif; ?>
+                    <div class="mt-1 h-1 bg-gray-700 rounded hidden" id="resetPasswordStrength">
+                        <div class="h-full bg-discord-blue rounded" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="confirm_new_password" class="block text-sm font-medium text-gray-300 mb-1">Confirm New Password</label>
+                    <div class="relative">
+                        <input 
+                            id="confirm_new_password" 
+                            name="password_confirm" 
+                            class="password-field w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
+                        >
+                        <button type="button" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors password-toggle">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
+                    <?php if (isset($errors['password_confirm'])): ?>
+                        <p class="text-red-500 text-sm mt-1"><?php echo $errors['password_confirm']; ?></p>
+                    <?php endif; ?>
+                    <div class="text-green-500 text-xs mt-1 hidden" id="resetPasswordsMatch">Passwords match <i class="fa-solid fa-check"></i></div>
+                </div>
+
+                <button type="submit" class="w-full py-2.5 bg-discord-blue hover:bg-discord-blue/90 text-white font-medium rounded-md transition-all">
+                    Reset Password
+                </button>
             </form>
 
             <form action="/set-security-question" method="POST" class="space-y-4 sm:space-y-5 <?php echo $mode === 'security-question' ? 'block' : 'hidden'; ?>" id="securityQuestionForm">

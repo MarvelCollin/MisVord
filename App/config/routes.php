@@ -70,6 +70,14 @@ Route::get('/settings-server', 'pages/settings-server.php');
 Route::get('/call', 'pages/call.php');
 Route::get('/dev', 'pages/dev.php');
 Route::get('/forgot-password', 'pages/authentication-page.php');
+Route::get('/security-verify', function() {
+    $controller = new AuthenticationController();
+    $controller->showSecurityVerify();
+});
+Route::get('/reset-password', function() {
+    $controller = new AuthenticationController();
+    $controller->showResetPassword();
+});
 Route::get('/set-security-question', 'pages/authentication-page.php');
 Route::get('/nitro', function() {
     $controller = new NitroController();
@@ -90,6 +98,16 @@ Route::post('/register', function() {
 Route::post('/forgot-password', function() {
     $controller = new AuthenticationController();
     $controller->forgotPassword();
+});
+
+Route::post('/verify-security-question', function() {
+    $controller = new AuthenticationController();
+    $controller->verifySecurityQuestion();
+});
+
+Route::post('/reset-password', function() {
+    $controller = new AuthenticationController();
+    $controller->resetPassword();
 });
 
 Route::post('/set-security-question', function() {

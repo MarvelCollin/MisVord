@@ -67,48 +67,35 @@ if (file_exists($tooltipPath)) {
             $otherUsername = $chatRoom['other_username'] ?? 'Unknown';
             $otherAvatar = $chatRoom['other_avatar'] ?? '';
             $roomId = $chatRoom['id'] ?? 0;
-                
-                foreach ($friends as $friend) {
-                    if ($friend['id'] == $otherUserId) {
-                        if ($friend['status'] === 'online') {
-                            $statusColor = 'bg-discord-green';
-                        } elseif ($friend['status'] === 'away') {
-                            $statusColor = 'bg-discord-yellow';
-                        } elseif ($friend['status'] === 'dnd') {
-                            $statusColor = 'bg-discord-red';
-                        }
-                        break;
-                    }
-                }
-
-                $activeDmId = $_SESSION['active_dm'] ?? null;
-                $isActive = ($activeDmId == $roomId);
-                $activeClass = $isActive ? 'bg-discord-light' : 'hover:bg-discord-light';
-                ?>
-                <div class="dm-friend-item flex items-center p-1.5 rounded <?php echo $activeClass; ?> text-discord-lighter hover:text-white cursor-pointer group"
-                     data-friend-id="<?php echo htmlspecialchars($otherUserId); ?>"
-                     data-chat-room-id="<?php echo htmlspecialchars($roomId); ?>"
-                     data-chat-type="direct"
-                     data-username="<?php echo htmlspecialchars($otherUsername); ?>">
-                    <div class="relative mr-3">
-                        <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
-                            <img src="<?php echo getUserAvatar($otherAvatar, $otherUsername); ?>" 
-                                alt="Avatar" class="w-full h-full object-cover">
-                        </div>
-                        <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark <?php echo $statusColor; ?>"></span>
+            
+            $activeDmId = $_SESSION['active_dm'] ?? null;
+            $isActive = ($activeDmId == $roomId);
+            $activeClass = $isActive ? 'bg-discord-light' : 'hover:bg-discord-light';
+            ?>
+            <div class="dm-friend-item flex items-center p-1.5 rounded <?php echo $activeClass; ?> text-discord-lighter hover:text-white cursor-pointer group"
+                 data-friend-id="<?php echo htmlspecialchars($otherUserId); ?>"
+                 data-chat-room-id="<?php echo htmlspecialchars($roomId); ?>"
+                 data-chat-type="direct"
+                 data-username="<?php echo htmlspecialchars($otherUsername); ?>">
+                <div class="relative mr-3">
+                    <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
+                        <img src="<?php echo getUserAvatar($otherAvatar, $otherUsername); ?>" 
+                            alt="Avatar" class="w-full h-full object-cover">
                     </div>
-                    <span class="font-medium truncate"><?php echo htmlspecialchars($otherUsername); ?></span>
-
-                    <div class="ml-auto hidden group-hover:flex items-center space-x-1">
-                        <button class="text-discord-lighter hover:text-white p-1 rounded hover:bg-discord-background">
-                            <i class="fas fa-phone-alt text-xs"></i>
-                        </button>
-                        <button class="text-discord-lighter hover:text-white p-1 rounded hover:bg-discord-background">
-                            <i class="fas fa-video text-xs"></i>
-                        </button>
-                    </div>
+                    <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark <?php echo $statusColor; ?> user-status-indicator" data-user-id="<?php echo htmlspecialchars($otherUserId); ?>"></span>
                 </div>
-            <?php endforeach; ?>
+                <span class="font-medium truncate"><?php echo htmlspecialchars($otherUsername); ?></span>
+
+                <div class="ml-auto hidden group-hover:flex items-center space-x-1">
+                    <button class="text-discord-lighter hover:text-white p-1 rounded hover:bg-discord-background">
+                        <i class="fas fa-phone-alt text-xs"></i>
+                    </button>
+                    <button class="text-discord-lighter hover:text-white p-1 rounded hover:bg-discord-background">
+                        <i class="fas fa-video text-xs"></i>
+                    </button>
+                </div>
+            </div>
+        <?php endforeach; ?>
     </div>
 
     <?php include dirname(__DIR__) . '/common/user-profile.php'; ?>
@@ -170,5 +157,65 @@ if (file_exists($tooltipPath)) {
                 }
             });
         });
+
+        // Update user status indicators based on WebSocket data
+        function updateUserStatusIndicators() {
+            if (!window.ChatAPI || typeof window.ChatAPI.getOnlineUsers !== 'function') {
+                console.warn('ChatAPI not available for status updates');
+                return;
+            }
+
+            window.ChatAPI.getOnlineUsers().then(onlineUsers => {
+                const statusIndicators = document.querySelectorAll('.user-status-indicator');
+                
+                statusIndicators.forEach(indicator => {
+                    const userId = indicator.getAttribute('data-user-id');
+                    
+                    if (onlineUsers[userId]) {
+                        // User is online in WebSocket
+                        const status = onlineUsers[userId].status || 'online';
+                        
+                        // Set appropriate status color
+                        indicator.classList.remove('bg-gray-500', 'bg-discord-green', 'bg-discord-yellow', 'bg-discord-red');
+                        
+                        if (status === 'online' || status === 'appear') {
+                            indicator.classList.add('bg-discord-green');
+                        } else if (status === 'away' || status === 'idle') {
+                            indicator.classList.add('bg-discord-yellow');
+                        } else if (status === 'dnd' || status === 'do_not_disturb') {
+                            indicator.classList.add('bg-discord-red');
+                        } else {
+                            indicator.classList.add('bg-gray-500');
+                        }
+                    } else {
+                        // User is offline
+                        indicator.classList.remove('bg-discord-green', 'bg-discord-yellow', 'bg-discord-red');
+                        indicator.classList.add('bg-gray-500');
+                    }
+                });
+            }).catch(error => {
+                console.error('Error updating user status indicators:', error);
+            });
+        }
+
+        // Update status indicators when page loads
+        updateUserStatusIndicators();
+
+        // Update status indicators periodically
+        setInterval(updateUserStatusIndicators, 30000);
+
+        // Update status when socket connection is established
+        if (window.globalSocketManager) {
+            window.globalSocketManager.onReady = function() {
+                updateUserStatusIndicators();
+            };
+        }
+
+        // Listen for presence updates
+        if (window.globalSocketManager && window.globalSocketManager.io) {
+            window.globalSocketManager.io.on('user-presence-update', function() {
+                updateUserStatusIndicators();
+            });
+        }
     });
 </script>

@@ -686,6 +686,231 @@ class AuthenticationController extends BaseController
         }
     }
 
+    public function showSecurityVerify()
+    {
+        if ($this->isAuthenticated()) {
+            return $this->redirectResponse('/app');
+        }
+
+        if ($this->isApiRoute() || $this->isAjaxRequest()) {
+            return $this->success([
+                'view' => 'security_verify',
+                'csrf_token' => $_SESSION['csrf_token'] ?? ''
+            ]);
+        }
+
+        require_once __DIR__ . '/../views/pages/authentication-page.php';
+    }
+    
+    public function verifySecurityQuestion()
+    {
+        $input = $this->getInput();
+        $input = $this->sanitize($input);
+        
+        $step = $input['step'] ?? 'get_question';
+        $email = $input['email'] ?? '';
+        
+        if (empty($email)) {
+            if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                return $this->validationError(['email' => 'Email is required']);
+            }
+            $_SESSION['errors'] = ['email' => 'Email is required'];
+            if (!headers_sent()) {
+                header('Location: /security-verify');
+            }
+            exit;
+        }
+        
+        $user = $this->userRepository->findByEmail($email);
+        
+        if (!$user) {
+            if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                return $this->validationError(['email' => 'No account found with this email']);
+            }
+            $_SESSION['errors'] = ['email' => 'No account found with this email'];
+            if (!headers_sent()) {
+                header('Location: /security-verify');
+            }
+            exit;
+        }
+        
+        if ($step === 'get_question') {
+            $_SESSION['security_question'] = $user->security_question;
+            $_SESSION['reset_email'] = $email;
+            
+            if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                return $this->success([
+                    'view' => 'security_verify',
+                    'security_question' => $user->security_question
+                ]);
+            }
+            
+            $_SESSION['old_input'] = ['email' => $email];
+            if (!headers_sent()) {
+                header('Location: /security-verify');
+            }
+            exit;
+        } else {
+            $securityAnswer = $input['security_answer'] ?? '';
+            
+            if (empty($securityAnswer)) {
+                if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                    return $this->validationError(['security_answer' => 'Security answer is required']);
+                }
+                $_SESSION['errors'] = ['security_answer' => 'Security answer is required'];
+                if (!headers_sent()) {
+                    header('Location: /security-verify');
+                }
+                exit;
+            }
+            
+            if (!$this->userRepository->verifySecurityAnswer($user->id, $securityAnswer)) {
+                if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                    return $this->validationError(['security_answer' => 'Incorrect security answer']);
+                }
+                $_SESSION['errors'] = ['security_answer' => 'Incorrect security answer'];
+                if (!headers_sent()) {
+                    header('Location: /security-verify');
+                }
+                exit;
+            }
+            
+            $_SESSION['reset_token'] = md5(uniqid(rand(), true));
+            $_SESSION['reset_user_id'] = $user->id;
+            
+            if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                return $this->success([
+                    'redirect' => '/reset-password'
+                ]);
+            }
+            
+            if (!headers_sent()) {
+                header('Location: /reset-password');
+            }
+            exit;
+        }
+    }
+    
+    public function showResetPassword()
+    {
+        if (!isset($_SESSION['reset_token']) || !isset($_SESSION['reset_email']) && !isset($_SESSION['reset_user_id'])) {
+            if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                return $this->error('Invalid reset token', 400);
+            }
+            
+            $_SESSION['errors'] = ['auth' => 'Invalid reset token'];
+            if (!headers_sent()) {
+                header('Location: /forgot-password');
+            }
+            exit;
+        }
+        
+        if ($this->isApiRoute() || $this->isAjaxRequest()) {
+            return $this->success([
+                'view' => 'reset_password',
+                'csrf_token' => $_SESSION['csrf_token'] ?? ''
+            ]);
+        }
+        
+        require_once __DIR__ . '/../views/pages/authentication-page.php';
+    }
+    
+    public function resetPassword()
+    {
+        $input = $this->getInput();
+        $input = $this->sanitize($input);
+        
+        $password = $input['password'] ?? '';
+        $passwordConfirm = $input['password_confirm'] ?? '';
+        $token = $input['token'] ?? $_SESSION['reset_token'] ?? '';
+        
+        if (!isset($_SESSION['reset_token']) || $_SESSION['reset_token'] !== $token) {
+            if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                return $this->error('Invalid reset token', 400);
+            }
+            
+            $_SESSION['errors'] = ['auth' => 'Invalid reset token'];
+            if (!headers_sent()) {
+                header('Location: /forgot-password');
+            }
+            exit;
+        }
+        
+        $errors = [];
+        
+        if (empty($password)) {
+            $errors['password'] = 'Password is required';
+        } elseif (strlen($password) < 8) {
+            $errors['password'] = 'Password must be at least 8 characters';
+        } elseif (!preg_match('/[A-Z]/', $password)) {
+            $errors['password'] = 'Password must contain at least one uppercase letter';
+        } elseif (!preg_match('/[0-9]/', $password)) {
+            $errors['password'] = 'Password must contain at least one number';
+        }
+        
+        if ($password !== $passwordConfirm) {
+            $errors['password_confirm'] = 'Passwords do not match';
+        }
+        
+        if (!empty($errors)) {
+            if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                return $this->validationError($errors);
+            }
+            
+            $_SESSION['errors'] = $errors;
+            if (!headers_sent()) {
+                header('Location: /reset-password');
+            }
+            exit;
+        }
+        
+        $userId = $_SESSION['reset_user_id'] ?? null;
+        $email = $_SESSION['reset_email'] ?? null;
+        
+        if ($userId) {
+            $user = $this->userRepository->find($userId);
+        } elseif ($email) {
+            $user = $this->userRepository->findByEmail($email);
+        } else {
+            if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                return $this->error('Invalid user identification', 400);
+            }
+            
+            $_SESSION['errors'] = ['auth' => 'Invalid user identification'];
+            if (!headers_sent()) {
+                header('Location: /forgot-password');
+            }
+            exit;
+        }
+        
+        if (!$user) {
+            if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                return $this->error('User not found', 404);
+            }
+            
+            $_SESSION['errors'] = ['auth' => 'User not found'];
+            if (!headers_sent()) {
+                header('Location: /forgot-password');
+            }
+            exit;
+        }
+        
+        $this->userRepository->updatePassword($user->id, $password);
+        
+        unset($_SESSION['reset_token'], $_SESSION['reset_email'], $_SESSION['reset_user_id'], $_SESSION['security_question']);
+        
+        $_SESSION['success'] = 'Your password has been reset successfully. You can now log in with your new password.';
+        
+        if ($this->isApiRoute() || $this->isAjaxRequest()) {
+            return $this->success(['redirect' => '/login']);
+        }
+        
+        if (!headers_sent()) {
+            header('Location: /login');
+        }
+        exit;
+    }
+
     protected function getInput()
     {
         $input = [];
