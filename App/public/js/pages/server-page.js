@@ -171,6 +171,14 @@ function handleSkeletonLoading(show) {
   
   if (!mainContent) return;
   
+  if (typeof window.toggleChannelLoading === 'function') {
+    window.toggleChannelLoading(show);
+  }
+  
+  if (typeof window.toggleParticipantLoading === 'function') {
+    window.toggleParticipantLoading(show);
+  }
+  
   if (show) {
     const skeletonTemplate = `
       <div class="skeleton-loader server-page-skeleton flex h-full">

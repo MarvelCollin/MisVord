@@ -17,6 +17,9 @@ if (!isset($_SESSION['user_id'])) {
 $currentServer = $GLOBALS['server'] ?? $GLOBALS['currentServer'] ?? null;
 $serverName = $currentServer ? $currentServer->name : 'Unknown Server';
 
+// Set loading state based on query parameter or default to false
+$GLOBALS['isLoading'] = isset($_GET['loading']) && $_GET['loading'] === 'true';
+
 $page_title = 'misvord - ' . $serverName;
 $body_class = 'bg-discord-dark text-white';
 $page_css = 'app';

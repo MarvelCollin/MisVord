@@ -18,7 +18,26 @@ $userServers = $homeData['userServers'];
 $memberships = $homeData['memberships'];
 
 $contentType = 'home';
-if (isset($_SESSION['active_dm']) && !empty($_SESSION['active_dm'])) {
+
+$currentUri = $_SERVER['REQUEST_URI'] ?? '';
+$isFriendsPage = strpos($currentUri, '/app/friends') === 0;
+$isHomePage = $currentUri === '/home' || $currentUri === '/home/';
+
+if ($isFriendsPage || $isHomePage) {
+    $contentType = 'home';
+    
+    if (!isset($GLOBALS['activeTab'])) {
+        $GLOBALS['activeTab'] = 'online';
+    }
+    
+    require_once dirname(dirname(__DIR__)) . '/controllers/FriendController.php';
+    $friendController = new FriendController();
+    $friendData = $friendController->getUserFriends();
+    
+    $GLOBALS['friends'] = $friendData['friends'] ?? [];
+    $GLOBALS['onlineFriends'] = $friendData['onlineFriends'] ?? [];
+} 
+elseif (isset($_SESSION['active_dm']) && !empty($_SESSION['active_dm'])) {
     $contentType = 'dm';
     $activeDmId = $_SESSION['active_dm'];
     
@@ -88,7 +107,6 @@ $head_scripts = ['logger-init'];
 </div>
 <?php endif; ?>
 
-<!-- Socket data for JavaScript access -->
 <div id="socket-data" style="display: none;" 
      data-user-id="<?php echo htmlspecialchars($currentUserId); ?>"
      data-username="<?php echo htmlspecialchars($GLOBALS['currentUser']['username'] ?? ''); ?>"

@@ -236,7 +236,7 @@ class BaseController
 
     protected function getRedirectUrl()
     {
-        $redirect = '/app';
+        $redirect = '/home';
 
         if (isset($_SESSION['pending_invite'])) {
             $redirect = '/join/' . $_SESSION['pending_invite'];

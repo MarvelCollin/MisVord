@@ -331,7 +331,6 @@ function handleGetOnlineUsers(io, client) {
         }
     }
     
-    
     client.emit('online-users-response', {
         users: onlineUsers
     });

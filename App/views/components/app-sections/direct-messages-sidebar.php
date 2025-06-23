@@ -172,10 +172,8 @@ if (file_exists($tooltipPath)) {
                     const userId = indicator.getAttribute('data-user-id');
                     
                     if (onlineUsers[userId]) {
-                        // User is online in WebSocket
                         const status = onlineUsers[userId].status || 'online';
                         
-                        // Set appropriate status color
                         indicator.classList.remove('bg-gray-500', 'bg-discord-green', 'bg-discord-yellow', 'bg-discord-red');
                         
                         if (status === 'online' || status === 'appear') {
@@ -188,7 +186,6 @@ if (file_exists($tooltipPath)) {
                             indicator.classList.add('bg-gray-500');
                         }
                     } else {
-                        // User is offline
                         indicator.classList.remove('bg-discord-green', 'bg-discord-yellow', 'bg-discord-red');
                         indicator.classList.add('bg-gray-500');
                     }

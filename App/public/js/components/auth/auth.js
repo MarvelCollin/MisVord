@@ -86,7 +86,7 @@ export class AuthManager {
         if (response.success) {
           showToast("Login successful. Redirecting...", "success");
 
-          const redirectUrl = response.redirect || "/app";
+          const redirectUrl = response.redirect || "/home";
           if (window.logger) {
             window.logger.debug("auth", "Redirecting to:", redirectUrl);
           }
@@ -141,7 +141,7 @@ export class AuthManager {
         if (response.success) {
           showToast("Registration successful. Redirecting...", "success");
 
-          const redirectUrl = response.redirect || "/app";
+          const redirectUrl = response.redirect || "/home";
           if (window.logger) {
             window.logger.debug("auth", "Redirecting to:", redirectUrl);
           }
@@ -239,3 +239,130 @@ export class AuthManager {
 const isAuthPage =
   document.body && document.body.getAttribute("data-page") === "auth";
 export const authManager = !isAuthPage ? new AuthManager() : null;
+
+// Update all redirects from /app to /home
+function updateRedirectUrls(response) {
+    if (response && response.redirect && response.redirect === '/app') {
+        response.redirect = '/home';
+    }
+    return response;
+}
+
+function handleResponse(response) {
+    response = updateRedirectUrls(response);
+    const redirectUrl = response.redirect || "/home";
+    
+    if (redirectUrl) {
+        // Clear any cached data before redirecting
+        sessionStorage.removeItem('auth_in_progress');
+        
+        // Add a timestamp parameter to bust cache
+        const timestampedUrl = redirectUrl.includes('?') 
+            ? `${redirectUrl}&_t=${Date.now()}` 
+            : `${redirectUrl}?_t=${Date.now()}`;
+            
+        console.log("Redirecting to:", timestampedUrl);
+        window.location.href = timestampedUrl;
+    }
+}
+
+// Login form handler
+document.addEventListener('DOMContentLoaded', function() {
+    const loginForm = document.getElementById('loginForm');
+    
+    if (loginForm) {
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Set a flag to indicate authentication is in progress
+            sessionStorage.setItem('auth_in_progress', 'true');
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const captcha = document.getElementById('login_captcha').value;
+            
+            // Disable the submit button to prevent double submissions
+            const submitButton = loginForm.querySelector('button[type="submit"]');
+            if (submitButton) {
+                submitButton.disabled = true;
+                submitButton.innerHTML = 'Logging in...';
+            }
+            
+            fetch('/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    email: email,
+                    password: password,
+                    captcha: captcha
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === 'success') {
+                    // If login was successful
+                    localStorage.setItem('user_token', 'authenticated');
+                    
+                    // Set a flag to connect socket after login
+                    localStorage.setItem('connect_socket_on_login', 'true');
+                    
+                    handleResponse(data);
+                } else {
+                    // Re-enable submit button
+                    if (submitButton) {
+                        submitButton.disabled = false;
+                        submitButton.innerHTML = 'Log In';
+                    }
+                    
+                    // Show error
+                    sessionStorage.removeItem('auth_in_progress');
+                    
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'bg-red-500 text-white p-3 rounded-md mb-4 text-center animate-pulse';
+                    errorDiv.textContent = data.message || 'Login failed. Please try again.';
+                    
+                    // Find where to insert error
+                    const firstFormGroup = loginForm.querySelector('.form-group');
+                    if (firstFormGroup) {
+                        loginForm.insertBefore(errorDiv, firstFormGroup);
+                    } else {
+                        loginForm.prepend(errorDiv);
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error during login:', error);
+                
+                // Re-enable submit button
+                if (submitButton) {
+                    submitButton.disabled = false;
+                    submitButton.innerHTML = 'Log In';
+                }
+                
+                // Clear auth in progress flag
+                sessionStorage.removeItem('auth_in_progress');
+                
+                // Show error
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'bg-red-500 text-white p-3 rounded-md mb-4 text-center animate-pulse';
+                errorDiv.textContent = 'Connection error. Please try again.';
+                
+                // Find where to insert error
+                const firstFormGroup = loginForm.querySelector('.form-group');
+                if (firstFormGroup) {
+                    loginForm.insertBefore(errorDiv, firstFormGroup);
+                } else {
+                    loginForm.prepend(errorDiv);
+                }
+            });
+        });
+    }
+});

@@ -322,7 +322,7 @@ class ServerController extends BaseController
                     'server_name' => $server->name
                 ]);
 
-                return $this->success(['redirect' => '/app'], 'Server deleted successfully');
+                return $this->success(['redirect' => '/home'], 'Server deleted successfully');
             } else {
                 throw new Exception('Failed to delete server');
             }
@@ -408,7 +408,7 @@ class ServerController extends BaseController
                     'server_name' => $server->name
                 ]);
 
-                return $this->success(['redirect' => '/app'], 'Left server successfully');
+                return $this->success(['redirect' => '/home'], 'Left server successfully');
             } else {
                 throw new Exception('Failed to leave server');
             }

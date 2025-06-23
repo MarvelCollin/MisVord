@@ -50,9 +50,7 @@ class HomeController extends BaseController
                 ? $tab : 'online';
                 
             // Ensure friends data is available for the tab
-            if ($tab === 'online' || $tab === 'all') {
-                $this->loadFriendsData($this->getCurrentUserId());
-            }
+            $this->loadFriendsData($this->getCurrentUserId());
         }
 
         $currentUserId = $this->getCurrentUserId();

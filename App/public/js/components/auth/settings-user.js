@@ -4,8 +4,6 @@
 document.addEventListener('DOMContentLoaded', function() {
     initUserSettingsPage();
     
-    // Prevent chat-section.js from attempting to initialize on the settings page
-    // by creating empty elements that it looks for
     if (!document.getElementById('chat-messages') && 
         document.body.classList.contains('settings-user')) {
         const hiddenElements = document.createElement('div');
@@ -28,14 +26,11 @@ function initUserSettingsPage() {
         window.logger.debug('settings', 'Initializing user settings page');
     }
 
-    // Get active section from URL parameter
     const urlParams = new URLSearchParams(window.location.search);
     const activeSection = urlParams.get('section') || 'my-account';
     
-    // Initialize the sidebar navigation 
     initSidebarNavigation(activeSection);
     
-    // Initialize specific section functionality
     if (activeSection === 'my-account') {
         initUserAvatarUpload();
         initStatusSelector();
@@ -44,21 +39,16 @@ function initUserSettingsPage() {
         initTwoFactorAuth();
     }
     
-    // Initialize close button
     initCloseButton();
     initPasswordFieldMasking();
 }
 
-/**
- * Initialize sidebar navigation
- */
 function initSidebarNavigation(activeSection) {
     const sidebarItems = document.querySelectorAll('.sidebar-item');
     
     sidebarItems.forEach(item => {
         item.addEventListener('click', function(e) {
             if (this.getAttribute('href').includes('section=')) {
-                // Let the link handle the navigation
                 return;
             }
             
@@ -66,25 +56,18 @@ function initSidebarNavigation(activeSection) {
             const section = this.getAttribute('data-section');
             if (!section) return;
             
-            // Update URL without reloading the page
             const url = new URL(window.location);
             url.searchParams.set('section', section);
             window.history.pushState({}, '', url);
             
-            // Update active item
             sidebarItems.forEach(i => i.classList.remove('active'));
             this.classList.add('active');
             
-            // You would typically load the content dynamically here
-            // For now, we'll just reload the page
             window.location.href = this.getAttribute('href');
         });
     });
 }
 
-/**
- * Initialize user avatar upload with image cropper
- */
 function initUserAvatarUpload() {
     const iconContainer = document.getElementById('server-icon-container');
     const iconInput = document.getElementById('avatar-input');
@@ -94,14 +77,11 @@ function initUserAvatarUpload() {
     
     if (!iconContainer || !iconInput || !changeIconBtn) return;
     
-    // Initialize ImageCutter if available
     if (typeof ImageCutter !== 'undefined') {
         try {
-            // Import the ImageCutter module dynamically
             import('/js/components/common/image-cutter.js')
                 .then(module => {
                     const ImageCutter = module.default;
-                    // Create image cutter instance
                     const avatarCutter = new ImageCutter({
                         container: iconContainer,
                         type: 'profile',
@@ -113,7 +93,6 @@ function initUserAvatarUpload() {
                                 return;
                             }
                             
-                            // Update preview with cropped image
                             if (iconPreview) {
                                 iconPreview.src = result.dataUrl;
                                 iconPreview.classList.remove('hidden');
@@ -122,20 +101,16 @@ function initUserAvatarUpload() {
                                 if (placeholder) placeholder.classList.add('hidden');
                             }
                             
-                            // Store the cropped image data to use during form submission
                             iconContainer.dataset.croppedImage = result.dataUrl;
                             
-                            // Show remove button if it exists
                             if (removeIconBtn && removeIconBtn.classList.contains('hidden')) {
                                 removeIconBtn.classList.remove('hidden');
                             }
                             
-                            // Upload the avatar immediately
                             uploadAvatar(result.dataUrl);
                         }
                     });
                     
-                    // Store the cutter instance for later use
                     window.userAvatarCutter = avatarCutter;
                 })
                 .catch(error => {
@@ -146,28 +121,24 @@ function initUserAvatarUpload() {
         }
     }
     
-    // Change avatar button click handler
     if (changeIconBtn) {
         changeIconBtn.addEventListener('click', function() {
             iconInput.click();
         });
     }
     
-    // Icon container click handler (alternative way to upload)
     if (iconContainer) {
         iconContainer.addEventListener('click', function() {
             iconInput.click();
         });
     }
     
-    // File input change handler
     if (iconInput) {
         iconInput.addEventListener('change', function() {
             if (!this.files || !this.files[0]) return;
             
             const file = this.files[0];
             
-            // Validate file type
             if (!file.type.match('image.*')) {
                 alert('Please select a valid image file');
                 return;
@@ -176,11 +147,9 @@ function initUserAvatarUpload() {
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
-                    // If we have the image cutter, use it
                     if (window.userAvatarCutter) {
                         window.userAvatarCutter.loadImage(e.target.result);
                     } else {
-                        // Fallback to simple preview
                         if (iconPreview) {
                             iconPreview.src = e.target.result;
                             iconPreview.classList.remove('hidden');
@@ -191,7 +160,6 @@ function initUserAvatarUpload() {
                         
                         iconContainer.dataset.croppedImage = e.target.result;
                         
-                        // Upload the avatar immediately
                         uploadAvatar(e.target.result);
                     }
                 } catch (error) {
@@ -203,17 +171,14 @@ function initUserAvatarUpload() {
         });
     }
     
-    // Remove avatar button click handler
     if (removeIconBtn) {
         removeIconBtn.addEventListener('click', function(e) {
-            e.stopPropagation(); // Prevent triggering the container click
+            e.stopPropagation();
             
-            // Confirm before removing
             if (!confirm('Are you sure you want to remove your profile picture?')) {
                 return;
             }
             
-            // Call API to remove avatar
             fetch('/user/avatar/remove', {
                 method: 'POST',
                 headers: {
@@ -225,25 +190,20 @@ function initUserAvatarUpload() {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Clear the preview and show default avatar
                     if (iconPreview) {
                         iconPreview.src = '/public/assets/common/main-logo.png';
                     }
                     
-                    // Clear the stored image data
                     if (iconContainer) {
                         delete iconContainer.dataset.croppedImage;
                     }
                     
-                    // Hide the remove button
                     removeIconBtn.classList.add('hidden');
                     
-                    // Clear the file input
                     if (iconInput) {
                         iconInput.value = '';
                     }
                     
-                    // Update avatar in preview panel
                     const previewAvatar = document.querySelector('.server-icon-preview img');
                     if (previewAvatar) {
                         previewAvatar.src = '/public/assets/common/main-logo.png';
@@ -266,17 +226,13 @@ function initUserAvatarUpload() {
  * Upload avatar to server
  */
 function uploadAvatar(dataUrl) {
-    // Convert data URL to Blob
     const blob = dataURLtoBlob(dataUrl);
     
-    // Create FormData
     const formData = new FormData();
     formData.append('avatar', blob, 'avatar.png');
     
-    // Show loading state
     showToast('Uploading profile picture...', 'info');
     
-    // Upload to server
     fetch('/user/avatar/update', {
         method: 'POST',
         body: formData,
@@ -287,13 +243,11 @@ function uploadAvatar(dataUrl) {
         if (data.success) {
             showToast('Profile picture updated successfully', 'success');
             
-            // Update avatar in all places
             const avatars = document.querySelectorAll('.user-avatar img, .user-avatar-preview img, .server-icon-preview img');
             avatars.forEach(avatar => {
                 avatar.src = data.avatar_url || dataUrl;
             });
             
-            // Show remove button if it exists
             const removeAvatarBtn = document.getElementById('remove-avatar-btn');
             if (removeAvatarBtn && removeAvatarBtn.classList.contains('hidden')) {
                 removeAvatarBtn.classList.remove('hidden');
@@ -337,7 +291,6 @@ function initCloseButton() {
         window.history.back();
     });
     
-    // Also handle ESC key press
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             window.history.back();
@@ -361,13 +314,11 @@ function initStatusSelector() {
         option.addEventListener('click', function() {
             const status = this.dataset.status;
             
-            // Update UI
             statusOptions.forEach(opt => {
                 opt.classList.remove('bg-discord-background-modifier-selected');
             });
             this.classList.add('bg-discord-background-modifier-selected');
             
-            // Update status on server
             updateUserStatus(status);
         });
     });
@@ -389,7 +340,6 @@ function updateUserStatus(status) {
             .then(response => response.json())
             .then(data => {
         if (data.success) {
-            // Update status indicators
             updateStatusIndicators(status);
             showToast(`Status updated to ${status}`, 'success');
         } else {
@@ -415,19 +365,15 @@ function updateStatusIndicators(status) {
     
     const newStatusClass = statusMap[status] || 'bg-green-500';
     
-    // Update status indicators
     const statusIndicators = document.querySelectorAll('.status-indicator');
     statusIndicators.forEach(indicator => {
-        // Remove all status classes
         Object.values(statusMap).forEach(cls => {
             indicator.classList.remove(cls);
         });
         
-        // Add new status class
         indicator.classList.add(newStatusClass);
     });
     
-    // Update meta tag
     const userMetaStatus = document.querySelector('meta[name="user-status"]');
     if (userMetaStatus) {
         userMetaStatus.content = status;
@@ -446,10 +392,8 @@ function initEmailReveal() {
     revealButton.addEventListener('click', function() {
         const email = this.dataset.email;
         
-        // If no email is set, do nothing
         if (!email) return;
         
-        // Toggle between hidden and revealed email
         if (emailDisplay.textContent !== email) {
             emailDisplay.textContent = email;
             revealButton.textContent = 'Hide';
@@ -477,7 +421,6 @@ function initPasswordChangeForms() {
     if (!changePasswordBtn) return;
     
     changePasswordBtn.addEventListener('click', function() {
-        // You can create a modal for password change or redirect to a separate page
         alert('Password change functionality will be implemented soon.');
     });
 }
@@ -491,7 +434,6 @@ function initTwoFactorAuth() {
     if (!enable2faBtn) return;
     
     enable2faBtn.addEventListener('click', function() {
-        // You can create a modal for 2FA setup or redirect to a separate page
         alert('Two-factor authentication setup will be implemented soon.');
     });
 }
@@ -500,14 +442,12 @@ function initTwoFactorAuth() {
  * Initialize password field masking for text fields with password-field class
  */
 function initPasswordFieldMasking() {
-    // Add event listener for dynamically created password fields
     document.addEventListener('click', function(e) {
         if (e.target && e.target.classList.contains('password-field')) {
             setupPasswordField(e.target);
         }
     });
     
-    // Use MutationObserver instead of deprecated DOMNodeInserted
     const observer = new MutationObserver(function(mutations) {
         mutations.forEach(function(mutation) {
             if (mutation.addedNodes && mutation.addedNodes.length > 0) {
@@ -523,7 +463,6 @@ function initPasswordFieldMasking() {
     
     observer.observe(document.body, { childList: true, subtree: true });
     
-    // Set up any existing password fields on initial load
     document.querySelectorAll('.password-field').forEach(setupPasswordField);
 }
 
@@ -531,11 +470,9 @@ function initPasswordFieldMasking() {
  * Setup individual password field masking
  */
 function setupPasswordField(field) {
-    // Skip if already processed
     if (field.dataset.maskingInitialized) return;
     field.dataset.maskingInitialized = 'true';
     
-    // Create toggle button if it doesn't exist
     const parent = field.parentElement;
     if (!parent.querySelector('.password-toggle')) {
         const toggleBtn = document.createElement('button');
@@ -543,14 +480,12 @@ function setupPasswordField(field) {
         toggleBtn.className = 'password-toggle absolute right-2 top-1/2 transform -translate-y-1/2';
         toggleBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z" /><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" /></svg>';
         
-        // Make parent relative positioned if it's not already
         if (getComputedStyle(parent).position === 'static') {
             parent.style.position = 'relative';
         }
         
         parent.appendChild(toggleBtn);
         
-        // Add event listener to toggle button
         toggleBtn.addEventListener('click', function() {
             if (field.type === 'password') {
                 field.type = 'text';
@@ -580,7 +515,6 @@ function showToast(message, type = 'info') {
         `;
         document.body.appendChild(toast);
         
-        // Remove after 3 seconds
         setTimeout(() => {
             toast.classList.add('opacity-0', 'transition-opacity', 'duration-500');
             setTimeout(() => {
@@ -622,13 +556,24 @@ function getToastIcon(type) {
     }
 }
 
-/**
- * Debounce function to limit how often a function is called
- */
 function debounce(func, wait) {
     let timeout;
     return function(...args) {
         clearTimeout(timeout);
         timeout = setTimeout(() => func.apply(this, args), wait);
     };
+}
+
+function logoutUser() {
+    localStorage.removeItem('user_token');
+    localStorage.removeItem('connect_socket_on_login');
+    localStorage.removeItem('active_channel');
+    localStorage.removeItem('active_dm');
+    localStorage.removeItem('active_server');
+    
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/logout';
+    document.body.appendChild(form);
+    form.submit();
 }

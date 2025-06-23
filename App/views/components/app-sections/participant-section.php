@@ -19,6 +19,31 @@ foreach ($members as $member) {
 $onlineCount = array_reduce($members, function($count, $member) {
     return $count + ($member['status'] !== 'offline' ? 1 : 0);
 }, 0);
+
+function renderMemberSkeleton($count = 1, $isOffline = false) {
+    $opacity = $isOffline ? 'opacity-50' : '';
+    for ($i = 0; $i < $count; $i++) {
+        echo '<div class="flex items-center px-2 py-1 rounded ' . $opacity . '">';
+        echo '  <div class="relative mr-2">';
+        echo '    <div class="w-8 h-8 rounded-full bg-gray-700 animate-pulse"></div>';
+        echo '    <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark bg-gray-600 animate-pulse"></span>';
+        echo '  </div>';
+        echo '  <div class="h-4 bg-gray-700 rounded w-' . rand(16, 28) . ' animate-pulse"></div>';
+        echo '</div>';
+    }
+}
+
+function renderRoleSkeleton($count = 1) {
+    for ($i = 0; $i < $count; $i++) {
+        echo '<div class="mb-2">';
+        echo '  <div class="flex items-center px-2 py-1">';
+        echo '    <div class="h-3 bg-gray-700 rounded w-24 animate-pulse"></div>';
+        echo '    <div class="ml-auto h-3 bg-gray-700 rounded w-4 animate-pulse"></div>';
+        echo '  </div>';
+        renderMemberSkeleton(rand(3, 5));
+        echo '</div>';
+    }
+}
 ?>
 
 <div class="w-60 bg-discord-dark border-l border-gray-800 flex flex-col h-full max-h-screen">
@@ -26,7 +51,21 @@ $onlineCount = array_reduce($members, function($count, $member) {
         <input type="text" placeholder="Search" class="w-full bg-black bg-opacity-30 text-white text-sm rounded px-2 py-1 focus:outline-none">
     </div>
     
-    <div class="flex-1 overflow-y-auto p-2" data-lazyload="participant-list">
+    <div class="participant-skeleton flex-1 overflow-y-auto p-2 skeleton-loader">
+        <div class="mb-4">
+            <div class="h-3 bg-gray-700 rounded w-28 ml-2 mb-3 animate-pulse"></div>
+            <?php renderMemberSkeleton(6); ?>
+        </div>
+        
+        <?php renderRoleSkeleton(2); ?>
+        
+        <div class="mt-4">
+            <div class="h-3 bg-gray-700 rounded w-24 ml-2 mb-3 animate-pulse"></div>
+            <?php renderMemberSkeleton(4, true); ?>
+        </div>
+    </div>
+    
+    <div class="participant-content flex-1 overflow-y-auto p-2 hidden" data-lazyload="participant-list">
         <?php if (!empty($roles)): ?>
             <?php 
             $hasDefaultRole = false;
@@ -259,19 +298,39 @@ $onlineCount = array_reduce($members, function($count, $member) {
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const participantContainer = document.querySelector('[data-lazyload="participant-list"]');
-    if (participantContainer) {
-        const loadDelay = Math.floor(Math.random() * 400) + 600;
+    const participantSkeleton = document.querySelector('.participant-skeleton');
+    const participantContent = document.querySelector('.participant-content');
+    
+    setTimeout(function() {
+        if (participantSkeleton && participantContent) {
+            participantSkeleton.classList.add('hidden');
+            participantContent.classList.remove('hidden');
+        }
         
-        setTimeout(function() {
+        const participantContainer = document.querySelector('[data-lazyload="participant-list"]');
+        if (participantContainer) {
             if (window.LazyLoader && typeof window.LazyLoader.triggerDataLoaded === 'function') {
                 const isEmpty = <?php echo empty($members) ? 'true' : 'false'; ?>;
                 window.LazyLoader.triggerDataLoaded('participant-list', isEmpty);
-                console.log('Participant list loaded after ' + loadDelay + 'ms');
-            } else {
-                console.warn('LazyLoader.triggerDataLoaded not available yet');
             }
-        }, loadDelay);
-    }
+        }
+    }, 1000);
 });
+
+function toggleParticipantLoading(loading = true) {
+    const participantSkeleton = document.querySelector('.participant-skeleton');
+    const participantContent = document.querySelector('.participant-content');
+    
+    if (!participantSkeleton || !participantContent) return;
+    
+    if (loading) {
+        participantSkeleton.classList.remove('hidden');
+        participantContent.classList.add('hidden');
+    } else {
+        participantSkeleton.classList.add('hidden');
+        participantContent.classList.remove('hidden');
+    }
+}
+
+window.toggleParticipantLoading = toggleParticipantLoading;
 </script>

@@ -34,10 +34,47 @@ function renderChannel($channel, $activeChannelId) {
     }
     echo '</div>';
 }
+
+function renderChannelSkeleton($count = 1, $extraClass = '') {
+    for ($i = 0; $i < $count; $i++) {
+        echo '<div class="flex items-center py-2 px-3 ' . $extraClass . '">';
+        echo '  <div class="h-3 w-3 bg-gray-700 rounded-sm mr-3 animate-pulse"></div>';
+        echo '  <div class="h-4 bg-gray-700 rounded w-' . rand(16, 32) . ' animate-pulse"></div>';
+        echo '</div>';
+    }
+}
+
+function renderCategorySkeleton($count = 1) {
+    for ($i = 0; $i < $count; $i++) {
+        echo '<div class="mb-3">';
+        echo '  <div class="flex items-center px-3 py-1 mb-1">';
+        echo '    <div class="h-4 bg-gray-700 rounded w-24 animate-pulse"></div>';
+        echo '    <div class="ml-auto h-3 w-3 bg-gray-700 rounded-sm animate-pulse"></div>';
+        echo '  </div>';
+        renderChannelSkeleton(rand(2, 4), 'ml-2');
+        echo '</div>';
+    }
+}
 ?>
 
 <div class="channel-wrapper h-full w-full overflow-y-auto">
-    <div class="channel-list p-2" data-server-id="<?php echo $currentServerId; ?>">
+    <div class="channel-skeleton p-2 skeleton-loader">
+        <div class="h-6 bg-gray-700 rounded w-32 mb-6 mx-auto animate-pulse"></div>
+        
+        <div class="mb-4">
+            <div class="h-5 bg-gray-700 rounded w-32 mb-3 mx-2 animate-pulse"></div>
+            <?php renderChannelSkeleton(3); ?>
+        </div>
+        
+        <div class="mb-3">
+            <div class="h-5 bg-gray-700 rounded w-24 mb-3 mx-2 animate-pulse"></div>
+            <?php renderChannelSkeleton(2); ?>
+        </div>
+        
+        <?php renderCategorySkeleton(2); ?>
+    </div>
+
+    <div class="channel-list p-2 hidden" data-server-id="<?php echo $currentServerId; ?>">
         <input type="hidden" id="current-server-id" value="<?php echo $currentServerId; ?>">
         
         <?php
@@ -109,10 +146,17 @@ function renderChannel($channel, $activeChannelId) {
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Channel section initialized');
+    setTimeout(function() {
+        const skeleton = document.querySelector('.channel-skeleton');
+        const channelList = document.querySelector('.channel-list');
+        
+        if (skeleton && channelList) {
+            skeleton.classList.add('hidden');
+            channelList.classList.remove('hidden');
+        }
+    }, 800);
     
     const channelItems = document.querySelectorAll('.channel-item');
-    console.log('Found channels:', channelItems.length);
     
     channelItems.forEach(item => {
         item.addEventListener('click', function() {
@@ -139,4 +183,22 @@ document.addEventListener('DOMContentLoaded', function() {
 function openCreateChannelModal(type = 'text') {
     console.log('Create channel modal:', type);
 }
+
+function toggleChannelLoading(loading = true) {
+    const channelWrapper = document.querySelector('.channel-wrapper');
+    if (!channelWrapper) return;
+    
+    const skeleton = channelWrapper.querySelector('.channel-skeleton');
+    const channelList = channelWrapper.querySelector('.channel-list');
+    
+    if (loading) {
+        if (skeleton) skeleton.classList.remove('hidden');
+        if (channelList) channelList.classList.add('hidden');
+    } else {
+        if (skeleton) skeleton.classList.add('hidden');
+        if (channelList) channelList.classList.remove('hidden');
+    }
+}
+
+window.toggleChannelLoading = toggleChannelLoading;
 </script>

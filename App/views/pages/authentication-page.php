@@ -9,6 +9,10 @@ if (!function_exists('asset')) {
     require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
 }
 
+if (isset($_GET['fresh']) && $_GET['fresh'] == '1') {
+    $_SESSION = array();
+}
+
 $mode = 'login'; 
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
@@ -317,7 +321,7 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                 </div>
             </form>
 
-            <form action="/verify-security-question" method="POST" class="space-y-5 <?php echo $mode === 'forgot-password' ? 'block' : 'hidden'; ?>" id="forgotForm">
+            <form action="/forgot-password" method="POST" class="space-y-5 <?php echo $mode === 'forgot-password' ? 'block' : 'hidden'; ?>" id="forgotForm">
                 <p class="text-gray-300 text-sm mb-6">
                     <?php if (isset($_SESSION['security_question'])): ?>
                     Please answer your security question to reset your password.

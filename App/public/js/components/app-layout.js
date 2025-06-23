@@ -8,22 +8,12 @@ document.addEventListener('DOMContentLoaded', function () {
     initTabHandling();
     initFriendRequestForm();
     updatePendingCount();
-
-
-    if (window.location.pathname === '/app/friends') {
+            
+    if (window.location.pathname === '/app/friends' || window.location.pathname === '/home') {
         const urlParams = new URLSearchParams(window.location.search);
         const tab = urlParams.get('tab') || 'online';
-
-        const tabs = document.querySelectorAll('[data-tab]');
-        const tabContents = document.querySelectorAll('.tab-content');
-
-        if (tab === 'all') {
-            loadAllFriends();
-        } else if (tab === 'pending') {
-            loadPendingRequests();
-        } else if (tab === 'blocked') {
-            loadBlockedUsers();
-        }
+        
+        activateTab(tab);
     }
 });
 
@@ -244,7 +234,8 @@ function initTabHandling() {
     if (!tabs.length) return;
 
     tabs.forEach(tab => {
-        tab.addEventListener('click', function () {
+        tab.addEventListener('click', function (e) {
+            e.preventDefault();
             const tabName = this.getAttribute('data-tab');
             activateTab(tabName);
         });
@@ -255,24 +246,18 @@ function activateTab(tabName) {
     const tabs = document.querySelectorAll('[data-tab]');
     const tabContents = document.querySelectorAll('.tab-content');
     
-    // If we're already on the friends page, update UI directly
-    if (window.location.pathname === '/app/friends') {
-        updateTabUI(tabName, tabs, tabContents);
-        
-        // Also update URL without full page reload
+    updateTabUI(tabName, tabs, tabContents);
+    
+    if (window.location.pathname === '/app/friends' || window.location.pathname === '/home') {
         const url = new URL(window.location);
         url.searchParams.set('tab', tabName);
         window.history.pushState({}, '', url);
-        
-        return;
+    } else {
+        window.location.href = '/app/friends?tab=' + tabName;
     }
-    
-    // Otherwise navigate to the tab via URL
-    window.location.href = '/app/friends?tab=' + tabName;
 }
 
 function updateTabUI(tabName, tabs, tabContents) {
-    // Update the tabs
     tabs.forEach(tab => {
         if (tab.getAttribute('data-tab') === tabName) {
             tab.classList.remove('text-gray-300');
@@ -300,7 +285,6 @@ function updateTabUI(tabName, tabs, tabContents) {
         }
     });
     
-    // Update the content
     tabContents.forEach(content => {
         if (content.id === tabName + '-tab') {
             content.classList.remove('hidden');
@@ -324,7 +308,6 @@ function loadAllFriends() {
     
     container.innerHTML = generateSkeletonFriends(5);
     
-    // First get friends from the API
     friendAPI.getFriends()
         .then(async friends => {
             if (!friends || friends.length === 0) {
@@ -340,12 +323,10 @@ function loadAllFriends() {
                 return;
             }
             
-            // Now get online status from WebSocket
             let onlineUsers = {};
             try {
                 if (window.ChatAPI && typeof window.ChatAPI.getOnlineUsers === 'function') {
                     onlineUsers = await window.ChatAPI.getOnlineUsers();
-                    console.log('Online users from WebSocket:', onlineUsers);
                 }
             } catch (error) {
                 console.error('Error getting online users from WebSocket:', error);
@@ -353,12 +334,10 @@ function loadAllFriends() {
             
             let friendsHtml = '';
             friends.forEach(friend => {
-                // Check if user is online in WebSocket data
                 const isOnlineInSocket = onlineUsers[friend.id] !== undefined;
                 const socketStatus = isOnlineInSocket ? onlineUsers[friend.id].status || 'online' : 'offline';
                 
-                // Use WebSocket status if available, otherwise fallback to database status
-                const status = isOnlineInSocket ? socketStatus : (friend.status || 'offline');
+                const status = isOnlineInSocket ? socketStatus : 'offline';
                 const statusColor = getStatusColor(status);
                 const statusText = getStatusText(status);
                 
@@ -815,3 +794,5 @@ window.ignoreFriendRequest = async function (friendshipId) {
         showToast(error.message || 'Failed to ignore friend request', 'error');
     }
 };
+
+window.createDirectMessage = createDirectMessage;

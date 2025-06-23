@@ -418,6 +418,15 @@ function loadServerPage(serverId) {
             // Use the skeleton loading if the function exists
             window.handleSkeletonLoading(true);
         } else {
+            // Handle individual skeleton loaders
+            if (typeof window.toggleChannelLoading === 'function') {
+                window.toggleChannelLoading(true);
+            }
+            
+            if (typeof window.toggleParticipantLoading === 'function') {
+                window.toggleParticipantLoading(true);
+            }
+            
             // Fallback to simple loading indicator
             showPageLoading(mainContent);
         }
@@ -428,6 +437,15 @@ function loadServerPage(serverId) {
                 pageUtils.updatePageContent(mainContent, response);
                 if (typeof window.handleSkeletonLoading === 'function') {
                     window.handleSkeletonLoading(false);
+                } else {
+                    // Handle individual skeleton loaders
+                    if (typeof window.toggleChannelLoading === 'function') {
+                        window.toggleChannelLoading(false);
+                    }
+                    
+                    if (typeof window.toggleParticipantLoading === 'function') {
+                        window.toggleParticipantLoading(false);
+                    }
                 }
             } else if (response && response.data && response.data.redirect) {
                 window.location.href = response.data.redirect;
@@ -440,6 +458,14 @@ function loadServerPage(serverId) {
             console.error('Error loading server page:', error);
             if (typeof window.handleSkeletonLoading === 'function') {
                 window.handleSkeletonLoading(false);
+            } else {
+                if (typeof window.toggleChannelLoading === 'function') {
+                    window.toggleChannelLoading(false);
+                }
+                
+                if (typeof window.toggleParticipantLoading === 'function') {
+                    window.toggleParticipantLoading(false);
+                }
             }
             window.location.href = `/server/${serverId}`;
         });

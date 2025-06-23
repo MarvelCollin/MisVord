@@ -100,7 +100,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateFriendStatus() {
         if (!window.ChatAPI || typeof window.ChatAPI.getOnlineUsers !== 'function') {
             console.warn('ChatAPI not available for status updates');
-            setTimeout(updateFriendStatus, 2000); // Try again in 2 seconds
+            setTimeout(updateFriendStatus, 2000);
             return;
         }
 
@@ -111,23 +111,19 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const allFriendItems = document.querySelectorAll('.friend-item');
             
-            // First, make all friends visible
             allFriendItems.forEach(item => {
                 item.style.display = 'flex';
             });
             
-            // Update status for each friend
             statusIndicators.forEach(indicator => {
                 const userId = indicator.getAttribute('data-user-id');
                 let isOnline = false;
                 
                 if (onlineUsers[userId]) {
-                    // User is online in WebSocket
                     isOnline = true;
                     onlineCount++;
                     const status = onlineUsers[userId].status || 'online';
                     
-                    // Set appropriate status color
                     indicator.classList.remove('bg-gray-500', 'bg-discord-green', 'bg-discord-yellow', 'bg-discord-red');
                     
                     if (status === 'online' || status === 'appear') {
@@ -140,7 +136,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         indicator.classList.add('bg-gray-500');
                     }
                     
-                    // Update status text
                     const statusText = document.querySelector(`.friend-status-text[data-user-id="${userId}"]`);
                     if (statusText) {
                         if (status === 'online' || status === 'appear') {
@@ -154,25 +149,27 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     }
                 } else {
-                    // User is offline
                     indicator.classList.remove('bg-discord-green', 'bg-discord-yellow', 'bg-discord-red');
                     indicator.classList.add('bg-gray-500');
                     
-                    // Update status text
                     const statusText = document.querySelector(`.friend-status-text[data-user-id="${userId}"]`);
                     if (statusText) {
                         statusText.textContent = 'Offline';
                     }
                     
-                    // Hide offline friends in the online tab
                     const friendItem = document.querySelector(`.friend-item[data-user-id="${userId}"]`);
-                    if (friendItem && window.location.pathname === '/app/friends' && !window.location.search.includes('tab=all')) {
-                        friendItem.style.display = 'none';
+                    if (friendItem) {
+                        const currentPath = window.location.pathname;
+                        const isOnFriendsPage = currentPath === '/app/friends' || currentPath === '/home';
+                        const isOnlineTab = !window.location.search.includes('tab=all');
+                        
+                        if (isOnFriendsPage && isOnlineTab) {
+                            friendItem.style.display = 'none';
+                        }
                     }
                 }
             });
             
-            // Update online count
             const onlineCountEl = document.getElementById('online-count');
             if (onlineCountEl) {
                 onlineCountEl.textContent = onlineCount;
