@@ -365,6 +365,30 @@ class Query {
         }
     }
 
+    /**
+     * Execute a raw parameterized query
+     *
+     * @param string $sql SQL query with placeholders
+     * @param array $params Parameters to bind to the query
+     * @return array Results from the query
+     */
+    public function query($sql, array $params = []) {
+        try {
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $stmt->closeCursor();
+            return $results;
+        } catch (PDOException $e) {
+            log_error("Database error in parameterized query", [
+                'error' => $e->getMessage(),
+                'query' => $sql,
+                'params' => $params
+            ]);
+            return [];
+        }
+    }
+
     public function get() {
         $startTime = microtime(true);
         $query = $this->buildSelectQuery();

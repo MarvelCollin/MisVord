@@ -1,6 +1,8 @@
 import serverAPI from '../../api/server-api.js';
 import ImageCutter from '../common/image-cutter.js';
 import { pageUtils } from '../../utils/index.js';
+import { showToast } from '../../core/ui/toast.js';
+import FormValidator from '../common/validation.js';
 
 document.addEventListener('DOMContentLoaded', function () {
     initServerIconUpload();
@@ -9,7 +11,6 @@ document.addEventListener('DOMContentLoaded', function () {
     initToggleAnimation();
     initTooltips();
     initCategorySelection();
-
 
     initStepNavigation();
 });
@@ -27,17 +28,14 @@ function initStepNavigation() {
     }
 
     nextStepBtn.addEventListener('click', function () {
-        // Validate required field
-        const serverName = document.getElementById('server-name').value.trim();
-        if (!serverName) {
-            showError('Server name is required');
+        const form = document.getElementById('create-server-form');
+        
+        if (!validateServerBasicInfo(form)) {
             return;
         }
         
-        // Apply exit animation to step 1
         step1.classList.add('slide-left-exit');
         
-        // After exit animation completes, hide step1 and show step2 with entrance animation
         setTimeout(() => {
             step1.classList.remove('active');
             step1.classList.remove('slide-left-exit');
@@ -45,11 +43,9 @@ function initStepNavigation() {
             step2.classList.add('active');
             step2.classList.add('slide-right-enter');
             
-            // Update step indicators
             stepDots[0].classList.remove('active');
             stepDots[1].classList.add('active');
             
-            // Remove the animation class after it completes
             setTimeout(() => {
                 step2.classList.remove('slide-right-enter');
             }, 300);
@@ -57,10 +53,8 @@ function initStepNavigation() {
     });
 
     prevStepBtn.addEventListener('click', function () {
-        // Apply exit animation to step 2
         step2.classList.add('slide-right-exit');
         
-        // After exit animation completes, hide step2 and show step1 with entrance animation
         setTimeout(() => {
             step2.classList.remove('active');
             step2.classList.remove('slide-right-exit');
@@ -68,16 +62,53 @@ function initStepNavigation() {
             step1.classList.add('active');
             step1.classList.add('slide-left-enter');
             
-            // Update step indicators
             stepDots[1].classList.remove('active');
             stepDots[0].classList.add('active');
             
-            // Remove the animation class after it completes
             setTimeout(() => {
                 step1.classList.remove('slide-left-enter');
             }, 300);
         }, 280);
     });
+}
+
+function validateServerBasicInfo(form) {
+    FormValidator.clearErrors(form);
+    
+    const serverName = form.querySelector('#server-name');
+    const serverDescription = form.querySelector('#server-description');
+    const serverCategory = form.querySelector('#server-category');
+    
+    let isValid = true;
+    
+    if (!serverName.value.trim()) {
+        FormValidator.showFieldError(serverName, 'Server name is required');
+        isValid = false;
+    }
+    
+    return isValid;
+}
+
+function validateServerForm(form) {
+    const isBasicValid = validateServerBasicInfo(form);
+    
+    if (!isBasicValid) {
+        const step1 = document.getElementById('step-1');
+        const step2 = document.getElementById('step-2');
+        const stepDots = document.querySelectorAll('.step-dot');
+        
+        if (!step1.classList.contains('active')) {
+            step2.classList.remove('active');
+            step1.classList.add('active');
+            
+            stepDots[1].classList.remove('active');
+            stepDots[0].classList.add('active');
+        }
+        
+        return false;
+    }
+    
+    return true;
 }
 
 function initServerIconUpload() {
@@ -234,25 +265,21 @@ function initServerFormSubmission() {
         serverForm.addEventListener('submit', function (e) {
             e.preventDefault();
 
-
-            const serverName = document.getElementById('server-name').value.trim();
-            if (!serverName) {
-                showError('Server name is required');
+            if (!validateServerForm(this)) {
                 return;
             }
-
+            
             const submitBtn = this.querySelector('button[type="submit"]');
             showLoading(submitBtn);
-
+            
             const iconContainer = document.getElementById('server-icon-container');
             const bannerContainer = document.getElementById('server-banner-container');
             let iconDataUrl = iconContainer ? iconContainer.dataset.croppedImage : null;
             let bannerDataUrl = bannerContainer ? bannerContainer.dataset.croppedImage : null;
-
+            
             if (iconDataUrl || bannerDataUrl) {
                 try {
                     const promises = [];
-
 
                     if (iconDataUrl) {
                         promises.push(
@@ -272,7 +299,6 @@ function initServerFormSubmission() {
                         );
                     }
 
-
                     if (bannerDataUrl) {
                         promises.push(
                             fetch(bannerDataUrl)
@@ -290,7 +316,7 @@ function initServerFormSubmission() {
                                 })
                         );
                     }
-
+                    
                     Promise.all(promises)
                         .then(() => {
                             handleServerCreation(this);
@@ -298,12 +324,12 @@ function initServerFormSubmission() {
                         .catch(err => {
                             console.error('Error processing cropped images:', err);
                             hideLoading(submitBtn);
-                            showError('Error processing images. Please try again.');
+                            showToast('Error processing images. Please try again.', 'error');
                         });
                 } catch (error) {
                     console.error('Error in image processing:', error);
                     hideLoading(submitBtn);
-                    showError('Error processing images. Please try again.');
+                    showToast('Error processing images. Please try again.', 'error');
                 }
             } else {
                 handleServerCreation(this);
@@ -333,54 +359,51 @@ function updateFormDataWithFile(form, fieldName, file) {
     form.appendChild(input);
 }
 
-
 function handleServerCreation(form) {
     try {
         const formData = new FormData(form);
         const modal = document.getElementById('create-server-modal');
         const submitBtn = form.querySelector('button[type="submit"]');
-
+        
         if (!submitBtn.classList.contains('loading')) {
             showLoading(submitBtn);
         }
-
-        const serverName = formData.get('name');
-        if (!serverName || serverName.trim() === '') {
+        
+        if (!validateServerForm(form)) {
             hideLoading(submitBtn);
-            showError('Server name is required');
             return;
         }
-
-
+        
         serverAPI.createServer(formData)
             .then(data => {
                 hideLoading(submitBtn);
                 if (data.success) {
                     const server = data.data.server;
-
+                    
                     try {
                         addServerToSidebar(server);
                     } catch (error) {
                         console.error('Failed to add server to sidebar dynamically:', error);
                         refreshSidebar();
                     }
-
+                    
                     closeModal(modal);
                     resetForm(form);
+                    showToast(`Server "${server.name}" created successfully!`, 'success');
                     navigateToNewServer(server.id);
                 } else {
-                    showError(data.message || 'Failed to create server');
+                    showToast(data.message || 'Failed to create server', 'error');
                 }
             })
             .catch(error => {
                 hideLoading(submitBtn);
-                showError('Network error occurred. Please try again.');
+                showToast('Network error occurred. Please try again.', 'error');
                 console.error('Server creation error:', error);
             });
     } catch (error) {
         const submitBtn = form.querySelector('button[type="submit"]');
         hideLoading(submitBtn);
-        showError('An unexpected error occurred. Please try again.');
+        showToast('An unexpected error occurred. Please try again.', 'error');
         console.error('Error in server creation:', error);
     }
 }
@@ -448,7 +471,6 @@ function createServerItem(server) {
     return serverItem;
 }
 
-
 function setActiveServer(serverItem) {
     document.querySelectorAll('.server-icon').forEach(item => {
         item.classList.remove('active');
@@ -482,7 +504,6 @@ function setActiveServer(serverItem) {
     }
 }
 
-
 function navigateToNewServer(serverId) {
     const currentPath = window.location.pathname;
     const newPath = `/server/${serverId}`;
@@ -493,7 +514,6 @@ function navigateToNewServer(serverId) {
     }
 }
 
-
 function loadServerPage(serverId) {
     const mainContent = document.querySelector('.flex-1') ||
         document.querySelector('[class*="server-content"]') ||
@@ -501,10 +521,8 @@ function loadServerPage(serverId) {
 
     if (mainContent) {
         if (typeof window.handleSkeletonLoading === 'function') {
-
             window.handleSkeletonLoading(true);
         } else {
-
             if (typeof window.toggleChannelLoading === 'function') {
                 window.toggleChannelLoading(true);
             }
@@ -512,7 +530,6 @@ function loadServerPage(serverId) {
             if (typeof window.toggleParticipantLoading === 'function') {
                 window.toggleParticipantLoading(true);
             }
-
 
             showPageLoading(mainContent);
         }
@@ -524,7 +541,6 @@ function loadServerPage(serverId) {
                     if (typeof window.handleSkeletonLoading === 'function') {
                         window.handleSkeletonLoading(false);
                     } else {
-
                         if (typeof window.toggleChannelLoading === 'function') {
                             window.toggleChannelLoading(false);
                         }
@@ -560,18 +576,15 @@ function loadServerPage(serverId) {
     }
 }
 
-
 function showLoading(button) {
     button.disabled = true;
     button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Creating...';
 }
 
-
 function hideLoading(button) {
     button.disabled = false;
     button.innerHTML = 'Create Server';
 }
-
 
 function showPageLoading(container) {
     container.innerHTML = `
@@ -680,18 +693,15 @@ function resetForm(form) {
     const bannerPlaceholder = document.getElementById('server-banner-placeholder');
     const categorySelect = document.getElementById('server-category');
 
-
     if (iconPreview) iconPreview.classList.add('hidden');
     if (iconPlaceholder) iconPlaceholder.classList.remove('hidden');
     if (bannerPreview) bannerPreview.classList.add('hidden');
     if (bannerPlaceholder) bannerPlaceholder.classList.remove('hidden');
 
-
     if (categorySelect) {
         categorySelect.classList.remove('text-white');
         categorySelect.classList.remove('border-discord-blue');
     }
-
 
     const step1 = document.getElementById('step-1');
     const step2 = document.getElementById('step-2');
@@ -703,17 +713,6 @@ function resetForm(form) {
         stepDots[1].classList.remove('active');
         stepDots[0].classList.add('active');
     }
-}
-
-function showError(message) {
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'fixed top-4 right-4 bg-red-600 text-white px-4 py-2 rounded shadow-lg z-50';
-    errorDiv.textContent = message;
-    document.body.appendChild(errorDiv);
-
-    setTimeout(() => {
-        errorDiv.remove();
-    }, 5000);
 }
 
 window.navigateToServer = function (serverId) {

@@ -5,13 +5,26 @@ const FormValidator = {
     },
 
     validatePassword(password, minLength = 8) {
-        if (!password || password.length < minLength) {
+        // Immediately fail on empty passwords
+        if (!password || typeof password !== 'string') {
+            return {
+                valid: false,
+                message: 'Password cannot be empty'
+            };
+        }
+        
+        // Trim whitespace to match server behavior
+        password = password.trim();
+        
+        // Length check
+        if (password.length < minLength) {
             return {
                 valid: false,
                 message: `Password must be at least ${minLength} characters`
             };
         }
 
+        // Character type checks
         const hasUppercase = /[A-Z]/.test(password);
         const hasLowercase = /[a-z]/.test(password);
         const hasNumber = /[0-9]/.test(password);
@@ -24,12 +37,22 @@ const FormValidator = {
             };
         }
 
+        if (!hasLowercase) {
+            return {
+                valid: false,
+                message: 'Password must contain at least one lowercase letter'
+            };
+        }
+
         if (!hasNumber) {
             return {
                 valid: false,
                 message: 'Password must contain at least one number'
             };
         }
+
+        // Special character is a good practice but not required in the server validation
+        // So we don't fail on it, just use it for password strength calculation
 
         return { valid: true };
     },
@@ -98,6 +121,8 @@ const FormValidator = {
     },
 
     showFieldError(field, message) {
+        if (!field) return;
+        
         field.classList.add('border-red-500');
 
         const errorDiv = document.createElement('div');
@@ -105,6 +130,13 @@ const FormValidator = {
         errorDiv.textContent = message;
 
         const parent = field.parentNode;
+        
+        const existingError = parent.querySelector('.validation-error');
+        if (existingError) {
+            existingError.textContent = message;
+            return;
+        }
+        
         if (parent.classList.contains('relative')) {
             parent.parentNode.appendChild(errorDiv);
         } else {
@@ -133,7 +165,8 @@ const FormValidator = {
         const password = form.querySelector('#password');
         const captcha = form.querySelector('#login_captcha');
 
-        if (!email.value) {
+        // Email validation
+        if (!email || !email.value) {
             this.showFieldError(email, 'Email is required');
             isValid = false;
         } else if (!this.validateEmail(email.value)) {
@@ -141,11 +174,13 @@ const FormValidator = {
             isValid = false;
         }
 
-        if (!password.value) {
+        // Password validation - for login we only check if it's not empty
+        if (!password || !password.value || password.value.trim() === '') {
             this.showFieldError(password, 'Password is required');
             isValid = false;
         }
 
+        // Captcha validation (if present)
         if (captcha && !captcha.value) {
             this.showFieldError(captcha, 'Please complete the captcha');
             isValid = false;

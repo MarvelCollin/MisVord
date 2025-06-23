@@ -2,6 +2,7 @@ import { showToast } from "../../core/ui/toast.js";
 import NitroManager from "./admin-nitro.js";
 import ServerManager from "./admin-server.js";
 import UserManager from "./admin-user.js";
+import OverviewManager from "./admin-overview.js";
 
 class AdminManager {
   constructor() {
@@ -19,6 +20,7 @@ class AdminManager {
     window.nitroManager = new NitroManager();
     window.serverManager = new ServerManager();
     window.userManager = new UserManager();
+    window.overviewManager = new OverviewManager();
     
     if (window.location.hash) {
       const section = window.location.hash.substring(1);
@@ -69,13 +71,7 @@ class AdminManager {
     this.currentSection = section;
     
     if (section === "overview") {
-      this.showSkeleton("total-users");
-      this.showSkeleton("online-users");
-      this.showSkeleton("new-users");
-      this.showSkeleton("total-servers");
-      this.showSkeleton("total-messages");
-      this.showSkeleton("todays-messages");
-      this.loadSystemStats();
+      window.overviewManager.loadSystemStats();
     } else if (section === "users") {
       window.userManager.loadUsers();
       window.userManager.loadUserStats();
@@ -112,17 +108,10 @@ class AdminManager {
   
   getSkeletonForElement(elementId) {
     switch (elementId) {
-      case "total-users":
-      case "online-users":
-      case "new-users":
-      case "total-servers":
-      case "total-messages":
-      case "todays-messages":
-        return '<div class="skeleton" style="height: 1.5rem; width: 3rem;"></div>';
       case "log-content":
         return this.getLogsSkeleton();
       default:
-        return '';
+        return '<div class="skeleton" style="height: 1.5rem; width: 3rem;"></div>';
     }
   }
   
@@ -140,40 +129,9 @@ class AdminManager {
   
   // System Overview
   loadSystemStats() {
-    this.showSkeleton("total-users");
-    this.showSkeleton("online-users");
-    this.showSkeleton("new-users");
-    this.showSkeleton("total-servers");
-    this.showSkeleton("total-messages");
-    this.showSkeleton("todays-messages");
-    
-    fetch("/api/admin/stats", {
-      method: "GET",
-      headers: {
-        "Accept": "application/json",
-        "X-Requested-With": "XMLHttpRequest"
-      }
-    })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          this.updateSystemStats(data.data.stats);
-        } else {
-          showToast(data.message || "Failed to load system stats", "error");
-        }
-      })
-      .catch(error => {
-        showToast("An error occurred while loading system stats", "error");
-      });
-  }
-  
-  updateSystemStats(stats) {
-    document.getElementById("total-users").textContent = stats.totalUsers || 0;
-    document.getElementById("online-users").textContent = stats.onlineUsers || 0;
-    document.getElementById("new-users").textContent = stats.newUsers || 0;
-    document.getElementById("total-servers").textContent = stats.totalServers || 0;
-    document.getElementById("total-messages").textContent = stats.totalMessages || 0;
-    document.getElementById("todays-messages").textContent = stats.todaysMessages || 0;
+    if (window.overviewManager) {
+      window.overviewManager.loadSystemStats();
+    }
   }
   
   initSystemLogs() {

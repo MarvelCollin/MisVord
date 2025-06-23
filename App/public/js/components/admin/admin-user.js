@@ -116,8 +116,11 @@ export class UserManager {
         if (response.success) {
           const stats = response.data.stats;
           
-          document.getElementById('active-user-count').textContent = stats.active || 0;
-          document.getElementById('total-user-count').textContent = stats.total || 0;
+          const activeUserCount = document.getElementById('active-user-count');
+          const totalUserCount = document.getElementById('total-user-count');
+          
+          if (activeUserCount) activeUserCount.textContent = stats.active || 0;
+          if (totalUserCount) totalUserCount.textContent = stats.total || 0;
         }
       })
       .catch(error => {

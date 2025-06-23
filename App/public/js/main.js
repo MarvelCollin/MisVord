@@ -125,6 +125,19 @@ window.misvord = {
 };
 
 function initGlobalSocketManager() {
+    // Skip socket initialization on authentication pages
+    const isAuthPage = document.body && document.body.getAttribute('data-page') === 'auth';
+    if (isAuthPage) {
+        window.logger.info('socket', 'Authentication page detected, skipping socket initialization');
+        return;
+    }
+
+    // Check if socket.io is available
+    if (typeof io === 'undefined') {
+        window.logger.error('socket', 'Socket.io library not loaded, skipping socket initialization');
+        return;
+    }
+    
     if (window.globalSocketManager) {
         window.logger.info('socket', 'Global socket manager already initialized, skipping...');
         return;
@@ -137,18 +150,22 @@ function initGlobalSocketManager() {
     if (userData && userData.user_id) {
         window.logger.info('socket', 'User authenticated, initializing socket connection for:', userData.username);
         
-        globalSocketManager.init(userData);
-        
-        window.globalSocketManager = globalSocketManager;
-          window.addEventListener('globalSocketReady', function(event) {
-            window.logger.info('socket', 'Global socket manager ready:', event.detail);
+        try {
+            globalSocketManager.init(userData);
+            window.globalSocketManager = globalSocketManager;
             
-            window.dispatchEvent(new CustomEvent('misVordGlobalReady', {
-                detail: { socketManager: event.detail.manager }
-            }));
-        });    } else {
+            window.addEventListener('globalSocketReady', function(event) {
+                window.logger.info('socket', 'Global socket manager ready:', event.detail);
+                
+                window.dispatchEvent(new CustomEvent('misVordGlobalReady', {
+                    detail: { socketManager: event.detail.manager }
+                }));
+            });
+        } catch (error) {
+            window.logger.error('socket', 'Failed to initialize socket manager:', error);
+        }
+    } else {
         window.logger.info('socket', 'Guest user detected, socket connection disabled');
-        
         window.globalSocketManager = globalSocketManager;
     }
 }

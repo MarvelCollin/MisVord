@@ -74,7 +74,7 @@ export class AuthManager {
     if (password !== confirmPassword) {
       return 'Passwords do not match';
     }
-    
+
     if (password.length < 8) {
       return 'Password must be at least 8 characters long';
     }
@@ -93,7 +93,7 @@ function addTimestampToUrl(url) {
   return url.includes('?') 
     ? `${url}&_t=${timestamp}` 
     : `${url}?_t=${timestamp}`;
-}
+  }
 
 // Add timestamp to forms to prevent caching issues
 document.addEventListener('DOMContentLoaded', function() {

@@ -115,8 +115,11 @@ export class ServerManager {
         if (response.success) {
           const stats = response.data.stats;
           
-          document.getElementById('active-server-count').textContent = stats.active || 0;
-          document.getElementById('total-server-count').textContent = stats.total || 0;
+          const activeServerCount = document.getElementById('active-server-count');
+          const totalServerCount = document.getElementById('total-server-count');
+          
+          if (activeServerCount) activeServerCount.textContent = stats.active || 0;
+          if (totalServerCount) totalServerCount.textContent = stats.total_servers || 0;
         }
       })
       .catch(error => {

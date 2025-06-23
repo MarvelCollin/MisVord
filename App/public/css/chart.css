@@ -1,0 +1,237 @@
+.chart-container {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  margin-top: 1rem;
+  padding-bottom: 30px;
+}
+
+.chart-grid {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  grid-template-rows: 1fr 25px;
+  grid-template-areas: 
+    "y-axis chart-area"
+    "spacer x-axis";
+}
+
+.y-axis {
+  grid-area: y-axis;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding-right: 10px;
+  color: #9da3af;
+  font-size: 12px;
+}
+
+.x-axis {
+  grid-area: x-axis;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-top: 10px;
+  color: #9da3af;
+  font-size: 12px;
+  border-top: 1px solid #36393f;
+}
+
+.chart-area {
+  grid-area: chart-area;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  height: 100%;
+  width: 100%;
+  border-left: 1px solid #36393f;
+}
+
+.h-grid-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background-color: #36393f;
+}
+
+.bar-chart .chart-area {
+  justify-content: space-around;
+}
+
+.bar {
+  flex: 1;
+  margin: 0 5px;
+  background-color: #5865f2;
+  border-radius: 3px 3px 0 0;
+  transition: height 1s ease;
+  max-width: 40px;
+  min-height: 1px;
+}
+
+.bar-chart .x-axis {
+  justify-content: space-around;
+}
+
+.line-chart .data-point {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background-color: #5865f2;
+  border-radius: 50%;
+  transform: translate(-50%, 50%);
+}
+
+.line-chart .data-line {
+  position: absolute;
+  height: 2px;
+  background-color: #5865f2;
+  transform-origin: left center;
+}
+
+.chart-legend {
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  margin: 0 10px;
+  font-size: 12px;
+  color: #9da3af;
+}
+
+.legend-color {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-right: 5px;
+}
+
+@keyframes grow-up {
+  from { height: 0; }
+}
+
+.bar {
+  animation: grow-up 1s ease;
+}
+
+@keyframes draw-line {
+  from { width: 0; }
+}
+
+.line-chart .data-line {
+  animation: draw-line 1.5s ease forwards;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.data-point {
+  animation: fade-in 0.3s ease forwards;
+}
+
+.chart-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: #ffffff;
+}
+
+.chart-loading {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(40, 43, 48, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10;
+}
+
+.loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(88, 101, 242, 0.3);
+  border-radius: 50%;
+  border-top-color: #5865f2;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.bar.blue { background-color: #5865f2; }
+.bar.green { background-color: #57F287; }
+.bar.yellow { background-color: #FEE75C; }
+.bar.red { background-color: #ED4245; }
+.bar.purple { background-color: #9B59B6; }
+
+.line-chart .data-point.blue,
+.legend-color.blue { background-color: #5865f2; }
+.line-chart .data-line.blue { background-color: #5865f2; }
+
+.line-chart .data-point.green,
+.legend-color.green { background-color: #57F287; }
+.line-chart .data-line.green { background-color: #57F287; }
+
+.line-chart .data-point.yellow,
+.legend-color.yellow { background-color: #FEE75C; }
+.line-chart .data-line.yellow { background-color: #FEE75C; }
+
+.line-chart .data-point.red,
+.legend-color.red { background-color: #ED4245; }
+.line-chart .data-line.red { background-color: #ED4245; }
+
+.chart-tooltip {
+  position: absolute;
+  background-color: #18191c;
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: #ffffff;
+  pointer-events: none;
+  z-index: 100;
+  opacity: 0;
+  transition: opacity 0.2s;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  white-space: nowrap;
+  transform: translate(-50%, -100%);
+  margin-top: -10px;
+}
+
+.chart-tooltip:after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -5px;
+  transform: translateX(-50%);
+  border-width: 5px 5px 0;
+  border-style: solid;
+  border-color: #18191c transparent transparent transparent;
+}
+
+@media (max-width: 640px) {
+  .chart-container {
+    height: 150px;
+  }
+  
+  .y-axis, .x-axis {
+    font-size: 10px;
+  }
+  
+  .bar {
+    margin: 0 2px;
+  }
+}

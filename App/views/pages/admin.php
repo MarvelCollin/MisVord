@@ -45,11 +45,10 @@ $page_js = 'components/admin/admin';
 $head_scripts = ['logger-init'];
 $data_page = 'admin';
 $body_attributes = 'data-page="admin"';
-$data_page = 'admin';
-$body_attributes = 'data-page="admin"';
 
 // Ensure the admin CSS is directly included
 echo '<link rel="stylesheet" href="' . asset('/css/admin.css') . '?v=' . time() . '">';
+echo '<link rel="stylesheet" href="' . asset('/css/chart.css') . '?v=' . time() . '">';
 
 ob_start();
 ?>
@@ -176,6 +175,49 @@ ob_start();
                             <span class="text-yellow-400" id="todays-messages"><?php echo number_format($stats['messages']['today']); ?></span>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Chart Controls -->
+            <div class="flex justify-between items-center mt-8 mb-4">
+                <h2 class="text-xl font-semibold">Activity & Growth</h2>
+                <div class="flex space-x-4">
+                    <div>
+                        <select id="chart-period-switcher" class="bg-discord-darker border-none rounded px-4 py-2 text-sm">
+                            <option value="daily">Daily</option>
+                            <option value="weekly">Weekly</option>
+                        </select>
+                    </div>
+                    <button id="refresh-charts" class="bg-discord-blue hover:bg-discord-blue-dark px-4 py-2 rounded text-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Refresh
+                    </button>
+                </div>
+            </div>
+
+            <!-- Charts Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <!-- User Growth Chart -->
+                <div class="bg-discord-darker rounded-lg p-6">
+                    <div id="users-chart" class="h-64">
+                        <!-- Chart will be rendered here -->
+                    </div>
+                </div>
+
+                <!-- Message Activity Chart -->
+                <div class="bg-discord-darker rounded-lg p-6">
+                    <div id="messages-chart" class="h-64">
+                        <!-- Chart will be rendered here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Server Growth Chart -->
+            <div class="bg-discord-darker rounded-lg p-6">
+                <div id="servers-chart" class="h-64">
+                    <!-- Chart will be rendered here -->
                 </div>
             </div>
         </div>
@@ -347,14 +389,18 @@ ob_start();
                     <h3 class="text-lg font-medium mb-4">Generate New Code</h3>
                     <form id="generate-nitro-form" class="nitro-form">
                         <div class="mb-4">
-                            <label for="user_id" class="block text-sm font-medium text-gray-300 mb-1">User ID (Optional)</label>
-                            <input 
-                                type="text" 
-                                id="user_id" 
-                                name="user_id" 
-                                placeholder="Leave empty for unassigned code"
-                                class="w-full bg-discord-dark border border-discord-dark rounded-md p-2.5 text-white"
-                            >
+                            <label for="user_search" class="block text-sm font-medium text-gray-300 mb-1">Assign to User (Optional)</label>
+                            <div class="relative">
+                                <input 
+                                    type="text" 
+                                    id="user_search" 
+                                    placeholder="Search for users..."
+                                    class="w-full bg-discord-dark border border-discord-dark rounded-md p-2.5 text-white"
+                                >
+                                <input type="hidden" id="user_id" name="user_id">
+                                <div id="user-search-results" class="absolute z-10 bg-discord-dark w-full mt-1 rounded-md shadow-lg max-h-60 overflow-y-auto hidden"></div>
+                            </div>
+                            <div class="text-xs text-gray-400 mt-1">Leave empty for unassigned code</div>
                         </div>
                         <button type="submit" class="bg-discord-blue hover:bg-discord-blue-dark text-white rounded-md px-4 py-2 w-full">
                             Generate Code

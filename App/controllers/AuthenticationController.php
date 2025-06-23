@@ -79,15 +79,9 @@ class AuthenticationController extends BaseController
     }
     public function login()
     {
-        if (function_exists('logger')) {
-            logger()->debug("Login method called", [
-                'session_status' => session_status(),
-                'session_id' => session_id(),
-                'is_authenticated' => $this->isAuthenticated(),
-                'has_redirect' => isset($_SESSION['login_redirect']) || isset($_GET['redirect']),
-                'redirect_url' => $_SESSION['login_redirect'] ?? $_GET['redirect'] ?? null
-            ]);
-        }
+        // Clear previous errors
+        $_SESSION['errors'] = [];
+        $_SESSION['old_input'] = [];
         
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
@@ -129,8 +123,19 @@ class AuthenticationController extends BaseController
         $email = isset($input['email']) ? trim($input['email']) : '';
         $password = isset($input['password']) ? $input['password'] : '';
 
-        if (empty($email) || empty($password)) {
-            $_SESSION['errors'] = ['auth' => 'Email and password are required'];
+        // Input validation
+        if (empty($email)) {
+            $this->logFailedLogin($email, 'empty_email');
+            $_SESSION['errors'] = ['auth' => 'Email is required'];
+            
+            $this->setSecurityHeaders();
+            header('Location: /login');
+            exit;
+        }
+        
+        if (empty($password)) {
+            $this->logFailedLogin($email, 'empty_password');
+            $_SESSION['errors'] = ['auth' => 'Password is required'];
             $_SESSION['old_input'] = ['email' => $email];
             
             $this->setSecurityHeaders();
@@ -138,6 +143,7 @@ class AuthenticationController extends BaseController
             exit;
         }
 
+        // Admin hardcoded login - ensure exact match
         if ($email === 'admin@admin.com' && $password === 'admin123') {
             session_regenerate_id(true);
             $_SESSION = array();
@@ -146,24 +152,50 @@ class AuthenticationController extends BaseController
             $_SESSION['discriminator'] = '0000';
             $_SESSION['avatar_url'] = '';
             $_SESSION['banner_url'] = '';
+            $_SESSION['last_activity'] = time();
             
             $this->setSecurityHeaders();
             header('Location: /admin');
             exit;
         }
 
+        // Find user by email
         $user = $this->userRepository->findByEmail($email);
 
-        if (!$user || !$user->verifyPassword($password)) {
-            $this->logFailedLogin($email);
-            $_SESSION['errors'] = ['auth' => 'Invalid email or password'];
+        // User not found
+        if (!$user) {
+            $this->logFailedLogin($email, 'user_not_found');
+            $_SESSION['errors'] = ['auth' => 'No account found with this email address.'];
             $_SESSION['old_input'] = ['email' => $email];
             
             $this->setSecurityHeaders();
             header('Location: /login');
             exit;
         }
+        
+        // Verify password using the User model's verification method
+        $passwordVerified = $user->verifyPassword($password);
+        
+        if (!$passwordVerified) {
+            // Password verification failed
+            $this->logFailedLogin($email, 'password_verification_failed');
+            $_SESSION['errors'] = ['auth' => 'Login failed. Incorrect password provided.'];
+            $_SESSION['old_input'] = ['email' => $email];
+            
+            if (function_exists('logger')) {
+                logger()->warning("Failed login attempt", [
+                    'email' => $email,
+                    'reason' => 'password_verification_failed',
+                    'user_id' => $user->id
+                ]);
+            }
+            
+            $this->setSecurityHeaders();
+            header('Location: /login');
+            exit;
+        }
 
+        // Password is correct - proceed with login
         session_regenerate_id(true);
         $_SESSION = array();
         $_SESSION['user_id'] = $user->id;

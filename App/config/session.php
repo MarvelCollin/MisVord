@@ -20,8 +20,32 @@ ini_set('session.sid_length', '48');
 ini_set('session.sid_bits_per_character', '6');
 ini_set('session.hash_function', 'sha256');
 ini_set('session.cache_limiter', 'nocache');
+ini_set('session.trans_sid_hosts', '');
+ini_set('session.trans_sid_tags', '');
+ini_set('session.referer_check', '');
+
+ini_set('session.gc_probability', 1);
+ini_set('session.gc_divisor', 100);
 
 if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
     session_start();
+    
+    if (!isset($_SESSION['last_activity'])) {
+        $_SESSION['last_activity'] = time();
+    } elseif (time() - $_SESSION['last_activity'] > $sessionLifetime) {
+        // Session expired, destroy and start a new one
+        session_unset();
+        session_destroy();
+        session_start();
+        $_SESSION['last_activity'] = time();
+    }
+    
+    // Update last activity time for the session
+    $_SESSION['last_activity'] = time();
+    
+    // Generate CSRF token if not exists
+    if (!isset($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
 }
 

@@ -52,16 +52,35 @@ class User extends Model {
     }
 
     public function verifyPassword($password) {
+        // First, check if we have a password to verify against
         if (!isset($this->attributes['password']) || empty($this->attributes['password'])) {
+            error_log('Password verification failed: No password hash found for user');
             return false;
         }
         
-        // First try with the attributes array
-        $passwordVerified = password_verify($password, $this->attributes['password']);
+        if (empty($password)) {
+            error_log('Password verification failed: Empty password provided');
+            return false;
+        }
         
-        // If that fails, try with direct property access in case it was set that way
-        if (!$passwordVerified && isset($this->password) && !empty($this->password)) {
-            $passwordVerified = password_verify($password, $this->password);
+        // Trim the password to prevent accidental whitespace issues
+        $password = trim($password);
+        
+        // Get the stored hash, preferring the attributes array
+        $storedHash = $this->attributes['password'];
+        
+        // Verify using PHP's built-in function which uses constant-time comparison
+        $passwordVerified = password_verify($password, $storedHash);
+        
+        // Log failed verifications for debugging, but don't include the actual passwords
+        if (!$passwordVerified) {
+            error_log('Password verification failed for user ID ' . ($this->id ?? 'unknown'));
+            
+            // Extra debug info - only log hash info, never log actual passwords
+            $hashInfo = password_get_info($storedHash);
+            error_log('Hash info: ' . json_encode($hashInfo));
+            
+            // Removed insecure direct password comparison fallback
         }
         
         return $passwordVerified;

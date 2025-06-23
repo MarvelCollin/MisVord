@@ -667,6 +667,16 @@ Route::get('/api/admin/servers/search', function() {
     $controller->searchServers();
 });
 
+Route::get('/api/admin/servers/stats', function() {
+    $controller = new AdminController();
+    $controller->getServerStats();
+});
+
+Route::get('/api/admin/servers/list', function() {
+    $controller = new AdminController();
+    $controller->getServers();
+});
+
 Route::delete('/api/admin/servers/([0-9]+)', function($id) {
     $controller = new AdminController();
     $controller->deleteServer($id);
@@ -675,6 +685,11 @@ Route::delete('/api/admin/servers/([0-9]+)', function($id) {
 Route::get('/api/admin/logs', function() {
     $controller = new AdminController();
     $controller->getLogs();
+});
+
+Route::get('/api/admin/users/stats', function() {
+    $controller = new AdminController();
+    $controller->getUserStats();
 });
 
 Route::get('/api/admin/nitro/list', function() {
@@ -700,6 +715,21 @@ Route::delete('/api/admin/nitro/delete/([0-9]+)', function($id) {
 Route::post('/api/admin/nitro/redeem', function() {
     $controller = new NitroController();
     $controller->redeem();
+});
+
+Route::get('/api/admin/stats/users/growth', function() {
+    $controller = new AdminController();
+    $controller->getUserGrowthStats();
+});
+
+Route::get('/api/admin/stats/messages/activity', function() {
+    $controller = new AdminController();
+    $controller->getMessageActivityStats();
+});
+
+Route::get('/api/admin/stats/servers/growth', function() {
+    $controller = new AdminController();
+    $controller->getServerGrowthStats();
 });
 
 return array_merge(Route::getRoutes(), [

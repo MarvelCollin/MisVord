@@ -161,8 +161,8 @@ class BaseController
         }
         
         session_destroy();
-    }
-
+        }
+        
     protected function requireAuth()
     {
         if (!$this->isAuthenticated()) {
@@ -176,7 +176,7 @@ class BaseController
                 exit;
             } else {
                 if (!headers_sent()) {
-                    header("Location: /login?redirect=$redirectUrl");
+                header("Location: /login?redirect=$redirectUrl");
                 }
                 exit;
             }

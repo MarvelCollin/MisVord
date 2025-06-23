@@ -15,11 +15,29 @@ class GlobalSocketManager {
         this.joinedDMRooms = new Set();
     }
     
-    init() {
+    init(userData = null) {
+        if (userData) {
+            this.userId = userData.user_id;
+            this.username = userData.username;
+        }
+        
         this.loadConnectionDetails();
         
         if (!this.socketHost || !this.socketPort) {
             this.error('Socket connection details not found');
+            return false;
+        }
+        
+        // Check if we're on an authentication page
+        const isAuthPage = document.body && document.body.getAttribute('data-page') === 'auth';
+        if (isAuthPage) {
+            this.log('Auth page detected, socket initialization skipped');
+            return false;
+        }
+        
+        // Check if socket.io is available
+        if (typeof io === 'undefined') {
+            this.error('Socket.io library not available, skipping connection');
             return false;
         }
         
@@ -51,6 +69,11 @@ class GlobalSocketManager {
         this.log(`Connecting to socket: ${socketUrl}`);
         
         try {
+            // Check if io is defined - it should be loaded from the CDN on non-auth pages
+            if (typeof io === 'undefined') {
+                throw new Error('Socket.io library (io) is not defined. This is normal on authentication pages.');
+            }
+            
             this.io = io(socketUrl, {
                 transports: ['websocket', 'polling'],
                 reconnection: true,

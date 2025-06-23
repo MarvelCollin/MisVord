@@ -5,12 +5,14 @@ export class NitroManager {
   constructor() {
     this.currentNitroPage = 1;
     this.nitroPerPage = 10;
+    this.userSearchTimeout = null;
     
     this.init();
   }
 
   init() {
     this.initNitroManagement();
+    this.initUserSearch();
     this.loadNitroCodes();
     this.loadNitroStats();
   }
@@ -92,6 +94,108 @@ export class NitroManager {
     }
   }
   
+  initUserSearch() {
+    const userSearchInput = document.getElementById('user_search');
+    const userSearchResults = document.getElementById('user-search-results');
+    
+    if (userSearchInput && userSearchResults) {
+      userSearchInput.addEventListener('input', () => {
+        const query = userSearchInput.value.trim();
+        
+        clearTimeout(this.userSearchTimeout);
+        
+        if (query.length < 2) {
+          userSearchResults.classList.add('hidden');
+          return;
+        }
+        
+        this.userSearchTimeout = setTimeout(() => {
+          this.searchUsers(query);
+        }, 300);
+      });
+      
+      document.addEventListener('click', (e) => {
+        if (!userSearchInput.contains(e.target) && !userSearchResults.contains(e.target)) {
+          userSearchResults.classList.add('hidden');
+        }
+      });
+    }
+  }
+  
+  searchUsers(query) {
+    const userSearchResults = document.getElementById('user-search-results');
+    
+    if (!userSearchResults) return;
+    
+    fetch(`/api/admin/users/search?q=${encodeURIComponent(query)}`)
+      .then(response => response.json())
+      .then(data => {
+        if (data.success && data.data.users) {
+          this.renderUserSearchResults(data.data.users);
+        } else {
+          userSearchResults.innerHTML = '<div class="p-3 text-sm text-discord-lighter">No users found</div>';
+          userSearchResults.classList.remove('hidden');
+        }
+      })
+      .catch(error => {
+        console.error('Error searching users:', error);
+        userSearchResults.innerHTML = '<div class="p-3 text-sm text-red-400">Error searching users</div>';
+        userSearchResults.classList.remove('hidden');
+      });
+  }
+  
+  renderUserSearchResults(users) {
+    const userSearchResults = document.getElementById('user-search-results');
+    
+    if (!userSearchResults) return;
+    
+    if (users.length === 0) {
+      userSearchResults.innerHTML = '<div class="p-3 text-sm text-discord-lighter">No users found</div>';
+      userSearchResults.classList.remove('hidden');
+      return;
+    }
+    
+    let html = '';
+    
+    users.forEach(user => {
+      const avatarUrl = user.avatar_url || '/assets/default-avatar.svg';
+      
+      html += `
+        <div class="user-result flex items-center p-2 hover:bg-discord-light cursor-pointer" data-user-id="${user.id}">
+          <div class="w-8 h-8 rounded-full overflow-hidden mr-2">
+            <img src="${avatarUrl}" alt="${user.username}" class="w-full h-full object-cover">
+          </div>
+          <div>
+            <div class="text-sm font-medium">${user.username}#${user.discriminator}</div>
+            <div class="text-xs text-discord-lighter">${user.email || ''}</div>
+          </div>
+        </div>
+      `;
+    });
+    
+    userSearchResults.innerHTML = html;
+    userSearchResults.classList.remove('hidden');
+    
+    const userResultElements = userSearchResults.querySelectorAll('.user-result');
+    userResultElements.forEach(el => {
+      el.addEventListener('click', () => {
+        this.selectUser(el.dataset.userId, el.querySelector('.text-sm').textContent);
+      });
+    });
+  }
+  
+  selectUser(userId, username) {
+    const userIdInput = document.getElementById('user_id');
+    const userSearchInput = document.getElementById('user_search');
+    const userSearchResults = document.getElementById('user-search-results');
+    
+    if (userIdInput && userSearchInput && userSearchResults) {
+      userIdInput.value = userId;
+      userSearchInput.value = username;
+      userSearchResults.classList.add('hidden');
+    }
+  }
+  
   handleNitroGenerate(e) {
     e.preventDefault();
     
@@ -108,6 +212,7 @@ export class NitroManager {
               showToast("Code copied to clipboard", "info");
             });
           form.reset();
+          document.getElementById('user_search').value = '';
           this.loadNitroCodes();
           this.loadNitroStats();
         } else {

@@ -1,15 +1,28 @@
 <?php
 require_once dirname(dirname(__DIR__)) . '/config/session.php';
 
-if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
+if (!headers_sent()) {
+    $redirectUrl = isset($_GET['redirect']) ? $_GET['redirect'] : null;
+    
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        session_unset();
+        session_destroy();
+        session_write_close();
+        setcookie(session_name(), '', time()-3600, '/');
+    }
+    
     session_start();
+    
+    if ($redirectUrl) {
+        $_SESSION['login_redirect'] = $redirectUrl;
+    }
 }
 
 if (!function_exists('asset')) {
     require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
 }
 
-header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0, private');
 header('Pragma: no-cache');
 header('Expires: 0');
 
@@ -52,12 +65,12 @@ $head_scripts = ['logger-init'];
 
 $data_page = 'auth';
 
-$debugInfo = '';
-if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
-    require_once dirname(dirname(__DIR__)) . '/controllers/DebugController.php';
-    $debugController = new DebugController();
-    $debugInfo = $debugController->getDatabaseDebugInfo();
-    $debugController->initializeDatabase();
+require_once dirname(dirname(__DIR__)) . '/database/repositories/UserRepository.php';
+try {
+    $userRepo = new UserRepository();
+    $userRepo->initialize();
+} catch (Exception $e) {
+    error_log("Error initializing database: " . $e->getMessage());
 }
 ?>
 
@@ -80,6 +93,8 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
     }
 </style>
 
+<!-- Main authentication container with auth page identifier -->
+<body data-page="auth">
 <div class="authentication-page w-full min-h-screen flex items-center justify-center bg-[#202225] p-4 sm:p-6 md:p-8">
 
     <div class="w-full max-w-md mx-auto rounded-xl shadow-2xl relative z-10 glass-hero transform transition-all duration-700 ease-out bg-[#2f3136]/80 backdrop-filter backdrop-blur-md border border-white/10 p-6 sm:p-8" id="authContainer">
@@ -111,9 +126,15 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
             </div>
         <?php endif; ?>
 
-        <?php if (isset($errors['auth'])): ?>
+        <?php if (isset($errors['auth']) || (isset($errors) && count($errors) > 0)): ?>
             <div class="bg-red-500 text-white p-3 rounded-md mb-6 text-center animate-pulse" id="auth-error">
-                <?php echo $errors['auth']; ?>
+                <?php 
+                    if (isset($errors['auth'])) {
+                        echo $errors['auth']; 
+                    } else {
+                        echo 'Login failed. Please check your credentials and try again.';
+                    }
+                ?>
             </div>
         <?php endif; ?>
 
@@ -145,6 +166,7 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                         <input 
                             id="password" 
                             name="password" 
+                            type="password"
                             class="password-field w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 sm:p-3 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all text-sm sm:text-base" 
                         >
                         <button type="button" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors password-toggle">
@@ -228,6 +250,7 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                         <input 
                             id="reg_password" 
                             name="password" 
+                            type="password"
                             class="password-field w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
                         >
                         <button type="button" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors password-toggle">
@@ -248,6 +271,7 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                         <input 
                             id="password_confirm" 
                             name="password_confirm" 
+                            type="password"
                             class="password-field w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
                         >
                         <button type="button" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors password-toggle">
@@ -482,8 +506,78 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
     </div>
 </div>
 
+<script>
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initAuth);
+    } else {
+        initAuth();
+    }
+
+    function initAuth() {
+        if (window.authInitialized) return;
+        window.authInitialized = true;
+
+        // Clear form fields to ensure a fresh start
+        clearAllFormFields();
+        
+        // Clear any localStorage or sessionStorage data related to authentication
+        clearStoredAuthData();
+
+        if (document.querySelector('#register-form-container') && document.body.classList.contains('register-page')) {
+            document.getElementById('register-link').click();
+        } else if (document.querySelector('#forgot-form-container') && document.body.classList.contains('forgot-page')) {
+            document.getElementById('forgot-link').click();
+        } else if (document.querySelector('#reset-password-form-container') && document.body.classList.contains('reset-page')) {
+            // Reset password form is already visible
+        } else if (document.querySelector('#security-question-form-container') && document.body.classList.contains('security-page')) {
+            // Security question form is already visible
+        }
+    }
+    
+    // Function to clear all form input fields
+    function clearAllFormFields() {
+        // Reset all form fields
+        document.querySelectorAll('form').forEach(form => {
+            form.reset();
+        });
+        
+        // Clear all inputs except buttons and submit
+        document.querySelectorAll('input:not([type="button"]):not([type="submit"])').forEach(input => {
+            input.value = '';
+        });
+        
+        // Reset select elements to default option
+        document.querySelectorAll('select').forEach(select => {
+            select.selectedIndex = 0;
+        });
+        
+        // Clear any error messages
+        document.querySelectorAll('.validation-error, .animate-pulse, #auth-error').forEach(element => {
+            element.remove();
+        });
+        
+        // Remove error styling from inputs
+        document.querySelectorAll('.border-red-500').forEach(element => {
+            element.classList.remove('border-red-500');
+        });
+    }
+    
+    // Function to clear authentication related data from storage
+    function clearStoredAuthData() {
+        // Clear any authentication related localStorage items
+        const authKeys = ['authToken', 'rememberMe', 'userAuth', 'lastEmail'];
+        authKeys.forEach(key => {
+            try {
+                localStorage.removeItem(key);
+                sessionStorage.removeItem(key);
+            } catch (e) {
+                console.error('Error clearing stored auth data:', e);
+            }
+        });
+    }
+</script>
+</body>
 <?php 
 $content = ob_get_clean(); 
-
-include dirname(dirname(__DIR__)) . '/views/layout/main-app.php';
+require_once __DIR__ . '/../layout/app.php';
 ?>

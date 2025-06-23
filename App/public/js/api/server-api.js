@@ -1,6 +1,6 @@
 class ServerAPI {
     constructor() {
-        this.baseURL = '/api/admin/servers';
+        this.baseURL = '/api/servers';
     }
 
     async parseResponse(response) {
@@ -69,8 +69,22 @@ class ServerAPI {
         }
     }
 
+    async createServer(serverData) {
+        const options = {
+            method: 'POST'
+        };
+
+        if (serverData instanceof FormData) {
+            options.body = serverData;
+        } else {
+            options.body = JSON.stringify(serverData);
+        }
+
+        return await this.makeRequest(`${this.baseURL}/create`, options);
+    }
+
     async getStats() {
-        return await this.makeRequest(`${this.baseURL}/stats`);
+        return await this.makeRequest(`/api/admin/servers/stats`);
     }
 
     async listServers(page = 1, limit = 10, search = '') {
@@ -79,7 +93,7 @@ class ServerAPI {
             limit,
             search
         });
-        return await this.makeRequest(`${this.baseURL}/list?${params.toString()}`);
+        return await this.makeRequest(`/api/admin/servers/list?${params.toString()}`);
     }
 
     async getServer(serverId) {
@@ -87,13 +101,13 @@ class ServerAPI {
     }
 
     async deleteServer(serverId) {
-        return await this.makeRequest(`${this.baseURL}/delete/${serverId}`, {
+        return await this.makeRequest(`/api/admin/servers/${serverId}`, {
             method: 'DELETE'
         });
     }
 
     async updateServer(serverId, data) {
-        return await this.makeRequest(`${this.baseURL}/update/${serverId}`, {
+        return await this.makeRequest(`/api/admin/servers/update/${serverId}`, {
             method: 'PUT',
             body: JSON.stringify(data)
         });

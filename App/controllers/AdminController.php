@@ -248,19 +248,181 @@ class AdminController extends BaseController
         $logs = file_get_contents($logPath);
         
         if ($level !== 'all') {
-            $filteredLogs = '';
-            $lines = explode("\n", $logs);
+            // Filter logs by level
+            $filteredLogs = [];
+            $logLines = explode(PHP_EOL, $logs);
             
-            foreach ($lines as $line) {
-                if (stripos($line, "[{$level}]") !== false) {
-                    $filteredLogs .= $line . "\n";
+            foreach ($logLines as $line) {
+                if (strpos($line, "[{$level}]") !== false) {
+                    $filteredLogs[] = $line;
                 }
             }
             
-            $logs = $filteredLogs;
+            $logs = implode(PHP_EOL, $filteredLogs);
         }
         
         return $this->success(['logs' => $logs]);
+    }
+    
+    public function getServerStats()
+    {
+        $this->requireAdmin();
+        
+        // Get server creation stats by date (last 7 days for daily view)
+        $daily = $this->serverRepository->getCreationStatsByDay(7);
+        
+        // Get server stats by week (last 4 weeks for weekly view)
+        $weekly = $this->serverRepository->getCreationStatsByWeek(4);
+        
+        // Get active servers (has messages in last 24 hours)
+        $activeServers = $this->serverRepository->countActiveServers(24);
+        
+        // Get total member count across all servers
+        $totalMembers = $this->serverRepository->countTotalMembers();
+        
+        $stats = [
+            'daily' => $daily,
+            'weekly' => $weekly,
+            'active' => $activeServers,
+            'total_members' => $totalMembers,
+            'total_servers' => $this->serverRepository->count(),
+            'avg_members_per_server' => $this->serverRepository->count() > 0 
+                ? round($totalMembers / $this->serverRepository->count(), 1) 
+                : 0
+        ];
+        
+        return $this->success(['stats' => $stats]);
+    }
+    
+    public function getUserStats()
+    {
+        $this->requireAdmin();
+        
+        // Get user registration stats by date (last 7 days for daily view)
+        $daily = $this->userRepository->getRegistrationStatsByDay(7);
+        
+        // Get user registration stats by week (last 4 weeks for weekly view)
+        $weekly = $this->userRepository->getRegistrationStatsByWeek(4);
+        
+        // Get online users count
+        $onlineUsers = $this->userRepository->countByStatus('online');
+        
+        // Get active users (logged in last 24 hours)
+        $activeUsers = $this->userRepository->countActiveUsers(24);
+        
+        $stats = [
+            'daily' => $daily,
+            'weekly' => $weekly,
+            'online' => $onlineUsers,
+            'active' => $activeUsers,
+            'total' => $this->userRepository->count()
+        ];
+        
+        return $this->success(['stats' => $stats]);
+    }
+    
+    /**
+     * Get user growth statistics for charts
+     */
+    public function getUserGrowthStats()
+    {
+        $this->requireAdmin();
+        
+        // Get daily data - last 14 days
+        $dailyStats = $this->userRepository->getRegistrationStatsByDay(14);
+        
+        // Format daily data for chart
+        $daily = [];
+        foreach ($dailyStats as $date => $count) {
+            $daily[] = [
+                'label' => $date,
+                'value' => $count
+            ];
+        }
+        
+        // Get weekly data - last 8 weeks
+        $weeklyStats = $this->userRepository->getRegistrationStatsByWeek(8);
+        
+        // Format weekly data for chart
+        $weekly = [];
+        foreach ($weeklyStats as $weekRange => $count) {
+            $weekly[] = [
+                'label' => $weekRange,
+                'value' => $count
+            ];
+        }
+        
+        return $this->success([
+            'data' => [
+                'daily' => $daily,
+                'weekly' => $weekly
+            ]
+        ]);
+    }
+    
+    /**
+     * Get message activity statistics for charts
+     */
+    public function getMessageActivityStats()
+    {
+        $this->requireAdmin();
+        
+        // Get daily data - last 14 days
+        $dailyStats = $this->messageRepository->getMessageStatsByDay(14);
+        
+        // Format daily data for chart
+        $daily = [];
+        foreach ($dailyStats as $date => $count) {
+            $daily[] = [
+                'label' => $date,
+                'value' => $count
+            ];
+        }
+        
+        // Get weekly data - last 8 weeks
+        $weeklyStats = $this->messageRepository->getMessageStatsByWeek(8);
+        
+        // Format weekly data for chart
+        $weekly = [];
+        foreach ($weeklyStats as $weekRange => $count) {
+            $weekly[] = [
+                'label' => $weekRange,
+                'value' => $count
+            ];
+        }
+        
+        return $this->success([
+            'data' => [
+                'daily' => $daily,
+                'weekly' => $weekly
+            ]
+        ]);
+    }
+    
+    /**
+     * Get server growth statistics for charts
+     */
+    public function getServerGrowthStats()
+    {
+        $this->requireAdmin();
+        
+        // Get growth data - last 14 days
+        $dailyStats = $this->serverRepository->getCreationStatsByDay(14);
+        
+        // Format data for chart
+        $growth = [];
+        foreach ($dailyStats as $date => $count) {
+            $growth[] = [
+                'label' => $date,
+                'value' => $count
+            ];
+        }
+        
+        return $this->success([
+            'data' => [
+                'growth' => $growth
+            ]
+        ]);
     }
     
     protected function requireAdmin()

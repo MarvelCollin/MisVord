@@ -206,4 +206,122 @@ class ServerRepository extends Repository {
             })
             ->count();
     }
+    
+    /**
+     * Get server creation statistics by day for the last n days
+     *
+     * @param int $days Number of days to look back
+     * @return array Daily server creation stats
+     */
+    public function getCreationStatsByDay($days = 7) {
+        $stats = [];
+        $query = new Query();
+        
+        // Initialize the array with zeros for all days
+        for ($i = $days - 1; $i >= 0; $i--) {
+            $date = date('Y-m-d', strtotime("-$i days"));
+            $stats[$date] = 0;
+        }
+        
+        // Get the actual counts from the database
+        $startDate = date('Y-m-d', strtotime("-" . ($days - 1) . " days"));
+        $results = $query->query(
+            "SELECT DATE(created_at) as date, COUNT(*) as count 
+             FROM servers 
+             WHERE DATE(created_at) >= ? 
+             GROUP BY DATE(created_at)
+             ORDER BY date ASC",
+            [$startDate]
+        );
+        
+        // Fill in the actual counts
+        foreach ($results as $row) {
+            if (isset($stats[$row['date']])) {
+                $stats[$row['date']] = (int)$row['count'];
+            }
+        }
+        
+        return $stats;
+    }
+    
+    /**
+     * Get server creation statistics by week for the last n weeks
+     *
+     * @param int $weeks Number of weeks to look back
+     * @return array Weekly server creation stats
+     */
+    public function getCreationStatsByWeek($weeks = 4) {
+        $stats = [];
+        $query = new Query();
+        
+        // Initialize the array with zeros for all weeks
+        for ($i = $weeks - 1; $i >= 0; $i--) {
+            $weekStart = date('Y-m-d', strtotime("-$i weeks", strtotime('monday this week')));
+            $weekEnd = date('Y-m-d', strtotime("+6 days", strtotime($weekStart)));
+            $weekLabel = $weekStart . ' to ' . $weekEnd;
+            $stats[$weekLabel] = 0;
+        }
+        
+        // Get the actual counts from the database
+        $startDate = date('Y-m-d', strtotime("-" . ($weeks - 1) . " weeks", strtotime('monday this week')));
+        $results = $query->query(
+            "SELECT 
+                CONCAT(
+                    DATE(DATE_SUB(created_at, INTERVAL WEEKDAY(created_at) DAY)),
+                    ' to ',
+                    DATE(DATE_ADD(DATE_SUB(created_at, INTERVAL WEEKDAY(created_at) DAY), INTERVAL 6 DAY))
+                ) as week_range,
+                COUNT(*) as count 
+             FROM servers 
+             WHERE DATE(created_at) >= ? 
+             GROUP BY week_range
+             ORDER BY MIN(created_at) ASC",
+            [$startDate]
+        );
+        
+        // Fill in the actual counts
+        foreach ($results as $row) {
+            if (isset($stats[$row['week_range']])) {
+                $stats[$row['week_range']] = (int)$row['count'];
+            }
+        }
+        
+        return $stats;
+    }
+    
+    /**
+     * Count servers that have had activity in the last n hours
+     *
+     * @param int $hours Number of hours to look back
+     * @return int Number of active servers
+     */
+    public function countActiveServers($hours = 24) {
+        $query = new Query();
+        $date = date('Y-m-d H:i:s', strtotime("-$hours hours"));
+        
+        // Count servers that have had messages in the last n hours
+        $result = $query->query(
+            "SELECT COUNT(DISTINCT s.id) as count
+             FROM servers s
+             JOIN channels c ON c.server_id = s.id
+             JOIN channel_messages cm ON cm.channel_id = c.id
+             WHERE cm.created_at >= ?",
+            [$date]
+        );
+        
+        return isset($result[0]['count']) ? (int)$result[0]['count'] : 0;
+    }
+    
+    /**
+     * Count total members across all servers
+     *
+     * @return int Total member count
+     */
+    public function countTotalMembers() {
+        $query = new Query();
+        $result = $query->table('user_server_memberships')
+            ->count();
+            
+        return $result;
+    }
 }

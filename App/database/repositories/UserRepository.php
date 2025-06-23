@@ -106,11 +106,21 @@ class UserRepository extends Repository {
     }
     
     public function createTable() {
-        return User::createTable();
+        try {
+            return User::createTable();
+        } catch (Exception $e) {
+            error_log("Error creating users table: " . $e->getMessage());
+            return false;
+        }
     }
     
     public function initialize() {
-        return User::initialize();
+        try {
+            return $this->createTable();
+        } catch (Exception $e) {
+            error_log("Error initializing user table: " . $e->getMessage());
+            return false;
+        }
     }
     
     public function getAllUserIds($limit = 10) {
@@ -224,5 +234,105 @@ class UserRepository extends Repository {
                   ->orWhereLike('email', "%$query%");
             })
             ->count();
+    }
+    
+    /**
+     * Get user registration statistics by day for the last n days
+     *
+     * @param int $days Number of days to look back
+     * @return array Daily user registration stats
+     */
+    public function getRegistrationStatsByDay($days = 7) {
+        $stats = [];
+        $query = new Query();
+        
+        // Initialize the array with zeros for all days
+        for ($i = $days - 1; $i >= 0; $i--) {
+            $date = date('Y-m-d', strtotime("-$i days"));
+            $stats[$date] = 0;
+        }
+        
+        // Get the actual counts from the database
+        $startDate = date('Y-m-d', strtotime("-" . ($days - 1) . " days"));
+        $results = $query->query(
+            "SELECT DATE(created_at) as date, COUNT(*) as count 
+             FROM users 
+             WHERE DATE(created_at) >= ? 
+             GROUP BY DATE(created_at)
+             ORDER BY date ASC",
+            [$startDate]
+        );
+        
+        // Fill in the actual counts
+        foreach ($results as $row) {
+            if (isset($stats[$row['date']])) {
+                $stats[$row['date']] = (int)$row['count'];
+            }
+        }
+        
+        return $stats;
+    }
+    
+    /**
+     * Get user registration statistics by week for the last n weeks
+     *
+     * @param int $weeks Number of weeks to look back
+     * @return array Weekly user registration stats
+     */
+    public function getRegistrationStatsByWeek($weeks = 4) {
+        $stats = [];
+        $query = new Query();
+        
+        // Initialize the array with zeros for all weeks
+        for ($i = $weeks - 1; $i >= 0; $i--) {
+            $weekStart = date('Y-m-d', strtotime("-$i weeks", strtotime('monday this week')));
+            $weekEnd = date('Y-m-d', strtotime("+6 days", strtotime($weekStart)));
+            $weekLabel = $weekStart . ' to ' . $weekEnd;
+            $stats[$weekLabel] = 0;
+        }
+        
+        // Get the actual counts from the database
+        $startDate = date('Y-m-d', strtotime("-" . ($weeks - 1) . " weeks", strtotime('monday this week')));
+        $results = $query->query(
+            "SELECT 
+                CONCAT(
+                    DATE(DATE_SUB(created_at, INTERVAL WEEKDAY(created_at) DAY)),
+                    ' to ',
+                    DATE(DATE_ADD(DATE_SUB(created_at, INTERVAL WEEKDAY(created_at) DAY), INTERVAL 6 DAY))
+                ) as week_range,
+                COUNT(*) as count 
+             FROM users 
+             WHERE DATE(created_at) >= ? 
+             GROUP BY week_range
+             ORDER BY MIN(created_at) ASC",
+            [$startDate]
+        );
+        
+        // Fill in the actual counts
+        foreach ($results as $row) {
+            if (isset($stats[$row['week_range']])) {
+                $stats[$row['week_range']] = (int)$row['count'];
+            }
+        }
+        
+        return $stats;
+    }
+    
+    /**
+     * Count users who have been active in the last n hours
+     *
+     * @param int $hours Number of hours to look back
+     * @return int Number of active users
+     */
+    public function countActiveUsers($hours = 24) {
+        $query = new Query();
+        $date = date('Y-m-d H:i:s', strtotime("-$hours hours"));
+        
+        // Use updated_at as a proxy for activity since last_login_at column doesn't exist
+        $result = $query->table(User::getTable())
+            ->where('updated_at', '>=', $date)
+            ->count();
+            
+        return $result;
     }
 }

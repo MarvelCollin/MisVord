@@ -1,4 +1,5 @@
 import FormValidator from '../components/common/validation.js';
+import { TextCaptcha } from '../components/common/captcha.js';
 
 function initAuth() {
     if (window.authPageInitialized) {
@@ -31,16 +32,16 @@ function initAuth() {
     };
 
     if (window.logger) {
-        window.logger.debug('auth', 'Auth elements loaded:', {
-            authContainer: !!elements.authContainer,
-            formsContainer: !!elements.formsContainer,
-            loginForm: !!elements.loginForm,
-            registerForm: !!elements.registerForm,
-            forgotForm: !!elements.forgotForm,
-            formToggles: elements.formToggles.length
-        });
+    window.logger.debug('auth', 'Auth elements loaded:', {
+        authContainer: !!elements.authContainer,
+        formsContainer: !!elements.formsContainer,
+        loginForm: !!elements.loginForm,
+        registerForm: !!elements.registerForm,
+        forgotForm: !!elements.forgotForm,
+        formToggles: elements.formToggles.length
+    });
     }
-    
+
     let currentForm = getCurrentVisibleForm();
     
     const timing = {
@@ -64,7 +65,7 @@ function initAuth() {
         }
         return 'login';
     }
-    
+
     function hideAllForms() {
         if (elements.loginForm) elements.loginForm.classList.add('hidden');
         if (elements.registerForm) elements.registerForm.classList.add('hidden');
@@ -102,7 +103,7 @@ function initAuth() {
         createMinimalistBackground();
 
         if (elements.authContainer) {
-            elements.authContainer.classList.remove('gradient-border');
+        elements.authContainer.classList.remove('gradient-border');
         }
     }
 
@@ -229,10 +230,10 @@ function initAuth() {
             if (targetForm === currentForm) return;
 
             if (elements.authContainer) {
-                elements.authContainer.classList.add('scale-in');
-                setTimeout(() => {
-                    elements.authContainer.classList.remove('scale-in');
-                }, timing.formScaleEffect);
+            elements.authContainer.classList.add('scale-in');
+            setTimeout(() => {
+                elements.authContainer.classList.remove('scale-in');
+            }, timing.formScaleEffect);
             }
 
             animateTitle(getFormTitle(targetForm));
@@ -270,7 +271,7 @@ function initAuth() {
 
     function animateTitle(newText) {
         if (!elements.authTitle) return;
-        
+
         elements.authTitle.style.opacity = '0';
         elements.authTitle.style.transform = 'translateY(-10px)';
 
@@ -392,8 +393,34 @@ function initAuth() {
             form.addEventListener('submit', function(e) {
                 let isValid = true;
                 
+                FormValidator.clearErrors(this);
+                
                 if (this.id === 'loginForm') {
                     isValid = FormValidator.validateLoginForm(this);
+                    
+                    const email = this.querySelector('#email');
+                    const password = this.querySelector('#password');
+                    
+                    if (!email.value.trim()) {
+                        FormValidator.showFieldError(email, 'Email is required');
+                        isValid = false;
+                        email.classList.add('error-shake');
+                        setTimeout(() => email.classList.remove('error-shake'), 500);
+                    }
+                    
+                    if (!password.value.trim()) {
+                        FormValidator.showFieldError(password, 'Password is required');
+                        isValid = false;
+                        password.classList.add('error-shake');
+                        setTimeout(() => password.classList.remove('error-shake'), 500);
+                    }
+                    
+                    const captcha = this.querySelector('#login_captcha');
+                    if (captcha && !captcha.value.trim()) {
+                        FormValidator.showFieldError(captcha, 'Verification code is required');
+                        isValid = false;
+                    }
+                    
                 } else if (this.id === 'registerForm') {
                     isValid = FormValidator.validateRegisterForm(this);
                 } else if (this.id === 'forgotForm') {
@@ -403,27 +430,79 @@ function initAuth() {
                 } else if (this.id === 'resetPasswordForm') {
                     isValid = FormValidator.validateResetPasswordForm(this);
                 }
+                
+                if (!isValid) {
+                    const formErrorContainer = document.createElement('div');
+                    formErrorContainer.className = 'bg-red-500 text-white p-3 rounded-md mb-4 text-center animate-pulse';
+                    formErrorContainer.textContent = 'Please correct the errors below.';
+                    form.prepend(formErrorContainer);
+                }
 
                 if (!isValid) {
                     e.preventDefault(); 
+                    
+                    // Find first error field and focus it
+                    const firstErrorField = form.querySelector('.border-red-500');
+                    if (firstErrorField) {
+                        firstErrorField.focus();
+                    }
+                    
                     return false;
                 }
-                
+
+                // Add timestamp to prevent caching
                 const timestampInput = document.createElement('input');
                 timestampInput.type = 'hidden';
                 timestampInput.name = '_t';
                 timestampInput.value = Date.now();
                 this.appendChild(timestampInput);
                 
+                // Disable submit button to prevent double submission and show loading state
+                const submitBtn = this.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Processing...';
+                    
+                    // Re-enable after 5 seconds in case of network issues
+                    setTimeout(() => {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = submitBtn.getAttribute('data-original-text') || 'Submit';
+                    }, 5000);
+                }
+                
                 return true;
             });
+            
+            // Store original button text
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.setAttribute('data-original-text', submitBtn.innerHTML);
+            }
         });
     }
 
     function setupCaptcha() {
         try {
-            if (typeof window.initCaptcha === 'function') {
-                window.initCaptcha();
+            if (typeof TextCaptcha === 'undefined') {
+                console.error('TextCaptcha class is not defined');
+                return;
+            }
+            
+            const loginCaptchaContainer = document.getElementById('login-captcha-container');
+            const registerCaptchaContainer = document.getElementById('register-captcha-container');
+            
+            if (loginCaptchaContainer) {
+                new TextCaptcha('login-captcha-container', {
+                    length: 6,
+                    inputId: 'login_captcha'
+                });
+            }
+            
+            if (registerCaptchaContainer) {
+                new TextCaptcha('register-captcha-container', {
+                    length: 6,
+                    inputId: 'register_captcha'
+                });
             }
         } catch (e) {
             console.error('Error initializing captcha:', e);
