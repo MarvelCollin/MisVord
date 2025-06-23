@@ -46,9 +46,7 @@ if (typeof window.logger !== 'undefined') {
             if (!loginForm.classList.contains('hidden')) return 'login';
             if (!registerForm.classList.contains('hidden')) return 'register';
             if (!forgotForm.classList.contains('hidden')) return 'forgot';
-            if (!document.getElementById('securityVerifyForm') || document.getElementById('securityVerifyForm').classList.contains('hidden')) return 'login';
             if (!document.getElementById('resetPasswordForm') || document.getElementById('resetPasswordForm').classList.contains('hidden')) return 'login';
-            if (document.getElementById('securityVerifyForm') && !document.getElementById('securityVerifyForm').classList.contains('hidden')) return 'security-verify';
             if (document.getElementById('resetPasswordForm') && !document.getElementById('resetPasswordForm').classList.contains('hidden')) return 'reset-password';
             return 'login';
         }
@@ -104,7 +102,6 @@ if (typeof window.logger !== 'undefined') {
             const newUrl = targetForm === 'login' ? '/login' :
                 targetForm === 'register' ? '/register' :
                 targetForm === 'forgot' ? '/forgot-password' :
-                targetForm === 'security-verify' ? '/security-verify' :
                 targetForm === 'reset-password' ? '/reset-password' :
                     '/forgot-password';
 
@@ -119,8 +116,6 @@ if (typeof window.logger !== 'undefined') {
             if (!loginForm.classList.contains('hidden')) return loginForm;
             if (!registerForm.classList.contains('hidden')) return registerForm;
             if (!forgotForm.classList.contains('hidden')) return forgotForm;
-            if (document.getElementById('securityVerifyForm') && !document.getElementById('securityVerifyForm').classList.contains('hidden')) 
-                return document.getElementById('securityVerifyForm');
             if (document.getElementById('resetPasswordForm') && !document.getElementById('resetPasswordForm').classList.contains('hidden')) 
                 return document.getElementById('resetPasswordForm');
             return null;
@@ -131,7 +126,6 @@ if (typeof window.logger !== 'undefined') {
                 case 'login': return loginForm;
                 case 'register': return registerForm;
                 case 'forgot': return forgotForm;
-                case 'security-verify': return document.getElementById('securityVerifyForm');
                 case 'reset-password': return document.getElementById('resetPasswordForm');
                 default: return null;
             }
@@ -148,8 +142,6 @@ if (typeof window.logger !== 'undefined') {
                 } else if (targetForm === 'login') {
                     title.textContent = 'Welcome back!';
                 } else if (targetForm === 'forgot') {
-                    title.textContent = 'Reset Password';
-                } else if (targetForm === 'security-verify') {
                     title.textContent = 'Account Recovery';
                 } else if (targetForm === 'reset-password') {
                     title.textContent = 'Create New Password';
@@ -356,7 +348,6 @@ function initAuthForms() {
     const loginForm = document.getElementById('loginForm');
     const registerForm = document.getElementById('registerForm');
     const forgotForm = document.getElementById('forgotForm');
-    const securityVerifyForm = document.getElementById('securityVerifyForm');
     const resetPasswordForm = document.getElementById('resetPasswordForm');
     const securityQuestionForm = document.getElementById('securityQuestionForm');
     const authTitle = document.getElementById('authTitle');
@@ -377,10 +368,6 @@ function initAuthForms() {
         securityQuestionForm.addEventListener('submit', validateSecurityQuestionForm);
     }
     
-    if (securityVerifyForm) {
-        securityVerifyForm.addEventListener('submit', validateSecurityVerifyForm);
-    }
-    
     if (resetPasswordForm) {
         resetPasswordForm.addEventListener('submit', validateResetPasswordForm);
     }
@@ -394,7 +381,6 @@ function initAuthForms() {
                 loginForm.classList.remove('hidden');
                 registerForm.classList.add('hidden');
                 forgotForm.classList.add('hidden');
-                if (securityVerifyForm) securityVerifyForm.classList.add('hidden');
                 if (resetPasswordForm) resetPasswordForm.classList.add('hidden');
                 authTitle.innerHTML = '<span>Welcome back!</span>';
                 history.pushState({}, '', '/login');
@@ -402,7 +388,6 @@ function initAuthForms() {
                 loginForm.classList.add('hidden');
                 registerForm.classList.remove('hidden');
                 forgotForm.classList.add('hidden');
-                if (securityVerifyForm) securityVerifyForm.classList.add('hidden');
                 if (resetPasswordForm) resetPasswordForm.classList.add('hidden');
                 authTitle.innerHTML = '<span>Create an account</span>';
                 history.pushState({}, '', '/register');
@@ -410,23 +395,13 @@ function initAuthForms() {
                 loginForm.classList.add('hidden');
                 registerForm.classList.add('hidden');
                 forgotForm.classList.remove('hidden');
-                if (securityVerifyForm) securityVerifyForm.classList.add('hidden');
-                if (resetPasswordForm) resetPasswordForm.classList.add('hidden');
-                authTitle.innerHTML = '<span>Reset Password</span>';
-                history.pushState({}, '', '/forgot-password');
-            } else if (formType === 'security-verify') {
-                loginForm.classList.add('hidden');
-                registerForm.classList.add('hidden');
-                forgotForm.classList.add('hidden');
-                if (securityVerifyForm) securityVerifyForm.classList.remove('hidden');
                 if (resetPasswordForm) resetPasswordForm.classList.add('hidden');
                 authTitle.innerHTML = '<span>Account Recovery</span>';
-                history.pushState({}, '', '/security-verify');
+                history.pushState({}, '', '/forgot-password');
             } else if (formType === 'reset-password') {
                 loginForm.classList.add('hidden');
                 registerForm.classList.add('hidden');
                 forgotForm.classList.add('hidden');
-                if (securityVerifyForm) securityVerifyForm.classList.add('hidden');
                 if (resetPasswordForm) resetPasswordForm.classList.remove('hidden');
                 authTitle.innerHTML = '<span>Create New Password</span>';
                 history.pushState({}, '', '/reset-password');
@@ -434,7 +409,6 @@ function initAuthForms() {
                 loginForm.classList.add('hidden');
                 registerForm.classList.add('hidden');
                 forgotForm.classList.add('hidden');
-                if (securityVerifyForm) securityVerifyForm.classList.add('hidden');
                 if (resetPasswordForm) resetPasswordForm.classList.add('hidden');
                 securityQuestionForm.classList.remove('hidden');
                 authTitle.innerHTML = '<span>Set Security Question</span>';
@@ -582,17 +556,28 @@ function validateRegisterForm(e) {
 
 function validateForgotForm(e) {
     const form = e.target;
-    const email = form.querySelector('#forgot_email').value.trim();
+    const email = form.querySelector('#forgot_email')?.value.trim();
+    const securityAnswer = form.querySelector('#security_answer')?.value;
+    const hasSecurityQuestion = form.querySelector('input[name="step"][value="verify_answer"]') !== null;
     let isValid = true;
 
     clearErrors(form);
 
-    if (!email) {
-        showError(form.querySelector('#forgot_email'), 'Email is required');
-        isValid = false;
-    } else if (!isValidEmail(email)) {
-        showError(form.querySelector('#forgot_email'), 'Please enter a valid email address');
-        isValid = false;
+    if (!hasSecurityQuestion) {
+        // Email validation
+        if (!email) {
+            showError(form.querySelector('#forgot_email'), 'Email is required');
+            isValid = false;
+        } else if (!isValidEmail(email)) {
+            showError(form.querySelector('#forgot_email'), 'Please enter a valid email address');
+            isValid = false;
+        }
+    } else {
+        // Security answer validation
+        if (!securityAnswer || securityAnswer.trim() === '') {
+            showError(form.querySelector('#security_answer'), 'Security answer is required');
+            isValid = false;
+        }
     }
 
     if (!isValid) {
@@ -613,34 +598,6 @@ function validateSecurityQuestionForm(e) {
     } else if (answer.length < 3) {
         showError(form.querySelector('#security_answer'), 'Security answer must be at least 3 characters');
         isValid = false;
-    }
-
-    if (!isValid) {
-        e.preventDefault();
-    }
-}
-
-function validateSecurityVerifyForm(e) {
-    const form = e.target;
-    const email = form.querySelector('#security_verify_email').value.trim();
-    const securityAnswer = form.querySelector('#security_answer_verify')?.value;
-    let isValid = true;
-
-    clearErrors(form);
-
-    if (!email) {
-        showError(form.querySelector('#security_verify_email'), 'Email is required');
-        isValid = false;
-    } else if (!isValidEmail(email)) {
-        showError(form.querySelector('#security_verify_email'), 'Please enter a valid email address');
-        isValid = false;
-    }
-
-    if (securityAnswer !== undefined) {
-        if (!securityAnswer || securityAnswer.trim() === '') {
-            showError(form.querySelector('#security_answer_verify'), 'Security answer is required');
-            isValid = false;
-        }
     }
 
     if (!isValid) {

@@ -8,6 +8,29 @@ document.addEventListener("DOMContentLoaded", function () {
   if (mainContent && mainContent.textContent.trim() === '[object Object]') {
     fixObjectDisplay();
   }
+  
+  window.addEventListener('popstate', function(event) {
+    if (window.location.pathname.includes('/server/')) {
+      const serverId = getServerIdFromUrl();
+      if (serverId) {
+        handleSkeletonLoading(true);
+        serverAPI.getServerPageHTML(serverId)
+          .then(html => {
+            if (typeof html === 'string') {
+              const mainContent = document.querySelector('.flex-1');
+              if (mainContent) {
+                pageUtils.updatePageContent(mainContent, html);
+              }
+            }
+            handleSkeletonLoading(false);
+          })
+          .catch(err => {
+            console.error('Failed to load server page:', err);
+            handleSkeletonLoading(false);
+          });
+      }
+    }
+  });
 });
 
 function initServerPage() {
@@ -142,3 +165,104 @@ function renderMemberItem(member) {
         </div>
     `;
 }
+
+function handleSkeletonLoading(show) {
+  const mainContent = document.querySelector('.flex-1');
+  
+  if (!mainContent) return;
+  
+  if (show) {
+    const skeletonTemplate = `
+      <div class="skeleton-loader server-page-skeleton flex h-full">
+        <div class="channel-list-skeleton w-60 bg-discord-dark border-r border-discord-600 flex-shrink-0 p-4">
+          <div class="flex items-center justify-between mb-6">
+            <div class="h-6 bg-gray-700 rounded w-32 animate-pulse"></div>
+            <div class="h-6 w-6 bg-gray-700 rounded-full animate-pulse"></div>
+          </div>
+          
+          <div class="mb-4">
+            <div class="h-5 bg-gray-700 rounded w-24 mb-3 animate-pulse"></div>
+            ${Array(3).fill().map(() => `
+              <div class="flex items-center py-1 mb-2">
+                <div class="h-4 w-4 bg-gray-700 rounded-sm mr-2 animate-pulse"></div>
+                <div class="h-4 bg-gray-700 rounded w-32 animate-pulse"></div>
+              </div>
+            `).join('')}
+          </div>
+          
+          <div class="mb-6">
+            <div class="h-5 bg-gray-700 rounded w-28 mb-3 animate-pulse"></div>
+            ${Array(5).fill().map(() => `
+              <div class="flex items-center py-1 mb-2">
+                <div class="h-4 w-4 bg-gray-700 rounded-sm mr-2 animate-pulse"></div>
+                <div class="h-4 bg-gray-700 rounded w-36 animate-pulse"></div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        
+        <div class="chat-skeleton flex-grow bg-discord-background flex flex-col">
+          <div class="h-12 border-b border-discord-600 px-4 flex items-center">
+            <div class="h-5 bg-gray-700 rounded w-32 animate-pulse"></div>
+            <div class="ml-auto flex space-x-4">
+              ${Array(3).fill().map(() => `
+                <div class="h-6 w-6 bg-gray-700 rounded-full animate-pulse"></div>
+              `).join('')}
+            </div>
+          </div>
+          
+          <div class="flex-grow p-4 overflow-y-auto">
+            ${Array(8).fill().map(() => `
+              <div class="flex mb-6">
+                <div class="h-10 w-10 bg-gray-700 rounded-full mr-3 flex-shrink-0 animate-pulse"></div>
+                <div class="flex-grow">
+                  <div class="flex items-center mb-1">
+                    <div class="h-4 bg-gray-700 rounded w-24 mr-2 animate-pulse"></div>
+                    <div class="h-3 bg-gray-700 rounded w-16 animate-pulse opacity-75"></div>
+                  </div>
+                  <div class="h-4 bg-gray-700 rounded w-full mb-1 animate-pulse"></div>
+                  <div class="h-4 bg-gray-700 rounded w-3/4 animate-pulse"></div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+          
+          <div class="p-4 border-t border-discord-600">
+            <div class="h-10 bg-gray-700 rounded-lg w-full animate-pulse"></div>
+          </div>
+        </div>
+        
+        <div class="participant-list-skeleton w-60 bg-discord-dark border-l border-discord-600 flex-shrink-0 p-4">
+          <div class="h-5 bg-gray-700 rounded w-32 mb-4 animate-pulse"></div>
+          
+          <div class="mb-6">
+            <div class="h-4 bg-gray-700 rounded w-20 mb-3 animate-pulse opacity-75"></div>
+            ${Array(5).fill().map(() => `
+              <div class="flex items-center py-1 mb-2">
+                <div class="h-8 w-8 bg-gray-700 rounded-full mr-2 animate-pulse"></div>
+                <div class="h-4 bg-gray-700 rounded w-24 animate-pulse"></div>
+              </div>
+            `).join('')}
+          </div>
+          
+          <div>
+            <div class="h-4 bg-gray-700 rounded w-20 mb-3 animate-pulse opacity-75"></div>
+            ${Array(3).fill().map(() => `
+              <div class="flex items-center py-1 mb-2">
+                <div class="h-8 w-8 bg-gray-700 rounded-full mr-2 animate-pulse opacity-50"></div>
+                <div class="h-4 bg-gray-700 rounded w-24 animate-pulse opacity-50"></div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+    `;
+    
+    mainContent.innerHTML = skeletonTemplate;
+    mainContent.classList.add('loading');
+  } else {
+    mainContent.classList.remove('loading');
+  }
+}
+
+window.handleSkeletonLoading = handleSkeletonLoading;

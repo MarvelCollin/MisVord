@@ -71,8 +71,10 @@ Route::get('/call', 'pages/call.php');
 Route::get('/dev', 'pages/dev.php');
 Route::get('/forgot-password', 'pages/authentication-page.php');
 Route::get('/security-verify', function() {
-    $controller = new AuthenticationController();
-    $controller->showSecurityVerify();
+    if (!headers_sent()) {
+        header('Location: /forgot-password');
+    }
+    exit;
 });
 Route::get('/reset-password', function() {
     $controller = new AuthenticationController();

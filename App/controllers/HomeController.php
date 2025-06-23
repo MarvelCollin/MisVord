@@ -48,6 +48,11 @@ class HomeController extends BaseController
             $tab = $_GET['tab'] ?? 'online';
             $GLOBALS['activeTab'] = in_array($tab, ['online', 'all', 'pending', 'blocked', 'add-friend']) 
                 ? $tab : 'online';
+                
+            // Ensure friends data is available for the tab
+            if ($tab === 'online' || $tab === 'all') {
+                $this->loadFriendsData($this->getCurrentUserId());
+            }
         }
 
         $currentUserId = $this->getCurrentUserId();
@@ -105,6 +110,39 @@ class HomeController extends BaseController
                     'friends' => [],
                     'onlineFriends' => []
                 ]
+            ];
+        }
+    }
+
+    private function loadFriendsData($userId) {
+        try {
+            // Load friend data from FriendController
+            require_once __DIR__ . '/FriendController.php';
+            $friendController = new FriendController();
+            $friendData = $friendController->getUserFriends();
+            
+            // Make the data available globally
+            $GLOBALS['currentUser'] = $friendData['currentUser'] ?? [];
+            $GLOBALS['friends'] = $friendData['friends'] ?? [];
+            $GLOBALS['onlineFriends'] = $friendData['onlineFriends'] ?? [];
+            
+            return $friendData;
+        } catch (Exception $e) {
+            if (function_exists('logger')) {
+                logger()->error("Error loading friends data", [
+                    'error' => $e->getMessage(),
+                    'user_id' => $userId
+                ]);
+            }
+            
+            // Set empty arrays as fallback
+            $GLOBALS['friends'] = [];
+            $GLOBALS['onlineFriends'] = [];
+            
+            return [
+                'currentUser' => [],
+                'friends' => [],
+                'onlineFriends' => []
             ];
         }
     }

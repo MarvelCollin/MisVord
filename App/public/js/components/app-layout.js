@@ -254,19 +254,30 @@ function initTabHandling() {
 function activateTab(tabName) {
     const tabs = document.querySelectorAll('[data-tab]');
     const tabContents = document.querySelectorAll('.tab-content');
-
-
+    
+    // If we're already on the friends page, update UI directly
     if (window.location.pathname === '/app/friends') {
-        window.location.href = '/app/friends?tab=' + tabName;
+        updateTabUI(tabName, tabs, tabContents);
+        
+        // Also update URL without full page reload
+        const url = new URL(window.location);
+        url.searchParams.set('tab', tabName);
+        window.history.pushState({}, '', url);
+        
         return;
     }
+    
+    // Otherwise navigate to the tab via URL
+    window.location.href = '/app/friends?tab=' + tabName;
+}
 
-
+function updateTabUI(tabName, tabs, tabContents) {
+    // Update the tabs
     tabs.forEach(tab => {
         if (tab.getAttribute('data-tab') === tabName) {
             tab.classList.remove('text-gray-300');
             tab.classList.add('text-white');
-
+            
             if (tabName === 'online' || tabName === 'add-friend') {
                 tab.classList.add(tabName === 'online' ? 'bg-discord-primary' : 'bg-discord-green');
                 tab.classList.remove(tabName === 'online' ? 'hover:bg-discord-light' : 'hover:bg-discord-green/90');
@@ -277,7 +288,7 @@ function activateTab(tabName) {
         } else {
             tab.classList.add('text-gray-300');
             tab.classList.remove('text-white');
-
+            
             const currentTabName = tab.getAttribute('data-tab');
             if (currentTabName === 'online' || currentTabName === 'add-friend') {
                 tab.classList.remove(currentTabName === 'online' ? 'bg-discord-primary' : 'bg-discord-green');
@@ -288,11 +299,12 @@ function activateTab(tabName) {
             }
         }
     });
-
+    
+    // Update the content
     tabContents.forEach(content => {
         if (content.id === tabName + '-tab') {
             content.classList.remove('hidden');
-
+            
             if (tabName === 'all') {
                 loadAllFriends();
             } else if (tabName === 'pending') {
@@ -590,25 +602,33 @@ function loadBlockedUsers() {
 
 function getStatusColor(status) {
     const statusColors = {
+        'online': 'bg-discord-green',
         'appear': 'bg-discord-green',
         'invisible': 'bg-gray-500',
+        'away': 'bg-discord-yellow',
+        'idle': 'bg-discord-yellow',
+        'dnd': 'bg-discord-red',
         'do_not_disturb': 'bg-discord-red',
         'offline': 'bg-[#747f8d]',
         'banned': 'bg-black'
     };
-
+    
     return statusColors[status] || 'bg-gray-500';
 }
 
 function getStatusText(status) {
     const statusTexts = {
-        'appear': 'Appear',
+        'online': 'Online',
+        'appear': 'Online',
         'invisible': 'Invisible',
+        'away': 'Away',
+        'idle': 'Away',
+        'dnd': 'Do Not Disturb',
         'do_not_disturb': 'Do Not Disturb',
         'offline': 'Offline',
         'banned': 'Banned'
     };
-
+    
     return statusTexts[status] || 'Offline';
 }
 

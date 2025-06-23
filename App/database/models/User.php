@@ -142,7 +142,7 @@ class User extends Model {
                         password VARCHAR(255),
                         avatar_url VARCHAR(500),
                         banner_url VARCHAR(500),
-                        status ENUM('appear', 'invisible', 'do_not_disturb', 'offline', 'banned') DEFAULT 'offline',
+                        status VARCHAR(50) NULL,
                         display_name VARCHAR(255),
                         bio TEXT,
                         google_id VARCHAR(255) UNIQUE NULL,

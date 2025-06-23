@@ -14,10 +14,8 @@ $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
 if ($path === '/register') {        
     $mode = 'register';
-} elseif ($path === '/forgot-password') {
+} elseif ($path === '/forgot-password' || $path === '/security-verify') {
     $mode = 'forgot-password';
-} elseif ($path === '/security-verify') {
-    $mode = 'security-verify';
 } elseif ($path === '/reset-password') {
     $mode = 'reset-password';
 } elseif ($path === '/set-security-question') {
@@ -86,10 +84,14 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                 <span>Welcome back!</span>
             <?php elseif ($mode === 'register'): ?>
                 <span>Create an account</span>
+            <?php elseif ($mode === 'forgot-password'): ?>
+                <span>Account Recovery</span>
             <?php elseif ($mode === 'security-question'): ?>
                 <span>Set Security Question</span>
+            <?php elseif ($mode === 'reset-password'): ?>
+                <span>Create New Password</span>
             <?php else: ?>
-                <span>Reset Password</span>
+                <span>misvord</span>
             <?php endif; ?>
         </h1>
 
@@ -315,11 +317,16 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                 </div>
             </form>
 
-            <form action="/forgot-password" method="POST" class="space-y-5 <?php echo $mode === 'forgot-password' ? 'block' : 'hidden'; ?>" id="forgotForm">
+            <form action="/verify-security-question" method="POST" class="space-y-5 <?php echo $mode === 'forgot-password' ? 'block' : 'hidden'; ?>" id="forgotForm">
                 <p class="text-gray-300 text-sm mb-6">
-                    Enter your email address and we'll send you a link to reset your password.
+                    <?php if (isset($_SESSION['security_question'])): ?>
+                    Please answer your security question to reset your password.
+                    <?php else: ?>
+                    Enter your email to recover your account using your security question.
+                    <?php endif; ?>
                 </p>
 
+                <?php if (!isset($_SESSION['security_question'])): ?>
                 <div class="form-group">
                     <label for="forgot_email" class="block text-sm font-medium text-gray-300 mb-1">Email</label>
                     <input 
@@ -332,46 +339,16 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                         <p class="text-red-500 text-sm mt-1"><?php echo $errors['email']; ?></p>
                     <?php endif; ?>
                 </div>
-
-                <button type="submit" class="w-full py-2.5 bg-discord-blue hover:bg-discord-blue/90 text-white font-medium rounded-md transition-all">
-                    Send Reset Link
-                </button>
                 
-                <div class="text-center mt-4">
-                    <a href="#" class="text-discord-blue hover:underline text-sm form-toggle" data-form="security-verify">Forgot account? Use security question</a>
-                </div>
-
-                <div class="text-center mt-6">
-                    <a href="#" class="text-discord-blue hover:underline text-sm form-toggle" data-form="login">Back to Login</a>
-                </div>
-            </form>
-            
-            <form action="/verify-security-question" method="POST" class="space-y-5 <?php echo $mode === 'security-verify' ? 'block' : 'hidden'; ?>" id="securityVerifyForm">
-                <p class="text-gray-300 text-sm mb-6">
-                    Enter your email to retrieve your security question.
-                </p>
-
-                <div class="form-group">
-                    <label for="security_verify_email" class="block text-sm font-medium text-gray-300 mb-1">Email</label>
-                    <input 
-                        id="security_verify_email" 
-                        name="email" 
-                        class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
-                        value="<?php echo $oldInput['email'] ?? ''; ?>" 
-                    >
-                    <?php if (isset($errors['email'])): ?>
-                        <p class="text-red-500 text-sm mt-1"><?php echo $errors['email']; ?></p>
-                    <?php endif; ?>
-                </div>
-                
-                <?php if (isset($_SESSION['security_question'])): ?>
+                <input type="hidden" name="step" value="get_question">
+                <?php else: ?>
                 <div class="form-group">
                     <label class="block text-sm font-medium text-gray-300 mb-1">Security Question</label>
                     <div class="bg-[#2f3136] p-3 rounded-md text-gray-200 mb-2"><?php echo $_SESSION['security_question']; ?></div>
                     
-                    <label for="security_answer_verify" class="block text-sm font-medium text-gray-300 mb-1">Your Answer</label>
+                    <label for="security_answer" class="block text-sm font-medium text-gray-300 mb-1">Your Answer</label>
                     <input 
-                        id="security_answer_verify" 
+                        id="security_answer" 
                         name="security_answer" 
                         class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
                     >
@@ -381,18 +358,19 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
                 </div>
                 
                 <input type="hidden" name="step" value="verify_answer">
-                <?php else: ?>
-                <input type="hidden" name="step" value="get_question">
+                <input type="hidden" name="email" value="<?php echo $_SESSION['reset_email'] ?? ''; ?>">
                 <?php endif; ?>
-                
+
                 <button type="submit" class="w-full py-2.5 bg-discord-blue hover:bg-discord-blue/90 text-white font-medium rounded-md transition-all">
-                    <?php echo isset($_SESSION['security_question']) ? 'Verify Answer' : 'Get Security Question'; ?>
+                    <?php echo isset($_SESSION['security_question']) ? 'Verify Answer' : 'Continue'; ?>
                 </button>
 
                 <div class="text-center mt-6">
-                    <a href="#" class="text-discord-blue hover:underline text-sm form-toggle" data-form="forgot">Back to Password Reset</a>
+                    <a href="#" class="text-discord-blue hover:underline text-sm form-toggle" data-form="login">Back to Login</a>
                 </div>
             </form>
+            
+
             
             <form action="/reset-password" method="POST" class="space-y-5 <?php echo $mode === 'reset-password' ? 'block' : 'hidden'; ?>" id="resetPasswordForm">
                 <p class="text-gray-300 text-sm mb-6">

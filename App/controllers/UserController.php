@@ -108,15 +108,6 @@ class UserController extends BaseController
                 }
             }
             
-            if (isset($input['status'])) {
-                $validStatuses = ['appear', 'invisible', 'do_not_disturb', 'offline', 'banned'];
-                if (in_array($input['status'], $validStatuses)) {
-                    $updateData['status'] = $input['status'];
-                } else {
-                    $errors['status'] = 'Invalid status value';
-                }
-            }
-            
             if (isset($input['security_question']) && isset($input['security_answer'])) {
                 if (empty($input['security_question'])) {
                     $errors['security_question'] = 'Security question cannot be empty';

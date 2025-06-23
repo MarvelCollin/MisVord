@@ -228,6 +228,7 @@ function handleUpdatePresence(io, client, data) {
     const { status, activityDetails } = data;
     const userId = client.data.userId;
     
+    
     client.data.status = status;
     client.data.activityDetails = activityDetails;
     
@@ -236,6 +237,7 @@ function handleUpdatePresence(io, client, data) {
         activityDetails, 
         lastUpdated: Date.now() 
     });
+    
     
     io.emit('user-presence-update', {
         userId,
@@ -255,6 +257,7 @@ function handleDisconnect(io, client) {
         
         if (userSockets.get(userId).size === 0) {
             userSockets.delete(userId);
+            
             
             io.emit('user-offline', {
                 userId,
@@ -328,7 +331,7 @@ function handleGetOnlineUsers(io, client) {
         }
     }
     
-    // Send online users back to the client
+    
     client.emit('online-users-response', {
         users: onlineUsers
     });

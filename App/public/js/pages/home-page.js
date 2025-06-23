@@ -8,6 +8,9 @@ document.addEventListener('DOMContentLoaded', function() {
     initSearchFilter();
     setupSocketListeners();
     initPendingRequests();
+    
+    // Initialize the correct tab based on URL
+    initTabFromUrl();
 });
 
 function initFriendProfileCards() {
@@ -536,4 +539,65 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+function initTabFromUrl() {
+    // Only run on the friends page
+    if (window.location.pathname !== '/app/friends') {
+        return;
+    }
+    
+    // Get the tab from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const tab = urlParams.get('tab') || 'online';
+    
+    // Find the tab elements
+    const tabButton = document.querySelector(`[data-tab="${tab}"]`);
+    const tabContent = document.getElementById(`${tab}-tab`);
+    
+    // Activate the tab if it exists
+    if (tabButton && tabContent) {
+        // First, hide all tab contents
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.add('hidden');
+        });
+        
+        // Show the selected tab content
+        tabContent.classList.remove('hidden');
+        
+        // Update tab button styles
+        document.querySelectorAll('[data-tab]').forEach(button => {
+            button.classList.add('text-gray-300');
+            button.classList.remove('text-white', 'bg-discord-primary', 'bg-discord-green');
+            
+            if (button.getAttribute('data-tab') === 'add-friend') {
+                button.classList.remove('hover:bg-discord-green/90');
+            } else {
+                button.classList.add('hover:bg-discord-light');
+            }
+        });
+        
+        tabButton.classList.remove('text-gray-300');
+        tabButton.classList.add('text-white');
+        
+        if (tab === 'online') {
+            tabButton.classList.add('bg-discord-primary');
+            tabButton.classList.remove('hover:bg-discord-light');
+        } else if (tab === 'add-friend') {
+            tabButton.classList.add('bg-discord-green');
+            tabButton.classList.remove('hover:bg-discord-green/90');
+        } else {
+            tabButton.classList.add('bg-discord-primary');
+            tabButton.classList.remove('hover:bg-discord-light');
+        }
+        
+        // Load the tab data if needed
+        if (tab === 'all') {
+            loadAllFriends();
+        } else if (tab === 'pending') {
+            loadPendingRequests();
+        } else if (tab === 'blocked') {
+            loadBlockedUsers();
+        }
+    }
 }
