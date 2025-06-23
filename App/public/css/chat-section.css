@@ -139,3 +139,60 @@ button {
   opacity: 1;
   visibility: visible;
 }
+
+/* Reply styles */
+.reply-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 2px;
+    position: relative;
+    margin-left: -58px;
+    padding-left: 58px;
+}
+
+.reply-line {
+    position: absolute;
+    left: 30px;
+    top: -10px;
+    width: 28px;
+    height: 20px;
+    border-left: 2px solid #4e5058;
+    border-top: 2px solid #4e5058;
+    border-top-left-radius: 6px;
+}
+
+.reply-content {
+    display: flex;
+    align-items: center;
+    color: #b5bac1;
+    font-size: 14px;
+}
+
+.reply-avatar {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    margin-right: 6px;
+}
+
+.reply-username {
+    color: #b5bac1;
+    font-weight: 500;
+    margin-right: 6px;
+}
+
+.reply-username:hover {
+    text-decoration: underline;
+}
+
+.reply-message-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 300px;
+}
+
+.highlight-message {
+    background-color: rgba(88, 101, 242, 0.2);
+    transition: background-color 0.5s ease;
+}

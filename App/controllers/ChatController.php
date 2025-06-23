@@ -206,7 +206,8 @@ class ChatController extends BaseController
                         $formattedMessage['reply_data'] = [
                             'content' => $repliedMessage->content,
                             'user_id' => $repliedMessage->user_id,
-                            'username' => $repliedUser ? $repliedUser->username : 'Unknown'
+                            'username' => $repliedUser ? $repliedUser->username : 'Unknown',
+                            'avatar_url' => $repliedUser && $repliedUser->avatar_url ? $repliedUser->avatar_url : '/public/assets/default-avatar.svg'
                         ];
                     }
                 }
@@ -279,7 +280,8 @@ class ChatController extends BaseController
                         $formattedMessage['reply_data'] = [
                             'content' => $repliedMessage->content,
                             'user_id' => $repliedMessage->user_id,
-                            'username' => $repliedUser ? $repliedUser->username : 'Unknown'
+                            'username' => $repliedUser ? $repliedUser->username : 'Unknown',
+                            'avatar_url' => $repliedUser && $repliedUser->avatar_url ? $repliedUser->avatar_url : '/public/assets/default-avatar.svg'
                         ];
                     }
                 }
@@ -628,7 +630,8 @@ class ChatController extends BaseController
                     'messageId' => $replyMessageId,
                     'content' => $repliedMessage->content,
                     'userId' => $repliedUserId,
-                    'username' => $repliedUser ? $repliedUser->username : 'Unknown User'
+                    'username' => $repliedUser ? $repliedUser->username : 'Unknown User',
+                    'avatar_url' => $repliedUser && $repliedUser->avatar_url ? $repliedUser->avatar_url : '/public/assets/default-avatar.svg'
                 ];
             }
         }

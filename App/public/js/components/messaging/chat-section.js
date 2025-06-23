@@ -173,10 +173,11 @@ class ChatSection {
                 const messageId = messageContent.dataset.messageId;
                 this.editMessage(messageId);
             } else if (moreBtn) {
+                e.stopPropagation();
                 const messageContent = moreBtn.closest('.message-content');
                 this.showContextMenu(
-                    moreBtn.getBoundingClientRect().right, 
-                    moreBtn.getBoundingClientRect().top, 
+                    e.clientX, 
+                    e.clientY, 
                     messageContent
                 );
             }
@@ -188,22 +189,45 @@ class ChatSection {
         
         const messageId = messageContent.dataset.messageId || '';
         const isOwnMessage = messageContent.dataset.userId === this.userId;
+
+        if (this.contextMenuVisible && this.contextMenu.dataset.messageId === messageId) {
+            this.hideContextMenu();
+            return;
+        }
         
-        this.contextMenu.style.left = `${x}px`;
-        this.contextMenu.style.top = `${y}px`;
+        this.hideContextMenu();
+
+        this.contextMenu.style.visibility = 'hidden';
         this.contextMenu.classList.remove('hidden');
+
+        const menuWidth = this.contextMenu.offsetWidth;
+        const menuHeight = this.contextMenu.offsetHeight;
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+
+        let newX = x;
+        if (x + menuWidth > windowWidth) {
+            newX = x - menuWidth;
+        }
+
+        let newY = y;
+        if (y + menuHeight > windowHeight) {
+            newY = y - menuHeight;
+        }
+        
+        if (newX < 0) newX = 5;
+        if (newY < 0) newY = 5;
+
+        this.contextMenu.style.left = `${newX}px`;
+        this.contextMenu.style.top = `${newY}px`;
+        this.contextMenu.style.visibility = 'visible';
+        
         this.contextMenu.dataset.messageId = messageId;
         this.contextMenuVisible = true;
         
         const editBtn = this.contextMenu.querySelector('[data-action="edit"]');
-        const deleteBtn = this.contextMenu.querySelector('[data-action="delete"]');
-        
         if (editBtn) {
             editBtn.style.display = isOwnMessage ? 'flex' : 'none';
-        }
-        
-        if (deleteBtn) {
-            deleteBtn.style.display = isOwnMessage ? 'flex' : 'none';
         }
         
         this.setupContextMenuListeners();
@@ -266,7 +290,10 @@ class ChatSection {
         const messageElement = document.querySelector(`.message-content[data-message-id="${messageId}"]`);
         if (!messageElement) return;
         
-        const messageText = messageElement.querySelector('div').innerText;
+        const messageTextElement = messageElement.querySelector('.message-main-text');
+        if (!messageTextElement) return;
+        
+        const messageText = messageTextElement.innerText.replace(/ \(edited\)$/, '');
         const messageGroup = messageElement.closest('.message-group');
         
         const editForm = document.createElement('form');
@@ -362,17 +389,18 @@ class ChatSection {
             
             const messageElement = document.querySelector(`.message-content[data-message-id="${messageId}"]`);
             if (messageElement) {
-                const contentDiv = document.createElement('div');
-                contentDiv.className = 'text-[#dbdee1] whitespace-pre-wrap break-words';
-                contentDiv.innerHTML = this.formatMessageContent(newContent);
-                
-                messageElement.innerHTML = '';
-                messageElement.appendChild(contentDiv);
-                
-                const editedBadge = document.createElement('span');
-                editedBadge.className = 'text-xs text-[#a3a6aa] ml-1';
-                editedBadge.textContent = '(edited)';
-                contentDiv.appendChild(editedBadge);
+                const contentDiv = messageElement.querySelector('.message-main-text');
+                if (contentDiv) {
+                    contentDiv.innerHTML = this.formatMessageContent(newContent);
+
+                    let editedBadge = contentDiv.querySelector('.edited-badge');
+                    if (!editedBadge) {
+                        editedBadge = document.createElement('span');
+                        editedBadge.className = 'edited-badge text-xs text-[#a3a6aa] ml-1';
+                        contentDiv.appendChild(editedBadge);
+                    }
+                    editedBadge.textContent = '(edited)';
+                }
             }
             
             this.currentEditingMessage = null;
@@ -417,7 +445,10 @@ class ChatSection {
         const messageElement = document.querySelector(`.message-content[data-message-id="${messageId}"]`);
         if (!messageElement) return;
         
-        const text = messageElement.querySelector('div').innerText;
+        const textElement = messageElement.querySelector('.message-main-text');
+        if (!textElement) return;
+        
+        const text = textElement.innerText;
         this.copyToClipboard(text);
         this.showNotification('Message copied to clipboard');
     }
@@ -452,6 +483,7 @@ class ChatSection {
         if (!this.contextMenu) return;
         
         this.contextMenu.classList.add('hidden');
+        this.contextMenu.style.visibility = 'hidden';
         this.contextMenuVisible = false;
     }
 
@@ -530,7 +562,8 @@ class ChatSection {
         const messageElement = document.querySelector(`.message-content[data-message-id="${messageId}"]`);
         if (!messageElement) return;
         
-        const messageText = messageElement.querySelector('div').innerText;
+        const messageTextElement = messageElement.querySelector('.message-main-text');
+        const messageText = messageTextElement ? messageTextElement.innerText : 'a message';
         const messageGroup = messageElement.closest('.message-group');
         const userId = messageElement.dataset.userId;
         
@@ -963,19 +996,35 @@ class ChatSection {
         }
         
         if (message.reply_message_id || message.reply_data) {
-            const replyInfo = document.createElement('div');
-            replyInfo.className = 'reply-info text-xs text-[#b9bbbe] flex items-center mb-1';
-            
-            const replyIcon = document.createElement('span');
-            replyIcon.className = 'mr-1';
-            replyIcon.innerHTML = '<i class="fas fa-reply"></i>';
-            
-            const replyText = document.createElement('span');
+            const replyContainer = document.createElement('div');
+            replyContainer.className = 'reply-container';
+
+            const replyLine = document.createElement('div');
+            replyLine.className = 'reply-line';
+            replyContainer.appendChild(replyLine);
+
+            const replyContent = document.createElement('div');
+            replyContent.className = 'reply-content cursor-pointer';
             
             if (message.reply_data) {
-                replyText.innerHTML = `<span class="text-[#dcddde] hover:underline cursor-pointer">@${message.reply_data.username}</span>: ${this.truncateText(message.reply_data.content, 60)}`;
+                const replyAvatar = document.createElement('img');
+                replyAvatar.src = message.reply_data.avatar_url || '/public/assets/default-avatar.svg';
+                replyAvatar.className = 'reply-avatar';
+                replyAvatar.onerror = function() { this.src = '/public/assets/default-avatar.svg'; };
+
+                const replyUsername = document.createElement('span');
+                replyUsername.className = 'reply-username';
+                replyUsername.textContent = message.reply_data.username;
+
+                const replyMessage = document.createElement('span');
+                replyMessage.className = 'reply-message-text';
+                replyMessage.textContent = this.truncateText(message.reply_data.content, 50);
                 
-                replyText.addEventListener('click', () => {
+                replyContent.appendChild(replyAvatar);
+                replyContent.appendChild(replyUsername);
+                replyContent.appendChild(replyMessage);
+
+                replyContent.addEventListener('click', () => {
                     const repliedMessage = document.querySelector(`.message-content[data-message-id="${message.reply_data.messageId}"]`);
                     if (repliedMessage) {
                         repliedMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -983,23 +1032,31 @@ class ChatSection {
                         setTimeout(() => {
                             repliedMessage.classList.remove('highlight-message');
                         }, 2000);
+                    } else {
+                        this.showNotification('Original message not loaded', 'info');
                     }
                 });
             } else {
-                replyText.textContent = 'Replying to a message';
+                replyContent.textContent = 'Replying to an unavailable message';
+                replyContent.classList.add('text-xs', 'text-gray-400');
             }
-            
-            replyInfo.appendChild(replyIcon);
-            replyInfo.appendChild(replyText);
-            messageElement.appendChild(replyInfo);
+            replyContainer.appendChild(replyContent);
+            messageElement.insertBefore(replyContainer, messageElement.firstChild);
         }
         
         const contentElement = document.createElement('div');
-        contentElement.className = 'text-[#dbdee1] whitespace-pre-wrap break-words';
+        contentElement.className = 'message-main-text text-[#dbdee1] whitespace-pre-wrap break-words';
         contentElement.innerHTML = this.formatMessageContent(message.content);
         
         messageElement.appendChild(contentElement);
         
+        if (message.edited_at) {
+            const editedBadge = document.createElement('span');
+            editedBadge.className = 'text-xs text-[#a3a6aa] ml-1';
+            editedBadge.textContent = '(edited)';
+            contentElement.appendChild(editedBadge);
+        }
+
         return messageElement;
     }
     

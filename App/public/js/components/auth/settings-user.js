@@ -6,6 +6,13 @@ import ImageCutter from '../common/image-cutter.js';
 document.addEventListener('DOMContentLoaded', function() {
     initUserSettingsPage();
     
+    if (window.location.pathname.startsWith('/settings')) {
+        const referrer = document.referrer;
+        if (referrer && !referrer.includes('/settings')) {
+            sessionStorage.setItem('settingsEntryPoint', referrer);
+        }
+    }
+
     if (!document.getElementById('chat-messages') && 
         document.body.classList.contains('settings-user')) {
         const hiddenElements = document.createElement('div');
@@ -32,6 +39,7 @@ function initUserSettingsPage() {
     const activeSection = urlParams.get('section') || 'my-account';
     
     initSidebarNavigation(activeSection);
+    initLogoutButton();
     
     if (activeSection === 'my-account') {
         initUserAvatarUpload();
@@ -49,11 +57,12 @@ function initUserSettingsPage() {
  * Initialize sidebar navigation
  */
 function initSidebarNavigation(activeSection) {
-    const sidebarItems = document.querySelectorAll('.sidebar-item');
+    const sidebarItems = document.querySelectorAll('a.sidebar-item');
     
     sidebarItems.forEach(item => {
         item.addEventListener('click', function(e) {
-            if (this.getAttribute('href').includes('section=')) {
+            const href = this.getAttribute('href');
+            if (href && href.includes('section=')) {
                 return;
             }
             
@@ -68,7 +77,7 @@ function initSidebarNavigation(activeSection) {
             sidebarItems.forEach(i => i.classList.remove('active'));
             this.classList.add('active');
             
-            window.location.href = this.getAttribute('href');
+            window.location.href = href;
         });
     });
 }
@@ -80,10 +89,9 @@ function initUserAvatarUpload() {
     const iconContainer = document.getElementById('server-icon-container');
     const iconInput = document.getElementById('avatar-input');
     const iconPreview = document.getElementById('server-icon-preview');
-    const changeIconBtn = document.getElementById('edit-profile-btn');
     const removeIconBtn = document.getElementById('remove-avatar-btn');
     
-    if (!iconContainer || !iconInput || !changeIconBtn) return;
+    if (!iconContainer || !iconInput) return;
     
     try {
         const avatarCutter = new ImageCutter({
@@ -118,12 +126,6 @@ function initUserAvatarUpload() {
         window.userAvatarCutter = avatarCutter;
     } catch (error) {
         console.error('Error initializing image cutter:', error);
-    }
-    
-    if (changeIconBtn) {
-        changeIconBtn.addEventListener('click', function() {
-            iconInput.click();
-        });
     }
     
     if (iconContainer) {
@@ -285,16 +287,34 @@ function initCloseButton() {
     const closeButton = document.querySelector('.close-button');
     if (!closeButton) return;
     
+    const goBack = () => {
+        const entryPoint = sessionStorage.getItem('settingsEntryPoint');
+        window.location.href = entryPoint || '/app';
+    };
+
     closeButton.addEventListener('click', function(e) {
         e.preventDefault();
-        window.history.back();
+        goBack();
     });
     
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
-            window.history.back();
+            if (document.body.classList.contains('settings-page')) {
+                e.preventDefault();
+                goBack();
+            }
         }
     });
+}
+
+/**
+ * Initialize logout button
+ */
+function initLogoutButton() {
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', logoutUser);
+    }
 }
 
 /**
@@ -551,7 +571,7 @@ function getToastIcon(type) {
         case 'warning':
             return '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>';
         default:
-            return '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" /></svg>';
+            return '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>';
     }
 }
 
@@ -574,10 +594,5 @@ function logoutUser() {
     localStorage.removeItem('active_dm');
     localStorage.removeItem('active_server');
     
-    // Force a clean logout by using a form POST instead of direct URL navigation
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '/logout';
-    document.body.appendChild(form);
-    form.submit();
+    window.location.href = '/logout';
 }

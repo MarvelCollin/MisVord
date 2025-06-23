@@ -109,7 +109,7 @@ ob_start();
                     </a>
                 </li>
                 <li class="mt-6">
-                    <button onclick="logoutUser()" class="sidebar-item text-red-500 hover:text-red-400 flex items-center w-full text-left">
+                    <button id="logout-btn" class="sidebar-item text-red-500 hover:text-red-400">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                         </svg>
@@ -130,7 +130,7 @@ ob_start();
                     <p class="text-discord-lighter">Manage your account information and settings</p>
                 </div>
 
-                <form id="user-profile-form" class="space-y-8">                    
+                <form id="user-profile-form" class="space-y-8">
                     <div class="bg-discord-darker rounded-lg p-6 space-y-6">
                         <!-- Profile Picture -->
                         <div class="form-group">
@@ -143,7 +143,7 @@ ob_start();
                                         <img id="server-icon-preview" src="<?php echo htmlspecialchars($user->avatar_url); ?>" alt="User Avatar" class="w-full h-full object-cover">
                                     <?php else: ?>
                                         <div id="server-icon-placeholder" class="w-full h-full flex items-center justify-center text-2xl font-bold text-white">
-                                            <?php echo strtoupper(substr($user->username, 0, 1)); ?>
+                                            <img src="<?php echo asset('/common/main-logo.png'); ?>" alt="Default Avatar" class="w-full h-full object-cover">
                                         </div>
                                     <?php endif; ?>
                                     
@@ -157,9 +157,6 @@ ob_start();
                                 </div>
                                 
                                 <div>
-                                    <button type="button" id="edit-profile-btn" class="bg-[#5865f2] hover:bg-[#4752c4] text-white font-medium py-2 px-4 rounded-md">
-                                        Change Avatar
-                                    </button>
                                     
                                     <?php if ($user->avatar_url): ?>
                                         <button type="button" id="remove-avatar-btn" class="text-[#ed4245] hover:underline font-medium mt-2 py-2 px-4">
@@ -195,7 +192,8 @@ ob_start();
                         <div class="form-group">
                             <label for="email" class="block text-sm font-medium text-white mb-2">Email</label>
                             <div class="flex items-center">
-                                <p id="user-email-display" class="text-discord-lighter"><?php 
+                                <p id="user-email-display" class="text-discord-lighter">
+                                    <?php 
                                     $email = $user->email ?? '';
                                     $hiddenEmail = '';
                                     
@@ -211,7 +209,8 @@ ob_start();
                                         }
                                     }
                                     echo htmlspecialchars($hiddenEmail);
-                                ?></p>
+                                    ?>
+                                </p>
                                 <button type="button" id="reveal-email-btn" data-email="<?php echo htmlspecialchars($email); ?>" class="ml-2 text-blue-500 hover:underline text-xs">
                                     Reveal
                                 </button>
@@ -241,7 +240,7 @@ ob_start();
                                     <h3 class="font-medium">Two-Factor Authentication</h3>
                                     <p class="text-discord-lighter text-sm">
                                         Add an extra layer of security to your account
-                                 s  </p>
+                                    </p>
                                 </div>
                                 <button type="button" id="enable-2fa-btn" class="bg-[#5865f2] hover:bg-[#4752c4] text-white rounded px-4 py-1.5 text-sm font-medium">
                                     Enable 2FA
@@ -290,18 +289,19 @@ ob_start();
             
             <div class="server-preview-card bg-[#1e1f22] rounded-lg overflow-hidden">
                 <!-- User Banner -->
-                <div class="server-banner h-40 <?php echo $user->banner_url ? '' : 'bg-gradient-to-b from-[#5865f2] to-[#4752c4]'; ?>" 
-                     <?php echo $user->banner_url ? 'style="background-image: url(\'' . htmlspecialchars($user->banner_url) . '\'); background-size: cover; background-position: center;"' : ''; ?>>
+                <?php
+                $bannerStyle = 'background-color: #2b2d31;'; // Default background color
+                if ($user->banner_url) {
+                    $bannerStyle .= 'background-image: url(\'' . htmlspecialchars($user->banner_url) . '\'); background-size: cover; background-position: center;';
+                } else {
+                    $bannerStyle .= 'background-image: url(\'' . asset('/common/main-logo.png') . '\'); background-size: contain; background-repeat: no-repeat; background-position: center;';
+                }
+                ?>
+                <div class="server-banner h-40" style="<?php echo $bannerStyle; ?>">
                     
                     <!-- User Avatar -->
                     <div class="server-icon-preview absolute -bottom-8 left-4 w-16 h-16 bg-discord-dark rounded-full border-4 border-[#1e1f22] overflow-hidden relative">
-                        <?php if ($user->avatar_url): ?>
-                            <img src="<?php echo htmlspecialchars($user->avatar_url); ?>" alt="User Avatar" class="w-full h-full object-cover">
-                        <?php else: ?>
-                            <div class="w-full h-full flex items-center justify-center text-xl font-bold text-white">
-                                <?php echo strtoupper(substr($user->username, 0, 1)); ?>
-                            </div>
-                        <?php endif; ?>
+                        <img src="<?php echo $user->avatar_url ? htmlspecialchars($user->avatar_url) : asset('/common/main-logo.png'); ?>" alt="User Avatar" class="w-full h-full object-cover">
                         
                         <?php 
                         $statusClass = 'bg-green-500';
@@ -353,18 +353,18 @@ ob_start();
                 <div class="flex flex-wrap gap-2">
                     <?php if (!empty($userBadges)): ?>
                         <?php foreach ($userBadges as $badge): ?>
-                        <div class="w-8 h-8 bg-discord-darkest rounded-md flex items-center justify-center" title="<?php echo htmlspecialchars($badge->name); ?>">
-                            <?php if (!empty($badge->icon_url)): ?>
-                                <img src="<?php echo htmlspecialchars($badge->icon_url); ?>" alt="<?php echo htmlspecialchars($badge->name); ?>" class="w-5 h-5">
-                            <?php else: ?>
-                                <?php 
-                                $iconClass = 'fas fa-shield-alt text-[#5865f2]';
-                                if ($badge->badge_type === 'nitro') $iconClass = 'fas fa-rocket text-[#5865f2]';
-                                elseif ($badge->badge_type === 'boost') $iconClass = 'fas fa-bolt text-[#ff73fa]';
-                                ?>
-                                <i class="<?php echo $iconClass; ?>"></i>
-                            <?php endif; ?>
-                        </div>
+                            <div class="w-8 h-8 bg-discord-darkest rounded-md flex items-center justify-center" title="<?php echo htmlspecialchars($badge->name); ?>">
+                                <?php if (!empty($badge->icon_url)): ?>
+                                    <img src="<?php echo htmlspecialchars($badge->icon_url); ?>" alt="<?php echo htmlspecialchars($badge->name); ?>" class="w-5 h-5">
+                                <?php else: ?>
+                                    <?php 
+                                    $iconClass = 'fas fa-shield-alt text-[#5865f2]';
+                                    if ($badge->badge_type === 'nitro') $iconClass = 'fas fa-rocket text-[#5865f2]';
+                                    elseif ($badge->badge_type === 'boost') $iconClass = 'fas fa-bolt text-[#ff73fa]';
+                                    ?>
+                                    <i class="<?php echo $iconClass; ?>"></i>
+                                <?php endif; ?>
+                            </div>
                         <?php endforeach; ?>
                     <?php else: ?>
                         <div class="w-8 h-8 bg-discord-darkest rounded-md flex items-center justify-center" title="Discord Staff">

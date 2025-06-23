@@ -12,7 +12,7 @@ class UserDetailModal {
 
     initElements() {
         this.closeBtn = this.modal.querySelector('.user-detail-close-btn');
-        this.avatar = this.modal.querySelector('#user-detail-avatar');
+        this.avatarContainer = this.modal.querySelector('#user-detail-avatar-container');
         this.banner = this.modal.querySelector('.user-banner');
         this.nameElement = this.modal.querySelector('#user-detail-name');
         this.discriminatorElement = this.modal.querySelector('#user-detail-discriminator');
@@ -163,7 +163,13 @@ class UserDetailModal {
         if (this.mutualServersElement) this.mutualServersElement.textContent = 'Loading...';
         if (this.mutualFriendsElement) this.mutualFriendsElement.textContent = 'Loading...';
 
-        if (this.avatar) this.avatar.src = '';
+        if (this.avatarContainer) {
+            this.avatarContainer.innerHTML = `
+                <div class="user-avatar loading">
+                    <div class="w-20 h-20 rounded-full bg-gray-700 animate-pulse"></div>
+                </div>
+            `;
+        }
         if (this.banner) this.banner.style.backgroundColor = '#5865f2';
     }
 
@@ -178,10 +184,15 @@ class UserDetailModal {
         if (this.mutualServersElement) this.mutualServersElement.textContent = '0 Mutual Servers';
         if (this.mutualFriendsElement) this.mutualFriendsElement.textContent = '0 Mutual Friends';
 
-        if (this.avatar) this.avatar.src = '';
+        if (this.avatarContainer) {
+            this.avatarContainer.innerHTML = `
+                <div class="user-avatar">
+                    <div class="w-20 h-20 rounded-full border-4 border-discord-dark flex items-center justify-center bg-discord-dark text-white text-3xl font-bold">?</div>
+                </div>
+            `;
+        }
         if (this.banner) this.banner.style.backgroundColor = '#5865f2';
         
-        // Hide action buttons since user doesn't exist
         const actionButtons = this.modal.querySelector('.user-detail-actions');
         if (actionButtons) actionButtons.style.display = 'none';
     }
@@ -275,17 +286,32 @@ class UserDetailModal {
             this.discriminatorElement.textContent = user.discriminator ? `#${user.discriminator}` : '#0000';
         }
 
-        if (this.avatar) {
+        if (this.avatarContainer) {
+            this.avatarContainer.innerHTML = ''; // Clear previous content
+
+            const avatarWrapper = document.createElement('div');
+            avatarWrapper.className = 'user-avatar';
+
             if (user.avatar_url) {
-                this.avatar.src = user.avatar_url;
+                const img = document.createElement('img');
+                img.src = user.avatar_url;
+                img.alt = 'User Avatar';
+                img.id = 'user-detail-avatar';
+                avatarWrapper.appendChild(img);
             } else {
-                const avatarContainer = this.avatar.parentNode;
-                avatarContainer.innerHTML = `
-                    <div class="w-full h-full flex items-center justify-center bg-discord-dark text-white">
-                        ${(user.username || '?').charAt(0).toUpperCase()}
-                    </div>
-                `;
+                const fallback = document.createElement('div');
+                fallback.className = 'fallback-avatar';
+                fallback.textContent = (user.username || '?').charAt(0).toUpperCase();
+                avatarWrapper.appendChild(fallback);
             }
+
+            const statusIndicator = document.createElement('div');
+            statusIndicator.className = 'user-status-indicator';
+            if (user.status) {
+                statusIndicator.classList.add(user.status);
+            }
+            avatarWrapper.appendChild(statusIndicator);
+            this.avatarContainer.appendChild(avatarWrapper);
         }
 
         if (this.banner && user.banner_url) {
