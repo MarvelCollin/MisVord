@@ -161,50 +161,29 @@ class UserDetailModal {
 
     async fetchUserData() {
         try {
-            // Import UserAPI
             const userApi = await import('../../api/user-api.js').then(module => module.default);
             
-            // First check if we can directly get the user profile
-            try {
-                // Get user profile data using the direct profile endpoint
-                const userData = await userApi.getUserProfile(this.currentUserId, this.currentServerId);
-                if (userData.success) {
-                    // Don't fetch mutual data for current user
-                    const currentUserId = document.getElementById('app-container')?.dataset.userId;
-                    if (currentUserId && this.currentUserId !== currentUserId) {
-                        try {
-                            const mutualResponse = await fetch(`/api/users/${this.currentUserId}/mutual`);
-                            if (mutualResponse.ok) {
-                                const mutualData = await mutualResponse.json();
-                                if (mutualData.success) {
-                                    userData.data.mutualData = mutualData.data;
-                                }
-                            }
-                        } catch (error) {
-                            console.error('Error fetching mutual data:', error);
-                        }
-                    }
-                    
-                    return userData.data;
-                }
-            } catch (profileError) {
-                console.error('Error fetching user profile, trying fallback:', profileError);
-                
-                // Fallback to general user endpoint
-                const response = await fetch(`/api/users/${this.currentUserId}`);
-                if (!response.ok) {
-                    throw new Error(`Failed to fetch user data: ${response.status}`);
-                }
-                
-                const userData = await response.json();
-                if (!userData.success) {
-                    throw new Error(userData.message || 'Failed to fetch user data');
-                }
-                
-                return userData.data;
+            const userData = await userApi.getUserProfile(this.currentUserId, this.currentServerId);
+            if (!userData || !userData.success) {
+                throw new Error(userData?.message || 'Failed to fetch user data');
             }
             
-            throw new Error('Failed to fetch user data');
+            const currentUserId = document.getElementById('app-container')?.dataset.userId;
+            if (currentUserId && this.currentUserId !== currentUserId) {
+                try {
+                    const mutualResponse = await fetch(`/api/users/${this.currentUserId}/mutual`);
+                    if (mutualResponse.ok) {
+                        const mutualData = await mutualResponse.json();
+                        if (mutualData && mutualData.success && mutualData.data) {
+                            userData.data.mutualData = mutualData.data;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error fetching mutual data:', error);
+                }
+            }
+            
+            return userData.data;
         } catch (error) {
             console.error('Error fetching user data:', error);
             throw error;
@@ -213,30 +192,39 @@ class UserDetailModal {
 
     displayUserData(userData) {
         if (!userData || !userData.user) {
+            console.error('Invalid user data received:', userData);
             this.showErrorState();
             return;
         }
 
         const user = userData.user;
-        const isSelf = document.getElementById('app-container')?.dataset.userId === user.id.toString();
+        if (!user || typeof user !== 'object') {
+            console.error('User data is not a valid object:', user);
+            this.showErrorState();
+            return;
+        }
+
+        const isSelf = document.getElementById('app-container')?.dataset.userId === user.id?.toString();
 
         if (this.nameElement) {
-            this.nameElement.textContent = user.display_name || user.username;
+            this.nameElement.textContent = user.display_name || user.username || 'Unknown User';
         }
 
         if (this.discriminatorElement) {
-            this.discriminatorElement.textContent = `#${user.discriminator || '0000'}`;
+            this.discriminatorElement.textContent = user.discriminator ? `#${user.discriminator}` : '#0000';
         }
 
-        if (this.avatar && user.avatar_url) {
-            this.avatar.src = user.avatar_url;
-        } else if (this.avatar) {
-            const avatarContainer = this.avatar.parentNode;
-            avatarContainer.innerHTML = `
-                <div class="w-full h-full flex items-center justify-center bg-discord-dark text-white">
-                    ${(user.username || '?').charAt(0).toUpperCase()}
-                </div>
-            `;
+        if (this.avatar) {
+            if (user.avatar_url) {
+                this.avatar.src = user.avatar_url;
+            } else {
+                const avatarContainer = this.avatar.parentNode;
+                avatarContainer.innerHTML = `
+                    <div class="w-full h-full flex items-center justify-center bg-discord-dark text-white">
+                        ${(user.username || '?').charAt(0).toUpperCase()}
+                    </div>
+                `;
+            }
         }
 
         if (this.banner && user.banner_url) {

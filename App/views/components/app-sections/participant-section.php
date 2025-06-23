@@ -107,7 +107,7 @@ function renderRoleSkeleton($count = 1) {
                             $textColorClass = $isOffline ? 'text-gray-500' : 'text-gray-300';
                             $imgOpacityClass = $isOffline ? 'opacity-70' : '';
                         ?>
-                            <div class="flex items-center px-2 py-1 rounded hover:bg-discord-light group cursor-pointer user-profile-trigger" data-user-id="<?php echo $member['id']; ?>" data-server-id="<?php echo $currentServerId; ?>">
+                            <div class="flex items-center px-2 py-1 rounded hover:bg-discord-light group cursor-pointer user-profile-trigger" data-user-id="<?php echo isset($member['id']) ? $member['id'] : '0'; ?>" data-server-id="<?php echo $currentServerId; ?>">
                                 <div class="relative mr-2">
                                     <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
                                         <img src="<?php echo getUserAvatar($member['avatar'] ?? '', $member['username'] ?? 'User'); ?>" 
@@ -115,7 +115,7 @@ function renderRoleSkeleton($count = 1) {
                                     </div>
                                     <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark <?php echo $statusColor; ?> status-indicator"></span>
                                 </div>
-                                <span class="<?php echo $textColorClass; ?> text-sm truncate"><?php echo htmlspecialchars($member['username']); ?></span>
+                                <span class="<?php echo $textColorClass; ?> text-sm truncate"><?php echo htmlspecialchars($member['username'] ?? 'Unknown'); ?></span>
                             </div>
                         <?php endforeach; ?>
                     </div>
@@ -168,7 +168,7 @@ function renderRoleSkeleton($count = 1) {
                             $textColorClass = $isOffline ? 'text-gray-500' : 'text-gray-300';
                             $imgOpacityClass = $isOffline ? 'opacity-70' : '';
                         ?>
-                            <div class="flex items-center px-2 py-1 rounded hover:bg-discord-light group cursor-pointer user-profile-trigger" data-user-id="<?php echo $member['id']; ?>" data-server-id="<?php echo $currentServerId; ?>">
+                            <div class="flex items-center px-2 py-1 rounded hover:bg-discord-light group cursor-pointer user-profile-trigger" data-user-id="<?php echo isset($member['id']) ? $member['id'] : '0'; ?>" data-server-id="<?php echo $currentServerId; ?>">
                                 <div class="relative mr-2">
                                     <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
                                         <img src="<?php echo getUserAvatar($member['avatar'] ?? '', $member['username'] ?? 'User'); ?>" 
@@ -176,7 +176,7 @@ function renderRoleSkeleton($count = 1) {
                                     </div>
                                     <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark <?php echo $statusColor; ?> status-indicator"></span>
                                 </div>
-                                <span class="<?php echo $textColorClass; ?> text-sm truncate"><?php echo htmlspecialchars($member['username']); ?></span>
+                                <span class="<?php echo $textColorClass; ?> text-sm truncate"><?php echo htmlspecialchars($member['username'] ?? 'Unknown'); ?></span>
                             </div>
                         <?php endforeach; ?>
                     </div>
@@ -219,7 +219,7 @@ function renderRoleSkeleton($count = 1) {
                         $textColorClass = $isOffline ? 'text-gray-500' : 'text-gray-300';
                         $imgOpacityClass = $isOffline ? 'opacity-70' : '';
                     ?>
-                        <div class="flex items-center px-2 py-1 rounded hover:bg-discord-light group cursor-pointer user-profile-trigger" data-user-id="<?php echo $member['id']; ?>" data-server-id="<?php echo $currentServerId; ?>">
+                        <div class="flex items-center px-2 py-1 rounded hover:bg-discord-light group cursor-pointer user-profile-trigger" data-user-id="<?php echo isset($member['id']) ? $member['id'] : '0'; ?>" data-server-id="<?php echo $currentServerId; ?>">
                             <div class="relative mr-2">
                                 <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
                                     <img src="<?php echo getUserAvatar($member['avatar'] ?? '', $member['username'] ?? 'User'); ?>" 
@@ -227,7 +227,7 @@ function renderRoleSkeleton($count = 1) {
                                 </div>
                                 <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark <?php echo $statusColor; ?> status-indicator"></span>
                             </div>
-                            <span class="<?php echo $textColorClass; ?> text-sm truncate"><?php echo htmlspecialchars($member['username']); ?></span>
+                            <span class="<?php echo $textColorClass; ?> text-sm truncate"><?php echo htmlspecialchars($member['username'] ?? 'Unknown'); ?></span>
                         </div>
                     <?php endforeach; ?>
                 </div>

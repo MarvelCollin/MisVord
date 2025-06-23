@@ -17,7 +17,8 @@ document.addEventListener('DOMContentLoaded', function() {
             joinServerBtn.textContent = 'Joining...';
             joinServerBtn.disabled = true;
 
-            showToast('Joining server...', 'info');            window.logger.debug('general', "Sending request to join server with code:", inviteCode);
+            showToast('Joining server...', 'info');            
+                window.logger.debug('general', "Sending request to join server with code:", inviteCode);
 
             serverAPI.joinByInvite(inviteCode)
                 .then(data => {

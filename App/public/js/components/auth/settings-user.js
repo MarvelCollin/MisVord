@@ -1,6 +1,8 @@
 /**
  * User Settings Page Javascript
  */
+import ImageCutter from '../common/image-cutter.js';
+
 document.addEventListener('DOMContentLoaded', function() {
     initUserSettingsPage();
     
@@ -83,48 +85,39 @@ function initUserAvatarUpload() {
     
     if (!iconContainer || !iconInput || !changeIconBtn) return;
     
-    if (typeof ImageCutter !== 'undefined') {
-        try {
-            import('/js/components/common/image-cutter.js')
-                .then(module => {
-                    const ImageCutter = module.default;
-                    const avatarCutter = new ImageCutter({
-                        container: iconContainer,
-                        type: 'profile',
-                        modalTitle: 'Upload Profile Picture',
-                        aspectRatio: 1,
-                        onCrop: (result) => {
-                            if (result && result.error) {
-                                console.error('Error cropping avatar:', result.message);
-                                return;
-                            }
-                            
-                            if (iconPreview) {
-                                iconPreview.src = result.dataUrl;
-                                iconPreview.classList.remove('hidden');
-                                
-                                const placeholder = document.getElementById('server-icon-placeholder');
-                                if (placeholder) placeholder.classList.add('hidden');
-                            }
-                            
-                            iconContainer.dataset.croppedImage = result.dataUrl;
-                            
-                            if (removeIconBtn && removeIconBtn.classList.contains('hidden')) {
-                                removeIconBtn.classList.remove('hidden');
-                            }
-                            
-                            uploadAvatar(result.dataUrl);
-                        }
-                    });
+    try {
+        const avatarCutter = new ImageCutter({
+            container: iconContainer,
+            type: 'profile',
+            modalTitle: 'Upload Profile Picture',
+            aspectRatio: 1,
+            onCrop: (result) => {
+                if (result && result.error) {
+                    showToast(result.message || 'Error cropping avatar', 'error');
+                    return;
+                }
+                
+                if (iconPreview) {
+                    iconPreview.src = result.dataUrl;
+                    iconPreview.classList.remove('hidden');
                     
-                    window.userAvatarCutter = avatarCutter;
-                })
-                .catch(error => {
-                    console.error('Error loading ImageCutter module:', error);
-                });
-        } catch (error) {
-            console.error('Error initializing image cutter:', error);
-        }
+                    const placeholder = document.getElementById('server-icon-placeholder');
+                    if (placeholder) placeholder.classList.add('hidden');
+                }
+                
+                iconContainer.dataset.croppedImage = result.dataUrl;
+                
+                if (removeIconBtn && removeIconBtn.classList.contains('hidden')) {
+                    removeIconBtn.classList.remove('hidden');
+                }
+                
+                uploadAvatar(result.dataUrl);
+            }
+        });
+        
+        window.userAvatarCutter = avatarCutter;
+    } catch (error) {
+        console.error('Error initializing image cutter:', error);
     }
     
     if (changeIconBtn) {
@@ -146,7 +139,7 @@ function initUserAvatarUpload() {
             const file = this.files[0];
             
             if (!file.type.match('image.*')) {
-                alert('Please select a valid image file');
+                showToast('Please select a valid image file', 'error');
                 return;
             }
             
@@ -169,7 +162,7 @@ function initUserAvatarUpload() {
                         uploadAvatar(e.target.result);
                     }
                 } catch (error) {
-                    console.error('Error processing avatar:', error);
+                    showToast('Error processing avatar', 'error');
                 }
             };
             
@@ -335,25 +328,25 @@ function initStatusSelector() {
  */
 function updateUserStatus(status) {
     fetch('/user/status', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
             'X-Requested-With': 'XMLHttpRequest'
-                },
+        },
         body: JSON.stringify({ status }),
         credentials: 'same-origin'
-            })
-            .then(response => response.json())
-            .then(data => {
+    })
+    .then(response => response.json())
+    .then(data => {
         if (data.success) {
             updateStatusIndicators(status);
             showToast(`Status updated to ${status}`, 'success');
         } else {
             showToast(data.message || 'Failed to update status', 'error');
         }
-            })
-            .catch(error => {
-                console.error('Error updating status:', error);
+    })
+    .catch(error => {
+        console.error('Error updating status:', error);
         showToast('Error updating status', 'error');
     });
 }
@@ -427,7 +420,7 @@ function initPasswordChangeForms() {
     if (!changePasswordBtn) return;
     
     changePasswordBtn.addEventListener('click', function() {
-        alert('Password change functionality will be implemented soon.');
+        showToast('Password change functionality will be implemented soon.', 'info');
     });
 }
 
@@ -440,7 +433,7 @@ function initTwoFactorAuth() {
     if (!enable2faBtn) return;
     
     enable2faBtn.addEventListener('click', function() {
-        alert('Two-factor authentication setup will be implemented soon.');
+        showToast('Two-factor authentication setup will be implemented soon.', 'info');
     });
 }
 

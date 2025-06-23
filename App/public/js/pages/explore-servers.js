@@ -1,6 +1,9 @@
 import serverAPI from '../api/server-api.js';
 
+console.log('Explore servers script loading...');
+
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('Explore servers DOM loaded');
     if (typeof window !== 'undefined' && window.logger) {
         window.logger.info('explore', 'Explore servers page initialized');
     }
@@ -11,6 +14,9 @@ document.addEventListener('DOMContentLoaded', function() {
     initJoinServerHandlers();
     initSidebarServerIcons();
     highlightExploreButton();
+    initServerDetailTriggers();
+    
+    console.log('showServerDetail function available:', typeof window.showServerDetail);
 });
 
 function highlightExploreButton() {
@@ -28,7 +34,9 @@ function initSidebarServerIcons() {
     const serverIcons = document.querySelectorAll('.sidebar-server-icon');
     
     serverIcons.forEach(icon => {
-        if (icon.closest('.w-[72px]')) {
+        const parent = icon.parentElement;
+        if (parent && parent.classList.contains('w-[72px]') || 
+            (parent && parent.parentElement && parent.parentElement.classList.contains('w-[72px]'))) {
             icon.style.display = 'block';
             icon.style.margin = '0 auto 8px auto';
             icon.style.position = 'relative';
@@ -69,6 +77,14 @@ function initCategoryFilter() {
             updateActiveCategory(this);
         });
     });
+    
+    const categoryFilter = document.getElementById('category-filter');
+    if (categoryFilter) {
+        categoryFilter.addEventListener('change', function() {
+            const category = this.value || 'all';
+            filterServersByCategory(category);
+        });
+    }
 }
 
 function filterServersByCategory(category) {
@@ -165,18 +181,21 @@ function renderSearchResults(servers, userServerIds) {
     
     servers.forEach(server => {
         const isJoined = userServerIds.includes(parseInt(server.id));
+        server.is_member = isJoined;
         const serverCard = createServerCard(server, isJoined);
         serverGrid.appendChild(serverCard);
     });
     
     initServerCards();
     initJoinServerHandlers();
+    initServerDetailTriggers();
 }
 
 function createServerCard(server, isJoined) {
     const card = document.createElement('div');
-    card.className = 'server-card bg-discord-dark rounded-lg overflow-hidden shadow-lg transition-all duration-200';
+    card.className = 'server-card bg-discord-dark rounded-lg overflow-hidden shadow-lg transition-all duration-200 cursor-pointer';
     card.setAttribute('data-category', server.category || 'all');
+    card.setAttribute('data-server-id', server.id);
     
     const memberCount = server.member_count || 0;
     
@@ -235,6 +254,7 @@ function initJoinServerHandlers() {
     joinButtons.forEach(button => {
         button.addEventListener('click', function(e) {
             e.preventDefault();
+            e.stopPropagation();
             const serverId = this.getAttribute('data-server-id');
             joinServer(serverId, this);
         });
@@ -280,4 +300,75 @@ function joinServer(serverId, button) {
                 window.showToast('Error joining server', 'error');
             }
         });
+}
+
+function initServerDetailTriggers() {
+    console.log('Initializing server detail triggers');
+    const serverCards = document.querySelectorAll('.server-card');
+    const featuredCards = document.querySelectorAll('#featured-servers .server-card');
+    
+    console.log('Server cards found:', serverCards.length);
+    console.log('Featured cards found:', featuredCards.length);
+    
+    const allCards = [...serverCards, ...featuredCards];
+    
+    allCards.forEach(card => {
+        console.log('Adding click handler to card:', card.getAttribute('data-server-id'));
+        card.addEventListener('click', function(e) {
+            console.log('Card clicked:', this.getAttribute('data-server-id'));
+            
+            if (e.target.closest('.join-server-btn')) {
+                console.log('Click was on join button, ignoring');
+                return;
+            }
+            
+            const serverId = this.getAttribute('data-server-id');
+            
+            if (!serverId) {
+                console.error('No server ID found on clicked card');
+                return;
+            }
+            
+            console.log('Extracting server data from card');
+            const serverData = extractServerDataFromCard(this);
+            console.log('Server data extracted:', serverData);
+            
+            if (window.showServerDetail) {
+                console.log('Calling window.showServerDetail with ID:', serverId);
+                window.showServerDetail(serverId, serverData);
+            } else {
+                console.error('Server detail modal function not available');
+            }
+        });
+    });
+}
+
+function extractServerDataFromCard(card) {
+    const serverId = card.getAttribute('data-server-id');
+    const serverName = card.querySelector('.server-name')?.textContent;
+    const serverDescription = card.querySelector('.server-description')?.textContent;
+    const memberCountText = card.querySelector('.server-stats span')?.textContent;
+    const memberCount = memberCountText ? parseInt(memberCountText.match(/\d+/)[0]) : 0;
+    
+    const joinButton = card.querySelector('.join-server-btn');
+    const isJoined = joinButton ? joinButton.textContent.includes('Joined') : false;
+    
+    const bannerImg = card.querySelector('.server-banner img');
+    const bannerUrl = bannerImg ? bannerImg.src : null;
+    
+    const iconImg = card.querySelector('.server-icon img');
+    const iconUrl = iconImg ? iconImg.src : null;
+    
+    const category = card.getAttribute('data-category');
+    
+    return {
+        id: serverId,
+        name: serverName || 'Unknown Server',
+        description: serverDescription || 'No description available.',
+        member_count: memberCount,
+        is_member: isJoined,
+        banner_url: bannerUrl,
+        image_url: iconUrl,
+        category: category
+    };
 }

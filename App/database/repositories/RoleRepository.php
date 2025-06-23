@@ -78,36 +78,39 @@ class RoleRepository extends Repository {
      */
     public function getUserRolesInServer($userId, $serverId)
     {
-        $query = "SELECT r.id, r.name, r.color, r.position, r.permissions, r.server_id
-                  FROM roles r
-                  JOIN user_roles ur ON r.id = ur.role_id
-                  WHERE ur.user_id = :user_id AND r.server_id = :server_id
-                  ORDER BY r.position DESC";
-        
-        $params = [
-            ':user_id' => $userId,
-            ':server_id' => $serverId
-        ];
-        
-        $roles = $this->db->fetchAll($query, $params);
-        
-        // Check if user is the server owner
-        $ownerQuery = "SELECT owner_id FROM servers WHERE id = :server_id LIMIT 1";
-        $owner = $this->db->fetchOne($ownerQuery, [':server_id' => $serverId]);
-        
-        if ($owner && $owner->owner_id == $userId) {
-            // Add a virtual "Owner" role
-            array_unshift($roles, [
-                'id' => 0,
-                'name' => 'Owner',
-                'color' => '#f1c40f', // Gold color
-                'position' => 9999,
-                'permissions' => null,
-                'server_id' => $serverId
-            ]);
+        try {
+            $query = new Query();
+            $roles = $query->table('roles r')
+                ->join('user_roles ur', 'r.id', '=', 'ur.role_id')
+                ->where('ur.user_id', $userId)
+                ->where('r.server_id', $serverId)
+                ->select('r.id, r.role_name as name, r.role_color as color, r.server_id')
+                ->orderBy('r.id', 'DESC')
+                ->get();
+            
+            // Check if user is the server owner by checking membership role
+            $membershipQuery = new Query();
+            $ownerMembership = $membershipQuery->table('user_server_memberships')
+                ->where('user_id', $userId)
+                ->where('server_id', $serverId)
+                ->where('role', 'owner')
+                ->first();
+            
+            if ($ownerMembership) {
+                // Add a virtual "Owner" role
+                array_unshift($roles, [
+                    'id' => 0,
+                    'name' => 'Owner',
+                    'color' => '#f1c40f', // Gold color
+                    'server_id' => $serverId
+                ]);
+            }
+            
+            return $roles;
+        } catch (Exception $e) {
+            error_log("Error in getUserRolesInServer: " . $e->getMessage());
+            return [];
         }
-        
-        return $roles;
     }
     
     public function getUserRolesForServer($userId, $serverId) {

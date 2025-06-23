@@ -28,21 +28,26 @@ class UserController extends BaseController
             $user = $this->userRepository->find($userId);
             
             if (!$user) {
-                return null;
+                return $this->error('User not found', 404);
             }
             
             $this->logActivity('user_data_retrieved', [
                 'user_id' => $userId
             ]);
             
-            return $user;
+            $currentUserId = $this->getCurrentUserId();
+            $user->is_self = ($userId == $currentUserId);
+            
+            return $this->success([
+                'user' => $user
+            ]);
         } catch (Exception $e) {
             $this->logActivity('user_data_error', [
                 'user_id' => $userId,
                 'error' => $e->getMessage()
             ]);
             
-            return null;
+            return $this->serverError('Failed to retrieve user data: ' . $e->getMessage());
         }
     }
     
@@ -381,16 +386,29 @@ class UserController extends BaseController
             ];
             
             if ($serverId) {
+                // Load role data for the user in the specified server
                 require_once __DIR__ . '/../database/repositories/RoleRepository.php';
                 $roleRepository = new RoleRepository();
-                $roles = $roleRepository->getUserRolesInServer($userId, $serverId);
-                $responseData['roles'] = $roles;
                 
+                try {
+                    $roles = $roleRepository->getUserRolesInServer($userId, $serverId);
+                    $responseData['roles'] = $roles;
+                } catch (Exception $roleError) {
+                    error_log("Error loading roles: " . $roleError->getMessage());
+                    $responseData['roles'] = [];
+                }
+                
+                // Load membership data for the user in the specified server
                 require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
                 $membershipRepository = new UserServerMembershipRepository();
-                $membership = $membershipRepository->getUserServerMembership($userId, $serverId);
-                if ($membership) {
-                    $responseData['server_join_date'] = $membership->created_at;
+                
+                try {
+                    $membership = $membershipRepository->getUserServerMembership($userId, $serverId);
+                    if ($membership) {
+                        $responseData['server_join_date'] = $membership->created_at;
+                    }
+                } catch (Exception $membershipError) {
+                    error_log("Error loading membership: " . $membershipError->getMessage());
                 }
             }
             
@@ -403,8 +421,12 @@ class UserController extends BaseController
         } catch (Exception $e) {
             $this->logActivity('user_profile_error', [
                 'user_id' => $userId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
+            
+            error_log("Error in getUserProfile: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
             
             return $this->serverError('Failed to retrieve user profile: ' . $e->getMessage());
         }
@@ -687,5 +709,13 @@ class UserController extends BaseController
             
             return $this->serverError('Failed to retrieve mutual relations: ' . $e->getMessage());
         }
+    }
+    
+    public function settings()
+    {
+        $this->requireAuth();
+        $userId = $this->getCurrentUserId();
+        
+        return require_once dirname(__DIR__) . '/views/pages/settings-user.php';
     }
 } 

@@ -21,9 +21,9 @@ $categories = $exploreData['categories'];
 
 $page_title = 'misvord - Explore Servers';
 $body_class = 'bg-discord-dark text-white';
-$page_css = 'explore-servers';
+$page_css = ['explore-servers', 'server-detail'];
 $page_js = 'pages/explore-servers';
-$head_scripts = ['logger-init'];
+$head_scripts = ['logger-init', 'components/servers/server-detai'];
 $additional_js = ['components/servers/server-dropdown'];
 ?>
 
@@ -67,7 +67,8 @@ $additional_js = ['components/servers/server-dropdown'];
                     foreach ($featuredServers as $server): 
                         $isMember = in_array($server['id'], $userServerId);
                     ?>
-                        <div class="bg-discord-dark rounded-lg overflow-hidden hover:shadow-lg transition-shadow server-card">
+                        <div class="bg-discord-dark rounded-lg overflow-hidden hover:shadow-lg transition-shadow server-card cursor-pointer"
+                             data-server-id="<?php echo $server['id']; ?>" data-category="<?php echo htmlspecialchars($server['category'] ?? ''); ?>">
                             <div class="h-32 bg-gradient-to-r from-purple-500 to-blue-500 relative">
                                 <?php if (!empty($server['banner_url'])): ?>
                                     <img src="<?php echo htmlspecialchars($server['banner_url']); ?>" alt="<?php echo htmlspecialchars($server['name']); ?>" class="w-full h-full object-cover">
@@ -87,14 +88,14 @@ $additional_js = ['components/servers/server-dropdown'];
                             </div>
 
                             <div class="p-4 pt-10">
-                                <h3 class="font-bold text-lg mb-1"><?php echo htmlspecialchars($server['name']); ?></h3>
+                                <h3 class="font-bold text-lg mb-1 server-name"><?php echo htmlspecialchars($server['name']); ?></h3>
                                 <?php if (!empty($server['description'])): ?>
-                                    <p class="text-discord-lighter text-sm mb-3 line-clamp-2"><?php echo htmlspecialchars($server['description']); ?></p>
+                                    <p class="text-discord-lighter text-sm mb-3 line-clamp-2 server-description"><?php echo htmlspecialchars($server['description']); ?></p>
                                 <?php else: ?>
-                                    <p class="text-discord-lighter text-sm mb-3">No description available</p>
+                                    <p class="text-discord-lighter text-sm mb-3 server-description">No description available</p>
                                 <?php endif; ?>
 
-                                <div class="flex items-center text-xs text-discord-lighter mb-4">
+                                <div class="flex items-center text-xs text-discord-lighter mb-4 server-stats">
                                     <div class="flex items-center mr-4">
                                         <i class="fas fa-user-group mr-1"></i>
                                         <span><?php echo number_format($server['member_count']); ?> members</span>
@@ -106,11 +107,15 @@ $additional_js = ['components/servers/server-dropdown'];
                                 </div>
 
                                 <?php if ($isMember): ?>
-                                    <a href="/server/<?php echo $server['id']; ?>" class="block w-full bg-discord-green/30 text-discord-green text-center py-2 rounded-md hover:bg-discord-green/40 transition-colors">
+                                    <a href="#" onclick="event.preventDefault(); event.stopPropagation();" 
+                                       class="block w-full bg-discord-green/30 text-discord-green text-center py-2 rounded-md hover:bg-discord-green/40 transition-colors join-server-btn" 
+                                       data-server-id="<?php echo $server['id']; ?>">
                                         <i class="fas fa-check mr-2"></i>Joined
                                     </a>
                                 <?php else: ?>
-                                    <a href="/join/<?php echo $server['invite_link']; ?>" class="block w-full bg-discord-primary text-white text-center py-2 rounded-md hover:bg-discord-primary/90 transition-colors">
+                                    <a href="#" onclick="event.preventDefault(); event.stopPropagation();" 
+                                       class="block w-full bg-discord-primary text-white text-center py-2 rounded-md hover:bg-discord-primary/90 transition-colors join-server-btn" 
+                                       data-server-id="<?php echo $server['id']; ?>">
                                         Join Server
                                     </a>
                                 <?php endif; ?>
@@ -136,7 +141,8 @@ $additional_js = ['components/servers/server-dropdown'];
                         $serverId = $server['id'];
                         $isMember = in_array($serverId, $userServerId);
                         ?>
-                        <div class="bg-discord-dark rounded-lg overflow-hidden hover:shadow-lg transition-shadow server-card" data-category="<?php echo htmlspecialchars($server['category'] ?? ''); ?>">
+                        <div class="bg-discord-dark rounded-lg overflow-hidden hover:shadow-lg transition-shadow server-card cursor-pointer" 
+                             data-server-id="<?php echo $serverId; ?>" data-category="<?php echo htmlspecialchars($server['category'] ?? ''); ?>">
                             <div class="p-4">
                                 <div class="flex items-start mb-3">
                                     <div class="w-12 h-12 rounded-xl bg-discord-primary overflow-hidden mr-3 flex-shrink-0">
@@ -151,7 +157,7 @@ $additional_js = ['components/servers/server-dropdown'];
 
                                     <div>
                                         <h3 class="font-bold server-name"><?php echo htmlspecialchars($server['name'] ?? 'Unknown Server'); ?></h3>
-                                        <div class="flex items-center text-xs text-discord-lighter mt-1">
+                                        <div class="flex items-center text-xs text-discord-lighter mt-1 server-stats">
                                             <span><?php echo number_format($server['member_count'] ?? 0); ?> members</span>
                                             <span class="mx-1.5">•</span>
                                             <span><?php echo rand(5, 50); ?> online</span>
@@ -162,15 +168,19 @@ $additional_js = ['components/servers/server-dropdown'];
                                 <?php if (!empty($server['description'])): ?>
                                     <p class="text-discord-lighter text-sm mb-3 line-clamp-2 server-description"><?php echo htmlspecialchars($server['description']); ?></p>
                                 <?php else: ?>
-                                    <p class="text-discord-lighter text-sm mb-3">No description available</p>
+                                    <p class="text-discord-lighter text-sm mb-3 server-description">No description available</p>
                                 <?php endif; ?>
 
                                 <?php if ($isMember): ?>
-                                    <a href="/server/<?php echo $serverId; ?>" class="block w-full bg-discord-green/30 text-discord-green text-center py-1.5 text-sm rounded-md hover:bg-discord-green/40 transition-colors">
+                                    <a href="#" onclick="event.preventDefault(); event.stopPropagation();" 
+                                       class="block w-full bg-discord-green/30 text-discord-green text-center py-1.5 text-sm rounded-md hover:bg-discord-green/40 transition-colors join-server-btn" 
+                                       data-server-id="<?php echo $serverId; ?>">
                                         <i class="fas fa-check mr-1"></i>Joined
                                     </a>
                                 <?php else: ?>
-                                    <a href="/join/<?php echo $server['invite_link']; ?>" class="block w-full bg-discord-primary text-white text-center py-1.5 text-sm rounded-md hover:bg-discord-primary/90 transition-colors">
+                                    <a href="#" onclick="event.preventDefault(); event.stopPropagation();" 
+                                       class="block w-full bg-discord-primary text-white text-center py-1.5 text-sm rounded-md hover:bg-discord-primary/90 transition-colors join-server-btn" 
+                                       data-server-id="<?php echo $serverId; ?>">
                                         Join
                                     </a>
                                 <?php endif; ?>
@@ -193,6 +203,8 @@ $additional_js = ['components/servers/server-dropdown'];
         </div>
     </div>
 </div>
+
+<?php include dirname(dirname(__DIR__)) . '/views/components/explore/server-detail.php'; ?>
 
 <?php 
 $content = ob_get_clean(); 

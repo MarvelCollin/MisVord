@@ -70,7 +70,13 @@ $cache_version = time();
 <link rel="stylesheet" href="<?= asset('/css/user-detail.css') ?>">
 
 <?php if (isset($page_css)): ?>
-    <link rel="stylesheet" href="<?php echo css($page_css); ?>?v=<?php echo $cache_version; ?>">
+    <?php if (is_array($page_css)): ?>
+        <?php foreach ($page_css as $css_file): ?>
+            <link rel="stylesheet" href="<?php echo css($css_file); ?>?v=<?php echo $cache_version; ?>">
+        <?php endforeach; ?>
+    <?php else: ?>
+        <link rel="stylesheet" href="<?php echo css($page_css); ?>?v=<?php echo $cache_version; ?>">
+    <?php endif; ?>
 <?php endif; ?>
 
 <?php if (isset($extraCss) && is_array($extraCss)): ?>
@@ -453,7 +459,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <?php if (isset($head_scripts) && is_array($head_scripts)): ?>
     <?php foreach ($head_scripts as $script): ?>
-        <script src="<?php echo js($script); ?>?v=<?php echo $cache_version; ?>"></script>
+        <script src="<?php echo js($script); ?>?v=<?php echo $cache_version; ?>" type="module"></script>
     <?php endforeach; ?>
 <?php endif; ?>
 

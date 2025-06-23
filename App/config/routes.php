@@ -65,7 +65,10 @@ Route::get('/explore', function() {
 });
 Route::get('/explore-servers', 'pages/explore-servers.php');
 Route::get('/settings', 'pages/settings.php');
-Route::get('/settings/user', 'pages/settings-user.php');
+Route::get('/settings/user', function() {
+    $controller = new UserController();
+    $controller->settings();
+});
 Route::get('/settings-server', 'pages/settings-server.php');
 Route::get('/call', 'pages/call.php');
 Route::get('/dev', 'pages/dev.php');
@@ -548,6 +551,11 @@ Route::get('/api/explore/servers/search', function() {
     header('Content-Type: application/json');
     echo json_encode($result);
     exit;
+});
+
+Route::get('/api/users/([0-9]+)', function($userId) {
+    $controller = new UserController();
+    $controller->getUserData($userId);
 });
 
 return array_merge(Route::getRoutes(), [

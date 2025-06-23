@@ -54,6 +54,11 @@ class UserAPI {
                 throw new Error(`API endpoint not found: ${url}`);
             }
             
+            if (response.status === 500) {
+                console.error('Server error occurred:', url);
+                throw new Error(`Internal server error occurred. Please try again later.`);
+            }
+            
             const data = await this.parseResponse(response);
             
             if (!response.ok) {
@@ -65,7 +70,13 @@ class UserAPI {
 
             return data;
         } catch (error) {
-            console.error('User API request failed:', error);
+            // Format error message 
+            let errorMessage = error.message;
+            if (error.message === '[object Object]') {
+                errorMessage = 'Unknown server error occurred';
+            }
+            
+            console.error(`User API request to ${url} failed:`, errorMessage);
             throw error;
         }
     }
@@ -78,6 +89,10 @@ class UserAPI {
         }
         
         return await this.makeRequest(url);
+    }
+    
+    async getMutualRelations(userId) {
+        return await this.makeRequest(`/api/users/${userId}/mutual`);
     }
 }
 

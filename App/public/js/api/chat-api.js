@@ -8,21 +8,37 @@ class ChatAPI {
     }
 
     async parseResponse(response) {
+        if (!response) {
+            console.error('Empty response received');
+            throw new Error('Empty response received from server');
+        }
+        
         const text = await response.text();
         
-        if (text.trim().startsWith('<') || text.includes('<br />') || text.includes('</html>') || text.includes('<!DOCTYPE')) {
+        if (!text || text.trim() === '') {
+            console.error('Empty text content in response');
+            throw new Error('Empty response content');
+        }
+        
+        if (text.trim().startsWith('<') || 
+            text.includes('<br />') || 
+            text.includes('</html>') || 
+            text.includes('<!DOCTYPE')) {
             console.error('Server returned HTML instead of JSON:', text.substring(0, 200));
-            throw new Error('Server configuration error. Please contact support.');
+            throw new Error('Server returned HTML instead of JSON. Please check server configuration.');
         }
         
         try {
             return JSON.parse(text);
         } catch (e) {
-            console.error('Failed to parse JSON response:', text);
-            throw new Error('Invalid server response');
+            console.error('Failed to parse JSON response:', text.substring(0, 500));
+            console.error('Parse error:', e);
+            throw new Error('Invalid JSON response from server');
         }
     }    async makeRequest(url, options = {}) {
         try {
+            console.log(`🌐 Making ${options.method || 'GET'} request to: ${url}`);
+            
             const response = await fetch(url, {
                 ...options,
                 headers: {
@@ -31,25 +47,36 @@ class ChatAPI {
                 }
             });
 
-            const data = await this.parseResponse(response);
+            console.log(`🌐 Received status ${response.status} from ${url}`);
             
             if (!response.ok) {
-                console.error('API Request failed:', {
+                console.error('API Request failed with status:', {
                     url: url,
                     status: response.status,
-                    statusText: response.statusText,
-                    data: data,
-                    requestBody: options.body
+                    statusText: response.statusText
                 });
-                throw new Error(data.message || `HTTP ${response.status}: ${response.statusText}`);
+                
+                try {
+                    const errorData = await this.parseResponse(response);
+                    console.error('Error response data:', errorData);
+                    throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+                } catch (parseError) {
+                    throw new Error(`Request failed with status ${response.status}: ${response.statusText}`);
+                }
             }
 
+            const data = await this.parseResponse(response);
             return data;
         } catch (error) {
             console.error('API Request failed:', error);
             throw error;
         }
     }    async getMessages(chatType, targetId, limit = 20, offset = 0) {
+        if (!targetId) {
+            console.error('Missing targetId in getMessages call');
+            throw new Error('Target ID is required');
+        }
+
         const apiChatType = chatType === 'direct' ? 'dm' : chatType;
         const url = `${this.baseURL}/${apiChatType}/${targetId}/messages?limit=${limit}&offset=${offset}`;
         
@@ -57,15 +84,23 @@ class ChatAPI {
         
         try {
             const response = await this.makeRequest(url);
+            
+            if (!response) {
+                console.error('Empty response received from server');
+                throw new Error('Server returned an empty response');
+            }
+            
             console.log('🔍 API response for getMessages:', response);
             
-            if (response) {
-                console.log('🔍 Response structure:', {
-                    hasData: !!response.data,
-                    dataType: response.data ? typeof response.data : 'N/A',
-                    hasMessages: response.data && Array.isArray(response.data.messages),
-                    messagesCount: response.data && response.data.messages ? response.data.messages.length : 0
-                });
+            if (response.data) {
+                const messagesCount = response.data.messages ? response.data.messages.length : 0;
+                console.log(`🔍 Found ${messagesCount} messages in response`);
+                
+                if (messagesCount === 0) {
+                    console.log('No messages found, this might be expected for a new chat');
+                }
+            } else {
+                console.error('Response missing data property:', response);
             }
             
             return response;

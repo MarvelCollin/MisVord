@@ -62,20 +62,14 @@ class UserServerMembershipRepository extends Repository {
     public function getServerMembers($serverId)
     {
         try {
-            $pdo = $this->db->getPdo();
-            $query = "SELECT u.id, u.username, u.discriminator, u.avatar_url, u.status, usm.role, usm.created_at as joined_at
-                      FROM users u
-                      JOIN user_server_memberships usm ON u.id = usm.user_id
-                      WHERE usm.server_id = :server_id
-                      ORDER BY usm.created_at ASC";
+            $query = new Query();
+            $results = $query->table('users u')
+                ->join('user_server_memberships usm', 'u.id', '=', 'usm.user_id')
+                ->where('usm.server_id', $serverId)
+                ->select('u.id, u.username, u.discriminator, u.avatar_url, u.status, usm.role, usm.created_at as joined_at')
+                ->orderBy('usm.created_at', 'ASC')
+                ->get();
             
-            $stmt = $pdo->prepare($query);
-            $stmt->bindParam(':server_id', $serverId, PDO::PARAM_INT);
-            $stmt->execute();
-            
-            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
-            // Debug info
             error_log("Server ID: " . $serverId);
             error_log("Members found: " . count($results));
             
@@ -89,18 +83,13 @@ class UserServerMembershipRepository extends Repository {
     public function getUserServerMembership($userId, $serverId)
     {
         try {
-            $pdo = $this->db->getPdo();
-            $query = "SELECT * FROM user_server_memberships
-                      WHERE user_id = :user_id AND server_id = :server_id
-                      LIMIT 1";
-            
-            $stmt = $pdo->prepare($query);
-            $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
-            $stmt->bindParam(':server_id', $serverId, PDO::PARAM_INT);
-            $stmt->execute();
-            
-            return $stmt->fetch(PDO::FETCH_ASSOC);
+            $query = new Query();
+            return $query->table('user_server_memberships')
+                ->where('user_id', $userId)
+                ->where('server_id', $serverId)
+                ->first();
         } catch (Exception $e) {
+            error_log("Error getting user server membership: " . $e->getMessage());
             return null;
         }
     }

@@ -32,11 +32,20 @@ class ChatSection {
     }
     
     init() {
+        console.log('Initializing ChatSection');
         this.loadElements();
-        this.loadChatParams();
+        const paramsLoaded = this.loadChatParams();
+        
+        if (!paramsLoaded) {
+            console.error('Failed to load chat parameters, cannot initialize chat');
+            this.showErrorMessage('Failed to initialize chat. Missing required parameters.');
+            return;
+        }
+        
         this.setupEventListeners();
         this.loadMessages();
         this.setupIoListeners();
+        console.log('ChatSection initialization complete');
     }
     
     loadElements() {
@@ -65,7 +74,19 @@ class ChatSection {
         this.userId = document.querySelector('meta[name="user-id"]')?.content;
         this.username = document.querySelector('meta[name="username"]')?.content;
         
-        console.log(`Chat initialized: ${this.chatType} ${this.targetId}`);
+        console.log(`Chat parameters loaded: type=${this.chatType}, targetId=${this.targetId}, userId=${this.userId}`);
+        
+        if (!this.targetId) {
+            console.error('Missing targetId in chat parameters');
+            return false;
+        }
+        
+        if (!this.userId) {
+            console.error('Missing userId in chat parameters');
+            return false;
+        }
+        
+        return true;
     }
     
     setupEventListeners() {
@@ -1223,6 +1244,8 @@ class ChatSection {
                 this.showLoadMoreIndicator();
             }
             
+            console.log(`⏳ Loading messages for ${this.chatType} ${this.targetId}, offset: ${offset}, limit: ${limit}`);
+            
             const response = await window.ChatAPI.getMessages(
                 this.chatType === 'direct' ? 'dm' : this.chatType, 
                 this.targetId,
@@ -1230,14 +1253,16 @@ class ChatSection {
                 offset
             );
             
+            console.log('📥 Response received:', response);
+            
             if (offset === 0) {
                 this.hideLoadingIndicator();
             } else {
                 this.hideLoadMoreIndicator();
             }
             
-            if (response && response.data && response.data.messages) {
-                console.log('Loaded messages from database:', response.data.messages);
+            if (response && response.data && Array.isArray(response.data.messages)) {
+                console.log(`✅ Loaded ${response.data.messages.length} messages from database`);
                 
                 response.data.messages.forEach(msg => {
                     this.processedMessageIds.add(msg.id);
@@ -1260,20 +1285,20 @@ class ChatSection {
                 if (offset === 0) {
                     this.scrollToBottom();
                 }
+                
+                this.messagesLoaded = true;
             } else {
-                console.error('No messages found in response:', response);
+                console.error('Invalid response format:', response);
                 if (offset === 0) {
                     this.showEmptyState();
                 }
             }
             
-            this.messagesLoaded = true;
-            
         } catch (error) {
             this.hideLoadingIndicator();
             this.hideLoadMoreIndicator();
             console.error('Failed to load messages:', error);
-            this.showErrorMessage('Failed to load messages');
+            this.showErrorMessage(`Failed to load messages: ${error.message}`);
         }
     }
     
