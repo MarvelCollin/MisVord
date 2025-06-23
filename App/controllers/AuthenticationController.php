@@ -90,21 +90,21 @@ class AuthenticationController extends BaseController
             exit;
         }
 
-            $user = $this->userRepository->findByEmail($email);
+        $user = $this->userRepository->findByEmail($email);
 
-    if (!$user) {
-        $_SESSION['errors'] = ['auth' => 'Invalid email or password'];
-        $_SESSION['old_input'] = ['email' => $email];
-        header('Location: /login');
-        exit;
-    }
-
-    if (!$user->verifyPassword($password)) {
-        $_SESSION['errors'] = ['auth' => 'Invalid email or password'];
-        $_SESSION['old_input'] = ['email' => $email];
-        header('Location: /login');
-        exit;
-    }
+        if (!$user) {
+            $_SESSION['errors'] = ['auth' => 'Invalid email or password'];
+            $_SESSION['old_input'] = ['email' => $email];
+            header('Location: /login');
+            exit;
+        }
+        
+        if (!$user->verifyPassword($password)) {
+            $_SESSION['errors'] = ['auth' => 'Invalid email or password'];
+            $_SESSION['old_input'] = ['email' => $email];
+            header('Location: /login');
+            exit;
+        }
 
         $_SESSION = array();
         $_SESSION['user_id'] = $user->id;
@@ -240,7 +240,6 @@ class AuthenticationController extends BaseController
             'username' => $username,
             'discriminator' => $discriminator,
             'email' => $email,
-            'password' => password_hash($password, PASSWORD_DEFAULT),
             'status' => 'online',
             'security_question' => $securityQuestion,
             'security_answer' => password_hash($securityAnswer, PASSWORD_DEFAULT)

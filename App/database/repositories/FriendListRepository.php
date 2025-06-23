@@ -5,6 +5,13 @@ require_once __DIR__ . '/../models/FriendList.php';
 require_once __DIR__ . '/../query.php';
 
 class FriendListRepository extends Repository {
+    protected $db;
+    
+    public function __construct() {
+        parent::__construct();
+        $this->db = new Query();
+    }
+    
     protected function getModelClass() {
         return FriendList::class;
     }
@@ -67,7 +74,6 @@ class FriendListRepository extends Repository {
             return false;
         }
         
-        // Delete the friend request record
         $query = new Query();
         $result = $query->table('friend_list')
             ->where('id', $friendshipId)
@@ -108,15 +114,12 @@ class FriendListRepository extends Repository {
         return $relationship ? $relationship->delete() : false;
     }
       public function getBlockedUsers($userId) {
-        $query = "SELECT u.id, u.username, u.discriminator, u.avatar_url, u.status, u.created_at
+        $query = new Query();
+        return $query->raw("SELECT u.id, u.username, u.discriminator, u.avatar_url, u.status, u.created_at
                   FROM users u
-                  JOIN friend_list f ON u.id = f.friend_id
-                  WHERE f.user_id = :user_id AND f.status = 'blocked'
-                  ORDER BY u.username ASC";
-        
-        $params = [':user_id' => $userId];
-        
-        return $this->db->fetchAll($query, $params);
+                  JOIN friend_list f ON u.id = f.user_id2
+                  WHERE f.user_id = ? AND f.status = 'blocked'
+                  ORDER BY u.username ASC", [$userId]);
     }
     
     public function findFriendship($friendshipId) {
@@ -141,55 +144,37 @@ class FriendListRepository extends Repository {
         return $result ? new FriendList($result) : null;
     }
     
-    /**
-     * Get the friendship status between two users
-     * 
-     * @param int $userId The current user's ID
-     * @param int $otherUserId The other user's ID
-     * @return string|null Friendship status: 'friends', 'pending_sent', 'pending_received', 'blocked', or null if no relationship
-     */
     public function getFriendshipStatus($userId, $otherUserId)
     {
-        // Check if there's a direct friendship (user is the initiator)
-        $query = "SELECT status FROM friend_list 
-                  WHERE user_id = :user_id AND friend_id = :friend_id 
-                  LIMIT 1";
-        
-        $params = [
-            ':user_id' => $userId,
-            ':friend_id' => $otherUserId
-        ];
-        
-        $result = $this->db->fetchOne($query, $params);
+        $query = new Query();
+        $result = $query->raw("SELECT status FROM friend_list 
+                  WHERE user_id = ? AND user_id2 = ? 
+                  LIMIT 1", [$userId, $otherUserId])->first();
         
         if ($result) {
-            if ($result->status === 'friends') {
+            if ($result['status'] === 'accepted') {
                 return 'friends';
-            } elseif ($result->status === 'pending') {
+            } elseif ($result['status'] === 'pending') {
                 return 'pending_sent';
-            } elseif ($result->status === 'blocked') {
+            } elseif ($result['status'] === 'blocked') {
                 return 'blocked';
             }
         }
         
-        // Check if there's a reverse friendship (other user is the initiator)
-        $query = "SELECT status FROM friend_list 
-                  WHERE user_id = :friend_id AND friend_id = :user_id 
-                  LIMIT 1";
-        
-        $result = $this->db->fetchOne($query, $params);
+        $result = $query->raw("SELECT status FROM friend_list 
+                  WHERE user_id = ? AND user_id2 = ? 
+                  LIMIT 1", [$otherUserId, $userId])->first();
         
         if ($result) {
-            if ($result->status === 'friends') {
+            if ($result['status'] === 'accepted') {
                 return 'friends';
-            } elseif ($result->status === 'pending') {
+            } elseif ($result['status'] === 'pending') {
                 return 'pending_received';
-            } elseif ($result->status === 'blocked') {
+            } elseif ($result['status'] === 'blocked') {
                 return 'blocked_by';
             }
         }
         
-        // No relationship found
         return null;
     }
 }

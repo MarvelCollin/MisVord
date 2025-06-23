@@ -173,7 +173,6 @@
   height: 20px !important;
 }
 
-/* Server sidebar explore icon active state */
 .w-\[72px\] a[href="/explore-servers"] .bg-discord-primary {
   border-radius: 16px;
   background-color: #5865f2;

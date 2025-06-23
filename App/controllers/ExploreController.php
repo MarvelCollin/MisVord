@@ -16,6 +16,33 @@ class ExploreController extends BaseController
         $this->serverRepository = new ServerRepository();
         $this->userServerMembershipRepository = new UserServerMembershipRepository();
     }
+    
+    public function searchServers($query)
+    {
+        $currentUserId = $_SESSION['user_id'] ?? 0;
+        $servers = [];
+        $userServerId = [];
+        
+        try {
+            $servers = $this->serverRepository->searchServers($query);
+            
+            $servers = array_map(function($server) {
+                return is_array($server) ? $server : (array) $server;
+            }, $servers);
+            
+            $userServerId = $this->userServerMembershipRepository->getServerIdsForUser($currentUserId);
+        } catch (Exception $e) {
+            log_error("Error searching servers", ['error' => $e->getMessage()]);
+            $servers = [];
+            $userServerId = [];
+        }
+
+        return [
+            'servers' => $servers,
+            'userServerIds' => $userServerId
+        ];
+    }
+
     public function getPublicServers()
     {
         $currentUserId = $_SESSION['user_id'] ?? 0;

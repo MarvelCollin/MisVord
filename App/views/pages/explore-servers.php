@@ -130,7 +130,7 @@ $additional_js = ['components/servers/server-dropdown'];
 
             <div>
                 <h2 class="text-lg font-bold mb-4">All Servers</h2>
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="all-servers">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 server-grid" id="all-servers">
                     <?php foreach ($servers as $server): ?>
                         <?php 
                         $serverId = $server['id'];

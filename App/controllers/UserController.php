@@ -314,15 +314,11 @@ class UserController extends BaseController
             
             $user = $this->userRepository->find($userId);
             
-            if (!$user || !password_verify($currentPassword, $user->password)) {
+            if (!$user || !$user->verifyPassword($currentPassword)) {
                 return $this->error('Current password is incorrect', 400);
             }
             
-            $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
-            
-            $result = $this->userRepository->update($userId, [
-                'password' => $hashedPassword
-            ]);
+            $result = $this->userRepository->updatePassword($userId, $newPassword);
             
             if (!$result) {
                 return $this->serverError('Failed to update password');
@@ -617,11 +613,7 @@ class UserController extends BaseController
                 return $this->error('Incorrect security answer', 401);
             }
             
-            $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
-            
-            $result = $this->userRepository->update($user->id, [
-                'password' => $hashedPassword
-            ]);
+            $result = $this->userRepository->updatePassword($user->id, $newPassword);
             
             if (!$result) {
                 return $this->serverError('Failed to update password');

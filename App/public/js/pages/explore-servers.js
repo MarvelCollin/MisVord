@@ -103,14 +103,118 @@ function initSearchFilter() {
     const searchInput = document.querySelector('#server-search');
     
     if (searchInput) {
+        let debounceTimeout;
+        
         searchInput.addEventListener('input', function() {
             const query = this.value.toLowerCase();
-            filterServersBySearch(query);
+            
+            clearTimeout(debounceTimeout);
+            debounceTimeout = setTimeout(() => {
+                if (query.length >= 2) {
+                    performServerSearch(query);
+                } else {
+                    resetServerSearch();
+                }
+            }, 300);
         });
     }
 }
 
+function performServerSearch(query) {
+    const serverGrid = document.querySelector('.server-grid');
+    if (!serverGrid) return;
+    
+    const loadingIndicator = document.createElement('div');
+    loadingIndicator.id = 'search-loading';
+    loadingIndicator.className = 'text-gray-400 text-center py-4';
+    loadingIndicator.textContent = 'Searching...';
+    
+    serverGrid.innerHTML = '';
+    serverGrid.appendChild(loadingIndicator);
+    
+    serverAPI.searchServers(query)
+        .then(data => {
+            renderSearchResults(data.servers, data.userServerIds);
+        })
+        .catch(error => {
+            console.error('Error searching servers:', error);
+            serverGrid.innerHTML = `<div class="text-red-400 text-center py-4">Error searching servers. Please try again.</div>`;
+        });
+}
+
+function resetServerSearch() {
+    const serverGrid = document.querySelector('.server-grid');
+    if (!serverGrid) return;
+    
+    const allServerCards = document.querySelectorAll('.server-card');
+    allServerCards.forEach(card => {
+        card.classList.remove('hidden');
+    });
+}
+
+function renderSearchResults(servers, userServerIds) {
+    const serverGrid = document.querySelector('.server-grid');
+    if (!serverGrid) return;
+    
+    serverGrid.innerHTML = '';
+    
+    if (!servers || servers.length === 0) {
+        serverGrid.innerHTML = `<div class="text-gray-400 text-center py-4 col-span-full">No servers found matching your search.</div>`;
+        return;
+    }
+    
+    servers.forEach(server => {
+        const isJoined = userServerIds.includes(parseInt(server.id));
+        const serverCard = createServerCard(server, isJoined);
+        serverGrid.appendChild(serverCard);
+    });
+    
+    initServerCards();
+    initJoinServerHandlers();
+}
+
+function createServerCard(server, isJoined) {
+    const card = document.createElement('div');
+    card.className = 'server-card bg-discord-dark rounded-lg overflow-hidden shadow-lg transition-all duration-200';
+    card.setAttribute('data-category', server.category || 'all');
+    
+    const memberCount = server.member_count || 0;
+    
+    card.innerHTML = `
+        <div class="server-banner">
+            ${server.banner_url ? `<img src="${server.banner_url}" class="w-full h-full object-cover" alt="${server.name} banner">` : ''}
+            <div class="server-icon">
+                ${server.image_url ? `<img src="${server.image_url}" class="w-full h-full object-cover" alt="${server.name} icon">` : 
+                `<div class="w-full h-full flex items-center justify-center bg-discord-primary text-white font-bold text-xl">
+                    ${server.name.charAt(0).toUpperCase()}
+                </div>`}
+            </div>
+        </div>
+        <div class="p-4 pt-8">
+            <h3 class="server-name text-white font-semibold text-lg">${server.name}</h3>
+            <p class="server-description text-gray-400 text-sm line-clamp-2 mt-1 mb-3">${server.description || 'No description available.'}</p>
+            <div class="flex items-center justify-between mt-2">
+                <div class="server-stats">
+                    <span><span class="online-dot"></span> ${memberCount} ${memberCount === 1 ? 'member' : 'members'}</span>
+                </div>
+                <button class="join-server-btn px-4 py-1 rounded text-white font-medium text-sm ${isJoined ? 'bg-discord-green' : 'bg-discord-primary hover:bg-discord-primary/90'}" 
+                        data-server-id="${server.id}" ${isJoined ? 'disabled' : ''}>
+                    ${isJoined ? 'Joined' : 'Join'}
+                </button>
+            </div>
+        </div>
+    `;
+    
+    return card;
+}
+
 function filterServersBySearch(query) {
+    // This function is now only used for local filtering
+    if (query.length < 2) {
+        resetServerSearch();
+        return;
+    }
+    
     const serverCards = document.querySelectorAll('.server-card');
     
     serverCards.forEach(card => {

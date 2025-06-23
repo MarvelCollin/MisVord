@@ -28,7 +28,6 @@ class ServerRepository extends Repository {
     }
     
     public function getFormattedServersForUser($userId) {
-        // Get servers as arrays directly
         return $this->getForUser($userId);
     }
       public function createWithOwner($data, $ownerId) {
@@ -113,6 +112,25 @@ class ServerRepository extends Repository {
             ->orderBy('member_count', 'DESC')
             ->get();
             
+        return array_map(function($row) {
+            return is_array($row) ? $row : (array) $row;
+        }, $results);
+    }
+    
+    public function searchServers($searchQuery) {
+        $query = new Query();
+        $results = $query->table('servers s')
+            ->select('s.*, COUNT(usm.id) as member_count')
+            ->leftJoin('user_server_memberships usm', 's.id', '=', 'usm.server_id')
+            ->where('s.is_public', 1)
+            ->where(function($q) use ($searchQuery) {
+                $q->whereLike('s.name', "%$searchQuery%")
+                  ->orWhereLike('s.description', "%$searchQuery%");
+            })
+            ->groupBy('s.id')
+            ->orderBy('member_count', 'DESC')
+            ->get();
+        
         return array_map(function($row) {
             return is_array($row) ? $row : (array) $row;
         }, $results);

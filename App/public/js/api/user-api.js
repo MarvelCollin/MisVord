@@ -48,10 +48,18 @@ class UserAPI {
             };
 
             const response = await fetch(url, mergedOptions);
+            
+            if (response.status === 404) {
+                console.error('API endpoint not found:', url);
+                throw new Error(`API endpoint not found: ${url}`);
+            }
+            
             const data = await this.parseResponse(response);
             
             if (!response.ok) {
-                const errorMessage = data.error || data.message || `HTTP error! status: ${response.status}`;
+                const errorMessage = data && (data.error || data.message) ? 
+                    (data.error || data.message) : 
+                    `HTTP error! status: ${response.status}`;
                 throw new Error(errorMessage);
             }
 
@@ -62,8 +70,14 @@ class UserAPI {
         }
     }
 
-    async getUserProfile(userId) {
-        return await this.makeRequest(`/api/users/${userId}/profile`);
+    async getUserProfile(userId, serverId = null) {
+        let url = `/api/users/${userId}/profile`;
+        
+        if (serverId) {
+            url += `?server_id=${serverId}`;
+        }
+        
+        return await this.makeRequest(url);
     }
 }
 

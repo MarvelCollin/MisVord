@@ -161,35 +161,50 @@ class UserDetailModal {
 
     async fetchUserData() {
         try {
-            let userData;
+            // Import UserAPI
+            const userApi = await import('../../api/user-api.js').then(module => module.default);
             
-            if (this.currentServerId) {
-                const response = await fetch(`/api/users/${this.currentUserId}?server_id=${this.currentServerId}`);
-                if (!response.ok) throw new Error('Failed to fetch user data');
-                userData = await response.json();
-            } else {
-                const response = await fetch(`/api/users/${this.currentUserId}`);
-                if (!response.ok) throw new Error('Failed to fetch user data');
-                userData = await response.json();
-            }
-            
-            // Don't fetch mutual data for current user
-            const currentUserId = document.getElementById('app-container')?.dataset.userId;
-            if (currentUserId && this.currentUserId !== currentUserId) {
-                try {
-                    const mutualResponse = await fetch(`/api/users/${this.currentUserId}/mutual`);
-                    if (mutualResponse.ok) {
-                        const mutualData = await mutualResponse.json();
-                        if (mutualData.success) {
-                            userData.mutualData = mutualData.data;
+            // First check if we can directly get the user profile
+            try {
+                // Get user profile data using the direct profile endpoint
+                const userData = await userApi.getUserProfile(this.currentUserId, this.currentServerId);
+                if (userData.success) {
+                    // Don't fetch mutual data for current user
+                    const currentUserId = document.getElementById('app-container')?.dataset.userId;
+                    if (currentUserId && this.currentUserId !== currentUserId) {
+                        try {
+                            const mutualResponse = await fetch(`/api/users/${this.currentUserId}/mutual`);
+                            if (mutualResponse.ok) {
+                                const mutualData = await mutualResponse.json();
+                                if (mutualData.success) {
+                                    userData.data.mutualData = mutualData.data;
+                                }
+                            }
+                        } catch (error) {
+                            console.error('Error fetching mutual data:', error);
                         }
                     }
-                } catch (error) {
-                    console.error('Error fetching mutual data:', error);
+                    
+                    return userData.data;
                 }
+            } catch (profileError) {
+                console.error('Error fetching user profile, trying fallback:', profileError);
+                
+                // Fallback to general user endpoint
+                const response = await fetch(`/api/users/${this.currentUserId}`);
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch user data: ${response.status}`);
+                }
+                
+                const userData = await response.json();
+                if (!userData.success) {
+                    throw new Error(userData.message || 'Failed to fetch user data');
+                }
+                
+                return userData.data;
             }
             
-            return userData;
+            throw new Error('Failed to fetch user data');
         } catch (error) {
             console.error('Error fetching user data:', error);
             throw error;
@@ -226,6 +241,9 @@ class UserDetailModal {
 
         if (this.banner && user.banner_url) {
             this.banner.style.backgroundImage = `url(${user.banner_url})`;
+        } else if (this.banner) {
+            this.banner.style.backgroundImage = '';
+            this.banner.style.backgroundColor = '#5865f2';
         }
 
         if (this.statusIndicator) {
@@ -238,6 +256,7 @@ class UserDetailModal {
         if (this.aboutSection) {
             if (user.bio) {
                 this.aboutSection.textContent = user.bio;
+                this.aboutSection.classList.remove('text-discord-lighter');
             } else {
                 this.aboutSection.textContent = 'This user has not added a bio yet.';
                 this.aboutSection.classList.add('text-discord-lighter');
@@ -252,18 +271,24 @@ class UserDetailModal {
                 day: 'numeric'
             });
             this.memberSinceSection.textContent = formattedDate;
+        } else if (this.memberSinceSection) {
+            this.memberSinceSection.textContent = 'Unknown';
         }
 
         if (this.rolesSection && userData.roles) {
             if (userData.roles.length > 0) {
                 this.rolesSection.innerHTML = '';
+                this.rolesSection.classList.remove('text-discord-lighter');
+                
                 userData.roles.forEach(role => {
                     const roleElement = document.createElement('div');
-                    roleElement.className = `user-detail-role ${role.name.toLowerCase()}`;
-                    roleElement.textContent = role.name;
+                    roleElement.className = 'user-detail-role';
+                    roleElement.textContent = role.name || 'Unknown Role';
+                    
                     if (role.color) {
                         roleElement.style.backgroundColor = role.color;
                     }
+                    
                     this.rolesSection.appendChild(roleElement);
                 });
             } else {
@@ -272,34 +297,29 @@ class UserDetailModal {
             }
         }
 
-        // Update mutual information if available
-        if (userData.mutualData && !isSelf) {
+        if (this.mutualSection) {
+            this.mutualSection.style.display = isSelf ? 'none' : 'flex';
+        }
+
+        if (!isSelf && userData.mutualData) {
             if (this.mutualServersElement) {
-                const count = userData.mutualData.mutual_server_count || 0;
-                this.mutualServersElement.textContent = `${count} Mutual Server${count !== 1 ? 's' : ''}`;
+                const serverCount = userData.mutualData.mutual_server_count || 0;
+                this.mutualServersElement.textContent = `${serverCount} Mutual Server${serverCount !== 1 ? 's' : ''}`;
             }
             
             if (this.mutualFriendsElement) {
-                const count = userData.mutualData.mutual_friend_count || 0;
-                this.mutualFriendsElement.textContent = `${count} Mutual Friend${count !== 1 ? 's' : ''}`;
+                const friendCount = userData.mutualData.mutual_friend_count || 0;
+                this.mutualFriendsElement.textContent = `${friendCount} Mutual Friend${friendCount !== 1 ? 's' : ''}`;
             }
-        } else {
-            // Hide mutual section if self or no data
-            if (this.mutualSection) {
-                this.mutualSection.style.display = isSelf ? 'none' : 'flex';
-            }
-            
-            if (this.mutualServersElement && !isSelf) {
-                this.mutualServersElement.textContent = '0 Mutual Servers';
-            }
-            
-            if (this.mutualFriendsElement && !isSelf) {
-                this.mutualFriendsElement.textContent = '0 Mutual Friends';
-            }
+        } else if (!isSelf) {
+            if (this.mutualServersElement) this.mutualServersElement.textContent = '0 Mutual Servers';
+            if (this.mutualFriendsElement) this.mutualFriendsElement.textContent = '0 Mutual Friends';
         }
 
         if (this.noteInput && user.note) {
             this.noteInput.value = user.note;
+        } else if (this.noteInput) {
+            this.noteInput.value = '';
         }
 
         this.updateActionButtons(userData);

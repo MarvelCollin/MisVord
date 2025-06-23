@@ -203,6 +203,10 @@ class ServerAPI {
         return await this.makeRequest('/api/servers');
     }
 
+    async searchServers(query) {
+        return await this.makeRequest(`/api/explore/servers/search?q=${encodeURIComponent(query)}`);
+    }
+
     async redirectToServer(serverId) {
         try {
             const response = await fetch(`/server/${serverId}`, {

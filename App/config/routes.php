@@ -541,6 +541,15 @@ Route::get('/api/servers/([0-9]+)/members', function($serverId) {
     $controller->getServerMembers($serverId);
 });
 
+Route::get('/api/explore/servers/search', function() {
+    $query = $_GET['q'] ?? '';
+    $controller = new ExploreController();
+    $result = $controller->searchServers($query);
+    header('Content-Type: application/json');
+    echo json_encode($result);
+    exit;
+});
+
 return array_merge(Route::getRoutes(), [
     '404' => 'pages/404.php'
 ]);

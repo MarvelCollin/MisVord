@@ -56,11 +56,21 @@ class User extends Model {
             return false;
         }
         
-        return password_verify($password, $this->attributes['password']);
+        // First try with the attributes array
+        $passwordVerified = password_verify($password, $this->attributes['password']);
+        
+        // If that fails, try with direct property access in case it was set that way
+        if (!$passwordVerified && isset($this->password) && !empty($this->password)) {
+            $passwordVerified = password_verify($password, $this->password);
+        }
+        
+        return $passwordVerified;
     }
 
     public function setPassword($password) {
-        $this->password = password_hash($password, PASSWORD_DEFAULT);
+        $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+        $this->password = $hashedPassword;
+        $this->attributes['password'] = $hashedPassword;
     }
 
     public function servers() {
