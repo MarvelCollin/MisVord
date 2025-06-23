@@ -303,44 +303,42 @@ function joinServer(serverId, button) {
 function initServerDetailTriggers() {
     console.log('Initializing server detail triggers');
     const serverCards = document.querySelectorAll('.server-card');
-    const featuredCards = document.querySelectorAll('#featured-servers .server-card');
     
     console.log('Server cards found:', serverCards.length);
-    console.log('Featured cards found:', featuredCards.length);
     
-    const allCards = [...serverCards, ...featuredCards];
-    
-    allCards.forEach(card => {
-        console.log('Adding click handler to card:', card.getAttribute('data-server-id'));
+    serverCards.forEach(card => {
+        if (card.dataset.hasListener === 'true') {
+            return;
+        }
+        card.dataset.hasListener = 'true';
+
         card.addEventListener('click', function(e) {
-            console.log('Card clicked:', this.getAttribute('data-server-id'));
-            
-            if (e.target.closest('.join-server-btn')) {
-                console.log('Click was on join button, ignoring');
-                return;
-            }
-            
-            const serverId = this.getAttribute('data-server-id');
-            
-            if (!serverId) {
-                console.error('No server ID found on clicked card');
-                return;
-            }
-            
-            console.log('Extracting server data from card');
-            const serverData = extractServerDataFromCard(this);
-            console.log('Server data extracted:', serverData);
-            
-            if (window.showServerDetail) {
-                console.log('Calling window.showServerDetail with ID:', serverId);
-                window.showServerDetail(serverId, serverData);
-            } else {
-                console.error('Server detail modal function not available');
-            }
-            
-            // Prevent default and stop propagation to avoid any navigation
             e.preventDefault();
             e.stopPropagation();
+
+            try {
+                if (e.target.closest('.join-server-btn')) {
+                    console.log('Click was on join button, ignoring');
+                    return;
+                }
+                
+                const serverId = this.getAttribute('data-server-id');
+                
+                if (!serverId) {
+                    console.error('No server ID found on clicked card');
+                    return;
+                }
+                
+                const serverData = extractServerDataFromCard(this);
+                
+                if (window.showServerDetail) {
+                    window.showServerDetail(serverId, serverData);
+                } else {
+                    console.error('Server detail modal function not available');
+                }
+            } catch (error) {
+                console.error('Error in server card click handler:', error);
+            }
         });
     });
 }

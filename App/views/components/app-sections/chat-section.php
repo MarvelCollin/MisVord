@@ -189,41 +189,27 @@ $additional_css[] = 'messaging';
     </div>
     
     <!-- Context Menu Template (Hidden by default) -->
-    <div id="message-context-menu" class="hidden fixed bg-[#2b2d31] rounded-md shadow-lg z-50 py-2 min-w-[220px]">
-        <div class="px-2 mb-1">
-            <div class="flex space-x-1">
-                <button class="emoji-btn w-8 h-8 rounded hover:bg-[#3c3f45] flex items-center justify-center text-lg">👍</button>
-                <button class="emoji-btn w-8 h-8 rounded hover:bg-[#3c3f45] flex items-center justify-center text-lg">❤️</button>
-                <button class="emoji-btn w-8 h-8 rounded hover:bg-[#3c3f45] flex items-center justify-center text-lg">😂</button>
-                <button class="emoji-btn w-8 h-8 rounded hover:bg-[#3c3f45] flex items-center justify-center text-lg">😮</button>
-                <button class="emoji-btn w-8 h-8 rounded hover:bg-[#3c3f45] flex items-center justify-center">
-                    <i class="fas fa-face-smile text-[#b5bac1]"></i>
-                </button>
-            </div>
-        </div>
-        
-        <hr class="border-[#3c3f45] my-1">
-        
+    <div id="message-context-menu" class="hidden fixed bg-[#18191c] rounded-md shadow-lg z-50 py-2 min-w-[180px] text-sm font-medium">
         <div class="px-1">
-            <button data-action="reaction" class="flex items-center w-full px-2 py-1.5 text-sm text-[#dcddde] hover:bg-[#5865f2] hover:text-white rounded">
-                <i class="far fa-face-smile w-4 mr-2"></i>
+            <button data-action="reaction" class="flex items-center justify-between w-full px-2 py-1.5 text-[#b5bac1] hover:bg-[#5865f2] hover:text-white rounded">
                 <span>Add Reaction</span>
+                <i class="far fa-face-smile w-4"></i>
             </button>
-            <button data-action="edit" class="flex items-center w-full px-2 py-1.5 text-sm text-[#dcddde] hover:bg-[#5865f2] hover:text-white rounded">
-                <i class="fas fa-pen-to-square w-4 mr-2"></i>
+            <button data-action="edit" class="flex items-center justify-between w-full px-2 py-1.5 text-[#b5bac1] hover:bg-[#5865f2] hover:text-white rounded">
                 <span>Edit Message</span>
+                <i class="fas fa-pen-to-square w-4"></i>
             </button>
-            <button data-action="reply" class="flex items-center w-full px-2 py-1.5 text-sm text-[#dcddde] hover:bg-[#5865f2] hover:text-white rounded">
-                <i class="fas fa-reply w-4 mr-2"></i>
+            <button data-action="reply" class="flex items-center justify-between w-full px-2 py-1.5 text-[#b5bac1] hover:bg-[#5865f2] hover:text-white rounded">
                 <span>Reply</span>
+                <i class="fas fa-reply w-4"></i>
             </button>
-            <button data-action="copy" class="flex items-center w-full px-2 py-1.5 text-sm text-[#dcddde] hover:bg-[#5865f2] hover:text-white rounded">
-                <i class="fas fa-copy w-4 mr-2"></i>
+            <button data-action="copy" class="flex items-center justify-between w-full px-2 py-1.5 text-[#b5bac1] hover:bg-[#5865f2] hover:text-white rounded">
                 <span>Copy Text</span>
+                <i class="fas fa-copy w-4"></i>
             </button>
-            <button data-action="pin" class="flex items-center w-full px-2 py-1.5 text-sm text-[#dcddde] hover:bg-[#5865f2] hover:text-white rounded">
-                <i class="fas fa-thumbtack w-4 mr-2"></i>
+            <button data-action="pin" class="flex items-center justify-between w-full px-2 py-1.5 text-[#b5bac1] hover:bg-[#5865f2] hover:text-white rounded">
                 <span>Pin Message</span>
+                <i class="fas fa-thumbtack w-4"></i>
             </button>
         </div>
     </div>

@@ -5,7 +5,7 @@ class Query {
     private $table;
     private $select = '*';
     private $where = [];
-    private $order = [];
+    private $orderBy = [];
     private $limit = null;
     private $offset = null;
     private $joins = [];
@@ -309,7 +309,7 @@ class Query {
     }
 
     public function orderBy($column, $direction = 'ASC') {
-        $this->order[] = compact('column', 'direction');
+        $this->orderBy[] = compact('column', 'direction');
         return $this;
     }
 
@@ -397,6 +397,16 @@ class Query {
     public function first() {
         $startTime = microtime(true);
         $this->limit(1);
+        
+        // Check if the table is set
+        if (empty($this->table)) {
+            if (function_exists('logger')) {
+                logger()->error("Query error: No table specified for first() method");
+            }
+            error_log("Query error: No table specified for first() method");
+            return null;
+        }
+        
         $query = $this->buildSelectQuery();
         
         try {
@@ -710,53 +720,63 @@ class Query {
     }
 
     private function buildSelectQuery() {
-        $query = "SELECT " . ($this->distinct ? "DISTINCT " : "") . "{$this->select} FROM {$this->table}";
+        if (empty($this->table)) {
+            throw new Exception("No table specified for query");
+        }
+        
+        $query = "SELECT " . ($this->distinct ? "DISTINCT " : "");
+        $query .= !empty($this->select) ? $this->select : "*";
+        $query .= " FROM {$this->table}";
 
+        // Add joins if they exist
         if (!empty($this->joins)) {
             foreach ($this->joins as $join) {
                 $query .= " {$join['type']} JOIN {$join['table']} ON {$join['first']} {$join['operator']} {$join['second']}";
             }
         }
 
+        // Add where conditions if they exist
         if (!empty($this->where)) {
             $query .= ' ' . $this->buildWhereClause();
         }
 
+        // Add group by if it exists
         if (!empty($this->groupBy)) {
             $query .= ' GROUP BY ' . implode(', ', $this->groupBy);
+
+            // Add having conditions if they exist
+            if (!empty($this->having)) {
+                $query .= ' ' . $this->buildHavingClause();
+                $this->bindings = array_merge($this->bindings, $this->havingBindings);
+            }
         }
 
-        if (!empty($this->having)) {
-            $query .= ' ' . $this->buildHavingClause();
-            $this->bindings = array_merge($this->bindings, $this->havingBindings);
-        }
-
-        if (!empty($this->order)) {
+        // Add order by if it exists
+        if (!empty($this->orderBy)) {
             $orderParts = [];
-            foreach ($this->order as $order) {
+            foreach ($this->orderBy as $order) {
                 $orderParts[] = "{$order['column']} {$order['direction']}";
             }
             $query .= ' ORDER BY ' . implode(', ', $orderParts);
         }
 
+        // Add limit if it exists
         if ($this->limit !== null) {
             $query .= " LIMIT {$this->limit}";
 
+            // Add offset if it exists
             if ($this->offset !== null) {
                 $query .= " OFFSET {$this->offset}";
             }
         }
 
+        // Add unions if they exist
         if (!empty($this->unionQueries)) {
             foreach ($this->unionQueries as $unionInfo) {
                 $unionQuery = $unionInfo['query']->buildSelectQuery();
                 $query .= " {$unionInfo['type']} ($unionQuery)";
                 $this->bindings = array_merge($this->bindings, $unionInfo['query']->getBindings());
             }
-        }
-
-        if (!empty($this->raw)) {
-            $query .= ' ' . implode(' ', $this->raw);
         }
 
         return $query;

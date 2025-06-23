@@ -558,6 +558,35 @@ Route::get('/api/users/([0-9]+)', function($userId) {
     $controller->getUserData($userId);
 });
 
+Route::get('/api/debug/user-profile/([0-9]+)', function($userId) {
+    header('Content-Type: application/json');
+    
+    try {
+        require_once __DIR__ . '/../controllers/UserController.php';
+        $controller = new UserController();
+        
+        $profile = $controller->getUserProfile($userId);
+        
+        // If getUserProfile returned directly, the response has already been sent
+        // This code will only execute if getUserProfile returns a value instead of calling jsonResponse
+        if ($profile !== null) {
+            echo json_encode([
+                'success' => true,
+                'debug_info' => 'UserController::getUserProfile returned a value instead of sending a response directly',
+                'profile_data' => $profile
+            ], JSON_PRETTY_PRINT);
+        }
+    } catch (Exception $e) {
+        echo json_encode([
+            'success' => false,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], JSON_PRETTY_PRINT);
+    }
+    
+    exit;
+});
+
 return array_merge(Route::getRoutes(), [
     '404' => 'pages/404.php'
 ]);

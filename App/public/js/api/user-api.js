@@ -50,13 +50,43 @@ class UserAPI {
             const response = await fetch(url, mergedOptions);
             
             if (response.status === 404) {
-                console.error('API endpoint not found:', url);
-                throw new Error(`API endpoint not found: ${url}`);
+                console.error(`API endpoint not found or resource does not exist: ${url}`);
+                const responseText = await response.text();
+                console.log('404 Response:', responseText.substring(0, 500));
+                
+                try {
+                    // Try to parse JSON response
+                    const data = JSON.parse(responseText);
+                    return {
+                        success: false,
+                        error: {
+                            code: 404,
+                            message: data.message || data.error || `API endpoint not found: ${url}`
+                        }
+                    };
+                } catch (e) {
+                    // If not JSON, return basic error
+                    return {
+                        success: false,
+                        error: {
+                            code: 404,
+                            message: `API endpoint not found: ${url}`
+                        }
+                    };
+                }
             }
             
             if (response.status === 500) {
                 console.error('Server error occurred:', url);
-                throw new Error(`Internal server error occurred. Please try again later.`);
+                const responseText = await response.text();
+                console.log('500 Response:', responseText.substring(0, 500));
+                return {
+                    success: false,
+                    error: {
+                        code: 500,
+                        message: `Internal server error occurred. Please try again later.`
+                    }
+                };
             }
             
             const data = await this.parseResponse(response);

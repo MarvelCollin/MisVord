@@ -252,9 +252,6 @@ document.addEventListener('DOMContentLoaded', () => {
     window.showServerDetail = (serverId, serverData) => {
         if (window.serverDetailModal) {
             window.serverDetailModal.showServerDetail(serverId, serverData);
-        } else {
-            window.serverDetailModal = new ServerDetailModal();
-            window.serverDetailModal.showServerDetail(serverId, serverData);
         }
     };
 });

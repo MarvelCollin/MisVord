@@ -1,0 +1,69 @@
+[2025-06-23 09:25:08] DEBUG [4292be] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/debug_user_profile.php","request_method":"GET","is_ajax":"no"}
+[2025-06-23 09:25:08] DEBUG [4292be] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-23 09:25:08] INFO [4292be] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-23 09:25:08] DEBUG [4292be] requireAuth called - Context: {"session_status":2,"user_id":1,"is_authenticated":true,"session_data":{"user_id":1}}
+[2025-06-23 09:25:08] DEBUG [4292be] User authenticated successfully - Context: {"user_id":1}
+[2025-06-23 09:25:08] DEBUG [4292be] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-23 09:25:08] INFO [4292be] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-23 09:25:08] DEBUG [4292be] DB Query: SELECT * FROM users WHERE  id = ? LIMIT 1 - Duration: 43.70ms - Context: {"bindings":[1],"found":false,"db_query":"SELECT * FROM users WHERE  id = ? LIMIT 1","db_duration":0.04369997978210449}
+[2025-06-23 09:25:45] DEBUG [971a3a] Controller instantiated - Context: {"controller":"UserController","request_uri":"","request_method":"GET","is_ajax":"no"}
+[2025-06-23 09:25:45] DEBUG [971a3a] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-23 09:25:45] INFO [971a3a] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-23 09:25:45] DEBUG [971a3a] requireAuth called - Context: {"session_status":2,"user_id":1,"is_authenticated":true,"session_data":{"user_id":1}}
+[2025-06-23 09:25:45] DEBUG [971a3a] User authenticated successfully - Context: {"user_id":1}
+[2025-06-23 09:25:45] DEBUG [971a3a] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-23 09:25:45] INFO [971a3a] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-23 09:25:45] DEBUG [971a3a] DB Query: SELECT * FROM users WHERE  id = ? LIMIT 1 - Duration: 49.57ms - Context: {"bindings":[1],"found":false,"db_query":"SELECT * FROM users WHERE  id = ? LIMIT 1","db_duration":0.049571990966796875}
+[2025-06-23 09:25:55] DEBUG [35c38c] Controller instantiated - Context: {"controller":"UserController","request_uri":"/?user_id=2","request_method":"GET","is_ajax":"no"}
+[2025-06-23 09:25:55] DEBUG [35c38c] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-23 09:25:55] INFO [35c38c] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-23 09:25:55] DEBUG [35c38c] requireAuth called - Context: {"session_status":2,"user_id":1,"is_authenticated":true,"session_data":{"user_id":1}}
+[2025-06-23 09:25:55] DEBUG [35c38c] User authenticated successfully - Context: {"user_id":1}
+[2025-06-23 09:25:55] DEBUG [35c38c] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-23 09:25:55] INFO [35c38c] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-23 09:25:55] DEBUG [35c38c] DB Query: SELECT * FROM users WHERE  id = ? LIMIT 1 - Duration: 46.02ms - Context: {"bindings":["2"],"found":false,"db_query":"SELECT * FROM users WHERE  id = ? LIMIT 1","db_duration":0.04601597785949707}
+[2025-06-23 09:29:11] DEBUG [7dcdb9] Controller instantiated - Context: {"controller":"UserController","request_uri":"","request_method":"GET","is_ajax":"no"}
+[2025-06-23 09:29:11] DEBUG [7dcdb9] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-23 09:29:11] INFO [7dcdb9] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-23 09:29:11] DEBUG [7dcdb9] requireAuth called - Context: {"session_status":2,"user_id":3,"is_authenticated":true,"session_data":{"user_id":3}}
+[2025-06-23 09:29:11] DEBUG [7dcdb9] User authenticated successfully - Context: {"user_id":3}
+[2025-06-23 09:29:11] DEBUG [7dcdb9] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-23 09:29:11] INFO [7dcdb9] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-23 09:29:11] DEBUG [7dcdb9] DB Query: SELECT * FROM users WHERE  id = ? LIMIT 1 - Duration: 48.43ms - Context: {"bindings":[3],"found":true,"db_query":"SELECT * FROM users WHERE  id = ? LIMIT 1","db_duration":0.0484318733215332}
+[2025-06-23 09:29:11] DEBUG [7dcdb9] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-23 09:29:12] INFO [7dcdb9] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-23 09:29:12] ERROR [7dcdb9] Database error in query - Context: {"error":"SQLSTATE[HY000]: General error: 2031 No data supplied for parameters in prepared statement","query":"SELECT status FROM friend_list \r\n                  WHERE user_id = ? AND user_id2 = ? \r\n                  LIMIT 1"}
+[2025-06-23 09:29:12] ERROR [7dcdb9] DB Error: SQLSTATE[42000]: Syntax error or access violation: 1064 You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'LIMIT 1' at line 1 - Query: SELECT * FROM  LIMIT 1 - Context: {"bindings":[],"db_error":"SQLSTATE[42000]: Syntax error or access violation: 1064 You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'LIMIT 1' at line 1","db_query":"SELECT * FROM  LIMIT 1","db_duration":0.0541229248046875}
+[2025-06-23 09:29:12] DEBUG [7dcdb9] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-23 09:29:12] INFO [7dcdb9] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-23 09:29:12] WARNING [7dcdb9] Activity logs table does not exist, skipping activity logging
+[2025-06-23 09:29:28] DEBUG [8bbafa] Controller instantiated - Context: {"controller":"UserController","request_uri":"","request_method":"GET","is_ajax":"no"}
+[2025-06-23 09:29:28] DEBUG [8bbafa] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-23 09:29:28] INFO [8bbafa] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-23 09:29:28] DEBUG [8bbafa] requireAuth called - Context: {"session_status":2,"user_id":3,"is_authenticated":true,"session_data":{"user_id":3}}
+[2025-06-23 09:29:28] DEBUG [8bbafa] User authenticated successfully - Context: {"user_id":3}
+[2025-06-23 09:29:28] DEBUG [8bbafa] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-23 09:29:28] INFO [8bbafa] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-23 09:29:28] DEBUG [8bbafa] DB Query: SELECT * FROM users WHERE  id = ? LIMIT 1 - Duration: 43.31ms - Context: {"bindings":[3],"found":true,"db_query":"SELECT * FROM users WHERE  id = ? LIMIT 1","db_duration":0.043311119079589844}
+[2025-06-23 09:29:28] DEBUG [8bbafa] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-23 09:29:28] INFO [8bbafa] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-23 09:29:28] DEBUG [8bbafa] DB Query: SELECT * FROM friend_list WHERE  user_id = ? AND user_id2 = ? LIMIT 1 - Duration: 42.50ms - Context: {"bindings":[3,3],"found":false,"db_query":"SELECT * FROM friend_list WHERE  user_id = ? AND user_id2 = ? LIMIT 1","db_duration":0.0424959659576416}
+[2025-06-23 09:29:28] DEBUG [8bbafa] DB Query: SELECT * FROM friend_list WHERE  user_id = ? AND user_id2 = ? AND user_id = ? AND user_id2 = ? LIMIT... - Duration: 49.00ms - Context: {"bindings":[3,3,3,3],"found":false,"db_query":"SELECT * FROM friend_list WHERE  user_id = ? AND user_id2 = ? AND user_id = ? AND user_id2 = ? LIMIT 1","db_duration":0.04900193214416504}
+[2025-06-23 09:29:28] DEBUG [8bbafa] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-23 09:29:28] INFO [8bbafa] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-23 09:29:29] WARNING [8bbafa] Activity logs table does not exist, skipping activity logging
+[2025-06-23 09:30:41] DEBUG [18f10f] Controller instantiated - Context: {"controller":"UserController","request_uri":"","request_method":"GET","is_ajax":"no"}
+[2025-06-23 09:30:41] DEBUG [18f10f] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-23 09:30:41] INFO [18f10f] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-23 09:30:41] DEBUG [18f10f] requireAuth called - Context: {"session_status":2,"user_id":3,"is_authenticated":true,"session_data":{"user_id":3}}
+[2025-06-23 09:30:41] DEBUG [18f10f] User authenticated successfully - Context: {"user_id":3}
+[2025-06-23 09:30:41] DEBUG [18f10f] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-23 09:30:41] INFO [18f10f] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-23 09:30:41] DEBUG [18f10f] DB Query: SELECT * FROM users WHERE  id = ? LIMIT 1 - Duration: 43.87ms - Context: {"bindings":[3],"found":true,"db_query":"SELECT * FROM users WHERE  id = ? LIMIT 1","db_duration":0.04387211799621582}
+[2025-06-23 09:30:41] DEBUG [18f10f] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-23 09:30:41] INFO [18f10f] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-23 09:30:41] DEBUG [18f10f] DB Query: SELECT * FROM friend_list WHERE  user_id = ? AND user_id2 = ? LIMIT 1 - Duration: 60.66ms - Context: {"bindings":[3,3],"found":false,"db_query":"SELECT * FROM friend_list WHERE  user_id = ? AND user_id2 = ? LIMIT 1","db_duration":0.06066417694091797}
+[2025-06-23 09:30:41] DEBUG [18f10f] DB Query: SELECT * FROM friend_list WHERE  user_id = ? AND user_id2 = ? AND user_id = ? AND user_id2 = ? LIMIT... - Duration: 51.15ms - Context: {"bindings":[3,3,3,3],"found":false,"db_query":"SELECT * FROM friend_list WHERE  user_id = ? AND user_id2 = ? AND user_id = ? AND user_id2 = ? LIMIT 1","db_duration":0.05115199089050293}
+[2025-06-23 09:30:41] DEBUG [18f10f] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-23 09:30:41] INFO [18f10f] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-23 09:30:41] WARNING [18f10f] Activity logs table does not exist, skipping activity logging

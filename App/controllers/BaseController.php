@@ -154,18 +154,50 @@ class BaseController
             header('Content-Type: application/json');
         }
 
-        $response = [
-            'success' => $statusCode >= 200 && $statusCode < 300,
-            'timestamp' => date('Y-m-d H:i:s'),
-            'data' => $data
-        ];
-
+        $response = [];
+        
+        if (isset($data['success'])) {
+            $response['success'] = $data['success'];
+            unset($data['success']);
+        } else {
+            $response['success'] = $statusCode >= 200 && $statusCode < 300;
+        }
+        
+        if (isset($data['message'])) {
+            $response['message'] = $data['message'];
+            unset($data['message']);
+        }
+        
+        $response['timestamp'] = date('Y-m-d H:i:s');
+        
         if ($statusCode >= 400) {
-            $response['error'] = [
-                'code' => $statusCode,
-                'message' => is_string($data) ? $data : ($data['error'] ?? 'An error occurred')
-            ];
-            unset($response['data']);
+            if (is_string($data)) {
+                $response['error'] = [
+                    'code' => $statusCode,
+                    'message' => $data
+                ];
+            } else if (isset($data['error'])) {
+                $response['error'] = is_array($data['error']) ? 
+                    $data['error'] : 
+                    ['code' => $statusCode, 'message' => $data['error']];
+            } else {
+                $response['error'] = [
+                    'code' => $statusCode,
+                    'message' => 'An error occurred'
+                ];
+            }
+        } else {
+            if (isset($data['data'])) {
+                $response['data'] = $data['data'];
+            } else if (!isset($data['success']) && !isset($data['message']) && !isset($data['timestamp'])) {
+                $response['data'] = $data;
+            } else {
+                foreach ($data as $key => $value) {
+                    if (!isset($response[$key])) {
+                        $response[$key] = $value;
+                    }
+                }
+            }
         }
 
         echo json_encode($response, JSON_PRETTY_PRINT);
@@ -174,44 +206,12 @@ class BaseController
     {
         $response = [
             'success' => true,
+            'message' => $message,
             'timestamp' => date('Y-m-d H:i:s'),
-            'message' => $message
+            'data' => $data
         ];
         
-        if ($data !== null) {
-            if (is_array($data)) {
-                // Preserve 'status' if provided
-                if (isset($data['status'])) {
-                    $response['status'] = $data['status'];
-                    unset($data['status']);
-                } else {
-                    $response['status'] = 'success';
-                }
-                
-                // Preserve 'redirect' if provided
-                if (isset($data['redirect'])) {
-                    $response['redirect'] = $data['redirect'];
-                    unset($data['redirect']);
-                }
-                
-                // Handle the rest of the data
-                if (!empty($data)) {
-                    foreach ($data as $key => $value) {
-                        $response[$key] = $value;
-                    }
-                }
-            } else {
-                $response['data'] = $data;
-            }
-        }
-        
-        http_response_code(200);
-        if (!headers_sent()) {
-            header('Content-Type: application/json');
-        }
-        
-        echo json_encode($response, JSON_PRETTY_PRINT);
-        exit;
+        $this->jsonResponse($response);
     }
 
     protected function successResponse($data = null, $message = 'Success')

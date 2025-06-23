@@ -139,13 +139,19 @@ class ChatSection {
         
         this.chatMessages.addEventListener('mouseover', (e) => {
             const messageContent = e.target.closest('.message-content');
-            if (messageContent && !messageContent.querySelector('.message-actions')) {
+            if (messageContent) {
                 this.showMessageActions(messageContent);
             }
         });
 
         this.chatMessages.addEventListener('mouseout', (e) => {
-            // We don't need to do anything here, as the visibility is handled by CSS
+            const messageContent = e.target.closest('.message-content');
+            const relatedTarget = e.relatedTarget;
+            
+            if (messageContent && !messageContent.contains(relatedTarget) && 
+                !relatedTarget?.closest('.message-actions')) {
+                this.hideMessageActions(messageContent);
+            }
         });
         
         this.chatMessages.addEventListener('click', (e) => {
@@ -190,20 +196,14 @@ class ChatSection {
         this.contextMenuVisible = true;
         
         const editBtn = this.contextMenu.querySelector('[data-action="edit"]');
+        const deleteBtn = this.contextMenu.querySelector('[data-action="delete"]');
+        
         if (editBtn) {
             editBtn.style.display = isOwnMessage ? 'flex' : 'none';
         }
         
-        const menuRect = this.contextMenu.getBoundingClientRect();
-        const windowWidth = window.innerWidth;
-        const windowHeight = window.innerHeight;
-        
-        if (menuRect.right > windowWidth) {
-            this.contextMenu.style.left = `${windowWidth - menuRect.width - 10}px`;
-        }
-        
-        if (menuRect.bottom > windowHeight) {
-            this.contextMenu.style.top = `${windowHeight - menuRect.height - 10}px`;
+        if (deleteBtn) {
+            deleteBtn.style.display = isOwnMessage ? 'flex' : 'none';
         }
         
         this.setupContextMenuListeners();
@@ -212,19 +212,15 @@ class ChatSection {
     setupContextMenuListeners() {
         if (!this.contextMenu) return;
         
-        // Clone and replace buttons to remove old event listeners
         const buttons = this.contextMenu.querySelectorAll('button[data-action]');
         buttons.forEach(button => {
             button.replaceWith(button.cloneNode(true));
         });
         
-        // Add new event listeners
         const newButtons = this.contextMenu.querySelectorAll('button[data-action]');
         newButtons.forEach(button => {
             button.addEventListener('click', (e) => {
                 e.preventDefault();
-                e.stopPropagation();
-                
                 const action = button.getAttribute('data-action');
                 const messageId = this.contextMenu.dataset.messageId;
                 
@@ -233,6 +229,9 @@ class ChatSection {
                 switch (action) {
                     case 'edit':
                         this.editMessage(messageId);
+                        break;
+                    case 'delete':
+                        this.deleteMessage(messageId);
                         break;
                     case 'reply':
                         this.replyToMessage(messageId);
@@ -246,40 +245,21 @@ class ChatSection {
                     case 'pin':
                         this.pinMessage(messageId);
                         break;
+                    case 'thread':
+                        this.startThread(messageId);
+                        break;
+                    case 'copy-id':
+                        this.copyToClipboard(messageId);
+                        break;
+                    case 'copy-link':
+                        this.copyMessageLink(messageId);
+                        break;
+                    case 'mark-unread':
+                        this.markAsUnread(messageId);
+                        break;
                 }
             });
         });
-        
-        // Add event listeners for emoji buttons
-        const emojiButtons = this.contextMenu.querySelectorAll('.emoji-btn');
-        emojiButtons.forEach(button => {
-            button.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                const messageId = this.contextMenu.dataset.messageId;
-                const emoji = button.textContent.trim();
-                
-                this.hideContextMenu();
-                this.addReaction(messageId, emoji);
-            });
-        });
-    }
-    
-    addReaction(messageId, emoji) {
-        if (window.ChatAPI) {
-            window.ChatAPI.addReaction(messageId, emoji)
-                .then(() => {
-                    console.log(`Added reaction ${emoji} to message ${messageId}`);
-                })
-                .catch(error => {
-                    console.error('Failed to add reaction:', error);
-                    this.showNotification('Failed to add reaction', 'error');
-                });
-        } else {
-            console.error('ChatAPI not available');
-            this.showNotification('Cannot add reaction: API not available', 'error');
-        }
     }
     
     editMessage(messageId) {
@@ -482,103 +462,62 @@ class ChatSection {
             actions = this.createMessageActions(messageContent);
             messageContent.appendChild(actions);
         }
+        
+        if (actions) {
+            actions.classList.remove('hidden');
+            actions.classList.add('visible');
+            this.activeMessageActions = actions;
+        }
     }
 
     hideMessageActions(messageContent) {
-        // We don't need to do anything here, as the visibility is handled by CSS
+        const actions = messageContent.querySelector('.message-actions');
+        if (actions) {
+            actions.classList.add('hidden');
+            actions.classList.remove('visible');
+        }
     }
     
     hideAllMessageActions() {
-        // Since visibility is handled by CSS, we only need to clear the active reference
-        this.activeMessageActions = null;
+        if (this.activeMessageActions) {
+            this.activeMessageActions.classList.add('hidden');
+            this.activeMessageActions.classList.remove('visible');
+            this.activeMessageActions = null;
+        }
+        
+        document.querySelectorAll('.message-actions.visible').forEach(element => {
+            element.classList.add('hidden');
+            element.classList.remove('visible');
+        });
     }
     
     createMessageActions(messageContent) {
         const isOwnMessage = messageContent.dataset.userId === this.userId;
         
         const actions = document.createElement('div');
-        actions.className = 'message-actions';
+        actions.className = 'message-actions absolute -top-4 right-4 bg-[#2b2d31] rounded-md shadow-lg flex items-center p-1 space-x-1 z-10';
         
-        const reactionBtn = document.createElement('button');
-        reactionBtn.className = 'message-action-button message-action-reaction';
-        reactionBtn.innerHTML = '<i class="far fa-face-smile"></i>';
-        reactionBtn.title = 'Add Reaction';
+        const createButton = (icon, title, actionClass) => {
+            const button = document.createElement('button');
+            button.className = `${actionClass} w-8 h-8 flex items-center justify-center text-[#b9bbbe] hover:text-white rounded hover:bg-[#3c3f45] transition-colors`;
+            button.innerHTML = `<i class="fas ${icon}"></i>`;
+            button.title = title;
+            return button;
+        };
         
-        const replyBtn = document.createElement('button');
-        replyBtn.className = 'message-action-button message-action-reply';
-        replyBtn.innerHTML = '<i class="fas fa-reply"></i>';
-        replyBtn.title = 'Reply';
-        
-        const copyBtn = document.createElement('button');
-        copyBtn.className = 'message-action-button message-action-copy';
-        copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
-        copyBtn.title = 'Copy Text';
-        
-        const pinBtn = document.createElement('button');
-        pinBtn.className = 'message-action-button message-action-pin';
-        pinBtn.innerHTML = '<i class="fas fa-thumbtack"></i>';
-        pinBtn.title = 'Pin Message';
-        
-        const moreBtn = document.createElement('button');
-        moreBtn.className = 'message-action-button message-action-more';
-        moreBtn.innerHTML = '<i class="fas fa-ellipsis-vertical"></i>';
-        moreBtn.title = 'More';
+        const reactionBtn = createButton('fa-face-smile', 'Add Reaction', 'message-action-reaction');
+        const replyBtn = createButton('fa-reply', 'Reply', 'message-action-reply');
+        const moreBtn = createButton('fa-ellipsis-h', 'More', 'message-action-more');
         
         actions.appendChild(reactionBtn);
+        actions.appendChild(replyBtn);
         
         if (isOwnMessage) {
-            const editBtn = document.createElement('button');
-            editBtn.className = 'message-action-button message-action-edit';
-            editBtn.innerHTML = '<i class="fas fa-pen-to-square"></i>';
-            editBtn.title = 'Edit';
-            
+            const editBtn = createButton('fa-pen-to-square', 'Edit', 'message-action-edit');
             actions.appendChild(editBtn);
         }
         
-        actions.appendChild(replyBtn);
         actions.appendChild(moreBtn);
-        
-        // Set up click handlers for the direct action buttons
-        reactionBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const messageId = messageContent.dataset.messageId;
-            this.showEmojiPicker(messageId, reactionBtn);
-        });
-        
-        replyBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const messageId = messageContent.dataset.messageId;
-            this.replyToMessage(messageId);
-        });
-        
-        if (isOwnMessage) {
-            const editBtn = actions.querySelector('.message-action-edit');
-            if (editBtn) {
-                editBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const messageId = messageContent.dataset.messageId;
-                    this.editMessage(messageId);
-                });
-            }
-        }
-        
-        copyBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const messageId = messageContent.dataset.messageId;
-            this.copyMessageText(messageId);
-        });
-        
-        pinBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const messageId = messageContent.dataset.messageId;
-            this.pinMessage(messageId);
-        });
-        
-        moreBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const rect = moreBtn.getBoundingClientRect();
-            this.showContextMenu(rect.right, rect.top, messageContent);
-        });
         
         return actions;
     }

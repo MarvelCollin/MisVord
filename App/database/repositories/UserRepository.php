@@ -112,4 +112,14 @@ class UserRepository extends Repository {
     public function initialize() {
         return User::initialize();
     }
+    
+    public function getAllUserIds($limit = 10) {
+        $query = new Query();
+        $results = $query->table(User::getTable())
+            ->select('id')
+            ->limit($limit)
+            ->get();
+            
+        return array_column($results, 'id');
+    }
 }

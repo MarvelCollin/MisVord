@@ -119,8 +119,23 @@ abstract class Model {
             ->delete() > 0;
     }
     
+    public function __isset($key) {
+        return isset($this->attributes[$key]);
+    }
+
     public function toArray() {
-        return $this->attributes;
+        $result = [];
+        
+        foreach ($this->attributes as $key => $value) {
+            // Handle nested objects
+            if (is_object($value) && method_exists($value, 'toArray')) {
+                $result[$key] = $value->toArray();
+            } else {
+                $result[$key] = $value;
+            }
+        }
+        
+        return $result;
     }
 }
 

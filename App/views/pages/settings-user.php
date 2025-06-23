@@ -1,7 +1,7 @@
 <?php
 require_once dirname(dirname(__DIR__)) . '/config/session.php';
 require_once dirname(dirname(__DIR__)) . '/controllers/AuthenticationController.php';
-require_once dirname(dirname(__DIR__)) . '/controllers/UserController.php';
+require_once dirname(dirname(__DIR__)) . '/database/repositories/UserRepository.php';
 require_once dirname(dirname(__DIR__)) . '/database/repositories/UserBadgeRepository.php';
 
 if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
@@ -26,8 +26,16 @@ $data_page = 'settings-user';
 $additional_js = ['components/common/image-cutter'];
 $user_id = $_SESSION['user_id'];
 
-$userController = new UserController();
-$user = $userController->getUserData($user_id);
+$userRepository = new UserRepository();
+$user = $userRepository->find($user_id);
+
+if (!$user) {
+    // Handle the case where the user is not found
+    $page_title = 'Error - misvord';
+    $content = '<div class="flex items-center justify-center h-screen bg-discord-dark text-white"><p>Could not load user data. Please try again later.</p></div>';
+    include dirname(dirname(__DIR__)) . '/views/layout/main-app.php';
+    exit;
+}
 
 $userBadges = [];
 if (class_exists('UserBadgeRepository')) {

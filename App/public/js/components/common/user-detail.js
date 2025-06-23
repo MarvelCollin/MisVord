@@ -62,18 +62,25 @@ class UserDetailModal {
     }
 
     show(options = {}) {
-        const { userId, serverId, triggerElement } = options;
-
-        if (!userId) {
+        console.log('User detail requested for user ID:', options.userId);
+        
+        // Our database has users with IDs 3 and 4 based on our test
+        const validUserIds = ['3', '4'];
+        if (!validUserIds.includes(options.userId)) {
+            console.warn(`User ID ${options.userId} is not in the database. Valid user IDs are: ${validUserIds.join(', ')}`);
+        }
+        
+        if (!options.userId) {
             console.error('User ID is required to show user detail modal');
             return;
         }
-
-        this.currentUserId = userId;
-        this.currentServerId = serverId || null;
-
-        if (triggerElement && typeof triggerElement.getBoundingClientRect === 'function') {
-            const rect = triggerElement.getBoundingClientRect();
+        
+        this.currentUserId = options.userId;
+        this.currentServerId = options.serverId || null;
+        
+        // Position the modal relative to the trigger element if provided
+        if (options.triggerElement && typeof options.triggerElement.getBoundingClientRect === 'function') {
+            const rect = options.triggerElement.getBoundingClientRect();
             const modalWidth = 340;
 
             const viewportWidth = window.innerWidth;
@@ -86,7 +93,19 @@ class UserDetailModal {
             if (top + 400 > viewportHeight) {
                 top = Math.max(10, viewportHeight - 400 - 10);
             }
-
+            
+            const container = this.modal.querySelector('.user-detail-container');
+            if (container) {
+                container.style.position = 'absolute';
+                container.style.left = `${left}px`;
+                container.style.top = `${top}px`;
+                container.style.transform = 'none';
+            }
+        }
+        // If position is provided directly, use that
+        else if (options.position) {
+            const { left, top } = options.position;
+            
             const container = this.modal.querySelector('.user-detail-container');
             if (container) {
                 container.style.position = 'absolute';
@@ -100,7 +119,9 @@ class UserDetailModal {
 
         this.fetchUserData()
             .then(userData => {
-                this.displayUserData(userData);
+                if (userData) {
+                    this.displayUserData(userData);
+                }
             })
             .catch(error => {
                 console.error('Error fetching user data:', error);
@@ -147,8 +168,8 @@ class UserDetailModal {
     }
 
 
-    showErrorState() {
-        if (this.nameElement) this.nameElement.textContent = 'User not found';
+    showErrorState(errorMessage = 'User not found') {
+        if (this.nameElement) this.nameElement.textContent = errorMessage;
         if (this.discriminatorElement) this.discriminatorElement.textContent = '';
         if (this.aboutSection) this.aboutSection.textContent = 'Could not load user information.';
         if (this.memberSinceSection) this.memberSinceSection.textContent = 'Unknown';
@@ -156,6 +177,13 @@ class UserDetailModal {
         
         if (this.mutualServersElement) this.mutualServersElement.textContent = '0 Mutual Servers';
         if (this.mutualFriendsElement) this.mutualFriendsElement.textContent = '0 Mutual Friends';
+
+        if (this.avatar) this.avatar.src = '';
+        if (this.banner) this.banner.style.backgroundColor = '#5865f2';
+        
+        // Hide action buttons since user doesn't exist
+        const actionButtons = this.modal.querySelector('.user-detail-actions');
+        if (actionButtons) actionButtons.style.display = 'none';
     }
 
 
@@ -164,19 +192,47 @@ class UserDetailModal {
             const userApi = await import('../../api/user-api.js').then(module => module.default);
             
             // Get user profile data
+            console.log('Fetching user profile for user ID:', this.currentUserId, 'server ID:', this.currentServerId);
             const userData = await userApi.getUserProfile(this.currentUserId, this.currentServerId);
+            console.log('User profile API response:', userData);
+            
             if (!userData || !userData.success) {
-                throw new Error(userData?.message || 'Failed to fetch user data');
+                const errorMessage = userData?.message || 'Failed to fetch user data';
+                console.error('User profile API error:', errorMessage);
+                
+                // If we get a 404 error, it means the user ID doesn't exist in the database
+                if (userData?.error?.code === 404) {
+                    console.warn('User not found. User might not exist in the database.');
+                    this.showErrorState(userData?.message || 'User not found');
+                    return null;
+                }
+                
+                throw new Error(errorMessage);
+            }
+            
+            // Check for data in the expected format
+            if (!userData.data || !userData.data.user) {
+                console.error('User profile API returned unexpected format:', userData);
+                throw new Error('Unexpected data format from server');
             }
             
             // Check if this is another user (not the current user) to get mutual data
             const currentUserId = document.getElementById('app-container')?.dataset.userId;
             if (currentUserId && this.currentUserId !== currentUserId) {
                 try {
-                    // Use the new API method for mutual relations
+                    // Get mutual relations
+                    console.log('Fetching mutual relations for user ID:', this.currentUserId);
                     const mutualData = await userApi.getMutualRelations(this.currentUserId);
+                    console.log('Mutual relations API response:', mutualData);
+                    
                     if (mutualData && mutualData.success && mutualData.data) {
                         userData.data.mutualData = mutualData.data;
+                    } else {
+                        console.warn('Mutual data API returned unsuccessful response:', mutualData);
+                        userData.data.mutualData = {
+                            mutual_friend_count: 0,
+                            mutual_server_count: 0
+                        };
                     }
                 } catch (error) {
                     console.error('Error fetching mutual data:', error);
@@ -190,7 +246,7 @@ class UserDetailModal {
             
             return userData.data;
         } catch (error) {
-            console.error('Error fetching user data:', error);
+            console.error('Error in fetchUserData:', error);
             throw error;
         }
     }

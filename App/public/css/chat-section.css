@@ -34,19 +34,21 @@
   width: 100%;
   cursor: default;
   transition: background-color 0.15s ease;
+  padding: 2px 0;
 }
 
 /* Message actions */
 .message-actions {
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.15s ease, visibility 0.15s ease;
+  transition: opacity 0.1s ease, visibility 0.1s ease;
+  top: -16px;
+  right: 16px;
 }
 
 .message-actions.visible {
   opacity: 1;
   visibility: visible;
-  display: flex;
 }
 
 .message-text {
@@ -108,18 +110,18 @@ textarea.scrollbar-thin::-webkit-scrollbar-thumb {
 
 /* Context menu animations */
 .context-menu {
-  animation: contextMenuFadeIn 0.15s ease-out;
-  transform-origin: top center;
+  animation: contextMenuFadeIn 0.1s ease-out;
+  transform-origin: top right;
 }
 
 @keyframes contextMenuFadeIn {
   from {
     opacity: 0;
-    transform: translateY(-8px) scale(0.95);
+    transform: scale(0.95);
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: scale(1);
   }
 }
 
@@ -131,4 +133,9 @@ body {
 /* Discord-style transitions */
 button {
   transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.message-group:hover .message-actions {
+  opacity: 1;
+  visibility: visible;
 }

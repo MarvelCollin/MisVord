@@ -146,33 +146,43 @@ class FriendListRepository extends Repository {
     
     public function getFriendshipStatus($userId, $otherUserId)
     {
-        $query = new Query();
-        $result = $query->raw("SELECT status FROM friend_list 
-                  WHERE user_id = ? AND user_id2 = ? 
-                  LIMIT 1", [$userId, $otherUserId])->first();
-        
-        if ($result) {
-            if ($result['status'] === 'accepted') {
-                return 'friends';
-            } elseif ($result['status'] === 'pending') {
-                return 'pending_sent';
-            } elseif ($result['status'] === 'blocked') {
-                return 'blocked';
-            }
+        if (!$userId || !$otherUserId) {
+            return null;
         }
         
-        $result = $query->raw("SELECT status FROM friend_list 
-                  WHERE user_id = ? AND user_id2 = ? 
-                  LIMIT 1", [$otherUserId, $userId])->first();
-        
-        if ($result) {
-            if ($result['status'] === 'accepted') {
-                return 'friends';
-            } elseif ($result['status'] === 'pending') {
-                return 'pending_received';
-            } elseif ($result['status'] === 'blocked') {
-                return 'blocked_by';
+        $query = new Query();
+        try {
+            $result = $query->table('friend_list')
+                ->where('user_id', $userId)
+                ->where('user_id2', $otherUserId)
+                ->first();
+            
+            if ($result) {
+                if ($result['status'] === 'accepted') {
+                    return 'friends';
+                } elseif ($result['status'] === 'pending') {
+                    return 'pending_sent';
+                } elseif ($result['status'] === 'blocked') {
+                    return 'blocked';
+                }
             }
+            
+            $result = $query->table('friend_list')
+                ->where('user_id', $otherUserId)
+                ->where('user_id2', $userId)
+                ->first();
+            
+            if ($result) {
+                if ($result['status'] === 'accepted') {
+                    return 'friends';
+                } elseif ($result['status'] === 'pending') {
+                    return 'pending_received';
+                } elseif ($result['status'] === 'blocked') {
+                    return 'blocked_by';
+                }
+            }
+        } catch (Exception $e) {
+            error_log("Error in getFriendshipStatus: " . $e->getMessage());
         }
         
         return null;

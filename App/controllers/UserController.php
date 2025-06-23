@@ -352,6 +352,20 @@ class UserController extends BaseController
             return $this->error('User ID is required', 400);
         }
         
+        // Debug - check valid user IDs
+        require_once __DIR__ . '/../database/query.php';
+        $query = new Query();
+        $validUserIds = $query->table('users')
+            ->select('id')
+            ->limit(10)
+            ->get();
+        $validUserIds = array_column($validUserIds, 'id');
+        
+        if (!in_array($userId, $validUserIds)) {
+            error_log("Warning: Requested user ID {$userId} is not in the database. Valid IDs: " . implode(', ', $validUserIds));
+            return $this->error("User ID {$userId} not found. Valid user IDs are: " . implode(', ', $validUserIds), 404);
+        }
+        
         $currentUserId = $this->getCurrentUserId();
         $serverId = isset($_GET['server_id']) ? $_GET['server_id'] : null;
         
@@ -362,19 +376,29 @@ class UserController extends BaseController
                 return $this->error('User not found', 404);
             }
             
-            $user->is_self = ($userId == $currentUserId);
+            // Use toArray() instead of accessing protected property
+            $userData = $user->toArray();
+            
+            // Ensure essential fields are present with fallbacks
+            $userData['id'] = $user->id;
+            $userData['username'] = $user->username ?? 'Unknown User';
+            $userData['discriminator'] = $user->discriminator ?? '0000';
+            $userData['avatar_url'] = $user->avatar_url ?? null;
+            $userData['banner_url'] = $user->banner_url ?? null;
+            $userData['status'] = $user->status ?? 'offline';
+            $userData['bio'] = $user->bio ?? '';
+            $userData['created_at'] = $user->created_at ?? null;
+            
+            // Add relationship flags
+            $userData['is_self'] = ($userId == $currentUserId);
             
             $friendStatus = $this->friendListRepository->getFriendshipStatus($currentUserId, $userId);
-            $user->is_friend = ($friendStatus === 'friends');
-            $user->friend_request_sent = ($friendStatus === 'pending_sent');
-            $user->friend_request_received = ($friendStatus === 'pending_received');
-            
-            if (!isset($user->bio)) {
-                $user->bio = '';
-            }
+            $userData['is_friend'] = ($friendStatus === 'friends');
+            $userData['friend_request_sent'] = ($friendStatus === 'pending_sent');
+            $userData['friend_request_received'] = ($friendStatus === 'pending_received');
             
             $responseData = [
-                'user' => $user
+                'user' => $userData
             ];
             
             if ($serverId) {
@@ -395,7 +419,7 @@ class UserController extends BaseController
                 try {
                     $membership = $membershipRepository->getUserServerMembership($userId, $serverId);
                     if ($membership) {
-                        $responseData['server_join_date'] = $membership->created_at;
+                        $responseData['server_join_date'] = $membership['created_at'];
                     }
                 } catch (Exception $membershipError) {
                     error_log("Error loading membership: " . $membershipError->getMessage());
@@ -658,31 +682,51 @@ class UserController extends BaseController
         try {
             // Get mutual friends
             $mutualFriends = [];
-            $currentUserFriends = $this->friendListRepository->getUserFriends($currentUserId);
-            $otherUserFriends = $this->friendListRepository->getUserFriends($userId);
-            
-            $currentUserFriendIds = array_column($currentUserFriends, 'id');
-            
-            foreach ($otherUserFriends as $friend) {
-                if (in_array($friend['id'], $currentUserFriendIds)) {
-                    $mutualFriends[] = $friend;
+            try {
+                $currentUserFriends = $this->friendListRepository->getUserFriends($currentUserId) ?: [];
+                $otherUserFriends = $this->friendListRepository->getUserFriends($userId) ?: [];
+                
+                $currentUserFriendIds = array_column($currentUserFriends, 'id');
+                
+                foreach ($otherUserFriends as $friend) {
+                    if (isset($friend['id']) && in_array($friend['id'], $currentUserFriendIds)) {
+                        // Make sure we have essential fields
+                        $mutualFriends[] = [
+                            'id' => $friend['id'],
+                            'username' => $friend['username'] ?? 'Unknown User',
+                            'avatar_url' => $friend['avatar_url'] ?? null
+                        ];
+                    }
                 }
+            } catch (Exception $friendError) {
+                error_log("Error getting mutual friends: " . $friendError->getMessage());
+                $mutualFriends = [];
             }
             
             // Get mutual servers
             $mutualServers = [];
-            require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
-            $membershipRepository = new UserServerMembershipRepository();
-            
-            $currentUserServers = $membershipRepository->getServersForUser($currentUserId);
-            $otherUserServers = $membershipRepository->getServersForUser($userId);
-            
-            $currentUserServerIds = array_column($currentUserServers, 'id');
-            
-            foreach ($otherUserServers as $server) {
-                if (in_array($server['id'], $currentUserServerIds)) {
-                    $mutualServers[] = $server;
+            try {
+                require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
+                $membershipRepository = new UserServerMembershipRepository();
+                
+                $currentUserServers = $membershipRepository->getServersForUser($currentUserId) ?: [];
+                $otherUserServers = $membershipRepository->getServersForUser($userId) ?: [];
+                
+                $currentUserServerIds = array_column($currentUserServers, 'id');
+                
+                foreach ($otherUserServers as $server) {
+                    if (isset($server['id']) && in_array($server['id'], $currentUserServerIds)) {
+                        // Make sure we have essential fields
+                        $mutualServers[] = [
+                            'id' => $server['id'],
+                            'name' => $server['name'] ?? 'Unknown Server',
+                            'image_url' => $server['image_url'] ?? null
+                        ];
+                    }
                 }
+            } catch (Exception $serverError) {
+                error_log("Error getting mutual servers: " . $serverError->getMessage());
+                $mutualServers = [];
             }
             
             return $this->success([
@@ -696,6 +740,9 @@ class UserController extends BaseController
                 'user_id' => $userId,
                 'error' => $e->getMessage()
             ]);
+            
+            error_log("Error in getMutualRelations: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
             
             return $this->serverError('Failed to retrieve mutual relations: ' . $e->getMessage());
         }

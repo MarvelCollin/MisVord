@@ -462,100 +462,56 @@
 
 /* Action bar styling */
 .message-actions {
-    position: absolute;
-    right: 10px;
-    top: 0;
-    background-color: #2f3136;
-    border-radius: 8px;
-    box-shadow: 0 0 0 1px rgba(4,4,5,0.15), 0 4px 4px rgba(0,0,0,0.16);
-    display: flex;
-    align-items: center;
-    padding: 4px;
-    z-index: 100;
-    opacity: 0;
-    transform: translateY(-4px);
-    transition: opacity 0.15s ease, transform 0.15s ease;
-    pointer-events: none;
-}
-
-.message-content:hover .message-actions {
-    opacity: 1;
-    transform: translateY(0);
-    pointer-events: auto;
-}
-
-.message-action-button {
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #b9bbbe;
-    border-radius: 4px;
-    background-color: transparent;
-    transition: background-color 0.15s ease, color 0.15s ease;
-}
-
-.message-action-button:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-    color: white;
-}
-
-/* Context menu styling */
-#message-context-menu {
-    background-color: #2b2d31;
+    background: rgba(54, 57, 63, 0.95);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(79, 84, 92, 0.3);
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.24);
-    border-radius: 4px;
-    overflow: hidden;
-    animation: contextMenuFadeIn 0.1s ease;
-    z-index: 1000;
+}
+
+.message-actions button {
+    transition: all 0.1s ease;
+}
+
+.message-actions button:hover {
+    background-color: rgba(116, 127, 141, 0.16);
+    transform: scale(1.05);
+}
+
+/* Context menu improvements */
+.context-menu {
+    background: rgba(54, 57, 63, 0.95);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(79, 84, 92, 0.6);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    animation: contextMenuFadeIn 0.15s cubic-bezier(0.2, 0, 0.13, 1.5);
 }
 
 @keyframes contextMenuFadeIn {
-    from {
+    0% {
         opacity: 0;
-        transform: scale(0.98);
+        transform: scale(0.9) translateY(-8px);
     }
-    to {
+    100% {
         opacity: 1;
-        transform: scale(1);
+        transform: scale(1) translateY(0);
     }
 }
 
-#message-context-menu button {
-    transition: background-color 0.15s ease, color 0.15s ease;
+.context-item {
+    transition: all 0.1s ease;
 }
 
-#message-context-menu button:hover {
-    background-color: #5865f2;
-    color: white;
+.context-item:hover {
+    background-color: rgba(116, 127, 141, 0.16) !important;
 }
 
-#message-context-menu button.danger:hover {
-    background-color: #ed4245;
+.quick-reaction {
+    transition: all 0.1s ease;
 }
 
-/* Message hover behavior */
-.message-group {
-    position: relative;
-    transition: background-color 0.15s ease;
-}
-
-.message-group:hover {
-    background-color: rgba(4, 4, 5, 0.07);
-}
-
-.message-content {
-    position: relative;
-}
-
-/* Improve reaction buttons */
-.emoji-btn {
-    transition: background-color 0.15s ease;
-}
-
-.emoji-btn:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+.quick-reaction:hover {
+    background-color: rgba(116, 127, 141, 0.24);
+    transform: scale(1.1);
 }
 
 /* Message grouping styles */
@@ -807,4 +763,3 @@
     background-color: rgba(88, 101, 242, 0.2);
     border-radius: 4px;
 }
-
