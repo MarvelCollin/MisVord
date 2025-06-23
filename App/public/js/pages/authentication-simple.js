@@ -341,11 +341,11 @@ document.addEventListener('DOMContentLoaded', () => {
     initPasswordFieldMasking();
     initSecurityQuestionForm();
 
-    // Check if we're on the login page and having an error state
+    
     if (window.location.pathname === '/login' && document.body.innerHTML.trim() === '') {
         console.error('Empty body detected in login page, reloading...');
         
-        // Force a clean state reload
+        
         sessionStorage.clear();
         localStorage.removeItem('user_token');
         localStorage.removeItem('connect_socket_on_login');
@@ -353,22 +353,22 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.removeItem('active_dm');
         localStorage.removeItem('active_server');
         
-        // Add a delay before reload to ensure clean slate
+        
         setTimeout(() => {
             window.location.href = '/login?fresh=1';
         }, 100);
     }
     
-    // Set a global error handler for uncaught errors
+    
     window.addEventListener('error', function(event) {
         console.error('Global error caught:', event.error || event.message);
         
-        // If we're on the authentication page and have an error, try to recover
+        
         if (document.body.classList.contains('authentication-page')) {
-            // Log the error for debugging
+            
             console.error('Authentication page error:', event.error || event.message);
             
-            // Create recovery UI if page is empty
+            
             if (document.body.innerHTML.trim() === '') {
                 document.body.innerHTML = `
                     <div style="display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column; background: #202225; color: white; font-family: sans-serif;">
@@ -482,7 +482,7 @@ function validateLoginForm(e) {
         isValid = false;
     }
 
-    // Only validate captcha if it exists
+    
     if (captchaInput) {
         const captchaValue = captchaInput.value.trim();
 
@@ -503,7 +503,7 @@ function validateLoginForm(e) {
                 }
             } catch (err) {
                 console.error('Error validating captcha:', err);
-                // Continue with form submission
+                
             }
         }
     }
@@ -606,7 +606,7 @@ function validateForgotForm(e) {
     clearErrors(form);
 
     if (!hasSecurityQuestion) {
-        // Email validation
+        
         if (!email) {
             showError(form.querySelector('#forgot_email'), 'Email is required');
             isValid = false;
@@ -615,7 +615,7 @@ function validateForgotForm(e) {
             isValid = false;
         }
     } else {
-        // Security answer validation
+        
         if (!securityAnswer || securityAnswer.trim() === '') {
             showError(form.querySelector('#security_answer'), 'Security answer is required');
             isValid = false;
@@ -740,7 +740,7 @@ function initPasswordStrength() {
         });
     }
     
-    // Reset password form
+    
     const resetPasswordInput = document.getElementById('new_password');
     const resetConfirmInput = document.getElementById('confirm_new_password');
     const resetStrengthBar = document.getElementById('resetPasswordStrength');
@@ -775,7 +775,7 @@ function initPasswordStrength() {
         });
     }
 
-    // Add security question visual validation
+    
     const securityQuestion = document.getElementById('security_question');
     if (securityQuestion) {
         securityQuestion.addEventListener('change', function () {
@@ -888,7 +888,7 @@ function validateSecurityAnswerField(field) {
 function initCaptcha() {
     if (typeof window.TextCaptcha !== 'function') {
         console.warn('TextCaptcha is not loaded. Captcha validation will be skipped.');
-        // Create a dummy verify method to prevent errors
+        
         window.loginCaptcha = {
             verify: function() { return true; },
             refresh: function() { }
@@ -901,38 +901,38 @@ function initCaptcha() {
     }
 
     try {
-        // Initialize login captcha
+        
         const loginCaptchaContainer = document.getElementById('login-captcha-container');
         if (loginCaptchaContainer) {
             window.loginCaptcha = new TextCaptcha('login-captcha-container', {
                 length: 6
             });
         } else {
-            // Create a dummy captcha object if container not found
+            
             window.loginCaptcha = {
                 verify: function() { return true; },
                 refresh: function() { }
             };
         }
 
-        // Initialize register captcha
+        
         const registerCaptchaContainer = document.getElementById('register-captcha-container');
         if (registerCaptchaContainer) {
             window.registerCaptcha = new TextCaptcha('register-captcha-container', {
                 length: 6
             });
         } else {
-            // Create a dummy captcha object if container not found
+            
             window.registerCaptcha = {
                 verify: function() { return true; },
                 refresh: function() { }
             };
         }
         
-        // Note: We don't need captcha for the forgot password form
+        
     } catch (e) {
         console.error('Error creating captcha:', e);
-        // If there's an error, create dummy captcha objects
+        
         window.loginCaptcha = {
             verify: function() { return true; },
             refresh: function() { }
@@ -943,18 +943,18 @@ function initCaptcha() {
         };
     }
 
-    // Setup login form captcha validation
+    
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
         const originalSubmit = loginForm.onsubmit;
         loginForm.onsubmit = function (e) {
             try {
                 const captchaInput = document.getElementById('login_captcha');
-                if (!captchaInput) return true; // Allow form to submit if captcha input doesn't exist
+                if (!captchaInput) return true; 
 
                 if (!window.loginCaptcha) {
                     console.warn('Login captcha not initialized, allowing form submission');
-                    return true; // Allow form to submit if captcha wasn't initialized
+                    return true; 
                 }
 
                 if (!window.loginCaptcha.verify(captchaInput.value)) {
@@ -981,7 +981,7 @@ function initCaptcha() {
                 }
             } catch (error) {
                 console.error('Error in login form validation:', error);
-                // Allow form submission on error to prevent blocking user
+                
                 return true;
             }
 
@@ -993,7 +993,7 @@ function initCaptcha() {
         };
     }
 
-    // Setup register form captcha validation
+    
     const registerForm = document.getElementById('registerForm');
     if (registerForm) {
         const originalSubmit = registerForm.onsubmit;
@@ -1031,7 +1031,7 @@ function initCaptcha() {
                 }
             } catch (error) {
                 console.error('Error in register form validation:', error);
-                // Allow form submission on error to prevent blocking user
+                
                 return true;
             }
 
@@ -1043,7 +1043,7 @@ function initCaptcha() {
         };
     }
     
-    // No captcha validation for forgotForm - password recovery doesn't need captcha
+    
 }
 
 function setupSocketInitialization() {
@@ -1132,7 +1132,7 @@ function initPasswordFieldMasking() {
                 font-family: 'password';
                 font-style: normal;
                 font-weight: 400;
-                src: url(data:font/woff;base64,d09GRgABAAAAAAfsABAAAAAADAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABGRlRNAAAHwAAAABwAAAAcaFMWO0dERUYAAAfAAAAAHAAAAB4AJwAcT1MvMgAAAZgAAABHAAAAVi+vS9xjbWFwAAAB+AAAAEcAAAFS6CL7lGdhc3AAAAe4AAAACAAAAAj//wADZ2x5ZgAAAlgAAAEzAAABeLy/JLZoZWFkAAABMAAAAC0AAAA2/Jf3M2hoZWEAAAFgAAAAHAAAACQHMgOlaG10eAAAAeAAAAAPAAAAFAwAAABsb2NhAAACRAAAAA4AAAAOAKYAIG1heHAAAAF8AAAAHgAAACAATABubmFtZQAAA4wAAADkAAAB1H7x7HFwb3N0AAAEcAAAAC0AAABMM4xvuXjaY2BkYGAA4gVmC5Tj+W2+MnAzMYDApdl/rzDj+f+//+8xMTAeAHI5GMDSAACiegvPAHjaY2BkYGA88P8Agx4TAwPD/z8MDEwMQBEUwAcAW+IEDAAAAQAAAAEAAAAAAAAAAKYAIAAAAAEAAAAKAAYACAABAAAAAAAA7QCkAAEAAAAAAAEABgAAAAEAAAAAAAIABwAGAAEAAAAAAAMAIwANAAEAAAAAAAQABgAwAAEAAAAAAAUACwA2AAEAAAAAAAYABgBBAAMAAQQJAAEADAAHAAMAAQQJAAIADgATAAMAAQQJAAMARgAhAAMAAQQJAAQADAAHAAMAAQQJAAUAFgBBAAMAAQQJAAYADABXcGFzc3dvcmQAcABhAHMAcwB3AG8AcgBkVmVyc2lvbiAxLjAAVgBlAHIAcwBpAG8AbgAgADEALgAwcGFzc3dvcmQAcABhAHMAcwB3AG8AcgBkcGFzc3dvcmQAcABhAHMAcwB3AG8AcgBkUmVndWxhcgBSAGUAZwB1AGwAYQBycGFzc3dvcmQAcABhAHMAcwB3AG8AcgBkRm9udCBnZW5lcmF0ZWQgYnkgSWNvTW9vbi4ARgBvAG4AdAAgAGcAZQBuAGUAcgBhAHQAZQBkACAAYgB5ACAASQBjAG8ATQBvAG8AbgAuAAAAAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==) format('woff');
+                src: url(data:font/woff;base64,d09GRgABAAAAAAfsABAAAAAADAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABGRlRNAAAHwAAAABwAAAAcaFMWO0dERUYAAAfAAAAAHAAAAB4AJwAcT1MvMgAAAZgAAABHAAAAVi+vS9xjbWFwAAAB+AAAAEcAAAFS6CL7lGdhc3AAAAe4AAAACAAAAAj
             }
         `;
         document.head.appendChild(style);
@@ -1202,20 +1202,18 @@ function initSecurityQuestionForm() {
     });
 }
 
-// Add a white screen detection at the top level
 (function() {
-    // Check if the page is having loading issues (white screen)
     if (document.readyState === 'complete' && document.body && document.body.innerHTML.trim() === '') {
         console.error('White screen detected on authentication page, attempting recovery');
         
-        // Clear potential problematic session data
+        
         sessionStorage.clear();
         
-        // Redirect to login with fresh parameter
+        
         window.location.href = '/login?fresh=1';
     }
     
-    // Set a timeout to check again after page should be fully loaded
+    
     setTimeout(function() {
         if (document.body && document.body.innerHTML.trim() === '') {
             console.error('White screen persists after load, forcing recovery');

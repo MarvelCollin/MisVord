@@ -43,7 +43,7 @@ ob_start();
 
 <meta name="user-status" content="<?php echo htmlspecialchars($user->status ?? 'offline'); ?>">
 <meta name="user-id" content="<?php echo htmlspecialchars($user->id ?? ''); ?>">
-<meta name="user-avatar" content="<?php echo htmlspecialchars($user->avatar_url ?? '/public/assets/common/main-logo.png'); ?>">
+<meta name="user-avatar" content="<?php echo htmlspecialchars($user->avatar_url ?? '/public/assets/main-logo.png'); ?>">
 
 <div class="flex min-h-screen max-w-[1480px] mx-auto">
     <div class="w-60 bg-discord-light border-r border-discord-dark">
@@ -149,7 +149,7 @@ ob_start();
                                 <?php if ($user->avatar_url): ?>
                                     <img id="server-icon-preview" src="<?php echo htmlspecialchars($user->avatar_url); ?>" alt="User Avatar" class="w-full h-full object-cover">
                                 <?php else: ?>
-                                    <img id="server-icon-preview" src="/public/assets/common/main-logo.png" alt="Default Avatar" class="w-full h-full object-cover">
+                                    <img id="server-icon-preview" src="/public/assets/main-logo.png" alt="Default Avatar" class="w-full h-full object-cover">
                                 <?php endif; ?>
                                 
                                 <?php 
@@ -279,7 +279,7 @@ ob_start();
                     <?php if ($user->avatar_url): ?>
                         <img src="<?php echo htmlspecialchars($user->avatar_url); ?>" alt="User Avatar" class="w-full h-full object-cover">
                     <?php else: ?>
-                        <img src="/public/assets/common/main-logo.png" alt="Default Avatar" class="w-full h-full object-cover">
+                        <img src="/public/assets/main-logo.png" alt="Default Avatar" class="w-full h-full object-cover">
                     <?php endif; ?>
                     
                     <?php 

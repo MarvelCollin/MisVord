@@ -617,7 +617,7 @@ class ChatSection {
                 user_id: this.userId,
                 userId: this.userId,
                 username: this.username,
-                avatar_url: document.querySelector('meta[name="user-avatar"]')?.content || '/assets/common/main-logo.png',
+                avatar_url: document.querySelector('meta[name="user-avatar"]')?.content || '/assets/main-logo.png',
                 sent_at: timestamp,
                 timestamp: timestamp,
                 isLocalOnly: true,
@@ -857,7 +857,7 @@ class ChatSection {
             content: message.content || message.message?.content || '',
             user_id: message.userId || message.user_id || '',
             username: message.username || message.message?.username || 'Unknown User',
-            avatar_url: message.avatar_url || message.message?.avatar_url || '/assets/common/main-logo.png',
+            avatar_url: message.avatar_url || message.message?.avatar_url || '/assets/main-logo.png',
             sent_at: message.timestamp || message.sent_at || Date.now(),
             isLocalOnly: message.isLocalOnly || false
         };
@@ -895,12 +895,12 @@ class ChatSection {
         avatarContainer.className = 'flex-shrink-0 mr-3 mt-0.5';
         
         const avatar = document.createElement('img');
-        avatar.src = message.avatar_url || '/assets/common/main-logo.png';
+        avatar.src = message.avatar_url || '/assets/main-logo.png';
         avatar.className = 'w-10 h-10 rounded-full';
         avatar.alt = `${message.username}'s avatar`;
         avatar.onerror = function() {
             this.onerror = null;
-            this.src = '/assets/common/main-logo.png';
+            this.src = '/assets/main-logo.png';
         };
         
         avatarContainer.appendChild(avatar);
@@ -997,8 +997,7 @@ class ChatSection {
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#039;');
-            
-        // Simple markdown-like formatting
+
         let formattedContent = escapedContent
             .replace(/\n/g, '<br>')
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
@@ -1079,11 +1078,9 @@ class ChatSection {
     }
     
     showNotification(message, type = 'success') {
-        // Show temporary notification
         const notification = document.createElement('div');
         notification.textContent = message;
         
-        // Set color based on type
         let bgColor = 'bg-[#5865f2]';
         if (type === 'error') bgColor = 'bg-[#ed4245]';
         else if (type === 'warning') bgColor = 'bg-yellow-500';
@@ -1092,7 +1089,6 @@ class ChatSection {
         notification.className = `fixed bottom-28 right-4 ${bgColor} text-white px-3 py-2 rounded-lg shadow-lg text-sm z-50`;
         document.body.appendChild(notification);
         
-        // Remove notification after 3 seconds
         setTimeout(() => {
             notification.remove();
         }, 3000);
@@ -1115,15 +1111,12 @@ class ChatSection {
             io.on('new-channel-message', function(data) {
                 console.log('Received channel message:', data);
                 if (self.chatType === 'channel' && data.channelId == self.targetId) {
-                    // Generate a reliable message ID if one doesn't exist
                     const messageId = data.id || `${data.userId}-${data.timestamp}`;
                     data.id = messageId;
                     
-                    // Only add messages we haven't processed yet
                     if (!self.processedMessageIds.has(messageId)) {
                         self.processedMessageIds.add(messageId);
                         
-                        // Only add messages from other users (our own are added when sent)
                         if (data.userId != self.userId) {
                             self.addMessage(data);
                         }
@@ -1134,15 +1127,12 @@ class ChatSection {
             io.on('user-message-dm', function(data) {
                 console.log('Received DM message:', data);
                 if ((self.chatType === 'direct' || self.chatType === 'dm') && data.roomId == self.targetId) {
-                    // Generate a reliable message ID if one doesn't exist
                     const messageId = data.id || `${data.userId}-${data.timestamp}`;
                     data.id = messageId;
                     
-                    // Only add messages we haven't processed yet
                     if (!self.processedMessageIds.has(messageId)) {
                         self.processedMessageIds.add(messageId);
                         
-                        // Only add messages from other users (our own are added when sent)
                         if (data.userId != self.userId) {
                             self.addMessage(data);
                         }
@@ -1152,7 +1142,6 @@ class ChatSection {
             
             io.on('message-sent', function(data) {
                 console.log('Message confirmation received:', data);
-                // Update temporary message with confirmed ID
                 const tempMessage = document.querySelector(`.message-content[data-message-id^="local-"]`);
                 if (tempMessage) {
                     tempMessage.setAttribute('data-message-id', data.id);
@@ -1161,14 +1150,12 @@ class ChatSection {
             });
             
             io.on('user-typing', function(data) {
-                // Only show typing indicators from users in the current channel
                 if (self.chatType === 'channel' && data.channelId == self.targetId && data.userId != self.userId) {
                     self.showTypingIndicator(data.userId, data.username);
                 }
             });
             
-            io.on('user-typing-dm', function(data) {
-                // Only show typing indicators from users in the current DM
+            io.on('user-typing-dm', function(data) {        
                 if ((self.chatType === 'direct' || self.chatType === 'dm') && data.roomId == self.targetId && data.userId != self.userId) {
                     self.showTypingIndicator(data.userId, data.username);
                 }
@@ -1186,7 +1173,6 @@ class ChatSection {
                 }
             });
             
-            // Join the appropriate channel
             self.joinChannel();
         };
         
@@ -1210,7 +1196,6 @@ class ChatSection {
         const roomId = this.chatType === 'channel' ? this.targetId : null;
         const dmRoomId = (this.chatType === 'direct' || this.chatType === 'dm') ? this.targetId : null;
         
-        // Only join if we haven't already joined this room
         if (roomId && !this.joinedRooms.has(`channel-${roomId}`)) {
             window.globalSocketManager.joinChannel(roomId);
             this.joinedRooms.add(`channel-${roomId}`);
@@ -1254,20 +1239,17 @@ class ChatSection {
             if (response && response.data && response.data.messages) {
                 console.log('Loaded messages from database:', response.data.messages);
                 
-                // Store message IDs to prevent duplicate messages
                 response.data.messages.forEach(msg => {
                     this.processedMessageIds.add(msg.id);
                 });
                 
                 if (offset === 0) {
-                    // First load - render and add "load more" button if needed
                     this.renderMessages(response.data.messages);
                     
                     if (response.data.messages.length >= limit) {
                         this.addLoadMoreButton();
                     }
                 } else {
-                    // Append older messages at the top
                     this.prependMessages(response.data.messages);
                     
                     if (response.data.messages.length < limit) {
@@ -1368,10 +1350,8 @@ class ChatSection {
         
         loadMoreDiv.appendChild(loadMoreBtn);
         
-        // Insert at the beginning of chat
         this.chatMessages.insertBefore(loadMoreDiv, this.chatMessages.firstChild);
         
-        // Add scroll event listener to automatically load more when scrolling to top
         this.setupScrollListener();
     }
     
@@ -1385,7 +1365,7 @@ class ChatSection {
             
             const { scrollTop } = this.chatMessages;
             if (scrollTop < 100) {
-                this.scrollListenerActive = false; // Prevent multiple triggers
+                this.scrollListenerActive = false;
                 this.loadOlderMessages();
             }
         });
@@ -1440,7 +1420,6 @@ class ChatSection {
     prependMessages(messages) {
         if (!this.chatMessages) return;
         
-        // Find insertion point - after load more button, if it exists
         let insertionPoint = this.chatMessages.firstChild;
         if (insertionPoint && insertionPoint.id === 'load-more-messages') {
             insertionPoint = insertionPoint.nextSibling;
@@ -1449,7 +1428,6 @@ class ChatSection {
         let lastSenderId = null;
         let messageGroup = null;
         
-        // Process in reverse to maintain chronological order
         [...messages].reverse().forEach(message => {
             if (message.user_id !== lastSenderId) {
                 messageGroup = this.createMessageGroup(message);

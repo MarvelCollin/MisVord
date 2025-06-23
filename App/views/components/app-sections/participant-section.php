@@ -16,14 +16,11 @@ foreach ($members as $member) {
     $membersById[$roleId][] = $member;
 }
 
-$onlineCount = array_reduce($members, function($count, $member) {
-    return $count + ($member['status'] !== 'offline' ? 1 : 0);
-}, 0);
+$totalMemberCount = count($members);
 
-function renderMemberSkeleton($count = 1, $isOffline = false) {
-    $opacity = $isOffline ? 'opacity-50' : '';
+function renderMemberSkeleton($count = 1) {
     for ($i = 0; $i < $count; $i++) {
-        echo '<div class="flex items-center px-2 py-1 rounded ' . $opacity . '">';
+        echo '<div class="flex items-center px-2 py-1 rounded">';
         echo '  <div class="relative mr-2">';
         echo '    <div class="w-8 h-8 rounded-full bg-gray-700 animate-pulse"></div>';
         echo '    <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark bg-gray-600 animate-pulse"></span>';
@@ -61,7 +58,7 @@ function renderRoleSkeleton($count = 1) {
         
         <div class="mt-4">
             <div class="h-3 bg-gray-700 rounded w-24 ml-2 mb-3 animate-pulse"></div>
-            <?php renderMemberSkeleton(4, true); ?>
+            <?php renderMemberSkeleton(4); ?>
         </div>
     </div>
     
@@ -77,19 +74,13 @@ function renderRoleSkeleton($count = 1) {
                 
                 $roleMembers = $membersById[$role['id']] ?? [];
                 if (empty($roleMembers)) continue;
-                
-                $onlineRoleMembers = array_filter($roleMembers, function($m) {
-                    return $m['status'] !== 'offline';
-                });
-                
-                if (empty($onlineRoleMembers)) continue;
             ?>
                 <div class="mb-2">
                     <h3 class="text-xs font-semibold text-gray-400 uppercase px-2 py-1">
-                        <?php echo htmlspecialchars($role['name']); ?> — <?php echo count($onlineRoleMembers); ?>
+                        <?php echo htmlspecialchars($role['name']); ?> — <?php echo count($roleMembers); ?>
                     </h3>
-                    <div class="space-y-0.5 online-users-section" data-role-id="<?php echo $role['id']; ?>">
-                        <?php foreach ($onlineRoleMembers as $member):
+                    <div class="space-y-0.5 members-section" data-role-id="<?php echo $role['id']; ?>">
+                        <?php foreach ($roleMembers as $member):
                             $statusColor = 'bg-discord-green';
                             
                             switch ($member['status']) {
@@ -111,16 +102,20 @@ function renderRoleSkeleton($count = 1) {
                                 default:
                                     $statusColor = 'bg-discord-green';
                             }
+                            
+                            $isOffline = $member['status'] === 'offline';
+                            $textColorClass = $isOffline ? 'text-gray-500' : 'text-gray-300';
+                            $imgOpacityClass = $isOffline ? 'opacity-70' : '';
                         ?>
                             <div class="flex items-center px-2 py-1 rounded hover:bg-discord-light group">
                                 <div class="relative mr-2">
                                     <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden user-profile-trigger" data-user-id="<?php echo $member['id']; ?>" data-server-id="<?php echo $currentServerId; ?>">
                                         <img src="<?php echo getUserAvatar($member['avatar'] ?? '', $member['username'] ?? 'User'); ?>" 
-                                             alt="Avatar" class="w-full h-full object-cover">
+                                             alt="Avatar" class="w-full h-full object-cover <?php echo $imgOpacityClass; ?>">
                                     </div>
                                     <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark <?php echo $statusColor; ?> status-indicator"></span>
                                 </div>
-                                <span class="text-gray-300 text-sm truncate"><?php echo htmlspecialchars($member['username']); ?></span>
+                                <span class="<?php echo $textColorClass; ?> text-sm truncate"><?php echo htmlspecialchars($member['username']); ?></span>
                             </div>
                         <?php endforeach; ?>
                     </div>
@@ -139,18 +134,14 @@ function renderRoleSkeleton($count = 1) {
                     return true;
                 });
                 
-                $onlineDefaultMembers = array_filter($defaultMembers, function($m) {
-                    return $m['status'] !== 'offline';
-                });
-                
-                if (!empty($onlineDefaultMembers)):
+                if (!empty($defaultMembers)):
             ?>
                 <div class="mb-2">
                     <h3 class="text-xs font-semibold text-gray-400 uppercase px-2 py-1">
-                        Online — <?php echo count($onlineDefaultMembers); ?>
+                        Members — <?php echo count($defaultMembers); ?>
                     </h3>
-                    <div class="space-y-0.5 online-users-section" data-role-id="default">
-                        <?php foreach ($onlineDefaultMembers as $member):
+                    <div class="space-y-0.5 members-section" data-role-id="default">
+                        <?php foreach ($defaultMembers as $member):
                             $statusColor = 'bg-gray-500';
                             
                             switch ($member['status']) {
@@ -172,44 +163,20 @@ function renderRoleSkeleton($count = 1) {
                                 default:
                                     $statusColor = 'bg-discord-green';
                             }
+                            
+                            $isOffline = $member['status'] === 'offline';
+                            $textColorClass = $isOffline ? 'text-gray-500' : 'text-gray-300';
+                            $imgOpacityClass = $isOffline ? 'opacity-70' : '';
                         ?>
                             <div class="flex items-center px-2 py-1 rounded hover:bg-discord-light group">
                                 <div class="relative mr-2">
                                     <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden user-profile-trigger" data-user-id="<?php echo $member['id']; ?>" data-server-id="<?php echo $currentServerId; ?>">
                                         <img src="<?php echo getUserAvatar($member['avatar'] ?? '', $member['username'] ?? 'User'); ?>" 
-                                             alt="Avatar" class="w-full h-full object-cover">
+                                             alt="Avatar" class="w-full h-full object-cover <?php echo $imgOpacityClass; ?>">
                                     </div>
                                     <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark <?php echo $statusColor; ?> status-indicator"></span>
                                 </div>
-                                <span class="text-gray-300 text-sm truncate"><?php echo htmlspecialchars($member['username']); ?></span>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-            <?php 
-                endif;
-                
-                $offlineMembers = array_filter($members, function($m) {
-                    return $m['status'] === 'offline';
-                });
-                
-                if (!empty($offlineMembers)):
-            ?>
-                <div>
-                    <h3 class="text-xs font-semibold text-gray-400 uppercase px-2 py-1">
-                        Offline — <?php echo count($offlineMembers); ?>
-                    </h3>
-                    <div class="space-y-0.5 offline-users-section" data-role-id="default">
-                        <?php foreach ($offlineMembers as $member): ?>
-                            <div class="flex items-center px-2 py-1 rounded hover:bg-discord-light group">
-                                <div class="relative mr-2">
-                                    <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden user-profile-trigger" data-user-id="<?php echo $member['id']; ?>" data-server-id="<?php echo $currentServerId; ?>">
-                                        <img src="<?php echo getUserAvatar($member['avatar'] ?? '', $member['username'] ?? 'User'); ?>" 
-                                             alt="Avatar" class="w-full h-full object-cover opacity-70">
-                                    </div>
-                                    <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark bg-gray-500 status-indicator"></span>
-                                </div>
-                                <span class="text-gray-500 text-sm truncate"><?php echo htmlspecialchars($member['username']); ?></span>
+                                <span class="<?php echo $textColorClass; ?> text-sm truncate"><?php echo htmlspecialchars($member['username']); ?></span>
                             </div>
                         <?php endforeach; ?>
                     </div>
@@ -222,15 +189,10 @@ function renderRoleSkeleton($count = 1) {
         <?php else: ?>
             <div class="px-2">
                 <h3 class="text-xs font-semibold text-gray-400 uppercase py-1">
-                    Online — <?php echo $onlineCount; ?>
+                    Members — <?php echo $totalMemberCount; ?>
                 </h3>
-                <div class="space-y-0.5 online-users-section">
-                    <?php 
-                    $onlineMembers = array_filter($members, function($m) {
-                        return $m['status'] !== 'offline';
-                    });
-                    
-                    foreach ($onlineMembers as $member):
+                <div class="space-y-0.5 members-section">
+                    <?php foreach ($members as $member):
                         $statusColor = 'bg-gray-500';
                         
                         switch ($member['status']) {
@@ -252,61 +214,36 @@ function renderRoleSkeleton($count = 1) {
                             default:
                                 $statusColor = 'bg-discord-green';
                         }
+                        
+                        $isOffline = $member['status'] === 'offline';
+                        $textColorClass = $isOffline ? 'text-gray-500' : 'text-gray-300';
+                        $imgOpacityClass = $isOffline ? 'opacity-70' : '';
                     ?>
                         <div class="flex items-center px-2 py-1 rounded hover:bg-discord-light group">
                             <div class="relative mr-2">
                                 <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden user-profile-trigger" data-user-id="<?php echo $member['id']; ?>" data-server-id="<?php echo $currentServerId; ?>">
                                     <img src="<?php echo getUserAvatar($member['avatar'] ?? '', $member['username'] ?? 'User'); ?>" 
-                                         alt="Avatar" class="w-full h-full object-cover">
+                                         alt="Avatar" class="w-full h-full object-cover <?php echo $imgOpacityClass; ?>">
                                 </div>
                                 <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark <?php echo $statusColor; ?> status-indicator"></span>
                             </div>
-                            <span class="text-gray-300 text-sm truncate"><?php echo htmlspecialchars($member['username']); ?></span>
+                            <span class="<?php echo $textColorClass; ?> text-sm truncate"><?php echo htmlspecialchars($member['username']); ?></span>
                         </div>
                     <?php endforeach; ?>
                 </div>
-                
-                <?php 
-                $offlineMembers = array_filter($members, function($m) {
-                    return $m['status'] === 'offline';
-                });
-                
-                if (!empty($offlineMembers)):
-                ?>
-                    <h3 class="text-xs font-semibold text-gray-400 uppercase py-1 mt-4">
-                        Offline — <?php echo count($offlineMembers); ?>
-                    </h3>
-                    <div class="space-y-0.5 offline-users-section">
-                        <?php foreach ($offlineMembers as $member): ?>
-                            <div class="flex items-center px-2 py-1 rounded hover:bg-discord-light group">
-                                <div class="relative mr-2">
-                                    <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden user-profile-trigger" data-user-id="<?php echo $member['id']; ?>" data-server-id="<?php echo $currentServerId; ?>">
-                                        <img src="<?php echo getUserAvatar($member['avatar'] ?? '', $member['username'] ?? 'User'); ?>" 
-                                             alt="Avatar" class="w-full h-full object-cover opacity-70">
-                                    </div>
-                                    <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark bg-gray-500 status-indicator"></span>
-                                </div>
-                                <span class="text-gray-500 text-sm truncate"><?php echo htmlspecialchars($member['username']); ?></span>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-                <?php endif; ?>
             </div>
         <?php endif; ?>
     </div>
 </div>
 
 <script>
-// Socket.io configuration
 const SOCKET_URL = window.SOCKET_URL || 'http://localhost:1002';
-const ENABLE_USER_SECTION_MOVEMENT = false; // Set to true to enable automatic movement between online/offline sections
+const ENABLE_USER_SECTION_MOVEMENT = false;
 window.ENABLE_USER_SECTION_MOVEMENT = ENABLE_USER_SECTION_MOVEMENT;
 
-// Debug status information
 let socketConnectionStatus = 'disconnected';
 let lastSocketEvent = null;
 
-// Ensure Socket.io is loaded
 function loadSocketIO(callback) {
     if (window.io) {
         callback();
@@ -453,12 +390,9 @@ function updateUserStatus(userId, status) {
         
         const statusClass = getStatusClass(status);
         
-        // Remove all possible status classes
         statusIndicator.classList.remove('bg-discord-green', 'bg-discord-yellow', 'bg-discord-red', 'bg-gray-500');
-        // Add the correct status class
         statusIndicator.classList.add(statusClass);
         
-        // Update username color
         const userContainer = userElement.closest('.flex');
         const userNameElement = userContainer?.querySelector('.text-sm');
         if (userNameElement) {
@@ -472,33 +406,7 @@ function updateUserStatus(userId, status) {
                 userElement.querySelector('img')?.classList.remove('opacity-70');
             }
         }
-        
-        // Move user to the appropriate section if needed
-        updateUserSection(userContainer, status);
     });
-}
-
-function updateUserSection(userElement, status) {
-    if (!userElement) return;
-    
-    const isOffline = status === 'offline' || status === 'invisible';
-    const currentSection = userElement.parentElement;
-    
-    // Only do section movement if explicitly configured
-    if (window.ENABLE_USER_SECTION_MOVEMENT === true) {
-        const onlineSection = document.querySelector('.online-users-section');
-        const offlineSection = document.querySelector('.offline-users-section');
-        
-        if (onlineSection && offlineSection) {
-            if (isOffline && currentSection === onlineSection) {
-                offlineSection.appendChild(userElement.cloneNode(true));
-                userElement.remove();
-            } else if (!isOffline && currentSection === offlineSection) {
-                onlineSection.appendChild(userElement.cloneNode(true));
-                userElement.remove();
-            }
-        }
-    }
 }
 
 function getStatusClass(status) {

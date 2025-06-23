@@ -69,20 +69,14 @@ class AuthenticationController extends BaseController
     }
     public function login()
     {
-        if (function_exists('logger')) {
-            logger()->debug("login method called", [
-                'session_status' => session_status(),
-                'is_authenticated' => $this->isAuthenticated(),
-                'user_id' => $_SESSION['user_id'] ?? 'not_set',
-                'request_method' => $_SERVER['REQUEST_METHOD'] ?? 'unknown'
-            ]);
-        }
-
         if ($this->isAuthenticated()) {
             if ($this->isApiRoute() || $this->isAjaxRequest()) {
-                return $this->redirectResponse('/home');
+                return $this->success([
+                    'status' => 'success',
+                    'redirect' => '/home'
+                ]);
             }
-
+            header('Location: /home');
             exit;
         }
 
@@ -103,103 +97,49 @@ class AuthenticationController extends BaseController
             $this->logActivity('login_failed', ['email' => $email]);
 
             if ($this->isApiRoute() || $this->isAjaxRequest()) {
-                return $this->error('Invalid email or password', 401);
+                return $this->error([
+                    'status' => 'error',
+                    'message' => 'Invalid email or password'
+                ], 401);
             }
 
             $_SESSION['errors'] = ['auth' => 'Invalid email or password'];
             $_SESSION['old_input'] = ['email' => $email];
-                            
-            session_write_close();
-            session_start();
             
-            if (!headers_sent()) {
-                header('Location: /login');
-                header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-            }
+            header('Location: /login');
             exit;
         }
-        if (function_exists('logger')) {
-            logger()->debug("User object before setting session", [
-                'user_id' => $user->id,
-                'user_username' => $user->username,
-                'user_discriminator' => $user->discriminator,
-                'user_avatar_url' => $user->avatar_url,
-                'user_class' => get_class($user),
-                'user_reflection' => (function ($obj) {
-                    try {
-                        $reflection = new ReflectionClass($obj);
-                        $properties = [];
-                        foreach ($reflection->getProperties() as $prop) {
-                            $prop->setAccessible(true);
-                            $properties[$prop->getName()] = $prop->getValue($obj);
-                        }
-                        return $properties;
-                    } catch (Exception $e) {
-                        return 'Error: ' . $e->getMessage();
-                    }
-                })($user)
-            ]);
-        }
 
-        if (session_status() === PHP_SESSION_ACTIVE) {
-            session_write_close();
-        }
+        // Clean session
+        $_SESSION = array();
         
-        session_start();
-        
+        // Set user data in session
         $_SESSION['user_id'] = $user->id;
         $_SESSION['username'] = $user->username;
         $_SESSION['discriminator'] = $user->discriminator;
         $_SESSION['avatar_url'] = $user->avatar_url;
         $_SESSION['banner_url'] = $user->banner_url;
-
-        if (function_exists('logger')) {
-            logger()->debug("Session variables set after login", [
-                'user_id' => $_SESSION['user_id'],
-                'username' => $_SESSION['username'],
-                'session_id' => session_id(),
-                'is_authenticated' => isset($_SESSION['user_id']) && !empty($_SESSION['user_id'])
-            ]);
-        }
         
-        session_write_close();
-        session_start();
-        
-        if (function_exists('logger')) {
-            logger()->debug("Session after write_close and restart", [
-                'user_id' => $_SESSION['user_id'] ?? 'not_set',
-                'is_authenticated' => isset($_SESSION['user_id']) && !empty($_SESSION['user_id']),
-                'session_status' => session_status()
-            ]);
-        }
-
         $this->logActivity('login_success', ['user_id' => $user->id]);
 
-        $redirect = $this->getRedirectUrl();
+        $redirect = '/home';
+        
         if ($this->isApiRoute() || $this->isAjaxRequest()) {
-            header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-            header('Pragma: no-cache');
-            header('Expires: 0');
-            
             return $this->success([
+                'status' => 'success',
+                'message' => 'Login successful',
+                'redirect' => $redirect,
                 'user' => [
                     'id' => $user->id,
                     'username' => $user->username,
                     'discriminator' => $user->discriminator,
                     'avatar_url' => $user->avatar_url,
                     'banner_url' => $user->banner_url
-                ],
-                'redirect' => $redirect
-            ], 'Login successful');
+                ]
+            ]);
         }
 
-        if (!headers_sent()) {
-            header('Location: ' . $redirect);
-            header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-            header('Cache-Control: post-check=0, pre-check=0', false);
-            header('Pragma: no-cache');
-            header('Expires: 0');
-        }
+        header('Location: ' . $redirect);
         exit;
     }
 
@@ -387,7 +327,7 @@ class AuthenticationController extends BaseController
 
                 $this->logActivity('registration_success', ['user_id' => $user->id]);
 
-                $redirect = $this->getRedirectUrl();
+                $redirect = '/home';
 
                 if ($this->isApiRoute() || $this->isAjaxRequest()) {
                     return $this->success([
@@ -451,10 +391,12 @@ class AuthenticationController extends BaseController
         session_destroy();
         
         session_start();
-        
         $_SESSION['fresh_login'] = true;
         
         if ($this->isApiRoute() || $this->isAjaxRequest()) {
+            header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+            header('Pragma: no-cache');
+            header('Expires: 0');
             return $this->success(['redirect' => '/login?fresh=1'], 'Logged out successfully');
         }
 
@@ -462,6 +404,7 @@ class AuthenticationController extends BaseController
             header('Location: /login?fresh=1');
             header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
             header('Pragma: no-cache');
+            header('Expires: 0');
         }
         exit;
     }
@@ -477,6 +420,9 @@ class AuthenticationController extends BaseController
         unset($_SESSION['old_input']);
         unset($_SESSION['reset_token']);
         unset($_SESSION['reset_user_id']);
+        
+        session_write_close();
+        session_start();
 
         if ($this->isApiRoute() || $this->isAjaxRequest()) {
             return $this->success([
@@ -553,6 +499,9 @@ class AuthenticationController extends BaseController
             $_SESSION['security_question'] = $user->security_question;
             $_SESSION['reset_email'] = $email;
             
+            session_write_close();
+            session_start();
+            
             if ($this->isApiRoute() || $this->isAjaxRequest()) {
                 return $this->success([
                     'view' => 'security_verify',
@@ -560,9 +509,7 @@ class AuthenticationController extends BaseController
                 ]);
             }
             
-            if (!headers_sent()) {
-                header('Location: /forgot-password');
-            }
+            require_once __DIR__ . '/../views/pages/authentication-page.php';
             exit;
         } 
         else if ($step === 'verify_answer') {
@@ -675,9 +622,8 @@ class AuthenticationController extends BaseController
             $_SESSION['banner_url'] = $user->banner_url;
             $_SESSION['google_auth_completed'] = true;
 
-            $redirect = $this->getRedirectUrl();
+            $redirect = '/home';
             
-            // If no security question is set, redirect to security question page
             if (!$user->security_question) {
                 if ($this->isApiRoute() || $this->isAjaxRequest()) {
                     return $this->success([
@@ -805,7 +751,7 @@ class AuthenticationController extends BaseController
                 
                 $this->logActivity('security_question_set', ['user_id' => $userId]);
                 
-                $redirect = $this->getRedirectUrl();
+                $redirect = '/home';
                 
                 if ($this->isApiRoute() || $this->isAjaxRequest()) {
                     return $this->success([
@@ -841,17 +787,22 @@ class AuthenticationController extends BaseController
 
     public function showSecurityVerify()
     {
-        // Clear any previous security question session data
         unset($_SESSION['security_question']);
         unset($_SESSION['reset_email']);
+        unset($_SESSION['reset_token']);
+        unset($_SESSION['reset_user_id']);
         
-        // Redirect to forgot password
+        session_write_close();
+        session_start();
+                            
         if ($this->isApiRoute() || $this->isAjaxRequest()) {
             return $this->redirectResponse('/forgot-password');
         }
         
         if (!headers_sent()) {
             header('Location: /forgot-password');
+            header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+            header('Pragma: no-cache');
         }
         exit;
     }

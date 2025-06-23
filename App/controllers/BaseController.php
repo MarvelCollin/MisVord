@@ -179,7 +179,30 @@ class BaseController
         ];
         
         if ($data !== null) {
-            $response['data'] = $data;
+            if (is_array($data)) {
+                // Preserve 'status' if provided
+                if (isset($data['status'])) {
+                    $response['status'] = $data['status'];
+                    unset($data['status']);
+                } else {
+                    $response['status'] = 'success';
+                }
+                
+                // Preserve 'redirect' if provided
+                if (isset($data['redirect'])) {
+                    $response['redirect'] = $data['redirect'];
+                    unset($data['redirect']);
+                }
+                
+                // Handle the rest of the data
+                if (!empty($data)) {
+                    foreach ($data as $key => $value) {
+                        $response[$key] = $value;
+                    }
+                }
+            } else {
+                $response['data'] = $data;
+            }
         }
         
         http_response_code(200);

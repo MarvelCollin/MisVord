@@ -438,7 +438,7 @@ class ChatAPI {
             content: message.content,
             user_id: message.user_id,
             username: message.username,
-            avatar_url: message.avatar_url || '/public/assets/common/main-logo.png',
+            avatar_url: message.avatar_url || '/public/assets/main-logo.png',
             sent_at: message.sent_at,
             edited_at: message.edited_at,
             type: message.type || 'text'
@@ -461,7 +461,6 @@ class ChatAPI {
             
             window.globalSocketManager.io.on('online-users-response', onlineUsersHandler);
             
-            // Timeout in case the server doesn't respond
             setTimeout(() => {
                 window.globalSocketManager.io.off('online-users-response', onlineUsersHandler);
                 resolve({});
