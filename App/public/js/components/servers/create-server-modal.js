@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initServerFormSubmission();
     initToggleAnimation();
     initTooltips();
+    initCategorySelection();
 });
 
 function initServerIconUpload() {
@@ -472,11 +473,17 @@ function resetForm(form) {
     const iconPlaceholder = document.getElementById('server-icon-placeholder');
     const bannerPreview = document.getElementById('server-banner-preview');
     const bannerPlaceholder = document.getElementById('server-banner-placeholder');
+    const categorySelect = document.getElementById('server-category');
     
     if (iconPreview) iconPreview.classList.add('hidden');
     if (iconPlaceholder) iconPlaceholder.classList.remove('hidden');
     if (bannerPreview) bannerPreview.classList.add('hidden');
     if (bannerPlaceholder) bannerPlaceholder.classList.remove('hidden');
+    
+    if (categorySelect) {
+        categorySelect.classList.remove('text-white');
+        categorySelect.classList.remove('border-discord-blue');
+    }
 }
 
 function showError(message) {
@@ -556,5 +563,22 @@ function initTooltips() {
     if (bannerContainer) {
         bannerContainer.setAttribute('title', 'Upload server banner (2:1 ratio)');
         bannerContainer.setAttribute('data-tooltip', 'Click or drop image here');
+    }
+}
+
+function initCategorySelection() {
+    const categorySelect = document.getElementById('server-category');
+    if (categorySelect) {
+        categorySelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            
+            if (this.value) {
+                this.classList.add('text-white');
+                this.classList.add('border-discord-blue');
+            } else {
+                this.classList.remove('text-white');
+                this.classList.remove('border-discord-blue');
+            }
+        });
     }
 }

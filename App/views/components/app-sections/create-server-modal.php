@@ -63,6 +63,26 @@ $additional_js[] = 'components/servers/create-server-modal';
             </div>
 
             <div class="mb-4">
+                <label for="server-description" class="block text-gray-300 text-sm font-medium mb-2">Description</label>
+                <textarea id="server-description" name="description" class="bg-discord-dark text-white w-full px-3 py-2 rounded border border-gray-700 focus:border-discord-blue focus:outline-none" rows="3" placeholder="Tell us what your server is about"></textarea>
+                <p class="text-xs text-gray-400 mt-1">This will be displayed in server listings</p>
+            </div>
+
+            <div class="mb-4">
+                <label for="server-category" class="block text-gray-300 text-sm font-medium mb-2">Server Category</label>
+                <select id="server-category" name="category" class="bg-discord-dark text-white w-full px-3 py-2 rounded border border-gray-700 focus:border-discord-blue focus:outline-none">
+                    <option value="">Select a category</option>
+                    <option value="gaming">Gaming</option>
+                    <option value="music">Music</option>
+                    <option value="education">Education</option>
+                    <option value="science">Science & Tech</option>
+                    <option value="entertainment">Entertainment</option>
+                    <option value="community">Community</option>
+                </select>
+                <p class="text-xs text-gray-400 mt-1">Choose a category that best describes your server</p>
+            </div>
+
+            <div class="mb-4">
                 <label class="flex items-center cursor-pointer">
                     <input type="checkbox" id="is-public" name="is_public" value="1" class="sr-only peer">
                     <div class="relative w-11 h-6 bg-discord-dark rounded-full peer 

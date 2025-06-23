@@ -33,7 +33,7 @@ if (file_exists($tooltipPath)) {
 
     <div class="px-2 mb-2">
 
-        <a href="/app/friends" class="block w-full">
+        <a href="/app/friends?tab=online" class="block w-full">
             <div class="flex items-center p-2 rounded hover:bg-discord-light text-white cursor-pointer">
                 <div class="w-8 h-8 rounded-full bg-discord-background flex items-center justify-center mr-3">
                     <i class="fas fa-user-friends"></i>
