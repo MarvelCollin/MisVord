@@ -92,15 +92,18 @@ class ChatAPI {
             
             console.log('🔍 API response for getMessages:', response);
             
-            if (response.data) {
-                const messagesCount = response.data.messages ? response.data.messages.length : 0;
-                console.log(`🔍 Found ${messagesCount} messages in response`);
-                
-                if (messagesCount === 0) {
-                    console.log('No messages found, this might be expected for a new chat');
-                }
+            // Check for messages in different locations in the response
+            if (Array.isArray(response.messages)) {
+                console.log(`🔍 Found ${response.messages.length} messages in response.messages`);
+            } else if (response.data && Array.isArray(response.data.messages)) {
+                console.log(`🔍 Found ${response.data.messages.length} messages in response.data.messages`);
             } else {
-                console.error('Response missing data property:', response);
+                console.warn('Response has unexpected structure, no messages array found');
+                console.log('Response structure:', {
+                    hasMessages: Array.isArray(response.messages),
+                    hasData: !!response.data,
+                    hasDataMessages: response.data ? Array.isArray(response.data.messages) : false
+                });
             }
             
             return response;

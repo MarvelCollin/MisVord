@@ -381,12 +381,15 @@ class UserController extends BaseController
             $user->friend_request_sent = ($friendStatus === 'pending_sent');
             $user->friend_request_received = ($friendStatus === 'pending_received');
             
+            if (!isset($user->bio)) {
+                $user->bio = '';
+            }
+            
             $responseData = [
                 'user' => $user
             ];
             
             if ($serverId) {
-                // Load role data for the user in the specified server
                 require_once __DIR__ . '/../database/repositories/RoleRepository.php';
                 $roleRepository = new RoleRepository();
                 
@@ -398,7 +401,6 @@ class UserController extends BaseController
                     $responseData['roles'] = [];
                 }
                 
-                // Load membership data for the user in the specified server
                 require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
                 $membershipRepository = new UserServerMembershipRepository();
                 

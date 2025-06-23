@@ -35,44 +35,55 @@ class ChatController extends BaseController
         $this->requireAuth();
         $userId = $this->getCurrentUserId();
 
-        if ($targetType === 'channel') {
-            return $this->getChannelMessages($targetId, $userId);
-        } elseif ($targetType === 'dm') {
-            return $this->getDirectMessages($targetId, $userId);
-        } else {
-            return $this->validationError(['type' => 'Invalid target type']);
+        try {
+            if ($targetType === 'channel') {
+                return $this->getChannelMessages($targetId, $userId);
+            } elseif ($targetType === 'dm') {
+                return $this->getDirectMessages($targetId, $userId);
+            } else {
+                return $this->validationError(['type' => 'Invalid target type']);
+            }
+        } catch (Exception $e) {
+            error_log("Error in getMessages: " . $e->getMessage());
+            return $this->serverError('An error occurred while fetching messages: ' . $e->getMessage());
         }
     }
 
     private function getChannelMessages($channelId, $userId)
     {
-        $channel = $this->channelRepository->find($channelId);
-        if (!$channel) {
-            return $this->notFound('Channel not found');
-        }
-
-        if ($channel->server_id != 0) {
-            $membership = $this->userServerMembershipRepository->findByUserAndServer($userId, $channel->server_id);
-            if (!$membership) {
-                return $this->forbidden('You are not a member of this server');
-            }
-        }
-
-        $limit = $_GET['limit'] ?? 20;
-        $offset = $_GET['offset'] ?? 0;
-
         try {
+            $channel = $this->channelRepository->find($channelId);
+            if (!$channel) {
+                return $this->notFound('Channel not found');
+            }
+
+            if ($channel->server_id != 0) {
+                $membership = $this->userServerMembershipRepository->findByUserAndServer($userId, $channel->server_id);
+                if (!$membership) {
+                    return $this->forbidden('You are not a member of this server');
+                }
+            }
+
+            $limit = isset($_GET['limit']) && is_numeric($_GET['limit']) ? (int)$_GET['limit'] : 20;
+            $offset = isset($_GET['offset']) && is_numeric($_GET['offset']) ? (int)$_GET['offset'] : 0;
+
             $messages = $this->messageRepository->getForChannel($channelId, $limit, $offset);
             $formattedMessages = array_map([$this, 'formatMessage'], $messages);
 
             error_log("Returning " . count($formattedMessages) . " messages for channel $channelId");
 
-            return $this->success([
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'timestamp' => date('Y-m-d H:i:s'),
+                'message' => 'Success',
+                'status' => 'success',
                 'type' => 'channel',
                 'target_id' => $channelId,
                 'messages' => $formattedMessages,
-                'has_more' => count($messages) == $limit
+                'has_more' => count($messages) >= $limit
             ]);
+            exit;
         } catch (Exception $e) {
             error_log("Error getting channel messages: " . $e->getMessage());
             return $this->serverError('Failed to load channel messages: ' . $e->getMessage());
@@ -81,30 +92,36 @@ class ChatController extends BaseController
 
     private function getDirectMessages($chatRoomId, $userId)
     {
-        $chatRoom = $this->chatRoomRepository->find($chatRoomId);
-        if (!$chatRoom) {
-            return $this->notFound('Chat room not found');
-        }
-
-        if (!$this->chatRoomRepository->isParticipant($chatRoomId, $userId)) {
-            return $this->forbidden('You are not a participant in this chat');
-        }
-
-        $limit = $_GET['limit'] ?? 20;
-        $offset = $_GET['offset'] ?? 0;
-
         try {
+            $chatRoom = $this->chatRoomRepository->find($chatRoomId);
+            if (!$chatRoom) {
+                return $this->notFound('Chat room not found');
+            }
+
+            if (!$this->chatRoomRepository->isParticipant($chatRoomId, $userId)) {
+                return $this->forbidden('You are not a participant in this chat');
+            }
+
+            $limit = isset($_GET['limit']) && is_numeric($_GET['limit']) ? (int)$_GET['limit'] : 20;
+            $offset = isset($_GET['offset']) && is_numeric($_GET['offset']) ? (int)$_GET['offset'] : 0;
+
             $messages = $this->chatRoomRepository->getMessages($chatRoomId, $limit, $offset);
             $formattedMessages = array_map([$this, 'formatMessage'], $messages);
 
             error_log("Returning " . count($formattedMessages) . " messages for DM room $chatRoomId");
 
-            return $this->success([
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'timestamp' => date('Y-m-d H:i:s'),
+                'message' => 'Success',
+                'status' => 'success',
                 'type' => 'dm',
                 'target_id' => $chatRoomId,
                 'messages' => $formattedMessages,
-                'has_more' => count($messages) == $limit
+                'has_more' => count($messages) >= $limit
             ]);
+            exit;
         } catch (Exception $e) {
             error_log("Error getting DM messages: " . $e->getMessage());
             return $this->serverError('Failed to load direct messages: ' . $e->getMessage());

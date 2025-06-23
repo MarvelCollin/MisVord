@@ -35,8 +35,8 @@ function initSidebarServerIcons() {
     
     serverIcons.forEach(icon => {
         const parent = icon.parentElement;
-        if (parent && parent.classList.contains('w-[72px]') || 
-            (parent && parent.parentElement && parent.parentElement.classList.contains('w-[72px]'))) {
+        if (parent && parent.classList.contains('server-icon-wrapper') || 
+            (parent && parent.parentElement && parent.parentElement.classList.contains('server-icon-wrapper'))) {
             icon.style.display = 'block';
             icon.style.margin = '0 auto 8px auto';
             icon.style.position = 'relative';
@@ -339,6 +339,10 @@ function initServerDetailTriggers() {
             } else {
                 console.error('Server detail modal function not available');
             }
+            
+            // Prevent default and stop propagation to avoid any navigation
+            e.preventDefault();
+            e.stopPropagation();
         });
     });
 }

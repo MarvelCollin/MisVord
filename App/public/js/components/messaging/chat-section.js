@@ -1261,23 +1261,40 @@ class ChatSection {
                 this.hideLoadMoreIndicator();
             }
             
-            if (response && response.data && Array.isArray(response.data.messages)) {
-                console.log(`✅ Loaded ${response.data.messages.length} messages from database`);
-                
-                response.data.messages.forEach(msg => {
+            let messages = [];
+            let hasMore = false;
+            
+            if (response && Array.isArray(response.messages)) {
+                messages = response.messages;
+                hasMore = response.has_more;
+                console.log(`✅ Found ${messages.length} messages in response.messages`);
+            } else if (response && response.data && Array.isArray(response.data.messages)) {
+                messages = response.data.messages;
+                hasMore = response.data.has_more;
+                console.log(`✅ Found ${messages.length} messages in response.data.messages`);
+            } else {
+                console.error('Could not find messages array in response:', response);
+                if (offset === 0) {
+                    this.showEmptyState();
+                }
+                return;
+            }
+            
+            if (messages && messages.length > 0) {
+                messages.forEach(msg => {
                     this.processedMessageIds.add(msg.id);
                 });
                 
                 if (offset === 0) {
-                    this.renderMessages(response.data.messages);
+                    this.renderMessages(messages);
                     
-                    if (response.data.messages.length >= limit) {
+                    if (messages.length >= limit) {
                         this.addLoadMoreButton();
                     }
                 } else {
-                    this.prependMessages(response.data.messages);
+                    this.prependMessages(messages);
                     
-                    if (response.data.messages.length < limit) {
+                    if (messages.length < limit) {
                         this.removeLoadMoreButton();
                     }
                 }
@@ -1285,14 +1302,13 @@ class ChatSection {
                 if (offset === 0) {
                     this.scrollToBottom();
                 }
-                
-                this.messagesLoaded = true;
             } else {
-                console.error('Invalid response format:', response);
                 if (offset === 0) {
                     this.showEmptyState();
                 }
             }
+            
+            this.messagesLoaded = true;
             
         } catch (error) {
             this.hideLoadingIndicator();

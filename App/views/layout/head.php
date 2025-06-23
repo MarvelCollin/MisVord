@@ -75,7 +75,7 @@ $cache_version = time();
             <link rel="stylesheet" href="<?php echo css($css_file); ?>?v=<?php echo $cache_version; ?>">
         <?php endforeach; ?>
     <?php else: ?>
-        <link rel="stylesheet" href="<?php echo css($page_css); ?>?v=<?php echo $cache_version; ?>">
+    <link rel="stylesheet" href="<?php echo css($page_css); ?>?v=<?php echo $cache_version; ?>">
     <?php endif; ?>
 <?php endif; ?>
 

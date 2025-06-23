@@ -163,23 +163,28 @@ class UserDetailModal {
         try {
             const userApi = await import('../../api/user-api.js').then(module => module.default);
             
+            // Get user profile data
             const userData = await userApi.getUserProfile(this.currentUserId, this.currentServerId);
             if (!userData || !userData.success) {
                 throw new Error(userData?.message || 'Failed to fetch user data');
             }
             
+            // Check if this is another user (not the current user) to get mutual data
             const currentUserId = document.getElementById('app-container')?.dataset.userId;
             if (currentUserId && this.currentUserId !== currentUserId) {
                 try {
-                    const mutualResponse = await fetch(`/api/users/${this.currentUserId}/mutual`);
-                    if (mutualResponse.ok) {
-                        const mutualData = await mutualResponse.json();
-                        if (mutualData && mutualData.success && mutualData.data) {
-                            userData.data.mutualData = mutualData.data;
-                        }
+                    // Use the new API method for mutual relations
+                    const mutualData = await userApi.getMutualRelations(this.currentUserId);
+                    if (mutualData && mutualData.success && mutualData.data) {
+                        userData.data.mutualData = mutualData.data;
                     }
                 } catch (error) {
                     console.error('Error fetching mutual data:', error);
+                    // Continue even if mutual data fails to load
+                    userData.data.mutualData = {
+                        mutual_friend_count: 0,
+                        mutual_server_count: 0
+                    };
                 }
             }
             
@@ -242,7 +247,7 @@ class UserDetailModal {
         }
 
         if (this.aboutSection) {
-            if (user.bio) {
+            if (user.bio && user.bio.trim() !== '') {
                 this.aboutSection.textContent = user.bio;
                 this.aboutSection.classList.remove('text-discord-lighter');
             } else {
@@ -293,11 +298,21 @@ class UserDetailModal {
             if (this.mutualServersElement) {
                 const serverCount = userData.mutualData.mutual_server_count || 0;
                 this.mutualServersElement.textContent = `${serverCount} Mutual Server${serverCount !== 1 ? 's' : ''}`;
+                
+                if (userData.mutualData.mutual_servers && userData.mutualData.mutual_servers.length > 0) {
+                    const serverNames = userData.mutualData.mutual_servers.map(server => server.name || 'Unknown Server').join(', ');
+                    this.mutualServersElement.title = serverNames;
+                }
             }
             
             if (this.mutualFriendsElement) {
                 const friendCount = userData.mutualData.mutual_friend_count || 0;
                 this.mutualFriendsElement.textContent = `${friendCount} Mutual Friend${friendCount !== 1 ? 's' : ''}`;
+                
+                if (userData.mutualData.mutual_friends && userData.mutualData.mutual_friends.length > 0) {
+                    const friendNames = userData.mutualData.mutual_friends.map(friend => friend.username || 'Unknown User').join(', ');
+                    this.mutualFriendsElement.title = friendNames;
+                }
             }
         } else if (!isSelf) {
             if (this.mutualServersElement) this.mutualServersElement.textContent = '0 Mutual Servers';
