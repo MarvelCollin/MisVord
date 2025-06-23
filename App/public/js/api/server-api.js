@@ -236,7 +236,7 @@ class ServerAPI {
                 method: 'GET',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'text/html'
+                    'Accept': 'text/html, application/json'
                 }
             });
             
@@ -244,7 +244,12 @@ class ServerAPI {
                 throw new Error(`Server error (${response.status}). Please try again later.`);
             }
             
-            return await response.text();
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                return await response.json();
+            } else {
+                return await response.text();
+            }
         } catch (error) {
             console.error('Error fetching server page HTML:', error);
             throw error;

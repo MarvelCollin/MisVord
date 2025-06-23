@@ -416,11 +416,13 @@ function loadServerPage(serverId) {
         showPageLoading(mainContent);
         
         ServerAPI.getServerPageHTML(serverId)
-        .then(html => {
-            if (typeof html === 'string') {
-                pageUtils.updatePageContent(mainContent, html);
+        .then(response => {
+            if (typeof response === 'string') {
+                pageUtils.updatePageContent(mainContent, response);
+            } else if (response && response.data && response.data.redirect) {
+                window.location.href = response.data.redirect;
             } else {
-                console.log('Received non-HTML response, redirecting...');
+                console.log('Redirecting to server page...');
                 window.location.href = `/server/${serverId}`;
             }
         })

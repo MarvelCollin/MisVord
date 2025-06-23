@@ -98,8 +98,14 @@ class AuthenticationController extends BaseController
 
             $_SESSION['errors'] = ['auth' => 'Invalid email or password'];
             $_SESSION['old_input'] = ['email' => $email];
+            
+            // Make sure session is written before redirect
+            session_write_close();
+            session_start();
+            
             if (!headers_sent()) {
                 header('Location: /login');
+                header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
             }
             exit;
         }

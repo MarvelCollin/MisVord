@@ -93,7 +93,7 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
         <?php endif; ?>
 
         <?php if (isset($errors['auth'])): ?>
-            <div class="bg-red-500 text-white p-3 rounded-md mb-6 text-center animate-pulse">
+            <div class="bg-red-500 text-white p-3 rounded-md mb-6 text-center animate-pulse" id="auth-error">
                 <?php echo $errors['auth']; ?>
             </div>
         <?php endif; ?>
@@ -101,6 +101,11 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
         <div id="formsContainer" class="relative transition-all duration-300 ease-out" style="min-height: 200px;">
 
             <form action="/login" method="POST" class="space-y-4 sm:space-y-5 <?php echo $mode === 'login' ? 'block' : 'hidden'; ?>" id="loginForm">
+                <?php if (isset($errors['auth']) && $mode === 'login'): ?>
+                    <div class="bg-red-500 text-white p-3 rounded-md mb-4 text-center animate-pulse">
+                        <?php echo $errors['auth']; ?>
+                    </div>
+                <?php endif; ?>
 
                 <div class="form-group">
                     <label for="email" class="block text-sm font-medium text-gray-300 mb-1">Email</label>

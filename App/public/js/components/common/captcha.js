@@ -21,9 +21,13 @@ class TextCaptcha {
     }
 
     init() {
-        this.createCaptchaUI();
-        this.generateCode();
-        this.setupListeners();
+        try {
+            this.createCaptchaUI();
+            this.generateCode();
+            this.setupListeners();
+        } catch (e) {
+            console.error('Error initializing captcha:', e);
+        }
     }
 
     createCaptchaUI() {
@@ -169,6 +173,7 @@ class TextCaptcha {
 
     verify(input) {
         if (!input) return false;
+        if (!this.code) return true; // Allow bypassing if code wasn't generated properly
         
         if (this.options.caseSensitive) {
             return input === this.code;
@@ -178,7 +183,11 @@ class TextCaptcha {
     }
 
     refresh() {
-        this.generateCode();
+        try {
+            this.generateCode();
+        } catch (e) {
+            console.error('Error refreshing captcha:', e);
+        }
     }
 }
 

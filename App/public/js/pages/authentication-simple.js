@@ -31,6 +31,17 @@ if (typeof window.logger !== 'undefined') {
             window.logger.debug('auth', 'Current form:', currentForm);
         }
         
+        const authError = document.getElementById('auth-error');
+        if (authError) {
+            authError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        try {
+            initCaptcha();
+        } catch (e) {
+            console.error('Error initializing captcha:', e);
+        }
+        
         function getCurrentForm() {
             if (!loginForm.classList.contains('hidden')) return 'login';
             if (!registerForm.classList.contains('hidden')) return 'register';
@@ -386,7 +397,7 @@ function validateLoginForm(e) {
     const form = e.target;
     const email = form.querySelector('#email').value.trim();
     const password = form.querySelector('#password').value;
-    const captcha = form.querySelector('#login_captcha').value.trim();
+    const captchaInput = form.querySelector('#login_captcha');
     let isValid = true;
     
     clearErrors(form);
@@ -404,14 +415,30 @@ function validateLoginForm(e) {
         isValid = false;
     }
     
-    if (!captcha) {
-        showError(form.querySelector('#login_captcha'), 'Please complete the captcha');
-        isValid = false;
-    } else if (!window.loginCaptcha || !window.loginCaptcha.verify(captcha)) {
-        showError(form.querySelector('#login_captcha'), 'Invalid captcha code');
-        window.loginCaptcha.refresh();
-        form.querySelector('#login_captcha').value = '';
-        isValid = false;
+    // Only validate captcha if it exists
+    if (captchaInput) {
+        const captchaValue = captchaInput.value.trim();
+        
+        if (!captchaValue) {
+            showError(captchaInput, 'Please complete the captcha');
+            isValid = false;
+        } else {
+            try {
+                if (window.loginCaptcha && !window.loginCaptcha.verify(captchaValue)) {
+                    showError(captchaInput, 'Invalid captcha code');
+                    try {
+                        window.loginCaptcha.refresh();
+                        captchaInput.value = '';
+                    } catch (err) {
+                        console.error('Failed to refresh captcha:', err);
+                    }
+                    isValid = false;
+                }
+            } catch (err) {
+                console.error('Error validating captcha:', err);
+                // Continue with form submission
+            }
+        }
     }
     
     if (!isValid) {
@@ -713,18 +740,22 @@ function initCaptcha() {
         return;
     }
     
-    const loginCaptchaContainer = document.getElementById('login-captcha-container');
-    if (loginCaptchaContainer) {
-        window.loginCaptcha = new TextCaptcha('login-captcha-container', {
-            length: 6
-        });
-    }
-    
-    const registerCaptchaContainer = document.getElementById('register-captcha-container');
-    if (registerCaptchaContainer) {
-        window.registerCaptcha = new TextCaptcha('register-captcha-container', {
-            length: 6
-        });
+    try {
+        const loginCaptchaContainer = document.getElementById('login-captcha-container');
+        if (loginCaptchaContainer) {
+            window.loginCaptcha = new TextCaptcha('login-captcha-container', {
+                length: 6
+            });
+        }
+        
+        const registerCaptchaContainer = document.getElementById('register-captcha-container');
+        if (registerCaptchaContainer) {
+            window.registerCaptcha = new TextCaptcha('register-captcha-container', {
+                length: 6
+            });
+        }
+    } catch (e) {
+        console.error('Error creating captcha:', e);
     }
     
     const loginForm = document.getElementById('loginForm');
@@ -733,56 +764,96 @@ function initCaptcha() {
     if (loginForm) {
         const originalSubmit = loginForm.onsubmit;
         loginForm.onsubmit = function(e) {
-            const captchaInput = document.getElementById('login_captcha');
-            if (!window.loginCaptcha || !window.loginCaptcha.verify(captchaInput.value)) {
-                e.preventDefault();
+            try {
+                const captchaInput = document.getElementById('login_captcha');
+                if (!captchaInput) return true; // Allow form to submit if captcha input doesn't exist
                 
-                const existingError = loginForm.querySelector('.captcha-error');
-                if (existingError) existingError.remove();
+                if (!window.loginCaptcha) {
+                    console.warn('Login captcha not initialized, allowing form submission');
+                    return true; // Allow form to submit if captcha wasn't initialized
+                }
                 
-                const errorMsg = document.createElement('p');
-                errorMsg.className = 'text-red-500 text-sm mt-1 captcha-error';
-                errorMsg.innerHTML = 'Invalid captcha code <i class="fa-solid fa-xmark"></i>';
-                captchaInput.parentElement.appendChild(errorMsg);
-                
-                window.loginCaptcha.refresh();
-                captchaInput.value = '';
-                captchaInput.focus();
-                
-                return false;
+                if (!window.loginCaptcha.verify(captchaInput.value)) {
+                    e.preventDefault();
+                    
+                    const existingError = loginForm.querySelector('.captcha-error');
+                    if (existingError) existingError.remove();
+                    
+                    const errorMsg = document.createElement('p');
+                    errorMsg.className = 'text-red-500 text-sm mt-1 captcha-error';
+                    errorMsg.innerHTML = 'Invalid captcha code <i class="fa-solid fa-xmark"></i>';
+                    captchaInput.parentElement.appendChild(errorMsg);
+                    
+                    try {
+                        window.loginCaptcha.refresh();
+                    } catch (err) {
+                        console.error('Failed to refresh captcha:', err);
+                    }
+                    
+                    captchaInput.value = '';
+                    captchaInput.focus();
+                    
+                    return false;
+                }
+            } catch (error) {
+                console.error('Error in login form validation:', error);
+                // Allow form submission on error to prevent blocking user
+                return true;
             }
             
             if (originalSubmit) {
                 return originalSubmit.call(this, e);
             }
+            
+            return true;
         };
     }
     
     if (registerForm) {
         const originalSubmit = registerForm.onsubmit;
         registerForm.onsubmit = function(e) {
-            const captchaInput = document.getElementById('register_captcha');
-            if (!window.registerCaptcha || !window.registerCaptcha.verify(captchaInput.value)) {
-                e.preventDefault();
+            try {
+                const captchaInput = document.getElementById('register_captcha');
+                if (!captchaInput) return true;
                 
-                const existingError = registerForm.querySelector('.captcha-error');
-                if (existingError) existingError.remove();
+                if (!window.registerCaptcha) {
+                    console.warn('Register captcha not initialized, allowing form submission');
+                    return true;
+                }
                 
-                const errorMsg = document.createElement('p');
-                errorMsg.className = 'text-red-500 text-sm mt-1 captcha-error';
-                errorMsg.innerHTML = 'Invalid captcha code <i class="fa-solid fa-xmark"></i>';
-                captchaInput.parentElement.appendChild(errorMsg);
-                
-                window.registerCaptcha.refresh();
-                captchaInput.value = '';
-                captchaInput.focus();
-                
-                return false;
+                if (!window.registerCaptcha.verify(captchaInput.value)) {
+                    e.preventDefault();
+                    
+                    const existingError = registerForm.querySelector('.captcha-error');
+                    if (existingError) existingError.remove();
+                    
+                    const errorMsg = document.createElement('p');
+                    errorMsg.className = 'text-red-500 text-sm mt-1 captcha-error';
+                    errorMsg.innerHTML = 'Invalid captcha code <i class="fa-solid fa-xmark"></i>';
+                    captchaInput.parentElement.appendChild(errorMsg);
+                    
+                    try {
+                        window.registerCaptcha.refresh();
+                    } catch (err) {
+                        console.error('Failed to refresh captcha:', err);
+                    }
+                    
+                    captchaInput.value = '';
+                    captchaInput.focus();
+                    
+                    return false;
+                }
+            } catch (error) {
+                console.error('Error in register form validation:', error);
+                // Allow form submission on error to prevent blocking user
+                return true;
             }
             
             if (originalSubmit) {
                 return originalSubmit.call(this, e);
             }
+            
+            return true;
         };
     }
 }
