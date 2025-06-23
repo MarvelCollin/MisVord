@@ -43,6 +43,9 @@ function initUserSettingsPage() {
     initPasswordFieldMasking();
 }
 
+/**
+ * Initialize sidebar navigation
+ */
 function initSidebarNavigation(activeSection) {
     const sidebarItems = document.querySelectorAll('.sidebar-item');
     
@@ -68,6 +71,9 @@ function initSidebarNavigation(activeSection) {
     });
 }
 
+/**
+ * Initialize user avatar upload with image cropper
+ */
 function initUserAvatarUpload() {
     const iconContainer = document.getElementById('server-icon-container');
     const iconInput = document.getElementById('avatar-input');
@@ -556,6 +562,9 @@ function getToastIcon(type) {
     }
 }
 
+/**
+ * Debounce function to limit how often a function is called
+ */
 function debounce(func, wait) {
     let timeout;
     return function(...args) {
@@ -565,12 +574,14 @@ function debounce(func, wait) {
 }
 
 function logoutUser() {
+    // Clear all localStorage items that might be related to the user session
     localStorage.removeItem('user_token');
     localStorage.removeItem('connect_socket_on_login');
     localStorage.removeItem('active_channel');
     localStorage.removeItem('active_dm');
     localStorage.removeItem('active_server');
     
+    // Force a clean logout by using a form POST instead of direct URL navigation
     const form = document.createElement('form');
     form.method = 'POST';
     form.action = '/logout';

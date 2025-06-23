@@ -1,11 +1,9 @@
-
-
 class UserDetailModal {
     constructor() {
         this.modal = document.getElementById('user-detail-modal');
         this.currentUserId = null;
         this.currentServerId = null;
-        
+
         if (this.modal) {
             this.initElements();
             this.initEvents();
@@ -19,43 +17,41 @@ class UserDetailModal {
         this.nameElement = this.modal.querySelector('#user-detail-name');
         this.discriminatorElement = this.modal.querySelector('#user-detail-discriminator');
         this.statusIndicator = this.modal.querySelector('.user-status-indicator');
-        
+
         this.aboutSection = this.modal.querySelector('#user-detail-about');
         this.memberSinceSection = this.modal.querySelector('#user-detail-member-since');
         this.rolesSection = this.modal.querySelector('#user-detail-roles');
         this.noteInput = this.modal.querySelector('#user-detail-note');
-        
+
         this.messageBtn = this.modal.querySelector('#user-detail-message-btn');
         this.addFriendBtn = this.modal.querySelector('#user-detail-add-friend-btn');
     }
-    
-ialize event listeners
-     */
+
     initEvents() {
         if (this.closeBtn) {
             this.closeBtn.addEventListener('click', () => this.hide());
         }
-        
+
         this.modal.addEventListener('click', (e) => {
             if (e.target === this.modal) {
                 this.hide();
             }
         });
-        
+
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && this.isVisible()) {
                 this.hide();
             }
         });
-        
+
         if (this.messageBtn) {
             this.messageBtn.addEventListener('click', () => this.handleMessageClick());
         }
-        
+
         if (this.addFriendBtn) {
             this.addFriendBtn.addEventListener('click', () => this.handleAddFriendClick());
         }
-        
+
         if (this.noteInput) {
             this.noteInput.addEventListener('change', (e) => this.handleNoteChange(e.target.value));
         }
@@ -63,30 +59,30 @@ ialize event listeners
 
     show(options = {}) {
         const { userId, serverId, triggerElement } = options;
-        
+
         if (!userId) {
             console.error('User ID is required to show user detail modal');
             return;
         }
-        
+
         this.currentUserId = userId;
         this.currentServerId = serverId || null;
-        
+
         if (triggerElement && typeof triggerElement.getBoundingClientRect === 'function') {
             const rect = triggerElement.getBoundingClientRect();
             const modalWidth = 340;
-            
+
             const viewportWidth = window.innerWidth;
             const viewportHeight = window.innerHeight;
-            
+
             const showOnRight = rect.left + rect.width + modalWidth <= viewportWidth;
             const left = showOnRight ? rect.left + rect.width + 10 : rect.left - modalWidth - 10;
-            
+
             let top = rect.top;
             if (top + 400 > viewportHeight) {
                 top = Math.max(10, viewportHeight - 400 - 10);
             }
-            
+
             const container = this.modal.querySelector('.user-detail-container');
             if (container) {
                 container.style.position = 'absolute';
@@ -95,9 +91,9 @@ ialize event listeners
                 container.style.transform = 'none';
             }
         }
-        
+
         this.showLoadingState();
-        
+
         this.fetchUserData()
             .then(userData => {
                 this.displayUserData(userData);
@@ -106,17 +102,17 @@ ialize event listeners
                 console.error('Error fetching user data:', error);
                 this.showErrorState();
             });
-        
+
         this.modal.classList.add('active');
     }
-    
-  
+
+
     hide() {
         this.modal.classList.remove('active');
         this.resetModalPosition();
     }
-    
- 
+
+
     isVisible() {
         return this.modal.classList.contains('active');
     }
@@ -130,7 +126,7 @@ ialize event listeners
             container.style.transform = '';
         }
     }
-    
+
 
     showLoadingState() {
         if (this.nameElement) this.nameElement.textContent = 'Loading...';
@@ -138,11 +134,11 @@ ialize event listeners
         if (this.aboutSection) this.aboutSection.innerHTML = '<div class="loading-placeholder"></div>';
         if (this.memberSinceSection) this.memberSinceSection.innerHTML = '<div class="loading-placeholder"></div>';
         if (this.rolesSection) this.rolesSection.innerHTML = '<div class="loading-placeholder"></div>';
-        
+
         if (this.avatar) this.avatar.src = '';
         if (this.banner) this.banner.style.backgroundColor = '#5865f2';
     }
-    
+
 
     showErrorState() {
         if (this.nameElement) this.nameElement.textContent = 'User not found';
@@ -151,7 +147,7 @@ ialize event listeners
         if (this.memberSinceSection) this.memberSinceSection.textContent = 'Unknown';
         if (this.rolesSection) this.rolesSection.textContent = 'No roles available';
     }
-    
+
 
     async fetchUserData() {
         try {
@@ -175,17 +171,17 @@ ialize event listeners
             this.showErrorState();
             return;
         }
-        
+
         const user = userData.user;
-        
+
         if (this.nameElement) {
             this.nameElement.textContent = user.display_name || user.username;
         }
-        
+
         if (this.discriminatorElement) {
             this.discriminatorElement.textContent = `#${user.discriminator || '0000'}`;
         }
-        
+
         if (this.avatar && user.avatar_url) {
             this.avatar.src = user.avatar_url;
         } else if (this.avatar) {
@@ -196,18 +192,18 @@ ialize event listeners
                 </div>
             `;
         }
-        
+
         if (this.banner && user.banner_url) {
             this.banner.style.backgroundImage = `url(${user.banner_url})`;
         }
-        
+
         if (this.statusIndicator) {
             this.statusIndicator.className = 'user-status-indicator';
             if (user.status) {
                 this.statusIndicator.classList.add(user.status);
             }
         }
-        
+
         if (this.aboutSection) {
             if (user.bio) {
                 this.aboutSection.textContent = user.bio;
@@ -216,7 +212,7 @@ ialize event listeners
                 this.aboutSection.classList.add('text-discord-lighter');
             }
         }
-        
+
         if (this.memberSinceSection && user.created_at) {
             const joinDate = new Date(user.created_at);
             const formattedDate = joinDate.toLocaleDateString('en-US', {
@@ -226,7 +222,7 @@ ialize event listeners
             });
             this.memberSinceSection.textContent = formattedDate;
         }
-        
+
         if (this.rolesSection && userData.roles) {
             if (userData.roles.length > 0) {
                 this.rolesSection.innerHTML = '';
@@ -244,17 +240,17 @@ ialize event listeners
                 this.rolesSection.classList.add('text-discord-lighter');
             }
         }
-        
+
         if (this.noteInput && user.note) {
             this.noteInput.value = user.note;
         }
-        
+
         this.updateActionButtons(userData);
     }
 
     updateActionButtons(userData) {
         const user = userData.user;
-        
+
         if (this.messageBtn) {
             if (user.is_self) {
                 this.messageBtn.disabled = true;
@@ -264,7 +260,7 @@ ialize event listeners
                 this.messageBtn.classList.remove('opacity-50', 'cursor-not-allowed');
             }
         }
-        
+
         if (this.addFriendBtn) {
             if (user.is_self) {
                 this.addFriendBtn.style.display = 'none';
@@ -295,12 +291,12 @@ ialize event listeners
 
     handleMessageClick() {
         if (!this.currentUserId) return;
-        
+
         this.hide();
-        
+
         this.createOrOpenDM(this.currentUserId);
     }
-    
+
     async createOrOpenDM(userId) {
         try {
             const response = await fetch('/api/chat/dm/create', {
@@ -311,11 +307,11 @@ ialize event listeners
                 },
                 body: JSON.stringify({ user_id: userId })
             });
-            
+
             if (!response.ok) throw new Error('Failed to create DM');
-            
+
             const data = await response.json();
-            
+
             if (data.success && data.room_id) {
                 window.location.href = `/app/channels/dm/${data.room_id}`;
             } else {
@@ -325,14 +321,14 @@ ialize event listeners
             console.error('Error creating DM:', error);
         }
     }
-    
+
 
     async handleAddFriendClick() {
         if (!this.currentUserId) return;
-        
+
         try {
             const isFriend = this.addFriendBtn.textContent.trim().includes('Remove');
-            
+
             if (isFriend) {
                 const response = await fetch('/api/friends', {
                     method: 'DELETE',
@@ -342,9 +338,9 @@ ialize event listeners
                     },
                     body: JSON.stringify({ user_id: this.currentUserId })
                 });
-                
+
                 if (!response.ok) throw new Error('Failed to remove friend');
-                
+
                 this.addFriendBtn.innerHTML = `
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
                     Add Friend
@@ -360,9 +356,9 @@ ialize event listeners
                     },
                     body: JSON.stringify({ user_id: this.currentUserId })
                 });
-                
+
                 if (!response.ok) throw new Error('Failed to send friend request');
-                
+
                 this.addFriendBtn.innerHTML = `
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
                     Pending
@@ -377,7 +373,7 @@ ialize event listeners
 
     async handleNoteChange(note) {
         if (!this.currentUserId) return;
-        
+
         try {
             const response = await fetch(`/api/users/${this.currentUserId}/note`, {
                 method: 'POST',
@@ -387,7 +383,7 @@ ialize event listeners
                 },
                 body: JSON.stringify({ note })
             });
-            
+
             if (!response.ok) throw new Error('Failed to save note');
         } catch (error) {
             console.error('Error saving note:', error);
@@ -399,11 +395,11 @@ const userDetailModal = new UserDetailModal();
 
 document.addEventListener('click', (e) => {
     const trigger = e.target.closest('.user-profile-trigger');
-    
+
     if (trigger) {
         const userId = trigger.dataset.userId;
         const serverId = trigger.dataset.serverId;
-        
+
         if (userId) {
             e.preventDefault();
             userDetailModal.show({

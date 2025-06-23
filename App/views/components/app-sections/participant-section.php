@@ -88,7 +88,7 @@ function renderRoleSkeleton($count = 1) {
                     <h3 class="text-xs font-semibold text-gray-400 uppercase px-2 py-1">
                         <?php echo htmlspecialchars($role['name']); ?> — <?php echo count($onlineRoleMembers); ?>
                     </h3>
-                    <div class="space-y-0.5">
+                    <div class="space-y-0.5 online-users-section" data-role-id="<?php echo $role['id']; ?>">
                         <?php foreach ($onlineRoleMembers as $member):
                             $statusColor = 'bg-discord-green';
                             
@@ -114,11 +114,11 @@ function renderRoleSkeleton($count = 1) {
                         ?>
                             <div class="flex items-center px-2 py-1 rounded hover:bg-discord-light group">
                                 <div class="relative mr-2">
-                                    <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
+                                    <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden user-profile-trigger" data-user-id="<?php echo $member['id']; ?>" data-server-id="<?php echo $currentServerId; ?>">
                                         <img src="<?php echo getUserAvatar($member['avatar'] ?? '', $member['username'] ?? 'User'); ?>" 
                                              alt="Avatar" class="w-full h-full object-cover">
                                     </div>
-                                    <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark <?php echo $statusColor; ?>"></span>
+                                    <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark <?php echo $statusColor; ?> status-indicator"></span>
                                 </div>
                                 <span class="text-gray-300 text-sm truncate"><?php echo htmlspecialchars($member['username']); ?></span>
                             </div>
@@ -149,7 +149,7 @@ function renderRoleSkeleton($count = 1) {
                     <h3 class="text-xs font-semibold text-gray-400 uppercase px-2 py-1">
                         Online — <?php echo count($onlineDefaultMembers); ?>
                     </h3>
-                    <div class="space-y-0.5">
+                    <div class="space-y-0.5 online-users-section" data-role-id="default">
                         <?php foreach ($onlineDefaultMembers as $member):
                             $statusColor = 'bg-gray-500';
                             
@@ -175,11 +175,11 @@ function renderRoleSkeleton($count = 1) {
                         ?>
                             <div class="flex items-center px-2 py-1 rounded hover:bg-discord-light group">
                                 <div class="relative mr-2">
-                                    <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
+                                    <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden user-profile-trigger" data-user-id="<?php echo $member['id']; ?>" data-server-id="<?php echo $currentServerId; ?>">
                                         <img src="<?php echo getUserAvatar($member['avatar'] ?? '', $member['username'] ?? 'User'); ?>" 
                                              alt="Avatar" class="w-full h-full object-cover">
                                     </div>
-                                    <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark <?php echo $statusColor; ?>"></span>
+                                    <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark <?php echo $statusColor; ?> status-indicator"></span>
                                 </div>
                                 <span class="text-gray-300 text-sm truncate"><?php echo htmlspecialchars($member['username']); ?></span>
                             </div>
@@ -199,15 +199,15 @@ function renderRoleSkeleton($count = 1) {
                     <h3 class="text-xs font-semibold text-gray-400 uppercase px-2 py-1">
                         Offline — <?php echo count($offlineMembers); ?>
                     </h3>
-                    <div class="space-y-0.5">
+                    <div class="space-y-0.5 offline-users-section" data-role-id="default">
                         <?php foreach ($offlineMembers as $member): ?>
                             <div class="flex items-center px-2 py-1 rounded hover:bg-discord-light group">
                                 <div class="relative mr-2">
-                                    <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
+                                    <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden user-profile-trigger" data-user-id="<?php echo $member['id']; ?>" data-server-id="<?php echo $currentServerId; ?>">
                                         <img src="<?php echo getUserAvatar($member['avatar'] ?? '', $member['username'] ?? 'User'); ?>" 
                                              alt="Avatar" class="w-full h-full object-cover opacity-70">
                                     </div>
-                                    <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark bg-gray-500"></span>
+                                    <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark bg-gray-500 status-indicator"></span>
                                 </div>
                                 <span class="text-gray-500 text-sm truncate"><?php echo htmlspecialchars($member['username']); ?></span>
                             </div>
@@ -224,7 +224,7 @@ function renderRoleSkeleton($count = 1) {
                 <h3 class="text-xs font-semibold text-gray-400 uppercase py-1">
                     Online — <?php echo $onlineCount; ?>
                 </h3>
-                <div class="space-y-0.5">
+                <div class="space-y-0.5 online-users-section">
                     <?php 
                     $onlineMembers = array_filter($members, function($m) {
                         return $m['status'] !== 'offline';
@@ -255,11 +255,11 @@ function renderRoleSkeleton($count = 1) {
                     ?>
                         <div class="flex items-center px-2 py-1 rounded hover:bg-discord-light group">
                             <div class="relative mr-2">
-                                <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
+                                <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden user-profile-trigger" data-user-id="<?php echo $member['id']; ?>" data-server-id="<?php echo $currentServerId; ?>">
                                     <img src="<?php echo getUserAvatar($member['avatar'] ?? '', $member['username'] ?? 'User'); ?>" 
                                          alt="Avatar" class="w-full h-full object-cover">
                                 </div>
-                                <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark <?php echo $statusColor; ?>"></span>
+                                <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark <?php echo $statusColor; ?> status-indicator"></span>
                             </div>
                             <span class="text-gray-300 text-sm truncate"><?php echo htmlspecialchars($member['username']); ?></span>
                         </div>
@@ -276,15 +276,15 @@ function renderRoleSkeleton($count = 1) {
                     <h3 class="text-xs font-semibold text-gray-400 uppercase py-1 mt-4">
                         Offline — <?php echo count($offlineMembers); ?>
                     </h3>
-                    <div class="space-y-0.5">
+                    <div class="space-y-0.5 offline-users-section">
                         <?php foreach ($offlineMembers as $member): ?>
                             <div class="flex items-center px-2 py-1 rounded hover:bg-discord-light group">
                                 <div class="relative mr-2">
-                                    <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
+                                    <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden user-profile-trigger" data-user-id="<?php echo $member['id']; ?>" data-server-id="<?php echo $currentServerId; ?>">
                                         <img src="<?php echo getUserAvatar($member['avatar'] ?? '', $member['username'] ?? 'User'); ?>" 
                                              alt="Avatar" class="w-full h-full object-cover opacity-70">
                                     </div>
-                                    <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark bg-gray-500"></span>
+                                    <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark bg-gray-500 status-indicator"></span>
                                 </div>
                                 <span class="text-gray-500 text-sm truncate"><?php echo htmlspecialchars($member['username']); ?></span>
                             </div>
@@ -297,6 +297,32 @@ function renderRoleSkeleton($count = 1) {
 </div>
 
 <script>
+// Socket.io configuration
+const SOCKET_URL = window.SOCKET_URL || 'http://localhost:1002';
+const ENABLE_USER_SECTION_MOVEMENT = false; // Set to true to enable automatic movement between online/offline sections
+window.ENABLE_USER_SECTION_MOVEMENT = ENABLE_USER_SECTION_MOVEMENT;
+
+// Debug status information
+let socketConnectionStatus = 'disconnected';
+let lastSocketEvent = null;
+
+// Ensure Socket.io is loaded
+function loadSocketIO(callback) {
+    if (window.io) {
+        callback();
+        return;
+    }
+    
+    const socketScript = document.createElement('script');
+    socketScript.src = SOCKET_URL + '/socket.io/socket.io.js';
+    socketScript.async = true;
+    socketScript.onload = callback;
+    socketScript.onerror = function() {
+        console.error('Failed to load Socket.io client');
+    };
+    document.head.appendChild(socketScript);
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const participantSkeleton = document.querySelector('.participant-skeleton');
     const participantContent = document.querySelector('.participant-content');
@@ -314,6 +340,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 window.LazyLoader.triggerDataLoaded('participant-list', isEmpty);
             }
         }
+        
+        loadSocketIO(initializeSocketConnection);
     }, 1000);
 });
 
@@ -329,6 +357,163 @@ function toggleParticipantLoading(loading = true) {
     } else {
         participantSkeleton.classList.add('hidden');
         participantContent.classList.remove('hidden');
+    }
+}
+
+function initializeSocketConnection() {
+    if (!window.io) {
+        console.warn('Socket.io not loaded');
+        return;
+    }
+    
+    const serverId = <?php echo $currentServerId; ?>;
+    const currentUserId = <?php echo $_SESSION['user_id'] ?? 0; ?>;
+    
+    try {
+        const socket = io(SOCKET_URL, {
+            transports: ['websocket', 'polling'],
+            reconnection: true,
+            reconnectionAttempts: 5,
+            reconnectionDelay: 1000
+        });
+        
+        socket.on('connect', function() {
+            console.log('Socket connected for participant list');
+            socketConnectionStatus = 'connected';
+            
+            socket.emit('authenticate', {
+                userId: currentUserId,
+                username: '<?php echo $_SESSION['username'] ?? 'Unknown'; ?>'
+            });
+            
+            socket.emit('get-online-users');
+        });
+        
+        socket.on('online-users-response', function(data) {
+            console.log(`Received online users: ${Object.keys(data.users || {}).length} users`);
+            lastSocketEvent = {type: 'online-users-response', timestamp: Date.now()};
+            updateOnlineStatus(data.users);
+        });
+        
+        socket.on('user-presence-update', function(data) {
+            console.log(`User presence update: ${data.userId} => ${data.status}`);
+            lastSocketEvent = {type: 'user-presence-update', userId: data.userId, status: data.status, timestamp: Date.now()};
+            updateUserStatus(data.userId, data.status);
+        });
+        
+        socket.on('user-offline', function(data) {
+            console.log(`User went offline: ${data.userId}`);
+            lastSocketEvent = {type: 'user-offline', userId: data.userId, timestamp: Date.now()};
+            updateUserStatus(data.userId, 'offline');
+        });
+        
+        socket.on('disconnect', function() {
+            console.log('Socket disconnected from participant list');
+            socketConnectionStatus = 'disconnected';
+        });
+        
+        socket.on('error', function(error) {
+            console.error('Socket error:', error);
+            socketConnectionStatus = 'error';
+        });
+        
+        socket.on('connect_error', function(error) {
+            console.error('Socket connection error:', error);
+            socketConnectionStatus = 'connection_error';
+        });
+        
+        window.participantSocket = socket;
+        window.getSocketStatus = function() {
+            return {
+                connectionStatus: socketConnectionStatus,
+                lastEvent: lastSocketEvent,
+                connectedAt: socket.connected ? new Date(socket.connectTime) : null
+            };
+        };
+        
+    } catch (error) {
+        console.error('Error connecting to socket:', error);
+    }
+}
+
+function updateOnlineStatus(onlineUsers) {
+    if (!onlineUsers) return;
+    
+    Object.keys(onlineUsers).forEach(userId => {
+        updateUserStatus(userId, onlineUsers[userId].status || 'online');
+    });
+}
+
+function updateUserStatus(userId, status) {
+    const userElements = document.querySelectorAll(`.user-profile-trigger[data-user-id="${userId}"]`);
+    
+    userElements.forEach(userElement => {
+        const statusIndicator = userElement.parentElement.querySelector('.status-indicator');
+        if (!statusIndicator) return;
+        
+        const statusClass = getStatusClass(status);
+        
+        // Remove all possible status classes
+        statusIndicator.classList.remove('bg-discord-green', 'bg-discord-yellow', 'bg-discord-red', 'bg-gray-500');
+        // Add the correct status class
+        statusIndicator.classList.add(statusClass);
+        
+        // Update username color
+        const userContainer = userElement.closest('.flex');
+        const userNameElement = userContainer?.querySelector('.text-sm');
+        if (userNameElement) {
+            if (status === 'offline' || status === 'invisible') {
+                userNameElement.classList.remove('text-gray-300');
+                userNameElement.classList.add('text-gray-500');
+                userElement.querySelector('img')?.classList.add('opacity-70');
+            } else {
+                userNameElement.classList.remove('text-gray-500');
+                userNameElement.classList.add('text-gray-300');
+                userElement.querySelector('img')?.classList.remove('opacity-70');
+            }
+        }
+        
+        // Move user to the appropriate section if needed
+        updateUserSection(userContainer, status);
+    });
+}
+
+function updateUserSection(userElement, status) {
+    if (!userElement) return;
+    
+    const isOffline = status === 'offline' || status === 'invisible';
+    const currentSection = userElement.parentElement;
+    
+    // Only do section movement if explicitly configured
+    if (window.ENABLE_USER_SECTION_MOVEMENT === true) {
+        const onlineSection = document.querySelector('.online-users-section');
+        const offlineSection = document.querySelector('.offline-users-section');
+        
+        if (onlineSection && offlineSection) {
+            if (isOffline && currentSection === onlineSection) {
+                offlineSection.appendChild(userElement.cloneNode(true));
+                userElement.remove();
+            } else if (!isOffline && currentSection === offlineSection) {
+                onlineSection.appendChild(userElement.cloneNode(true));
+                userElement.remove();
+            }
+        }
+    }
+}
+
+function getStatusClass(status) {
+    switch (status) {
+        case 'online':
+        case 'appear':
+            return 'bg-discord-green';
+        case 'idle':
+            return 'bg-discord-yellow';
+        case 'do_not_disturb':
+            return 'bg-discord-red';
+        case 'invisible':
+        case 'offline':
+        default:
+            return 'bg-gray-500';
     }
 }
 

@@ -38,10 +38,10 @@ class AuthenticationController extends BaseController
             $redirect = $_GET['redirect'] ?? '/home';
 
             if (function_exists('logger')) {
-                logger()->debug("User already authenticated, redirecting", [
-                    'redirect_to' => $redirect,
-                    'user_id' => $_SESSION['user_id'] ?? 'not_set'
-                ]);
+                // logger()->debug("User already authenticated, redirecting", [
+                //     'redirect_to' => $redirect,
+                //     'user_id' => $_SESSION['user_id'] ?? 'not_set'
+                // ]);
             }
 
             if ($this->isApiRoute() || $this->isAjaxRequest()) {
