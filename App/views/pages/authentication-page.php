@@ -9,9 +9,9 @@ if (!function_exists('asset')) {
     require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
 }
 
-if (isset($_GET['fresh']) && $_GET['fresh'] == '1') {
-    $_SESSION = array();
-}
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+header('Expires: 0');
 
 $mode = 'login'; 
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
@@ -35,15 +35,21 @@ $securityQuestion = $_SESSION['security_question'] ?? null;
 $email = $_SESSION['reset_email'] ?? '';
 $token = $_SESSION['reset_token'] ?? '';
 
+// Clear temporary form data from session
 unset($_SESSION['errors'], $_SESSION['old_input'], $_SESSION['success']);
+
+// Set cache control headers on all authentication pages to prevent caching
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+header('Expires: 0');
 
 $page_title = 'misvord - Login or Register';
 $body_class = 'bg-discord-dark text-white';
 $page_css = 'authentication-page';
-$page_js = 'pages/authentication-simple';
-$additional_js = ['components/common/captcha'];
+$page_js = 'pages/authentication-page';
+$additional_js = ['components/common/validation', 'components/common/captcha'];
 $head_scripts = ['logger-init'];
-$include_socket_io = true;
+
 $data_page = 'auth';
 
 $debugInfo = '';
@@ -476,10 +482,7 @@ if (isset($_GET['debug']) || EnvLoader::get('APP_ENV') === 'development') {
     </div>
 </div>
 
-<script src="public/js/core/socket/global-socket-manager.js" type="module"></script>
-
 <?php 
-
 $content = ob_get_clean(); 
 
 include dirname(dirname(__DIR__)) . '/views/layout/main-app.php';

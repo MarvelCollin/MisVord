@@ -21,7 +21,9 @@ class UserDetailModal {
         this.aboutSection = this.modal.querySelector('#user-detail-about');
         this.memberSinceSection = this.modal.querySelector('#user-detail-member-since');
         this.rolesSection = this.modal.querySelector('#user-detail-roles');
-        this.noteInput = this.modal.querySelector('#user-detail-note');
+        
+        this.messageInput = this.modal.querySelector('#user-detail-message-input');
+        this.sendBtn = this.modal.querySelector('#user-detail-send-btn');
 
         this.mutualSection = this.modal.querySelector('.user-detail-mutual');
         this.mutualServersElement = this.modal.querySelector('#user-detail-mutual-servers');
@@ -56,8 +58,17 @@ class UserDetailModal {
             this.addFriendBtn.addEventListener('click', () => this.handleAddFriendClick());
         }
 
-        if (this.noteInput) {
-            this.noteInput.addEventListener('change', (e) => this.handleNoteChange(e.target.value));
+        if (this.sendBtn) {
+            this.sendBtn.addEventListener('click', () => this.handleSendMessage());
+        }
+        
+        if (this.messageInput) {
+            this.messageInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    this.handleSendMessage();
+                }
+            });
         }
     }
 
@@ -401,10 +412,19 @@ class UserDetailModal {
             if (this.mutualFriendsElement) this.mutualFriendsElement.textContent = '0 Mutual Friends';
         }
 
-        if (this.noteInput && user.note) {
-            this.noteInput.value = user.note;
-        } else if (this.noteInput) {
-            this.noteInput.value = '';
+        // Hide the message section when viewing own profile
+        const messageSection = this.modal.querySelector('.user-detail-message-section');
+        if (messageSection) {
+            messageSection.style.display = isSelf ? 'none' : 'block';
+        }
+
+        if (this.messageInput) {
+            this.messageInput.placeholder = `Message @${user.username || 'user'}`;
+            this.messageInput.disabled = isSelf;
+        }
+
+        if (this.sendBtn) {
+            this.sendBtn.disabled = isSelf;
         }
 
         this.updateActionButtons(userData);
@@ -533,22 +553,45 @@ class UserDetailModal {
         }
     }
 
-    async handleNoteChange(note) {
-        if (!this.currentUserId) return;
+    async handleSendMessage() {
+        if (!this.currentUserId || !this.messageInput || !this.messageInput.value.trim()) {
+            return;
+        }
+
+        const content = this.messageInput.value.trim();
+        this.messageInput.value = '';
+        this.messageInput.disabled = true;
+        this.sendBtn.disabled = true;
 
         try {
-            const response = await fetch(`/api/users/${this.currentUserId}/note`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: JSON.stringify({ note })
-            });
+            const chatApi = await import('../../api/chat-api.js').then(module => module.default);
 
-            if (!response.ok) throw new Error('Failed to save note');
+            // Step 1: Get or create the DM room
+            const dmRoomData = await chatApi.createDirectMessageRoom(this.currentUserId);
+            
+            if (!dmRoomData.success || !dmRoomData.room_id) {
+                throw new Error(dmRoomData.message || 'Could not open a DM with this user.');
+            }
+
+            const roomId = dmRoomData.room_id;
+
+            // Step 2: Send the message using the correct method and parameters
+            await chatApi.sendMessage(roomId, content, 'direct');
+
+            // Hide the modal and optionally show a success toast
+            this.hide();
+            if (window.showToast) {
+                window.showToast('Message sent!', 'success');
+            }
+
         } catch (error) {
-            console.error('Error saving note:', error);
+            console.error('Error sending direct message:', error);
+            if (window.showToast) {
+                window.showToast(error.message || 'Failed to send message.', 'error');
+            }
+        } finally {
+            if (this.messageInput) this.messageInput.disabled = false;
+            if (this.sendBtn) this.sendBtn.disabled = false;
         }
     }
 }

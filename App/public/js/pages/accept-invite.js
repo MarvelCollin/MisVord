@@ -1,5 +1,4 @@
 import { showToast } from '../core/ui/toast.js';
-import serverAPI from '../api/server-api.js';
 
 document.addEventListener('DOMContentLoaded', function() {
     window.logger.info('general', "Accept Invite page loaded");
@@ -7,47 +6,41 @@ document.addEventListener('DOMContentLoaded', function() {
     const inviteCode = window.location.pathname.split('/').pop();
     window.logger.debug('general', "Invite code from URL:", inviteCode);
 
-    const joinServerBtn = document.getElementById('join-server-btn');    if (joinServerBtn) {
-        window.logger.debug('general', "Join server button found");
-
+    const joinServerBtn = document.getElementById('join-server-btn');
+    const errorContainer = document.getElementById('invite-error-container');
+    const inviteContent = document.getElementById('invite-content');
+    const errorMessage = document.getElementById('error-message');
+    
+    // Check if we're on a JSON response page and redirect if needed
+    if (document.body.textContent.trim().startsWith('{') && document.body.textContent.includes('"success":')) {
+        try {
+            const jsonResponse = JSON.parse(document.body.textContent);
+            window.location.href = `/join/${inviteCode}`;
+            return;
+        } catch (e) {
+            console.error("Error parsing JSON from body:", e);
+            window.location.href = `/join/${inviteCode}`;
+            return;
+        }
+    }
+    
+    // If there's a join server button, make it redirect directly instead of using AJAX
+    if (joinServerBtn) {
         joinServerBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            window.logger.info('general', "Join server button clicked");
-
-            joinServerBtn.textContent = 'Joining...';
-            joinServerBtn.disabled = true;
-
-            showToast('Joining server...', 'info');            
-                window.logger.debug('general', "Sending request to join server with code:", inviteCode);
-
-            serverAPI.joinByInvite(inviteCode)
-                .then(data => {
-                    window.logger.debug('ajax', "Parsed response data:", data);
-
-                    if (data.success) {
-                        showToast('Successfully joined server!', 'success');
-
-                        if (data.data && data.data.redirect) {
-                            console.log("Redirecting to:", data.data.redirect);
-                            window.location.href = data.data.redirect;
-                        } else {
-                            console.log("No redirect URL in response, going to app");
-                            window.location.href = '/app';
-                        }
-                    } else {
-                        console.error("Error in response:", data.message);
-                        throw new Error(data.message || 'Failed to join server');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error joining server:', error);
-
-                    joinServerBtn.textContent = 'Accept Invitation';
-                    joinServerBtn.disabled = false;
-
-                    showToast(error.message || 'Failed to join server. Please try again.', 'error');
-                });
-        });    } else {
-        window.logger.warn('general', "Join server button not found - user might not be logged in");
+            // Don't prevent default - let the natural link navigate to the server join endpoint
+            // This ensures server-side auth checks work properly
+        });
+    }
+    
+    function showInviteError(message) {
+        if (errorMessage) {
+            errorMessage.textContent = message;
+        }
+        if (errorContainer) {
+            errorContainer.classList.remove('hidden');
+        }
+        if (inviteContent) {
+            inviteContent.classList.add('hidden');
+        }
     }
 });

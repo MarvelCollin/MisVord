@@ -179,6 +179,10 @@ class ServerController extends BaseController
         $description = $input['description'] ?? '';
         
         try {
+            require_once __DIR__ . '/../database/models/Server.php';
+            require_once __DIR__ . '/../database/models/UserServerMembership.php';
+            require_once __DIR__ . '/../database/models/Channel.php';
+            
             $server = new Server();
             $server->name = $name;
             $server->description = $description;
@@ -204,11 +208,14 @@ class ServerController extends BaseController
                 $membership->server_id = $server->id;
                 $membership->role = 'owner';
                 $membership->save();
+                
                 $generalChannel = new Channel();
                 $generalChannel->name = 'general';
                 $generalChannel->type = 'text';
                 $generalChannel->server_id = $server->id;
-                $generalChannel->save();
+                if (!$generalChannel->save()) {
+                    throw new Exception('Failed to create default channel');
+                }
 
                 $this->logActivity('server_created', [
                     'server_id' => $server->id,
@@ -217,7 +224,7 @@ class ServerController extends BaseController
 
                 return $this->success([
                     'server' => $this->formatServer($server),
-                    'redirect' => "/servers/{$server->id}"
+                    'redirect' => "/server/{$server->id}"
                 ], 'Server created successfully');
             } else {
                 throw new Exception('Failed to save server');
@@ -227,7 +234,7 @@ class ServerController extends BaseController
                 'server_name' => $name,
                 'error' => $e->getMessage()
             ]);
-            return $this->serverError('Failed to create server');
+            return $this->serverError('Failed to create server: ' . $e->getMessage());
         }
     }
 
@@ -350,52 +357,155 @@ class ServerController extends BaseController
         }
     }
 
-    public function join($inviteCode)
+    public function join($inviteCode = null)
     {
-        $this->requireAuth();
+        // Add additional debug logging to check authentication status
+        if (function_exists('logger')) {
+            logger()->debug("Join method called", [
+                'invite_code' => $inviteCode,
+                'session_status' => session_status(),
+                'session_id' => session_id(),
+                'user_id' => $_SESSION['user_id'] ?? 'not_set',
+                'is_authenticated' => isset($_SESSION['user_id']),
+                'request_method' => $_SERVER['REQUEST_METHOD'] ?? 'UNKNOWN',
+                'request_uri' => $_SERVER['REQUEST_URI'] ?? 'UNKNOWN',
+                'session_data' => $_SESSION
+            ]);
+        }
+        
+        // Ensure session is started
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        
+        // Check if user is logged in
+        if (!isset($_SESSION['user_id'])) {
+            // Always redirect to login page with the invite code as a redirect parameter
+            $redirectUrl = '/login?redirect=/join/' . urlencode($inviteCode);
+            
+            if (function_exists('logger')) {
+                logger()->warning("User not authenticated for join", [
+                    'redirect_to' => $redirectUrl,
+                    'session_id' => session_id(),
+                    'session_data' => $_SESSION
+                ]);
+            }
+            
+            if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                return $this->unauthorized('Authentication required to join a server');
+            } else {
+                header('Location: ' . $redirectUrl);
+                exit;
+            }
+        }
+
+        if (!$inviteCode) {
+            $input = $this->getInput();
+            $inviteCode = $input['code'] ?? null;
+        }
+
+        if (!$inviteCode) {
+            return $this->validationError(['code' => 'Invite code is required']);
+        }
 
         try {
+            // First check if the invite code exists at all
             $invite = $this->inviteRepository->findByCode($inviteCode);
             
             if (!$invite) {
-                return $this->notFound('Server invite not found or expired');
+                return $this->notFound('Invite not found or expired');
             }
             
+            // Then check if it's valid (not expired)
+            if (!$invite->isValid()) {
+                return $this->notFound('Invite has expired');
+            }
+            
+            // Now get the server
             $server = $this->serverRepository->find($invite->server_id);
             if (!$server) {
                 return $this->notFound('Server not found');
             }
             
+            // Check if user is already a member
             if ($this->userServerMembershipRepository->isMember($this->getCurrentUserId(), $server->id)) {
-                return $this->success([
-                    'server' => $server,
-                    'redirect' => "/server/{$server->id}"
-                ], 'You are already a member of this server');
-            }
-            
-            $joinResult = $this->userServerMembershipRepository->addMembership($this->getCurrentUserId(), $server->id);
-            
-            if ($joinResult) {
-                $this->logActivity('server_joined', [
-                    'server_id' => $server->id,
-                    'server_name' => $server->name,
-                    'invite_code' => $inviteCode
-                ]);
+                $redirectUrl = "/server/{$server->id}";
                 
-                return $this->success([
-                    'server' => $server,
-                    'redirect' => "/server/{$server->id}"
-                ], 'Successfully joined server');
-            } else {
-                throw new Exception('Failed to join server');
+                if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                    return $this->success([
+                        'message' => 'You are already a member of this server',
+                        'redirect' => $redirectUrl
+                    ]);
+                } else {
+                    // Direct browser request - redirect to the server
+                    header('Location: ' . $redirectUrl);
+                    exit;
+                }
             }
+            
+            // Add the user to the server
+            $result = $this->userServerMembershipRepository->create([
+                'user_id' => $this->getCurrentUserId(),
+                'server_id' => $server->id,
+                'role' => 'member',
+                'joined_at' => date('Y-m-d H:i:s')
+            ]);
+            
+            if (!$result) {
+                return $this->serverError('Failed to join server');
+            }
+            
+            // Increment the invite usage count
+            $this->inviteRepository->useInvite($inviteCode);
+
+            $this->logActivity('server_joined', [
+                'server_id' => $server->id,
+                'invite_code' => $inviteCode
+            ]);
+                
+            $redirectUrl = "/server/{$server->id}";
+            
+            if (function_exists('logger')) {
+                logger()->info("User successfully joined server", [
+                    'user_id' => $this->getCurrentUserId(),
+                    'server_id' => $server->id,
+                    'redirect_to' => $redirectUrl
+                ]);
+            }
+            
+            if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                return $this->success([
+                    'message' => 'Successfully joined server',
+                    'redirect' => $redirectUrl
+                ]);
+            } else {
+                // Direct browser request - redirect to the server
+                header('Location: ' . $redirectUrl);
+                exit;
+            }
+            
         } catch (Exception $e) {
+            if (function_exists('logger')) {
+                logger()->error("Error joining server", [
+                    'invite_code' => $inviteCode,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+            }
+            
             $this->logActivity('server_join_error', [
                 'invite_code' => $inviteCode,
                 'error' => $e->getMessage()
             ]);
             
-            return $this->serverError('Failed to join server: ' . $e->getMessage());
+            if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                return $this->serverError('Failed to join server: ' . $e->getMessage());
+            } else {
+                // For direct browser requests, set an error and show the invite page
+                $GLOBALS['inviteError'] = 'Failed to join server: ' . $e->getMessage();
+                $this->showInvite($inviteCode);
+                exit;
+            }
         }
     }
 
@@ -498,12 +608,58 @@ class ServerController extends BaseController
         try {
             $invite = $this->inviteRepository->findByCode($code);
             if (!$invite) {
-                return $this->notFound('Invite not found or expired');
+                if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                    return $this->notFound('Invite not found or expired');
+                } else {
+                    $GLOBALS['inviteError'] = 'Invite not found or expired';
+                    require_once __DIR__ . '/../views/pages/accept-invite.php';
+                    exit;
+                }
+            }
+
+            // Check if the invite is valid (not expired)
+            if (!$invite->isValid()) {
+                if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                    return $this->notFound('Invite has expired');
+                } else {
+                    $GLOBALS['inviteError'] = 'Invite has expired';
+                    require_once __DIR__ . '/../views/pages/accept-invite.php';
+                    exit;
+                }
             }
 
             $server = $this->serverRepository->find($invite->server_id);
             if (!$server) {
-                return $this->notFound('Server not found');
+                if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                    return $this->notFound('Server not found');
+                } else {
+                    $GLOBALS['inviteError'] = 'Server not found';
+                    require_once __DIR__ . '/../views/pages/accept-invite.php';
+                    exit;
+                }
+            }
+
+            // For authenticated users, check if they're already a member
+            if (isset($_SESSION['user_id'])) {
+                if ($this->userServerMembershipRepository->isMember($this->getCurrentUserId(), $server->id)) {
+                    $redirectUrl = "/server/{$server->id}";
+                    
+                    if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                        return $this->success([
+                            'already_member' => true,
+                            'message' => 'You are already a member of this server',
+                            'redirect' => $redirectUrl
+                        ]);
+                    } else {
+                        // Give the user feedback before redirecting
+                        $_SESSION['flash_message'] = [
+                            'type' => 'info',
+                            'message' => 'You are already a member of this server'
+                        ];
+                        header("Location: {$redirectUrl}");
+                        exit;
+                    }
+                }
             }
 
             $this->logActivity('invite_viewed', [
@@ -513,25 +669,28 @@ class ServerController extends BaseController
 
             if ($this->isApiRoute() || $this->isAjaxRequest()) {
                 return $this->success([
-                    'server' => $server,
-                    'invite' => $invite
+                    'invite' => $invite,
+                    'server' => $this->formatServer($server)
                 ]);
+            } else {
+                $GLOBALS['invite'] = $invite;
+                $GLOBALS['inviteServer'] = $server;
+                $GLOBALS['inviteCode'] = $code;
+                require_once __DIR__ . '/../views/pages/accept-invite.php';
             }
-
-            $GLOBALS['inviteServer'] = $server;
-            $GLOBALS['inviteCode'] = $code;
-            $GLOBALS['invite'] = $invite;
-
-            return [
-                'server' => $server,
-                'invite' => $invite
-            ];
         } catch (Exception $e) {
             $this->logActivity('invite_view_error', [
                 'invite_code' => $code,
                 'error' => $e->getMessage()
             ]);
-            return $this->serverError('Failed to load invite');
+            
+            if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                return $this->serverError('Failed to load invite details: ' . $e->getMessage());
+            } else {
+                $GLOBALS['inviteError'] = 'Failed to load invite details: ' . $e->getMessage();
+                require_once __DIR__ . '/../views/pages/accept-invite.php';
+                exit;
+            }
         }
     }
 
@@ -654,7 +813,10 @@ class ServerController extends BaseController
                 return $this->notFound('Server not found');
             }
 
-            if (!$this->userServerMembershipRepository->isOwner($this->getCurrentUserId(), $serverId)) {
+            // Allow members with appropriate permissions to generate invites
+            $membership = $this->userServerMembershipRepository->findByUserAndServer($this->getCurrentUserId(), $serverId);
+            if (!$membership || (!$this->userServerMembershipRepository->isOwner($this->getCurrentUserId(), $serverId) && 
+                $membership->role !== 'admin' && $membership->role !== 'moderator')) {
                 return $this->forbidden('You do not have permission to generate invite links');
             }
             
@@ -672,37 +834,36 @@ class ServerController extends BaseController
                 $expiresAt = date('Y-m-d H:i:s', strtotime($input['expires_at']));
             }
             
-            $inviteCode = bin2hex(random_bytes(8));
-            
+            // Create the invite using repository
             $invite = $this->inviteRepository->createInvite(
                 $serverId, 
                 $this->getCurrentUserId(),
                 $expiresAt
             );
 
-            if ($invite) {
+            if (!$invite) {
+                return $this->serverError('Failed to create invite');
+            }
+            
+            // Log the activity
                 $this->logActivity('invite_generated', [
                     'server_id' => $serverId,
-                    'invite_code' => $inviteCode,
+                'invite_code' => $invite->invite_link,
                     'expires_at' => $expiresAt
                 ]);
 
-                $inviteUrl = $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['HTTP_HOST'] . '/join/' . $inviteCode;
-                
+            // Return the invite details
                 return $this->success([
-                    'invite_code' => $inviteCode,
-                    'invite_url' => $inviteUrl,
+                'invite_code' => $invite->invite_link,
+                'invite_url' => $this->getBaseUrl() . '/join/' . $invite->invite_link,
                     'expires_at' => $expiresAt
                 ]);
-            } else {
-                return $this->serverError('Failed to generate invite');
-            }
         } catch (Exception $e) {
             $this->logActivity('invite_generation_error', [
                 'server_id' => $serverId,
                 'error' => $e->getMessage()
             ]);
-            return $this->serverError('Failed to generate invite link');
+            return $this->serverError('Failed to generate invite link: ' . $e->getMessage());
         }
     }
 
@@ -841,6 +1002,90 @@ class ServerController extends BaseController
         }
     }
 
+    public function checkInviteValidity($code = null)
+    {
+        if (!$code) {
+            $input = $this->getInput();
+            $code = $input['code'] ?? null;
+        }
+
+        if (!$code) {
+            if (!$this->isApiRoute() && !$this->isAjaxRequest()) {
+                // Don't redirect with an empty code
+                header('Location: /app');
+                exit;
+            }
+            return $this->notFound('Invalid invite code');
+        }
+        
+        try {
+            $invite = $this->inviteRepository->findByCode($code);
+            if (!$invite) {
+                if (!$this->isApiRoute() && !$this->isAjaxRequest()) {
+                    // Instead of redirecting back to this same URL (which would cause a loop),
+                    // we'll set the global error and include the invite page directly
+                    $GLOBALS['inviteError'] = 'Invite not found or expired';
+                    require_once __DIR__ . '/../views/pages/accept-invite.php';
+                    exit;
+                }
+                return $this->notFound('Invite not found or expired');
+            }
+
+            if (!$invite->isValid()) {
+                if (!$this->isApiRoute() && !$this->isAjaxRequest()) {
+                    // Similar to above, set error and render page directly
+                    $GLOBALS['inviteError'] = 'Invite has expired';
+                    require_once __DIR__ . '/../views/pages/accept-invite.php';
+                    exit;
+                }
+                return $this->notFound('Invite has expired');
+            }
+
+            $server = $this->serverRepository->find($invite->server_id);
+            if (!$server) {
+                if (!$this->isApiRoute() && !$this->isAjaxRequest()) {
+                    // Similar to above, set error and render page directly
+                    $GLOBALS['inviteError'] = 'Server not found';
+                    require_once __DIR__ . '/../views/pages/accept-invite.php';
+                    exit;
+                }
+                return $this->notFound('Server not found');
+            }
+
+            $this->logActivity('invite_checked', [
+                'invite_code' => $code,
+                'server_id' => $server->id,
+                'valid' => true
+            ]);
+
+            if (!$this->isApiRoute() && !$this->isAjaxRequest()) {
+                // For direct browser requests, redirect to the proper invite page
+                header('Location: /join/' . $code);
+                exit;
+            }
+
+            return $this->success([
+                'valid' => true,
+                'server' => $this->formatServer($server),
+                'invite' => $invite
+            ]);
+        } catch (Exception $e) {
+            $this->logActivity('invite_check_error', [
+                'invite_code' => $code,
+                'error' => $e->getMessage()
+            ]);
+            
+            if (!$this->isApiRoute() && !$this->isAjaxRequest()) {
+                // Handle errors for direct browser requests
+                $GLOBALS['inviteError'] = 'Failed to validate invite: ' . $e->getMessage();
+                require_once __DIR__ . '/../views/pages/accept-invite.php';
+                exit;
+            }
+            
+            return $this->notFound('Failed to validate invite: ' . $e->getMessage());
+        }
+    }
+
     private function formatServer($server)
     {
         return [
@@ -881,5 +1126,11 @@ class ServerController extends BaseController
         }
 
         return false;
+    }
+
+    private function getBaseUrl() {
+        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
+        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+        return $protocol . $host;
     }
 }

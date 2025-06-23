@@ -51,4 +51,16 @@ class MessageRepository extends Repository {
         
         return $messages;
     }
+    
+  
+    public function countToday() {
+        $query = new Query();
+        $today = date('Y-m-d 00:00:00');
+        
+        $result = $query->table('messages')
+            ->where('sent_at', '>=', $today)
+            ->count();
+            
+        return $result;
+    }
 }

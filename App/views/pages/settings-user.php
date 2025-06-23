@@ -173,6 +173,38 @@ ob_start();
                             </div>
                         </div>
                         
+                        <!-- Banner Image -->
+                        <div class="form-group mt-6">
+                            <label class="block text-sm font-medium text-white mb-2">Profile Banner</label>
+                            <p class="text-discord-lighter text-xs mb-3">Express yourself with a banner image. Recommended size: 960x240.</p>
+                            
+                            <div class="flex flex-col space-y-4">
+                                <div id="banner-container" class="relative w-full h-32 bg-discord-dark-input rounded-md overflow-hidden border border-gray-700">
+                                    <?php if ($user->banner_url): ?>
+                                        <img id="banner-preview" src="<?php echo htmlspecialchars($user->banner_url); ?>" alt="User Banner" class="w-full h-full object-cover">
+                                    <?php else: ?>
+                                        <div id="banner-placeholder" class="w-full h-full flex items-center justify-center text-xl font-bold text-white">
+                                            <span class="text-discord-lighter">Click to add a banner</span>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                                
+                                <div class="flex">
+                                    <?php if ($user->banner_url): ?>
+                                        <button type="button" id="remove-banner-btn" class="text-[#ed4245] hover:underline font-medium py-2 px-4">
+                                            Remove Banner
+                                        </button>
+                                    <?php else: ?>
+                                        <button type="button" id="remove-banner-btn" class="text-[#ed4245] hover:underline font-medium py-2 px-4 hidden">
+                                            Remove Banner
+                                        </button>
+                                    <?php endif; ?>
+                                </div>
+                                
+                                <input type="file" id="banner-input" name="banner" class="hidden" accept="image/*">
+                            </div>
+                        </div>
+                        
                         <!-- Username -->
                         <div class="form-group">
                             <label for="username" class="block text-sm font-medium text-white mb-2">Username</label>
@@ -188,7 +220,6 @@ ob_start();
                     <div class="bg-discord-darker rounded-lg p-6 space-y-6">
                         <h3 class="text-lg font-medium mb-4">Contact Information</h3>
                         
-                        <!-- Email -->
                         <div class="form-group">
                             <label for="email" class="block text-sm font-medium text-white mb-2">Email</label>
                             <div class="flex items-center">

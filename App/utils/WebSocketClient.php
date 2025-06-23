@@ -188,14 +188,12 @@ class WebSocketClient {
         if ($this->debug) {
             $logMessage = "[WebSocketClient] " . $message;
             
-            // Always log to error_log
             error_log($logMessage);
             
             if (function_exists('logger')) {
                 logger()->debug($logMessage);
             }
             
-            // Try to log to a file
             try {
                 $logFile = __DIR__ . '/../logs/websocket.log';
                 file_put_contents($logFile, date('[Y-m-d H:i:s]') . " " . $logMessage . "\n", FILE_APPEND);

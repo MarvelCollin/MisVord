@@ -107,37 +107,78 @@ class BaseController
 
     protected function isAuthenticated()
     {
-        return isset($_SESSION['user_id']);
-    }    protected function requireAuth()
-    {
-        if (function_exists('logger')) {
-            logger()->debug("requireAuth called", [
-                'session_status' => session_status(),
-                'user_id' => $_SESSION['user_id'] ?? 'not_set',
-                'is_authenticated' => $this->isAuthenticated(),
-                'session_data' => $_SESSION
-            ]);
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
         }
         
+        if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
+            return false;
+        }
+        
+        if ($this->isSessionExpired()) {
+            $this->clearAuthSession();
+            return false;
+        }
+        
+        $_SESSION['last_activity'] = time();
+        return true;
+    }
+    
+    protected function isSessionExpired()
+    {
+        $max_lifetime = $this->getSessionLifetime();
+        
+        if (!isset($_SESSION['last_activity'])) {
+            return false; // Can't determine expiry without last_activity timestamp
+        }
+        
+        $inactive = time() - $_SESSION['last_activity'];
+        return ($inactive > $max_lifetime);
+    }
+    
+    protected function getSessionLifetime()
+    {
+        $configLifetime = ini_get('session.cookie_lifetime');
+        
+        // Default to 24 hours if not set
+        if (!$configLifetime) {
+            return 86400;
+        }
+        
+        return (int)$configLifetime;
+    }
+    
+    protected function clearAuthSession()
+    {
+        $_SESSION = array();
+        
+        if (ini_get("session.use_cookies")) {
+            $params = session_get_cookie_params();
+            setcookie(session_name(), '', time() - 42000,
+                $params["path"], $params["domain"],
+                $params["secure"], $params["httponly"]
+            );
+        }
+        
+        session_destroy();
+    }
+
+    protected function requireAuth()
+    {
         if (!$this->isAuthenticated()) {
-            if (function_exists('logger')) {
-                logger()->warning("User not authenticated, redirecting to login", [
-                    'session_data' => $_SESSION,
-                    'request_uri' => $_SERVER['REQUEST_URI'] ?? ''
-                ]);
-            }
+            $redirectUrl = urlencode($_SERVER['REQUEST_URI']);
             
             if ($this->isApiRoute() || $this->isAjaxRequest()) {
-                $this->jsonResponse(['error' => 'Unauthorized'], 401);
-            } else {
-                header('Location: /login');
+                $this->jsonResponse([
+                    'error' => 'Unauthorized', 
+                    'redirect' => "/login?redirect=$redirectUrl"
+                ], 401);
                 exit;
-            }
-        } else {
-            if (function_exists('logger')) {
-                logger()->debug("User authenticated successfully", [
-                    'user_id' => $_SESSION['user_id']
-                ]);
+            } else {
+                if (!headers_sent()) {
+                    header("Location: /login?redirect=$redirectUrl");
+                }
+                exit;
             }
         }
     }
@@ -202,54 +243,155 @@ class BaseController
 
         echo json_encode($response, JSON_PRETTY_PRINT);
         exit;
-    }    protected function success($data = null, $message = 'Success')
+    }   
+    
+    protected function success($data = [], $message = "Success")
     {
+        $timestamp = date('Y-m-d H:i:s');
         $response = [
             'success' => true,
+            'timestamp' => $timestamp,
             'message' => $message,
-            'timestamp' => date('Y-m-d H:i:s'),
             'data' => $data
         ];
         
-        $this->jsonResponse($response);
+        error_log("API Response Structure: " . json_encode($response, JSON_PRETTY_PRINT));
+        
+        if ($this->isApiRoute() || $this->isAjaxRequest()) {
+            header('Content-Type: application/json');
+            echo json_encode($response);
+            exit;
+        }
+        
+        return $data;
     }
 
     protected function successResponse($data = null, $message = 'Success')
     {
         return $this->success($data, $message);
-    }    protected function error($message, $statusCode = 400, $data = null)
+    }    
+    protected function error($message, $code = 400)
     {
-        $response = ['error' => $message];
-        if ($data !== null) {
-            $response['data'] = $data;
+        if ($this->isApiRoute() || $this->isAjaxRequest()) {
+            http_response_code($code);
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => false,
+                'timestamp' => date('Y-m-d H:i:s'),
+                'error' => [
+                    'code' => $code,
+                    'message' => $message
+                ]
+            ]);
+            exit;
         }
-        $this->jsonResponse($response, $statusCode);
-            return false;
+        
+        return [
+            'success' => false,
+            'code' => $code,
+            'message' => $message
+        ];
     }
 
-    protected function validationError($errors, $message = 'Validation failed')
+    protected function validationError($errors)
     {
-        $this->error($message, 422, ['validation_errors' => $errors]);
+        if ($this->isApiRoute() || $this->isAjaxRequest()) {
+            http_response_code(422);
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => false,
+                'timestamp' => date('Y-m-d H:i:s'),
+                'error' => [
+                    'code' => 422,
+                    'message' => 'Validation failed',
+                    'details' => $errors
+                ]
+            ]);
+            exit;
+        }
+        
+        return [
+            'success' => false,
+            'code' => 422,
+            'message' => 'Validation failed',
+            'errors' => $errors
+        ];
     }
 
-    protected function serverError($message = 'Internal server error')
+    protected function serverError($message = 'Server error')
     {
-        $this->error($message, 500);
+        if ($this->isApiRoute() || $this->isAjaxRequest()) {
+            http_response_code(500);
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => false,
+                'timestamp' => date('Y-m-d H:i:s'),
+                'error' => [
+                    'code' => 500,
+                    'message' => $message
+                ]
+            ]);
+            exit;
+        }
+        
+        return $this->error($message, 500);
     }
 
-    protected function notFound($message = 'Resource not found')
+    protected function notFound($message = 'Not found')
     {
-        $this->error($message, 404);
+        if ($this->isApiRoute() || $this->isAjaxRequest()) {
+            http_response_code(404);
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => false,
+                'timestamp' => date('Y-m-d H:i:s'),
+                'error' => [
+                    'code' => 404,
+                    'message' => $message
+                ]
+            ]);
+            exit;
+        }
+        
+        return $this->error($message, 404);
     }
 
     protected function unauthorized($message = 'Unauthorized')
     {
-        $this->error($message, 401);
+        if ($this->isApiRoute() || $this->isAjaxRequest()) {
+            http_response_code(401);
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => false,
+                'timestamp' => date('Y-m-d H:i:s'),
+                'error' => [
+                    'code' => 401,
+                    'message' => $message
+                ]
+            ]);
+            exit;
+        }
+        
+        return $this->error($message, 401);
     }
 
     protected function forbidden($message = 'Forbidden')
     {
-        $this->error($message, 403);
+        if ($this->isApiRoute() || $this->isAjaxRequest()) {
+            http_response_code(403);
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => false,
+                'timestamp' => date('Y-m-d H:i:s'),
+                'error' => [
+                    'code' => 403,
+                    'message' => $message
+                ]
+            ]);
+            exit;
+        }
+        
+        return $this->error($message, 403);
     }
 
     protected function redirectResponse($url, $message = 'Redirecting')
@@ -325,8 +467,8 @@ class BaseController
 
     protected function isApiRoute()
     {
-        $uri = $_SERVER['REQUEST_URI'] ?? '';
-        return strpos($uri, '/api/') === 0;
+        $requestPath = $_SERVER['REQUEST_URI'] ?? '';
+        return strpos($requestPath, '/api/') === 0;
     }
 
     protected function isAjaxRequest()
@@ -348,6 +490,11 @@ class BaseController
             }
         }
 
+        // Ensure $input is an array before merging
+        if (!is_array($input)) {
+            $input = [];
+        }
+        
         $input = array_merge($input, $_POST);
 
         return $input;
@@ -435,17 +582,16 @@ class BaseController
 
             $publicUrl = "/storage/uploads/{$folder}/{$filename}";
             
-            $symlinkedDir = dirname(__DIR__) . "/public/storage/uploads/{$folder}";
-            
-            if (!is_dir(dirname($symlinkedDir))) {
-                if (!mkdir(dirname($symlinkedDir), 0755, true)) {
-                    error_log("Warning: Unable to create symlink directory structure");
+            $publicDir = dirname(__DIR__) . "/public/storage/uploads/{$folder}";
+            if (!is_dir($publicDir)) {
+                if (!mkdir($publicDir, 0755, true)) {
+                    error_log("Warning: Unable to create public upload directory");
                 }
             }
             
             return $publicUrl;
         } else {
-            $targetDir = dirname(__DIR__) . "/public/assets/{$folder}/";
+            $targetDir = dirname(__DIR__) . "/public/storage/uploads/{$folder}/";
             if (!is_dir($targetDir)) {
                 if (!mkdir($targetDir, 0755, true)) {
                     throw new Exception('Failed to create directory');
@@ -459,7 +605,7 @@ class BaseController
                 throw new Exception('Failed to upload file');
             }
 
-            return "/assets/{$folder}/{$filename}";
+            return "/storage/uploads/{$folder}/{$filename}";
         }
     }
     

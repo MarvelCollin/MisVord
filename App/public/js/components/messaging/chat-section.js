@@ -640,13 +640,13 @@ class ChatSection {
     }
     
     async sendMessage() {
-        if (!this.messageInput || !this.messageInput.value.trim()) {
-            return;
-        }
+        if (!this.messageInput) return;
         
         const content = this.messageInput.value.trim();
+        if (!content) return;
+        
         const timestamp = Date.now();
-        const messageId = `local-${timestamp}`;
+        const messageId = `temp_${timestamp}_${Math.random().toString(36).substring(2, 15)}`;
         
         try {
             this.messageInput.value = '';
@@ -694,13 +694,25 @@ class ChatSection {
             this.processedMessageIds.add(messageId);
             this.addMessage(tempMessage);
             
-            await window.ChatAPI.sendMessage(this.targetId, content, this.chatType, options);
+            const response = await window.ChatAPI.sendMessage(this.targetId, content, this.chatType, options);
+            
+            // Update local message with server data if available
+            if (response && response.data && response.data.message) {
+                const serverMessage = response.data.message;
+                const tempMessageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+                if (tempMessageElement) {
+                    tempMessageElement.setAttribute('data-message-id', serverMessage.id);
+                    // Update any other necessary attributes
+                }
+            }
             
         } catch (error) {
             console.error('Failed to send message:', error);
+            // Put the content back in the input
             this.messageInput.value = content;
             this.updateSendButton();
             
+            // Remove the temporary message
             const tempMessageElement = document.querySelector(`[data-message-id="${messageId}"]`);
             if (tempMessageElement) {
                 const messageGroup = tempMessageElement.closest('.message-group');
@@ -713,7 +725,7 @@ class ChatSection {
             
             this.processedMessageIds.delete(messageId);
             
-            this.showNotification('Failed to send message', 'error');
+            this.showNotification('Failed to send message: ' + (error.message || 'Unknown error'), 'error');
         }
     }
     
@@ -936,15 +948,14 @@ class ChatSection {
     
     createMessageGroup(message, isOwnMessage = false) {
         const messageGroup = document.createElement('div');
-        messageGroup.className = 'message-group flex p-1 px-4 py-1 relative hover:bg-[rgba(4,4,5,0.07)]';
+        messageGroup.className = 'message-group';
         messageGroup.setAttribute('data-user-id', message.user_id);
         
         const avatarContainer = document.createElement('div');
-        avatarContainer.className = 'flex-shrink-0 mr-3 mt-0.5';
+        avatarContainer.className = 'message-avatar';
         
         const avatar = document.createElement('img');
         avatar.src = message.avatar_url || '/assets/main-logo.png';
-        avatar.className = 'w-10 h-10 rounded-full';
         avatar.alt = `${message.username}'s avatar`;
         avatar.onerror = function() {
             this.onerror = null;
@@ -953,41 +964,41 @@ class ChatSection {
         
         avatarContainer.appendChild(avatar);
         
-        const messageContent = document.createElement('div');
-        messageContent.className = 'flex-grow relative';
+        const contentWrapper = document.createElement('div');
+        contentWrapper.className = 'message-content-wrapper';
         
         const headerRow = document.createElement('div');
-        headerRow.className = 'flex items-center mb-0.5';
+        headerRow.className = 'message-header';
         
         const usernameSpan = document.createElement('span');
-        usernameSpan.className = 'font-medium text-[#f2f3f5] hover:underline cursor-pointer';
+        usernameSpan.className = 'message-username';
         usernameSpan.textContent = message.username;
         
         const timeSpan = document.createElement('span');
-        timeSpan.className = 'text-xs text-[#a3a6aa] ml-2';
+        timeSpan.className = 'message-timestamp';
         timeSpan.textContent = this.formatTimestamp(message.sent_at);
         
         headerRow.appendChild(usernameSpan);
         headerRow.appendChild(timeSpan);
         
         const messageContents = document.createElement('div');
-        messageContents.className = 'message-contents text-[#dcddde] break-words';
+        messageContents.className = 'message-contents';
         
         const firstMessage = this.createMessageContent(message, isOwnMessage);
         messageContents.appendChild(firstMessage);
         
-        messageContent.appendChild(headerRow);
-        messageContent.appendChild(messageContents);
+        contentWrapper.appendChild(headerRow);
+        contentWrapper.appendChild(messageContents);
         
         messageGroup.appendChild(avatarContainer);
-        messageGroup.appendChild(messageContent);
+        messageGroup.appendChild(contentWrapper);
         
         return messageGroup;
     }
     
     createMessageContent(message, isOwnMessage = false) {
         const messageElement = document.createElement('div');
-        messageElement.className = 'message-content py-0.5 hover:bg-[rgba(4,4,5,0.07)] rounded px-1 -ml-1 relative';
+        messageElement.className = 'message-content';
         messageElement.setAttribute('data-message-id', message.id);
         messageElement.setAttribute('data-user-id', message.user_id || message.userId);
         
@@ -1044,11 +1055,15 @@ class ChatSection {
             messageElement.insertBefore(replyContainer, messageElement.firstChild);
         }
         
+        const messageBubble = document.createElement('div');
+        messageBubble.className = 'message-bubble';
+        
         const contentElement = document.createElement('div');
-        contentElement.className = 'message-main-text text-[#dbdee1] whitespace-pre-wrap break-words';
+        contentElement.className = 'message-main-text';
         contentElement.innerHTML = this.formatMessageContent(message.content);
         
-        messageElement.appendChild(contentElement);
+        messageBubble.appendChild(contentElement);
+        messageElement.appendChild(messageBubble);
         
         if (message.edited_at) {
             const editedBadge = document.createElement('span');
@@ -1096,9 +1111,9 @@ class ChatSection {
                             date.getFullYear() === now.getFullYear();
             
             if (isToday) {
-                return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
             } else {
-                return date.toLocaleDateString();
+                return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
             }
         } catch (e) {
             console.error('Error formatting timestamp:', e);

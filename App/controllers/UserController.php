@@ -203,6 +203,48 @@ class UserController extends BaseController
         }
     }
     
+    public function removeAvatar()
+    {
+        $this->requireAuth();
+        $userId = $this->getCurrentUserId();
+        
+        try {
+            $user = $this->userRepository->find($userId);
+            
+            if (!$user) {
+                return $this->error('User not found', 404);
+            }
+            
+            // If the user has an avatar, remove the file
+            if (!empty($user->avatar_url)) {
+                $avatarPath = dirname(__DIR__) . $user->avatar_url;
+                if (file_exists($avatarPath) && is_file($avatarPath)) {
+                    unlink($avatarPath);
+                }
+            }
+            
+            // Update the user record
+            $result = $this->userRepository->update($userId, [
+                'avatar_url' => null
+            ]);
+            
+            if (!$result) {
+                return $this->serverError('Failed to update user record');
+            }
+            
+            // Update session
+            $_SESSION['avatar_url'] = null;
+            
+            $this->logActivity('user_avatar_removed', [
+                'user_id' => $userId
+            ]);
+            
+            return $this->success(null, 'Profile picture removed successfully');
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while removing avatar: ' . $e->getMessage());
+        }
+    }
+    
     public function updateBanner()
     {
         $this->requireAuth();
@@ -253,6 +295,86 @@ class UserController extends BaseController
             ], 'Banner updated successfully');
         } catch (Exception $e) {
             return $this->serverError('An error occurred while updating banner: ' . $e->getMessage());
+        }
+    }
+    
+    public function removeBanner()
+    {
+        $this->requireAuth();
+        $userId = $this->getCurrentUserId();
+        
+        try {
+            $user = $this->userRepository->find($userId);
+            
+            if (!$user) {
+                return $this->error('User not found', 404);
+            }
+            
+            if (!empty($user->banner_url)) {
+                $bannerPath = dirname(__DIR__) . $user->banner_url;
+                if (file_exists($bannerPath) && is_file($bannerPath)) {
+                    unlink($bannerPath);
+                }
+            }
+            
+            $result = $this->userRepository->update($userId, [
+                'banner_url' => null
+            ]);
+            
+            if (!$result) {
+                return $this->serverError('Failed to update user record');
+            }
+            
+            $_SESSION['banner_url'] = null;
+            
+            $this->logActivity('user_banner_removed', [
+                'user_id' => $userId
+            ]);
+            
+            return $this->success(null, 'Banner removed successfully');
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while removing banner: ' . $e->getMessage());
+        }
+    }
+    
+    public function updateStatus()
+    {
+        $this->requireAuth();
+        $userId = $this->getCurrentUserId();
+        $input = $this->getInput();
+        
+        try {
+            if (!isset($input['status'])) {
+                return $this->error('Status is required', 400);
+            }
+            
+            $status = $input['status'];
+            $allowedStatuses = ['appear', 'invisible', 'do_not_disturb', 'offline'];
+            
+            if (!in_array($status, $allowedStatuses)) {
+                return $this->error('Invalid status. Allowed values: ' . implode(', ', $allowedStatuses), 400);
+            }
+            
+            $result = $this->userRepository->update($userId, [
+                'status' => $status
+            ]);
+            
+            if (!$result) {
+                return $this->serverError('Failed to update user status');
+            }
+            
+            $_SESSION['user_status'] = $status;
+            
+            $this->logActivity('user_status_updated', [
+                'user_id' => $userId,
+                'status' => $status
+            ]);
+            
+            return $this->success([
+                'status' => $status
+            ], 'Status updated successfully');
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while updating status: ' . $e->getMessage());
         }
     }
     
@@ -352,7 +474,7 @@ class UserController extends BaseController
             return $this->error('User ID is required', 400);
         }
         
-        // Debug - check valid user IDs
+        
         require_once __DIR__ . '/../database/query.php';
         $query = new Query();
         $validUserIds = $query->table('users')
@@ -376,10 +498,10 @@ class UserController extends BaseController
                 return $this->error('User not found', 404);
             }
             
-            // Use toArray() instead of accessing protected property
+            
             $userData = $user->toArray();
             
-            // Ensure essential fields are present with fallbacks
+            
             $userData['id'] = $user->id;
             $userData['username'] = $user->username ?? 'Unknown User';
             $userData['discriminator'] = $user->discriminator ?? '0000';
@@ -389,7 +511,7 @@ class UserController extends BaseController
             $userData['bio'] = $user->bio ?? '';
             $userData['created_at'] = $user->created_at ?? null;
             
-            // Add relationship flags
+            
             $userData['is_self'] = ($userId == $currentUserId);
             
             $friendStatus = $this->friendListRepository->getFriendshipStatus($currentUserId, $userId);
@@ -680,7 +802,7 @@ class UserController extends BaseController
         }
         
         try {
-            // Get mutual friends
+            
             $mutualFriends = [];
             try {
                 $currentUserFriends = $this->friendListRepository->getUserFriends($currentUserId) ?: [];
@@ -690,7 +812,7 @@ class UserController extends BaseController
                 
                 foreach ($otherUserFriends as $friend) {
                     if (isset($friend['id']) && in_array($friend['id'], $currentUserFriendIds)) {
-                        // Make sure we have essential fields
+                        
                         $mutualFriends[] = [
                             'id' => $friend['id'],
                             'username' => $friend['username'] ?? 'Unknown User',
@@ -703,7 +825,7 @@ class UserController extends BaseController
                 $mutualFriends = [];
             }
             
-            // Get mutual servers
+            
             $mutualServers = [];
             try {
                 require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
@@ -716,7 +838,7 @@ class UserController extends BaseController
                 
                 foreach ($otherUserServers as $server) {
                     if (isset($server['id']) && in_array($server['id'], $currentUserServerIds)) {
-                        // Make sure we have essential fields
+                        
                         $mutualServers[] = [
                             'id' => $server['id'],
                             'name' => $server['name'] ?? 'Unknown Server',

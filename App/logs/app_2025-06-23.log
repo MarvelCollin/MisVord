@@ -67,3 +67,5 @@
 [2025-06-23 09:30:41] DEBUG [18f10f] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
 [2025-06-23 09:30:41] INFO [18f10f] Database connected successfully - Context: {"database":"misvord"}
 [2025-06-23 09:30:41] WARNING [18f10f] Activity logs table does not exist, skipping activity logging
+[2025-06-23 11:37:28] DEBUG [8b5b02] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-23 11:37:28] INFO [8b5b02] Database connected successfully - Context: {"database":"misvord"}

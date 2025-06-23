@@ -1,4 +1,15 @@
+import FormValidator from '../components/common/validation.js';
+
 function initAuth() {
+    if (window.authPageInitialized) {
+        return;
+    }
+    window.authPageInitialized = true;
+
+    if (window.logger) {
+        window.logger.info('auth', 'Authentication page initialized');
+    }
+
     const elements = {
         logo: document.getElementById('logo'),
         logoUnderline: document.getElementById('logoUnderline'),
@@ -9,6 +20,7 @@ function initAuth() {
         registerForm: document.getElementById('registerForm'),
         forgotForm: document.getElementById('forgotForm'),
         securityQuestionForm: document.getElementById('securityQuestionForm'),
+        resetPasswordForm: document.getElementById('resetPasswordForm'),
         passwordFields: document.querySelectorAll('.password-toggle'),
         regPassword: document.getElementById('reg_password'),
         confirmPassword: document.getElementById('password_confirm'),
@@ -18,24 +30,25 @@ function initAuth() {
         formToggles: document.querySelectorAll('.form-toggle')
     };
 
-    window.logger.debug('auth', 'Auth elements loaded:', {
-        authContainer: !!elements.authContainer,
-        formsContainer: !!elements.formsContainer,
-        loginForm: !!elements.loginForm,
-        registerForm: !!elements.registerForm,
-        forgotForm: !!elements.forgotForm,
-        formToggles: elements.formToggles.length
-    });
-    
-    elements.formToggles.forEach((toggle, index) => {
-        console.log(`Form toggle ${index}:`, {
-            element: toggle,
-            target: toggle.getAttribute('data-form')
+    if (window.logger) {
+        window.logger.debug('auth', 'Auth elements loaded:', {
+            authContainer: !!elements.authContainer,
+            formsContainer: !!elements.formsContainer,
+            loginForm: !!elements.loginForm,
+            registerForm: !!elements.registerForm,
+            forgotForm: !!elements.forgotForm,
+            formToggles: elements.formToggles.length
         });
-    });
-
+    }
+    
     let currentForm = getCurrentVisibleForm();
-    console.log('Current form detected as:', currentForm);
+    
+    const timing = {
+        formTransition: 300,
+        logoAnimation: 500,
+        titleTransition: 300,
+        formScaleEffect: 150
+    };
 
     function getCurrentVisibleForm() {
         if (elements.loginForm && !elements.loginForm.classList.contains('hidden')) {
@@ -46,81 +59,57 @@ function initAuth() {
             return 'forgot';
         } else if (elements.securityQuestionForm && !elements.securityQuestionForm.classList.contains('hidden')) {
             return 'security';
+        } else if (elements.resetPasswordForm && !elements.resetPasswordForm.classList.contains('hidden')) {
+            return 'reset-password';
         }
         return 'login';
     }
-
-    const timing = {
-        formTransition: 300,
-        logoAnimation: 500,
-        titleTransition: 300,
-        formScaleEffect: 150
-    };
-
-    const formDirections = {
-        'login_to_register': 'forward',
-        'login_to_forgot': 'forward',
-        'register_to_login': 'backward',
-        'register_to_forgot': 'forward',
-        'forgot_to_login': 'backward',
-        'forgot_to_register': 'backward'
-    };
-
-    const transitions = {
-        login: {
-            enter: 'fade-enter',
-            enterActive: 'fade-enter-active',
-            exit: 'fade-exit',
-            exitActive: 'fade-exit-active'
-        },
-        register: {
-            enter: 'slide-left-enter',
-            enterActive: 'slide-left-enter-active',
-            exit: 'slide-right-exit',
-            exitActive: 'slide-right-exit-active'
-        },
-        forgot: {
-            enter: 'slide-right-enter',
-            enterActive: 'slide-right-enter-active',
-            exit: 'slide-left-exit',
-            exitActive: 'slide-left-exit-active'
+    
+    function hideAllForms() {
+        if (elements.loginForm) elements.loginForm.classList.add('hidden');
+        if (elements.registerForm) elements.registerForm.classList.add('hidden');
+        if (elements.forgotForm) elements.forgotForm.classList.add('hidden');
+        if (elements.securityQuestionForm) elements.securityQuestionForm.classList.add('hidden');
+        if (elements.resetPasswordForm) elements.resetPasswordForm.classList.add('hidden');
+    }
+    
+    function showForm(formName) {
+        if (formName === 'login' && elements.loginForm) {
+            elements.loginForm.classList.remove('hidden');
+        } else if (formName === 'register' && elements.registerForm) {
+            elements.registerForm.classList.remove('hidden');
+        } else if (formName === 'forgot' && elements.forgotForm) {
+            elements.forgotForm.classList.remove('hidden');
+        } else if (formName === 'security' && elements.securityQuestionForm) {
+            elements.securityQuestionForm.classList.remove('hidden');
+        } else if (formName === 'reset-password' && elements.resetPasswordForm) {
+            elements.resetPasswordForm.classList.remove('hidden');
         }
-    };
+    }
 
     function initAnimations() {
         setTimeout(() => {
-            elements.logo.classList.add('visible');
+            if (elements.logo) elements.logo.classList.add('visible');
 
             setTimeout(() => {
-                elements.logoUnderline.classList.add('visible');
+                if (elements.logoUnderline) elements.logoUnderline.classList.add('visible');
             }, 200);
         }, timing.logoAnimation / 2);
 
         updateFormHeight();
-
-        document.querySelectorAll('button[type="submit"], .btn-google').forEach(button => {
-            button.classList.add('btn-ripple');
-        });
-
-        document.querySelectorAll('input').forEach(input => {
-            const wrapper = input.parentElement;
-
-            if (!wrapper.querySelector('.input-focus-effect')) {
-                const focusEffect = document.createElement('div');
-                focusEffect.className = 'input-focus-effect';
-                wrapper.appendChild(focusEffect);
-            }
-        });
-
-        const existingBg = document.querySelector('.animated-bg');
-        if (existingBg) existingBg.remove();
-
+        addButtonRippleEffect();
+        enhanceInputFocus();
         createMinimalistBackground();
 
-        elements.authContainer.classList.remove('gradient-border');
+        if (elements.authContainer) {
+            elements.authContainer.classList.remove('gradient-border');
+        }
     }
 
     function createMinimalistBackground() {
+        const existingBg = document.querySelector('.animated-bg');
+        if (existingBg) existingBg.remove();
+
         const minimalistBg = document.createElement('div');
         minimalistBg.className = 'minimalist-bg';
 
@@ -162,58 +151,94 @@ function initAuth() {
 
         container.appendChild(dot);
     }
+    
+    function addButtonRippleEffect() {
+        document.querySelectorAll('button[type="submit"], .btn-google').forEach(button => {
+            if (!button.classList.contains('btn-ripple')) {
+                button.classList.add('btn-ripple');
+            }
+            
+            if (!button.hasAttribute('data-ripple-attached')) {
+                button.setAttribute('data-ripple-attached', 'true');
+                button.addEventListener('click', function(e) {
+                    const rect = this.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    
+                    const ripple = document.createElement('span');
+                    ripple.className = 'ripple';
+                    ripple.style.left = x + 'px';
+                    ripple.style.top = y + 'px';
+                    
+                    this.appendChild(ripple);
+                    
+                    setTimeout(() => {
+                        ripple.remove();
+                    }, 600);
+                });
+            }
+        });
+    }
+    
+    function enhanceInputFocus() {
+        document.querySelectorAll('input').forEach(input => {
+            const wrapper = input.parentElement;
+            
+            if (wrapper && !wrapper.querySelector('.input-focus-effect')) {
+                const focusEffect = document.createElement('div');
+                focusEffect.className = 'input-focus-effect';
+                wrapper.appendChild(focusEffect);
+            }
+            
+            if (!input.hasAttribute('data-focus-attached')) {
+                input.setAttribute('data-focus-attached', 'true');
+                
+                input.addEventListener('focus', function() {
+                    this.parentElement.classList.add('focused');
+                    const label = this.parentElement.querySelector('label');
+                    if (label) label.classList.add('active');
+                });
+                
+                input.addEventListener('blur', function() {
+                    if (!this.value) {
+                        this.parentElement.classList.remove('focused');
+                        const label = this.parentElement.querySelector('label');
+                        if (label) label.classList.remove('active');
+                    }
+                });
+                
+                if (input.value) {
+                    input.parentElement.classList.add('focused');
+                    const label = input.parentElement.querySelector('label');
+                    if (label) label.classList.add('active');
+                }
+            }
+        });
+    }
 
     function setupFormToggles() {
-        console.log('Form toggles found:', elements.formToggles.length);
-        
         document.addEventListener('click', function(e) {
             const toggle = e.target.closest('.form-toggle');
             if (!toggle) return;
             
-            console.log('Toggle clicked!');
             e.preventDefault();
             e.stopPropagation();
 
             const targetForm = toggle.getAttribute('data-form');
-            console.log('Toggle clicked for', targetForm, 'current form is', currentForm);
             
             if (targetForm === currentForm) return;
 
-            elements.authContainer.classList.add('scale-in');
-            setTimeout(() => {
-                elements.authContainer.classList.remove('scale-in');
-            }, timing.formScaleEffect);
-
-            const direction = formDirections[`${currentForm}_to_${targetForm}`] || 'forward';
-            console.log('Transition direction:', direction);
-
-            if (window.formTransitionTimeout) {
-                clearTimeout(window.formTransitionTimeout);
+            if (elements.authContainer) {
+                elements.authContainer.classList.add('scale-in');
+                setTimeout(() => {
+                    elements.authContainer.classList.remove('scale-in');
+                }, timing.formScaleEffect);
             }
 
             animateTitle(getFormTitle(targetForm));
             
-            if (targetForm === 'register') {
-                elements.loginForm.classList.add('hidden');
-                elements.registerForm.classList.remove('hidden');
-                elements.forgotForm.classList.add('hidden');
-                elements.securityQuestionForm.classList.add('hidden');
-            } else if (targetForm === 'login') {
-                elements.loginForm.classList.remove('hidden');
-                elements.registerForm.classList.add('hidden');
-                elements.forgotForm.classList.add('hidden');
-                elements.securityQuestionForm.classList.add('hidden');
-            } else if (targetForm === 'forgot') {
-                elements.loginForm.classList.add('hidden');
-                elements.registerForm.classList.add('hidden');
-                elements.forgotForm.classList.remove('hidden');
-                elements.securityQuestionForm.classList.add('hidden');
-            } else if (targetForm === 'security') {
-                elements.loginForm.classList.add('hidden');
-                elements.registerForm.classList.add('hidden');
-                elements.forgotForm.classList.add('hidden');
-                elements.securityQuestionForm.classList.remove('hidden');
-            }
+            hideAllForms();
+            showForm(targetForm);
 
             updateFormHeight();
             
@@ -232,33 +257,28 @@ function initAuth() {
             try {
                 const newUrl = targetForm === 'login' ? '/login' : 
                                targetForm === 'register' ? '/register' : 
-                               '/forgot-password';
+                               targetForm === 'forgot' ? '/forgot-password' :
+                               targetForm === 'reset-password' ? '/reset-password' :
+                               '/login';
                                
                 history.pushState({}, '', newUrl);
             } catch (e) {
                 console.error('Error updating URL:', e);
             }
         });
-        
-        elements.formToggles.forEach(toggle => {
-            const targetForm = toggle.getAttribute('data-form');
-            console.log('Setting up toggle for', targetForm);
-        });
     }
 
     function animateTitle(newText) {
-        const title = elements.authTitle;
-
-        title.style.opacity = '0';
-        title.style.transform = 'translateY(-10px)';
+        if (!elements.authTitle) return;
+        
+        elements.authTitle.style.opacity = '0';
+        elements.authTitle.style.transform = 'translateY(-10px)';
 
         setTimeout(() => {
-            title.textContent = newText;
-
-            title.offsetHeight;
-
-            title.style.opacity = '1';
-            title.style.transform = 'translateY(0)';
+            elements.authTitle.textContent = newText;
+            elements.authTitle.offsetHeight;
+            elements.authTitle.style.opacity = '1';
+            elements.authTitle.style.transform = 'translateY(0)';
         }, timing.titleTransition);
     }
 
@@ -266,8 +286,9 @@ function initAuth() {
         switch(form) {
             case 'login': return 'Welcome back!';
             case 'register': return 'Create an account';
-            case 'forgot': return 'Reset Password';
+            case 'forgot': return 'Account Recovery';
             case 'security': return 'Set Security Question';
+            case 'reset-password': return 'Create New Password';
             default: return 'misvord';
         }
     }
@@ -281,23 +302,23 @@ function initAuth() {
 
     function setupPasswordToggles() {
         elements.passwordFields.forEach(toggle => {
+            if (toggle.hasAttribute('data-toggle-attached')) return;
+            toggle.setAttribute('data-toggle-attached', 'true');
+            
             toggle.addEventListener('click', function() {
                 const input = this.parentElement.querySelector('input');
+                if (!input) return;
+                
                 const currentType = input.type;
-
                 input.type = currentType === 'password' ? 'text' : 'password';
 
                 const icon = this.querySelector('i');
                 if (icon) {
-                    if (currentType === 'password') {
-                        icon.className = 'fa-solid fa-eye-slash';
-                    } else {
-                        icon.className = 'fa-solid fa-eye';
-                    }
+                    icon.className = currentType === 'password' ? 
+                        'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
                 }
 
                 this.classList.add('scale-effect', 'scale-in');
-
                 setTimeout(() => {
                     this.classList.remove('scale-effect', 'scale-in');
                 }, 300);
@@ -311,7 +332,7 @@ function initAuth() {
         elements.regPassword.addEventListener('input', function() {
             elements.strengthBar.classList.remove('hidden');
 
-            const strength = calculatePasswordStrength(this.value);
+            const strength = FormValidator.calculatePasswordStrength(this.value);
 
             requestAnimationFrame(() => {
                 elements.strengthFill.style.width = `${strength}%`;
@@ -332,7 +353,6 @@ function initAuth() {
 
     function setupPasswordMatching() {
         if (!elements.confirmPassword || !elements.regPassword || !elements.matchIndicator) return;
-
         elements.confirmPassword.addEventListener('input', checkPasswordsMatch);
     }
 
@@ -364,107 +384,50 @@ function initAuth() {
         }
     }
 
-    function calculatePasswordStrength(password) {
-        if (!password) return 0;
-
-        let score = 0;
-        score += Math.min(password.length * 4, 40);
-
-        if (/[A-Z]/.test(password)) score += 15;
-        if (/[a-z]/.test(password)) score += 10;
-        if (/[0-9]/.test(password)) score += 15;
-        if (/[^A-Za-z0-9]/.test(password)) score += 20;
-
-        return Math.min(score, 100);
-    }
-
     function setupFormSubmission() {
-        console.log('🔄 Forms will use traditional submission for reliable redirects');
-
         document.querySelectorAll('form').forEach(form => {
+            if (form.hasAttribute('data-validation-attached')) return;
+            form.setAttribute('data-validation-attached', 'true');
+            
             form.addEventListener('submit', function(e) {
-                const isValid = validateForm(this);
+                let isValid = true;
+                
+                if (this.id === 'loginForm') {
+                    isValid = FormValidator.validateLoginForm(this);
+                } else if (this.id === 'registerForm') {
+                    isValid = FormValidator.validateRegisterForm(this);
+                } else if (this.id === 'forgotForm') {
+                    isValid = FormValidator.validateForgotForm(this);
+                } else if (this.id === 'securityQuestionForm') {
+                    isValid = FormValidator.validateSecurityQuestionForm(this);
+                } else if (this.id === 'resetPasswordForm') {
+                    isValid = FormValidator.validateResetPasswordForm(this);
+                }
 
                 if (!isValid) {
                     e.preventDefault(); 
                     return false;
                 }
-
-                console.log('✅ Form validation passed, allowing normal submission');
+                
+                const timestampInput = document.createElement('input');
+                timestampInput.type = 'hidden';
+                timestampInput.name = '_t';
+                timestampInput.value = Date.now();
+                this.appendChild(timestampInput);
+                
                 return true;
             });
         });
     }
 
-    function validateForm(form) {
-        let isValid = true;
-        const formId = form.id;
-
-        form.querySelectorAll('.validation-error').forEach(el => el.remove());
-
-        if (formId === 'registerForm') {
-            const username = form.querySelector('#username');
-            if (username.value.length < 3) {
-                showFieldError(username, 'Username must be at least 3 characters');
-                isValid = false;
+    function setupCaptcha() {
+        try {
+            if (typeof window.initCaptcha === 'function') {
+                window.initCaptcha();
             }
-
-            const password = form.querySelector('#reg_password');
-            const passwordConfirm = form.querySelector('#password_confirm');
-
-            if (password.value.length < 6) {
-                showFieldError(password, 'Password must be at least 6 characters');
-                isValid = false;
-            }
-
-            if (password.value !== passwordConfirm.value) {
-                showFieldError(passwordConfirm, 'Passwords do not match');
-                isValid = false;
-            }
+        } catch (e) {
+            console.error('Error initializing captcha:', e);
         }
-
-        return isValid;
-    }
-
-    function showFieldError(field, message) {
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'text-red-500 text-sm mt-1 validation-error';
-        errorDiv.textContent = message;
-
-        field.classList.add('border-red-500');
-
-        field.parentElement.appendChild(errorDiv);
-
-        field.classList.add('animate-shake');
-        setTimeout(() => {
-            field.classList.remove('animate-shake');
-        }, 500);
-    }
-
-    function restoreFormData() {
-        const formIds = ['registerForm', 'loginForm'];
-
-        formIds.forEach(formId => {
-            const storedData = localStorage.getItem(`${formId}_data`);
-            if (storedData) {
-                try {
-                    const formData = JSON.parse(storedData);
-                    const form = document.getElementById(formId);
-
-                    if (form) {
-                        Object.keys(formData).forEach(key => {
-                            const field = form.querySelector(`[name="${key}"]`);
-                            if (field && !field.value) {
-                                field.value = formData[key];
-                            }
-                        });
-                    }
-                } catch (e) {
-                    console.error('Error restoring form data', e);
-                    localStorage.removeItem(`${formId}_data`);
-                }
-            }
-        });
     }
 
     function setupResizeHandler() {
@@ -476,6 +439,67 @@ function initAuth() {
             }, 250);
         });
     }
+    
+    function checkForErrors() {
+        const authError = document.getElementById('auth-error');
+        if (authError) {
+            authError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+
+    function initPasswordFieldMasking() {
+        const passwordFields = document.querySelectorAll('input[type="password"]');
+        passwordFields.forEach(setupPasswordField);
+    }
+
+    function setupPasswordField(field) {
+        if (field.hasAttribute('data-masked-initialized')) return;
+        field.setAttribute('data-masked-initialized', 'true');
+
+        const wrapper = field.parentElement;
+        const toggleButton = wrapper.querySelector('.password-toggle');
+        
+        if (!toggleButton) return;
+        
+        field.addEventListener('focus', function() {
+            wrapper.classList.add('focused');
+        });
+        
+        field.addEventListener('blur', function() {
+            if (!this.value) {
+                wrapper.classList.remove('focused');
+            }
+        });
+        
+        toggleButton.addEventListener('mousedown', function(e) {
+            e.preventDefault();
+            unmaskPassword(field, toggleButton);
+        });
+        
+        toggleButton.addEventListener('mouseup', function() {
+            maskPassword(field, toggleButton);
+        });
+        
+        toggleButton.addEventListener('mouseleave', function() {
+            maskPassword(field, toggleButton);
+        });
+    }
+
+    function maskPassword(field, toggleButton) {
+        field.type = 'password';
+        const icon = toggleButton.querySelector('i');
+        if (icon) {
+            icon.className = 'fa-solid fa-eye';
+        }
+    }
+
+    function unmaskPassword(field, toggleButton) {
+        field.type = 'text';
+        const icon = toggleButton.querySelector('i');
+        if (icon) {
+            icon.className = 'fa-solid fa-eye-slash';
+        }
+    }
 
     function init() {
         initAnimations();
@@ -485,7 +509,9 @@ function initAuth() {
         setupPasswordMatching();
         setupFormSubmission();
         setupResizeHandler();
-        restoreFormData();
+        setupCaptcha();
+        checkForErrors();
+        initPasswordFieldMasking();
 
         const firstInput = document.querySelector('form:not(.hidden) input:first-of-type');
         if (firstInput) {

@@ -1,6 +1,6 @@
-class ServerAPI {
+class UserAdminAPI {
     constructor() {
-        this.baseURL = '/api/admin/servers';
+        this.baseURL = '/api/admin/users';
     }
 
     async parseResponse(response) {
@@ -64,7 +64,7 @@ class ServerAPI {
 
             return data;
         } catch (error) {
-            console.error('Server API request failed:', error);
+            console.error('User Admin API request failed:', error);
             throw error;
         }
     }
@@ -73,32 +73,38 @@ class ServerAPI {
         return await this.makeRequest(`${this.baseURL}/stats`);
     }
 
-    async listServers(page = 1, limit = 10, search = '') {
+    async listUsers(page = 1, limit = 10, search = '') {
         const params = new URLSearchParams({
             page, 
             limit,
             search
         });
-        return await this.makeRequest(`${this.baseURL}/list?${params.toString()}`);
+        return await this.makeRequest(`${this.baseURL}?${params.toString()}`);
     }
 
-    async getServer(serverId) {
-        return await this.makeRequest(`${this.baseURL}/${serverId}`);
+    async getUser(userId) {
+        return await this.makeRequest(`${this.baseURL}/${userId}`);
     }
 
-    async deleteServer(serverId) {
-        return await this.makeRequest(`${this.baseURL}/delete/${serverId}`, {
-            method: 'DELETE'
+    async toggleUserStatus(userId) {
+        return await this.makeRequest(`${this.baseURL}/${userId}/toggle-status`, {
+            method: 'POST'
         });
     }
 
-    async updateServer(serverId, data) {
-        return await this.makeRequest(`${this.baseURL}/update/${serverId}`, {
+    async updateUser(userId, userData) {
+        return await this.makeRequest(`${this.baseURL}/${userId}`, {
             method: 'PUT',
-            body: JSON.stringify(data)
+            body: JSON.stringify(userData)
+        });
+    }
+
+    async deleteUser(userId) {
+        return await this.makeRequest(`${this.baseURL}/${userId}`, {
+            method: 'DELETE'
         });
     }
 }
 
-const serverAPI = new ServerAPI();
-export default serverAPI;
+const userAdminAPI = new UserAdminAPI();
+export default userAdminAPI; 

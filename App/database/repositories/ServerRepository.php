@@ -135,4 +135,75 @@ class ServerRepository extends Repository {
             return is_array($row) ? $row : (array) $row;
         }, $results);
     }
+    
+    /**
+     * Get paginated list of servers for admin panel
+     *
+     * @param int $page Page number
+     * @param int $limit Items per page
+     * @return array List of servers
+     */
+    public function paginate($page = 1, $limit = 10) {
+        $offset = ($page - 1) * $limit;
+        
+        $query = new Query();
+        $results = $query->table('servers')
+            ->orderBy('created_at', 'DESC')
+            ->limit($limit)
+            ->offset($offset)
+            ->get();
+            
+        $servers = [];
+        foreach ($results as $result) {
+            $servers[] = new Server($result);
+        }
+        
+        return $servers;
+    }
+    
+    /**
+     * Search servers by name or description for admin panel
+     *
+     * @param string $query Search query
+     * @param int $page Page number
+     * @param int $limit Items per page
+     * @return array List of matching servers
+     */
+    public function search($query, $page = 1, $limit = 10) {
+        $offset = ($page - 1) * $limit;
+        
+        $queryBuilder = new Query();
+        $results = $queryBuilder->table('servers')
+            ->where(function($q) use ($query) {
+                $q->whereLike('name', "%$query%")
+                  ->orWhereLike('description', "%$query%");
+            })
+            ->orderBy('created_at', 'DESC')
+            ->limit($limit)
+            ->offset($offset)
+            ->get();
+            
+        $servers = [];
+        foreach ($results as $result) {
+            $servers[] = new Server($result);
+        }
+        
+        return $servers;
+    }
+    
+    /**
+     * Count servers matching a search query
+     *
+     * @param string $query Search query
+     * @return int Number of matching servers
+     */
+    public function countSearch($query) {
+        $queryBuilder = new Query();
+        return $queryBuilder->table('servers')
+            ->where(function($q) use ($query) {
+                $q->whereLike('name', "%$query%")
+                  ->orWhereLike('description', "%$query%");
+            })
+            ->count();
+    }
 }

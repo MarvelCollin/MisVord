@@ -505,6 +505,25 @@ class ChatAPI {
             }, 5000);
         });
     }
+
+    async createDirectMessageRoom(userId) {
+        return await this.makeRequest('/api/chat/dm/create', {
+            method: 'POST',
+            body: JSON.stringify({ user_id: userId })
+        });
+    }
+
+    async sendMessageToServer(messageData) {
+        try {
+            return await this.makeRequest(`${this.baseURL}/send`, {
+                method: 'POST',
+                body: JSON.stringify(messageData)
+            });
+        } catch (error) {
+            console.error('Error sending message:', error);
+            throw error;
+        }
+    }
 }
 
 const chatAPI = new ChatAPI();

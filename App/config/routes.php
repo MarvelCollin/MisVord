@@ -16,6 +16,7 @@ require_once __DIR__ . '/../controllers/ExploreController.php';
 require_once __DIR__ . '/../controllers/SettingsController.php';
 require_once __DIR__ . '/../controllers/MediaController.php';
 require_once __DIR__ . '/../controllers/UserController.php';
+require_once __DIR__ . '/../controllers/AdminController.php';
 require_once __DIR__ . '/env.php';
 
 class Route {
@@ -567,8 +568,8 @@ Route::get('/api/debug/user-profile/([0-9]+)', function($userId) {
         
         $profile = $controller->getUserProfile($userId);
         
-        // If getUserProfile returned directly, the response has already been sent
-        // This code will only execute if getUserProfile returns a value instead of calling jsonResponse
+        
+        
         if ($profile !== null) {
             echo json_encode([
                 'success' => true,
@@ -585,6 +586,120 @@ Route::get('/api/debug/user-profile/([0-9]+)', function($userId) {
     }
     
     exit;
+});
+
+
+Route::post('/user/avatar/update', function() {
+    $controller = new UserController();
+    $controller->updateAvatar();
+});
+
+Route::post('/user/avatar/remove', function() {
+    $controller = new UserController();
+    $controller->removeAvatar();
+});
+
+
+Route::post('/user/banner/update', function() {
+    $controller = new UserController();
+    $controller->updateBanner();
+});
+
+Route::post('/user/banner/remove', function() {
+    $controller = new UserController();
+    $controller->removeBanner();
+});
+
+
+Route::post('/user/status', function() {
+    $controller = new UserController();
+    $controller->updateStatus();
+});
+
+Route::get('/api/servers/invite/([a-zA-Z0-9]+)', function($code) {
+    require_once __DIR__ . '/../controllers/ServerController.php';
+    $controller = new ServerController();
+    $controller->checkInviteValidity($code);
+});
+
+Route::get('/admin', function() {
+    $controller = new AdminController();
+    $controller->index();
+});
+
+Route::get('/api/admin/stats', function() {
+    $controller = new AdminController();
+    $controller->getSystemStats();
+});
+
+Route::get('/api/admin/users', function() {
+    $controller = new AdminController();
+    $controller->getUsers();
+});
+
+Route::get('/api/admin/users/search', function() {
+    $controller = new AdminController();
+    $controller->searchUsers();
+});
+
+Route::get('/api/admin/users/([0-9]+)', function($id) {
+    $controller = new AdminController();
+    $controller->getUser($id);
+});
+
+Route::put('/api/admin/users/([0-9]+)', function($id) {
+    $controller = new AdminController();
+    $controller->updateUser($id);
+});
+
+Route::delete('/api/admin/users/([0-9]+)', function($id) {
+    $controller = new AdminController();
+    $controller->deleteUser($id);
+});
+
+Route::get('/api/admin/servers', function() {
+    $controller = new AdminController();
+    $controller->getServers();
+});
+
+Route::get('/api/admin/servers/search', function() {
+    $controller = new AdminController();
+    $controller->searchServers();
+});
+
+Route::delete('/api/admin/servers/([0-9]+)', function($id) {
+    $controller = new AdminController();
+    $controller->deleteServer($id);
+});
+
+Route::get('/api/admin/logs', function() {
+    $controller = new AdminController();
+    $controller->getLogs();
+});
+
+Route::get('/api/admin/nitro/list', function() {
+    $controller = new NitroController();
+    $controller->listCodes();
+});
+
+Route::get('/api/admin/nitro/stats', function() {
+    $controller = new NitroController();
+    $controller->getStats();
+});
+
+Route::post('/api/admin/nitro/generate', function() {
+    $controller = new NitroController();
+    $controller->generate();
+});
+
+Route::delete('/api/admin/nitro/delete/([0-9]+)', function($id) {
+    $controller = new NitroController();
+    $controller->delete($id);
+});
+
+Route::post('/api/admin/nitro/redeem', function() {
+    $controller = new NitroController();
+    $controller->redeem();
 });
 
 return array_merge(Route::getRoutes(), [

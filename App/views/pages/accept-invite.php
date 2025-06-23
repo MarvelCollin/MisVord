@@ -5,14 +5,34 @@ $page_css = 'app';
 $page_js = 'pages/accept-invite';
 $additional_js = [];
 
+// Ensure session is started
+if (session_status() === PHP_SESSION_NONE) {
+    require_once dirname(dirname(__DIR__)) . '/config/session.php';
+    session_start();
+    
+    if (function_exists('logger')) {
+        logger()->debug("Session started in accept-invite.php", [
+            'session_id' => session_id(),
+            'user_id' => $_SESSION['user_id'] ?? 'not_set',
+            'session_data' => $_SESSION
+        ]);
+    }
+}
+
 $server = $GLOBALS['inviteServer'] ?? null;
 $inviteCode = $GLOBALS['inviteCode'] ?? null;
 $invite = $GLOBALS['invite'] ?? null;
+$inviteError = $GLOBALS['inviteError'] ?? null;
 
-require_once dirname(dirname(__DIR__)) . '/config/session.php';
-
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+if (function_exists('logger')) {
+    logger()->debug("Accept invite page loaded", [
+        'session_id' => session_id(),
+        'user_id' => $_SESSION['user_id'] ?? 'not_set',
+        'is_authenticated' => isset($_SESSION['user_id']),
+        'server' => $server ? ['id' => $server->id, 'name' => $server->name] : null,
+        'invite_code' => $inviteCode,
+        'has_error' => !empty($inviteError)
+    ]);
 }
 
 ob_start();
@@ -27,8 +47,8 @@ ob_start();
                         <a href="/app" class="text-white hover:underline">Go to App</a>
                         <a href="/logout" class="text-white hover:underline">Logout</a>
                     <?php else: ?>
-                        <a href="/login" class="text-white hover:underline">Login</a>
-                        <a href="/register" class="text-white hover:underline">Register</a>
+                        <a href="/login?redirect=<?php echo urlencode('/join/' . $inviteCode); ?>" class="text-white hover:underline">Login</a>
+                        <a href="/register?redirect=<?php echo urlencode('/join/' . $inviteCode); ?>" class="text-white hover:underline">Register</a>
                     <?php endif; ?>
                 </div>
             </div>
@@ -36,6 +56,32 @@ ob_start();
 
         <div class="flex-1 flex items-center justify-center p-4">
             <div class="bg-discord-light rounded-lg shadow-lg w-full max-w-md p-6">
+                <?php if ($inviteError): ?>
+                    <div id="invite-error-container">
+                        <div class="bg-red-500 text-white p-3 rounded-md mb-4">
+                            <p><i class="fas fa-exclamation-triangle mr-2"></i> <span id="error-message"><?php echo htmlspecialchars($inviteError); ?></span></p>
+                            <p class="mt-2 text-sm">The invite may have expired or been revoked by the server owner.</p>
+                        </div>
+                        <div class="mt-4 text-center">
+                            <a href="/app" class="bg-gray-700 hover:bg-gray-600 text-white py-2 px-6 rounded-md transition duration-200">
+                                Back to App
+                            </a>
+                        </div>
+                    </div>
+                <?php else: ?>
+                    <div id="invite-error-container" class="hidden">
+                        <div class="bg-red-500 text-white p-3 rounded-md mb-4">
+                            <p><i class="fas fa-exclamation-triangle mr-2"></i> <span id="error-message">This invite link is invalid or has expired</span></p>
+                            <p class="mt-2 text-sm">The invite may have expired or been revoked by the server owner.</p>
+                        </div>
+                        <div class="mt-4 text-center">
+                            <a href="/app" class="bg-gray-700 hover:bg-gray-600 text-white py-2 px-6 rounded-md transition duration-200">
+                                Back to App
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div id="invite-content" <?php echo $inviteError ? 'class="hidden"' : ''; ?>>
                 <?php if ($server): ?>
                     <div class="text-center mb-6">
                         <?php if ($server->image_url): ?>
@@ -69,10 +115,10 @@ ob_start();
                                     You need to log in before you can accept this invitation.
                                 </p>
                                 <div class="flex space-x-4 justify-center mt-4">
-                                    <a href="/login?redirect=/join/<?php echo htmlspecialchars($inviteCode); ?>" class="bg-discord-blurple hover:bg-blue-600 text-white py-2 px-6 rounded-md transition duration-200">
+                                    <a href="/login?redirect=<?php echo urlencode('/join/' . $inviteCode); ?>" class="bg-discord-blurple hover:bg-blue-600 text-white py-2 px-6 rounded-md transition duration-200">
                                         Log In
                                     </a>
-                                    <a href="/register?redirect=/join/<?php echo htmlspecialchars($inviteCode); ?>" class="bg-gray-700 hover:bg-gray-600 text-white py-2 px-6 rounded-md transition duration-200">
+                                    <a href="/register?redirect=<?php echo urlencode('/join/' . $inviteCode); ?>" class="bg-gray-700 hover:bg-gray-600 text-white py-2 px-6 rounded-md transition duration-200">
                                         Register
                                     </a>
                                 </div>
@@ -100,6 +146,8 @@ ob_start();
                                 Back to App
                             </a>
                         </div>
+                        </div>
+                    <?php endif; ?>
                     </div>
                 <?php endif; ?>
             </div>

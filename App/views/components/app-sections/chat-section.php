@@ -72,8 +72,81 @@ if ($chatType === 'channel') {
 }
 
 $additional_js[] = 'components/messaging/chat-section';
-$additional_css[] = 'messaging';
+$additional_css[] = 'chat-section';
 ?>
+
+<!-- Direct CSS inclusion to ensure styles are loaded -->
+<link rel="stylesheet" href="<?php echo css('chat-section'); ?>?v=<?php echo time(); ?>">
+
+<!-- Backup inline styles for critical elements -->
+<style>
+.message-group {
+    position: relative;
+    margin: 0 0 2px 0;
+    padding: 5px 16px;
+    display: flex;
+    align-items: flex-start;
+    background-color: transparent;
+}
+
+.message-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    overflow: hidden;
+    margin-right: 10px;
+    flex-shrink: 0;
+}
+
+.message-content-wrapper {
+    flex-grow: 1;
+    padding-top: 2px;
+}
+
+.message-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 2px;
+}
+
+.message-username {
+    font-weight: 600;
+    color: #f2f3f5;
+    margin-right: 8px;
+    font-size: 14px;
+}
+
+.message-timestamp {
+    font-size: 0.7rem;
+    color: #a3a6aa;
+}
+
+.message-bubble {
+    background-color: #383a40;
+    border-radius: 4px;
+    padding: 7px 10px;
+    margin-top: 0;
+    display: inline-block;
+    max-width: 90%;
+    color: #dcddde;
+}
+
+.message-main-text {
+    color: #dcddde;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 14px;
+    line-height: 1.3;
+}
+
+.message-contents {
+    margin-top: 0;
+}
+
+.message-content {
+    margin-bottom: 2px;
+}
+</style>
 
 <meta name="chat-type" content="<?php echo htmlspecialchars($chatType ?? 'channel'); ?>">
 <meta name="chat-id" content="<?php echo htmlspecialchars($targetId ?? ''); ?>">
@@ -123,6 +196,29 @@ $additional_css[] = 'messaging';
     <div class="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-[#1e1f22] scrollbar-track-transparent bg-[#313338]" id="chat-messages" data-lazyload="chat">
         <!-- Messages will be loaded here -->
     </div>
+
+    <!-- Example Message Structure - This is hidden and only for reference
+    <div class="message-group flex p-1 px-4 py-1 relative hover:bg-[rgba(4,4,5,0.07)]">
+        <div class="message-avatar flex-shrink-0 mr-3 mt-0.5">
+            <img src="/assets/default-avatar.svg" class="w-10 h-10 rounded-full" alt="Username's avatar">
+        </div>
+        <div class="flex-grow relative">
+            <div class="message-header flex items-center mb-0.5">
+                <span class="message-username font-medium text-[#f2f3f5] hover:underline cursor-pointer">Username</span>
+                <span class="message-timestamp text-xs text-[#a3a6aa]">14:52</span>
+            </div>
+            <div class="message-contents">
+                <div class="message-content py-0.5 hover:bg-[rgba(4,4,5,0.07)] rounded px-1 -ml-1 relative">
+                    <div class="message-bubble text-[#dcddde]">
+                        <div class="message-main-text text-[#dbdee1] whitespace-pre-wrap break-words">
+                            Message content goes here
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    -->
 
     <!-- Typing Indicator -->
     <div id="typing-indicator" class="text-xs text-[#b5bac1] pb-1 pl-5 flex items-center hidden">

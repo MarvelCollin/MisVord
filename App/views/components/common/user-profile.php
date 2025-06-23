@@ -15,7 +15,8 @@ if ($hasTooltip) {
 ?>
 
 <div class="p-2 bg-discord-darker flex items-center mt-auto">
-    <div class="relative">        <?php if ($hasTooltip): ?>
+    <div class="relative">        
+        <?php if ($hasTooltip): ?>
             <?php
                 $userAvatar = ($currentUser && isset($currentUser->avatar_url) && $currentUser->avatar_url) ? $currentUser->avatar_url : asset('/common/main-logo.png');
                 $userName = ($currentUser && isset($currentUser->username)) ? $currentUser->username : ($_SESSION['username'] ?? 'User');
@@ -67,7 +68,7 @@ if ($hasTooltip) {
         <div class="text-xs text-discord-lighter truncate">#<?php echo htmlspecialchars($_SESSION['discriminator'] ?? rand(1000, 9999)); ?></div>
     </div>
     
-    <div class="flex space-x-1">
+    <div class="flex items-center space-x-2 ml-auto">
         <?php if ($hasTooltip): ?>
             <?php
                 $micContent = '<button class="text-discord-lighter hover:text-white p-1">

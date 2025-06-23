@@ -1,6 +1,6 @@
-class ServerAPI {
+class NitroAPI {
     constructor() {
-        this.baseURL = '/api/admin/servers';
+        this.baseURL = '/api/admin/nitro';
     }
 
     async parseResponse(response) {
@@ -64,7 +64,7 @@ class ServerAPI {
 
             return data;
         } catch (error) {
-            console.error('Server API request failed:', error);
+            console.error('Nitro API request failed:', error);
             throw error;
         }
     }
@@ -73,7 +73,7 @@ class ServerAPI {
         return await this.makeRequest(`${this.baseURL}/stats`);
     }
 
-    async listServers(page = 1, limit = 10, search = '') {
+    async listCodes(page = 1, limit = 10, search = '') {
         const params = new URLSearchParams({
             page, 
             limit,
@@ -82,23 +82,31 @@ class ServerAPI {
         return await this.makeRequest(`${this.baseURL}/list?${params.toString()}`);
     }
 
-    async getServer(serverId) {
-        return await this.makeRequest(`${this.baseURL}/${serverId}`);
+    async generateCode(userId = null) {
+        const formData = new FormData();
+        if (userId) {
+            formData.append('user_id', userId);
+        }
+        
+        return await this.makeRequest(`${this.baseURL}/generate`, {
+            method: 'POST',
+            body: formData
+        });
     }
 
-    async deleteServer(serverId) {
-        return await this.makeRequest(`${this.baseURL}/delete/${serverId}`, {
+    async deleteCode(codeId) {
+        return await this.makeRequest(`${this.baseURL}/delete/${codeId}`, {
             method: 'DELETE'
         });
     }
 
-    async updateServer(serverId, data) {
-        return await this.makeRequest(`${this.baseURL}/update/${serverId}`, {
-            method: 'PUT',
-            body: JSON.stringify(data)
+    async redeemCode(code) {
+        return await this.makeRequest(`${this.baseURL}/redeem`, {
+            method: 'POST',
+            body: JSON.stringify({ code })
         });
     }
 }
 
-const serverAPI = new ServerAPI();
-export default serverAPI;
+const nitroAPI = new NitroAPI();
+export default nitroAPI;

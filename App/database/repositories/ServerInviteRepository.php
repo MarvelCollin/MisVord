@@ -17,11 +17,16 @@ class ServerInviteRepository extends Repository {
         return ServerInvite::findActiveByCode($code);
     }
     
-    public function createInvite($serverId, $createdBy, $expiresAt = null, $maxUses = null) {
-        $code = ServerInvite::generateCode();
+    public function createInvite($serverId, $createdBy, $expiresAt = null, $specificCode = null) {
+        $code = $specificCode ?: ServerInvite::generateCode();
         
-        while ($this->findByCode($code)) {
+        // If a specific code wasn't provided or the provided code is already in use, generate a new one
+        if (!$specificCode || $this->findByCode($code)) {
             $code = ServerInvite::generateCode();
+            
+            while ($this->findByCode($code)) {
+                $code = ServerInvite::generateCode();
+            }
         }
         
         $data = [
@@ -45,7 +50,8 @@ class ServerInviteRepository extends Repository {
         }
         return null;
     }
-      public function getServerInvites($serverId) {
+    
+    public function getServerInvites($serverId) {
         return $this->getAllBy('server_id', $serverId);
     }
     

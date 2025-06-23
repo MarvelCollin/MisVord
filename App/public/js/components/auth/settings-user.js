@@ -43,6 +43,7 @@ function initUserSettingsPage() {
     
     if (activeSection === 'my-account') {
         initUserAvatarUpload();
+        initUserBannerUpload();
         initStatusSelector();
         initEmailReveal();
         initPasswordChangeForms();
@@ -192,7 +193,7 @@ function initUserAvatarUpload() {
             .then(data => {
                 if (data.success) {
                     if (iconPreview) {
-                        iconPreview.src = '/public/assets/main-logo.png';
+                        iconPreview.src = '/public/assets/default-avatar.svg';
                     }
                     
                     if (iconContainer) {
@@ -205,10 +206,7 @@ function initUserAvatarUpload() {
                         iconInput.value = '';
                     }
                     
-                    const previewAvatar = document.querySelector('.server-icon-preview img');
-                    if (previewAvatar) {
-                        previewAvatar.src = '/public/assets/main-logo.png';
-                    }
+                    updateAllAvatars('/public/assets/default-avatar.svg');
                     
                     showToast('Profile picture removed successfully', 'success');
                 } else {
@@ -218,6 +216,147 @@ function initUserAvatarUpload() {
             .catch(error => {
                 console.error('Error removing profile picture:', error);
                 showToast('Error removing profile picture', 'error');
+            });
+        });
+    }
+}
+
+/**
+ * Initialize banner upload with image cropper
+ */
+function initUserBannerUpload() {
+    const bannerContainer = document.getElementById('banner-container');
+    const bannerInput = document.getElementById('banner-input');
+    const bannerPreview = document.getElementById('banner-preview');
+    const removeBannerBtn = document.getElementById('remove-banner-btn');
+    
+    if (!bannerContainer || !bannerInput) return;
+    
+    try {
+        const bannerCutter = new ImageCutter({
+            container: bannerContainer,
+            type: 'banner',
+            modalTitle: 'Upload Profile Banner',
+            aspectRatio: 4/1,
+            onCrop: (result) => {
+                if (result && result.error) {
+                    showToast(result.message || 'Error cropping banner', 'error');
+                    return;
+                }
+                
+                if (bannerPreview) {
+                    bannerPreview.src = result.dataUrl;
+                    bannerPreview.classList.remove('hidden');
+                    
+                    const placeholder = document.getElementById('banner-placeholder');
+                    if (placeholder) placeholder.classList.add('hidden');
+                }
+                
+                bannerContainer.dataset.croppedImage = result.dataUrl;
+                
+                if (removeBannerBtn && removeBannerBtn.classList.contains('hidden')) {
+                    removeBannerBtn.classList.remove('hidden');
+                }
+                
+                uploadBanner(result.dataUrl);
+            }
+        });
+        
+        window.userBannerCutter = bannerCutter;
+    } catch (error) {
+        console.error('Error initializing banner cutter:', error);
+    }
+    
+    if (bannerContainer) {
+        bannerContainer.addEventListener('click', function() {
+            bannerInput.click();
+        });
+    }
+    
+    if (bannerInput) {
+        bannerInput.addEventListener('change', function() {
+            if (!this.files || !this.files[0]) return;
+            
+            const file = this.files[0];
+            
+            if (!file.type.match('image.*')) {
+                showToast('Please select a valid image file', 'error');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    if (window.userBannerCutter) {
+                        window.userBannerCutter.loadImage(e.target.result);
+                    } else {
+                        if (bannerPreview) {
+                            bannerPreview.src = e.target.result;
+                            bannerPreview.classList.remove('hidden');
+                            
+                            const placeholder = document.getElementById('banner-placeholder');
+                            if (placeholder) placeholder.classList.add('hidden');
+                        }
+                        
+                        bannerContainer.dataset.croppedImage = e.target.result;
+                        
+                        uploadBanner(e.target.result);
+                    }
+                } catch (error) {
+                    showToast('Error processing banner', 'error');
+                }
+            };
+            
+            reader.readAsDataURL(file);
+        });
+    }
+    
+    if (removeBannerBtn) {
+        removeBannerBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            
+            if (!confirm('Are you sure you want to remove your profile banner?')) {
+                return;
+            }
+            
+            fetch('/user/banner/remove', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (bannerPreview) {
+                        bannerPreview.classList.add('hidden');
+                    }
+                    
+                    const placeholder = document.getElementById('banner-placeholder');
+                    if (placeholder) placeholder.classList.remove('hidden');
+                    
+                    if (bannerContainer) {
+                        delete bannerContainer.dataset.croppedImage;
+                    }
+                    
+                    removeBannerBtn.classList.add('hidden');
+                    
+                    if (bannerInput) {
+                        bannerInput.value = '';
+                    }
+                    
+                    updateAllBanners(null);
+                    
+                    showToast('Profile banner removed successfully', 'success');
+                } else {
+                    showToast(data.message || 'Failed to remove profile banner', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error removing profile banner:', error);
+                showToast('Error removing profile banner', 'error');
             });
         });
     }
@@ -244,10 +383,7 @@ function uploadAvatar(dataUrl) {
         if (data.success) {
             showToast('Profile picture updated successfully', 'success');
             
-            const avatars = document.querySelectorAll('.user-avatar img, .user-avatar-preview img, .server-icon-preview img');
-            avatars.forEach(avatar => {
-                avatar.src = data.avatar_url || dataUrl;
-            });
+            updateAllAvatars(data.avatar_url || dataUrl);
             
             const removeAvatarBtn = document.getElementById('remove-avatar-btn');
             if (removeAvatarBtn && removeAvatarBtn.classList.contains('hidden')) {
@@ -261,6 +397,86 @@ function uploadAvatar(dataUrl) {
         console.error('Error uploading avatar:', error);
         showToast('Error uploading profile picture', 'error');
     });
+}
+
+/**
+ * Upload banner to server
+ */
+function uploadBanner(dataUrl) {
+    const blob = dataURLtoBlob(dataUrl);
+    
+    const formData = new FormData();
+    formData.append('banner', blob, 'banner.png');
+    
+    showToast('Uploading profile banner...', 'info');
+    
+    fetch('/user/banner/update', {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Profile banner updated successfully', 'success');
+            
+            updateAllBanners(data.banner_url || dataUrl);
+            
+            const removeBannerBtn = document.getElementById('remove-banner-btn');
+            if (removeBannerBtn && removeBannerBtn.classList.contains('hidden')) {
+                removeBannerBtn.classList.remove('hidden');
+            }
+        } else {
+            showToast(data.message || 'Failed to update profile banner', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error uploading banner:', error);
+        showToast('Error uploading profile banner', 'error');
+    });
+}
+
+/**
+ * Update all avatar instances in the UI
+ */
+function updateAllAvatars(url) {
+    const avatarElements = document.querySelectorAll('.user-avatar img, .user-avatar-preview img, .server-icon-preview img');
+    
+    avatarElements.forEach(avatar => {
+        avatar.src = url;
+    });
+    
+    // Update the meta tag
+    const avatarMeta = document.querySelector('meta[name="user-avatar"]');
+    if (avatarMeta) {
+        avatarMeta.content = url;
+    }
+    
+    // Update server preview card avatar
+    const serverPreviewAvatar = document.querySelector('.server-icon-preview img');
+    if (serverPreviewAvatar) {
+        serverPreviewAvatar.src = url;
+    }
+}
+
+/**
+ * Update all banner instances in the UI
+ */
+function updateAllBanners(url) {
+    // Update the server banner in the preview
+    const serverBanner = document.querySelector('.server-banner');
+    if (serverBanner) {
+        if (url) {
+            serverBanner.style.backgroundImage = `url('${url}')`;
+            serverBanner.style.backgroundSize = 'cover';
+            serverBanner.style.backgroundPosition = 'center';
+        } else {
+            serverBanner.style.backgroundImage = `url('/public/assets/common/main-logo.png')`;
+            serverBanner.style.backgroundSize = 'contain';
+            serverBanner.style.backgroundRepeat = 'no-repeat';
+            serverBanner.style.backgroundPosition = 'center';
+        }
+    }
 }
 
 /**
@@ -587,7 +803,6 @@ function debounce(func, wait) {
 }
 
 function logoutUser() {
-    // Clear all localStorage items that might be related to the user session
     localStorage.removeItem('user_token');
     localStorage.removeItem('connect_socket_on_login');
     localStorage.removeItem('active_channel');

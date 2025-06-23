@@ -132,6 +132,31 @@ function showInvitePeopleModal() {
 
     if (modal) {
         modal.classList.remove('hidden');
+        modal.style.display = 'flex';
+        modal.style.alignItems = 'center';
+        modal.style.justifyContent = 'center';
+        modal.style.position = 'fixed';
+        modal.style.top = '0';
+        modal.style.left = '0';
+        modal.style.width = '100%';
+        modal.style.height = '100%';
+        modal.style.zIndex = '9999';
+        
+        const modalContent = modal.querySelector('.modal-content');
+        if (modalContent) {
+            modalContent.classList.add('animate-fade-in');
+            modalContent.style.maxHeight = '80vh';
+            modalContent.style.width = '450px';
+            modalContent.style.maxWidth = '95vw';
+            modalContent.style.overflowY = 'auto';
+            modalContent.style.position = 'relative';
+            modalContent.style.margin = '0 auto';
+            modalContent.style.padding = '24px';
+            modalContent.style.borderRadius = '8px';
+            modalContent.style.backgroundColor = '#36393f';
+            modalContent.style.boxShadow = '0 0 0 1px rgba(32,34,37,.6), 0 2px 10px 0 rgba(0,0,0,.2)';
+        }
+        
         loadInviteLink(serverId);
 
         const copyBtn = document.getElementById('copy-invite-link');
@@ -141,57 +166,331 @@ function showInvitePeopleModal() {
         const expirationInfo = document.getElementById('invite-expiration-info');
         const friendSearchInput = document.getElementById('friend-search');
         const sendInvitesBtn = document.getElementById('send-invites-btn');
-
-        if (copyBtn && !copyBtn.hasAttribute('data-listener')) {
-            copyBtn.addEventListener('click', copyInviteLink);
-            copyBtn.setAttribute('data-listener', 'true');
+        const inviteLinkSection = document.getElementById('invite-link-section');
+        const friendsSection = document.getElementById('invite-friends-section');
+        const searchResults = document.getElementById('friend-search-results');
+        
+        // Fix for relative positioning
+        if (friendsSection) {
+            friendsSection.style.position = 'relative';
         }
 
-        if (generateBtn && !generateBtn.hasAttribute('data-listener')) {
+        // Style the sections
+        if (inviteLinkSection) {
+            inviteLinkSection.style.marginBottom = '24px';
+            inviteLinkSection.style.padding = '16px';
+            inviteLinkSection.style.borderRadius = '8px';
+            inviteLinkSection.style.backgroundColor = '#2f3136';
+            inviteLinkSection.style.border = '1px solid #202225';
+        }
+        
+        if (friendsSection) {
+            friendsSection.style.padding = '16px';
+            friendsSection.style.borderRadius = '8px';
+            friendsSection.style.backgroundColor = '#2f3136';
+            friendsSection.style.border = '1px solid #202225';
+            friendsSection.style.marginBottom = '40px'; // Add extra space at bottom
+        }
+        
+        // Fix search results positioning
+        if (searchResults) {
+            searchResults.style.position = 'absolute';
+            searchResults.style.zIndex = '10000';
+            searchResults.style.width = '100%';
+            searchResults.style.left = '0';
+            searchResults.style.marginTop = '4px';
+            searchResults.style.maxHeight = '300px'; // Increased height
+            searchResults.style.overflowY = 'auto';
+            searchResults.style.backgroundColor = '#36393f';
+            searchResults.style.borderRadius = '4px';
+            searchResults.style.border = '1px solid #202225';
+            searchResults.style.boxShadow = '0 8px 16px rgba(0, 0, 0, 0.24)';
+        }
+
+        // Style the invite link input and buttons
+        const inviteLinkInput = document.getElementById('invite-link');
+        if (inviteLinkInput) {
+            inviteLinkInput.style.backgroundColor = '#36393f';
+            inviteLinkInput.style.color = 'white';
+            inviteLinkInput.style.border = '1px solid #202225';
+            inviteLinkInput.style.borderRadius = '4px';
+            inviteLinkInput.style.padding = '8px 10px';
+            inviteLinkInput.style.width = '100%';
+            inviteLinkInput.style.marginBottom = '8px';
+        }
+        
+        if (expirationSelect) {
+            expirationSelect.style.backgroundColor = '#36393f';
+            expirationSelect.style.color = 'white';
+            expirationSelect.style.border = '1px solid #202225';
+            expirationSelect.style.borderRadius = '4px';
+            expirationSelect.style.padding = '8px 10px';
+            expirationSelect.style.width = '100%';
+            expirationSelect.style.marginBottom = '12px';
+            expirationSelect.style.cursor = 'pointer';
+        }
+        
+        if (generateBtn) {
+            generateBtn.style.backgroundColor = '#3ba55c';
+            generateBtn.style.color = 'white';
+            generateBtn.style.border = 'none';
+            generateBtn.style.borderRadius = '4px';
+            generateBtn.style.padding = '8px 16px';
+            generateBtn.style.cursor = 'pointer';
+            generateBtn.style.fontWeight = 'bold';
+            generateBtn.style.transition = 'background-color 0.2s';
+            generateBtn.style.display = 'block';
+            generateBtn.style.margin = '0 auto';
+            generateBtn.style.width = 'auto';
+            
+            generateBtn.addEventListener('mouseover', () => {
+                generateBtn.style.backgroundColor = '#2d7d46';
+            });
+            
+            generateBtn.addEventListener('mouseout', () => {
+                generateBtn.style.backgroundColor = '#3ba55c';
+            });
+            
+            if (!generateBtn.hasAttribute('data-listener')) {
             generateBtn.addEventListener('click', () => {
                 const expirationValue = expirationSelect ? expirationSelect.value : null;
                 generateNewInvite(serverId, expirationValue);
             });
             generateBtn.setAttribute('data-listener', 'true');
+            }
+        }
+        
+        if (copyBtn && !copyBtn.hasAttribute('data-listener')) {
+            copyBtn.style.backgroundColor = '#5865f2';
+            copyBtn.style.color = 'white';
+            copyBtn.style.border = 'none';
+            copyBtn.style.borderRadius = '4px';
+            copyBtn.style.padding = '8px 16px';
+            copyBtn.style.cursor = 'pointer';
+            copyBtn.style.transition = 'background-color 0.2s';
+            
+            copyBtn.addEventListener('mouseover', () => {
+                copyBtn.style.backgroundColor = '#4752c4';
+            });
+            
+            copyBtn.addEventListener('mouseout', () => {
+                copyBtn.style.backgroundColor = '#5865f2';
+            });
+            
+            copyBtn.addEventListener('click', copyInviteLink);
+            copyBtn.setAttribute('data-listener', 'true');
         }
 
         if (closeBtn && !closeBtn.hasAttribute('data-listener')) {
+            closeBtn.style.position = 'absolute';
+            closeBtn.style.top = '16px';
+            closeBtn.style.right = '16px';
+            closeBtn.style.backgroundColor = 'transparent';
+            closeBtn.style.border = 'none';
+            closeBtn.style.color = '#b9bbbe';
+            closeBtn.style.fontSize = '24px';
+            closeBtn.style.cursor = 'pointer';
+            closeBtn.style.transition = 'color 0.2s';
+            
+            closeBtn.addEventListener('mouseover', () => {
+                closeBtn.style.color = 'white';
+            });
+            
+            closeBtn.addEventListener('mouseout', () => {
+                closeBtn.style.color = '#b9bbbe';
+            });
+            
             closeBtn.addEventListener('click', () => closeModal('invite-people-modal'));
             closeBtn.setAttribute('data-listener', 'true');
         }
         
         if (friendSearchInput && !friendSearchInput.hasAttribute('data-listener')) {
+            friendSearchInput.style.backgroundColor = '#36393f';
+            friendSearchInput.style.color = 'white';
+            friendSearchInput.style.border = '1px solid #202225';
+            friendSearchInput.style.borderRadius = '4px';
+            friendSearchInput.style.padding = '8px 10px';
+            friendSearchInput.style.width = '100%';
+            friendSearchInput.style.marginBottom = '8px';
+            
             initFriendSearch(friendSearchInput);
             friendSearchInput.setAttribute('data-listener', 'true');
         }
         
         if (sendInvitesBtn && !sendInvitesBtn.hasAttribute('data-listener')) {
+            sendInvitesBtn.style.backgroundColor = '#5865f2';
+            sendInvitesBtn.style.color = 'white';
+            sendInvitesBtn.style.border = 'none';
+            sendInvitesBtn.style.borderRadius = '4px';
+            sendInvitesBtn.style.padding = '8px 16px';
+            sendInvitesBtn.style.cursor = 'pointer';
+            sendInvitesBtn.style.marginTop = '12px';
+            sendInvitesBtn.style.fontWeight = 'bold';
+            sendInvitesBtn.style.transition = 'background-color 0.2s';
+            
+            sendInvitesBtn.addEventListener('mouseover', () => {
+                sendInvitesBtn.style.backgroundColor = '#4752c4';
+            });
+            
+            sendInvitesBtn.addEventListener('mouseout', () => {
+                sendInvitesBtn.style.backgroundColor = '#5865f2';
+            });
+            
             sendInvitesBtn.addEventListener('click', () => sendServerInvitesToFriends(serverId));
             sendInvitesBtn.setAttribute('data-listener', 'true');
         }
         
-        // Clear selected friends when modal reopens
-        document.getElementById('selected-friends').innerHTML = '';
-        document.getElementById('invite-friends-actions').classList.add('hidden');
+        // Fix selected friends container
+        const selectedFriendsContainer = document.getElementById('selected-friends');
+        if (selectedFriendsContainer) {
+            selectedFriendsContainer.style.display = 'flex';
+            selectedFriendsContainer.style.flexWrap = 'wrap';
+            selectedFriendsContainer.style.gap = '8px';
+            selectedFriendsContainer.style.marginTop = '12px';
+            selectedFriendsContainer.style.marginBottom = '12px';
+            selectedFriendsContainer.innerHTML = '';
+        }
+        
+        const friendsActionsContainer = document.getElementById('invite-friends-actions');
+        if (friendsActionsContainer) {
+            friendsActionsContainer.classList.add('hidden');
+}
+
+        // Fix the modal heading and subheading
+        const modalHeading = modal.querySelector('h2, h3');
+        if (modalHeading) {
+            modalHeading.style.fontSize = '24px';
+            modalHeading.style.fontWeight = 'bold';
+            modalHeading.style.marginBottom = '12px';
+            modalHeading.style.color = 'white';
+        }
+        
+        const modalSubHeading = modal.querySelector('p:not(.selected-friend)');
+        if (modalSubHeading) {
+            modalSubHeading.style.fontSize = '14px';
+            modalSubHeading.style.color = '#b9bbbe';
+            modalSubHeading.style.marginBottom = '16px';
+        }
+        
+        // Fix any section headings
+        const sectionHeadings = modal.querySelectorAll('h4');
+        sectionHeadings.forEach(heading => {
+            heading.style.fontSize = '16px';
+            heading.style.fontWeight = 'bold';
+            heading.style.marginBottom = '8px';
+            heading.style.color = 'white';
+        });
     }
 }
 
-// Initialize friend search functionality
 function initFriendSearch(searchInput) {
     const resultsContainer = document.getElementById('friend-search-results');
     const searchPrompt = document.getElementById('search-friend-prompt');
+    const noFriendsFoundMsg = document.getElementById('no-friends-found');
+    const friendsSection = document.getElementById('invite-friends-section');
     
-    // Show the search prompt by default
+    if (searchPrompt) {
     searchPrompt.classList.remove('hidden');
+        searchPrompt.style.padding = '12px';
+        searchPrompt.style.color = '#b9bbbe';
+        searchPrompt.style.textAlign = 'center';
+    }
+    
+    if (noFriendsFoundMsg) {
+        noFriendsFoundMsg.style.padding = '12px';
+        noFriendsFoundMsg.style.color = '#b9bbbe';
+        noFriendsFoundMsg.style.textAlign = 'center';
+    }
+    
+    // Ensure the dropdown container exists outside the modal for proper z-index handling
+    let dropdownContainer = document.getElementById('global-friend-search-results-container');
+    
+    if (!dropdownContainer) {
+        dropdownContainer = document.createElement('div');
+        dropdownContainer.id = 'global-friend-search-results-container';
+        dropdownContainer.style.position = 'fixed';
+        dropdownContainer.style.zIndex = '99999'; // Super high z-index
+        dropdownContainer.style.top = '0';
+        dropdownContainer.style.left = '0';
+        dropdownContainer.style.width = '100%';
+        dropdownContainer.style.height = '0';
+        dropdownContainer.style.overflow = 'visible';
+        dropdownContainer.style.pointerEvents = 'none'; // Let clicks pass through container
+        document.body.appendChild(dropdownContainer);
+        
+        // Move the results container to this global container if it exists
+        if (resultsContainer) {
+            dropdownContainer.appendChild(resultsContainer);
+            // Ensure pointer events work on the dropdown itself
+            resultsContainer.style.pointerEvents = 'auto';
+        }
+    }
+    
+    // Fix positioning container for search results
+    if (resultsContainer) {
+        // Style the results container for proper positioning
+        resultsContainer.style.position = 'fixed'; // Change to fixed positioning
+        resultsContainer.style.zIndex = '99999'; // Super high z-index
+        resultsContainer.style.backgroundColor = '#36393f';
+        resultsContainer.style.borderRadius = '4px';
+        resultsContainer.style.border = '1px solid #202225';
+        resultsContainer.style.boxShadow = '0 8px 16px rgba(0, 0, 0, 0.24)';
+        resultsContainer.style.maxHeight = '300px';
+        resultsContainer.style.overflowY = 'auto';
+        resultsContainer.classList.add('hidden');
+    }
     
     searchInput.addEventListener('focus', () => {
+        if (resultsContainer) {
         resultsContainer.classList.remove('hidden');
+            
+            // Calculate position based on the input field
+            const inputRect = searchInput.getBoundingClientRect();
+            resultsContainer.style.width = inputRect.width + 'px';
+            resultsContainer.style.left = inputRect.left + 'px';
+            resultsContainer.style.top = (inputRect.bottom + 4) + 'px';
+            
+            // Check if dropdown would go off-screen
+            const dropdownHeight = Math.min(300, resultsContainer.scrollHeight);
+            if (inputRect.bottom + dropdownHeight + 4 > window.innerHeight) {
+                // Position above the input
+                resultsContainer.style.top = 'auto';
+                resultsContainer.style.bottom = (window.innerHeight - inputRect.top + 4) + 'px';
+            } else {
+                // Position below the input
+                resultsContainer.style.top = (inputRect.bottom + 4) + 'px';
+                resultsContainer.style.bottom = 'auto';
+            }
+        }
     });
     
+    // Update position on scroll or resize
+    const updatePosition = () => {
+        if (resultsContainer && !resultsContainer.classList.contains('hidden')) {
+            const inputRect = searchInput.getBoundingClientRect();
+            resultsContainer.style.width = inputRect.width + 'px';
+            resultsContainer.style.left = inputRect.left + 'px';
+            
+            // Check if dropdown would go off-screen
+            const dropdownHeight = Math.min(300, resultsContainer.scrollHeight);
+            if (inputRect.bottom + dropdownHeight + 4 > window.innerHeight) {
+                // Position above the input
+                resultsContainer.style.top = 'auto';
+                resultsContainer.style.bottom = (window.innerHeight - inputRect.top + 4) + 'px';
+            } else {
+                // Position below the input
+                resultsContainer.style.top = (inputRect.bottom + 4) + 'px';
+                resultsContainer.style.bottom = 'auto';
+            }
+        }
+    };
+    
+    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', updatePosition);
+    
     searchInput.addEventListener('blur', (e) => {
-        // Small delay to allow for click on results
         setTimeout(() => {
-            if (!resultsContainer.contains(document.activeElement)) {
+            if (resultsContainer && !resultsContainer.contains(document.activeElement)) {
                 resultsContainer.classList.add('hidden');
             }
         }, 200);
@@ -206,127 +505,193 @@ function initFriendSearch(searchInput) {
         }
         
         if (query.length === 0) {
-            resultsContainer.innerHTML = '';
-            searchPrompt.classList.remove('hidden');
-            document.getElementById('no-friends-found').classList.add('hidden');
+            if (resultsContainer) resultsContainer.innerHTML = '';
+            if (searchPrompt) searchPrompt.classList.remove('hidden');
+            if (noFriendsFoundMsg) noFriendsFoundMsg.classList.add('hidden');
             return;
         }
         
-        searchPrompt.classList.add('hidden');
+        if (searchPrompt) searchPrompt.classList.add('hidden');
         
-        // Make API call to search for friends
+        // Make sure dropdown is positioned correctly
+        const inputRect = searchInput.getBoundingClientRect();
+        if (resultsContainer) {
+            resultsContainer.style.width = inputRect.width + 'px';
+            resultsContainer.style.left = inputRect.left + 'px';
+            resultsContainer.style.top = (inputRect.bottom + 4) + 'px';
+        }
+        
         searchFriends(query);
     }, 300));
 }
 
-// Search friends based on input query
 function searchFriends(query) {
     const resultsContainer = document.getElementById('friend-search-results');
     const noFriendsFoundMsg = document.getElementById('no-friends-found');
     
-    // Show loading indicator
-    resultsContainer.innerHTML = '<div class="text-center p-2"><i class="fas fa-spinner fa-spin mr-2"></i>Searching...</div>';
+    if (resultsContainer) {
+        resultsContainer.innerHTML = '<div style="text-align: center; padding: 12px;"><i class="fas fa-spinner fa-spin mr-2"></i>Searching...</div>';
     
-    // Get friends using FriendAPI
+        // Fix positioning to prevent cutoff
+        resultsContainer.style.position = 'fixed'; // Changed from absolute to fixed
+        resultsContainer.style.zIndex = '99999'; // Increased z-index significantly
+        
+        // Calculate position relative to input
+        const searchInput = document.getElementById('friend-search');
+        if (searchInput) {
+            const inputRect = searchInput.getBoundingClientRect();
+            resultsContainer.style.width = inputRect.width + 'px';
+            resultsContainer.style.left = inputRect.left + 'px';
+            resultsContainer.style.top = (inputRect.bottom + 4) + 'px';
+        } else {
+            resultsContainer.style.width = '100%';
+            resultsContainer.style.left = '0';
+        }
+        
+        resultsContainer.style.maxHeight = '300px';
+        resultsContainer.style.overflowY = 'auto';
+        resultsContainer.style.backgroundColor = '#36393f';
+        resultsContainer.style.borderRadius = '4px';
+        resultsContainer.style.border = '1px solid #202225';
+        resultsContainer.style.boxShadow = '0 8px 16px rgba(0, 0, 0, 0.24)';
+    }
+    
     if (!window.FriendAPI) {
-        resultsContainer.innerHTML = '<div class="text-red-500 text-center p-2">FriendAPI not available</div>';
+        if (resultsContainer) {
+            resultsContainer.innerHTML = '<div style="color: #ed4245; text-align: center; padding: 12px;">FriendAPI not available</div>';
+        }
         return;
     }
     
     window.FriendAPI.getFriends()
         .then(friends => {
-            // Filter friends based on query
             const filteredFriends = friends.filter(friend => 
                 friend.username.toLowerCase().includes(query.toLowerCase())
             );
             
-            resultsContainer.innerHTML = '';
+            if (resultsContainer) resultsContainer.innerHTML = '';
             
             if (filteredFriends.length === 0) {
-                noFriendsFoundMsg.classList.remove('hidden');
+                if (noFriendsFoundMsg) noFriendsFoundMsg.classList.remove('hidden');
             } else {
-                noFriendsFoundMsg.classList.add('hidden');
+                if (noFriendsFoundMsg) noFriendsFoundMsg.classList.add('hidden');
                 
                 filteredFriends.forEach(friend => {
                     const friendEl = createFriendElement(friend);
-                    resultsContainer.appendChild(friendEl);
+                    if (resultsContainer) resultsContainer.appendChild(friendEl);
                 });
             }
         })
         .catch(err => {
             console.error('Error fetching friends:', err);
-            resultsContainer.innerHTML = '<div class="text-red-500 text-center p-2">Error fetching friends</div>';
+            if (resultsContainer) {
+                resultsContainer.innerHTML = '<div style="color: #ed4245; text-align: center; padding: 12px;">Error fetching friends</div>';
+            }
         });
 }
 
-// Create a friend element for search results
 function createFriendElement(friend) {
     const el = document.createElement('div');
-    el.className = 'flex items-center p-2 hover:bg-discord-hover cursor-pointer';
+    el.style.display = 'flex';
+    el.style.alignItems = 'center';
+    el.style.padding = '12px';
+    el.style.cursor = 'pointer';
+    el.style.transition = 'background-color 0.2s';
+    el.style.backgroundColor = '#36393f';
+    el.style.borderBottom = '1px solid #202225';
+    
+    el.addEventListener('mouseover', () => {
+        el.style.backgroundColor = '#4f545c';
+    });
+    
+    el.addEventListener('mouseout', () => {
+        el.style.backgroundColor = '#36393f';
+    });
+    
     el.dataset.userId = friend.id;
     el.dataset.username = friend.username;
     
     const avatarUrl = friend.avatar_url || '/assets/common/default-avatar.png';
     
     el.innerHTML = `
-        <div class="flex-shrink-0 mr-2">
-            <img src="${avatarUrl}" alt="${friend.username}" class="w-8 h-8 rounded-full">
+        <div style="flex-shrink: 0; margin-right: 12px;">
+            <img src="${avatarUrl}" alt="${friend.username}" style="width: 32px; height: 32px; border-radius: 50%;">
         </div>
-        <div class="flex-grow">
-            <div class="text-white font-medium">${friend.username}</div>
-            <div class="text-xs text-gray-400">${friend.status || 'offline'}</div>
+        <div style="flex-grow: 1;">
+            <div style="color: white; font-weight: 500;">${friend.username}</div>
+            <div style="font-size: 12px; color: #b9bbbe;">${friend.status || 'offline'}</div>
         </div>
     `;
     
-    // Handle click to select friend
     el.addEventListener('click', () => {
         selectFriend(friend);
-        document.getElementById('friend-search-results').classList.add('hidden');
-        document.getElementById('friend-search').value = '';
+        const searchResults = document.getElementById('friend-search-results');
+        if (searchResults) searchResults.classList.add('hidden');
+        const searchInput = document.getElementById('friend-search');
+        if (searchInput) searchInput.value = '';
     });
     
     return el;
 }
 
-// Select a friend and add them to the selected friends list
 function selectFriend(friend) {
     const selectedFriendsContainer = document.getElementById('selected-friends');
     const friendsActionsContainer = document.getElementById('invite-friends-actions');
     
-    // Check if already selected
     if (document.querySelector(`.selected-friend[data-user-id="${friend.id}"]`)) {
         return;
     }
     
     const friendTag = document.createElement('div');
-    friendTag.className = 'selected-friend bg-discord-dark border border-gray-700 rounded flex items-center py-1 px-2';
+    friendTag.className = 'selected-friend';
+    friendTag.style.display = 'inline-flex';
+    friendTag.style.alignItems = 'center';
+    friendTag.style.backgroundColor = '#36393f';
+    friendTag.style.border = '1px solid #202225';
+    friendTag.style.borderRadius = '16px';
+    friendTag.style.padding = '4px 12px';
+    friendTag.style.margin = '4px';
+    friendTag.style.transition = 'all 0.2s';
+    
     friendTag.dataset.userId = friend.id;
     friendTag.dataset.username = friend.username;
     
     friendTag.innerHTML = `
-        <span class="text-white">${friend.username}</span>
-        <button class="ml-2 text-gray-400 hover:text-white" title="Remove">
+        <span style="color: white; margin-right: 8px;">${friend.username}</span>
+        <button style="background: none; border: none; color: #b9bbbe; cursor: pointer; padding: 0; font-size: 14px; transition: color 0.2s;" title="Remove">
             <i class="fas fa-times"></i>
         </button>
     `;
     
-    // Handle remove friend
-    friendTag.querySelector('button').addEventListener('click', () => {
+    const removeButton = friendTag.querySelector('button');
+    if (removeButton) {
+        removeButton.addEventListener('mouseover', () => {
+            removeButton.style.color = 'white';
+        });
+        
+        removeButton.addEventListener('mouseout', () => {
+            removeButton.style.color = '#b9bbbe';
+        });
+        
+        removeButton.addEventListener('click', () => {
+            friendTag.style.transform = 'scale(0.95)';
+            friendTag.style.opacity = '0';
+            
+            setTimeout(() => {
         friendTag.remove();
         
-        // Hide actions if no friends selected
-        if (selectedFriendsContainer.children.length === 0) {
-            friendsActionsContainer.classList.add('hidden');
+                if (selectedFriendsContainer && selectedFriendsContainer.children.length === 0) {
+                    if (friendsActionsContainer) friendsActionsContainer.classList.add('hidden');
         }
+            }, 200);
     });
+    }
     
-    selectedFriendsContainer.appendChild(friendTag);
+    if (selectedFriendsContainer) selectedFriendsContainer.appendChild(friendTag);
     
-    // Show actions container
-    friendsActionsContainer.classList.remove('hidden');
+    if (friendsActionsContainer) friendsActionsContainer.classList.remove('hidden');
 }
 
-// Send server invites to selected friends
 function sendServerInvitesToFriends(serverId) {
     const selectedFriends = document.querySelectorAll('.selected-friend');
     const inviteLink = document.getElementById('invite-link').value;
@@ -353,7 +718,6 @@ function sendServerInvitesToFriends(serverId) {
         return;
     }
     
-    // Create a promise for each friend
     const sendPromises = Array.from(selectedFriends).map(friendEl => {
         const userId = friendEl.dataset.userId;
         const username = friendEl.dataset.username;
@@ -365,9 +729,8 @@ function sendServerInvitesToFriends(serverId) {
         )
         .then(() => {
             sentCount++;
-            friendEl.classList.add('bg-green-800', 'border-green-700');
+            friendEl.classList.add('bg-green-800', 'border-green-700', 'transition-colors');
             
-            // Add a success icon
             const statusIcon = document.createElement('span');
             statusIcon.className = 'ml-2 text-green-400';
             statusIcon.innerHTML = '<i class="fas fa-check"></i>';
@@ -376,9 +739,8 @@ function sendServerInvitesToFriends(serverId) {
         .catch(err => {
             console.error(`Failed to send invite to ${username}:`, err);
             failedCount++;
-            friendEl.classList.add('bg-red-800', 'border-red-700');
+            friendEl.classList.add('bg-red-800', 'border-red-700', 'transition-colors');
             
-            // Add an error icon
             const statusIcon = document.createElement('span');
             statusIcon.className = 'ml-2 text-red-400';
             statusIcon.innerHTML = '<i class="fas fa-times"></i>';
@@ -386,7 +748,6 @@ function sendServerInvitesToFriends(serverId) {
         });
     });
     
-    // Handle all invites being sent
     Promise.all(sendPromises)
         .finally(() => {
             sendBtn.disabled = false;
@@ -400,7 +761,6 @@ function sendServerInvitesToFriends(serverId) {
         });
 }
 
-// Utility function for debouncing input events
 function debounce(func, delay) {
     let timeout;
     return function() {
@@ -605,7 +965,7 @@ function copyInviteLink() {
 }
 
 function generateNewInvite(serverId, expirationValue = null) {
-    console.log('generateNewInvite called from server-dropdown.js with serverId:', serverId);
+    console.log('generateNewInvite called with serverId:', serverId);
 
     const generateBtn = document.getElementById('generate-new-invite');
     const originalText = generateBtn.textContent;
@@ -614,7 +974,6 @@ function generateNewInvite(serverId, expirationValue = null) {
 
     const options = {};
     if (expirationValue) {
-        // Convert expiration value to hours
         if (expirationValue === 'never') {
             // No expiration
         } else if (expirationValue === 'hour') {
@@ -631,27 +990,43 @@ function generateNewInvite(serverId, expirationValue = null) {
     serverAPI.generateInvite(serverId, options)
         .then(data => {
             console.log('Invite generation response:', data);
-            if (data.success) {
-                let inviteCode = null;
-
-                if (data.invite_code) {
-                    inviteCode = data.invite_code;
-                } else if (data.data && data.data.invite_code) {
+            
+            // Check if the response contains invite data
+            if (data && (data.success || data.invite_code || (data.data && data.data.invite_code))) {
+                let inviteCode = data.invite_code;
+                let inviteUrl = data.invite_url;
+                let expiresAt = data.expires_at;
+                
+                // Handle different response formats
+                if (!inviteCode && data.data && data.data.invite_code) {
                     inviteCode = data.data.invite_code;
                 }
 
-                if (inviteCode) {
-                    const fullInviteLink = `${window.location.origin}/join/${inviteCode}`;
-                    const inviteLinkInput = document.getElementById('invite-link');
+                if (!inviteUrl && data.data && data.data.invite_url) {
+                    inviteUrl = data.data.invite_url;
+                }
+                
+                if (!expiresAt && data.data && data.data.expires_at) {
+                    expiresAt = data.data.expires_at;
+                }
+                
+                // If we still don't have a URL but have a code, construct it
+                if (!inviteUrl && inviteCode) {
+                    inviteUrl = `${window.location.origin}/join/${inviteCode}`;
+                }
 
-                    inviteLinkInput.value = fullInviteLink;
+                if (inviteUrl) {
+                    const inviteLinkInput = document.getElementById('invite-link');
+                    if (inviteLinkInput) {
+                        inviteLinkInput.value = inviteUrl;
                     inviteLinkInput.select(); 
+                    }
                     
-                    // Display expiration info if available
+                    // Update expiration info if available
                     const expirationInfo = document.getElementById('invite-expiration-info');
                     if (expirationInfo) {
-                        if (data.expires_at) {
-                            const expiryDate = new Date(data.expires_at);
+                        if (expiresAt) {
+                            const expiryDate = new Date(expiresAt);
                             expirationInfo.textContent = `Expires on: ${expiryDate.toLocaleString()}`;
                             expirationInfo.classList.remove('hidden');
                         } else {
@@ -661,7 +1036,7 @@ function generateNewInvite(serverId, expirationValue = null) {
 
                     showToast('New invite link generated!', 'success');
                 } else {
-                    throw new Error('Invalid response format: invite code not found');
+                    throw new Error('Invalid response: invite URL not found');
                 }
             } else {
                 throw new Error(data.message || 'Failed to generate invite link');
@@ -672,8 +1047,10 @@ function generateNewInvite(serverId, expirationValue = null) {
             showToast(`Failed to generate new invite link: ${error.message}`, 'error');
         })
         .finally(() => {
+            if (generateBtn) {
             generateBtn.textContent = originalText;
             generateBtn.disabled = false;
+            }
         });
 }
 
@@ -874,7 +1251,30 @@ function getCurrentServerName() {
 function closeModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
+        const modalContent = modal.querySelector('.modal-content');
+        if (modalContent) {
+            modalContent.classList.add('animate-fade-out');
+            setTimeout(() => {
         modal.classList.add('hidden');
+                modal.style.display = 'none';
+                modalContent.classList.remove('animate-fade-out');
+                
+                // Hide any dropdown that might be open
+                const searchResults = document.getElementById('friend-search-results');
+                if (searchResults) {
+                    searchResults.classList.add('hidden');
+                }
+            }, 200);
+        } else {
+            modal.classList.add('hidden');
+            modal.style.display = 'none';
+            
+            // Hide any dropdown that might be open
+            const searchResults = document.getElementById('friend-search-results');
+            if (searchResults) {
+                searchResults.classList.add('hidden');
+            }
+        }
     }
 }
 

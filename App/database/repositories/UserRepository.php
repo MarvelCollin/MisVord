@@ -122,4 +122,107 @@ class UserRepository extends Repository {
             
         return array_column($results, 'id');
     }
+    
+    /**
+     * Count users by status
+     * 
+     * @param string $status The status to count (online, idle, etc.)
+     * @return int Number of users with the given status
+     */
+    public function countByStatus($status) {
+        $query = new Query();
+        $result = $query->table(User::getTable())
+            ->where('status', $status)
+            ->count();
+            
+        return $result;
+    }
+    
+    /**
+     * Count users created in the last N days
+     * 
+     * @param int $days Number of days to look back
+     * @return int Number of users created in that time period
+     */
+    public function countRecentUsers($days) {
+        $query = new Query();
+        $date = date('Y-m-d H:i:s', strtotime("-$days days"));
+        
+        $result = $query->table(User::getTable())
+            ->where('created_at', '>=', $date)
+            ->count();
+            
+        return $result;
+    }
+    
+    /**
+     * Get paginated list of users for admin panel
+     *
+     * @param int $page Page number
+     * @param int $limit Items per page
+     * @return array List of users
+     */
+    public function paginate($page = 1, $limit = 10) {
+        $offset = ($page - 1) * $limit;
+        
+        $query = new Query();
+        $results = $query->table(User::getTable())
+            ->orderBy('created_at', 'DESC')
+            ->limit($limit)
+            ->offset($offset)
+            ->get();
+            
+        $users = [];
+        foreach ($results as $result) {
+            $users[] = new User($result);
+        }
+        
+        return $users;
+    }
+    
+    /**
+     * Search users by username or email for admin panel
+     *
+     * @param string $query Search query
+     * @param int $page Page number
+     * @param int $limit Items per page
+     * @return array List of matching users
+     */
+    public function search($query, $page = 1, $limit = 10) {
+        $offset = ($page - 1) * $limit;
+        
+        $queryBuilder = new Query();
+        $results = $queryBuilder->table(User::getTable())
+            ->where(function($q) use ($query) {
+                $q->whereLike('username', "%$query%")
+                  ->orWhereLike('email', "%$query%");
+            })
+            ->orderBy('created_at', 'DESC')
+            ->limit($limit)
+            ->offset($offset)
+            ->get();
+            
+        $users = [];
+        foreach ($results as $result) {
+            $users[] = new User($result);
+        }
+        
+        return $users;
+    }
+    
+    /**
+     * Count users matching a search query
+     *
+     * @param string $query Search query
+     * @return int Number of matching users
+     */
+    public function countSearch($query) {
+        $queryBuilder = new Query();
+        return $queryBuilder->table(User::getTable())
+            ->where(function($q) use ($query) {
+                $q->whereLike('username', "%$query%")
+                  ->orWhereLike('email', "%$query%");
+            })
+            ->count();
+    }
 }

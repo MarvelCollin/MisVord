@@ -61,24 +61,18 @@
             
             <div class="user-detail-divider"></div>
             
-            <!-- Note section -->
-            <div class="user-detail-section">
-                <h3 class="user-detail-section-title">NOTE</h3>
-                <textarea class="user-detail-note" id="user-detail-note" placeholder="Click to add a note"></textarea>
+            <!-- Message section with improved Discord-style input -->
+            <div class="user-detail-section user-detail-message-section">
+                <h3 class="user-detail-section-title">MESSAGE</h3>
+                <div class="user-detail-send-message-container">
+                    <input type="text" class="user-detail-message-input" id="user-detail-message-input" placeholder="Message @username">
+                    <button class="user-detail-send-btn" id="user-detail-send-btn" aria-label="Send Message">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
+                    </button>
+                </div>
             </div>
         </div>
         
-        <!-- Action buttons -->
-        <div class="user-detail-actions">
-            <button class="user-detail-action-btn message-btn" id="user-detail-message-btn">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
-                Message
-            </button>
-            <div class="user-detail-action-separator"></div>
-            <button class="user-detail-action-btn add-friend-btn" id="user-detail-add-friend-btn">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
-                Add Friend
-            </button>
-        </div>
+        <!-- Action buttons removed as message sending is now inline -->
     </div>
 </div>

@@ -12,9 +12,24 @@ if ($is_settings_page) {
     });
 }
 
-$core_scripts = ['core/ui/toast', 'core/ajax/ajax-handler', 'core/socket/global-socket-manager'];
+$is_auth_page = isset($data_page) && $data_page === 'auth';
+
+// Define core scripts for non-auth pages
+$core_scripts = ['core/ui/toast'];
+if (!$is_auth_page) {
+    // Only include AJAX scripts for non-auth pages
+    $core_scripts[] = 'core/ajax/ajax-handler';
+    $core_scripts[] = 'core/socket/global-socket-manager';
+}
+
+// Auth-specific scripts
+$auth_scripts = [];
+if ($is_auth_page) {
+    $auth_scripts[] = 'components/common/validation';
+}
 ?>
 
+<?php if (!$is_auth_page): ?>
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" crossorigin="anonymous"></script>
 
 <script>
@@ -26,9 +41,12 @@ $core_scripts = ['core/ui/toast', 'core/ajax/ajax-handler', 'core/socket/global-
     if (socketPort) window.SOCKET_PORT = parseInt(socketPort);
 })();
 </script>
+<?php endif; ?>
 
+<?php if (!$is_auth_page): ?>
 <script src="<?php echo js('api/friend-api'); ?>?v=<?php echo time(); ?>"></script>
 <script src="<?php echo js('api/chat-api'); ?>?v=<?php echo time(); ?>"></script>
+<?php endif; ?>
 
 <script src="<?php echo js('utils/lazy-loader'); ?>?v=<?php echo time(); ?>" type="module"></script>
 <script src="<?php echo js('utils/debug-logging'); ?>?v=<?php echo time(); ?>" type="module"></script>
@@ -37,6 +55,14 @@ $core_scripts = ['core/ui/toast', 'core/ajax/ajax-handler', 'core/socket/global-
 <?php if (isset($page_js)): ?>
     <script src="<?php echo js($page_js); ?>?v=<?php echo time(); ?>" type="module"></script>
 <?php endif; ?>
+
+<?php foreach($core_scripts as $script): ?>
+    <script src="<?php echo js($script); ?>?v=<?php echo time(); ?>" type="module"></script>
+<?php endforeach; ?>
+
+<?php foreach($auth_scripts as $script): ?>
+    <script src="<?php echo js($script); ?>?v=<?php echo time(); ?>" type="module"></script>
+<?php endforeach; ?>
 
 <?php foreach($additional_js as $script): ?>
     <script src="<?php echo js(rtrim($script, '.js')); ?>?v=<?php echo time(); ?>" type="module"></script>

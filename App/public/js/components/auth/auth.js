@@ -1,6 +1,4 @@
-import { MisVordAjax } from "../../core/ajax/ajax-handler.js";
-import { showToast } from "../../core/ui/toast.js";
-
+// Simple auth utils without AJAX functionality
 export class AuthManager {
   constructor() {
     const isAuthPage =
@@ -71,168 +69,17 @@ export class AuthManager {
     }
   }
 
-  handleLogin(e) {
-    e.preventDefault();
-
-    const form = e.target;
-    this.clearFormErrors(form);
-
-    MisVordAjax.submitForm(form, {
-      onSuccess: (response) => {
-        if (window.logger) {
-          window.logger.info("auth", "Login response received:", response);
-        }
-
-        if (response.success) {
-          showToast("Login successful. Redirecting...", "success");
-
-          const redirectUrl = response.redirect || "/home";
-          if (window.logger) {
-            window.logger.debug("auth", "Redirecting to:", redirectUrl);
-          }
-
-          setTimeout(() => {
-            if (window.logger) {
-              window.logger.debug("auth", "Executing redirect...");
-            }
-            window.location.replace(redirectUrl);
-          }, 500);
-        } else {
-          if (window.logger) {
-            window.logger.warn("auth", "Login response success was false");
-          }
-        }
-      },
-      onError: (error) => {
-        const errors = error.data?.errors || {};
-        this.displayFormErrors(form, errors);
-
-        if (error.data?.message) {
-          showToast(error.data.message, "error");
-        }
-      },
-    });
-  }
-
-  handleRegister(e) {
-    e.preventDefault();
-
-    const form = e.target;
-    this.clearFormErrors(form);
-
-    const password = form.querySelector('[name="password"]').value;
-    const confirmPassword = form.querySelector(
-      '[name="password_confirm"]'
-    ).value;
-
+  // Client-side form validation only - no AJAX submission
+  validatePassword(password, confirmPassword) {
     if (password !== confirmPassword) {
-      this.displayFormErrors(form, {
-        password_confirm: "Passwords do not match",
-      });
-      return;
+      return 'Passwords do not match';
     }
-
-    MisVordAjax.submitForm(form, {
-      onSuccess: (response) => {
-        if (window.logger) {
-          window.logger.info("auth", "Register response received:", response);
-        }
-
-        if (response.success) {
-          showToast("Registration successful. Redirecting...", "success");
-
-          const redirectUrl = response.redirect || "/home";
-          if (window.logger) {
-            window.logger.debug("auth", "Redirecting to:", redirectUrl);
-          }
-
-          setTimeout(() => {
-            if (window.logger) {
-              window.logger.debug("auth", "Executing redirect...");
-            }
-            window.location.replace(redirectUrl);
-          }, 500);
-        } else {
-          if (window.logger) {
-            window.logger.warn("auth", "Register response success was false");
-          }
-        }
-      },
-      onError: (error) => {
-        const errors = error.data?.errors || {};
-        this.displayFormErrors(form, errors);
-
-        if (error.data?.message) {
-          showToast(error.data.message, "error");
-        }
-      },
-    });
-  }
-
-  handleForgotPassword(e) {
-    e.preventDefault();
-
-    const form = e.target;
-    this.clearFormErrors(form);
-
-    MisVordAjax.submitForm(form, {
-      onSuccess: (response) => {
-        if (response.success) {
-          showToast(
-            response.message || "Password reset instructions have been sent.",
-            "success"
-          );
-
-          form.reset();
-
-          setTimeout(() => {
-            AuthManager.switchActiveForm("login");
-          }, 2000);
-        }
-      },
-      onError: (error) => {
-        const errors = error.data?.errors || {};
-        this.displayFormErrors(form, errors);
-
-        if (error.data?.message) {
-          showToast(error.data.message, "error");
-        }
-      },
-    });
-  }
-
-  clearFormErrors(form) {
-    const errorMessages = form.querySelectorAll(".error-message");
-    errorMessages.forEach((el) => el.remove());
-
-    const invalidInputs = form.querySelectorAll(".is-invalid");
-    invalidInputs.forEach((input) => {
-      input.classList.remove("is-invalid", "border-red-500");
-    });
-  }
-
-  displayFormErrors(form, errors) {
-    for (const field in errors) {
-      const input = form.querySelector(`[name="${field}"]`);
-      const message = errors[field];
-
-      if (input) {
-        input.classList.add("is-invalid", "border-red-500");
-
-        const errorDiv = document.createElement("div");
-        errorDiv.className = "error-message text-red-500 text-xs mt-1";
-        errorDiv.textContent = message;
-
-        input.parentNode.insertBefore(errorDiv, input.nextSibling);
-      } else if (field === "auth" || field === "general") {
-        const errorDiv = document.createElement("div");
-        errorDiv.className =
-          "error-message text-red-500 text-sm mb-4 text-center";
-        errorDiv.textContent = message;
-
-        form.insertBefore(errorDiv, form.firstChild);
-      }
+    
+    if (password.length < 8) {
+      return 'Password must be at least 8 characters long';
     }
+    
+    return null; // Valid
   }
 }
 
@@ -240,38 +87,30 @@ const isAuthPage =
   document.body && document.body.getAttribute("data-page") === "auth";
 export const authManager = !isAuthPage ? new AuthManager() : null;
 
-
-function updateRedirectUrls(response) {
-  if (response && response.redirect && response.redirect === '/app') {
-    response.redirect = '/home';
-  }
-  return response;
+// Add a timestamp parameter to URLs to prevent caching
+function addTimestampToUrl(url) {
+  const timestamp = Date.now();
+  return url.includes('?') 
+    ? `${url}&_t=${timestamp}` 
+    : `${url}?_t=${timestamp}`;
 }
 
-function handleResponse(response) {
-  response = updateRedirectUrls(response);
-  const redirectUrl = response.redirect || "/home";
-
-  if (redirectUrl) {
-
-    sessionStorage.removeItem('auth_in_progress');
-
-
-    const timestampedUrl = redirectUrl.includes('?')
-      ? `${redirectUrl}&_t=${Date.now()}`
-      : `${redirectUrl}?_t=${Date.now()}`;
-
-    console.log("Redirecting to:", timestampedUrl);
-    window.location.replace(timestampedUrl);
-  }
-}
-
-
-document.addEventListener('DOMContentLoaded', function () {
-
+// Add timestamp to forms to prevent caching issues
+document.addEventListener('DOMContentLoaded', function() {
+  const authForms = document.querySelectorAll('form');
+  authForms.forEach(form => {
+    form.addEventListener('submit', function(e) {
+      // Add a hidden timestamp field to prevent caching
+      const timestampInput = document.createElement('input');
+      timestampInput.type = 'hidden';
+      timestampInput.name = '_t';
+      timestampInput.value = Date.now();
+      this.appendChild(timestampInput);
+    });
+  });
 });
 
-
+// Helper for showing form errors - no AJAX dependency
 function showFormError(form, fieldName, message) {
   const field = form.querySelector(`#${fieldName}`) || form.querySelector(`[name="${fieldName}"]`);
   if (field) {
@@ -287,7 +126,6 @@ function showFormError(form, fieldName, message) {
       field.parentNode.appendChild(errorDiv);
     }
   } else {
-
     const errorDiv = document.createElement('div');
     errorDiv.className = 'bg-red-500 text-white p-3 rounded-md mb-4 text-center animate-pulse';
     errorDiv.textContent = message;
