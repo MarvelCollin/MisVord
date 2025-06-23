@@ -1,5 +1,5 @@
 import { showToast } from '../core/ui/toast.js';
-import { ServerAPI } from '../api/server-api.js';
+import serverAPI from '../api/server-api.js';
 
 document.addEventListener('DOMContentLoaded', function() {
     window.logger.info('general', "Accept Invite page loaded");
@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             showToast('Joining server...', 'info');            window.logger.debug('general', "Sending request to join server with code:", inviteCode);
 
-            ServerAPI.joinByInvite(inviteCode)
+            serverAPI.joinByInvite(inviteCode)
                 .then(data => {
                     window.logger.debug('ajax', "Parsed response data:", data);
 

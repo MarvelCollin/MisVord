@@ -175,5 +175,4 @@ class FriendAPI {
 }
 
 const friendAPI = new FriendAPI();
-
 window.FriendAPI = friendAPI;

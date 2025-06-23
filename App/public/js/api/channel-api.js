@@ -126,4 +126,4 @@ class ChannelAPI {
 }
 
 const channelAPI = new ChannelAPI();
-export { channelAPI as ChannelAPI };
+export default channelAPI;

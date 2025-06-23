@@ -1,4 +1,4 @@
-import { ServerAPI } from '../api/server-api.js';
+import serverAPI from '../api/server-api.js';
 
 document.addEventListener('DOMContentLoaded', function() {
     if (typeof window !== 'undefined' && window.logger) {
@@ -132,7 +132,7 @@ function joinServer(serverId, button) {
     button.textContent = 'Joining...';
     button.disabled = true;
     
-    ServerAPI.joinServer({ server_id: serverId })
+    serverAPI.joinServer({ server_id: serverId })
         .then(data => {
             if (data.success) {
                 button.textContent = 'Joined!';

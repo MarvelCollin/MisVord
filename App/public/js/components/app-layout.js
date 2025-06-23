@@ -2,23 +2,21 @@ import '../api/friend-api.js';
 
 const friendAPI = window.FriendAPI;
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     initServerModal();
     initDirectMessageModal();
     initTabHandling();
     initFriendRequestForm();
     updatePendingCount();
-    
-    // Load appropriate tab content based on the current URL
+
+
     if (window.location.pathname === '/app/friends') {
         const urlParams = new URLSearchParams(window.location.search);
         const tab = urlParams.get('tab') || 'online';
-        
-        // Initialize the content without changing the URL
+
         const tabs = document.querySelectorAll('[data-tab]');
         const tabContents = document.querySelectorAll('.tab-content');
-        
-        // Load the content for each tab type
+
         if (tab === 'all') {
             loadAllFriends();
         } else if (tab === 'pending') {
@@ -35,20 +33,20 @@ function initServerModal() {
     const closeBtn = document.getElementById('close-server-modal');
 
     if (createServerBtn && modal) {
-        createServerBtn.addEventListener('click', function(e) {
+        createServerBtn.addEventListener('click', function (e) {
             e.preventDefault();
             modal.classList.remove('hidden');
         });
     }
 
     if (closeBtn && modal) {
-        closeBtn.addEventListener('click', function() {
+        closeBtn.addEventListener('click', function () {
             modal.classList.add('hidden');
         });
     }
 
     if (modal) {
-        modal.addEventListener('click', function(e) {
+        modal.addEventListener('click', function (e) {
             if (e.target === modal) {
                 modal.classList.add('hidden');
             }
@@ -67,25 +65,25 @@ function initDirectMessageModal() {
 
     if (!newDirectMessageBtn || !modal) return;
 
-    newDirectMessageBtn.addEventListener('click', function() {
+    newDirectMessageBtn.addEventListener('click', function () {
         modal.classList.remove('hidden');
         loadFriendsForDM();
     });
 
     if (closeBtn) {
-        closeBtn.addEventListener('click', function() {
+        closeBtn.addEventListener('click', function () {
             modal.classList.add('hidden');
         });
     }
 
     if (cancelBtn) {
-        cancelBtn.addEventListener('click', function() {
+        cancelBtn.addEventListener('click', function () {
             modal.classList.add('hidden');
         });
     }
 
     if (modal) {
-        modal.addEventListener('click', function(e) {
+        modal.addEventListener('click', function (e) {
             if (e.target === modal) {
                 modal.classList.add('hidden');
             }
@@ -93,12 +91,12 @@ function initDirectMessageModal() {
     }
 
     if (searchInput) {
-        searchInput.addEventListener('input', function() {
+        searchInput.addEventListener('input', function () {
             const query = this.value.toLowerCase();
             const friends = friendsList.querySelectorAll('.dm-friend-item');
-            
+
             let hasVisibleFriends = false;
-            
+
             friends.forEach(friend => {
                 const username = friend.getAttribute('data-username').toLowerCase();
                 if (username.includes(query)) {
@@ -108,7 +106,7 @@ function initDirectMessageModal() {
                     friend.classList.add('hidden');
                 }
             });
-            
+
             const noFriendsMsg = document.getElementById('no-dm-friends');
             if (noFriendsMsg) {
                 noFriendsMsg.classList.toggle('hidden', hasVisibleFriends);
@@ -120,24 +118,24 @@ function initDirectMessageModal() {
 function loadFriendsForDM() {
     const friendsList = document.getElementById('dm-friends-list');
     const noFriendsMsg = document.getElementById('no-dm-friends');
-    
+
     if (!friendsList) return;
-    
+
     friendsList.innerHTML = generateSkeletonItems(5);
-    
+
     friendAPI.getFriends()
         .then(friends => {
             friendsList.innerHTML = '';
-            
+
             if (friends && friends.length > 0) {
                 friends.forEach(friend => {
                     const statusColor = getStatusColor(friend.status || 'offline');
-                    
+
                     const friendItem = document.createElement('div');
                     friendItem.className = 'dm-friend-item flex items-center p-2 rounded hover:bg-discord-dark cursor-pointer';
                     friendItem.setAttribute('data-username', friend.username);
                     friendItem.setAttribute('data-user-id', friend.id);
-                    
+
                     friendItem.innerHTML = `
                         <div class="relative mr-3">
                             <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
@@ -148,14 +146,14 @@ function loadFriendsForDM() {
                         </div>
                         <span class="font-medium text-white">${escapeHtml(friend.username)}</span>
                     `;
-                    
-                    friendItem.addEventListener('click', function() {
+
+                    friendItem.addEventListener('click', function () {
                         selectFriendForDM(this);
                     });
-                    
+
                     friendsList.appendChild(friendItem);
                 });
-                
+
                 if (noFriendsMsg) {
                     noFriendsMsg.classList.add('hidden');
                 }
@@ -173,7 +171,7 @@ function loadFriendsForDM() {
 
 function generateSkeletonItems(count) {
     let skeletonHtml = '';
-    
+
     for (let i = 0; i < count; i++) {
         skeletonHtml += `
             <div class="skeleton-item flex items-center">
@@ -184,27 +182,27 @@ function generateSkeletonItems(count) {
             </div>
         `;
     }
-    
+
     return skeletonHtml;
 }
 
 function selectFriendForDM(element) {
     const createButton = document.getElementById('create-new-direct');
     const allFriends = document.querySelectorAll('.dm-friend-item');
-    
+
     allFriends.forEach(friend => {
         friend.classList.remove('bg-discord-light');
         friend.classList.add('hover:bg-discord-dark');
     });
-    
+
     element.classList.add('bg-discord-light');
     element.classList.remove('hover:bg-discord-dark');
-    
+
     if (createButton) {
         createButton.disabled = false;
         createButton.classList.remove('opacity-50', 'cursor-not-allowed');
-        
-        createButton.onclick = function() {
+
+        createButton.onclick = function () {
             const userId = element.getAttribute('data-user-id');
             createDirectMessage(userId);
         };
@@ -213,7 +211,7 @@ function selectFriendForDM(element) {
 
 function createDirectMessage(userId) {
     const modal = document.getElementById('new-direct-modal');
-    
+
     fetch('/api/chat/create', {
         method: 'POST',
         headers: {
@@ -222,31 +220,31 @@ function createDirectMessage(userId) {
         },
         body: JSON.stringify({ user_id: userId })
     })
-    .then(response => response.json())
-    .then(data => {
-        if (modal) {
-            modal.classList.add('hidden');
-        }
-        
-        if (data.success && data.data && data.data.channel_id) {
-            window.location.href = `/app/channels/dm/${data.data.channel_id}`;
-        } else {
-            showToast('Failed to create conversation: ' + (data.message || 'Unknown error'), 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error creating direct message:', error);
-        showToast('Failed to create conversation. Please try again.', 'error');
-    });
+        .then(response => response.json())
+        .then(data => {
+            if (modal) {
+                modal.classList.add('hidden');
+            }
+
+            if (data.success && data.data && data.data.channel_id) {
+                window.location.href = `/app/channels/dm/${data.data.channel_id}`;
+            } else {
+                showToast('Failed to create conversation: ' + (data.message || 'Unknown error'), 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error creating direct message:', error);
+            showToast('Failed to create conversation. Please try again.', 'error');
+        });
 }
 
 function initTabHandling() {
     const tabs = document.querySelectorAll('[data-tab]');
-    
+
     if (!tabs.length) return;
-    
+
     tabs.forEach(tab => {
-        tab.addEventListener('click', function() {
+        tab.addEventListener('click', function () {
             const tabName = this.getAttribute('data-tab');
             activateTab(tabName);
         });
@@ -256,19 +254,19 @@ function initTabHandling() {
 function activateTab(tabName) {
     const tabs = document.querySelectorAll('[data-tab]');
     const tabContents = document.querySelectorAll('.tab-content');
-    
-    // First try to navigate to the tab via URL
+
+
     if (window.location.pathname === '/app/friends') {
         window.location.href = '/app/friends?tab=' + tabName;
         return;
     }
-    
-    // If we're still here, update the UI directly
+
+
     tabs.forEach(tab => {
         if (tab.getAttribute('data-tab') === tabName) {
             tab.classList.remove('text-gray-300');
             tab.classList.add('text-white');
-            
+
             if (tabName === 'online' || tabName === 'add-friend') {
                 tab.classList.add(tabName === 'online' ? 'bg-discord-primary' : 'bg-discord-green');
                 tab.classList.remove(tabName === 'online' ? 'hover:bg-discord-light' : 'hover:bg-discord-green/90');
@@ -279,7 +277,7 @@ function activateTab(tabName) {
         } else {
             tab.classList.add('text-gray-300');
             tab.classList.remove('text-white');
-            
+
             const currentTabName = tab.getAttribute('data-tab');
             if (currentTabName === 'online' || currentTabName === 'add-friend') {
                 tab.classList.remove(currentTabName === 'online' ? 'bg-discord-primary' : 'bg-discord-green');
@@ -290,11 +288,11 @@ function activateTab(tabName) {
             }
         }
     });
-    
+
     tabContents.forEach(content => {
         if (content.id === tabName + '-tab') {
             content.classList.remove('hidden');
-            
+
             if (tabName === 'all') {
                 loadAllFriends();
             } else if (tabName === 'pending') {
@@ -311,9 +309,9 @@ function activateTab(tabName) {
 function loadAllFriends() {
     const container = document.getElementById('all-friends-container');
     if (!container) return;
-    
+
     container.innerHTML = generateSkeletonFriends(5);
-    
+
     friendAPI.getFriends()
         .then(friends => {
             if (friends && friends.length > 0) {
@@ -321,7 +319,7 @@ function loadAllFriends() {
                 friends.forEach(friend => {
                     const statusColor = getStatusColor(friend.status || 'offline');
                     const statusText = getStatusText(friend.status || 'offline');
-                    
+
                     friendsHtml += `
                         <div class="flex justify-between items-center p-2 rounded hover:bg-discord-light group friend-item" data-user-id="${friend.id}">
                             <div class="flex items-center">
@@ -348,7 +346,7 @@ function loadAllFriends() {
                         </div>
                     `;
                 });
-                
+
                 container.innerHTML = friendsHtml;
             } else {
                 container.innerHTML = `
@@ -370,7 +368,7 @@ function loadAllFriends() {
 
 function generateSkeletonFriends(count) {
     let skeletonHtml = '';
-    
+
     for (let i = 0; i < count; i++) {
         skeletonHtml += `
             <div class="skeleton-item flex justify-between items-center p-2">
@@ -388,7 +386,7 @@ function generateSkeletonFriends(count) {
             </div>
         `;
     }
-    
+
     return skeletonHtml;
 }
 
@@ -397,14 +395,14 @@ function loadPendingRequests() {
     if (!pendingContainer) return;
 
     pendingContainer.innerHTML = generateSkeletonPending();
-    
+
     friendAPI.getPendingRequests()
         .then(pendingData => {
             pendingContainer.innerHTML = '';
 
             if (pendingData) {
                 const { incoming, outgoing } = pendingData;
-                
+
                 if (incoming && incoming.length > 0) {
                     const incomingHtml = `
                         <h3 class="text-xs uppercase font-semibold text-gray-400 mb-2">Incoming Friend Requests — ${incoming.length}</h3>
@@ -502,7 +500,7 @@ function generateSkeletonPending() {
 
 function generateSkeletonPendingItems(count) {
     let html = '<div class="space-y-2">';
-    
+
     for (let i = 0; i < count; i++) {
         html += `
             <div class="skeleton-item flex items-center justify-between p-2">
@@ -520,7 +518,7 @@ function generateSkeletonPendingItems(count) {
             </div>
         `;
     }
-    
+
     html += '</div>';
     return html;
 }
@@ -528,9 +526,9 @@ function generateSkeletonPendingItems(count) {
 function loadBlockedUsers() {
     const container = document.getElementById('blocked-users-container');
     if (!container) return;
-    
+
     container.innerHTML = generateSkeletonItems(3);
-    
+
     friendAPI.getBlockedUsers()
         .then(blockedUsers => {
             if (blockedUsers && blockedUsers.length > 0) {
@@ -552,7 +550,7 @@ function loadBlockedUsers() {
                         </div>
                     `;
                 });
-                
+
                 container.innerHTML = blockedHtml;
             } else {
                 container.innerHTML = `
@@ -579,7 +577,7 @@ function getStatusColor(status) {
         'offline': 'bg-[#747f8d]',
         'banned': 'bg-black'
     };
-    
+
     return statusColors[status] || 'bg-gray-500';
 }
 
@@ -591,7 +589,7 @@ function getStatusText(status) {
         'offline': 'Offline',
         'banned': 'Banned'
     };
-    
+
     return statusTexts[status] || 'Offline';
 }
 
@@ -656,28 +654,28 @@ function initFriendRequestForm() {
     const sendFriendRequestBtn = document.getElementById('send-friend-request');
     const errorDiv = document.getElementById('friend-request-error');
     const successDiv = document.getElementById('friend-request-success');
-    
+
     if (!friendUsernameInput || !sendFriendRequestBtn) return;
-    
-    friendUsernameInput.addEventListener('input', function() {
+
+    friendUsernameInput.addEventListener('input', function () {
         const value = this.value.trim();
         const validation = friendAPI.validateUsername(value);
-        
+
         sendFriendRequestBtn.disabled = !validation.valid;
-        
+
         if (validation.valid) {
             sendFriendRequestBtn.classList.remove('opacity-50', 'cursor-not-allowed');
         } else {
             sendFriendRequestBtn.classList.add('opacity-50', 'cursor-not-allowed');
         }
-        
+
         if (errorDiv) errorDiv.classList.add('hidden');
         if (successDiv) successDiv.classList.add('hidden');
     });
-    
-    sendFriendRequestBtn.addEventListener('click', async function() {
+
+    sendFriendRequestBtn.addEventListener('click', async function () {
         const username = friendUsernameInput.value.trim();
-        
+
         const validation = friendAPI.validateUsername(username);
         if (!validation.valid) {
             if (errorDiv) {
@@ -686,22 +684,22 @@ function initFriendRequestForm() {
             }
             return;
         }
-        
+
         sendFriendRequestBtn.disabled = true;
         sendFriendRequestBtn.classList.add('opacity-50', 'cursor-not-allowed');
-        
+
         try {
             await friendAPI.sendFriendRequest(username);
-            
+
             if (successDiv) {
                 successDiv.textContent = 'Friend request sent!';
                 successDiv.classList.remove('hidden');
             }
             if (errorDiv) errorDiv.classList.add('hidden');
             friendUsernameInput.value = '';
-            
+
             updatePendingCount();
-            
+
         } catch (error) {
             console.error('Error sending friend request:', error);
             if (errorDiv) {
@@ -743,11 +741,11 @@ function showToast(message, type = 'info') {
     }
 }
 
-window.acceptFriendRequest = async function(friendshipId) {
+window.acceptFriendRequest = async function (friendshipId) {
     try {
         console.log('Accepting friend request:', friendshipId);
         const result = await friendAPI.acceptFriendRequest(friendshipId);
-        
+
         if (result.success) {
             showToast('Friend request accepted!', 'success');
             loadPendingRequests();
@@ -761,11 +759,11 @@ window.acceptFriendRequest = async function(friendshipId) {
     }
 };
 
-window.ignoreFriendRequest = async function(friendshipId) {
+window.ignoreFriendRequest = async function (friendshipId) {
     try {
         console.log('Ignoring friend request:', friendshipId);
         const result = await friendAPI.declineFriendRequest(friendshipId);
-        
+
         if (result.success) {
             showToast('Friend request ignored', 'info');
             loadPendingRequests();

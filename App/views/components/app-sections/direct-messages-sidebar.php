@@ -60,18 +60,13 @@ if (file_exists($tooltipPath)) {
     </div>
 
     <div class="px-2 mt-1 flex-grow overflow-y-auto">
-        <?php if (empty($chatRooms)): ?>
-            <div class="text-discord-lighter text-xs p-2">
-                No direct messages yet. Start a conversation!
-            </div>
-        <?php else: ?>
-            <?php foreach ($chatRooms as $chatRoom): ?>
-                <?php 
-                $statusColor = 'bg-gray-500';
-                $otherUserId = $chatRoom['other_user_id'] ?? 0;
-                $otherUsername = $chatRoom['other_username'] ?? 'Unknown';
-                $otherAvatar = $chatRoom['other_avatar'] ?? '';
-                $roomId = $chatRoom['id'] ?? 0;
+        <?php foreach ($chatRooms as $chatRoom): ?>
+            <?php 
+            $statusColor = 'bg-gray-500';
+            $otherUserId = $chatRoom['other_user_id'] ?? 0;
+            $otherUsername = $chatRoom['other_username'] ?? 'Unknown';
+            $otherAvatar = $chatRoom['other_avatar'] ?? '';
+            $roomId = $chatRoom['id'] ?? 0;
                 
                 foreach ($friends as $friend) {
                     if ($friend['id'] == $otherUserId) {
@@ -114,7 +109,6 @@ if (file_exists($tooltipPath)) {
                     </div>
                 </div>
             <?php endforeach; ?>
-        <?php endif; ?>
     </div>
 
     <?php include dirname(__DIR__) . '/common/user-profile.php'; ?>

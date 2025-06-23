@@ -5,3 +5,4 @@ system.txt
 rules2.txt
 vendor/
 .env
+storage/

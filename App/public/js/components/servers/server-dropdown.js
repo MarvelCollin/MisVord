@@ -1,7 +1,6 @@
 import { showToast } from '../../core/ui/toast.js';
-import { ServerAPI } from '../../api/server-api.js';
-import { ChannelAPI } from '../../api/channel-api.js';
-import { ChatAPI } from '../../api/chat-api.js';
+import serverAPI from '../../api/server-api.js';
+import channelAPI from '../../api/channel-api.js';
 
 if (typeof window !== 'undefined' && window.logger) {
     window.logger.info('server', 'server-dropdown.js loaded successfully - UPDATED VERSION');
@@ -568,7 +567,7 @@ function loadInviteLink(serverId) {
         inviteLinkInput.disabled = true;
     }
 
-    ServerAPI.getServer(serverId)
+    serverAPI.getServer(serverId)
         .then(data => {
             console.log('Server data received:', data);
 
@@ -629,7 +628,7 @@ function generateNewInvite(serverId, expirationValue = null) {
         }
     }
 
-    ServerAPI.generateInvite(serverId, options)
+    serverAPI.generateInvite(serverId, options)
         .then(data => {
             console.log('Invite generation response:', data);
             if (data.success) {
@@ -679,7 +678,7 @@ function generateNewInvite(serverId, expirationValue = null) {
 }
 
 function loadCategories(serverId) {
-    ServerAPI.getServerChannels(serverId)
+    serverAPI.getServerChannels(serverId)
         .then(data => {
             const categorySelect = document.getElementById('channel-category');
             categorySelect.innerHTML = '<option value="">No Category</option>';
@@ -704,7 +703,7 @@ function createChannel(e, serverId) {
     const formData = new FormData(e.target);
     formData.append('server_id', serverId);
 
-    ChannelAPI.createChannel(formData)
+    channelAPI.createChannel(formData)
         .then(data => {
             if (data.success) {
                 showToast('Channel created successfully!', 'success');
@@ -735,7 +734,7 @@ function createCategory(e, serverId) {
     const formData = new FormData(e.target);
     formData.append('server_id', serverId);
     
-    ChannelAPI.createCategory(formData)
+    channelAPI.createCategory(formData)
         .then(data => {
             if (data.success) {
                 showToast('Category created successfully!', 'success');
@@ -753,7 +752,7 @@ function createCategory(e, serverId) {
 }
 
 function loadNotificationSettings(serverId) {
-    ServerAPI.getNotificationSettings(serverId)
+    serverAPI.getNotificationSettings(serverId)
         .then(data => {
             if (data.success && data.settings) {
                 const settings = data.settings;
@@ -790,7 +789,7 @@ function updateNotificationSettings(e, serverId) {
         suppress_roles: formData.has('suppress_roles')
     };
     
-    ServerAPI.updateNotificationSettings(serverId, data)
+    serverAPI.updateNotificationSettings(serverId, data)
         .then(data => {
             if (data.success) {
                 showToast('Notification settings updated!', 'success');
@@ -806,7 +805,7 @@ function updateNotificationSettings(e, serverId) {
 }
 
 function loadPerServerProfile(serverId) {
-    ServerAPI.getPerServerProfile(serverId)
+    serverAPI.getPerServerProfile(serverId)
         .then(data => {
             if (data.success && data.profile) {
                 document.getElementById('profile-nickname').value = data.profile.nickname || '';
@@ -826,7 +825,7 @@ function updatePerServerProfile(e, serverId) {
         nickname: formData.get('nickname')
     };
 
-    ServerAPI.updatePerServerProfile(serverId, data)
+    serverAPI.updatePerServerProfile(serverId, data)
         .then(data => {
             if (data.success) {
                 showToast('Server profile updated!', 'success');
@@ -842,7 +841,7 @@ function updatePerServerProfile(e, serverId) {
 }
 
 function leaveServer(serverId) {
-    ServerAPI.leaveServer(serverId)
+    serverAPI.leaveServer(serverId)
         .then(data => {
             if (data.success) {
                 showToast('You have left the server', 'success');
@@ -888,7 +887,7 @@ function refreshChannelList(serverId) {
     const channelContainer = document.getElementById('channel-container');
     if (!channelContainer) return;
 
-    ServerAPI.getServerChannels(serverId)
+    serverAPI.getServerChannels(serverId)
         .then(data => {
             if (data.success) {
                 console.log('Channels loaded successfully');

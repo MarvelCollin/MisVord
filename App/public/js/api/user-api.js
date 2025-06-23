@@ -68,4 +68,4 @@ class UserAPI {
 }
 
 const userAPI = new UserAPI();
-export { userAPI as UserAPI };
+export default userAPI;

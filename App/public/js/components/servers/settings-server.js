@@ -1,4 +1,4 @@
-import { ServerAPI } from '../../api/server-api.js';
+import serverAPI from '../../api/server-api.js';
 import ImageCutter from '../common/image-cutter.js';
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -6,22 +6,18 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function initServerSettingsPage() {
-    // Check if user is authenticated
     if (!document.body.classList.contains('authenticated')) {
         console.error('User is not authenticated');
         window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
         return;
     }
     
-    // Initialize tabs
     const tabs = document.querySelectorAll('.settings-tab');
     const tabContents = document.querySelectorAll('.tab-content');
     
-    // Get active tab from URL parameter
     const urlParams = new URLSearchParams(window.location.search);
     const activeSection = urlParams.get('section') || 'profile';
     
-    // Initialize the active tab
     tabs.forEach(tab => {
         if (tab.dataset.tab === activeSection) {
             tab.classList.add('active');
@@ -32,16 +28,13 @@ function initServerSettingsPage() {
         tab.addEventListener('click', () => {
             const tabId = tab.dataset.tab;
             
-            // Update URL without reloading the page
             const url = new URL(window.location);
             url.searchParams.set('section', tabId);
             window.history.pushState({}, '', url);
             
-            // Update active tab
             tabs.forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
             
-            // Show active content
             tabContents.forEach(content => {
                 if (content.id === `${tabId}-tab`) {
                     content.classList.remove('hidden');
@@ -52,7 +45,6 @@ function initServerSettingsPage() {
         });
     });
     
-    // Show active content
     tabContents.forEach(content => {
         if (content.id === `${activeSection}-tab`) {
             content.classList.remove('hidden');
@@ -61,7 +53,6 @@ function initServerSettingsPage() {
         }
     });
     
-    // Initialize specific tab functionality
     if (activeSection === 'profile') {
         initServerProfileForm();
     } else if (activeSection === 'members') {
@@ -70,7 +61,6 @@ function initServerSettingsPage() {
         initRolesTab();
     }
     
-    // Initialize close button
     initCloseButton();
 }
 
@@ -84,7 +74,6 @@ function initServerIconUpload() {
     
     if (!iconContainer || !iconInput) return;
     
-    // Create image cutter for server icon (1:1 aspect ratio)
     try {
         const iconCutter = new ImageCutter({
             container: iconContainer,
@@ -97,7 +86,6 @@ function initServerIconUpload() {
                     return;
                 }
                 
-                // Update preview with cropped image
                 if (iconPreview) {
                     iconPreview.src = result.dataUrl;
                     iconPreview.classList.remove('hidden');
@@ -106,23 +94,19 @@ function initServerIconUpload() {
                     if (placeholder) placeholder.classList.add('hidden');
                 }
                 
-                // Store the cropped image data to use during form submission
                 iconContainer.dataset.croppedImage = result.dataUrl;
                 
-                // Also update the server preview icon
                 updateServerPreviewIcon(result.dataUrl);
                 
                 showToast('Server icon updated. Save changes to apply.', 'info');
             }
         });
         
-        // Store the cutter instance for later use
         window.serverIconCutter = iconCutter;
     } catch (error) {
         console.error('Error initializing image cutter:', error);
     }
     
-    // Icon container click handler
     if (iconContainer) {
         iconContainer.addEventListener('click', function(e) {
             e.preventDefault();
@@ -130,14 +114,12 @@ function initServerIconUpload() {
         });
     }
     
-    // File input change handler
     if (iconInput) {
         iconInput.addEventListener('change', function() {
             if (!this.files || !this.files[0]) return;
             
             const file = this.files[0];
             
-            // Validate file type
             if (!file.type.match('image.*')) {
                 showToast('Please select a valid image file', 'error');
                 return;
@@ -146,11 +128,9 @@ function initServerIconUpload() {
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
-                    // If we have the image cutter, use it
                     if (window.serverIconCutter) {
                         window.serverIconCutter.loadImage(e.target.result);
                     } else {
-                        // Fallback to simple preview
                         if (iconPreview) {
                             iconPreview.src = e.target.result;
                             iconPreview.classList.remove('hidden');
@@ -161,7 +141,6 @@ function initServerIconUpload() {
                         
                         iconContainer.dataset.croppedImage = e.target.result;
                         
-                        // Update server preview icon
                         updateServerPreviewIcon(e.target.result);
                     }
                 } catch (error) {
@@ -190,13 +169,11 @@ function initMembersTab() {
     let allMembers = [];
     let currentFilter = 'member-newest';
     
-    // Load server members
     async function loadMembers() {
         try {
-            const response = await ServerAPI.getServerMembers(serverId);
+            const response = await serverAPI.getServerMembers(serverId);
             
             if (response && response.success) {
-                // Handle both response formats (with data wrapper and without)
                 if (response.data && response.data.members) {
                     allMembers = response.data.members;
                 } else if (response.members) {
@@ -205,10 +182,8 @@ function initMembersTab() {
                     allMembers = [];
                 }
                 
-                // Apply sorting immediately after loading
                 sortMembers(currentFilter);
             } else if (response && response.error && response.error.code === 401) {
-                // User is not authenticated, redirect to login
                 window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
                 return;
             } else {
@@ -217,7 +192,6 @@ function initMembersTab() {
         } catch (error) {
             console.error('Error loading server members:', error);
             
-            // Check if it's an authentication error
             if (error.message && error.message.toLowerCase().includes('unauthorized')) {
                 window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
                 return;
@@ -234,7 +208,6 @@ function initMembersTab() {
         }
     }
     
-    // Sort members based on selected filter
     function sortMembers(filterType) {
         let sortedMembers = [...allMembers];
         
@@ -258,35 +231,29 @@ function initMembersTab() {
         renderMembers(sortedMembers);
     }
     
-    // Filter option selection
     if (memberFilterOptions) {
         memberFilterOptions.forEach(option => {
             option.addEventListener('click', function() {
-                // Update UI
                 memberFilterOptions.forEach(opt => {
                     opt.querySelector('input[type="radio"]').checked = false;
                 });
                 this.querySelector('input[type="radio"]').checked = true;
                 
-                // Update filter dropdown text
                 if (memberFilter) {
                     memberFilter.querySelector('.filter-selected-text').textContent = this.textContent.trim();
                     
-                    // Toggle dropdown visibility
                     const filterDropdown = document.getElementById('filter-dropdown');
                     if (filterDropdown) {
                         filterDropdown.classList.add('hidden');
                     }
                 }
                 
-                // Apply filter
                 currentFilter = this.dataset.filter;
                 sortMembers(currentFilter);
             });
         });
     }
     
-    // Toggle filter dropdown
     if (memberFilter) {
         memberFilter.addEventListener('click', function(e) {
             const filterDropdown = document.getElementById('filter-dropdown');
@@ -295,7 +262,6 @@ function initMembersTab() {
             }
         });
         
-        // Close dropdown when clicking outside
         document.addEventListener('click', function(e) {
             if (!memberFilter.contains(e.target)) {
                 const filterDropdown = document.getElementById('filter-dropdown');
@@ -306,7 +272,6 @@ function initMembersTab() {
         });
     }
     
-    // Render members to the list
     function renderMembers(members) {
         if (!members.length) {
             membersList.innerHTML = `
@@ -322,13 +287,11 @@ function initMembersTab() {
         members.forEach(member => {
             const memberElement = document.importNode(memberTemplate.content, true).firstElementChild;
             
-            // Set member avatar
             const avatarImg = memberElement.querySelector('.member-avatar img');
             if (avatarImg) {
                 if (member.avatar_url) {
                     avatarImg.src = member.avatar_url;
                 } else {
-                    // Use first letter of username as avatar placeholder
                     avatarImg.parentNode.innerHTML = `
                         <div class="w-full h-full flex items-center justify-center bg-discord-dark text-white">
                             ${member.username.charAt(0).toUpperCase()}
@@ -337,7 +300,6 @@ function initMembersTab() {
                 }
             }
             
-            // Set username and discriminator
             const usernameElement = memberElement.querySelector('.member-username');
             const discriminatorElement = memberElement.querySelector('.member-discriminator');
             
@@ -349,7 +311,6 @@ function initMembersTab() {
                 discriminatorElement.textContent = `#${member.discriminator}`;
             }
             
-            // Set status indicator
             const statusIndicator = memberElement.querySelector('.status-indicator');
             if (statusIndicator) {
                 const statusColors = {
@@ -362,12 +323,10 @@ function initMembersTab() {
                 statusIndicator.classList.add(statusColors[member.status] || 'bg-gray-500');
             }
             
-            // Set role
             const roleElement = memberElement.querySelector('.member-role');
             if (roleElement) {
                 roleElement.textContent = member.role.charAt(0).toUpperCase() + member.role.slice(1);
                 
-                // Add role-specific styling
                 const roleColors = {
                     'owner': 'bg-[#f1c40f] text-black',
                     'admin': 'bg-[#e74c3c] text-white',
@@ -378,41 +337,33 @@ function initMembersTab() {
                 roleElement.classList.add(...(roleColors[member.role] || 'bg-[#95a5a6] text-white').split(' '));
             }
             
-            // Set joined date
             const joinedElement = memberElement.querySelector('.member-joined');
             if (joinedElement && member.joined_at) {
                 const joinedDate = new Date(member.joined_at);
                 joinedElement.textContent = joinedDate.toLocaleDateString();
             }
             
-            // Set member ID as data attribute
             memberElement.dataset.memberId = member.id;
             
-            // Handle action buttons visibility based on permissions
             const editRoleBtn = memberElement.querySelector('.edit-role-btn');
             const kickMemberBtn = memberElement.querySelector('.kick-member-btn');
             
-            // Disable actions for owner (can't edit owner's role or kick them)
             if (member.is_owner) {
                 if (editRoleBtn) editRoleBtn.disabled = true;
                 if (kickMemberBtn) kickMemberBtn.disabled = true;
                 
-                // Add disabled styling
                 if (editRoleBtn) editRoleBtn.classList.add('opacity-50', 'cursor-not-allowed');
                 if (kickMemberBtn) kickMemberBtn.classList.add('opacity-50', 'cursor-not-allowed');
             }
             
-            // Add event listeners for action buttons
             if (editRoleBtn) {
                 editRoleBtn.addEventListener('click', () => {
-                    // Role editing functionality would go here
                     alert(`Edit role for ${member.username} (ID: ${member.id})`);
                 });
             }
             
             if (kickMemberBtn) {
                 kickMemberBtn.addEventListener('click', () => {
-                    // Kick member functionality would go here
                     if (confirm(`Are you sure you want to kick ${member.username} from the server?`)) {
                         alert(`Kicked ${member.username} (ID: ${member.id})`);
                     }
@@ -423,7 +374,6 @@ function initMembersTab() {
         });
     }
     
-    // Handle member search
     if (memberSearch) {
         memberSearch.addEventListener('input', debounce(function() {
             const searchTerm = this.value.toLowerCase().trim();
@@ -445,7 +395,6 @@ function initMembersTab() {
         }, 300));
     }
     
-    // Initial load
     loadMembers();
 }
 
@@ -464,7 +413,6 @@ function updateServerPreviewIcon(imageUrl) {
             previewPlaceholder.classList.add('hidden');
         }
     } else if (previewPlaceholder) {
-        // If there's no img element yet, create one
         const img = document.createElement('img');
         img.src = imageUrl;
         img.alt = "Server Icon";
@@ -506,14 +454,11 @@ function initServerProfileForm() {
     
     if (!form || !serverId) return;
     
-    // Initialize server icon and banner upload
     initServerIconUpload();
     initServerBannerUpload();
     
-    // Add subtle animations to form cards
     if (formCards.length) {
         formCards.forEach((card, index) => {
-            // Add staggered fade-in animation
             card.style.opacity = '0';
             card.style.transform = 'translateY(10px)';
             card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
@@ -525,7 +470,6 @@ function initServerProfileForm() {
         });
     }
     
-    // Add focus/blur effects to form inputs
     const formInputs = form.querySelectorAll('input, textarea, select');
     formInputs.forEach(input => {
         input.addEventListener('focus', function() {
@@ -537,21 +481,18 @@ function initServerProfileForm() {
         });
     });
     
-    // Update server name preview as user types
     if (serverNameInput) {
         serverNameInput.addEventListener('input', debounce(function() {
             updateServerNamePreview(this.value);
         }, 300));
     }
 
-    // Update server description preview as user types
     if (serverDescriptionInput) {
         serverDescriptionInput.addEventListener('input', debounce(function() {
             updateServerDescriptionPreview(this.value);
         }, 300));
     }
     
-    // Form submission handler
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
         
@@ -561,14 +502,12 @@ function initServerProfileForm() {
         }
         
         try {
-            // Validate server name
             if (!serverNameInput || !serverNameInput.value.trim()) {
                 showToast('Server name is required', 'error');
                 serverNameInput.focus();
                 return;
             }
             
-            // Update button state
             saveButton.disabled = true;
             saveButton.innerHTML = `
                 <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -580,50 +519,41 @@ function initServerProfileForm() {
             
             const formData = new FormData();
             
-            // Add server name
             formData.append('name', serverNameInput.value.trim());
             
-            // Add server description
             if (serverDescriptionInput) {
                 formData.append('description', serverDescriptionInput.value.trim());
             }
             
-            // Add public status
             if (isPublicCheckbox) {
                 formData.append('is_public', isPublicCheckbox.checked ? '1' : '0');
             }
             
-            // Add category
             if (serverCategorySelect && serverCategorySelect.value) {
                 formData.append('category', serverCategorySelect.value);
             }
             
-            // Add server icon if changed
             const iconContainer = document.getElementById('server-icon-container');
             if (iconContainer && iconContainer.dataset.croppedImage) {
                 const iconBlob = dataURLtoBlob(iconContainer.dataset.croppedImage);
                 formData.append('server_icon', iconBlob, 'server_icon.png');
             }
             
-            // Add server banner if changed
             const bannerContainer = document.getElementById('server-banner-container');
             if (bannerContainer && bannerContainer.dataset.croppedImage) {
                 const bannerBlob = dataURLtoBlob(bannerContainer.dataset.croppedImage);
                 formData.append('server_banner', bannerBlob, 'server_banner.png');
             }
             
-            // Call the API to update the server
-            const response = await ServerAPI.updateServerSettings(serverId, formData);
+            const response = await serverAPI.updateServerSettings(serverId, formData);
             
             if (response && response.success) {
                 showToast('Server settings updated', 'success');
                 
-                // Update server name in UI if needed
                 if (serverNameInput && serverNameInput.value.trim()) {
                     updateServerNameInUI(serverNameInput.value.trim());
                 }
                 
-                // Refresh the page after 1.5 seconds to show updated images
                 setTimeout(() => {
                     window.location.reload();
                 }, 1500);
@@ -634,7 +564,6 @@ function initServerProfileForm() {
             console.error('Error updating server settings:', error);
             showToast(error.message || 'Failed to update server settings', 'error');
         } finally {
-            // Reset button state
             saveButton.disabled = false;
             saveButton.textContent = 'Save Changes';
         }
@@ -660,7 +589,6 @@ function initCloseButton() {
         window.location.href = `/server/${serverId}`;
     });
     
-    // Also handle ESC key press
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             const serverId = document.querySelector('meta[name="server-id"]')?.content;
@@ -678,13 +606,11 @@ function initCloseButton() {
  * Update server name in various UI elements
  */
 function updateServerNameInUI(newName) {
-    // Update in sidebar
     const sidebarServerName = document.querySelector('.w-60.bg-discord-light .text-sm.font-semibold');
     if (sidebarServerName) {
         sidebarServerName.textContent = newName;
     }
     
-    // Update page title
     document.title = `misvord - ${newName} Settings`;
 }
 
@@ -706,14 +632,12 @@ function updateServerDescriptionPreview(newDescription) {
     
     if (newDescription) {
         if (!serverDescriptionPreview) {
-            // Create description element if it doesn't exist
             serverDescriptionPreview = document.createElement('div');
             serverDescriptionPreview.className = 'server-description text-xs text-discord-lighter mt-3';
             document.querySelector('.server-info').appendChild(serverDescriptionPreview);
         }
         serverDescriptionPreview.textContent = newDescription;
     } else if (serverDescriptionPreview) {
-        // Remove description element if empty
         serverDescriptionPreview.remove();
     }
 }
@@ -774,20 +698,17 @@ function initRolesTab() {
     let allRoles = [];
     let currentFilter = 'role-name-asc';
     
-    // Handle create role button
     if (createRoleBtn) {
         createRoleBtn.addEventListener('click', () => {
             showToast('Create new role functionality coming soon', 'info');
         });
     }
     
-    // Load server roles
     async function loadRoles() {
         try {
-            const response = await ServerAPI.getServerRoles(serverId);
+            const response = await serverAPI.getServerRoles(serverId);
             
             if (response && response.success) {
-                // Handle both response formats (with data wrapper and without)
                 if (response.data && response.data.roles) {
                     allRoles = response.data.roles;
                 } else if (response.roles) {
@@ -796,10 +717,8 @@ function initRolesTab() {
                     allRoles = [];
                 }
                 
-                // Apply sorting immediately after loading
                 sortRoles(currentFilter);
             } else if (response && response.error && response.error.code === 401) {
-                // User is not authenticated, redirect to login
                 window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
                 return;
             } else {
@@ -808,7 +727,6 @@ function initRolesTab() {
         } catch (error) {
             console.error('Error loading server roles:', error);
             
-            // Check if it's an authentication error
             if (error.message && error.message.toLowerCase().includes('unauthorized')) {
                 window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
                 return;
@@ -825,7 +743,6 @@ function initRolesTab() {
         }
     }
     
-    // Sort roles based on selected filter
     function sortRoles(filterType) {
         let sortedRoles = [...allRoles];
         
@@ -843,35 +760,29 @@ function initRolesTab() {
         renderRoles(sortedRoles);
     }
     
-    // Filter option selection
     if (filterOptions) {
         filterOptions.forEach(option => {
             option.addEventListener('click', function() {
-                // Update UI
                 filterOptions.forEach(opt => {
                     opt.querySelector('input[type="radio"]').checked = false;
                 });
                 this.querySelector('input[type="radio"]').checked = true;
                 
-                // Update filter dropdown text
                 if (roleFilter) {
                     roleFilter.querySelector('.filter-selected-text').textContent = this.textContent.trim();
                     
-                    // Toggle dropdown visibility
                     const filterDropdown = document.getElementById('filter-dropdown');
                     if (filterDropdown) {
                         filterDropdown.classList.add('hidden');
                     }
                 }
                 
-                // Apply filter
                 currentFilter = this.dataset.filter;
                 sortRoles(currentFilter);
             });
         });
     }
     
-    // Toggle filter dropdown
     if (roleFilter) {
         roleFilter.addEventListener('click', function(e) {
             const filterDropdown = document.getElementById('filter-dropdown');
@@ -880,7 +791,6 @@ function initRolesTab() {
             }
         });
         
-        // Close dropdown when clicking outside
         document.addEventListener('click', function(e) {
             if (!roleFilter.contains(e.target)) {
                 const filterDropdown = document.getElementById('filter-dropdown');
@@ -891,7 +801,6 @@ function initRolesTab() {
         });
     }
     
-    // Render roles to the list
     function renderRoles(roles) {
         if (!roles.length) {
             rolesList.innerHTML = `
@@ -904,7 +813,6 @@ function initRolesTab() {
         
         rolesList.innerHTML = '';
         
-        // Add default role (everyone)
         const everyoneRole = document.createElement('div');
         everyoneRole.className = 'role-item p-4 border-b border-discord-dark flex items-center hover:bg-discord-dark';
         everyoneRole.innerHTML = `
@@ -931,7 +839,6 @@ function initRolesTab() {
             </div>
         `;
         
-        // Add event listener for the default role edit button
         const defaultRoleEditBtn = everyoneRole.querySelector('.edit-role-btn');
         if (defaultRoleEditBtn) {
             defaultRoleEditBtn.addEventListener('click', () => {
@@ -944,30 +851,24 @@ function initRolesTab() {
         roles.forEach(role => {
             const roleElement = document.importNode(roleTemplate.content, true).firstElementChild;
             
-            // Set role color
             const roleColor = roleElement.querySelector('.role-color');
             if (roleColor) {
                 roleColor.style.backgroundColor = role.color || '#95a5a6';
             }
             
-            // Set role name
             const nameElement = roleElement.querySelector('.role-name');
             if (nameElement) {
                 nameElement.textContent = role.name;
-                // Set the name color to match the role color for better visualization
                 nameElement.style.color = role.color || '#ffffff';
             }
             
-            // Set member count
             const memberCountElement = roleElement.querySelector('.role-member-count');
             if (memberCountElement) {
                 memberCountElement.textContent = `${role.member_count || 0} members`;
             }
             
-            // Set permissions info
             const permissionsElement = roleElement.querySelector('.role-permissions');
             if (permissionsElement) {
-                // Get a list of key permissions to display
                 const permissions = [];
                 if (role.permissions) {
                     if (role.permissions.administrator) permissions.push('Administrator');
@@ -983,23 +884,19 @@ function initRolesTab() {
                 permissionsElement.textContent = permissions.length ? permissions.join(', ') : 'No special permissions';
             }
             
-            // Set role ID as data attribute
             roleElement.dataset.roleId = role.id;
             
-            // Add event listeners for action buttons
             const editRoleBtn = roleElement.querySelector('.edit-role-btn');
             const deleteRoleBtn = roleElement.querySelector('.delete-role-btn');
             
             if (editRoleBtn) {
                 editRoleBtn.addEventListener('click', () => {
-                    // Role editing functionality would go here
                     alert(`Edit role: ${role.name} (ID: ${role.id})`);
                 });
             }
             
             if (deleteRoleBtn) {
                 deleteRoleBtn.addEventListener('click', () => {
-                    // Delete role functionality would go here
                     if (confirm(`Are you sure you want to delete the role ${role.name}?`)) {
                         alert(`Deleted role: ${role.name} (ID: ${role.id})`);
                     }
@@ -1010,7 +907,6 @@ function initRolesTab() {
         });
     }
     
-    // Handle role search
     if (roleSearch) {
         roleSearch.addEventListener('input', debounce(function() {
             const searchTerm = this.value.toLowerCase().trim();
@@ -1028,7 +924,6 @@ function initRolesTab() {
         }, 300));
     }
     
-    // Initial load
     loadRoles();
 }
 
@@ -1042,7 +937,6 @@ function initServerBannerUpload() {
     
     if (!bannerContainer || !bannerInput) return;
     
-    // Create image cutter for banner (16:9 aspect ratio)
     try {
         const bannerCutter = new ImageCutter({
             container: bannerContainer,
@@ -1055,7 +949,6 @@ function initServerBannerUpload() {
                     return;
                 }
                 
-                // Update preview with cropped image
                 if (bannerPreview) {
                     bannerPreview.src = result.dataUrl;
                     bannerPreview.classList.remove('hidden');
@@ -1064,23 +957,19 @@ function initServerBannerUpload() {
                     if (placeholder) placeholder.classList.add('hidden');
                 }
                 
-                // Store the cropped image data to use during form submission
                 bannerContainer.dataset.croppedImage = result.dataUrl;
                 
-                // Also update the server preview banner
                 updateServerPreviewBanner(result.dataUrl);
                 
                 showToast('Server banner updated. Save changes to apply.', 'info');
             }
         });
         
-        // Store the cutter instance for later use
         window.serverBannerCutter = bannerCutter;
     } catch (error) {
         console.error('Error initializing banner cutter:', error);
     }
     
-    // Banner container click handler
     if (bannerContainer) {
         bannerContainer.addEventListener('click', function(e) {
             e.preventDefault();
@@ -1088,14 +977,12 @@ function initServerBannerUpload() {
         });
     }
     
-    // File input change handler
     if (bannerInput) {
         bannerInput.addEventListener('change', function() {
             if (!this.files || !this.files[0]) return;
             
             const file = this.files[0];
             
-            // Validate file type
             if (!file.type.match('image.*')) {
                 showToast('Please select a valid image file', 'error');
                 return;
@@ -1104,11 +991,9 @@ function initServerBannerUpload() {
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
-                    // If we have the banner cutter, use it
                     if (window.serverBannerCutter) {
                         window.serverBannerCutter.loadImage(e.target.result);
                     } else {
-                        // Fallback to simple preview
                         if (bannerPreview) {
                             bannerPreview.src = e.target.result;
                             bannerPreview.classList.remove('hidden');
@@ -1119,7 +1004,6 @@ function initServerBannerUpload() {
                         
                         bannerContainer.dataset.croppedImage = e.target.result;
                         
-                        // Update server preview banner
                         updateServerPreviewBanner(e.target.result);
                     }
                 } catch (error) {

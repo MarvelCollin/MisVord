@@ -2,7 +2,7 @@ const eventController = require('./eventController');
 
 const userSockets = new Map();
 const userStatus = new Map();
-const recentMessages = new Map(); // Track recent messages to prevent duplicates
+const recentMessages = new Map();
 
 function setup(io) {
     eventController.setIO(io);
@@ -10,7 +10,6 @@ function setup(io) {
     io.on('connection', (client) => {
         console.log(`Client connected: ${client.id}`);
         
-        // Debug all incoming events
         const originalOnEvent = client.onevent;
         client.onevent = function(packet) {
             const args = packet.data || [];
@@ -28,7 +27,8 @@ function setup(io) {
         client.on('stop-typing', (data) => handleStopTyping(io, client, data));
         client.on('update-presence', (data) => handleUpdatePresence(io, client, data));
         
-        // Direct socket events for messaging
+        client.on('get-online-users', () => handleGetOnlineUsers(io, client));
+        
         client.on('new-channel-message', (data) => forwardEvent(io, client, 'new-channel-message', data, `channel-${data.channelId}`));
         client.on('user-message-dm', (data) => forwardEvent(io, client, 'user-message-dm', data, `dm-room-${data.roomId}`));
         client.on('message-updated', (data) => forwardEvent(io, client, 'message-updated', data, getTargetRoom(data)));
@@ -163,10 +163,8 @@ function handleChannelMessage(io, client, data) {
         channelId: channelId
     };
     
-    // Emit only to other clients in the room, not back to the sender
     client.to(room).emit('new-channel-message', message);
     
-    // Send confirmation back to sender with the final message ID
     client.emit('message-sent', {
         id: message.id,
         channelId: channelId,
@@ -185,7 +183,6 @@ function handleTyping(io, client, data) {
     
     if (channelId) {
         const room = `channel-${channelId}`;
-        // Only broadcast to others, not back to sender
         client.to(room).emit('user-typing', { 
             userId, 
             username, 
@@ -193,7 +190,6 @@ function handleTyping(io, client, data) {
         });
     } else if (roomId) {
         const room = `dm-room-${roomId}`;
-        // Only broadcast to others, not back to sender
         client.to(room).emit('user-typing-dm', { 
             userId, 
             username, 
@@ -211,7 +207,6 @@ function handleStopTyping(io, client, data) {
     
     if (channelId) {
         const room = `channel-${channelId}`;
-        // Only broadcast to others, not back to sender
         client.to(room).emit('user-stop-typing', { 
             userId, 
             username, 
@@ -219,7 +214,6 @@ function handleStopTyping(io, client, data) {
         });
     } else if (roomId) {
         const room = `dm-room-${roomId}`;
-        // Only broadcast to others, not back to sender
         client.to(room).emit('user-stop-typing-dm', { 
             userId, 
             username, 
@@ -312,23 +306,50 @@ function handleGetRoomInfo(io, client) {
     });
 }
 
+function handleGetOnlineUsers(io, client) {
+    if (!client.data?.authenticated) {
+        client.emit('error', { message: 'Authentication required' });
+        return;
+    }
+    
+    const onlineUsers = {};
+    
+    for (const [socketId, socket] of io.sockets.sockets.entries()) {
+        if (socket.data?.userId && socket.data?.authenticated) {
+            const userId = socket.data.userId;
+            const status = socket.data.status || 'online';
+            
+            onlineUsers[userId] = {
+                userId,
+                username: socket.data.username || 'Unknown',
+                status: status,
+                lastSeen: Date.now()
+            };
+        }
+    }
+    
+    // Send online users back to the client
+    client.emit('online-users-response', {
+        users: onlineUsers
+    });
+    
+    console.log(`Sent online users (${Object.keys(onlineUsers).length}) to client ${client.id}`);
+}
+
 function forwardEvent(io, client, eventName, data, specificRoom = null) {
     if (!client.data?.authenticated) {
         client.emit('error', { message: 'Authentication required' });
         return;
     }
     
-    // Figure out the target room if not specified
     if (!specificRoom) {
         specificRoom = getTargetRoom(data);
     }
     
-    // Clean the message data
     const cleanData = { ...data };
     if (cleanData._debug) delete cleanData._debug;
     if (cleanData._serverDebug) delete cleanData._serverDebug;
     
-    // Generate a message signature to detect duplicates
     let messageSignature = null;
     if (eventName === 'new-channel-message' || eventName === 'user-message-dm') {
         messageSignature = `${eventName}_${client.data.userId}_${cleanData.id || Date.now().toString()}_${cleanData.content?.substring(0, 20)}`;
@@ -350,7 +371,6 @@ function forwardEvent(io, client, eventName, data, specificRoom = null) {
         }
     }
     
-    // Log event info
     const username = client.data.username || 'Unknown';
     const userId = client.data.userId || 'unknown';
     
@@ -362,36 +382,28 @@ function forwardEvent(io, client, eventName, data, specificRoom = null) {
         console.log(`Message from ${username} (${userId}) in DM room ${roomId}: "${cleanData.content}"`);
     }
     
-    // For messaging events, only send to others in the room to avoid duplicates
     if (specificRoom) {
-        // Use client.to() to send only to other clients in the room, not back to the sender
         client.to(specificRoom).emit(eventName, cleanData);
         console.log(`Event ${eventName} sent to others in room: ${specificRoom}`);
     } else {
-        // For non-room-specific events, broadcast to all except sender
         client.broadcast.emit(eventName, cleanData);
         console.log(`Event ${eventName} broadcast to all clients except sender`);
     }
 }
 
 function getTargetRoom(data) {
-    // Handle channel type messages
     if (data.target_type === 'channel' && data.target_id) {
         return `channel-${data.target_id}`;
     }
-    // Handle DM/direct type messages - normalize to 'dm'
     else if ((data.target_type === 'dm' || data.target_type === 'direct') && data.target_id) {
         return `dm-room-${data.target_id}`;
     }
-    // Handle legacy direct format with roomId
     else if (data.roomId) {
         return `dm-room-${data.roomId}`;
     }
-    // Handle legacy channel format with channelId
     else if (data.channelId) {
         return `channel-${data.channelId}`;
     }
-    // Handle less common key formats
     else if (data.chatRoomId) {
         return `dm-room-${data.chatRoomId}`;
     }
@@ -399,7 +411,6 @@ function getTargetRoom(data) {
         return `channel-${data.channel_id}`;
     }
     
-    // If no room identifier found, return null
     return null;
 }
 

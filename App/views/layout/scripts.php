@@ -43,11 +43,5 @@ $core_scripts = ['core/ui/toast', 'core/ajax/ajax-handler', 'core/socket/global-
 <?php endforeach; ?>
 
 <?php if (isset($_ENV['APP_DEBUG']) && $_ENV['APP_DEBUG'] === 'true'): ?>
-<script src="<?php echo js('debug-user-auth'); ?>?v=<?php echo time(); ?>"></script>
-<!-- Temporarily disabled to avoid connection conflicts
-<script src="<?php echo js('test-docker-connectivity'); ?>?v=<?php echo time(); ?>"></script>
-<script src="<?php echo js('debug-socket-connection'); ?>?v=<?php echo time(); ?>"></script>
-<script src="<?php echo js('minimal-socket-test'); ?>?v=<?php echo time(); ?>"></script>
-<script src="<?php echo js('verify-docker-websocket'); ?>?v=<?php echo time(); ?>"></script>
--->
+
 <?php endif; ?>

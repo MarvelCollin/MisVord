@@ -1,15 +1,6 @@
-import { ServerAPI } from '../api/server-api.js';
+import serverAPI from '../api/server-api.js';
 
-/**
- * Utilities for page content manipulation
- */
-
-export const pageUtils = {
-    /**
-     * Updates the content of a container with HTML
-     * @param {HTMLElement} container - The container to update
-     * @param {string} html - The HTML content
-     */
+export const pageUtils = {  
     updatePageContent(container, html) {
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, 'text/html');
@@ -23,10 +14,6 @@ export const pageUtils = {
         }
     },
     
-    /**
-     * Executes inline scripts from a document
-     * @param {Document} doc - The document containing scripts
-     */
     executeInlineScripts(doc) {
         const scripts = doc.querySelectorAll('script:not([src])');
         scripts.forEach(script => {
@@ -40,16 +27,12 @@ export const pageUtils = {
         });
     },
     
-    /**
-     * Refreshes the server sidebar
-     */
     refreshSidebar() {
         const sidebar = document.querySelector('.w-\\[72px\\]') || 
                        document.querySelector('.server-sidebar');
         
         if (sidebar) {
-            const api = new ServerAPI();
-            api.getSidebar()
+            serverAPI.getSidebar()
             .then(html => {
                 sidebar.innerHTML = html;
             })

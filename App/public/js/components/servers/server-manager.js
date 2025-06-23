@@ -1,6 +1,6 @@
 import { MisVordAjax } from '../../core/ajax/ajax-handler.js';
 import { showToast } from '../../core/ui/toast.js';
-import { ServerAPI } from '../../api/server-api.js';
+import serverAPI from '../../api/server-api.js';
 
 document.addEventListener('DOMContentLoaded', function() {
     initServerManager();
@@ -23,12 +23,12 @@ function ensureServerDataLoaded() {
             const serverContainer = document.querySelector('.server-list-container');
             
             if (serverContainer && serverContainer.children.length === 0) {
-                ServerAPI.getServer(serverId)
+                serverAPI.getServer(serverId)
                     .then(response => {
                         if (response.success) {
                             console.log('Server data loaded successfully');
                             
-                            return ServerAPI.getServerChannels(serverId);
+                            return serverAPI.getServerChannels(serverId);
                         }
                     })
                     .then(channelResponse => {
@@ -173,7 +173,7 @@ function initServerSettingsForm() {
 }
 
 function refreshServerList() {
-    ServerAPI.getServers()
+    serverAPI.getServers()
         .then(response => {
             if (response.success && response.data && response.data.servers) {
                 updateServerListUI(response.data.servers);

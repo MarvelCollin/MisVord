@@ -59,7 +59,6 @@ class ChatAPI {
             const response = await this.makeRequest(url);
             console.log('🔍 API response for getMessages:', response);
             
-            // Debug the response structure
             if (response) {
                 console.log('🔍 Response structure:', {
                     hasData: !!response.data,
@@ -79,14 +78,12 @@ class ChatAPI {
         const apiChatType = chatType === 'direct' ? 'dm' : chatType;
         
         try {
-            // First, send to database via API
             const requestData = {
                 target_type: apiChatType,
                 target_id: targetId,
                 content: content
             };
             
-            // Add reply_message_id if provided
             if (options.replyToMessageId) {
                 requestData.reply_message_id = options.replyToMessageId;
             }
@@ -96,16 +93,13 @@ class ChatAPI {
                 body: JSON.stringify(requestData)
             });
             
-            // ONLY send socket message if database save was successful
             if (response && response.success !== false) {
                 this.sendDirectSocketMessage(targetId, content, chatType, options);
             }
             
-            // Return the API response
             return response;
         } catch (error) {
             console.error('Error sending message to database:', error);
-            // Do not emit socket events if database save failed
             throw error;
         }
     }
@@ -137,7 +131,6 @@ class ChatAPI {
                     username: username
                 };
                 
-                // Add reply data if present
                 if (options.replyToMessageId) {
                     messageData.reply_message_id = options.replyToMessageId;
                     
@@ -158,7 +151,6 @@ class ChatAPI {
                     username: username
                 };
                 
-                // Add reply data if present
                 if (options.replyToMessageId) {
                     messageData.reply_message_id = options.replyToMessageId;
                     
@@ -240,18 +232,15 @@ class ChatAPI {
         const url = `/api/messages/${messageId}`;
         
         try {
-            // First, delete from database via API
             const response = await this.makeRequest(url, {
                 method: 'DELETE'
             });
             
-            // Then, send directly to socket regardless of API response
             if (response && response.data) {
                 const messageData = response.data;
                 this.sendDirectSocketDelete(messageId, messageData.target_type, messageData.target_id);
             }
             
-            // Return the API response
             return response;
         } catch (error) {
             console.error('Error deleting message from database:', error);
@@ -295,7 +284,6 @@ class ChatAPI {
         const url = `/api/messages/${messageId}/reactions`;
         
         try {
-            // First, add reaction in database via API
             const response = await this.makeRequest(url, {
                 method: 'POST',
                 body: JSON.stringify({
@@ -303,11 +291,9 @@ class ChatAPI {
                 })
             });
             
-            // Then, send directly to socket regardless of API response
             const userId = window.globalSocketManager?.userId;
             this.sendDirectSocketReaction(messageId, emoji, 'add', userId);
             
-            // Return the API response
             return response;
         } catch (error) {
             console.error('Error adding reaction in database:', error);
@@ -319,7 +305,6 @@ class ChatAPI {
         const url = `/api/messages/${messageId}/reactions`;
         
         try {
-            // First, remove reaction from database via API
             const response = await this.makeRequest(url, {
                 method: 'DELETE',
                 body: JSON.stringify({
@@ -327,11 +312,9 @@ class ChatAPI {
                 })
             });
             
-            // Then, send directly to socket regardless of API response
             const userId = window.globalSocketManager?.userId;
             this.sendDirectSocketReaction(messageId, emoji, 'remove', userId);
             
-            // Return the API response
             return response;
         } catch (error) {
             console.error('Error removing reaction from database:', error);
@@ -378,7 +361,6 @@ class ChatAPI {
             const userId = window.globalSocketManager.userId;
             const username = window.globalSocketManager.username;
             
-            // Add current username and userId to help with debugging
             const enhancedData = {
                 ...data,
                 _debug: {
@@ -391,7 +373,6 @@ class ChatAPI {
             
             window.globalSocketManager.io.emit(eventName, enhancedData);
             
-            // More detailed console logging based on event type
             if (eventName === 'new-channel-message') {
                 console.log(`📨 API-relayed message to channel ${data.channelId}: "${data.content}"`);
             } else if (eventName === 'user-message-dm') {
@@ -442,7 +423,6 @@ class ChatAPI {
         
         console.log('Socket connection debug info:', status);
         
-        // Test direct socket message
         if (status.socketReady) {
             const testContent = `Socket test message at ${new Date().toISOString()}`;
             this.sendDirectSocketMessage(targetId, testContent, chatType);
@@ -464,7 +444,32 @@ class ChatAPI {
             type: message.type || 'text'
         };
     }
+
+    async getOnlineUsers() {
+        if (!window.globalSocketManager || !window.globalSocketManager.isReady() || !window.globalSocketManager.io) {
+            console.warn('⚠️ Socket not ready, cannot get online users');
+            return {};
+        }
+        
+        return new Promise((resolve) => {
+            window.globalSocketManager.io.emit('get-online-users', {});
+            
+            const onlineUsersHandler = (data) => {
+                window.globalSocketManager.io.off('online-users-response', onlineUsersHandler);
+                resolve(data.users || {});
+            };
+            
+            window.globalSocketManager.io.on('online-users-response', onlineUsersHandler);
+            
+            // Timeout in case the server doesn't respond
+            setTimeout(() => {
+                window.globalSocketManager.io.off('online-users-response', onlineUsersHandler);
+                resolve({});
+            }, 5000);
+        });
+    }
 }
 
-window.ChatAPI = new ChatAPI();
+const chatAPI = new ChatAPI();
+window.ChatAPI = chatAPI;
 

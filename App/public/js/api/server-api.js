@@ -266,4 +266,4 @@ class ServerAPI {
 }
 
 const serverAPI = new ServerAPI();
-export { serverAPI as ServerAPI };
+export default serverAPI;
