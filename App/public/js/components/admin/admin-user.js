@@ -251,22 +251,36 @@ export class UserManager {
     
     return window.userAdminAPI.getStats()
       .then(response => {
-        if (response.success) {
-          const stats = response.data.stats;
-          
-          const activeUserCount = document.getElementById('active-user-count');
-          const totalUserCount = document.getElementById('total-user-count');
-          
-          if (activeUserCount) activeUserCount.textContent = stats.active || 0;
-          if (totalUserCount) totalUserCount.textContent = stats.total || 0;
-          
-          const userTotalCount = document.getElementById('user-total-count');
-          if (userTotalCount && !userTotalCount.textContent) {
-            userTotalCount.textContent = stats.total || 0;
-          }
-          
-          return stats;
+        console.log('User stats response:', response);
+        
+        // Handle different response formats
+        let stats;
+        if (response.success && response.data && response.data.stats) {
+          stats = response.data.stats;
+        } else if (response.success && response.stats) {
+          stats = response.stats;
+        } else if (response.stats) {
+          stats = response.stats;
+        } else {
+          stats = response;
         }
+        
+        // Set defaults if values don't exist
+        const active = stats.active || stats.online || 0;
+        const total = stats.total || 0;
+        
+        const activeUserCount = document.getElementById('active-user-count');
+        const totalUserCount = document.getElementById('total-user-count');
+        
+        if (activeUserCount) activeUserCount.textContent = active;
+        if (totalUserCount) totalUserCount.textContent = total;
+        
+        const userTotalCount = document.getElementById('user-total-count');
+        if (userTotalCount && !userTotalCount.textContent) {
+          userTotalCount.textContent = total;
+        }
+        
+        return stats;
       })
       .catch(error => {
         console.error('Error loading user stats:', error);

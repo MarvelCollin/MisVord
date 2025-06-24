@@ -159,25 +159,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const channelItems = document.querySelectorAll('.channel-item');
     
     channelItems.forEach(item => {
-        item.addEventListener('click', function() {
-            const channelId = this.getAttribute('data-channel-id');
-            const channelType = this.getAttribute('data-channel-type'); 
-            const serverId = document.querySelector('#current-server-id')?.value;
-            
-            channelItems.forEach(el => {
-                el.classList.remove('bg-discord-lighten', 'text-white');
-            });
-            this.classList.add('bg-discord-lighten', 'text-white');
-            
-            if (channelId && serverId) {
-                if (channelType === 'text') {
-                    window.location.href = `/server/${serverId}?channel=${channelId}`;
-                } else if (channelType === 'voice') {
-                    window.location.href = `/server/${serverId}?channel=${channelId}&type=voice`;
-                }
-            }
-        });
+        // Remove existing click event listeners if any
+        const clone = item.cloneNode(true);
+        item.parentNode.replaceChild(clone, item);
     });
+    
+    // Let the server-page.js handle the channel click events
+    // The event listeners are set up in initializeChannelClickHandlers()
 });
 
 function openCreateChannelModal(type = 'text') {

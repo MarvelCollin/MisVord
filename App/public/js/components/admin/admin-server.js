@@ -9,18 +9,27 @@ export class ServerManager {
 
   init() {
     this.initServerManagement();
+    this.showInitialSkeletons();
     
-    // Check if serverAPI is already available
-    if (window.serverAPI) {
-      this.loadServerStats();
-      this.loadServers();
-    } else {
-      // Add a small delay to wait for serverAPI to be loaded
-      setTimeout(() => {
+    setTimeout(() => {
+      // Check if serverAPI is already available
+      if (window.serverAPI) {
         this.loadServerStats();
         this.loadServers();
-      }, 500);
-    }
+      } else {
+        // Add a small delay to wait for serverAPI to be loaded
+        setTimeout(() => {
+          this.loadServerStats();
+          this.loadServers();
+        }, 500);
+      }
+    }, 10);
+  }
+  
+  showInitialSkeletons() {
+    this.showSkeleton("active-server-count");
+    this.showSkeleton("total-server-count");
+    this.showSkeleton("server-table-body");
   }
   
   showSkeleton(elementId) {
@@ -102,8 +111,6 @@ export class ServerManager {
     
     const searchQuery = document.getElementById('server-search')?.value || "";
     
-    this.showSkeleton("server-table-body");
-    
     window.serverAPI.listServers(this.currentServerPage, this.serversPerPage, searchQuery)
       .then(response => {
         if (response.success) {
@@ -122,9 +129,6 @@ export class ServerManager {
   }
   
   loadServerStats() {
-    this.showSkeleton("active-server-count");
-    this.showSkeleton("total-server-count");
-    
     // Check if serverAPI exists
     if (!window.serverAPI) {
       console.warn('serverAPI not available yet, retrying in 500ms');
@@ -134,15 +138,29 @@ export class ServerManager {
     
     window.serverAPI.getStats()
       .then(response => {
-        if (response.success) {
-          const stats = response.data.stats;
-          
-          const activeServerCount = document.getElementById('active-server-count');
-          const totalServerCount = document.getElementById('total-server-count');
-          
-          if (activeServerCount) activeServerCount.textContent = stats.active || 0;
-          if (totalServerCount) totalServerCount.textContent = stats.total_servers || 0;
+        console.log('Server stats response:', response);
+        
+        // Handle different response formats
+        let stats;
+        if (response.success && response.data && response.data.stats) {
+          stats = response.data.stats;
+        } else if (response.success && response.stats) {
+          stats = response.stats;
+        } else if (response.stats) {
+          stats = response.stats;
+        } else {
+          stats = response;
         }
+        
+        // Set defaults if values don't exist
+        const active = stats.active || 0;
+        const totalServers = stats.total_servers || stats.total || 0;
+        
+        const activeServerCount = document.getElementById('active-server-count');
+        const totalServerCount = document.getElementById('total-server-count');
+        
+        if (activeServerCount) activeServerCount.textContent = active;
+        if (totalServerCount) totalServerCount.textContent = totalServers;
       })
       .catch(error => {
         console.error('Error loading server stats:', error);

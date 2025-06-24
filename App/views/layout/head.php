@@ -21,6 +21,10 @@ $cache_version = time();
 <meta name="user-authenticated" content="false">
 <?php endif; ?>
 
+<?php if (isset($extraHeadContent)): ?>
+<?php echo $extraHeadContent; ?>
+<?php endif; ?>
+
 <meta name="socket-host" content="<?php 
     $socketHost = 'localhost'; 
     echo htmlspecialchars($socketHost);

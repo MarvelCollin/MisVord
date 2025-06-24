@@ -1,8 +1,22 @@
 document.addEventListener('DOMContentLoaded', function() {
-    const chatSection = new ChatSection();
-    chatSection.init();
-    window.chatSection = chatSection;
+    console.log('Chat section script loaded via DOM content loaded');
+    if (!window.chatSection) {
+        const chatSection = new ChatSection();
+        chatSection.init();
+        window.chatSection = chatSection;
+    }
 });
+
+// Also initialize immediately in case the script is loaded after DOM content loaded
+console.log('Chat section script immediate execution');
+if (document.readyState === 'complete' && !window.chatSection) {
+    setTimeout(() => {
+        console.log('Chat section delayed initialization');
+        const chatSection = new ChatSection();
+        chatSection.init();
+        window.chatSection = chatSection;
+    }, 100);
+}
 
 class ChatSection {
     constructor() {

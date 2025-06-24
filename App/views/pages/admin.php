@@ -661,6 +661,10 @@ $content = ob_get_clean();
 // Add API scripts needed by the admin components
 echo '<script src="' . asset('/js/api/server-api.js') . '?v=' . time() . '" type="module"></script>';
 echo '<script src="' . asset('/js/api/user-admin-api.js') . '?v=' . time() . '" type="module"></script>';
+// Add debug script for testing API endpoints
+echo '<script src="' . asset('/js/debug/api-test.js') . '?v=' . time() . '"></script>';
+// Add admin debug tool
+echo '<script src="' . asset('/js/debug/admin-debug.js') . '?v=' . time() . '"></script>';
 require_once dirname(dirname(__DIR__)) . '/views/layout/main-app.php';
 ?>
 

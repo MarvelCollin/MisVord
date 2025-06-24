@@ -57,7 +57,7 @@ async function createMeetingRoom() {
     try {
         window.logger.info('voice', "Creating new meeting room...");
         
-        const response = await fetch('https:
+        const response = await fetch('https://api.videosdk.live/v2/rooms', {
             method: 'POST',
             headers: {
                 'Authorization': authToken,
@@ -132,11 +132,13 @@ async function initializeMeeting() {
             
             
             showToast("Connected to voice", "success");
-            
-            
             addParticipant(meeting.localParticipant);
-            
-            
+
+            // Add all other participants already in the meeting
+            Object.values(meeting.participants || {}).forEach((p) => {
+                if (p.id !== meeting.localParticipant.id) addParticipant(p);
+            });
+
             setTimeout(() => {
                 updateParticipantsPanel();
             }, 500);
@@ -732,4 +734,4 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
     }
-}); 
+});

@@ -16,9 +16,11 @@ if (!isset($_SESSION['user_id'])) {
 
 $currentServer = $GLOBALS['server'] ?? $GLOBALS['currentServer'] ?? null;
 $serverName = $currentServer ? $currentServer->name : 'Unknown Server';
+$serverId = $currentServer ? $currentServer->id : 0;
 
-// Set loading state based on query parameter or default to false
 $GLOBALS['isLoading'] = isset($_GET['loading']) && $_GET['loading'] === 'true';
+
+$isAjaxRequest = isset($_GET['ajax']) && $_GET['ajax'] === 'true';
 
 $page_title = 'misvord - ' . $serverName;
 $body_class = 'bg-discord-dark text-white';
@@ -34,6 +36,8 @@ $additional_js = [
 $contentType = 'server';
 $data_page = 'server';
 $body_attributes = 'data-initial-load="true"';
+        
+$extraHeadContent = '<meta name="server-id" content="' . htmlspecialchars($serverId) . '">';
 
 if (isset($GLOBALS['currentServer'])) {    log_debug("Current server data", [
         'id' => $GLOBALS['currentServer']->id,
@@ -41,6 +45,18 @@ if (isset($GLOBALS['currentServer'])) {    log_debug("Current server data", [
     ]);
 } else {
     log_warning("No current server set in GLOBALS");
+}
+            
+if ($isAjaxRequest) {
+    $activeChannelId = $_GET['channel'] ?? null;
+    $channelType = isset($_GET['type']) && $_GET['type'] === 'voice' ? 'voice' : 'text';
+    
+    if ($channelType === 'voice') {
+        include dirname(dirname(__DIR__)) . '/views/components/app-sections/voice-section.php';
+    } else {
+        include dirname(dirname(__DIR__)) . '/views/components/app-sections/chat-section.php';
+    }
+    exit;
 }
 ?>
 

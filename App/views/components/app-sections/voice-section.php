@@ -26,9 +26,7 @@ $additional_js[] = 'components/voice/voice-manager';
 <meta name="username" content="<?php echo htmlspecialchars($userName); ?>">
 <meta name="channel-id" content="<?php echo htmlspecialchars($activeChannelId); ?>">
 
-<!-- Main content area with Discord-style layout -->
 <div class="flex flex-col h-screen bg-[#313338] text-white">
-    <!-- Channel header -->
     <div class="h-12 border-b border-[#1e1f22] flex items-center px-4 shadow-sm">
         <div class="flex items-center">
             <i class="fas fa-volume-high text-gray-400 mr-2"></i>
@@ -36,16 +34,17 @@ $additional_js[] = 'components/voice/voice-manager';
         </div>
     </div>
     
-    <!-- Main content area (mostly empty like Discord) -->
     <div class="flex-1 flex">
-        <!-- Main empty area -->
+        <!-- Participants Panel -->
+        <div id="participantsPanel" class="w-64 bg-[#232428] border-r border-[#1e1f22] flex flex-col py-4 px-2 hidden">
+            <div class="text-xs text-gray-400 uppercase mb-2">Voice Participants</div>
+            <div id="participants" class="flex-1 flex flex-col gap-1"></div>
+        </div>
         <div class="flex-1 flex flex-col justify-center items-center">
-            <!-- Centered content or user display area -->
             <div id="videoContainer" class="w-full h-full flex items-center justify-center">
                 <div id="videosContainer" class="flex flex-wrap justify-center items-center gap-8 pt-8"></div>
             </div>
             
-            <!-- Discord style empty view with trophy icon -->
             <div class="flex flex-col items-center justify-center py-10 text-center">
                 <h2 class="text-2xl font-bold mb-2">No one's around to hang out with</h2>
                 <p class="text-gray-400 max-w-md">When friends are active in this voice channel, you'll see them here.</p>
@@ -53,7 +52,6 @@ $additional_js[] = 'components/voice/voice-manager';
         </div>
     </div>
     
-    <!-- Voice controls bar (fixed at bottom) -->
     <div class="h-16 bg-[#1e1f22] border-t border-[#1e1f22] flex items-center justify-between px-4">
         <div class="flex items-center">
             <div class="mr-4 text-sm">
@@ -87,7 +85,6 @@ $additional_js[] = 'components/voice/voice-manager';
 </div>
 
 <style>
-/* Discord-specific colors */
 :root {
     --discord-primary: #5865F2;
     --discord-primary-hover: #4752c4;
@@ -154,7 +151,6 @@ $additional_js[] = 'components/voice/voice-manager';
     animation: pulse 2s infinite;
 }
 
-/* Transitions */
 .fade-in {
     animation: fadeIn 0.3s ease forwards;
 }

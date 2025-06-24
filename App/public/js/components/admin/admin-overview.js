@@ -28,9 +28,26 @@ export class OverviewManager {
   }
 
   init() {
-    this.loadSystemStats();
+    this.showInitialSkeletons();
     this.setupChartControls();
-    this.loadChartData();
+    
+    setTimeout(() => {
+      this.loadSystemStats();
+      this.loadChartData();
+    }, 10);
+  }
+
+  showInitialSkeletons() {
+    this.showSkeleton("total-users");
+    this.showSkeleton("online-users");
+    this.showSkeleton("new-users");
+    this.showSkeleton("total-servers");
+    this.showSkeleton("total-messages");
+    this.showSkeleton("todays-messages");
+    
+    this.showChartLoading('users-chart');
+    this.showChartLoading('messages-chart');
+    this.showChartLoading('servers-chart');
   }
 
   showSkeleton(elementId) {
@@ -227,13 +244,6 @@ export class OverviewManager {
   }
 
   loadSystemStats() {
-    this.showSkeleton("total-users");
-    this.showSkeleton("online-users");
-    this.showSkeleton("new-users");
-    this.showSkeleton("total-servers");
-    this.showSkeleton("total-messages");
-    this.showSkeleton("todays-messages");
-    
     if (this.chartConfig.useMockData) {
       setTimeout(() => {
         this.updateSystemStats(this.generateMockSystemStats());
@@ -250,13 +260,35 @@ export class OverviewManager {
     })
       .then(response => response.json())
       .then(data => {
-        if (data.success) {
-          this.updateSystemStats(data.data.stats);
+        console.log("System stats API response:", data);
+        
+        // Handle different response structures
+        let stats;
+        if (data.success && data.data && data.data.stats) {
+          stats = data.data.stats;
+        } else if (data.success && data.stats) {
+          stats = data.stats;
+        } else if (data.stats) {
+          stats = data.stats;
         } else {
-          showToast(data.message || "Failed to load system stats", "error");
+          console.error("Unexpected API response format:", data);
+          stats = {}; // Default empty stats
         }
+        
+        // Map API response to the expected format for the UI
+        const mappedStats = {
+          totalUsers: stats.users?.total || 0,
+          onlineUsers: stats.users?.online || 0,
+          newUsers: stats.users?.recent || 0,
+          totalServers: stats.servers?.total || 0,
+          totalMessages: stats.messages?.total || 0,
+          todaysMessages: stats.messages?.today || 0
+        };
+        
+        this.updateSystemStats(mappedStats);
       })
       .catch(error => {
+        console.error("Error loading system stats:", error);
         showToast("An error occurred while loading system stats", "error");
       });
   }
@@ -288,71 +320,121 @@ export class OverviewManager {
   }
 
   updateChartConfig(config) {
+    console.log("Previous chart config:", this.chartConfig);
+    console.log("New chart config:", config);
+    
+    const dataSourceChanged = this.chartConfig.useMockData !== config.useMockData;
+    
+    // Update the chart configuration
     this.chartConfig = { ...this.chartConfig, ...config };
     
-    this.loadSystemStats();
-    this.loadChartData();
+    // If the data source changed, we need to reload the data
+    if (dataSourceChanged) {
+      console.log("Data source changed, reloading data...");
+      this.loadSystemStats();
+      this.loadChartData();
+    } 
+    // If only mock data settings changed but we're still using mock data
+    else if (config.useMockData) {
+      console.log("Mock data settings changed, regenerating mock data...");
+      this.loadSystemStats();
+      this.loadChartData();
+    }
   }
 
   loadChartData() {
-    this.showChartLoading('users-chart');
-    this.showChartLoading('messages-chart');
-    this.showChartLoading('servers-chart');
-    
     if (this.chartConfig.useMockData) {
       this.loadMockChartData();
       return;
     }
     
     // Load user growth data
-    fetch("/api/admin/stats/users/growth")
+    fetch("/api/admin/stats/users/growth", {
+      headers: {
+        "Accept": "application/json",
+        "X-Requested-With": "XMLHttpRequest"
+      }
+    })
       .then(response => response.json())
       .then(data => {
-        if (data.success) {
-          this.chartData.users.daily = data.data.daily || [];
-          this.chartData.users.weekly = data.data.weekly || [];
-          this.renderUserChart();
-        } else {
-          showToast("Failed to load user growth data", "error");
+        console.log("User growth API response:", data);
+        
+        let chartData = { daily: [], weekly: [] };
+        
+        if (data.success && data.data) {
+          chartData.daily = data.data.daily || [];
+          chartData.weekly = data.data.weekly || [];
+        } else if (data.data) {
+          chartData.daily = data.data.daily || [];
+          chartData.weekly = data.data.weekly || [];
         }
+        
+        this.chartData.users = chartData;
+        this.renderUserChart();
         this.hideChartLoading('users-chart');
       })
       .catch(error => {
+        console.error("Error loading user growth data:", error);
         showToast("An error occurred while loading user growth data", "error");
         this.hideChartLoading('users-chart');
       });
     
     // Load message activity data
-    fetch("/api/admin/stats/messages/activity")
+    fetch("/api/admin/stats/messages/activity", {
+      headers: {
+        "Accept": "application/json",
+        "X-Requested-With": "XMLHttpRequest"
+      }
+    })
       .then(response => response.json())
       .then(data => {
-        if (data.success) {
-          this.chartData.messages.daily = data.data.daily || [];
-          this.chartData.messages.weekly = data.data.weekly || [];
-          this.renderMessageChart();
-        } else {
-          showToast("Failed to load message activity data", "error");
+        console.log("Message activity API response:", data);
+        
+        let chartData = { daily: [], weekly: [] };
+        
+        if (data.success && data.data) {
+          chartData.daily = data.data.daily || [];
+          chartData.weekly = data.data.weekly || [];
+        } else if (data.data) {
+          chartData.daily = data.data.daily || [];
+          chartData.weekly = data.data.weekly || [];
         }
+        
+        this.chartData.messages = chartData;
+        this.renderMessageChart();
         this.hideChartLoading('messages-chart');
       })
       .catch(error => {
+        console.error("Error loading message activity data:", error);
         showToast("An error occurred while loading message activity data", "error");
         this.hideChartLoading('messages-chart');
       });
     
     // Load server growth data
-    fetch("/api/admin/stats/servers/growth")
+    fetch("/api/admin/stats/servers/growth", {
+      headers: {
+        "Accept": "application/json",
+        "X-Requested-With": "XMLHttpRequest"
+      }
+    })
       .then(response => response.json())
       .then(data => {
-        if (data.success) {
-          this.chartData.servers.growth = data.data.growth || [];
-          this.renderServerChart();
-        } else {
-          showToast("Failed to load server growth data", "error");
+        console.log("Server growth API response:", data);
+        
+        let growth = [];
+        
+        if (data.success && data.data) {
+          growth = data.data.growth || [];
+        } else if (data.data) {
+          growth = data.data.growth || [];
         }
+        
+        this.chartData.servers.growth = growth;
+        this.renderServerChart();
         this.hideChartLoading('servers-chart');
       })
       .catch(error => {
+        console.error("Error loading server growth data:", error);
         showToast("An error occurred while loading server growth data", "error");
         this.hideChartLoading('servers-chart');
       });

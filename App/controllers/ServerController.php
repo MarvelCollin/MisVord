@@ -503,7 +503,6 @@ class ServerController extends BaseController
             if ($this->isApiRoute() || $this->isAjaxRequest()) {
                 return $this->serverError('Failed to join server: ' . $e->getMessage());
             } else {
-                // For direct browser requests, set an error and show the invite page
                 $GLOBALS['inviteError'] = 'Failed to join server: ' . $e->getMessage();
                 $this->showInvite($inviteCode);
                 exit;

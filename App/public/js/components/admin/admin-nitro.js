@@ -13,8 +13,21 @@ export class NitroManager {
   init() {
     this.initNitroManagement();
     this.initUserSearch();
-    this.loadNitroCodes();
-    this.loadNitroStats();
+    
+    // Load skeletons first, then load data after a small delay
+    this.showInitialSkeletons();
+    
+    setTimeout(() => {
+      this.loadNitroCodes();
+      this.loadNitroStats();
+    }, 10);
+  }
+
+  showInitialSkeletons() {
+    this.showSkeleton("active-nitro-count");
+    this.showSkeleton("used-nitro-count");
+    this.showSkeleton("total-nitro-count");
+    this.showSkeleton("nitro-table-body");
   }
 
   showSkeleton(elementId) {
@@ -279,9 +292,14 @@ export class NitroManager {
   }
   
   loadNitroCodes() {
-    const searchQuery = document.getElementById('nitro-search')?.value || "";
+    // Check if nitroAPI exists
+    if (!nitroAPI) {
+      console.warn('nitroAPI not available yet, retrying in 500ms');
+      setTimeout(() => this.loadNitroCodes(), 500);
+      return;
+    }
     
-    this.showSkeleton("nitro-table-body");
+    const searchQuery = document.getElementById('nitro-search')?.value || "";
     
     nitroAPI.listCodes(this.currentNitroPage, this.nitroPerPage, searchQuery)
       .then(response => {
@@ -301,9 +319,12 @@ export class NitroManager {
   }
   
   loadNitroStats() {
-    this.showSkeleton("active-nitro-count");
-    this.showSkeleton("used-nitro-count");
-    this.showSkeleton("total-nitro-count");
+    // Check if nitroAPI exists
+    if (!nitroAPI) {
+      console.warn('nitroAPI not available yet, retrying in 500ms');
+      setTimeout(() => this.loadNitroStats(), 500);
+      return;
+    }
     
     nitroAPI.getStats()
       .then(response => {

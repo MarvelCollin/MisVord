@@ -64,11 +64,51 @@ class AdminManager {
     const mockDataSettings = document.getElementById('mock-data-settings');
     
     if (mockDataToggle) {
+      // Store a reference to chartConfig for this instance
+      this.chartConfig = window.overviewManager?.chartConfig || {
+        useMockData: false,
+        mockDataRange: 'medium',
+        mockDataTrend: 'random'
+      };
+      
+      // Initial state
+      const toggleSwitch = mockDataToggle.closest('.toggle-switch');
+      if (toggleSwitch) {
+        const dot = toggleSwitch.querySelector('.dot');
+        if (dot && mockDataToggle.checked) {
+          dot.classList.add('translate-x-5');
+          toggleSwitch.classList.add('bg-discord-blue');
+        }
+      }
+      
+      // Handle changes
       mockDataToggle.addEventListener('change', () => {
-        if (mockDataToggle.checked) {
-          mockDataSettings.classList.remove('hidden');
-        } else {
-          mockDataSettings.classList.add('hidden');
+        if (mockDataSettings) {
+          if (mockDataToggle.checked) {
+            mockDataSettings.classList.remove('hidden');
+            
+            // Update toggle visually
+            const toggleSwitch = mockDataToggle.closest('.toggle-switch');
+            if (toggleSwitch) {
+              const dot = toggleSwitch.querySelector('.dot');
+              if (dot) {
+                dot.classList.add('translate-x-5');
+                toggleSwitch.classList.add('bg-discord-blue');
+              }
+            }
+          } else {
+            mockDataSettings.classList.add('hidden');
+            
+            // Update toggle visually
+            const toggleSwitch = mockDataToggle.closest('.toggle-switch');
+            if (toggleSwitch) {
+              const dot = toggleSwitch.querySelector('.dot');
+              if (dot) {
+                dot.classList.remove('translate-x-5');
+                toggleSwitch.classList.remove('bg-discord-blue');
+              }
+            }
+          }
         }
       });
     }
@@ -97,15 +137,28 @@ class AdminManager {
     const mockDataRange = document.getElementById('mock-data-range').value;
     const mockDataTrend = document.getElementById('mock-data-trend').value;
     
+    // Save the previous config to detect changes
+    const previousConfig = { ...this.chartConfig };
+    
     const config = {
       useMockData,
       mockDataRange,
       mockDataTrend
     };
     
+    console.log("Applying chart config:", config);
+    
     if (window.overviewManager) {
       window.overviewManager.updateChartConfig(config);
-      showToast("Chart configuration updated", "success");
+      
+      // Only show toast if there was an actual change
+      if (previousConfig.useMockData !== config.useMockData) {
+        showToast(`Chart data source changed to ${useMockData ? 'mock data' : 'real data'}`, "success");
+      } else if (config.useMockData && 
+                (previousConfig.mockDataRange !== config.mockDataRange || 
+                 previousConfig.mockDataTrend !== config.mockDataTrend)) {
+        showToast("Mock data configuration updated", "success");
+      }
     }
     
     this.toggleChartConfigModal(false);
@@ -118,19 +171,40 @@ class AdminManager {
     if (show) {
       modal.classList.remove('hidden');
       
+      // Get current chart config from the overview manager
       if (window.overviewManager && window.overviewManager.chartConfig) {
+        console.log("Initializing chart config modal with:", window.overviewManager.chartConfig);
+        
         const { useMockData, mockDataRange, mockDataTrend } = window.overviewManager.chartConfig;
         
-        document.getElementById('use-mock-data').checked = useMockData;
-        document.getElementById('mock-data-range').value = mockDataRange || 'medium';
-        document.getElementById('mock-data-trend').value = mockDataTrend || 'random';
-        
-        const mockDataSettings = document.getElementById('mock-data-settings');
-        if (useMockData) {
-          mockDataSettings.classList.remove('hidden');
-        } else {
-          mockDataSettings.classList.add('hidden');
+        // Set the checkbox state
+        const mockDataCheckbox = document.getElementById('use-mock-data');
+        if (mockDataCheckbox) {
+          mockDataCheckbox.checked = useMockData;
         }
+        
+        // Set the dropdown values
+        const rangeSelect = document.getElementById('mock-data-range');
+        if (rangeSelect) {
+          rangeSelect.value = mockDataRange || 'medium';
+        }
+        
+        const trendSelect = document.getElementById('mock-data-trend');
+        if (trendSelect) {
+          trendSelect.value = mockDataTrend || 'random';
+        }
+        
+        // Show/hide the mock data settings based on the checkbox
+        const mockDataSettings = document.getElementById('mock-data-settings');
+        if (mockDataSettings) {
+          if (useMockData) {
+            mockDataSettings.classList.remove('hidden');
+          } else {
+            mockDataSettings.classList.add('hidden');
+          }
+        }
+      } else {
+        console.warn("Overview manager or chart config not available");
       }
     } else {
       modal.classList.add('hidden');
@@ -165,21 +239,48 @@ class AdminManager {
     
     this.currentSection = section;
     
+    // Show skeletons for the active section first
     if (section === "overview") {
-      window.overviewManager.loadSystemStats();
+      if (window.overviewManager) {
+        window.overviewManager.showInitialSkeletons();
+        setTimeout(() => {
+          window.overviewManager.loadSystemStats();
+          window.overviewManager.loadChartData();
+        }, 10);
+      }
     } else if (section === "users") {
-      if (window.userManager && window.userManager.initialized) {
-        window.userManager.loadUsers();
+      if (window.userManager) {
+        window.userManager.showSkeletons();
+        setTimeout(() => {
+          if (window.userManager.initialized) {
+            window.userManager.loadUsers();
+          }
+        }, 10);
       }
     } else if (section === "servers") {
-      window.serverManager.loadServers();
-      window.serverManager.loadServerStats();
+      if (window.serverManager) {
+        window.serverManager.showInitialSkeletons();
+        setTimeout(() => {
+          window.serverManager.loadServers();
+          window.serverManager.loadServerStats();
+        }, 10);
+      }
     } else if (section === "logs") {
       this.showSkeleton("log-content");
-      this.loadLogs();
+      setTimeout(() => {
+        this.loadLogs();
+      }, 10);
     } else if (section === "nitro") {
-      window.nitroManager.loadNitroCodes();
-      window.nitroManager.loadNitroStats();
+      if (window.nitroManager) {
+        // Check if nitroManager has a showSkeletons or showInitialSkeletons method
+        if (typeof window.nitroManager.showInitialSkeletons === 'function') {
+          window.nitroManager.showInitialSkeletons();
+        }
+        setTimeout(() => {
+          window.nitroManager.loadNitroCodes();
+          window.nitroManager.loadNitroStats();
+        }, 10);
+      }
     }
     
     history.pushState({}, "", `#${section}`);
