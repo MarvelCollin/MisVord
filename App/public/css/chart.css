@@ -209,6 +209,7 @@
   white-space: nowrap;
   transform: translate(-50%, -100%);
   margin-top: -10px;
+  visibility: hidden;
 }
 
 .chart-tooltip:after {
@@ -220,6 +221,18 @@
   border-width: 5px 5px 0;
   border-style: solid;
   border-color: #18191c transparent transparent transparent;
+}
+
+.chart-tooltip.tooltip-bottom {
+  transform: translate(-50%, 0);
+  margin-top: 10px;
+}
+
+.chart-tooltip.tooltip-bottom:after {
+  bottom: auto;
+  top: -5px;
+  border-width: 0 5px 5px;
+  border-color: transparent transparent #18191c transparent;
 }
 
 @media (max-width: 640px) {

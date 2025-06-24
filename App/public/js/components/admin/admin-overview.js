@@ -407,24 +407,68 @@ export class OverviewManager {
       bar.className = 'bar blue';
       const heightPercent = (item.value / maxValue) * 100;
       bar.style.height = `${heightPercent}%`;
-      bar.setAttribute('title', `${item.label}: ${item.value}`);
+      bar.setAttribute('data-value', item.value);
+      bar.setAttribute('data-label', item.label);
       bar.style.animationDelay = `${index * 0.1}s`;
       
       // Add hover effect
       bar.addEventListener('mouseenter', (e) => {
         this.showTooltip(e, `${item.label}: ${item.value} users`);
+        
+        // Highlight the bar
+        bar.style.backgroundColor = '#778aff';
+        bar.style.boxShadow = '0 0 10px rgba(88, 101, 242, 0.5)';
+        bar.style.transform = 'scaleY(1.03)';
+        bar.style.transformOrigin = 'bottom';
+        bar.style.transition = 'all 0.2s ease';
       });
+      
       bar.addEventListener('mouseleave', () => {
         this.hideTooltip();
+        
+        // Remove highlight
+        bar.style.backgroundColor = '';
+        bar.style.boxShadow = '';
+        bar.style.transform = '';
       });
       
       chartArea.appendChild(bar);
+      
+      // Create value label on top of bar for significant values
+      if (heightPercent > 15) {  // Only show value labels for bars tall enough to fit them
+        const valueLabel = document.createElement('div');
+        valueLabel.className = 'bar-value-label';
+        valueLabel.textContent = item.value;
+        valueLabel.style.position = 'absolute';
+        valueLabel.style.left = `50%`;
+        valueLabel.style.transform = 'translateX(-50%)';
+        valueLabel.style.bottom = `${heightPercent + 2}px`;
+        valueLabel.style.fontSize = '11px';
+        valueLabel.style.fontWeight = 'bold';
+        valueLabel.style.color = '#ffffff';
+        valueLabel.style.textShadow = '0px 0px 2px rgba(0,0,0,0.7)';
+        valueLabel.style.zIndex = '2';
+        valueLabel.style.pointerEvents = 'none';
+        chartArea.appendChild(valueLabel);
+      }
       
       // Create x-axis label
       const label = document.createElement('div');
       label.textContent = this.formatAxisLabel(item.label);
       xAxis.appendChild(label);
     });
+    
+    // Add hover effect for overall chart area
+    const trackingArea = document.createElement('div');
+    trackingArea.className = 'chart-tracking-area';
+    trackingArea.style.position = 'absolute';
+    trackingArea.style.top = '0';
+    trackingArea.style.left = '0';
+    trackingArea.style.width = '100%';
+    trackingArea.style.height = '100%';
+    trackingArea.style.zIndex = '1';
+    trackingArea.style.pointerEvents = 'none';
+    chartArea.appendChild(trackingArea);
   }
 
   renderMessageChart() {
@@ -479,7 +523,7 @@ export class OverviewManager {
     // Calculate point positions
     const points = data.map((item, index) => {
       const x = (index / (data.length - 1)) * 100;
-      const y = (item.value / maxValue) * 100;
+      const y = 100 - (item.value / maxValue) * 100; // Invert Y for SVG coordinates
       return { 
         x, 
         y, 
@@ -488,48 +532,127 @@ export class OverviewManager {
       };
     });
     
-    // Create lines
-    for (let i = 0; i < points.length - 1; i++) {
-      const startPoint = points[i];
-      const endPoint = points[i + 1];
-      
-      const line = document.createElement('div');
-      line.className = 'data-line blue';
-      
-      // Calculate line position and length
-      const length = Math.sqrt(
-        Math.pow(endPoint.x - startPoint.x, 2) + 
-        Math.pow(endPoint.y - startPoint.y, 2)
-      );
-      const angle = Math.atan2(
-        endPoint.y - startPoint.y, 
-        endPoint.x - startPoint.x
-      ) * (180 / Math.PI);
-      
-      line.style.left = `${startPoint.x}%`;
-      line.style.bottom = `${startPoint.y}%`;
-      line.style.width = `${length}%`;
-      line.style.transform = `rotate(${angle}deg)`;
-      line.style.transformOrigin = 'left bottom';
-      line.style.animationDelay = `${i * 0.2}s`;
-      
-      chartArea.appendChild(line);
-    }
+    // Create interactive area for line tooltip tracking
+    const trackingArea = document.createElement('div');
+    trackingArea.className = 'chart-tracking-area';
+    trackingArea.style.position = 'absolute';
+    trackingArea.style.top = '0';
+    trackingArea.style.left = '0';
+    trackingArea.style.width = '100%';
+    trackingArea.style.height = '100%';
+    trackingArea.style.zIndex = '1';
     
-    // Create points
+    // Add tooltip on mouse movement over tracking area
+    trackingArea.addEventListener('mousemove', (e) => {
+      const rect = trackingArea.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width) * 100;
+      
+      // Find the closest point
+      let closestPoint = points[0];
+      let minDistance = Math.abs(x - closestPoint.x);
+      
+      for (let i = 1; i < points.length; i++) {
+        const distance = Math.abs(x - points[i].x);
+        if (distance < minDistance) {
+          minDistance = distance;
+          closestPoint = points[i];
+        }
+      }
+      
+      if (minDistance < 5) { // Only show tooltip if close enough to a point
+        this.showTooltip(e, `${closestPoint.label}: ${closestPoint.value} messages`);
+        
+        // Highlight the nearest point
+        const highlightPoint = document.createElement('div');
+        highlightPoint.className = 'highlight-point';
+        highlightPoint.style.position = 'absolute';
+        highlightPoint.style.width = '8px';
+        highlightPoint.style.height = '8px';
+        highlightPoint.style.backgroundColor = '#ffffff';
+        highlightPoint.style.border = '2px solid #5865f2';
+        highlightPoint.style.borderRadius = '50%';
+        highlightPoint.style.transform = 'translate(-50%, 50%)';
+        highlightPoint.style.left = `${closestPoint.x}%`;
+        highlightPoint.style.bottom = `${100 - closestPoint.y}%`;
+        highlightPoint.style.zIndex = '2';
+        highlightPoint.style.pointerEvents = 'none';
+        
+        // Remove any existing highlight point
+        const existingHighlight = chartArea.querySelector('.highlight-point');
+        if (existingHighlight) {
+          chartArea.removeChild(existingHighlight);
+        }
+        
+        chartArea.appendChild(highlightPoint);
+      }
+    });
+    
+    trackingArea.addEventListener('mouseleave', () => {
+      this.hideTooltip();
+      
+      // Remove highlight point
+      const existingHighlight = chartArea.querySelector('.highlight-point');
+      if (existingHighlight) {
+        chartArea.removeChild(existingHighlight);
+      }
+    });
+    
+    chartArea.appendChild(trackingArea);
+    
+    // Create SVG element for the line chart
+    const svgNS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(svgNS, "svg");
+    svg.setAttribute("width", "100%");
+    svg.setAttribute("height", "100%");
+    svg.setAttribute("viewBox", "0 0 100 100");
+    svg.setAttribute("preserveAspectRatio", "none");
+    svg.style.position = "absolute";
+    svg.style.left = "0";
+    svg.style.top = "0";
+    svg.style.overflow = "visible";
+    svg.style.zIndex = "0";
+    
+    // Create polyline for data points
+    const polyline = document.createElementNS(svgNS, "polyline");
+    polyline.setAttribute("fill", "none");
+    polyline.setAttribute("stroke", "#5865f2");
+    polyline.setAttribute("stroke-width", "2");
+    polyline.classList.add("chart-line");
+    
+    const pointsString = points.map(point => `${point.x},${point.y}`).join(" ");
+    polyline.setAttribute("points", pointsString);
+    svg.appendChild(polyline);
+    
+    // Add SVG to chart area
+    chartArea.appendChild(svg);
+    
+    // Create interactive points
     points.forEach((point, index) => {
       const dataPoint = document.createElement('div');
       dataPoint.className = 'data-point blue';
       dataPoint.style.left = `${point.x}%`;
-      dataPoint.style.bottom = `${point.y}%`;
-      dataPoint.style.animationDelay = `${(points.length - 1) * 0.2 + index * 0.1}s`;
+      dataPoint.style.bottom = `${100 - point.y}%`;
+      dataPoint.style.animationDelay = `${index * 0.1}s`;
       
       // Add hover effect
       dataPoint.addEventListener('mouseenter', (e) => {
         this.showTooltip(e, `${point.label}: ${point.value} messages`);
+        
+        // Highlight the current point
+        dataPoint.classList.add('active');
+        dataPoint.style.transform = 'translate(-50%, 50%) scale(1.5)';
+        dataPoint.style.backgroundColor = '#ffffff';
+        dataPoint.style.border = '2px solid #5865f2';
       });
+      
       dataPoint.addEventListener('mouseleave', () => {
         this.hideTooltip();
+        
+        // Remove highlight
+        dataPoint.classList.remove('active');
+        dataPoint.style.transform = 'translate(-50%, 50%)';
+        dataPoint.style.backgroundColor = '#5865f2';
+        dataPoint.style.border = 'none';
       });
       
       chartArea.appendChild(dataPoint);
@@ -545,6 +668,29 @@ export class OverviewManager {
         label.style.transform = 'translateX(-50%)';
       }
     });
+
+    // Add CSS animation for line drawing
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes draw-line {
+        to {
+          stroke-dashoffset: 0;
+        }
+      }
+      .chart-line {
+        stroke-dasharray: 1000;
+        stroke-dashoffset: 1000;
+        animation: draw-line 2s ease-in-out forwards;
+      }
+      .data-point.active {
+        box-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
+        transition: transform 0.2s ease, background-color 0.2s ease, border 0.2s ease;
+      }
+      .chart-tracking-area {
+        cursor: crosshair;
+      }
+    `;
+    chartContainer.appendChild(style);
   }
 
   renderServerChart() {
@@ -600,24 +746,68 @@ export class OverviewManager {
       bar.className = 'bar purple';
       const heightPercent = (item.value / maxValue) * 100;
       bar.style.height = `${heightPercent}%`;
-      bar.setAttribute('title', `${item.label}: ${item.value}`);
+      bar.setAttribute('data-value', item.value);
+      bar.setAttribute('data-label', item.label);
       bar.style.animationDelay = `${index * 0.1}s`;
       
       // Add hover effect
       bar.addEventListener('mouseenter', (e) => {
         this.showTooltip(e, `${item.label}: ${item.value} servers`);
+        
+        // Highlight the bar
+        bar.style.backgroundColor = '#b06bc4';
+        bar.style.boxShadow = '0 0 10px rgba(155, 89, 182, 0.5)';
+        bar.style.transform = 'scaleY(1.03)';
+        bar.style.transformOrigin = 'bottom';
+        bar.style.transition = 'all 0.2s ease';
       });
+      
       bar.addEventListener('mouseleave', () => {
         this.hideTooltip();
+        
+        // Remove highlight
+        bar.style.backgroundColor = '';
+        bar.style.boxShadow = '';
+        bar.style.transform = '';
       });
       
       chartArea.appendChild(bar);
+      
+      // Create value label on top of bar for significant values
+      if (heightPercent > 15) {  // Only show value labels for bars tall enough to fit them
+        const valueLabel = document.createElement('div');
+        valueLabel.className = 'bar-value-label';
+        valueLabel.textContent = item.value;
+        valueLabel.style.position = 'absolute';
+        valueLabel.style.left = `50%`;
+        valueLabel.style.transform = 'translateX(-50%)';
+        valueLabel.style.bottom = `${heightPercent + 2}px`;
+        valueLabel.style.fontSize = '11px';
+        valueLabel.style.fontWeight = 'bold';
+        valueLabel.style.color = '#ffffff';
+        valueLabel.style.textShadow = '0px 0px 2px rgba(0,0,0,0.7)';
+        valueLabel.style.zIndex = '2';
+        valueLabel.style.pointerEvents = 'none';
+        chartArea.appendChild(valueLabel);
+      }
       
       // Create x-axis label
       const label = document.createElement('div');
       label.textContent = this.formatAxisLabel(item.label);
       xAxis.appendChild(label);
     });
+    
+    // Add hover effect for overall chart area
+    const trackingArea = document.createElement('div');
+    trackingArea.className = 'chart-tracking-area';
+    trackingArea.style.position = 'absolute';
+    trackingArea.style.top = '0';
+    trackingArea.style.left = '0';
+    trackingArea.style.width = '100%';
+    trackingArea.style.height = '100%';
+    trackingArea.style.zIndex = '1';
+    trackingArea.style.pointerEvents = 'none';
+    chartArea.appendChild(trackingArea);
   }
 
   createChartStructure(chartType, chartTitle) {
@@ -681,9 +871,37 @@ export class OverviewManager {
     if (!tooltip) return;
     
     tooltip.textContent = text;
-    tooltip.style.left = `${event.pageX}px`;
-    tooltip.style.top = `${event.pageY - 10}px`;
+    
+    const chartArea = event.target.closest('.chart-area');
+    if (chartArea) {
+      const chartRect = chartArea.getBoundingClientRect();
+      const tooltipRect = tooltip.getBoundingClientRect();
+      
+      let left = event.clientX;
+      let top = event.clientY - 10;
+      
+      if (left + tooltipRect.width / 2 > chartRect.right) {
+        left = chartRect.right - tooltipRect.width / 2;
+      } else if (left - tooltipRect.width / 2 < chartRect.left) {
+        left = chartRect.left + tooltipRect.width / 2;
+      }
+      
+      if (top - tooltipRect.height < chartRect.top) {
+        top = event.clientY + 20; // Place tooltip below the cursor
+        tooltip.classList.add('tooltip-bottom');
+      } else {
+        tooltip.classList.remove('tooltip-bottom');
+      }
+      
+      tooltip.style.left = `${left}px`;
+      tooltip.style.top = `${top}px`;
+    } else {
+      tooltip.style.left = `${event.clientX}px`;
+      tooltip.style.top = `${event.clientY - 10}px`;
+    }
+    
     tooltip.style.opacity = 1;
+    tooltip.style.visibility = 'visible';
   }
 
   hideTooltip() {
@@ -691,6 +909,9 @@ export class OverviewManager {
     if (!tooltip) return;
     
     tooltip.style.opacity = 0;
+    setTimeout(() => {
+      tooltip.style.visibility = 'hidden';
+    }, 200);
   }
 }
 
