@@ -96,6 +96,33 @@ class VoiceSectionManager {
         if (document.getElementById('joinUI')?.style.display === 'none') {
             console.log('Join UI is hidden, entering fullscreen mode');
             this.enterFullscreenMode();
+        } else {
+            // Auto-join if we have a join button and we're on a voice channel page
+            this.autoJoinVoiceChannel();
+        }
+    }
+    
+    autoJoinVoiceChannel() {
+        // Check if we should auto-join based on localStorage flag
+        const autoJoinChannelId = localStorage.getItem('autoJoinVoiceChannel');
+        const currentChannelId = document.querySelector('meta[name="channel-id"]')?.getAttribute('content');
+        
+        console.log('Auto-join check:', { autoJoinChannelId, currentChannelId });
+        
+        if (this.joinBtn) {
+            // Always auto-join when entering a voice channel
+            console.log('Auto-joining voice channel');
+            
+            // Add a small delay to ensure everything is ready
+            setTimeout(() => {
+                try {
+                    this.joinBtn.click();
+                    // Clear the flag after joining
+                    localStorage.removeItem('autoJoinVoiceChannel');
+                } catch (error) {
+                    console.error('Error auto-joining voice channel:', error);
+                }
+            }, 500);
         }
     }
     

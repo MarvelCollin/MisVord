@@ -27,6 +27,24 @@ $additional_js[] = 'components/voice/voice-section';
 <!-- Add JS for voice section -->
 <script src="/js/components/voice/voice-section.js" defer></script>
 
+<!-- Add auto-join script -->
+<script>
+// Auto-join voice channel when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Set a flag to indicate we're on a voice channel page
+    localStorage.setItem('onVoiceChannelPage', 'true');
+    
+    // Try to click join button automatically after a delay
+    setTimeout(function() {
+        const joinBtn = document.getElementById('joinBtn');
+        if (joinBtn) {
+            console.log('Auto-joining voice channel from voice-section.php');
+            joinBtn.click();
+        }
+    }, 1000);
+});
+</script>
+
 <meta name="meeting-id" content="<?php echo htmlspecialchars($meetingId); ?>">
 <meta name="username" content="<?php echo htmlspecialchars($userName); ?>">
 <meta name="channel-id" content="<?php echo htmlspecialchars($activeChannelId); ?>">

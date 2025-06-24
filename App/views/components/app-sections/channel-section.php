@@ -161,6 +161,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // Set a flag to indicate we want to auto-join this voice channel
         localStorage.setItem('autoJoinVoiceChannel', channelId);
         console.log('Voice channel selected, auto-join set:', channelId);
+        
+        // Force auto-join flag to persist
+        sessionStorage.setItem('forceAutoJoin', 'true');
     };
     
     const channelItems = document.querySelectorAll('.channel-item');

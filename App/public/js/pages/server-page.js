@@ -401,15 +401,10 @@ function fetchChatSection(channelId) {
 function fetchVoiceSection(channelId) {
   console.log(`fetchVoiceSection called with channelId: ${channelId}`);
   
-  // Check if we need to auto-join this voice channel
-  if (typeof window.handleVoiceChannelClick === 'function') {
-    console.log('Setting auto-join for voice channel:', channelId);
-    window.handleVoiceChannelClick(channelId);
-  } else {
-    // Fallback to localStorage directly if the function isn't available
-    localStorage.setItem('autoJoinVoiceChannel', channelId);
-    console.log('Voice channel selected, auto-join set (fallback):', channelId);
-  }
+  // Always set auto-join flag when fetching a voice channel
+  console.log('Setting auto-join for voice channel:', channelId);
+  localStorage.setItem('autoJoinVoiceChannel', channelId);
+  sessionStorage.setItem('forceAutoJoin', 'true');
   
   const apiUrl = `/server/${getServerIdFromUrl()}?channel=${channelId}&type=voice&ajax=true`;
   console.log(`Fetching from URL: ${apiUrl}`);
