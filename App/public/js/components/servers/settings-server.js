@@ -1,4 +1,3 @@
-import serverAPI from '../../api/server-api.js';
 import ImageCutter from '../common/image-cutter.js';
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -171,7 +170,7 @@ function initMembersTab() {
     
     async function loadMembers() {
         try {
-            const response = await serverAPI.getServerMembers(serverId);
+            const response = await window.serverAPI.getServerMembers(serverId);
             
             if (response && response.success) {
                 if (response.data && response.data.members) {
@@ -545,7 +544,7 @@ function initServerProfileForm() {
                 formData.append('server_banner', bannerBlob, 'server_banner.png');
             }
             
-            const response = await serverAPI.updateServerSettings(serverId, formData);
+            const response = await window.serverAPI.updateServerSettings(serverId, formData);
             
             if (response && response.success) {
                 showToast('Server settings updated', 'success');
@@ -706,7 +705,7 @@ function initRolesTab() {
     
     async function loadRoles() {
         try {
-            const response = await serverAPI.getServerRoles(serverId);
+            const response = await window.serverAPI.getServerRoles(serverId);
             
             if (response && response.success) {
                 if (response.data && response.data.roles) {

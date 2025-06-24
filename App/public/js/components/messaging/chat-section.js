@@ -883,7 +883,7 @@ class ChatSection {
             const emptyState = document.createElement('div');
             emptyState.className = 'flex flex-col items-center justify-center p-8 text-[#b5bac1] h-full';
             emptyState.innerHTML = `
-                <svg class="w-16 h-16 mb-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <svg class="w-16 h-16 mb-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http:
                     <path fill-rule="evenodd" d="M18 10c0 4.418-3.582 8-8 8s-8-3.582-8-8 3.582-8 8-8 8 3.582 8 8zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
                 </svg>
                 <p class="text-lg font-medium">No messages yet</p>
@@ -1310,6 +1310,9 @@ class ChatSection {
             
             if (offset === 0) {
                 this.showLoadingSkeletons();
+                this.processedMessageIds = new Set();
+                this.totalMessagesLoaded = 0;
+                this.messagesLoaded = false;
             } else {
                 this.showLoadMoreIndicator();
             }
@@ -1356,13 +1359,19 @@ class ChatSection {
                 });
                 
                 if (offset === 0) {
+                    // Clear existing messages for a fresh channel load
+                    if (this.chatMessages) {
+                        this.chatMessages.innerHTML = '';
+                    }
                     this.renderMessages(messages);
+                    this.totalMessagesLoaded = messages.length;
                     
                     if (messages.length >= limit) {
                         this.addLoadMoreButton();
                     }
                 } else {
                     this.prependMessages(messages);
+                    this.totalMessagesLoaded += messages.length;
                     
                     if (messages.length < limit) {
                         this.removeLoadMoreButton();
@@ -1575,6 +1584,74 @@ class ChatSection {
     truncateText(text, maxLength) {
         if (!text) return '';
         if (text.length <= maxLength) return text;
-        return text.substring(0, maxLength) + '...';
+        return text.substr(0, maxLength) + '...';
     }
 }
+
+
+window.initializeChatSection = function() {
+    console.log('Global initializeChatSection called');
+    
+    // First cleanup any existing instance
+    if (window.chatSection) {
+        // Clear any existing timeouts
+        if (window.chatSection.typingTimeout) {
+            clearTimeout(window.chatSection.typingTimeout);
+        }
+        
+        // Clean any other event listeners or references
+        const oldChatMessages = document.getElementById('chat-messages');
+        if (oldChatMessages) {
+            // Clone and replace to remove event listeners
+            const newChatMessages = oldChatMessages.cloneNode(true);
+            if (oldChatMessages.parentNode) {
+                oldChatMessages.parentNode.replaceChild(newChatMessages, oldChatMessages);
+            }
+        }
+        
+        // Remove any typing indicators
+        const typingIndicator = document.getElementById('typing-indicator');
+        if (typingIndicator) {
+            typingIndicator.remove();
+        }
+        
+        // Clear reply UI if present
+        const replyContainer = document.getElementById('reply-container');
+        if (replyContainer) {
+            replyContainer.remove();
+        }
+        
+        // Clear context menu
+        const contextMenu = document.getElementById('message-context-menu');
+        if (contextMenu) {
+            contextMenu.classList.add('hidden');
+        }
+    }
+    
+    // Create a fresh instance
+    const chatSection = new ChatSection();
+    chatSection.init();
+    window.chatSection = chatSection;
+    
+    // Focus message input
+    const messageInput = document.getElementById('message-input');
+    if (messageInput) {
+        messageInput.value = ''; // Clear any existing text
+        messageInput.focus();
+    }
+    
+    // Ensure messages are scrolled to bottom
+    const messagesContainer = document.getElementById('chat-messages');
+    if (messagesContainer) {
+        setTimeout(() => {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }, 100);
+    }
+    
+    return chatSection;
+};
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    window.initializeChatSection();
+});

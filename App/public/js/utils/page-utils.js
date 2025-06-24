@@ -1,4 +1,5 @@
-import serverAPI from '../api/server-api.js';
+// Using window global variables instead of imports
+// import serverAPI from '../api/server-api.js';
 
 export const pageUtils = {  
     updatePageContent(container, html) {
@@ -32,7 +33,7 @@ export const pageUtils = {
                        document.querySelector('.server-sidebar');
         
         if (sidebar) {
-            serverAPI.getSidebar()
+            window.serverAPI.getSidebar()
             .then(html => {
                 sidebar.innerHTML = html;
             })

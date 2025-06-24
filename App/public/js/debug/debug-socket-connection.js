@@ -1,24 +1,21 @@
-// Socket Connection Test for Docker Environment
+        
 console.log('🧪 Starting Socket Connection Test...');
 
-// Test 1: Check environment
+
 console.log('1. Environment Check:');
 console.log('   - Host:', window.location.hostname);
 console.log('   - Port:', window.location.port);
 console.log('   - Protocol:', window.location.protocol);
 
-// Test 2: Check meta tags
 const socketHost = document.querySelector('meta[name="socket-host"]')?.getAttribute('content');
 const socketPort = document.querySelector('meta[name="socket-port"]')?.getAttribute('content');
 console.log('2. Socket Meta Configuration:');
 console.log('   - Socket Host:', socketHost);
 console.log('   - Socket Port:', socketPort);
 
-// Test 3: Check Socket.IO availability
 console.log('3. Socket.IO Check:');
 console.log('   - Socket.IO available:', typeof io !== 'undefined');
 
-// Test 4: Test connection to socket server
 if (typeof io !== 'undefined') {
     console.log('4. Testing Socket Connection...');
     
@@ -30,11 +27,11 @@ if (typeof io !== 'undefined') {
     
     const testSocket = io(testSocketUrl, {
         path: '/socket.io',
-        transports: ['polling', 'websocket'],  // Allow both for testing
+        transports: ['polling', 'websocket'],  
         timeout: 10000,
         forceNew: true,
         reconnection: false,
-        upgrade: true,  // Allow transport upgrades
+        upgrade: true,  
         autoConnect: true
     });
     
@@ -59,7 +56,7 @@ if (typeof io !== 'undefined') {
         console.log('🔌 Socket disconnected:', reason);
     });
     
-    // Additional transport debugging
+    
     testSocket.on('upgrade', () => {
         console.log('⬆️ Transport upgraded to:', testSocket.io.engine.transport.name);
     });
@@ -68,7 +65,7 @@ if (typeof io !== 'undefined') {
         console.warn('⚠️ Transport upgrade failed:', error);
     });
     
-    // Timeout test
+    
     setTimeout(() => {
         if (!testSocket.connected) {
             console.error('⏰ Socket connection test timeout');
@@ -81,7 +78,7 @@ if (typeof io !== 'undefined') {
     console.error('❌ Socket.IO not available - cannot test connection');
 }
 
-// Test 5: Check Global Socket Manager
+
 setTimeout(() => {
     console.log('5. Global Socket Manager Check:');
     console.log('   - Available:', !!window.globalSocketManager);
@@ -93,7 +90,7 @@ setTimeout(() => {
     }
 }, 2000);
 
-// Test 6: Check Messaging System
+
 setTimeout(() => {
     console.log('6. Messaging System Check:');
     console.log('   - Available:', !!window.MisVordMessaging);
@@ -117,10 +114,9 @@ window.socketConnectionTest = {    testConnection: function() {
             console.log('With path: /socket.io');
             console.log('Transport: WebSocket only (Docker mode)');
             
-            // Test websocket only - no fallbacks
             const wsTestSocket = io(testSocketUrl, {
                 path: '/socket.io',
-                transports: ['websocket'],  // ONLY websocket
+                transports: ['websocket'],
                 timeout: 10000,
                 forceNew: true,
                 reconnection: false,
@@ -131,7 +127,7 @@ window.socketConnectionTest = {    testConnection: function() {
                 console.log('   - Socket ID:', wsTestSocket.id);
                 console.log('   - Transport:', wsTestSocket.io.engine.transport.name);
                 
-                // Disconnect after successful test
+                
                 setTimeout(() => {
                     wsTestSocket.disconnect();
                     console.log('🔌 Docker WebSocket test completed successfully');
@@ -187,7 +183,7 @@ console.log('💡 Use socketConnectionTest.testConnection() to manually test con
 console.log('💡 Use socketConnectionTest.testHealthEndpoint() to test health endpoint');
 console.log('💡 Use socketConnectionTest.getStatus() to check current status');
 
-// Auto-run health endpoint test
+
 setTimeout(() => {
     if (window.socketConnectionTest) {
         window.socketConnectionTest.testHealthEndpoint();

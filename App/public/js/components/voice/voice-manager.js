@@ -2,7 +2,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (document.getElementById('videoContainer')) {
         waitForVideoSDK(() => {
             window.logger.info('voice', "VideoSDK ready. Auto-joining voice channel...");
-            // Auto-join the channel when page loads
+            
             setTimeout(() => {
                 const joinBtn = document.getElementById("joinBtn");
                 if (joinBtn) joinBtn.click();
@@ -57,7 +57,7 @@ async function createMeetingRoom() {
     try {
         window.logger.info('voice', "Creating new meeting room...");
         
-        const response = await fetch('https://api.videosdk.live/v2/rooms', {
+        const response = await fetch('https:
             method: 'POST',
             headers: {
                 'Authorization': authToken,
@@ -106,42 +106,42 @@ async function initializeMeeting() {
         meeting.on("meeting-joined", () => {
             window.logger.info('voice', "Meeting Joined");
             
-            // Get all UI elements
+            
             const joinBtn = document.getElementById("joinBtn");
             const leaveBtn = document.getElementById("leaveBtn");
             const micBtn = document.getElementById("micBtn");
             const screenBtn = document.getElementById("screenBtn");
             const joinVideoBtn = document.getElementById("joinVideoBtn");
             
-            // Hide join button, show leave button
+            
             if (joinBtn) joinBtn.classList.add("hidden");
             if (leaveBtn) {
                 leaveBtn.classList.remove("hidden");
                 leaveBtn.disabled = false;
             }
             
-            // Enable control buttons
+            
             if (micBtn) micBtn.disabled = false;
             if (screenBtn) screenBtn.disabled = false;
             
-            // Show video button if needed
+            
             if (joinVideoBtn) {
                 joinVideoBtn.classList.remove("hidden");
                 joinVideoBtn.disabled = false;
             }
             
-            // Add notification
+            
             showToast("Connected to voice", "success");
             
-            // Add local participant
+            
             addParticipant(meeting.localParticipant);
             
-            // Show participant panel if there are participants
+            
             setTimeout(() => {
                 updateParticipantsPanel();
             }, 500);
 
-            // Trigger global voice indicator
+            
             const channelNameElement = document.querySelector('.text-white.font-medium');
             const channelName = channelNameElement ? channelNameElement.textContent : 'Voice Channel';
             const voiceConnectEvent = new CustomEvent('voiceConnect', { 
@@ -158,7 +158,7 @@ async function initializeMeeting() {
         meeting.on("meeting-left", () => {
             window.logger.info('voice', "Meeting Left");
             
-            // Show join button, hide leave button
+            
             const joinBtn = document.getElementById("joinBtn");
             const leaveBtn = document.getElementById("leaveBtn");
             const micBtn = document.getElementById("micBtn");
@@ -172,12 +172,12 @@ async function initializeMeeting() {
             if (joinBtn) joinBtn.classList.remove("hidden");
             if (leaveBtn) leaveBtn.classList.add("hidden");
             
-            // Disable control buttons
+            
             if (micBtn) micBtn.disabled = true;
             if (screenBtn) screenBtn.disabled = true;
             if (joinVideoBtn) joinVideoBtn.classList.add("hidden");
             
-            // Reset button states
+            
             if (micBtn) {
                 micBtn.innerHTML = '<i class="fas fa-microphone text-sm"></i>';
                 micBtn.classList.remove("bg-[#ED4245]");
@@ -188,19 +188,19 @@ async function initializeMeeting() {
                 screenBtn.classList.remove("bg-[#5865F2]");
             }
             
-            // Clear participants
+            
             if (participants) participants.innerHTML = "";
             if (videosContainer) videosContainer.innerHTML = "";
             participantCount = 0;
             
-            // Hide panels
+            
             if (participantsPanel) participantsPanel.classList.add("hidden");
             if (videoContainer) videoContainer.classList.add("hidden");
             
-            // Show disconnected notification
+            
             showToast("Disconnected from voice", "error");
 
-            // Trigger global voice indicator disconnect
+            
             const voiceDisconnectEvent = new CustomEvent('voiceDisconnect');
             window.dispatchEvent(voiceDisconnectEvent);
             window.videosdkMeeting = null;
@@ -254,15 +254,15 @@ function addParticipant(participant) {
     
     participantCount++;
     
-    // Get initials for avatar
+    
     const initials = participant.displayName ? participant.displayName.charAt(0).toUpperCase() : 'U';
     
-    // Generate a consistent color based on the display name
+    
     const nameHash = [...(participant.displayName || 'User')].reduce((acc, char) => acc + char.charCodeAt(0), 0);
     const hue = nameHash % 360;
     const avatarColor = `hsl(${hue}, 70%, 40%)`;
   
-    // Add to participants list in the panel
+    
     const participantsList = document.getElementById("participants");
     if (participantsList) {
         const participantDiv = document.createElement("div");
@@ -282,19 +282,19 @@ function addParticipant(participant) {
         participantsList.appendChild(participantDiv);
     }
     
-    // Create audio element for the participant
+    
     const audioContainer = document.createElement("div");
     audioContainer.id = `audio-container-${participant.id}`;
     audioContainer.style.display = "none";
     audioContainer.innerHTML = `<audio id="audio-${participant.id}" autoplay playsinline></audio>`;
     document.body.appendChild(audioContainer);
     
-    // Show/create video element if needed (initially hidden)
+    
     const videosContainer = document.getElementById("videosContainer");
     if (videosContainer) {
         const videoDiv = document.createElement("div");
         videoDiv.id = `video-${participant.id}`;
-        videoDiv.className = "relative w-36 h-36 mx-auto"; // Make it centered like Discord
+        videoDiv.className = "relative w-36 h-36 mx-auto"; 
         videoDiv.style.display = "flex";
         videoDiv.innerHTML = `
             <div class="absolute top-0 left-0 w-full h-full rounded-full flex items-center justify-center" style="background-color: ${avatarColor}">
@@ -311,13 +311,13 @@ function addParticipant(participant) {
         videosContainer.appendChild(videoDiv);
     }
     
-    // Update the video display
+    
     const videoContainer = document.getElementById("videoContainer");
     if (videoContainer) {
         videoContainer.classList.remove("hidden");
     }
     
-    // Setup stream event handlers
+    
     participant.on("stream-enabled", (stream) => {
         if (stream.kind === "audio") {
             const audioEl = document.getElementById(`audio-${participant.id}`);
@@ -344,7 +344,7 @@ function addParticipant(participant) {
                 userMicEl.classList.add("text-white");
             }
             
-            // Setup audio visualization/detection
+            
             if (audioEl && audioEl.srcObject) {
                 setupAudioDetection(participant.id, audioEl.srcObject);
             }
@@ -368,7 +368,7 @@ function addParticipant(participant) {
         }
         
         if (stream.kind === "share") {
-            // Create a special screen share container
+            
             let screenShareEl = document.getElementById(`screen-share-${participant.id}`);
             const videosContainer = document.getElementById("videosContainer");
             
@@ -394,7 +394,7 @@ function addParticipant(participant) {
                 }
             }
             
-            // Update screen share button for local participant
+            
             if (participant.id === meeting?.localParticipant?.id) {
                 const screenBtn = document.getElementById("screenBtn");
                 if (screenBtn) {
@@ -424,7 +424,7 @@ function addParticipant(participant) {
                 userMicEl.classList.add("text-gray-400");
             }
             
-            // Remove speaking indicator
+            
             const participantEl = document.getElementById(`participant-list-${participant.id}`);
             if (participantEl) {
                 participantEl.classList.remove("speaking");
@@ -448,7 +448,7 @@ function addParticipant(participant) {
                 screenShareEl.remove();
             }
             
-            // Update screen share button for local participant
+            
             if (participant.id === meeting?.localParticipant?.id) {
                 const screenBtn = document.getElementById("screenBtn");
                 if (screenBtn) {
@@ -459,7 +459,7 @@ function addParticipant(participant) {
         }
     });
     
-    // Show participants panel if not already shown
+    
     updateParticipantsPanel();
 }
 
@@ -494,7 +494,7 @@ function setupAudioDetection(participantId, audioStream) {
                 if (micIcon) micIcon.classList.remove("text-white");
             }
             
-            // Only continue if the participant element still exists
+            
             if (document.getElementById(`participant-list-${participantId}`)) {
                 requestAnimationFrame(checkAudioLevel);
             }
@@ -514,7 +514,7 @@ function removeParticipant(participant) {
     
     participantCount--;
     
-    // Remove from participants list with fade effect
+    
     const participantListEl = document.getElementById(`participant-list-${participant.id}`);
     if (participantListEl) {
         participantListEl.style.transition = "opacity 0.3s ease";
@@ -527,7 +527,7 @@ function removeParticipant(participant) {
         }, 300);
     }
     
-    // Remove video element if exists
+    
     const videoEl = document.getElementById(`video-${participant.id}`);
     if (videoEl) {
         videoEl.style.transition = "opacity 0.3s ease";
@@ -540,19 +540,19 @@ function removeParticipant(participant) {
         }, 300);
     }
     
-    // Remove audio container
+    
     const audioContainer = document.getElementById(`audio-container-${participant.id}`);
     if (audioContainer) {
         audioContainer.remove();
     }
     
-    // Remove screen share if exists
+    
     const screenShareEl = document.getElementById(`screen-share-${participant.id}`);
     if (screenShareEl) {
         screenShareEl.remove();
     }
     
-    // Update participants panel
+    
     updateParticipantsPanel();
 }
 
@@ -570,7 +570,7 @@ function updateParticipantsPanel() {
 function showToast(message, type = "info") {
     if (!message) return;
     
-    // Create toast container if it doesn't exist
+    
     let toastContainer = document.getElementById("toast-container");
     if (!toastContainer) {
         toastContainer = document.createElement("div");
@@ -579,7 +579,7 @@ function showToast(message, type = "info") {
         document.body.appendChild(toastContainer);
     }
     
-    // Create toast element
+    
     const toast = document.createElement("div");
     toast.className = `px-4 py-2 rounded-md shadow-lg text-white flex items-center ${
         type === "error" ? "bg-[#ED4245]" : 
@@ -587,7 +587,7 @@ function showToast(message, type = "info") {
         "bg-[#5865F2]"
     }`;
     
-    // Set icon based on type
+    
     const icon = type === "error" ? "times-circle" : 
                  type === "success" ? "check-circle" : 
                  "info-circle";
@@ -599,7 +599,7 @@ function showToast(message, type = "info") {
     
     toastContainer.appendChild(toast);
     
-    // Animate in
+    
     toast.style.opacity = "0";
     toast.style.transform = "translateX(20px)";
     toast.style.transition = "opacity 0.3s ease, transform 0.3s ease";
@@ -609,7 +609,7 @@ function showToast(message, type = "info") {
         toast.style.transform = "translateX(0)";
     }, 10);
     
-    // Remove after delay
+    
     setTimeout(() => {
         toast.style.opacity = "0";
         toast.style.transform = "translateX(20px)";

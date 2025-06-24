@@ -1,4 +1,3 @@
-// Comprehensive Socket Connection Test
 console.log('🔧 Starting comprehensive socket connection test...');
 
 window.socketDiagnostics = {
@@ -7,25 +6,18 @@ window.socketDiagnostics = {
     async runFullDiagnostics() {
         console.log('🧪 Running full socket diagnostics...');
         
-        // Test 1: Check if Socket.IO is loaded
         this.results.socketIOLoaded = this.testSocketIOLoaded();
-        
-        // Test 2: Check meta tags
+
         this.results.metaTags = this.testMetaTags();
         
-        // Test 3: Check Docker containers
         this.results.dockerHealth = await this.testDockerHealth();
         
-        // Test 4: Test socket connection
         this.results.socketConnection = await this.testSocketConnection();
         
-        // Test 5: Check global socket manager
         this.results.globalSocketManager = this.testGlobalSocketManager();
         
-        // Test 6: Check messaging system
         this.results.messagingSystem = this.testMessagingSystem();
         
-        // Test 7: Check user authentication
         this.results.userAuth = this.testUserAuthentication();
         
         this.printResults();

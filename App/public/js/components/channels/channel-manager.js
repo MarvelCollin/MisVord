@@ -1,7 +1,5 @@
 import { MisVordAjax } from '../../core/ajax/ajax-handler.js';
 import { showToast } from '../../core/ui/toast.js';
-import serverAPI from '../../api/server-api.js';
-import channelAPI from '../../api/channel-api.js';
 
 document.addEventListener('DOMContentLoaded', function() {
     initChannelManager();
@@ -28,7 +26,7 @@ function loadServerChannels() {
     const loadingEl = document.getElementById('channel-loading');
     if (loadingEl) loadingEl.classList.remove('hidden');
 
-    serverAPI.getServerChannels(serverId)
+    window.serverAPI.getServerChannels(serverId)
         .then(response => {
             if (response.success) {
                 renderChannelList(response.data);
@@ -54,7 +52,7 @@ function initUpdateChannelForms() {
                 data[key] = value;
             }
             
-            channelAPI.updateChannel(channelId, data)
+            window.channelAPI.updateChannel(channelId, data)
                 .then(response => {
                     if (response.success) {
                         showToast('Channel updated successfully', 'success');
@@ -97,7 +95,7 @@ function initDeleteChannelButtons() {
 }
 
 function deleteChannel(channelId) {
-    channelAPI.deleteChannel(channelId)
+    window.channelAPI.deleteChannel(channelId)
         .then(response => {
             if (response.success) {
                 showToast('Channel deleted successfully', 'success');
@@ -115,7 +113,7 @@ function refreshChannelList() {
     const serverId = urlParts[urlParts.indexOf('server') + 1];
 
     if (serverId) {
-        serverAPI.getServerChannels(serverId)
+        window.serverAPI.getServerChannels(serverId)
             .then(response => {
                 if (response.success) {
                     renderChannelList(response.data);
@@ -345,7 +343,7 @@ function createChannelAtPosition(name, type, serverId, categoryId = null, positi
         formData.append('position', position);
     }
 
-    return channelAPI.createChannel(formData)
+    return window.channelAPI.createChannel(formData)
         .then(data => {
             if (data.success) {
                 console.log('Channel created at position:', position);
@@ -373,7 +371,7 @@ function createCategoryAtPosition(name, serverId, position = null) {
         formData.append('position', position);
     }
 
-    return channelAPI.createCategory(formData)
+    return window.channelAPI.createCategory(formData)
         .then(data => {
             if (data.success) {
                 console.log('Category created at position:', position);

@@ -32,16 +32,16 @@ class GlobalVoiceIndicator {
   checkIfOnVoiceChannelPage() {
     this.onVoiceChannelPage = false;
     
-    // Check different indicators that we're on a voice channel page
     
-    // 1. Check for video container element
+    
+    
     const videoContainer = document.getElementById('videoContainer');
     if (videoContainer) {
       this.onVoiceChannelPage = true;
       return true;
     }
     
-    // 2. Check URL path
+    
     const currentPath = window.location.pathname;
     if (currentPath.includes('/voice/') || 
         (currentPath.includes('/channels/') && currentPath.includes('/voice'))) {
@@ -49,7 +49,7 @@ class GlobalVoiceIndicator {
       return true;
     }
     
-    // 3. Check for voice UI elements
+    
     const voiceControls = document.querySelector('.voice-controls');
     const joinVoiceBtn = document.getElementById('joinBtn');
     if ((voiceControls || joinVoiceBtn) && document.querySelector('[data-channel-id="' + this.currentChannelId + '"]')) {
@@ -57,7 +57,7 @@ class GlobalVoiceIndicator {
       return true;
     }
     
-    // 4. Check meta tag
+    
     const meetingIdMeta = document.querySelector('meta[name="meeting-id"]');
     const currentMeetingId = meetingIdMeta ? meetingIdMeta.getAttribute('content') : null;
     if (currentMeetingId && this.meetingId && currentMeetingId === this.meetingId) {
@@ -176,7 +176,7 @@ class GlobalVoiceIndicator {
     this.indicator.style.display = "flex";
     this.indicator.classList.remove("scale-0", "opacity-0");
     
-    // Force the element to be displayed
+    
     this.indicator.style.opacity = "1";
     this.indicator.style.transform = "scale(1)";
   }
@@ -348,14 +348,14 @@ class GlobalVoiceIndicator {
     this.hideIndicator();
     this.stopTimer();
     
-    // Clear connection state in localStorage
+    
     localStorage.removeItem("voiceConnectionState");
     
-    // Dispatch event for other components
+    
     const event = new CustomEvent("globalVoiceDisconnect");
     window.dispatchEvent(event);
 
-    // Leave the VideoSDK meeting if it exists
+    
     if (window.videosdkMeeting) {
       try {
         window.videosdkMeeting.leave();
@@ -365,10 +365,10 @@ class GlobalVoiceIndicator {
       }
     }
     
-    // Complete reset of state
+    
     this.resetState();
     
-    // Remove indicator completely from DOM
+    
     setTimeout(() => {
       this.cleanup();
     }, 350);
@@ -418,18 +418,18 @@ class GlobalVoiceIndicator {
   }
 
   startConnectionVerification() {
-    // Clear any existing interval
+    
     if (this.verificationInterval) {
       clearInterval(this.verificationInterval);
     }
     
     this.verificationInterval = setInterval(() => {
-      // Check if connected but no VideoSDK meeting exists
+      
       if (this.isConnected && !window.videosdkMeeting) {
         console.log("Voice connection state mismatch - no VideoSDK meeting exists. Disconnecting.");
         this.handleDisconnect();
       } 
-      // Double check if we're showing the indicator but not connected
+      
       else if (!this.isConnected && this.indicator) {
         console.log("Voice indicator showing but not connected. Cleaning up.");
         this.cleanup();
@@ -449,7 +449,7 @@ class GlobalVoiceIndicator {
     
     const channelNameEl = this.indicator.querySelector('.channel-name');
     if (channelNameEl && this.channelName) {
-      // Shorten channel name if too long
+      
       const displayName = this.channelName.length > 10 
         ? this.channelName.substring(0, 8) + '...' 
         : this.channelName;
@@ -467,11 +467,11 @@ class GlobalVoiceIndicator {
     const elapsedMs = Date.now() - this.connectionTime;
     const elapsedSec = Math.floor(elapsedMs / 1000);
     
-    // Format time as shown in the image (minutes-seconds)
+    
     const minutes = Math.floor(elapsedSec / 60);
     const seconds = elapsedSec % 60;
     
-    // Format to match the design: "24-2"
+    
     durationEl.textContent = `${minutes.toString().padStart(2, '0')}-${seconds.toString().padStart(2, '0')}`;
   }
 
@@ -483,10 +483,10 @@ class GlobalVoiceIndicator {
       disconnectBtn.addEventListener("click", () => this.handleDisconnect());
     }
     
-    // Setup signal strength indicators
+    
     this.updateSignalStrength();
     
-    // Update signal strength periodically
+    
     this.signalInterval = setInterval(() => {
       this.updateSignalStrength();
     }, 5000);
@@ -528,7 +528,7 @@ class GlobalVoiceIndicator {
   }
   
   setupNavigationObserver() {
-    // Set up a MutationObserver to detect DOM changes that might indicate navigation
+    
     this.observer = new MutationObserver(() => {
       if (this.isConnected) {
         setTimeout(() => {
@@ -537,7 +537,7 @@ class GlobalVoiceIndicator {
       }
     });
     
-    // Start observing the document with the configured parameters
+    
     this.observer.observe(document.body, {
       childList: true, 
       subtree: true
@@ -551,19 +551,19 @@ class GlobalVoiceIndicator {
         this.indicator = null;
       }
       
-      // Clear intervals
+      
       if (this.signalInterval) {
         clearInterval(this.signalInterval);
         this.signalInterval = null;
       }
       
-      // Stop the observer
+      
       if (this.observer) {
         this.observer.disconnect();
         this.observer = null;
       }
       
-      // Clear any existing voice indicators
+      
       const existingIndicators = document.querySelectorAll('#voice-indicator');
       existingIndicators.forEach(indicator => {
         indicator.remove();
@@ -576,13 +576,13 @@ class GlobalVoiceIndicator {
     const nowOnVoiceChannelPage = this.checkIfOnVoiceChannelPage();
     
     if (!this.isConnected) {
-      // Not connected, no need to show/hide indicator
+      
       return;
     }
     
-    // Handle transitions between pages
+    
     if (wasOnVoiceChannelPage && !nowOnVoiceChannelPage) {
-      // Moved away from voice channel page, show indicator
+      
       console.log('Left voice channel page, showing indicator');
       if (this.indicator) {
         this.showIndicator();
@@ -590,7 +590,7 @@ class GlobalVoiceIndicator {
         this.loadIndicatorComponent(true);
       }
     } else if (!wasOnVoiceChannelPage && nowOnVoiceChannelPage) {
-      // Entered voice channel page, hide indicator
+      
       console.log('Entered voice channel page, hiding indicator');
       this.hideIndicator();
     }

@@ -9,12 +9,12 @@ require_once APP_ROOT . '/config/app.php';
 $requestUri = $_SERVER['REQUEST_URI'];
 $parsedUri = parse_url($requestUri, PHP_URL_PATH);
 
-// Handle ALL API routes first, regardless of file system
+
 if (strpos($parsedUri, '/api/') === 0) {
     error_reporting(0);
     ini_set('display_errors', 0);
     
-    // Override REQUEST_URI to the parsed path for consistent routing
+    
     $_SERVER['REQUEST_URI'] = $parsedUri;
     
     $webConfigPath = APP_ROOT . '/config/web.php';

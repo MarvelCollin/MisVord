@@ -1,4 +1,3 @@
-// Quick Docker Container Test
 console.log('🐳 Testing Docker container connectivity...');
 
 async function testDockerConnectivity() {
@@ -16,7 +15,7 @@ async function testDockerConnectivity() {
         {
             name: 'Socket Server Root',
             url: 'http://localhost:1002/',
-            expected: 404 // Expected - no root route
+            expected: 404
         }
     ];
     
@@ -44,7 +43,6 @@ async function testDockerConnectivity() {
         }
     }
     
-    // Test Socket.IO connection directly
     console.log('\n🔌 Testing Socket.IO connection...');
     
     if (typeof io === 'undefined') {
@@ -70,7 +68,6 @@ async function testDockerConnectivity() {
         console.log(`   Socket ID: ${testSocket.id}`);
         console.log(`   Transport: ${testSocket.io.engine.transport.name}`);
         
-        // Test authentication
         testSocket.emit('test-auth', { 
             userId: 'test-user',
             username: 'test'
@@ -92,7 +89,6 @@ async function testDockerConnectivity() {
         console.log('📨 Received test response:', data);
     });
     
-    // Timeout check
     setTimeout(() => {
         if (!connected) {
             console.error('⏰ Socket.IO connection timeout - containers may not be running');
@@ -101,8 +97,6 @@ async function testDockerConnectivity() {
     }, 10000);
 }
 
-// Run the test
 testDockerConnectivity();
 
-// Make it available globally
 window.testDockerConnectivity = testDockerConnectivity;

@@ -159,26 +159,191 @@ document.addEventListener('DOMContentLoaded', function() {
     const channelItems = document.querySelectorAll('.channel-item');
     
     channelItems.forEach(item => {
-        item.addEventListener('click', function() {
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            
             const channelId = this.getAttribute('data-channel-id');
             const channelType = this.getAttribute('data-channel-type'); 
             const serverId = document.querySelector('#current-server-id')?.value;
+            
+            if (!channelId || !serverId) return;
             
             channelItems.forEach(el => {
                 el.classList.remove('bg-discord-lighten', 'text-white');
             });
             this.classList.add('bg-discord-lighten', 'text-white');
             
-            if (channelId && serverId) {
-                if (channelType === 'text') {
-                    window.location.href = `/server/${serverId}?channel=${channelId}`;
-                } else if (channelType === 'voice') {
-                    window.location.href = `/server/${serverId}?channel=${channelId}&type=voice`;
+            loadChannelContent(serverId, channelId, channelType);
+            
+            const newUrl = `/server/${serverId}?channel=${channelId}${channelType === 'voice' ? '&type=voice' : ''}`;
+            history.pushState({serverId, channelId, type: channelType}, '', newUrl);
+        });
+    });
+    
+    window.addEventListener('popstate', function(event) {
+        if (event.state && event.state.serverId && event.state.channelId) {
+            loadChannelContent(event.state.serverId, event.state.channelId, event.state.type || 'text');
+            
+            const channelItem = document.querySelector(`.channel-item[data-channel-id="${event.state.channelId}"]`);
+            if (channelItem) {
+                document.querySelectorAll('.channel-item').forEach(el => {
+                    el.classList.remove('bg-discord-lighten', 'text-white');
+                });
+                channelItem.classList.add('bg-discord-lighten', 'text-white');
+            }
+        }
+    });
+});
+
+async function loadChannelContent(serverId, channelId, type = 'text') {
+    try {
+        // Show loading state
+        const chatSection = document.querySelector('.chat-section-wrapper');
+        const participantSection = document.querySelector('.participant-section-wrapper');
+        
+        if (!chatSection || !participantSection) return;
+        
+        const loadingSpinner = `
+            <div class="flex items-center justify-center h-full w-full">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
+            </div>
+        `;
+        
+        chatSection.innerHTML = loadingSpinner;
+        
+        // Update current active channel in the UI
+        const channelItems = document.querySelectorAll('.channel-item');
+        channelItems.forEach(item => {
+            if (item.getAttribute('data-channel-id') === channelId) {
+                item.classList.add('bg-discord-lighten', 'text-white');
+            } else {
+                item.classList.remove('bg-discord-lighten', 'text-white');
+            }
+        });
+        
+        // Fetch channel content
+        const response = await window.channelAPI.getChannelContent(serverId, channelId, type);
+        
+        if (response && response.success) {
+            // Update DOM with new content
+            chatSection.innerHTML = response.data.html.chat_section || '';
+            participantSection.innerHTML = response.data.html.participant_section || '';
+            
+            // Update metadata
+            const metaTags = document.querySelectorAll('meta[name^="chat-"]');
+            metaTags.forEach(tag => {
+                if (tag.getAttribute('name') === 'chat-id') {
+                    tag.setAttribute('content', channelId);
+                } else if (tag.getAttribute('name') === 'channel-id') {
+                    tag.setAttribute('content', channelId);
+                } else if (tag.getAttribute('name') === 'chat-type') {
+                    tag.setAttribute('content', 'channel');
+                } else if (tag.getAttribute('name') === 'chat-title' && response.data.channel) {
+                    tag.setAttribute('content', response.data.channel.name || '');
+                }
+            });
+            
+            // Update document title
+            if (response.data.channel && response.data.channel.name) {
+                document.title = `${response.data.channel.name} | MisVord`;
+            }
+            
+            // Reset global chat section
+            if (window.chatSection) {
+                // Clean up any existing event listeners or timers
+                if (window.chatSection.typingTimeout) {
+                    clearTimeout(window.chatSection.typingTimeout);
+                }
+                
+                // Clean up to prevent memory leaks
+                if (window.chatSection.chatMessages) {
+                    const oldChatMessages = document.getElementById('chat-messages');
+                    if (oldChatMessages) {
+                        const newChatMessages = oldChatMessages.cloneNode(false);
+                        if (oldChatMessages.parentNode) {
+                            oldChatMessages.parentNode.replaceChild(newChatMessages, oldChatMessages);
+                        }
+                    }
+                }
+            }
+            
+            // Initialize components in the proper order
+            
+            // 1. First initialize global socket manager for the channel
+            if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+                window.globalSocketManager.setupChannelListeners(channelId);
+            }
+            
+            // 2. Then initialize chat section
+            if (typeof window.initializeChatSection === 'function') {
+                window.initializeChatSection();
+            }
+            
+            // 3. Initialize other components
+            initializeRemainingComponents();
+            
+            // Dispatch custom event for other components to respond to
+            document.dispatchEvent(new CustomEvent('channelChanged', { 
+                detail: { 
+                    serverId,
+                    channelId,
+                    channelType: type,
+                    channel: response.data.channel || {}
+                }
+            }));
+        } else {
+            throw new Error('Failed to load channel content');
+        }
+    } catch (error) {
+        console.error('Error loading channel content:', error);
+        showToast('Failed to load channel content. Please try again.', 'error');
+    }
+}
+
+function initializeAllComponents() {
+    // Initialize chat section
+    if (typeof window.initializeChatSection === 'function') {
+        window.initializeChatSection();
+    }
+    
+    initializeRemainingComponents();
+}
+
+function initializeRemainingComponents() {
+    // Initialize message components
+    if (typeof initializeMessageComponents === 'function') {
+        initializeMessageComponents();
+    }
+    
+    // Initialize lazy loading
+    if (window.LazyLoader && typeof window.LazyLoader.init === 'function') {
+        window.LazyLoader.init();
+    }
+    
+    // Initialize message input
+    const messageInput = document.querySelector('#message-input');
+    if (messageInput) {
+        messageInput.focus();
+        // Add input handlers if needed
+        messageInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                const sendButton = document.querySelector('#send-message-btn');
+                if (sendButton) {
+                    sendButton.click();
                 }
             }
         });
-    });
-});
+    }
+    
+    // Scroll chat to bottom
+    const messagesContainer = document.querySelector('#chat-messages');
+    if (messagesContainer) {
+        setTimeout(() => {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }, 100);
+    }
+}
 
 function openCreateChannelModal(type = 'text') {
     console.log('Create channel modal:', type);

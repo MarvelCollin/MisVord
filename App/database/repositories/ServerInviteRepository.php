@@ -20,7 +20,6 @@ class ServerInviteRepository extends Repository {
     public function createInvite($serverId, $createdBy, $expiresAt = null, $specificCode = null) {
         $code = $specificCode ?: ServerInvite::generateCode();
         
-        // If a specific code wasn't provided or the provided code is already in use, generate a new one
         if (!$specificCode || $this->findByCode($code)) {
             $code = ServerInvite::generateCode();
             

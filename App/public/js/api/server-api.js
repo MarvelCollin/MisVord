@@ -134,4 +134,4 @@ class ServerAPI {
 }
 
 const serverAPI = new ServerAPI();
-export default serverAPI;
+window.serverAPI = serverAPI;

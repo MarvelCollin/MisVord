@@ -1,7 +1,4 @@
 import { showToast } from '../../core/ui/toast.js';
-import serverAPI from '../../api/server-api.js';
-import channelAPI from '../../api/channel-api.js';
-
 if (typeof window !== 'undefined' && window.logger) {
     window.logger.info('server', 'server-dropdown.js loaded successfully - UPDATED VERSION');
 }
@@ -170,12 +167,12 @@ function showInvitePeopleModal() {
         const friendsSection = document.getElementById('invite-friends-section');
         const searchResults = document.getElementById('friend-search-results');
         
-        // Fix for relative positioning
+        
         if (friendsSection) {
             friendsSection.style.position = 'relative';
         }
 
-        // Style the sections
+        
         if (inviteLinkSection) {
             inviteLinkSection.style.marginBottom = '24px';
             inviteLinkSection.style.padding = '16px';
@@ -189,17 +186,17 @@ function showInvitePeopleModal() {
             friendsSection.style.borderRadius = '8px';
             friendsSection.style.backgroundColor = '#2f3136';
             friendsSection.style.border = '1px solid #202225';
-            friendsSection.style.marginBottom = '40px'; // Add extra space at bottom
+            friendsSection.style.marginBottom = '40px'; 
         }
         
-        // Fix search results positioning
+        
         if (searchResults) {
             searchResults.style.position = 'absolute';
             searchResults.style.zIndex = '10000';
             searchResults.style.width = '100%';
             searchResults.style.left = '0';
             searchResults.style.marginTop = '4px';
-            searchResults.style.maxHeight = '300px'; // Increased height
+            searchResults.style.maxHeight = '300px'; 
             searchResults.style.overflowY = 'auto';
             searchResults.style.backgroundColor = '#36393f';
             searchResults.style.borderRadius = '4px';
@@ -207,7 +204,7 @@ function showInvitePeopleModal() {
             searchResults.style.boxShadow = '0 8px 16px rgba(0, 0, 0, 0.24)';
         }
 
-        // Style the invite link input and buttons
+        
         const inviteLinkInput = document.getElementById('invite-link');
         if (inviteLinkInput) {
             inviteLinkInput.style.backgroundColor = '#36393f';
@@ -340,7 +337,7 @@ function showInvitePeopleModal() {
             sendInvitesBtn.setAttribute('data-listener', 'true');
         }
         
-        // Fix selected friends container
+        
         const selectedFriendsContainer = document.getElementById('selected-friends');
         if (selectedFriendsContainer) {
             selectedFriendsContainer.style.display = 'flex';
@@ -356,7 +353,7 @@ function showInvitePeopleModal() {
             friendsActionsContainer.classList.add('hidden');
 }
 
-        // Fix the modal heading and subheading
+        
         const modalHeading = modal.querySelector('h2, h3');
         if (modalHeading) {
             modalHeading.style.fontSize = '24px';
@@ -372,7 +369,7 @@ function showInvitePeopleModal() {
             modalSubHeading.style.marginBottom = '16px';
         }
         
-        // Fix any section headings
+        
         const sectionHeadings = modal.querySelectorAll('h4');
         sectionHeadings.forEach(heading => {
             heading.style.fontSize = '16px';
@@ -402,35 +399,35 @@ function initFriendSearch(searchInput) {
         noFriendsFoundMsg.style.textAlign = 'center';
     }
     
-    // Ensure the dropdown container exists outside the modal for proper z-index handling
+    
     let dropdownContainer = document.getElementById('global-friend-search-results-container');
     
     if (!dropdownContainer) {
         dropdownContainer = document.createElement('div');
         dropdownContainer.id = 'global-friend-search-results-container';
         dropdownContainer.style.position = 'fixed';
-        dropdownContainer.style.zIndex = '99999'; // Super high z-index
+        dropdownContainer.style.zIndex = '99999'; 
         dropdownContainer.style.top = '0';
         dropdownContainer.style.left = '0';
         dropdownContainer.style.width = '100%';
         dropdownContainer.style.height = '0';
         dropdownContainer.style.overflow = 'visible';
-        dropdownContainer.style.pointerEvents = 'none'; // Let clicks pass through container
+        dropdownContainer.style.pointerEvents = 'none'; 
         document.body.appendChild(dropdownContainer);
         
-        // Move the results container to this global container if it exists
+        
         if (resultsContainer) {
             dropdownContainer.appendChild(resultsContainer);
-            // Ensure pointer events work on the dropdown itself
+            
             resultsContainer.style.pointerEvents = 'auto';
         }
     }
     
-    // Fix positioning container for search results
+    
     if (resultsContainer) {
-        // Style the results container for proper positioning
-        resultsContainer.style.position = 'fixed'; // Change to fixed positioning
-        resultsContainer.style.zIndex = '99999'; // Super high z-index
+        
+        resultsContainer.style.position = 'fixed'; 
+        resultsContainer.style.zIndex = '99999'; 
         resultsContainer.style.backgroundColor = '#36393f';
         resultsContainer.style.borderRadius = '4px';
         resultsContainer.style.border = '1px solid #202225';
@@ -444,41 +441,41 @@ function initFriendSearch(searchInput) {
         if (resultsContainer) {
         resultsContainer.classList.remove('hidden');
             
-            // Calculate position based on the input field
+            
             const inputRect = searchInput.getBoundingClientRect();
             resultsContainer.style.width = inputRect.width + 'px';
             resultsContainer.style.left = inputRect.left + 'px';
             resultsContainer.style.top = (inputRect.bottom + 4) + 'px';
             
-            // Check if dropdown would go off-screen
+            
             const dropdownHeight = Math.min(300, resultsContainer.scrollHeight);
             if (inputRect.bottom + dropdownHeight + 4 > window.innerHeight) {
-                // Position above the input
+                
                 resultsContainer.style.top = 'auto';
                 resultsContainer.style.bottom = (window.innerHeight - inputRect.top + 4) + 'px';
             } else {
-                // Position below the input
+                
                 resultsContainer.style.top = (inputRect.bottom + 4) + 'px';
                 resultsContainer.style.bottom = 'auto';
             }
         }
     });
     
-    // Update position on scroll or resize
+    
     const updatePosition = () => {
         if (resultsContainer && !resultsContainer.classList.contains('hidden')) {
             const inputRect = searchInput.getBoundingClientRect();
             resultsContainer.style.width = inputRect.width + 'px';
             resultsContainer.style.left = inputRect.left + 'px';
             
-            // Check if dropdown would go off-screen
+            
             const dropdownHeight = Math.min(300, resultsContainer.scrollHeight);
             if (inputRect.bottom + dropdownHeight + 4 > window.innerHeight) {
-                // Position above the input
+                
                 resultsContainer.style.top = 'auto';
                 resultsContainer.style.bottom = (window.innerHeight - inputRect.top + 4) + 'px';
             } else {
-                // Position below the input
+                
                 resultsContainer.style.top = (inputRect.bottom + 4) + 'px';
                 resultsContainer.style.bottom = 'auto';
             }
@@ -513,7 +510,7 @@ function initFriendSearch(searchInput) {
         
         if (searchPrompt) searchPrompt.classList.add('hidden');
         
-        // Make sure dropdown is positioned correctly
+        
         const inputRect = searchInput.getBoundingClientRect();
         if (resultsContainer) {
             resultsContainer.style.width = inputRect.width + 'px';
@@ -532,11 +529,11 @@ function searchFriends(query) {
     if (resultsContainer) {
         resultsContainer.innerHTML = '<div style="text-align: center; padding: 12px;"><i class="fas fa-spinner fa-spin mr-2"></i>Searching...</div>';
     
-        // Fix positioning to prevent cutoff
-        resultsContainer.style.position = 'fixed'; // Changed from absolute to fixed
-        resultsContainer.style.zIndex = '99999'; // Increased z-index significantly
         
-        // Calculate position relative to input
+        resultsContainer.style.position = 'fixed'; 
+        resultsContainer.style.zIndex = '99999'; 
+        
+        
         const searchInput = document.getElementById('friend-search');
         if (searchInput) {
             const inputRect = searchInput.getBoundingClientRect();
@@ -927,34 +924,35 @@ function loadInviteLink(serverId) {
         inviteLinkInput.disabled = true;
     }
 
-    serverAPI.getServer(serverId)
-        .then(data => {
-            console.log('Server data received:', data);
+    
+    
+    
+    
 
-            if (inviteLinkInput) {
-                inviteLinkInput.disabled = false;
+    
+    
 
-                if (data.success && data.server && data.server.invite_link) {
-                    const fullInviteLink = `${window.location.origin}/join/${data.server.invite_link}`;
-                    inviteLinkInput.value = fullInviteLink;
-                    inviteLinkInput.select();
-                } else {
-                    inviteLinkInput.value = "";
-                    inviteLinkInput.placeholder = "Click 'Generate New Link' to create an invite";
-                }
-            }
-        })
-        .catch(error => {
-            console.error('Error loading invite link:', error);
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
-            if (inviteLinkInput) {
-                inviteLinkInput.disabled = false;
-                inviteLinkInput.value = "";
-                inviteLinkInput.placeholder = "Error loading invite link";
-            }
+    
+    
+    
+    
+    
 
-            showToast(`Failed to load invite link: ${error.message}`, 'error');
-        });
+    
+    
 }
 
 function copyInviteLink() {
@@ -975,29 +973,29 @@ function generateNewInvite(serverId, expirationValue = null) {
     const options = {};
     if (expirationValue) {
         if (expirationValue === 'never') {
-            // No expiration
+            
         } else if (expirationValue === 'hour') {
             options.expires_in = 1;
         } else if (expirationValue === 'day') {
             options.expires_in = 24;
         } else if (expirationValue === 'week') {
-            options.expires_in = 168; // 24 * 7
+            options.expires_in = 168; 
         } else if (expirationValue === 'month') {
-            options.expires_in = 720; // 24 * 30
+            options.expires_in = 720; 
         }
     }
 
-    serverAPI.generateInvite(serverId, options)
+    window.serverAPI.generateInvite(serverId, options)
         .then(data => {
             console.log('Invite generation response:', data);
             
-            // Check if the response contains invite data
+            
             if (data && (data.success || data.invite_code || (data.data && data.data.invite_code))) {
                 let inviteCode = data.invite_code;
                 let inviteUrl = data.invite_url;
                 let expiresAt = data.expires_at;
                 
-                // Handle different response formats
+                
                 if (!inviteCode && data.data && data.data.invite_code) {
                     inviteCode = data.data.invite_code;
                 }
@@ -1010,7 +1008,7 @@ function generateNewInvite(serverId, expirationValue = null) {
                     expiresAt = data.data.expires_at;
                 }
                 
-                // If we still don't have a URL but have a code, construct it
+                
                 if (!inviteUrl && inviteCode) {
                     inviteUrl = `${window.location.origin}/join/${inviteCode}`;
                 }
@@ -1022,7 +1020,7 @@ function generateNewInvite(serverId, expirationValue = null) {
                     inviteLinkInput.select(); 
                     }
                     
-                    // Update expiration info if available
+                    
                     const expirationInfo = document.getElementById('invite-expiration-info');
                     if (expirationInfo) {
                         if (expiresAt) {
@@ -1259,7 +1257,7 @@ function closeModal(modalId) {
                 modal.style.display = 'none';
                 modalContent.classList.remove('animate-fade-out');
                 
-                // Hide any dropdown that might be open
+                
                 const searchResults = document.getElementById('friend-search-results');
                 if (searchResults) {
                     searchResults.classList.add('hidden');
@@ -1269,7 +1267,7 @@ function closeModal(modalId) {
             modal.classList.add('hidden');
             modal.style.display = 'none';
             
-            // Hide any dropdown that might be open
+            
             const searchResults = document.getElementById('friend-search-results');
             if (searchResults) {
                 searchResults.classList.add('hidden');

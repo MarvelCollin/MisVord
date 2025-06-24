@@ -33,17 +33,14 @@ if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
     if (!isset($_SESSION['last_activity'])) {
         $_SESSION['last_activity'] = time();
     } elseif (time() - $_SESSION['last_activity'] > $sessionLifetime) {
-        // Session expired, destroy and start a new one
         session_unset();
         session_destroy();
         session_start();
         $_SESSION['last_activity'] = time();
     }
     
-    // Update last activity time for the session
     $_SESSION['last_activity'] = time();
     
-    // Generate CSRF token if not exists
     if (!isset($_SESSION['csrf_token'])) {
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
     }

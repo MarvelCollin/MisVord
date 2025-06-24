@@ -101,4 +101,4 @@ class NitroAPI {
 }
 
 const nitroAPI = new NitroAPI();
-export default nitroAPI;
+window.nitroAPI = nitroAPI;

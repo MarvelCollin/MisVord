@@ -1,5 +1,3 @@
-// Docker WebSocket Verification Script
-// This script verifies that only Docker containers are used with WebSocket-only transport
 
 console.log('🐳 Docker WebSocket Configuration Verification');
 console.log('=============================================');
@@ -14,7 +12,6 @@ function verifyDockerWebSocketConfig() {
         singleConnection: false
     };
     
-    // Check if Socket.IO is available
     if (typeof io !== 'undefined') {
         results.socketIO = true;
         console.log('✅ Socket.IO library loaded');
@@ -22,15 +19,13 @@ function verifyDockerWebSocketConfig() {
         console.log('❌ Socket.IO library not loaded');
         return results;
     }
-    
-    // Check meta tag configuration
+
     const socketHost = document.querySelector('meta[name="socket-host"]')?.getAttribute('content');
     const socketPort = document.querySelector('meta[name="socket-port"]')?.getAttribute('content');
     
     console.log(`🔧 Socket Host: ${socketHost}`);
     console.log(`🔧 Socket Port: ${socketPort}`);
     
-    // Verify Docker configuration
     if (socketHost && (socketHost === 'socket' || socketHost.includes('localhost'))) {
         results.dockerHost = true;
         console.log('✅ Docker host configuration detected');
@@ -45,7 +40,6 @@ function verifyDockerWebSocketConfig() {
         console.log('❌ Non-Docker port configuration');
     }
     
-    // Test WebSocket-only connection
     const testSocketUrl = `http://${socketHost || window.location.hostname}:${socketPort || '1002'}`;
     console.log(`🔗 Testing WebSocket-only connection to: ${testSocketUrl}`);
     
@@ -66,18 +60,15 @@ function verifyDockerWebSocketConfig() {
         results.websocketOnly = true;
         results.singleConnection = true;
         
-        // Verify no polling transport is available
         if (testSocket.io.engine.transport.name === 'websocket') {
             results.noPolling = true;
             console.log('✅ Confirmed WebSocket transport only');
         }
         
-        // Disconnect test socket
         setTimeout(() => {
             testSocket.disconnect();
             console.log('🔌 Test connection closed');
-            
-            // Print final results
+
             printVerificationResults(results);
         }, 1000);
     });
@@ -88,7 +79,6 @@ function verifyDockerWebSocketConfig() {
         printVerificationResults(results);
     });
     
-    // Timeout after 10 seconds
     setTimeout(() => {
         if (!testSocket.connected) {
             console.log('⏰ WebSocket connection test timeout');
@@ -137,12 +127,10 @@ function printVerificationResults(results) {
     console.log('   - Logs: docker-compose logs -f socket');
 }
 
-// Run verification
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', verifyDockerWebSocketConfig);
 } else {
     verifyDockerWebSocketConfig();
 }
 
-// Make it available globally
 window.verifyDockerWebSocketConfig = verifyDockerWebSocketConfig;

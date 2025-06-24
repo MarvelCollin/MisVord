@@ -29,7 +29,7 @@ class UserRepository extends Repository {
         $password = null;
         if (isset($data['password'])) {
             $password = $data['password'];
-            unset($data['password']); // Remove from data so it doesn't get hashed twice
+            unset($data['password']); 
         }
         
         $user = new User($data);
@@ -246,13 +246,13 @@ class UserRepository extends Repository {
         $stats = [];
         $query = new Query();
         
-        // Initialize the array with zeros for all days
+        
         for ($i = $days - 1; $i >= 0; $i--) {
             $date = date('Y-m-d', strtotime("-$i days"));
             $stats[$date] = 0;
         }
         
-        // Get the actual counts from the database
+        
         $startDate = date('Y-m-d', strtotime("-" . ($days - 1) . " days"));
         $results = $query->query(
             "SELECT DATE(created_at) as date, COUNT(*) as count 
@@ -263,7 +263,7 @@ class UserRepository extends Repository {
             [$startDate]
         );
         
-        // Fill in the actual counts
+        
         foreach ($results as $row) {
             if (isset($stats[$row['date']])) {
                 $stats[$row['date']] = (int)$row['count'];
@@ -283,7 +283,7 @@ class UserRepository extends Repository {
         $stats = [];
         $query = new Query();
         
-        // Initialize the array with zeros for all weeks
+        
         for ($i = $weeks - 1; $i >= 0; $i--) {
             $weekStart = date('Y-m-d', strtotime("-$i weeks", strtotime('monday this week')));
             $weekEnd = date('Y-m-d', strtotime("+6 days", strtotime($weekStart)));
@@ -291,7 +291,7 @@ class UserRepository extends Repository {
             $stats[$weekLabel] = 0;
         }
         
-        // Get the actual counts from the database
+        
         $startDate = date('Y-m-d', strtotime("-" . ($weeks - 1) . " weeks", strtotime('monday this week')));
         $results = $query->query(
             "SELECT 
@@ -308,7 +308,7 @@ class UserRepository extends Repository {
             [$startDate]
         );
         
-        // Fill in the actual counts
+        
         foreach ($results as $row) {
             if (isset($stats[$row['week_range']])) {
                 $stats[$row['week_range']] = (int)$row['count'];
@@ -328,7 +328,7 @@ class UserRepository extends Repository {
         $query = new Query();
         $date = date('Y-m-d H:i:s', strtotime("-$hours hours"));
         
-        // Use updated_at as a proxy for activity since last_login_at column doesn't exist
+        
         $result = $query->table(User::getTable())
             ->where('updated_at', '>=', $date)
             ->count();

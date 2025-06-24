@@ -69,6 +69,12 @@ class ChannelAPI {
         }
     }
 
+    async getChannelContent(serverId, channelId, type = 'text') {
+        return await this.makeRequest(`/api/channel-content?server_id=${serverId}&channel_id=${channelId}&type=${type}`, {
+            method: 'GET'
+        });
+    }
+
     async createChannel(channelData) {
         return await this.makeRequest('/api/channels', {
             method: 'POST',
@@ -126,4 +132,4 @@ class ChannelAPI {
 }
 
 const channelAPI = new ChannelAPI();
-export default channelAPI;
+window.channelAPI = channelAPI;

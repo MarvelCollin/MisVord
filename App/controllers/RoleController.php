@@ -49,7 +49,7 @@ class RoleController extends BaseController {
                 return $this->forbidden('Only server owners can create roles');
             }
             
-            // Validate input
+            
             $this->validate($input, [
                 'role_name' => 'required'
             ]);
@@ -317,7 +317,7 @@ class RoleController extends BaseController {
                 return $this->serverError('Failed to update role permissions');
             }
             
-            // Notify via socket
+            
             $this->broadcastViaSocket('role-permissions-updated', [
                 'role_id' => $roleId,
                 'channel_id' => $channelId,
@@ -325,7 +325,7 @@ class RoleController extends BaseController {
                 'server_id' => $role->server_id
             ], 'server-' . $role->server_id);
             
-            // Log activity
+            
             $this->logActivity('role_permissions_updated', [
                 'role_id' => $roleId,
                 'channel_id' => $channelId,

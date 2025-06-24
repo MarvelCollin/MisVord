@@ -64,23 +64,17 @@ class MessageRepository extends Repository {
         return $result;
     }
     
-    /**
-     * Get message statistics by day for the last n days
-     *
-     * @param int $days Number of days to look back
-     * @return array Daily message stats
-     */
     public function getMessageStatsByDay($days = 7) {
         $stats = [];
         $query = new Query();
         
-        // Initialize the array with zeros for all days
+        
         for ($i = $days - 1; $i >= 0; $i--) {
             $date = date('Y-m-d', strtotime("-$i days"));
             $stats[$date] = 0;
         }
         
-        // Get the actual counts from the database
+        
         $startDate = date('Y-m-d', strtotime("-" . ($days - 1) . " days"));
         $results = $query->query(
             "SELECT DATE(sent_at) as date, COUNT(*) as count 
@@ -91,7 +85,7 @@ class MessageRepository extends Repository {
             [$startDate]
         );
         
-        // Fill in the actual counts
+        
         foreach ($results as $row) {
             if (isset($stats[$row['date']])) {
                 $stats[$row['date']] = (int)$row['count'];
@@ -101,17 +95,12 @@ class MessageRepository extends Repository {
         return $stats;
     }
     
-    /**
-     * Get message statistics by week for the last n weeks
-     *
-     * @param int $weeks Number of weeks to look back
-     * @return array Weekly message stats
-     */
+            
     public function getMessageStatsByWeek($weeks = 4) {
         $stats = [];
         $query = new Query();
         
-        // Initialize the array with zeros for all weeks
+        
         for ($i = $weeks - 1; $i >= 0; $i--) {
             $weekStart = date('Y-m-d', strtotime("-$i weeks", strtotime('monday this week')));
             $weekEnd = date('Y-m-d', strtotime("+6 days", strtotime($weekStart)));
@@ -119,7 +108,7 @@ class MessageRepository extends Repository {
             $stats[$weekLabel] = 0;
         }
         
-        // Get the actual counts from the database
+        
         $startDate = date('Y-m-d', strtotime("-" . ($weeks - 1) . " weeks", strtotime('monday this week')));
         $results = $query->query(
             "SELECT 
@@ -136,7 +125,7 @@ class MessageRepository extends Repository {
             [$startDate]
         );
         
-        // Fill in the actual counts
+        
         foreach ($results as $row) {
             if (isset($stats[$row['week_range']])) {
                 $stats[$row['week_range']] = (int)$row['count'];

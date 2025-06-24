@@ -82,11 +82,11 @@ class NitroController extends BaseController {
         
         $userId = $this->getCurrentUserId();
         
-        // Mark the code as used
+        
         $nitro->user_id = $userId;
         
         if ($nitro->save()) {
-            // Add nitro benefits to the user
+            
             $user = $this->userRepository->find($userId);
             $user->has_nitro = 1;
             $user->save();
@@ -113,10 +113,10 @@ class NitroController extends BaseController {
             $queryBuilder->where('code', 'LIKE', "%{$search}%");
         }
         
-        // Get total count
+        
         $total = $queryBuilder->count();
         
-        // Get paginated results
+        
         $offset = ($page - 1) * $limit;
         $codes = $queryBuilder->orderBy('created_at', 'DESC')
             ->limit($limit)
@@ -176,10 +176,10 @@ class NitroController extends BaseController {
     protected function requireAdmin() {
         $this->requireAuth();
         
-        // Use the same admin check logic as in AdminController
+        
         $userId = $this->getCurrentUserId();
         
-        // Special case for admin user
+        
         if (isset($_SESSION['username']) && $_SESSION['username'] === 'Admin' && 
             isset($_SESSION['discriminator']) && $_SESSION['discriminator'] === '0000') {
             return true;

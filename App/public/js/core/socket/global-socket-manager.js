@@ -28,14 +28,13 @@ class GlobalSocketManager {
             return false;
         }
         
-        // Check if we're on an authentication page
         const isAuthPage = document.body && document.body.getAttribute('data-page') === 'auth';
         if (isAuthPage) {
             this.log('Auth page detected, socket initialization skipped');
             return false;
         }
         
-        // Check if socket.io is available
+        
         if (typeof io === 'undefined') {
             this.error('Socket.io library not available, skipping connection');
             return false;
@@ -69,7 +68,7 @@ class GlobalSocketManager {
         this.log(`Connecting to socket: ${socketUrl}`);
         
         try {
-            // Check if io is defined - it should be loaded from the CDN on non-auth pages
+            
             if (typeof io === 'undefined') {
                 throw new Error('Socket.io library (io) is not defined. This is normal on authentication pages.');
             }
@@ -270,18 +269,82 @@ class GlobalSocketManager {
     }
     
     isReady() {
-        return this.io && this.connected && this.authenticated;
+        return this.connected && this.authenticated && this.io !== null;
+    }
+    
+    setupChannelListeners(channelId) {
+        if (!this.isReady()) {
+            console.warn('Socket not ready, cannot setup channel listeners');
+            return false;
+        }
+        
+        this.joinedChannels.forEach(oldChannelId => {
+            if (oldChannelId !== channelId) {
+                this.leaveChannel(oldChannelId);
+            }
+        });
+        
+        this.joinChannel(channelId);
+        
+        this.io.off('new-channel-message'); 
+        this.io.off('user-typing');
+        this.io.off('user-stop-typing');
+        
+        this.io.on('new-channel-message', (messageData) => {
+            if (messageData && messageData.channelId === channelId) {
+                this.log(`Received message in channel ${channelId}`);
+                
+                const event = new CustomEvent('newChannelMessage', {
+                    detail: messageData
+                });
+                window.dispatchEvent(event);
+                
+                if (window.chatSection && typeof window.chatSection.addMessage === 'function') {
+                    window.chatSection.addMessage(messageData);
+                }
+            }
+        });
+        
+        this.io.on('user-typing', (data) => {
+            if (data.channelId === channelId) {
+                const event = new CustomEvent('userTyping', {
+                    detail: data
+                });
+                window.dispatchEvent(event);
+                
+                if (window.chatSection && typeof window.chatSection.showTypingIndicator === 'function') {
+                    window.chatSection.showTypingIndicator(data.userId, data.username);
+                }
+            }
+        });
+        
+        this.io.on('user-stop-typing', (data) => {
+            if (data.channelId === channelId) {
+                const event = new CustomEvent('userStopTyping', {
+                    detail: data
+                });
+                window.dispatchEvent(event);
+                
+                if (window.chatSection && typeof window.chatSection.removeTypingIndicator === 'function') {
+                    window.chatSection.removeTypingIndicator(data.userId);
+                }
+            }
+        });
+        
+        this.log(`Channel listeners set up for channel: ${channelId}`);
+        return true;
     }
     
     getStatus() {
         return {
             connected: this.connected,
             authenticated: this.authenticated,
-            socketId: this.io?.id,
+            socketId: this.io ? this.io.id : null,
             userId: this.userId,
             username: this.username,
-            isGuest: !this.userId,
-            lastError: this.lastError
+            lastError: this.lastError,
+            joinedChannels: Array.from(this.joinedChannels),
+            joinedDMRooms: Array.from(this.joinedDMRooms)
         };
     }
     

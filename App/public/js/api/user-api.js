@@ -127,4 +127,4 @@ class UserAPI {
 }
 
 const userAPI = new UserAPI();
-export default userAPI;
+window.userAPI = userAPI;

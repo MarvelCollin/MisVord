@@ -248,7 +248,7 @@ class AdminController extends BaseController
         $logs = file_get_contents($logPath);
         
         if ($level !== 'all') {
-            // Filter logs by level
+            
             $filteredLogs = [];
             $logLines = explode(PHP_EOL, $logs);
             
@@ -268,16 +268,16 @@ class AdminController extends BaseController
     {
         $this->requireAdmin();
         
-        // Get server creation stats by date (last 7 days for daily view)
+        
         $daily = $this->serverRepository->getCreationStatsByDay(7);
         
-        // Get server stats by week (last 4 weeks for weekly view)
+        
         $weekly = $this->serverRepository->getCreationStatsByWeek(4);
         
-        // Get active servers (has messages in last 24 hours)
+        
         $activeServers = $this->serverRepository->countActiveServers(24);
         
-        // Get total member count across all servers
+        
         $totalMembers = $this->serverRepository->countTotalMembers();
         
         $stats = [
@@ -298,16 +298,16 @@ class AdminController extends BaseController
     {
         $this->requireAdmin();
         
-        // Get user registration stats by date (last 7 days for daily view)
+        
         $daily = $this->userRepository->getRegistrationStatsByDay(7);
         
-        // Get user registration stats by week (last 4 weeks for weekly view)
+        
         $weekly = $this->userRepository->getRegistrationStatsByWeek(4);
         
-        // Get online users count
+        
         $onlineUsers = $this->userRepository->countByStatus('online');
         
-        // Get active users (logged in last 24 hours)
+        
         $activeUsers = $this->userRepository->countActiveUsers(24);
         
         $stats = [
@@ -328,10 +328,10 @@ class AdminController extends BaseController
     {
         $this->requireAdmin();
         
-        // Get daily data - last 14 days
+        
         $dailyStats = $this->userRepository->getRegistrationStatsByDay(14);
         
-        // Format daily data for chart
+        
         $daily = [];
         foreach ($dailyStats as $date => $count) {
             $daily[] = [
@@ -340,10 +340,10 @@ class AdminController extends BaseController
             ];
         }
         
-        // Get weekly data - last 8 weeks
+        
         $weeklyStats = $this->userRepository->getRegistrationStatsByWeek(8);
         
-        // Format weekly data for chart
+        
         $weekly = [];
         foreach ($weeklyStats as $weekRange => $count) {
             $weekly[] = [
@@ -367,10 +367,10 @@ class AdminController extends BaseController
     {
         $this->requireAdmin();
         
-        // Get daily data - last 14 days
+        
         $dailyStats = $this->messageRepository->getMessageStatsByDay(14);
         
-        // Format daily data for chart
+        
         $daily = [];
         foreach ($dailyStats as $date => $count) {
             $daily[] = [
@@ -379,10 +379,10 @@ class AdminController extends BaseController
             ];
         }
         
-        // Get weekly data - last 8 weeks
+        
         $weeklyStats = $this->messageRepository->getMessageStatsByWeek(8);
         
-        // Format weekly data for chart
+        
         $weekly = [];
         foreach ($weeklyStats as $weekRange => $count) {
             $weekly[] = [
@@ -406,10 +406,10 @@ class AdminController extends BaseController
     {
         $this->requireAdmin();
         
-        // Get growth data - last 14 days
+        
         $dailyStats = $this->serverRepository->getCreationStatsByDay(14);
         
-        // Format data for chart
+        
         $growth = [];
         foreach ($dailyStats as $date => $count) {
             $growth[] = [
@@ -471,7 +471,7 @@ class AdminController extends BaseController
         
         $userId = $this->getCurrentUserId();
         
-        // Special case for admin user
+        
         if (isset($_SESSION['username']) && $_SESSION['username'] === 'Admin' && 
             isset($_SESSION['discriminator']) && $_SESSION['discriminator'] === '0000') {
             return true;

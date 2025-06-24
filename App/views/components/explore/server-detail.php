@@ -53,9 +53,7 @@
                     <div class="flex items-center mb-2">
                         <h3 class="text-white text-sm font-medium">Features</h3>
                     </div>
-                    <div id="server-modal-features" class="grid grid-cols-2 gap-2">
-                        <!-- Features will be populated by JavaScript -->
-                    </div>
+                    <div id="server-modal-features" class="grid grid-cols-2 gap-2"></div>
                 </div>
             </div>
         </div>
@@ -70,36 +68,11 @@ document.addEventListener('DOMContentLoaded', function() {
     if (closeBtn && modal) {
         closeBtn.addEventListener('click', function() {
             modal.classList.remove('active');
+            document.body.style.overflow = '';
             setTimeout(() => {
                 modal.style.display = 'none';
             }, 200);
-            document.body.style.overflow = '';
         });
     }
-    
-    window.testServerModal = function() {
-        const modal = document.getElementById('server-detail-modal');
-        if (modal) {
-            const nameElement = document.getElementById('server-modal-name');
-            const descriptionElement = document.getElementById('server-modal-description');
-            const membersCountElement = document.querySelector('#server-modal-members .member-count');
-            const onlineCountElement = document.querySelector('#server-modal-online .online-count');
-            const iconFallbackText = document.querySelector('#server-modal-icon-fallback span');
-            
-            if (nameElement) nameElement.textContent = 'Test Server';
-            if (descriptionElement) descriptionElement.textContent = 'This is a test server description for debugging purposes.';
-            if (membersCountElement) membersCountElement.textContent = '123';
-            if (onlineCountElement) onlineCountElement.textContent = '45';
-            if (iconFallbackText) iconFallbackText.textContent = 'T';
-            
-            modal.style.display = 'flex';
-            setTimeout(() => {
-                modal.classList.add('active');
-            }, 10);
-            document.body.style.overflow = 'hidden';
-            return true;
-        }
-        return false;
-    };
 });
 </script>

@@ -8,6 +8,8 @@ export class UserManager {
     this.currentView = 'list';
     this.statusFilter = 'all';
     this.roleFilter = 'all';
+    this.initialized = false;
+    this.isLoading = false;
     this.init();
   }
 
@@ -16,16 +18,14 @@ export class UserManager {
     this.initViewModes();
     this.initFilters();
     
-    // Immediately show skeletons
     this.showSkeletons();
     
-    // Use a small delay to ensure skeleton is rendered before data loading starts
     setTimeout(() => {
-      // First load stats, then load users
       this.loadUserStats().then(() => {
         this.loadUsers();
+        this.initialized = true;
       });
-    }, 300); // Small delay for skeleton to be visible
+    }, 300);
   }
   
   showSkeleton(elementId) {
@@ -103,8 +103,10 @@ export class UserManager {
       userPrevBtn.addEventListener('click', () => {
         if (this.currentUserPage > 1) {
           this.currentUserPage--;
-          this.showSkeletons();
-          this.loadUsers();
+          if (!this.isLoading) {
+            this.showSkeletons();
+            this.loadUsers();
+          }
         }
       });
     }
@@ -112,8 +114,10 @@ export class UserManager {
     if (userNextBtn) {
       userNextBtn.addEventListener('click', () => {
         this.currentUserPage++;
-        this.showSkeletons();
-        this.loadUsers();
+        if (!this.isLoading) {
+          this.showSkeletons();
+          this.loadUsers();
+        }
       });
     }
     
@@ -121,8 +125,10 @@ export class UserManager {
     if (searchInput) {
       searchInput.addEventListener('input', this.debounce(() => {
         this.currentUserPage = 1;
-        this.showSkeletons();
-        this.loadUsers();
+        if (!this.isLoading) {
+          this.showSkeletons();
+          this.loadUsers();
+        }
       }, 300));
     }
 
@@ -166,14 +172,18 @@ export class UserManager {
     const gridViewBtn = document.getElementById('view-mode-grid');
     
     if (viewMode === 'list') {
-      this.showSkeleton("users-container");
+      if (!this.originalUsers || this.originalUsers.length === 0) {
+        this.showSkeleton("users-container");
+      }
       listView.classList.remove('hidden');
       gridView.classList.add('hidden');
       listViewBtn.classList.add('active');
       gridViewBtn.classList.remove('active');
       this.currentView = 'list';
     } else {
-      this.showSkeleton("user-grid-view");
+      if (!this.originalUsers || this.originalUsers.length === 0) {
+        this.showSkeleton("user-grid-view");
+      }
       listView.classList.add('hidden');
       gridView.classList.remove('hidden');
       listViewBtn.classList.remove('active');
@@ -190,8 +200,10 @@ export class UserManager {
       statusFilter.addEventListener('change', () => {
         this.statusFilter = statusFilter.value;
         this.currentUserPage = 1;
-        this.showSkeletons();
-        this.loadUsers();
+        if (!this.isLoading) {
+          this.showSkeletons();
+          this.loadUsers();
+        }
       });
     }
     
@@ -199,14 +211,19 @@ export class UserManager {
       roleFilter.addEventListener('change', () => {
         this.roleFilter = roleFilter.value;
         this.currentUserPage = 1;
-        this.showSkeletons();
-        this.loadUsers();
+        if (!this.isLoading) {
+          this.showSkeletons();
+          this.loadUsers();
+        }
       });
     }
   }
   
   showSkeletons() {
-    // Show skeleton loaders for both grid and list views
+    if (this.isLoading || (this.initialized && document.getElementById('users-container')?.children.length > 0)) {
+      return;
+    }
+
     this.showSkeleton("users-container");
     this.showSkeleton("user-grid-view");
     this.showSkeleton("active-user-count");
@@ -225,7 +242,6 @@ export class UserManager {
           if (activeUserCount) activeUserCount.textContent = stats.active || 0;
           if (totalUserCount) totalUserCount.textContent = stats.total || 0;
           
-          // Also update the user counts in the table section
           const userTotalCount = document.getElementById('user-total-count');
           if (userTotalCount && !userTotalCount.textContent) {
             userTotalCount.textContent = stats.total || 0;
@@ -241,6 +257,9 @@ export class UserManager {
   }
   
   loadUsers() {
+    if (this.isLoading) return;
+    
+    this.isLoading = true;
     const searchQuery = document.getElementById('user-search')?.value || "";
     
     userAdminAPI.listUsers(this.currentUserPage, this.usersPerPage, searchQuery)
@@ -258,19 +277,19 @@ export class UserManager {
       .catch(error => {
         showToast("An error occurred while loading users", "error");
         console.error("Error loading users:", error);
+      })
+      .finally(() => {
+        this.isLoading = false;
       });
   }
   
   renderUsers(users, total, showing) {
-    // Store original data and counts
     this.originalUsers = [...users];
     this.originalTotal = total;
     this.originalShowing = showing;
     
-    // Make a copy of the users array to filter
     let filteredUsers = [...users];
     
-    // Apply filters to the copy
     if (this.statusFilter !== 'all') {
       filteredUsers = filteredUsers.filter(user => user.status === this.statusFilter);
     }
@@ -285,8 +304,13 @@ export class UserManager {
       });
     }
     
-    // Calculate the actual number showing after filtering
     const filteredShowing = filteredUsers.length;
+    
+    const listContainer = document.getElementById('users-container');
+    const gridContainer = document.getElementById('user-grid-view');
+    
+    if (listContainer) listContainer.innerHTML = '';
+    if (gridContainer) gridContainer.innerHTML = '';
     
     this.renderListView(filteredUsers);
     this.renderGridView(filteredUsers);

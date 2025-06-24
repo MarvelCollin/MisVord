@@ -1,6 +1,3 @@
-// Minimal Socket.IO Connection Test - Docker WebSocket Only
-console.log('🧪 Starting minimal Docker WebSocket test...');
-
 function testMinimalConnection() {
     if (typeof io === 'undefined') {
         console.error('❌ Socket.IO not loaded');
@@ -13,14 +10,13 @@ function testMinimalConnection() {
     
     console.log('🔗 Testing Docker WebSocket connection to:', socketUrl);
     
-    // Test with websocket only (Docker mode)
     const socket = io(socketUrl, {
-        transports: ['websocket'],  // ONLY websocket
+        transports: ['websocket'],  
         path: '/socket.io',
         timeout: 15000,
         forceNew: true,
         autoConnect: true,
-        upgrade: false // No upgrades
+        upgrade: false 
     });
     
     let connectionTimeout = setTimeout(() => {
@@ -35,7 +31,6 @@ function testMinimalConnection() {
         console.log('   - URL:', socket.io.uri);
         clearTimeout(connectionTimeout);
         
-        // Test authentication
         socket.emit('authenticate', {
             userId: '1',
             username: 'test-user',
@@ -67,8 +62,6 @@ function testMinimalConnection() {
     });
 }
 
-// Run test immediately
 testMinimalConnection();
 
-// Also make it available globally
 window.testMinimalConnection = testMinimalConnection;

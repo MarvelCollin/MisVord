@@ -1,11 +1,7 @@
-// User Authentication Debug Test
-console.log('🔍 Checking user authentication status...');
-
 function debugUserAuthentication() {
     console.log('👤 USER AUTHENTICATION DEBUG');
     console.log('============================');
     
-    // Check meta tags
     const userIdMeta = document.querySelector('meta[name="user-id"]')?.getAttribute('content');
     const usernameMeta = document.querySelector('meta[name="username"]')?.getAttribute('content');
     const authMeta = document.querySelector('meta[name="user-authenticated"]')?.getAttribute('content');
@@ -15,7 +11,6 @@ function debugUserAuthentication() {
     console.log(`   Username: ${usernameMeta || 'Not found'}`);
     console.log(`   Authenticated: ${authMeta || 'Not found'}`);
     
-    // Check body data attributes
     const bodyUserId = document.body.getAttribute('data-user-id');
     const bodyUsername = document.body.getAttribute('data-username');
     
@@ -23,7 +18,6 @@ function debugUserAuthentication() {
     console.log(`   User ID: ${bodyUserId || 'Not found'}`);
     console.log(`   Username: ${bodyUsername || 'Not found'}`);
     
-    // Check if user data function works
     let userData = null;
     try {
         userData = getUserDataFromPage();
@@ -32,7 +26,6 @@ function debugUserAuthentication() {
         console.log('❌ getUserDataFromPage() error:', error.message);
     }
     
-    // Check global socket manager state
     if (window.globalSocketManager) {
         console.log('📋 Global Socket Manager:');
         console.log(`   User ID: ${window.globalSocketManager.userId || 'Not set'}`);
@@ -45,7 +38,6 @@ function debugUserAuthentication() {
         console.log('❌ Global Socket Manager: Not available');
     }
     
-    // Summary
     const hasUserData = !!(userIdMeta || bodyUserId);
     console.log('\n🎯 SUMMARY:');
     console.log(`User Data Available: ${hasUserData ? 'YES' : 'NO'}`);
@@ -72,7 +64,6 @@ function debugUserAuthentication() {
     };
 }
 
-// Function to get user data (copied from main.js logic)
 function getUserDataFromPage() {
     let userData = null;
     
@@ -99,6 +90,5 @@ function getUserDataFromPage() {
     return userData;
 }
 
-// Run debug immediately and make available globally
 window.debugUserAuthentication = debugUserAuthentication;
 setTimeout(debugUserAuthentication, 1000);

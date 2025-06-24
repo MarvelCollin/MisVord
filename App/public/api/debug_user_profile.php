@@ -5,7 +5,7 @@ require_once APP_ROOT . '/config/session.php';
 session_start();
 
 if (!isset($_SESSION['user_id'])) {
-    $_SESSION['user_id'] = 1; // For testing purposes
+    $_SESSION['user_id'] = 1; 
 }
 
 require_once APP_ROOT . '/controllers/UserController.php';
@@ -17,10 +17,10 @@ header('Content-Type: application/json');
 try {
     $controller = new UserController();
     
-    // We'll call the method directly to avoid routing issues
+    
     $result = $controller->getUserProfile($userId);
     
-    // The method likely already sent the response, but just in case
+    
     if ($result !== null) {
         echo json_encode([
             'success' => true,

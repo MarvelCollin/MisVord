@@ -148,4 +148,4 @@ class UserAdminAPI {
 }
 
 const userAdminAPI = new UserAdminAPI();
-export default userAdminAPI; 
+window.userAdminAPI = userAdminAPI;

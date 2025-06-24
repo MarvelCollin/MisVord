@@ -1,4 +1,3 @@
-import serverAPI from '../../api/server-api.js';
 import ImageCutter from '../common/image-cutter.js';
 import { pageUtils } from '../../utils/index.js';
 import { showToast } from '../../core/ui/toast.js';
@@ -384,7 +383,7 @@ function handleServerCreation(form) {
             return;
         }
         
-        serverAPI.createServer(formData)
+        window.serverAPI.createServer(formData)
             .then(data => {
                 hideLoading(submitBtn);
                 if (data.success) {
@@ -544,7 +543,7 @@ function loadServerPage(serverId) {
             showPageLoading(mainContent);
         }
 
-        serverAPI.getServerPageHTML(serverId)
+        window.serverAPI.getServerPageHTML(serverId)
             .then(response => {
                 if (typeof response === 'string') {
                     pageUtils.updatePageContent(mainContent, response);

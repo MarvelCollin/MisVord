@@ -6,14 +6,14 @@ if (getenv('IS_DOCKER') === 'true') {
     define('APP_ROOT', dirname(__DIR__));
 }
 
-// Load session configuration before starting sessions
+
 require_once APP_ROOT . '/config/session.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Set up storage directories
+
 require_once APP_ROOT . '/bootstrap/storage-setup.php';
 
 if ($_SERVER['REQUEST_URI'] === '/health') {

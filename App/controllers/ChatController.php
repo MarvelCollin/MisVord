@@ -182,9 +182,9 @@ class ChatController extends BaseController
             $message->message_type = $messageType;
             $message->attachment_url = $attachmentUrl;
             
-            // Set reply message ID if provided
+            
             if ($replyMessageId) {
-                // Verify the replied message exists
+                
                 $repliedMessage = $this->messageRepository->find($replyMessageId);
                 if ($repliedMessage) {
                     $message->reply_message_id = $replyMessageId;
@@ -192,12 +192,12 @@ class ChatController extends BaseController
             }
 
             if ($message->save()) {
-                // Associate message with channel
+                
                 $message->associateWithChannel($channelId);
                 
                 $formattedMessage = $this->formatMessage($message);
                 
-                // Add reply data if this is a reply message
+                
                 if ($message->reply_message_id) {
                     $repliedMessage = $this->messageRepository->find($message->reply_message_id);
                     if ($repliedMessage) {
@@ -257,9 +257,9 @@ class ChatController extends BaseController
             $message->message_type = $messageType;
             $message->attachment_url = $attachmentUrl;
             
-            // Set reply message ID if provided
+            
             if ($replyMessageId) {
-                // Verify the replied message exists
+                
                 $repliedMessage = $this->messageRepository->find($replyMessageId);
                 if ($repliedMessage) {
                     $message->reply_message_id = $replyMessageId;
@@ -271,7 +271,7 @@ class ChatController extends BaseController
 
                 $formattedMessage = $this->formatMessage($message);
 
-                // Add reply data if this is a reply message
+                
                 if ($message->reply_message_id) {
                     $repliedMessage = $this->messageRepository->find($message->reply_message_id);
                     if ($repliedMessage) {
@@ -614,13 +614,13 @@ class ChatController extends BaseController
             'type' => is_array($message) ? ($message['message_type'] ?? 'text') : ($message->type ?? 'text')
         ];
         
-        // Add reply information if this message is a reply
+        
         $replyMessageId = is_array($message) ? ($message['reply_message_id'] ?? null) : ($message->reply_message_id ?? null);
         
         if ($replyMessageId) {
             $formatted['reply_message_id'] = $replyMessageId;
             
-            // Get reply message details
+            
             $repliedMessage = $this->messageRepository->find($replyMessageId);
             if ($repliedMessage) {
                 $repliedUserId = $repliedMessage->user_id;

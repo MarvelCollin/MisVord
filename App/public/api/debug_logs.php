@@ -4,7 +4,7 @@
  * Provides access to recent logs for debugging purposes
  */
 
-// Load the logger
+
 require_once __DIR__ . '/../../utils/AppLogger.php';
 
 header('Content-Type: application/json');
@@ -50,7 +50,7 @@ try {
             break;
             
         case 'test':
-            // Test different log levels
+            
             $logger->debug('Test debug message', ['test' => true]);
             $logger->info('Test info message', ['test' => true]);
             $logger->warning('Test warning message', ['test' => true]);

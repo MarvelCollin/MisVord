@@ -1,4 +1,5 @@
-import serverAPI from '../../api/server-api.js';
+// Using window global variables instead of imports
+// import serverAPI from '../../api/server-api.js';
 
 class ServerDetailModal {
     constructor() {
@@ -37,34 +38,22 @@ class ServerDetailModal {
     async showServerDetail(serverId, serverData = null) {
         this.currentServerId = serverId;
         
+        if (serverData) {
+            this.updateModalContent(serverData);
+            this.showModalOnly();
+            return;
+        }
+        
         try {
-            let server;
+            const response = await window.serverAPI.getServer(serverId);
+            const server = response.server;
             
-            if (serverData) {
-                server = serverData;
-            } else {
-                const response = await serverAPI.getServer(serverId);
-                server = response.server;
-            }
-            
-            if (!server) {
-                console.error('Failed to load server details');
-                return;
-            }
+            if (!server) return;
             
             this.updateModalContent(server);
-            
-            this.modal.style.display = 'flex';
-            setTimeout(() => {
-                this.modal.classList.add('active');
-                document.body.style.overflow = 'hidden';
-            }, 10);
-            
+            this.showModalOnly();
         } catch (error) {
             console.error('Error loading server details:', error);
-            if (window.showToast) {
-                window.showToast('Failed to load server details', 'error');
-            }
         }
     }
     
@@ -199,7 +188,7 @@ class ServerDetailModal {
         this.joinButton.classList.add('joining');
         
         try {
-            const response = await serverAPI.joinServer({ server_id: this.currentServerId });
+            const response = await window.serverAPI.joinServer({ server_id: this.currentServerId });
             
             if (response.success) {
                 this.joinButton.textContent = 'Joined';
@@ -235,15 +224,19 @@ class ServerDetailModal {
     }
     
     hideModal() {
-        document.body.style.overflow = '';
         this.modal.classList.remove('active');
         setTimeout(() => {
-            this.modal.style.display = '';
-        }, 200); // Wait for transition to finish
+            this.modal.style.display = 'none';
+        }, 200);
     }
     
     isModalVisible() {
         return this.modal && this.modal.classList.contains('active');
+    }
+    
+    showModalOnly() {
+        this.modal.style.display = 'flex';
+        this.modal.classList.add('active');
     }
 }
 

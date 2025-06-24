@@ -1,7 +1,6 @@
-// Rich Media Messaging System Debug Script
 console.log('🚀 Starting Rich Media Messaging System Debug...');
 
-// Test 1: Check if RichMessageComposer is available
+
 console.log('1. Testing RichMessageComposer availability...');
 if (typeof RichMessageComposer !== 'undefined') {
     console.log('✅ RichMessageComposer is available');
@@ -9,7 +8,6 @@ if (typeof RichMessageComposer !== 'undefined') {
     console.error('❌ RichMessageComposer is not available');
 }
 
-// Test 2: Check Socket.IO availability
 console.log('2. Testing Socket.IO availability...');
 if (typeof io !== 'undefined') {
     console.log('✅ Socket.IO is available');
@@ -17,7 +15,6 @@ if (typeof io !== 'undefined') {
     console.error('❌ Socket.IO is not available');
 }
 
-// Test 3: API Endpoints Test
 console.log('3. Testing API endpoints...');
 
 async function testAPIEndpoints() {
@@ -43,7 +40,7 @@ async function testAPIEndpoints() {
     }
 }
 
-// Test 4: Socket Connection Test
+
 async function testSocketConnection() {
     console.log('4. Testing Socket connection...');
     
@@ -81,7 +78,7 @@ async function testSocketConnection() {
     }
 }
 
-// Test 5: File Upload Test
+
 async function testFileUpload() {
     console.log('5. Testing file upload...');
     
@@ -110,7 +107,7 @@ async function testFileUpload() {
     }
 }
 
-// Test 6: Rich Message Composer Integration Test
+
 function testRichMessageComposer() {
     console.log('6. Testing Rich Message Composer integration...');
     
@@ -162,7 +159,7 @@ function testRichMessageComposer() {
     }
 }
 
-// Run all tests
+
 async function runAllTests() {
     console.log('🧪 Running comprehensive rich media messaging tests...\n');
     
@@ -228,14 +225,14 @@ async function runAllTests() {
     return results;
 }
 
-// Auto-run tests when DOM is ready
+
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', runAllTests);
 } else {
     runAllTests();
 }
 
-// Export for manual testing
+                
 window.debugRichMedia = {
     runAllTests,
     testAPIEndpoints,

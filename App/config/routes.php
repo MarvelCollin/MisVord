@@ -193,6 +193,11 @@ Route::get('/api/channels/([0-9]+)', function($channelId) {
     $controller->show($channelId);
 });
 
+Route::get('/api/channel-content', function() {
+    $controller = new ChannelController();
+    $controller->getChannelContent();
+});
+
 Route::get('/api/channels/([0-9]+)/participants', function($channelId) {
     $controller = new ChannelController();
     $controller->getChannelParticipants($channelId);
@@ -737,12 +742,10 @@ Route::get('/api/admin/stats/servers/growth', function() {
     $controller->getServerGrowthStats();
 });
 
-// Voice component routes
 Route::get('/components/common/voice-indicator', function() {
     require_once __DIR__ . '/../views/components/common/voice-indicator.php';
 });
 
-// Health routes
 Route::get('/api/health/ping', function() {
     $controller = new HealthController();
     $controller->ping();

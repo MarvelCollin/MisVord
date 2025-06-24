@@ -129,7 +129,7 @@ class BaseController
         $max_lifetime = $this->getSessionLifetime();
         
         if (!isset($_SESSION['last_activity'])) {
-            return false; // Can't determine expiry without last_activity timestamp
+            return false; 
         }
         
         $inactive = time() - $_SESSION['last_activity'];
@@ -140,7 +140,6 @@ class BaseController
     {
         $configLifetime = ini_get('session.cookie_lifetime');
         
-        // Default to 24 hours if not set
         if (!$configLifetime) {
             return 86400;
         }

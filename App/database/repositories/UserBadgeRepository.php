@@ -27,15 +27,15 @@ class UserBadgeRepository extends Repository {
     }
     
     public function addBadgeToUser($userId, $badgeId) {
-        // Check if user already has this badge
+        
         $existingBadge = $this->findByUserAndBadge($userId, $badgeId);
         
         if ($existingBadge) {
-            // User already has this badge
+            
             return false;
         }
         
-        // Add the badge
+        
         return $this->create([
             'user_id' => $userId,
             'badge_id' => $badgeId,
@@ -47,7 +47,7 @@ class UserBadgeRepository extends Repository {
         $userBadge = $this->findByUserAndBadge($userId, $badgeId);
         
         if (!$userBadge) {
-            // Badge doesn't exist for this user
+            
             return false;
         }
         

@@ -1,4 +1,3 @@
-// Simple auth utils without AJAX functionality
 export class AuthManager {
   constructor() {
     const isAuthPage =
@@ -69,7 +68,6 @@ export class AuthManager {
     }
   }
 
-  // Client-side form validation only - no AJAX submission
   validatePassword(password, confirmPassword) {
     if (password !== confirmPassword) {
       return 'Passwords do not match';
@@ -79,7 +77,7 @@ export class AuthManager {
       return 'Password must be at least 8 characters long';
     }
     
-    return null; // Valid
+    return null;
   }
 }
 
@@ -87,7 +85,6 @@ const isAuthPage =
   document.body && document.body.getAttribute("data-page") === "auth";
 export const authManager = !isAuthPage ? new AuthManager() : null;
 
-// Add a timestamp parameter to URLs to prevent caching
 function addTimestampToUrl(url) {
   const timestamp = Date.now();
   return url.includes('?') 
@@ -95,12 +92,10 @@ function addTimestampToUrl(url) {
     : `${url}?_t=${timestamp}`;
   }
 
-// Add timestamp to forms to prevent caching issues
 document.addEventListener('DOMContentLoaded', function() {
   const authForms = document.querySelectorAll('form');
   authForms.forEach(form => {
     form.addEventListener('submit', function(e) {
-      // Add a hidden timestamp field to prevent caching
       const timestampInput = document.createElement('input');
       timestampInput.type = 'hidden';
       timestampInput.name = '_t';
@@ -109,8 +104,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 });
-
-// Helper for showing form errors - no AJAX dependency
+    
 function showFormError(form, fieldName, message) {
   const field = form.querySelector(`#${fieldName}`) || form.querySelector(`[name="${fieldName}"]`);
   if (field) {

@@ -1,7 +1,3 @@
-import serverAPI from '../api/server-api.js';
-
-console.log('Explore servers script loading...');
-
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Explore servers DOM loaded');
     if (typeof window !== 'undefined' && window.logger) {
@@ -20,7 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function highlightExploreButton() {
-    // Makes sure the explore button is highlighted
+    
     const exploreButton = document.querySelector('a[href="/explore-servers"]');
     if (exploreButton) {
         const parentDiv = exploreButton.closest('div');
@@ -35,7 +31,7 @@ function initSidebarServerIcons() {
     
     serverIcons.forEach(icon => {
         const parent = icon.parentElement;
-        // Add any needed styling to sidebar server icons
+        
         icon.style.display = 'block';
         icon.style.margin = '0 auto 8px auto';
         icon.style.position = 'relative';
@@ -146,7 +142,7 @@ function performServerSearch(query) {
     serverGrid.innerHTML = '';
     serverGrid.appendChild(loadingIndicator);
     
-    serverAPI.searchServers(query)
+    window.serverAPI.searchServers(query)
         .then(data => {
             renderSearchResults(data.servers, data.userServerIds);
         })
@@ -226,7 +222,7 @@ function createServerCard(server, isJoined) {
 }
 
 function filterServersBySearch(query) {
-    // This function is now only used for local filtering
+    
     if (query.length < 2) {
         resetServerSearch();
         return;
@@ -266,7 +262,7 @@ function joinServer(serverId, button) {
     button.textContent = 'Joining...';
     button.disabled = true;
     
-    serverAPI.joinServer({ server_id: serverId })
+    window.serverAPI.joinServer({ server_id: serverId })
         .then(data => {
             if (data.success) {
                 button.textContent = 'Joined!';
@@ -301,10 +297,7 @@ function joinServer(serverId, button) {
 }
 
 function initServerDetailTriggers() {
-    console.log('Initializing server detail triggers');
     const serverCards = document.querySelectorAll('.server-card');
-    
-    console.log('Server cards found:', serverCards.length);
     
     serverCards.forEach(card => {
         if (card.dataset.hasListener === 'true') {
@@ -314,7 +307,6 @@ function initServerDetailTriggers() {
 
         card.addEventListener('click', function(e) {
             if (e.target.closest('.join-server-btn')) {
-                console.log('Click was on join button, ignoring');
                 return;
             }
             
@@ -322,18 +314,12 @@ function initServerDetailTriggers() {
             e.stopPropagation();
             
             const serverId = this.getAttribute('data-server-id');
-            
-            if (!serverId) {
-                console.error('No server ID found on clicked card');
-                return;
-            }
+            if (!serverId) return;
             
             const serverData = extractServerDataFromCard(this);
             
             if (window.showServerDetail) {
                 window.showServerDetail(serverId, serverData);
-            } else {
-                console.error('Server detail modal function not available');
             }
         });
     });
@@ -344,7 +330,6 @@ function extractServerDataFromCard(card) {
     const serverName = card.querySelector('.server-name')?.textContent;
     const serverDescription = card.querySelector('.server-description')?.textContent;
     
-    // Handle different server card layouts (featured vs regular)
     let memberCount = 0;
     const memberCountElem = card.querySelector('.server-stats span');
     if (memberCountElem) {
@@ -355,7 +340,6 @@ function extractServerDataFromCard(card) {
     const joinButton = card.querySelector('.join-server-btn');
     const isJoined = joinButton ? (joinButton.textContent.includes('Joined') || joinButton.classList.contains('bg-discord-green')) : false;
     
-    // Handle different image layouts between featured and regular cards
     let bannerUrl = null;
     const bannerImg = card.querySelector('.server-banner img') || card.querySelector('.h-32 img');
     if (bannerImg) {

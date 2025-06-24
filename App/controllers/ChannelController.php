@@ -4,6 +4,7 @@ require_once __DIR__ . '/../database/repositories/ChannelRepository.php';
 require_once __DIR__ . '/../database/repositories/MessageRepository.php';
 require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
 require_once __DIR__ . '/../database/repositories/CategoryRepository.php';
+require_once __DIR__ . '/../database/repositories/ServerRepository.php';
 require_once __DIR__ . '/BaseController.php';
 
 class ChannelController extends BaseController
@@ -13,6 +14,7 @@ class ChannelController extends BaseController
     private $messageRepository;
     private $membershipRepository;
     private $categoryRepository;
+    private $serverRepository;
 
     public function __construct()
     {
@@ -21,6 +23,7 @@ class ChannelController extends BaseController
         $this->messageRepository = new MessageRepository();
         $this->membershipRepository = new UserServerMembershipRepository();
         $this->categoryRepository = new CategoryRepository();
+        $this->serverRepository = new ServerRepository();
     }
 
     public function index()
@@ -626,5 +629,99 @@ class ChannelController extends BaseController
                 'categories' => []
             ];
         }
+    }
+    
+    public function getChannelContent()
+    {
+        $this->requireAuth();
+        
+        $input = $this->getInput();
+        $serverId = $input['server_id'] ?? null;
+        $channelId = $input['channel_id'] ?? null;
+        $type = $input['type'] ?? 'text';
+        
+        if (!$serverId || !$channelId) {
+            return $this->validationError(['message' => 'Server ID and Channel ID are required']);
+        }
+        
+        try {
+            if (!$this->membershipRepository->isMember($this->getCurrentUserId(), $serverId)) {
+                return $this->forbidden('You do not have access to this server');
+            }
+            
+            $channel = $this->channelRepository->find($channelId);
+            
+            if (!$channel) {
+                return $this->notFound('Channel not found');
+            }
+            
+            // Get complete channel data
+            $fullChannel = (array)$channel;
+            
+            // Get messages for this channel
+            $messages = [];
+            if ($type === 'text') {
+                $messages = $this->messageRepository->getChannelMessages($channelId, 50);
+            }
+            
+            // Get all participants for this server
+            $participants = $this->membershipRepository->getServerMembers($serverId);
+            
+            // Get the complete server object for context
+            $server = $this->serverRepository->find($serverId);
+            
+            // Set up global variables for template rendering
+            $GLOBALS['currentServer'] = $server;
+            $GLOBALS['activeChannelId'] = $channelId;
+            $GLOBALS['channelMessages'] = $messages;
+            $GLOBALS['chatType'] = 'channel';
+            $GLOBALS['targetId'] = $channelId;
+            $GLOBALS['chatData'] = $fullChannel;
+            $GLOBALS['currentChannel'] = (object)$fullChannel;
+            $GLOBALS['serverParticipants'] = $participants;
+            
+            $this->logActivity('channel_content_loaded', [
+                'server_id' => $serverId,
+                'channel_id' => $channelId,
+                'type' => $type
+            ]);
+            
+            // Return comprehensive data for client-side use
+            return $this->success([
+                'channel' => $fullChannel,
+                'messages' => $messages,
+                'participants' => $participants,
+                'server' => $server ? (array)$server : null,
+                'html' => [
+                    'chat_section' => $this->renderChatSection($channel, $messages),
+                    'participant_section' => $this->renderParticipantSection($participants)
+                ]
+            ]);
+        } catch (Exception $e) {
+            $this->logActivity('channel_content_error', [
+                'server_id' => $serverId,
+                'channel_id' => $channelId,
+                'error' => $e->getMessage()
+            ]);
+            
+            return $this->serverError('Failed to load channel content: ' . $e->getMessage());
+        }
+    }
+    
+    private function renderChatSection($channel, $messages)
+    {
+        ob_start();
+        $GLOBALS['currentChannel'] = $channel;
+        $GLOBALS['channelMessages'] = $messages;
+        include __DIR__ . '/../views/components/app-sections/chat-section.php';
+        return ob_get_clean();
+    }
+    
+    private function renderParticipantSection($participants)
+    {
+        ob_start();
+        $GLOBALS['serverParticipants'] = $participants;
+        include __DIR__ . '/../views/components/app-sections/participant-section.php';
+        return ob_get_clean();
     }
 }

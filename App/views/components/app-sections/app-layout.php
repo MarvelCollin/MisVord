@@ -34,7 +34,7 @@ $additional_js[] = 'components/app-layout';
             <?php include dirname(__DIR__) . '/app-sections/direct-messages-sidebar.php'; ?>
         <?php endif; ?>
 
-        <div class="flex flex-col flex-1">
+        <div class="flex flex-col flex-1" id="main-content">
             <?php if ($contentType === 'home'): ?>
                 <div class="flex-1 bg-discord-background flex flex-col">
                     <div class="h-12 bg-discord-background border-b border-gray-800 flex items-center px-4">

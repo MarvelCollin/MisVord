@@ -11,6 +11,7 @@ if (typeof window !== 'undefined' && !window.logger) {
 
 import { showToast, MisVordAjax } from './core/index.js';
 import globalSocketManager from './core/socket/global-socket-manager.js';
+import PageLoader from './core/page-loader.js';
 import * as Components from './components/index.js';
 import * as Utils from './utils/index.js';
 import { LazyLoader } from './utils/lazy-loader.js';
@@ -20,6 +21,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     window.showToast = showToast;
     window.MisVordAjax = MisVordAjax;
+    
+    PageLoader.init();
+
       if (LazyLoader) {
         window.LazyLoader = Object.assign(window.LazyLoader || {}, LazyLoader);
         window.LazyLoader.init();
@@ -125,14 +129,12 @@ window.misvord = {
 };
 
 function initGlobalSocketManager() {
-    // Skip socket initialization on authentication pages
     const isAuthPage = document.body && document.body.getAttribute('data-page') === 'auth';
     if (isAuthPage) {
         window.logger.info('socket', 'Authentication page detected, skipping socket initialization');
         return;
     }
 
-    // Check if socket.io is available
     if (typeof io === 'undefined') {
         window.logger.error('socket', 'Socket.io library not loaded, skipping socket initialization');
         return;
@@ -223,6 +225,10 @@ function getUserDataFromPage() {
     }    
     window.logger.debug('general', 'User data extracted from page:', userData);
     return userData;
+}
+
+export function reinitUI() {
+    initGlobalUI();
 }
 
 export {

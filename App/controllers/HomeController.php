@@ -22,7 +22,7 @@ class HomeController extends BaseController
     public function redirectToApp()
     {
         $this->requireAuth();
-        // Redirect to the friends page when /app is accessed
+        
         header('Location: /app/friends');
         exit;
     }
@@ -40,16 +40,16 @@ class HomeController extends BaseController
         
         $this->requireAuth();
 
-        // Set the active tab for the friends page if we're on /app/friends
+        
         if (strpos($_SERVER['REQUEST_URI'] ?? '', '/app/friends') === 0) {
             $GLOBALS['contentType'] = 'home';
             
-            // Check if a specific tab is requested in the query string
+            
             $tab = $_GET['tab'] ?? 'online';
             $GLOBALS['activeTab'] = in_array($tab, ['online', 'all', 'pending', 'blocked', 'add-friend']) 
                 ? $tab : 'online';
                 
-            // Ensure friends data is available for the tab
+            
             $this->loadFriendsData($this->getCurrentUserId());
         }
 
@@ -114,12 +114,12 @@ class HomeController extends BaseController
 
     private function loadFriendsData($userId) {
         try {
-            // Load friend data from FriendController
+            
             require_once __DIR__ . '/FriendController.php';
             $friendController = new FriendController();
             $friendData = $friendController->getUserFriends();
             
-            // Make the data available globally
+            
             $GLOBALS['currentUser'] = $friendData['currentUser'] ?? [];
             $GLOBALS['friends'] = $friendData['friends'] ?? [];
             $GLOBALS['onlineFriends'] = $friendData['onlineFriends'] ?? [];
@@ -133,7 +133,7 @@ class HomeController extends BaseController
                 ]);
             }
             
-            // Set empty arrays as fallback
+            
             $GLOBALS['friends'] = [];
             $GLOBALS['onlineFriends'] = [];
             
