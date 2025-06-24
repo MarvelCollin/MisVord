@@ -1,5 +1,50 @@
 import { pageUtils } from '../utils/index.js';
 
+function loadScript(src, type = '', async = false) {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = src;
+    if (type) script.type = type;
+    if (async) script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
+    document.head.appendChild(script);
+  });
+}
+
+async function loadVoiceScripts() {
+  try {
+    // First load the VideoSDK from CDN
+    if (!window.VideoSDK) {
+      console.log("Loading VideoSDK from CDN");
+      await loadScript('https://sdk.videosdk.live/js-sdk/0.2.7/videosdk.js');
+      console.log("VideoSDK loaded successfully");
+    }
+    
+    // Then load our VideoSDK manager
+    if (!window.videoSDKManager) {
+      console.log("Loading VideoSDK manager");
+      await loadScript('/js/components/videosdk/videosdk.js');
+      console.log("VideoSDK manager loaded successfully");
+    }
+    
+    // Then load voice manager
+    console.log("Loading voice manager");
+    await loadScript('/js/components/voice/voice-manager.js?v=' + Date.now());
+    console.log("Voice manager loaded successfully");
+    
+    // Finally load voice section for UI
+    console.log("Loading voice section UI");
+    await loadScript('/js/components/voice/voice-section.js?v=' + Date.now());
+    console.log("Voice section UI loaded successfully");
+    
+    return true;
+  } catch (error) {
+    console.error("Error loading voice scripts:", error);
+    return false;
+  }
+}
+
 document.addEventListener("DOMContentLoaded", function () {
   console.log("DOM content loaded event triggered in server-page.js");
   
@@ -355,6 +400,17 @@ function fetchChatSection(channelId) {
 
 function fetchVoiceSection(channelId) {
   console.log(`fetchVoiceSection called with channelId: ${channelId}`);
+  
+  // Check if we need to auto-join this voice channel
+  if (typeof window.handleVoiceChannelClick === 'function') {
+    console.log('Setting auto-join for voice channel:', channelId);
+    window.handleVoiceChannelClick(channelId);
+  } else {
+    // Fallback to localStorage directly if the function isn't available
+    localStorage.setItem('autoJoinVoiceChannel', channelId);
+    console.log('Voice channel selected, auto-join set (fallback):', channelId);
+  }
+  
   const apiUrl = `/server/${getServerIdFromUrl()}?channel=${channelId}&type=voice&ajax=true`;
   console.log(`Fetching from URL: ${apiUrl}`);
   
@@ -443,54 +499,32 @@ function fetchVoiceSection(channelId) {
             window.chatSection = null;
           }
           
-          if (!window.VideoSDK) {
-            console.log("Loading VideoSDK script");
-            const script = document.createElement('script');
-            script.src = 'https://sdk.videosdk.live/js-sdk/0.2.7/videosdk.js';
-            document.head.appendChild(script);
-          }
+          // Load all required voice scripts in the correct order
+          loadVoiceScripts().then(() => {
+            console.log("All voice scripts loaded successfully");
+          }).catch(err => {
+            console.error("Error in voice script loading chain:", err);
+          });
           
-          console.log("Loading voice manager script");
-          const voiceScript = document.createElement('script');
-          // Use the correct path with timestamp to prevent caching issues
-          voiceScript.src = '/js/components/voice/voice-manager.js?v=' + Date.now();
-          document.head.appendChild(voiceScript);
+          // Load voice section CSS
+          if (!document.querySelector('link[href*="voice-section.css"]')) {
+            console.log("Loading voice section CSS");
+            const voiceCSS = document.createElement('link');
+            voiceCSS.rel = 'stylesheet';
+            voiceCSS.href = '/css/voice-section.css?v=' + Date.now();
+            document.head.appendChild(voiceCSS);
+          }
         } else {
           console.warn("Could not find voice section in response HTML, using full HTML");
           console.log("HTML content:", html.substring(0, 500) + "...");
           centralContentArea.innerHTML = html;
           
           // Even if we couldn't find the specific section, still load the voice scripts
-          if (!window.VideoSDK) {
-            console.log("Loading VideoSDK script (fallback)");
-            const script = document.createElement('script');
-            script.src = 'https://sdk.videosdk.live/js-sdk/0.2.7/videosdk.js';
-            document.head.appendChild(script);
-          }
-          
-          // First check if the VideoSDK manager is loaded
-          if (!window.videoSDKManager) {
-            console.log("Loading VideoSDK manager script (fallback)");
-            const videoSDKManagerScript = document.createElement('script');
-            videoSDKManagerScript.src = '/js/components/videosdk/videosdk.js?v=' + Date.now();
-            videoSDKManagerScript.type = 'module';
-            document.head.appendChild(videoSDKManagerScript);
-            
-            // Wait for VideoSDK manager to load before loading voice manager
-            videoSDKManagerScript.onload = function() {
-              console.log("Loading voice manager script (fallback)");
-              const voiceScript = document.createElement('script');
-              voiceScript.src = '/js/components/voice/voice-manager.js?v=' + Date.now();
-              voiceScript.type = 'module';
-              document.head.appendChild(voiceScript);
-            };
-          } else {
-            console.log("Loading voice manager script (fallback)");
-            const voiceScript = document.createElement('script');
-            voiceScript.src = '/js/components/voice/voice-manager.js?v=' + Date.now();
-            voiceScript.type = 'module';
-            document.head.appendChild(voiceScript);
-          }
+          loadVoiceScripts().then(() => {
+            console.log("All voice scripts loaded successfully (fallback)");
+          }).catch(err => {
+            console.error("Error in voice script loading chain (fallback):", err);
+          });
         }
         
         handleSkeletonLoading(false);

@@ -2,12 +2,14 @@ import { MisVordAjax } from '../../core/ajax/ajax-handler.js';
 import { LocalStorageManager } from '../../utils/local-storage-manager.js';
 
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('Server sidebar script loaded!');
+    
     // Add link to our CSS file
-    if (!document.querySelector('link[href="/css/server-sidebar.css"]')) {
+    if (!document.querySelector('link[href="/public/css/server-sidebar.css"]')) {
         const cssLink = document.createElement('link');
         cssLink.rel = 'stylesheet';
         cssLink.type = 'text/css';
-        cssLink.href = '/css/server-sidebar.css';
+        cssLink.href = '/public/css/server-sidebar.css';
         document.head.appendChild(cssLink);
     }
 
@@ -15,6 +17,27 @@ document.addEventListener('DOMContentLoaded', function() {
     initServerGroups();
     // Default folder state - uncollapsed with grid preview
     updateAllFolderPreviews();
+    
+    // Add direct click handler to ensure folder clicks work
+    document.querySelectorAll('.group-header').forEach(header => {
+        console.log('Adding click handler to group header:', header);
+        header.addEventListener('click', (e) => {
+            console.log('Group header clicked!', e.target);
+            const group = header.closest('.server-group');
+            if (!group) {
+                console.log('No server group found');
+                return;
+            }
+            
+            const groupId = group.getAttribute('data-group-id');
+            console.log('Group ID:', groupId);
+            
+            // Toggle the collapsed state
+            toggleGroupCollapse(groupId, group);
+            e.preventDefault();
+            e.stopPropagation();
+        });
+    });
 });
 
 export function initServerSidebar() {
@@ -115,12 +138,16 @@ export function initServerSidebar() {
 }
 
 export function initServerGroups() {
+    console.log('Initializing server groups');
+    
     // Render existing groups from local storage
     renderServerGroups();
     
     // Add handlers for server list
     const serverList = document.getElementById('server-list');
     if (serverList) {
+        console.log('Found server list, setting up drop handlers');
+        
         // Handle server list as a drop target for removing from groups
         serverList.addEventListener('dragover', (e) => {
             // Only process if we're not over a server icon or group
@@ -159,22 +186,36 @@ export function initServerGroups() {
         });
     }
     
-    // Global handlers for group interactions
-    document.addEventListener('click', (e) => {
+    // Global handlers for group interactions - use event delegation
+    document.addEventListener('click', function(e) {
+        console.log('Document click detected', e.target);
+        
         // Handle group collapse toggling
-        if (e.target.closest('.group-header')) {
-            const groupHeader = e.target.closest('.group-header');
+        const groupHeader = e.target.closest('.group-header');
+        if (groupHeader) {
+            console.log('Group header clicked via delegation');
             const group = groupHeader.closest('.server-group');
+            if (!group) return;
+            
             const groupId = group.getAttribute('data-group-id');
+            if (!groupId) {
+                console.log('No group ID found');
+                return;
+            }
+            
+            console.log('Toggling group', groupId);
             
             // Toggle the collapsed state
             toggleGroupCollapse(groupId, group);
+            e.preventDefault();
+            e.stopPropagation();
         }
     });
     
-    // Handle group name editing via double click
-    document.addEventListener('dblclick', (e) => {
+    // Handle group name editing via right-click context menu
+    document.addEventListener('contextmenu', (e) => {
         if (e.target.closest('.group-header')) {
+            e.preventDefault();
             const groupHeader = e.target.closest('.group-header');
             const group = groupHeader.closest('.server-group');
             const groupId = group.getAttribute('data-group-id');
@@ -184,20 +225,15 @@ export function initServerGroups() {
             const currentGroup = groups.find(g => g.id === groupId);
             if (!currentGroup) return;
             
-            const currentName = currentGroup.name;
-            
-            // Prompt for new name
-            const newName = prompt('Enter folder name:', currentName);
-            if (newName !== null && newName.trim()) {
-                LocalStorageManager.renameServerGroup(groupId, newName);
-                renderServerGroups();
-            }
+            // Show context menu with options
+            showGroupContextMenu(e, groupId, currentGroup.name);
         }
     });
 }
 
 function renderServerGroups() {
     const groups = LocalStorageManager.getServerGroups();
+    console.log('Rendering server groups:', groups);
     
     // Remove existing group containers
     document.querySelectorAll('.server-group').forEach(group => group.remove());
@@ -207,13 +243,30 @@ function renderServerGroups() {
     
     // Get all server icons that aren't in the home section
     const serverIcons = Array.from(document.querySelectorAll('.server-icon[data-server-id]'));
+    const originalIconPositions = new Map();
+    
+    // Store original positions of all server icons
+    serverIcons.forEach(icon => {
+        const serverId = icon.getAttribute('data-server-id');
+        if (serverId) {
+            // Store a clone of the icon and its parent
+            originalIconPositions.set(serverId, {
+                element: icon,
+                parent: icon.parentNode
+            });
+        }
+    });
+    
+    console.log(`Found ${serverIcons.length} server icons in DOM`);
     
     // Find insertion point - after the home divider
     const divider = serverList.querySelector('.server-divider');
     const insertionPoint = divider ? divider.nextElementSibling : serverList.firstElementChild;
     
-    // Create groups and add servers to them
+    // Process each group
     groups.forEach(group => {
+        console.log(`Processing group: ${group.name} with ${group.servers.length} servers`);
+        
         // If group has no servers, remove it
         if (group.servers.length === 0) {
             LocalStorageManager.removeServerGroup(group.id);
@@ -235,23 +288,29 @@ function renderServerGroups() {
         
         // Move matching servers to their groups
         group.servers.forEach(serverId => {
-            const serverIcon = serverIcons.find(icon => 
-                icon.getAttribute('data-server-id') === serverId
-            );
+            // Get the server icon from our stored map
+            const serverData = originalIconPositions.get(serverId);
             
-            if (serverIcon && serversContainer) {
-                // Remove it from the main list
+            if (serverData && serversContainer) {
+                const serverIcon = serverData.element;
+                
+                // Check if it's still in the DOM (might have been moved already)
                 if (serverIcon.parentNode) {
                     serverIcon.parentNode.removeChild(serverIcon);
                 }
                 
                 // Add to the group
                 serversContainer.appendChild(serverIcon);
+                console.log(`Added server ${serverId} to group ${group.name}`);
+            } else {
+                console.log(`Server ${serverId} not found or already processed`);
             }
         });
         
         // Set initial state (open/closed)
-        if (!group.collapsed) {
+        if (group.collapsed) {
+            serversContainer.classList.add('hidden');
+        } else {
             groupElement.classList.add('open');
         }
         
@@ -296,12 +355,28 @@ function createGroupElement(group) {
 function createFolderPreview(group, groupElement) {
     if (!group || !groupElement || group.servers.length === 0) return;
     
+    // Remove any existing preview first
+    const existingPreview = groupElement.querySelector('.server-preview');
+    if (existingPreview) {
+        existingPreview.remove();
+    }
+    
     // Create grid container
     const previewContainer = document.createElement('div');
     previewContainer.className = 'server-preview';
     
+    // Create folder icon for collapsed state
+    const folderIcon = document.createElement('div');
+    folderIcon.className = 'folder-icon';
+    folderIcon.innerHTML = '<i class="fas fa-folder fa-2x"></i>';
+    previewContainer.appendChild(folderIcon);
+    
     // Get up to 4 servers from the group
     const serverIds = group.servers.slice(0, 4);
+    
+    // Create grid container for server previews (shown when folder is open)
+    const gridContainer = document.createElement('div');
+    gridContainer.className = 'server-preview-grid';
     
     // Fill preview grid with server icons
     serverIds.forEach((serverId, index) => {
@@ -326,20 +401,50 @@ function createFolderPreview(group, groupElement) {
             }
         }
         
-        previewContainer.appendChild(previewItem);
+        gridContainer.appendChild(previewItem);
     });
     
     // Add missing grid items if needed
-    while (previewContainer.children.length < 4) {
+    while (gridContainer.children.length < 4) {
         const emptyItem = document.createElement('div');
-        emptyItem.className = 'server-preview-item';
-        previewContainer.appendChild(emptyItem);
+        emptyItem.className = 'server-preview-item empty';
+        gridContainer.appendChild(emptyItem);
     }
+    
+    // Add grid to preview container
+    previewContainer.appendChild(gridContainer);
     
     // Add preview to group header
     const header = groupElement.querySelector('.group-header');
     if (header) {
+        header.innerHTML = ''; // Clear header
         header.appendChild(previewContainer);
+        
+        // Add group name tooltip
+        const tooltip = document.createElement('div');
+        tooltip.className = 'tooltip hidden';
+        tooltip.textContent = group.name;
+        header.appendChild(tooltip);
+        
+        // Setup tooltip behavior
+        header.addEventListener('mouseenter', () => {
+            tooltip.classList.remove('hidden');
+        });
+        
+        header.addEventListener('mouseleave', () => {
+            tooltip.classList.add('hidden');
+        });
+    }
+    
+    // Update visibility based on collapsed state
+    if (group.collapsed) {
+        groupElement.classList.remove('open');
+        folderIcon.style.display = 'flex';
+        gridContainer.style.display = 'none';
+    } else {
+        groupElement.classList.add('open');
+        folderIcon.style.display = 'none';
+        gridContainer.style.display = 'grid';
     }
 }
 
@@ -391,19 +496,45 @@ function setupGroupDropZones() {
 }
 
 function toggleGroupCollapse(groupId, groupElement) {
+    console.log('Toggling group collapse for', groupId);
+    
     const isCollapsed = LocalStorageManager.toggleGroupCollapsed(groupId);
+    console.log('Group is now', isCollapsed ? 'collapsed' : 'expanded');
     
     const group = groupElement || document.querySelector(`.server-group[data-group-id="${groupId}"]`);
     if (group) {
+        console.log('Found group element to toggle');
         const serversContainer = group.querySelector('.group-servers');
         
         if (!isCollapsed) { // If now expanded
+            console.log('Expanding group');
             serversContainer.classList.remove('hidden');
             group.classList.add('open');
+            
+            // Update folder preview
+            const folderIcon = group.querySelector('.folder-icon');
+            const gridContainer = group.querySelector('.server-preview-grid');
+            
+            console.log('Folder icon:', folderIcon);
+            console.log('Grid container:', gridContainer);
+            
+            if (folderIcon) folderIcon.style.display = 'none';
+            if (gridContainer) gridContainer.style.display = 'grid';
+            
         } else { // If now collapsed
+            console.log('Collapsing group');
             serversContainer.classList.add('hidden');
             group.classList.remove('open');
+            
+            // Update folder preview
+            const folderIcon = group.querySelector('.folder-icon');
+            const gridContainer = group.querySelector('.server-preview-grid');
+            
+            if (folderIcon) folderIcon.style.display = 'flex';
+            if (gridContainer) gridContainer.style.display = 'none';
         }
+    } else {
+        console.error('Could not find group element for ID:', groupId);
     }
 }
 
@@ -430,6 +561,102 @@ export function updateActiveServer() {
 export function handleServerClick(serverId) {
     document.body.classList.add('content-loading');
     window.location.href = `/server/${serverId}`;
+}
+
+// New function to show context menu for groups
+function showGroupContextMenu(event, groupId, currentName) {
+    // Remove any existing context menus
+    const existingMenu = document.getElementById('group-context-menu');
+    if (existingMenu) existingMenu.remove();
+    
+    // Create context menu
+    const menu = document.createElement('div');
+    menu.id = 'group-context-menu';
+    menu.className = 'group-context-menu';
+    menu.style.position = 'absolute';
+    menu.style.left = `${event.clientX}px`;
+    menu.style.top = `${event.clientY}px`;
+    menu.style.zIndex = '1000';
+    menu.style.backgroundColor = '#18191c';
+    menu.style.border = '1px solid #2f3136';
+    menu.style.borderRadius = '4px';
+    menu.style.padding = '4px 0';
+    menu.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.4)';
+    menu.style.minWidth = '180px';
+    
+    // Add rename option
+    const renameOption = document.createElement('div');
+    renameOption.className = 'context-menu-item';
+    renameOption.innerHTML = '<i class="fas fa-edit"></i> Rename Folder';
+    renameOption.style.padding = '8px 12px';
+    renameOption.style.cursor = 'pointer';
+    renameOption.style.color = '#dcddde';
+    renameOption.style.fontSize = '14px';
+    renameOption.style.display = 'flex';
+    renameOption.style.alignItems = 'center';
+    renameOption.style.gap = '8px';
+    
+    renameOption.addEventListener('mouseover', () => {
+        renameOption.style.backgroundColor = '#5865f2';
+        renameOption.style.color = 'white';
+    });
+    
+    renameOption.addEventListener('mouseout', () => {
+        renameOption.style.backgroundColor = 'transparent';
+        renameOption.style.color = '#dcddde';
+    });
+    
+    renameOption.addEventListener('click', () => {
+        const newName = prompt('Enter folder name:', currentName);
+        if (newName !== null && newName.trim()) {
+            LocalStorageManager.renameServerGroup(groupId, newName);
+            renderServerGroups();
+        }
+        menu.remove();
+    });
+    
+    // Add delete option
+    const deleteOption = document.createElement('div');
+    deleteOption.className = 'context-menu-item';
+    deleteOption.innerHTML = '<i class="fas fa-trash"></i> Delete Folder';
+    deleteOption.style.padding = '8px 12px';
+    deleteOption.style.cursor = 'pointer';
+    deleteOption.style.color = '#ed4245';
+    deleteOption.style.fontSize = '14px';
+    deleteOption.style.display = 'flex';
+    deleteOption.style.alignItems = 'center';
+    deleteOption.style.gap = '8px';
+    
+    deleteOption.addEventListener('mouseover', () => {
+        deleteOption.style.backgroundColor = '#ed4245';
+        deleteOption.style.color = 'white';
+    });
+    
+    deleteOption.addEventListener('mouseout', () => {
+        deleteOption.style.backgroundColor = 'transparent';
+        deleteOption.style.color = '#ed4245';
+    });
+    
+    deleteOption.addEventListener('click', () => {
+        if (confirm('Are you sure you want to delete this folder? Servers will return to the main list.')) {
+            LocalStorageManager.removeServerGroup(groupId);
+            renderServerGroups();
+        }
+        menu.remove();
+    });
+    
+    // Add options to menu
+    menu.appendChild(renameOption);
+    menu.appendChild(deleteOption);
+    
+    // Add menu to document
+    document.body.appendChild(menu);
+    
+    // Close menu when clicking outside
+    document.addEventListener('click', function closeMenu() {
+        menu.remove();
+        document.removeEventListener('click', closeMenu);
+    });
 }
 
 export const ServerSidebar = {

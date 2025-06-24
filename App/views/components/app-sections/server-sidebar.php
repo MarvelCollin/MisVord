@@ -23,7 +23,8 @@ if (file_exists($tooltipPath)) {
 }
 ?>
 
-<link rel="stylesheet" href="/css/server-sidebar.css">
+<!-- Load server sidebar CSS -->
+<link rel="stylesheet" href="/public/css/server-sidebar.css">
 
 <?php if ($isExplorePage): ?>
 <style>
@@ -45,198 +46,6 @@ if (file_exists($tooltipPath)) {
 }
 </style>
 <?php endif; ?>
-
-<!-- Server Group Styling -->
-<style>
-/* Global Discord styling and variables */
-:root {
-    --discord-darker: #1e1f22;
-    --discord-dark: #2b2d31;
-    --discord-primary: #5865f2;
-    --discord-green: #3ba55c;
-    --discord-red: #ed4245;
-    --discord-text-normal: #dcddde;
-    --discord-text-muted: #a3a6aa;
-}
-
-/* Server list and server icon base styling */
-.server-list {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 0;
-    position: relative;
-    width: 72px;
-}
-
-.server-icon {
-    position: relative;
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto;
-}
-
-.server-icon a {
-    display: block;
-    width: 100%;
-    height: 100%;
-}
-
-/* Server groups styling */
-.server-group {
-    display: flex;
-    flex-direction: column;
-    position: relative;
-    width: 100%;
-    align-items: center;
-}
-
-.group-header {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 12px;
-    height: 24px;
-    cursor: pointer;
-    user-select: none;
-}
-
-.group-name {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--discord-text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    cursor: text;
-}
-
-.group-name:hover {
-    color: var(--discord-text-normal);
-}
-
-.group-header i {
-    font-size: 9px;
-    color: var(--discord-text-muted);
-}
-
-.group-servers {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 100%;
-    gap: 8px;
-    padding: 4px 0;
-}
-
-/* Drag and drop styling */
-.server-icon.dragging {
-    opacity: 0.4;
-    cursor: grabbing;
-}
-
-.server-group.drag-over {
-    background-color: rgba(88, 101, 242, 0.1);
-}
-
-.server-group.drag-over .group-servers {
-    background-color: rgba(88, 101, 242, 0.2);
-    border-radius: 4px;
-}
-
-.server-icon.drop-target::after {
-    content: "";
-    position: absolute;
-    top: -4px;
-    left: -4px;
-    right: -4px;
-    bottom: -4px;
-    border: 2px dashed var(--discord-primary);
-    border-radius: 50%;
-    pointer-events: none;
-    z-index: 10;
-}
-
-/* Divider styling */
-.server-divider {
-    height: 2px;
-    width: 32px;
-    background-color: #36393f;
-    border-radius: 1px;
-    margin: 4px 0;
-}
-
-/* Drop target styling for server list */
-.server-list.drop-target::after {
-    content: "";
-    position: absolute;
-    left: 16px;
-    right: 16px;
-    height: 2px;
-    background-color: var(--discord-primary);
-    bottom: 60px;
-    transition: all 0.2s;
-}
-
-/* Active server styling */
-.server-icon.active .server-button {
-    border-radius: 16px !important;
-    background-color: var(--discord-primary) !important;
-}
-
-.server-icon.active::before {
-    content: "";
-    position: absolute;
-    left: -6px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 4px;
-    height: 40px;
-    background-color: white;
-    border-radius: 0 4px 4px 0;
-}
-
-/* Basic hover effect for server icons */
-.server-button {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    background-color: #36393f;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    overflow: hidden;
-}
-
-.server-icon:not(.active):hover .server-button {
-    border-radius: 16px;
-    background-color: var(--discord-primary);
-}
-
-.server-icon:not(.active):hover::before {
-    content: "";
-    position: absolute;
-    left: -6px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 4px;
-    height: 20px;
-    background-color: white;
-    border-radius: 0 4px 4px 0;
-    transition: height 0.2s;
-}
-</style>
 
 <div class="flex h-full">
     <div class="w-[72px] bg-discord-darker flex flex-col items-center pt-3 pb-3 overflow-visible">
@@ -410,3 +219,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+
+<!-- Include server sidebar JS -->
+<script src="/public/js/components/servers/server-sidebar.js" type="module"></script>

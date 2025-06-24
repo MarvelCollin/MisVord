@@ -1,17 +1,28 @@
 document.addEventListener("DOMContentLoaded", () => {    
     if (document.getElementById('videoContainer')) {
         window.waitForVideoSDK(() => {
-            window.logger.info('voice', "VideoSDK ready. Auto-joining voice channel...");
+            window.logger.info('voice', "VideoSDK ready. Checking if we should auto-join voice channel...");
             
-            // Add a small delay to ensure VideoSDK is fully initialized
-            setTimeout(() => {
-                try {
-                const joinBtn = document.getElementById("joinBtn");
-                if (joinBtn) joinBtn.click();
-                } catch (error) {
-                    console.error("Error auto-joining voice channel:", error);
-                }
-            }, 1000);
+            // Check if we should auto-join this channel
+            const autoJoinChannelId = localStorage.getItem('autoJoinVoiceChannel');
+            const currentChannelId = document.querySelector('meta[name="channel-id"]')?.getAttribute('content');
+            
+            if (autoJoinChannelId && autoJoinChannelId === currentChannelId) {
+                window.logger.info('voice', `Auto-joining voice channel: ${autoJoinChannelId}`);
+                
+                // Add a small delay to ensure VideoSDK is fully initialized
+                setTimeout(() => {
+                    try {
+                        const joinBtn = document.getElementById("joinBtn");
+                        if (joinBtn) {
+                            joinBtn.click();
+                            localStorage.removeItem('autoJoinVoiceChannel'); // Clear the flag after joining
+                        }
+                    } catch (error) {
+                        console.error("Error auto-joining voice channel:", error);
+                    }
+                }, 1000);
+            }
         });
     }
 });
@@ -65,7 +76,10 @@ window.addEventListener("load", () => {
                         
                         // Join the meeting
                         await window.videoSDKManager.joinMeeting();
-        } else {
+                        
+                        // Dispatch voice connect event
+                        dispatchVoiceEvent('voiceConnect', { channelId, meetingId: existingMeetingId });
+                    } else {
                         // Fall back to original join flow
                         meetingId = existingMeetingId;
                         await initializeMeeting();
@@ -126,7 +140,10 @@ window.addEventListener("load", () => {
                         
                         // Register the new meeting with the socket server
                         registerMeeting(channelId, newMeetingId);
-        } else {
+                        
+                        // Dispatch voice connect event
+                        dispatchVoiceEvent('voiceConnect', { channelId, meetingId: newMeetingId });
+                    } else {
                         // Fall back to original join flow if manager not available
                         const newMeetingId = await createMeetingRoom(channelBasedMeetingId);
                         
@@ -152,7 +169,10 @@ window.addEventListener("load", () => {
                                 
                                 // Register the new meeting with the socket server
                                 registerMeeting(channelId, meetingId);
-    } catch (error) {
+                                
+                                // Dispatch voice connect event
+                                dispatchVoiceEvent('voiceConnect', { channelId, meetingId });
+                            } catch (error) {
                                 console.error("Failed to join meeting:", error);
                                 showToast("Failed to join: " + error.message, "error");
                                 joinBtn.disabled = false;
@@ -188,12 +208,18 @@ window.addEventListener("load", () => {
                 
                 // Unregister the meeting if we're the last participant
                 unregisterMeeting(channelId, meetingId);
+                
+                // Dispatch voice disconnect event
+                dispatchVoiceEvent('voiceDisconnect', { channelId, meetingId });
             } else if (meeting) {
                 console.log(`[VOICE] Leaving meeting ${activeMeetingId} for channel ${activeChannelId}`);
                 meeting.leave();
                 
                 // Unregister the meeting if we're the last participant
                 unregisterMeeting(activeChannelId, activeMeetingId);
+                
+                // Dispatch voice disconnect event
+                dispatchVoiceEvent('voiceDisconnect', { channelId: activeChannelId, meetingId: activeMeetingId });
             }
         });
     }
@@ -1162,4 +1188,10 @@ function setupEventHandlers() {
         
         showToast("Error: " + (error.message || "Unknown error occurred"), "error");
     });
+}
+
+// Add this function near the top of the file
+function dispatchVoiceEvent(eventName, detail = {}) {
+    console.log(`[VOICE] Dispatching ${eventName} event`);
+    window.dispatchEvent(new CustomEvent(eventName, { detail }));
 }

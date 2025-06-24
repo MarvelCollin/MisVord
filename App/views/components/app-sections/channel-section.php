@@ -156,6 +156,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }, 800);
     
+    // Add a global function to handle voice channel clicks
+    window.handleVoiceChannelClick = function(channelId) {
+        // Set a flag to indicate we want to auto-join this voice channel
+        localStorage.setItem('autoJoinVoiceChannel', channelId);
+        console.log('Voice channel selected, auto-join set:', channelId);
+    };
+    
     const channelItems = document.querySelectorAll('.channel-item');
     
     channelItems.forEach(item => {
@@ -167,12 +174,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (clone.getAttribute('data-channel-type') === 'voice') {
             clone.addEventListener('click', function(e) {
                 const channelId = clone.getAttribute('data-channel-id');
-                
-                // Set a flag to indicate we want to auto-join this voice channel
-                window.autoJoinVoiceChannel = channelId;
-                
-                // First navigate to the voice channel - use the existing mechanism
-                // The channelLoaded event will trigger the auto-join
+                window.handleVoiceChannelClick(channelId);
             });
         }
     });
@@ -183,13 +185,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Create a global helper function to attempt auto-joining voice
 window.attemptAutoJoinVoice = function() {
-    if (window.autoJoinVoiceChannel) {
-        console.log('Attempting to auto-join voice channel:', window.autoJoinVoiceChannel);
+    const autoJoinChannelId = localStorage.getItem('autoJoinVoiceChannel');
+    const currentChannelId = document.querySelector('[data-channel-id]')?.getAttribute('data-channel-id');
+    
+    if (autoJoinChannelId && autoJoinChannelId === currentChannelId) {
+        console.log('Attempting to auto-join voice channel:', autoJoinChannelId);
         const joinBtn = document.getElementById('joinBtn');
         
         if (joinBtn) {
             joinBtn.click();
-            window.autoJoinVoiceChannel = null; // Clear the flag after joining
+            localStorage.removeItem('autoJoinVoiceChannel'); // Clear the flag after joining
         } else {
             // If join button is not found, try again after a short delay
             setTimeout(() => {
@@ -197,8 +202,8 @@ window.attemptAutoJoinVoice = function() {
                 if (retryJoinBtn) {
                     retryJoinBtn.click();
                 }
-                window.autoJoinVoiceChannel = null;
-            }, 500);
+                localStorage.removeItem('autoJoinVoiceChannel');
+            }, 800);
         }
     }
 };

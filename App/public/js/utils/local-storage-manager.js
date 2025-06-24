@@ -139,4 +139,11 @@ export class LocalStorageManager {
         }
         return false;
     }
+    
+    /**
+     * Clear all server groups (for testing)
+     */
+    static clearAllGroups() {
+        localStorage.removeItem(this.KEYS.SERVER_GROUPS);
+    }
 }

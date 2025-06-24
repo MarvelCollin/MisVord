@@ -18,13 +18,20 @@ $userName = $_SESSION['username'] ?? 'Anonymous';
 
 $additional_js[] = 'components/videosdk/videosdk';
 $additional_js[] = 'components/voice/voice-manager';
+$additional_js[] = 'components/voice/voice-section';
 ?>
+
+<!-- Add CSS for voice section -->
+<link rel="stylesheet" href="/css/voice-section.css">
+
+<!-- Add JS for voice section -->
+<script src="/js/components/voice/voice-section.js" defer></script>
 
 <meta name="meeting-id" content="<?php echo htmlspecialchars($meetingId); ?>">
 <meta name="username" content="<?php echo htmlspecialchars($userName); ?>">
 <meta name="channel-id" content="<?php echo htmlspecialchars($activeChannelId); ?>">
 
-<div class="flex flex-col h-screen bg-[#313338] text-white">
+<div class="flex flex-col h-screen bg-[#313338] text-white" id="voice-container">
     <!-- Channel header -->
     <div class="h-12 border-b border-[#1e1f22] flex items-center px-4 shadow-sm bg-[#313338] z-20">
         <div class="flex items-center">
@@ -94,7 +101,7 @@ $additional_js[] = 'components/voice/voice-manager';
                 <h2 class="text-2xl font-bold text-white mb-2"><?php echo htmlspecialchars($activeChannel['name'] ?? 'Voice Channel'); ?></h2>
                 <p class="text-gray-300 text-base mb-6">No one is currently in voice</p>
                 
-                <button id="joinBtn" class="bg-white hover:bg-gray-100 text-[#202225] font-medium py-1.5 px-4 rounded transition-colors">
+                <button id="joinBtn" class="bg-[#5865F2] hover:bg-[#4752c4] text-white font-medium py-2 px-6 rounded transition-colors">
                     Join Voice
                 </button>
             </div>
@@ -273,9 +280,12 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }));
     
-    // If auto-join flag was set, this will trigger the join
+    // Check if we should auto-join this channel
     if (window.attemptAutoJoinVoice) {
+        // Try to auto-join a few times to make sure the UI is fully loaded
         setTimeout(() => window.attemptAutoJoinVoice(), 300);
+        setTimeout(() => window.attemptAutoJoinVoice(), 800);
+        setTimeout(() => window.attemptAutoJoinVoice(), 1500);
     }
     
     // Handle join UI visibility
@@ -365,5 +375,26 @@ document.addEventListener("DOMContentLoaded", function() {
             if (emptyMessage) emptyMessage.style.display = 'none';
         }
     };
+});
+
+// Add IDs to server and channel sidebars for fullscreen mode
+document.addEventListener('DOMContentLoaded', function() {
+    // Find server sidebar
+    const serverSidebar = document.querySelector('#app-container > .flex > .flex.flex-col.bg-discord-dark');
+    if (serverSidebar && !serverSidebar.id) {
+        serverSidebar.id = 'server-sidebar';
+    }
+    
+    // Find channel sidebar
+    const channelSidebar = document.querySelector('#app-container > .flex > .w-60.flex.flex-col.bg-discord-light');
+    if (channelSidebar && !channelSidebar.id) {
+        channelSidebar.id = 'channel-sidebar';
+    }
+    
+    // Find main content
+    const mainContent = document.querySelector('#app-container > .flex > .flex-1');
+    if (mainContent && !mainContent.id) {
+        mainContent.id = 'main-content';
+    }
 });
 </script>

@@ -1,0 +1,133 @@
+/* Discord-style Voice Channel CSS */
+.voice-fullscreen-mode {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 9999;
+    background: linear-gradient(180deg, #1e1f3a 0%, #2b2272 50%, #1e203a 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Force hide sidebars when in fullscreen mode */
+body.voice-fullscreen-active #server-sidebar,
+body.voice-fullscreen-active #channel-sidebar,
+body.voice-fullscreen-active .bg-discord-dark,
+body.voice-fullscreen-active .bg-\[\#1e1f22\],
+body.voice-fullscreen-active .w-60.bg-\[\#2b2d31\] {
+    display: none !important;
+}
+
+.voice-fullscreen-mode .voice-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 10;
+}
+
+.voice-fullscreen-mode .voice-header .channel-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: white;
+}
+
+.voice-fullscreen-mode .voice-header .close-btn {
+    background: rgba(0, 0, 0, 0.3);
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.voice-fullscreen-mode .voice-header .close-btn:hover {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.voice-fullscreen-mode #joinUI {
+    background: transparent !important;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.voice-fullscreen-mode #joinBtn {
+    background-color: #5865F2;
+    color: white;
+    padding: 10px 24px;
+    font-size: 16px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.voice-fullscreen-mode #joinBtn:hover {
+    background-color: #4752c4;
+}
+
+.voice-fullscreen-mode .voice-controls-container {
+    position: absolute;
+    bottom: 24px;
+    left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+.voice-fullscreen-mode #discordVoiceView {
+    background: transparent !important;
+    max-width: 500px;
+    width: 100%;
+}
+
+.voice-fullscreen-mode .user-voice-item {
+    background-color: rgba(49, 51, 56, 0.6) !important;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.voice-fullscreen-mode #emptyVoiceMessage {
+    color: white;
+    text-align: center;
+}
+
+.voice-fullscreen-mode #emptyVoiceMessage h2 {
+    font-size: 24px;
+    margin-bottom: 8px;
+}
+
+.voice-fullscreen-mode #emptyVoiceMessage p {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* Animation for transition */
+.voice-fullscreen-transition {
+    transition: all 0.3s ease-in-out;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .voice-fullscreen-mode .voice-header .channel-name {
+        font-size: 16px;
+    }
+    
+    .voice-fullscreen-mode #discordVoiceView {
+        max-width: 90%;
+    }
+}
