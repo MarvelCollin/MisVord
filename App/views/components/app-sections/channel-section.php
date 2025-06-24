@@ -162,10 +162,51 @@ document.addEventListener('DOMContentLoaded', function() {
         // Remove existing click event listeners if any
         const clone = item.cloneNode(true);
         item.parentNode.replaceChild(clone, item);
+        
+        // Add click event handlers directly here for voice channels
+        if (clone.getAttribute('data-channel-type') === 'voice') {
+            clone.addEventListener('click', function(e) {
+                const channelId = clone.getAttribute('data-channel-id');
+                
+                // Set a flag to indicate we want to auto-join this voice channel
+                window.autoJoinVoiceChannel = channelId;
+                
+                // First navigate to the voice channel - use the existing mechanism
+                // The channelLoaded event will trigger the auto-join
+            });
+        }
     });
     
-    // Let the server-page.js handle the channel click events
+    // Let the server-page.js handle the other channel click events
     // The event listeners are set up in initializeChannelClickHandlers()
+});
+
+// Create a global helper function to attempt auto-joining voice
+window.attemptAutoJoinVoice = function() {
+    if (window.autoJoinVoiceChannel) {
+        console.log('Attempting to auto-join voice channel:', window.autoJoinVoiceChannel);
+        const joinBtn = document.getElementById('joinBtn');
+        
+        if (joinBtn) {
+            joinBtn.click();
+            window.autoJoinVoiceChannel = null; // Clear the flag after joining
+        } else {
+            // If join button is not found, try again after a short delay
+            setTimeout(() => {
+                const retryJoinBtn = document.getElementById('joinBtn');
+                if (retryJoinBtn) {
+                    retryJoinBtn.click();
+                }
+                window.autoJoinVoiceChannel = null;
+            }, 500);
+        }
+    }
+};
+
+// Listen for channel content loaded events
+document.addEventListener('channelContentLoaded', function(e) {
+    // When a channel is loaded, check if we need to auto-join voice
+    window.attemptAutoJoinVoice();
 });
 
 function openCreateChannelModal(type = 'text') {

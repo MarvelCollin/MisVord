@@ -25,60 +25,86 @@ $additional_js[] = 'components/voice/voice-manager';
 <meta name="channel-id" content="<?php echo htmlspecialchars($activeChannelId); ?>">
 
 <div class="flex flex-col h-screen bg-[#313338] text-white">
-    <div class="h-12 border-b border-[#1e1f22] flex items-center px-4 shadow-sm">
+    <!-- Channel header -->
+    <div class="h-12 border-b border-[#1e1f22] flex items-center px-4 shadow-sm bg-[#313338] z-20">
         <div class="flex items-center">
             <i class="fas fa-volume-high text-gray-400 mr-2"></i>
             <span class="font-medium text-white"><?php echo htmlspecialchars($activeChannel['name'] ?? 'Voice Channel'); ?></span>
         </div>
+        <div class="ml-auto">
+            <button class="text-gray-400 hover:text-white">
+                <i class="fas fa-comment-alt"></i>
+            </button>
+        </div>
     </div>
     
+    <!-- Main content area -->
     <div class="flex-1 flex">
-        <div id="participantsPanel" class="w-64 bg-[#232428] border-r border-[#1e1f22] flex flex-col py-4 px-2 hidden">
-            <div class="text-xs text-gray-400 uppercase mb-2">Voice Participants</div>
-            <div id="participants" class="flex-1 flex flex-col gap-1"></div>
-        </div>
-        <div class="flex-1 flex flex-col justify-center items-center">
-            <div id="videoContainer" class="w-full h-full flex items-center justify-center">
-                <div id="videosContainer" class="flex flex-wrap justify-center items-center gap-8 pt-8"></div>
+        <!-- No participants message when empty -->
+        <div class="flex-1 flex flex-col">
+            <!-- Video grid container -->
+            <div id="videoContainer" class="w-full h-full flex flex-wrap justify-center items-center gap-8 p-4 hidden">
+                <div id="videosContainer" class="flex flex-wrap justify-center items-center gap-8"></div>
             </div>
             
-            <div class="flex flex-col items-center justify-center py-10 text-center">
-                <h2 class="text-2xl font-bold mb-2">No one's around to hang out with</h2>
-                <p class="text-gray-400 max-w-md">When friends are active in this voice channel, you'll see them here.</p>
+            <!-- Discord-style voice channel view -->
+            <div class="flex-1 flex flex-col justify-center items-center bg-[#2b2d31]" id="discordVoiceView">
+                <!-- Current user (you) -->
+                <div class="user-voice-item w-full max-w-xl mb-4 bg-[#313338] rounded-md overflow-hidden">
+                    <div class="px-3 py-2 flex items-center justify-between">
+                        <div class="flex items-center">
+                            <div class="relative w-8 h-8 rounded-full bg-[#5865F2] flex items-center justify-center overflow-hidden mr-2">
+                                <span class="text-white text-sm font-semibold"><?php echo substr($userName, 0, 1); ?></span>
+                            </div>
+                            <div class="flex flex-col">
+                                <div class="flex items-center">
+                                    <span class="text-white text-sm font-medium"><?php echo htmlspecialchars($userName); ?></span>
+                                    <span class="ml-1 text-xs px-1.5 py-0.5 bg-[#5865F2] text-white rounded text-[10px] uppercase font-bold">you</span>
+                                </div>
+                                <div class="text-xs text-gray-400" id="user-voice-status">
+                                    <span class="text-[#3ba55c]">Connected to voice</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-gray-400">
+                            <div class="flex items-center space-x-1">
+                                <div class="w-4 h-4 flex items-center justify-center">
+                                    <i class="fas fa-microphone text-xs"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Participants will be dynamically added here -->
+                <div id="participants" class="w-full max-w-xl"></div>
+                
+                <!-- Empty state message (shows when no other participants) -->
+                <div id="emptyVoiceMessage" class="flex flex-col items-center justify-center py-8 text-center">
+                    <div class="w-40 h-40 mb-4 opacity-70">
+                        <img src="https://discord.com/assets/cb0d3973-ea92-4d74-9f1e-88ed59493a63.svg" alt="No one here" class="w-full h-full" />
+                    </div>
+                    <h2 class="text-xl font-bold mb-2 text-white">No one's around to hang out with</h2>
+                    <p class="text-gray-400 max-w-md text-sm">When friends are in this voice channel, you'll see them here.</p>
+                </div>
+            </div>
+            
+            <!-- Discord-style join UI (shows before connecting) -->
+            <div id="joinUI" class="absolute inset-0 flex flex-col items-center justify-center z-10 bg-gradient-to-b from-[#1e1f3a] via-[#2b2272] to-[#1e203a]">
+                <h2 class="text-2xl font-bold text-white mb-2"><?php echo htmlspecialchars($activeChannel['name'] ?? 'Voice Channel'); ?></h2>
+                <p class="text-gray-300 text-base mb-6">No one is currently in voice</p>
+                
+                <button id="joinBtn" class="bg-white hover:bg-gray-100 text-[#202225] font-medium py-1.5 px-4 rounded transition-colors">
+                    Join Voice
+                </button>
             </div>
         </div>
     </div>
     
-    <div class="h-16 bg-[#1e1f22] border-t border-[#1e1f22] flex items-center justify-between px-4">
-        <div class="flex items-center">
-            <div class="mr-4 text-sm">
-                <div class="text-xs text-gray-400 uppercase">Voice Connected</div>
-                <div class="text-white font-medium"><?php echo htmlspecialchars($activeChannel['name'] ?? 'Voice Channel'); ?></div>
-            </div>
-            <div class="h-8 border-l border-gray-700 mx-2"></div>
-            <div class="flex items-center space-x-1">
-                <button id="micBtn" class="bg-[#272729] hover:bg-[#3a3a3d] text-gray-200 rounded-full p-2 focus:outline-none transition-all disabled:opacity-60 disabled:cursor-not-allowed btn-voice" disabled>
-                    <i class="fas fa-microphone text-sm"></i>
-                </button>
-                <button id="joinVideoBtn" class="bg-[#272729] hover:bg-[#3a3a3d] text-gray-200 rounded-full p-2 focus:outline-none transition-all disabled:opacity-60 disabled:cursor-not-allowed btn-voice hidden">
-                    <i class="fas fa-video text-sm"></i>
-                </button>
-            </div>
-        </div>
-        
-        <div class="flex items-center space-x-3">
-            <button id="screenBtn" class="bg-[#272729] hover:bg-[#3a3a3d] text-gray-200 rounded-full p-2 focus:outline-none transition-all disabled:opacity-60 disabled:cursor-not-allowed btn-voice" disabled>
-                <i class="fas fa-desktop text-sm"></i>
-            </button>
-            <button id="joinBtn" class="bg-[#5B64EA] hover:bg-[#4752c4] text-white rounded-full p-3 focus:outline-none transition-all btn-voice w-10 h-10 flex items-center justify-center">
-                <i class="fas fa-phone text-sm"></i>
-            </button>
-            <button id="leaveBtn" class="bg-[#ED4245] hover:bg-[#d83134] text-white rounded-full p-3 focus:outline-none transition-all disabled:opacity-60 disabled:cursor-not-allowed btn-voice hidden w-10 h-10 flex items-center justify-center" disabled>
-                <i class="fas fa-phone-slash text-sm"></i>
-            </button>
-        </div>
+    <!-- Voice tools at bottom -->
+    <div class="voice-controls-container">
+        <?php include __DIR__ . '/../voice/voice-tool.php'; ?>
     </div>
-    
 </div>
 
 <style>
@@ -146,6 +172,18 @@ $additional_js[] = 'components/voice/voice-manager';
     animation: pulse 2s infinite;
 }
 
+.user-voice-item {
+    transition: background-color 0.2s ease;
+}
+
+.user-voice-item:hover {
+    background-color: #36393f;
+}
+
+.user-voice-item.speaking {
+    background-color: #3c3f45;
+}
+
 .fade-in {
     animation: fadeIn 0.3s ease forwards;
 }
@@ -174,6 +212,31 @@ $additional_js[] = 'components/voice/voice-manager';
 }
 </style>
 
+<template id="participantTemplate">
+    <div class="user-voice-item w-full bg-[#313338] rounded-md overflow-hidden mb-2">
+        <div class="px-3 py-2 flex items-center justify-between">
+            <div class="flex items-center">
+                <div class="participant-avatar relative w-8 h-8 rounded-full bg-[#3ba55c] flex items-center justify-center overflow-hidden mr-2">
+                    <span class="text-white text-sm font-semibold">U</span>
+                </div>
+                <div class="flex flex-col">
+                    <div class="flex items-center">
+                        <span class="participant-name text-white text-sm font-medium">User</span>
+                    </div>
+                    <div class="text-xs text-gray-400 participant-status"></div>
+                </div>
+            </div>
+            <div class="text-gray-400 participant-icons">
+                <div class="flex items-center space-x-1">
+                    <div class="w-4 h-4 flex items-center justify-center">
+                        <i class="fas fa-microphone-slash text-xs"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
 <!-- Add scripts only if not already loaded -->
 <script>
 if (typeof VideoSDK === 'undefined') {
@@ -199,4 +262,108 @@ if (typeof additional_js !== 'undefined') {
         additional_js.push('components/voice/voice-manager');
     }
 }
+
+// JavaScript to handle participant template rendering and UI visibility
+document.addEventListener("DOMContentLoaded", function() {
+    // Signal that the voice channel content has loaded
+    document.dispatchEvent(new CustomEvent('channelContentLoaded', {
+        detail: {
+            type: 'voice',
+            channelId: '<?php echo htmlspecialchars($activeChannelId); ?>'
+        }
+    }));
+    
+    // If auto-join flag was set, this will trigger the join
+    if (window.attemptAutoJoinVoice) {
+        setTimeout(() => window.attemptAutoJoinVoice(), 300);
+    }
+    
+    // Handle join UI visibility
+    const joinUI = document.getElementById('joinUI');
+    const discordVoiceView = document.getElementById('discordVoiceView');
+    const voiceControlsContainer = document.querySelector('.voice-controls-container');
+    const mainContent = document.querySelector('.flex-1.flex.flex-col');
+    
+    // Hide voice controls and discord view initially, show join UI
+    if (voiceControlsContainer) voiceControlsContainer.style.display = 'none';
+    if (discordVoiceView) discordVoiceView.style.display = 'none';
+    if (joinUI) joinUI.style.display = 'flex';
+    
+    // Apply full-height gradient background
+    if (mainContent) {
+        mainContent.style.background = 'linear-gradient(180deg, #1e1f3a 0%, #2b2272 50%, #1e203a 100%)';
+    }
+    
+    // Listen for connection events
+    window.addEventListener('voiceConnect', function(event) {
+        // Hide join UI, show Discord voice view and controls
+        if (joinUI) joinUI.style.display = 'none';
+        if (discordVoiceView) discordVoiceView.style.display = 'flex';
+        if (voiceControlsContainer) voiceControlsContainer.style.display = 'block';
+        
+        // Remove gradient background when connected
+        if (mainContent) {
+            mainContent.style.background = '#2b2d31';
+        }
+    });
+    
+    window.addEventListener('voiceDisconnect', function(event) {
+        // Show join UI, hide Discord voice view and controls
+        if (joinUI) joinUI.style.display = 'flex';
+        if (discordVoiceView) discordVoiceView.style.display = 'none';
+        if (voiceControlsContainer) voiceControlsContainer.style.display = 'none';
+        
+        // Restore gradient background when disconnected
+        if (mainContent) {
+            mainContent.style.background = 'linear-gradient(180deg, #1e1f3a 0%, #2b2272 50%, #1e203a 100%)';
+        }
+    });
+    
+    // Add click event to join button to make it more responsive
+    const joinBtn = document.getElementById('joinBtn');
+    if (joinBtn) {
+        joinBtn.addEventListener('click', function() {
+            joinBtn.textContent = 'Connecting...';
+            joinBtn.classList.add('opacity-70', 'cursor-not-allowed');
+            setTimeout(() => {
+                // The actual connection will be handled by the existing click handler
+                // This just makes the UI more responsive
+            }, 100);
+        });
+    }
+    
+    // This function will be called by voice-manager.js when adding participants
+    window.renderParticipant = function(participant) {
+        if (!participant) return;
+        
+        const template = document.getElementById('participantTemplate');
+        if (!template) return;
+        
+        const clone = document.importNode(template.content, true);
+        
+        // Set participant details
+        const nameElement = clone.querySelector('.participant-name');
+        if (nameElement) nameElement.textContent = participant.displayName || 'User';
+        
+        // Set avatar initial
+        const avatarElement = clone.querySelector('.participant-avatar span');
+        if (avatarElement) {
+            const initial = participant.displayName ? participant.displayName.charAt(0).toUpperCase() : 'U';
+            avatarElement.textContent = initial;
+        }
+        
+        // Add to participants container
+        const container = document.getElementById('participants');
+        if (container) {
+            const participantDiv = document.createElement('div');
+            participantDiv.id = `participant-item-${participant.id}`;
+            participantDiv.appendChild(clone);
+            container.appendChild(participantDiv);
+            
+            // Hide empty message if we have participants
+            const emptyMessage = document.getElementById('emptyVoiceMessage');
+            if (emptyMessage) emptyMessage.style.display = 'none';
+        }
+    };
+});
 </script>

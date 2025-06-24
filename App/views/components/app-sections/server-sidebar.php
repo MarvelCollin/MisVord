@@ -23,6 +23,8 @@ if (file_exists($tooltipPath)) {
 }
 ?>
 
+<link rel="stylesheet" href="/css/server-sidebar.css">
+
 <?php if ($isExplorePage): ?>
 <style>
 /* Critical styles for server icons in explore page to prevent collapse */
@@ -397,10 +399,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if (tooltip) {
             icon.addEventListener('mouseenter', () => {
                 tooltip.classList.remove('hidden');
+                tooltip.style.opacity = '1';
             });
             
             icon.addEventListener('mouseleave', () => {
                 tooltip.classList.add('hidden');
+                tooltip.style.opacity = '0';
             });
         }
     });

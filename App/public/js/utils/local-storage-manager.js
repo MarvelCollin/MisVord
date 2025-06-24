@@ -109,8 +109,24 @@ export class LocalStorageManager {
     }
     
     /**
+     * Set group collapsed state
+     * @param {string} groupId - Group ID to set
+     * @param {boolean} isCollapsed - Whether the group should be collapsed
+     */
+    static setGroupCollapsed(groupId, isCollapsed) {
+        const groups = this.getServerGroups();
+        const group = groups.find(g => g.id === groupId);
+        
+        if (group) {
+            group.collapsed = isCollapsed;
+            this.saveServerGroups(groups);
+        }
+    }
+    
+    /**
      * Toggle group collapsed state
      * @param {string} groupId - Group ID to toggle
+     * @returns {boolean} New collapsed state
      */
     static toggleGroupCollapsed(groupId) {
         const groups = this.getServerGroups();
@@ -119,6 +135,8 @@ export class LocalStorageManager {
         if (group) {
             group.collapsed = !group.collapsed;
             this.saveServerGroups(groups);
+            return group.collapsed;
         }
+        return false;
     }
 }
