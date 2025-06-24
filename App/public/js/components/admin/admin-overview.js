@@ -18,6 +18,12 @@ export class OverviewManager {
     
     this.currentChartPeriod = "daily"; // daily or weekly
     
+    this.chartConfig = {
+      useMockData: false,
+      mockDataRange: 'medium',
+      mockDataTrend: 'random'
+    };
+    
     this.init();
   }
 
@@ -69,6 +75,13 @@ export class OverviewManager {
     this.showSkeleton("total-messages");
     this.showSkeleton("todays-messages");
     
+    if (this.chartConfig.useMockData) {
+      setTimeout(() => {
+        this.updateSystemStats(this.generateMockSystemStats());
+      }, 500);
+      return;
+    }
+    
     fetch("/api/admin/stats", {
       method: "GET",
       headers: {
@@ -115,10 +128,22 @@ export class OverviewManager {
     }
   }
 
+  updateChartConfig(config) {
+    this.chartConfig = { ...this.chartConfig, ...config };
+    
+    this.loadSystemStats();
+    this.loadChartData();
+  }
+
   loadChartData() {
     this.showChartLoading('users-chart');
     this.showChartLoading('messages-chart');
     this.showChartLoading('servers-chart');
+    
+    if (this.chartConfig.useMockData) {
+      this.loadMockChartData();
+      return;
+    }
     
     // Load user growth data
     fetch("/api/admin/stats/users/growth")
@@ -172,6 +197,153 @@ export class OverviewManager {
         showToast("An error occurred while loading server growth data", "error");
         this.hideChartLoading('servers-chart');
       });
+  }
+  
+  loadMockChartData() {
+    const dates = this.generateDateArray(14);
+    const weeks = this.generateWeekArray(8);
+    
+    this.chartData.users.daily = dates.map((date, index) => ({
+      label: date,
+      value: this.generateMockValue(index, 'users')
+    }));
+    
+    this.chartData.users.weekly = weeks.map((week, index) => ({
+      label: week,
+      value: this.generateMockValue(index, 'users', true)
+    }));
+    
+    this.chartData.messages.daily = dates.map((date, index) => ({
+      label: date,
+      value: this.generateMockValue(index, 'messages')
+    }));
+    
+    this.chartData.messages.weekly = weeks.map((week, index) => ({
+      label: week,
+      value: this.generateMockValue(index, 'messages', true)
+    }));
+    
+    this.chartData.servers.growth = dates.map((date, index) => ({
+      label: date,
+      value: this.generateMockValue(index, 'servers')
+    }));
+    
+    setTimeout(() => {
+      this.renderAllCharts();
+      this.hideChartLoading('users-chart');
+      this.hideChartLoading('messages-chart');
+      this.hideChartLoading('servers-chart');
+    }, 500);
+  }
+  
+  generateMockSystemStats() {
+    const range = this.getMockRange();
+    
+    return {
+      totalUsers: this.getRandomInt(range.medium.min * 10, range.medium.max * 10),
+      onlineUsers: this.getRandomInt(range.small.min, range.small.max * 2),
+      newUsers: this.getRandomInt(range.small.min, range.small.max),
+      totalServers: this.getRandomInt(range.small.min * 5, range.medium.min),
+      totalMessages: this.getRandomInt(range.large.min, range.large.max),
+      todaysMessages: this.getRandomInt(range.medium.min, range.medium.max)
+    };
+  }
+  
+  generateMockValue(index, type, isWeekly = false) {
+    const range = this.getMockRange();
+    const { mockDataTrend } = this.chartConfig;
+    
+    let baseRange;
+    if (type === 'users') {
+      baseRange = isWeekly ? range.medium : range.small;
+    } else if (type === 'messages') {
+      baseRange = isWeekly ? range.large : range.medium;
+    } else {
+      baseRange = range.small;
+    }
+    
+    const min = baseRange.min;
+    const max = baseRange.max;
+    
+    switch (mockDataTrend) {
+      case 'growing':
+        const growthRate = isWeekly ? 1.2 : 1.1;
+        return Math.round(min + (max - min) * (index / 10) * growthRate) + this.getRandomInt(-min/10, min/10);
+      case 'declining':
+        const declineRate = isWeekly ? 0.8 : 0.9;
+        return Math.round(max - (max - min) * (index / 10) * declineRate) + this.getRandomInt(-min/10, min/10);
+      case 'stable':
+        const midValue = (min + max) / 2;
+        return Math.round(midValue + this.getRandomInt(-midValue/10, midValue/10));
+      case 'random':
+      default:
+        return this.getRandomInt(min, max);
+    }
+  }
+  
+  getMockRange() {
+    const { mockDataRange } = this.chartConfig;
+    
+    switch (mockDataRange) {
+      case 'small':
+        return {
+          small: { min: 1, max: 20 },
+          medium: { min: 10, max: 50 },
+          large: { min: 50, max: 200 }
+        };
+      case 'large':
+        return {
+          small: { min: 100, max: 500 },
+          medium: { min: 500, max: 2000 },
+          large: { min: 2000, max: 5000 }
+        };
+      case 'medium':
+      default:
+        return {
+          small: { min: 10, max: 100 },
+          medium: { min: 100, max: 500 },
+          large: { min: 500, max: 2000 }
+        };
+    }
+  }
+  
+  getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+  
+  generateDateArray(days) {
+    const dates = [];
+    const today = new Date();
+    
+    for (let i = days - 1; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(today.getDate() - i);
+      dates.push(date.toISOString().split('T')[0]);
+    }
+    
+    return dates;
+  }
+  
+  generateWeekArray(weeks) {
+    const weekLabels = [];
+    const today = new Date();
+    
+    for (let i = weeks - 1; i >= 0; i--) {
+      const startOfWeek = new Date();
+      startOfWeek.setDate(today.getDate() - (i * 7 + 6));
+      const endOfWeek = new Date();
+      endOfWeek.setDate(today.getDate() - (i * 7));
+      
+      const startMonth = startOfWeek.getMonth() + 1;
+      const endMonth = endOfWeek.getMonth() + 1;
+      const startDay = startOfWeek.getDate();
+      const endDay = endOfWeek.getDate();
+      
+      const weekLabel = `${startMonth}/${startDay}-${endMonth}/${endDay}`;
+      weekLabels.push(weekLabel);
+    }
+    
+    return weekLabels;
   }
 
   renderAllCharts() {

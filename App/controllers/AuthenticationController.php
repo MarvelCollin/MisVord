@@ -173,14 +173,14 @@ class AuthenticationController extends BaseController
             exit;
         }
         
-        // Verify password using the User model's verification method
         $passwordVerified = $user->verifyPassword($password);
         
         if (!$passwordVerified) {
-            // Password verification failed
             $this->logFailedLogin($email, 'password_verification_failed');
             $_SESSION['errors'] = ['auth' => 'Login failed. Incorrect password provided.'];
             $_SESSION['old_input'] = ['email' => $email];
+            
+            error_log('Password verification failed for user: ' . $email);
             
             if (function_exists('logger')) {
                 logger()->warning("Failed login attempt", [
@@ -191,6 +191,7 @@ class AuthenticationController extends BaseController
             }
             
             $this->setSecurityHeaders();
+            session_write_close(); // Make sure the session is saved before redirect
             header('Location: /login');
             exit;
         }

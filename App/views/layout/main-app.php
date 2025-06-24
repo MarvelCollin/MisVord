@@ -74,6 +74,7 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
     
     <?php if (!isset($data_page) || $data_page !== 'auth'): ?>
         <script type="module" src="<?php echo js('components/servers/server-manager'); ?>"></script>
+        <script type="module" src="<?php echo js('components/videosdk/global-voice-connected'); ?>"></script>
     <?php endif; ?>
     
     <script type="module" src="<?= asset('/js/components/index.js') ?>"></script>

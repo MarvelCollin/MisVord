@@ -97,25 +97,65 @@ export class NitroManager {
   initUserSearch() {
     const userSearchInput = document.getElementById('user_search');
     const userSearchResults = document.getElementById('user-search-results');
+    const userIdInput = document.getElementById('user_id');
     
-    if (userSearchInput && userSearchResults) {
-      userSearchInput.addEventListener('input', () => {
+    if (userSearchInput && userSearchResults && userIdInput) {
+      // Add clear button to input
+      const clearButton = document.createElement('button');
+      clearButton.type = 'button';
+      clearButton.className = 'absolute right-2 top-1/2 transform -translate-y-1/2 text-discord-lighter hover:text-white';
+      clearButton.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+        </svg>
+      `;
+      clearButton.addEventListener('click', () => {
+        userSearchInput.value = '';
+        userIdInput.value = '';
+        userSearchResults.classList.add('hidden');
+      });
+      
+      // Add clear button to search input parent
+      const parent = userSearchInput.parentElement;
+      if (parent) {
+        parent.style.position = 'relative';
+        parent.appendChild(clearButton);
+      }
+      
+      // Clear user selection when clicking the input
+      userSearchInput.addEventListener('click', () => {
+        if (userSearchInput.value.trim().length >= 2) {
+          userSearchResults.classList.remove('hidden');
+        }
+      });
+      
+      // Handle input typing
+      userSearchInput.addEventListener('input', this.debounce(() => {
         const query = userSearchInput.value.trim();
         
-        clearTimeout(this.userSearchTimeout);
-        
-        if (query.length < 2) {
+        if (query.length === 0) {
+          // Clear selection
+          userIdInput.value = '';
+          userSearchResults.innerHTML = '<div class="p-2 text-sm text-gray-400">Type to search users...</div>';
           userSearchResults.classList.add('hidden');
           return;
         }
         
-        this.userSearchTimeout = setTimeout(() => {
+        if (query.length >= 2) {
           this.searchUsers(query);
-        }, 300);
-      });
+        }
+      }, 300));
       
+      // Handle click outside to close dropdown
       document.addEventListener('click', (e) => {
         if (!userSearchInput.contains(e.target) && !userSearchResults.contains(e.target)) {
+          userSearchResults.classList.add('hidden');
+        }
+      });
+      
+      // Handle ESC key to close dropdown
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
           userSearchResults.classList.add('hidden');
         }
       });
@@ -127,71 +167,84 @@ export class NitroManager {
     
     if (!userSearchResults) return;
     
-    fetch(`/api/admin/users/search?q=${encodeURIComponent(query)}`)
-      .then(response => response.json())
-      .then(data => {
-        if (data.success && data.data.users) {
-          this.renderUserSearchResults(data.data.users);
-        } else {
-          userSearchResults.innerHTML = '<div class="p-3 text-sm text-discord-lighter">No users found</div>';
-          userSearchResults.classList.remove('hidden');
+    userSearchResults.innerHTML = '<div class="p-2 text-sm text-discord-lighter">Searching...</div>';
+    userSearchResults.classList.remove('hidden');
+    
+    // Use the admin users search endpoint with proper headers
+    fetch(`/api/admin/users/search?q=${encodeURIComponent(query)}`, {
+      headers: {
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.text();
+      })
+      .then(text => {
+        try {
+          // Try to parse as JSON first
+          const data = JSON.parse(text);
+          
+          if (data.data && Array.isArray(data.data)) {
+            if (data.data.length === 0) {
+              userSearchResults.innerHTML = '<div class="p-2 text-sm text-discord-lighter">No users found</div>';
+              return;
+            }
+            
+            // Clear and populate results
+            userSearchResults.innerHTML = '';
+            
+            data.data.forEach(user => {
+              const resultItem = document.createElement('div');
+              resultItem.className = 'p-2 hover:bg-discord-dark cursor-pointer flex items-center';
+              resultItem.dataset.userId = user.id;
+              
+              // Use the appropriate user data format - make sure we handle the fields correctly
+              const username = user.username || '';
+              const discriminator = user.discriminator ? `#${user.discriminator}` : '';
+              const displayName = `${username}${discriminator}`;
+              
+              resultItem.innerHTML = `
+                <div class="w-8 h-8 rounded-full overflow-hidden bg-discord-dark mr-2">
+                  <img src="${user.avatar_url || '/assets/default-avatar.svg'}" alt="Avatar" class="w-full h-full object-cover">
+                </div>
+                <div>
+                  <div class="text-sm font-medium">${displayName}</div>
+                  <div class="text-xs text-discord-lighter">${user.email || ''}</div>
+                </div>
+              `;
+              
+              resultItem.addEventListener('click', () => this.selectUser(user));
+              userSearchResults.appendChild(resultItem);
+            });
+          } else {
+            userSearchResults.innerHTML = '<div class="p-2 text-sm text-discord-lighter">Error: Invalid response format</div>';
+            console.error('Invalid response format:', data);
+          }
+        } catch (e) {
+          // If it's not valid JSON, it's probably an error page
+          console.error('Error parsing response:', e);
+          console.log('Received HTML instead of JSON:', text.substring(0, 200));
+          userSearchResults.innerHTML = '<div class="p-2 text-sm text-discord-lighter">Server error - please try again later</div>';
         }
       })
       .catch(error => {
         console.error('Error searching users:', error);
-        userSearchResults.innerHTML = '<div class="p-3 text-sm text-red-400">Error searching users</div>';
-        userSearchResults.classList.remove('hidden');
+        userSearchResults.innerHTML = `<div class="p-2 text-sm text-discord-lighter">Error: ${error.message}</div>`;
       });
   }
   
-  renderUserSearchResults(users) {
-    const userSearchResults = document.getElementById('user-search-results');
-    
-    if (!userSearchResults) return;
-    
-    if (users.length === 0) {
-      userSearchResults.innerHTML = '<div class="p-3 text-sm text-discord-lighter">No users found</div>';
-      userSearchResults.classList.remove('hidden');
-      return;
-    }
-    
-    let html = '';
-    
-    users.forEach(user => {
-      const avatarUrl = user.avatar_url || '/assets/default-avatar.svg';
-      
-      html += `
-        <div class="user-result flex items-center p-2 hover:bg-discord-light cursor-pointer" data-user-id="${user.id}">
-          <div class="w-8 h-8 rounded-full overflow-hidden mr-2">
-            <img src="${avatarUrl}" alt="${user.username}" class="w-full h-full object-cover">
-          </div>
-          <div>
-            <div class="text-sm font-medium">${user.username}#${user.discriminator}</div>
-            <div class="text-xs text-discord-lighter">${user.email || ''}</div>
-          </div>
-        </div>
-      `;
-    });
-    
-    userSearchResults.innerHTML = html;
-    userSearchResults.classList.remove('hidden');
-    
-    const userResultElements = userSearchResults.querySelectorAll('.user-result');
-    userResultElements.forEach(el => {
-      el.addEventListener('click', () => {
-        this.selectUser(el.dataset.userId, el.querySelector('.text-sm').textContent);
-      });
-    });
-  }
-  
-  selectUser(userId, username) {
+  selectUser(user) {
     const userIdInput = document.getElementById('user_id');
     const userSearchInput = document.getElementById('user_search');
     const userSearchResults = document.getElementById('user-search-results');
     
     if (userIdInput && userSearchInput && userSearchResults) {
-      userIdInput.value = userId;
-      userSearchInput.value = username;
+      userIdInput.value = user.id;
+      userSearchInput.value = `${user.username}#${user.discriminator}`;
       userSearchResults.classList.add('hidden');
     }
   }
@@ -213,6 +266,7 @@ export class NitroManager {
             });
           form.reset();
           document.getElementById('user_search').value = '';
+          document.getElementById('user_id').value = '';
           this.loadNitroCodes();
           this.loadNitroStats();
         } else {

@@ -86,6 +86,16 @@ function validateServerBasicInfo(form) {
         isValid = false;
     }
     
+    if (!serverDescription.value.trim()) {
+        FormValidator.showFieldError(serverDescription, 'Server description is required');
+        isValid = false;
+    }
+    
+    if (!serverCategory.value) {
+        FormValidator.showFieldError(serverCategory, 'Server category is required');
+        isValid = false;
+    }
+    
     return isValid;
 }
 

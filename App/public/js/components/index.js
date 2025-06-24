@@ -7,16 +7,18 @@ export * from "./channels/channel-manager.js";
 export * from "./channels/channel-drag.js";
 export * from "./channels/channel-loader.js";
 
-// Import components
+
 import './auth/auth.js';
 import './servers/server-sidebar.js';
 import './servers/server-manager.js';
 import './servers/channel-redirect.js';
 import './channels/channel-manager.js';
 
-// Only import chat-section if not on settings pages
-if (!document.body.classList.contains('settings-page') && 
-    !document.location.pathname.includes('/settings')) {
+
+if (!document.body.classList.contains('settings-page') &&
+    !document.location.pathname.includes('/settings') && 
+    !document.location.pathname.includes('/app/friends') && 
+    !document.location.pathname.includes('/home')) {
     import('./messaging/chat-section.js').catch(err => {
         console.debug('Chat section not loaded: ', err.message);
     });
@@ -24,27 +26,27 @@ if (!document.body.classList.contains('settings-page') &&
 
 import './common/user-detail.js';
 
-// Initialize global UI components
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize tooltips
+
+document.addEventListener('DOMContentLoaded', function () {
+
     const tooltips = document.querySelectorAll('[data-tooltip]');
     if (tooltips.length > 0) {
         tooltips.forEach(tooltip => {
             const tooltipText = tooltip.getAttribute('data-tooltip');
             const tooltipPosition = tooltip.getAttribute('data-tooltip-position') || 'top';
-            
-            tooltip.addEventListener('mouseenter', function() {
+
+            tooltip.addEventListener('mouseenter', function () {
                 const tooltipEl = document.createElement('div');
                 tooltipEl.className = `tooltip tooltip-${tooltipPosition}`;
                 tooltipEl.textContent = tooltipText;
                 document.body.appendChild(tooltipEl);
-                
+
                 const rect = tooltip.getBoundingClientRect();
                 const tooltipRect = tooltipEl.getBoundingClientRect();
-                
+
                 let top, left;
-                
-                switch(tooltipPosition) {
+
+                switch (tooltipPosition) {
                     case 'top':
                         top = rect.top - tooltipRect.height - 5;
                         left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
@@ -62,13 +64,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         left = rect.right + 5;
                         break;
                 }
-                
+
                 tooltipEl.style.top = `${top}px`;
                 tooltipEl.style.left = `${left}px`;
                 tooltipEl.classList.add('visible');
             });
-            
-            tooltip.addEventListener('mouseleave', function() {
+
+            tooltip.addEventListener('mouseleave', function () {
                 const tooltipEl = document.querySelector('.tooltip');
                 if (tooltipEl) {
                     tooltipEl.remove();

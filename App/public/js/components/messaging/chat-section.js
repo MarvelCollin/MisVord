@@ -34,6 +34,12 @@ class ChatSection {
     init() {
         console.log('Initializing ChatSection');
         this.loadElements();
+        
+        if (!this.chatMessages) {
+            console.warn('Chat messages element not found, aborting ChatSection initialization');
+            return;
+        }
+        
         const paramsLoaded = this.loadChatParams();
         
         if (!paramsLoaded) {
@@ -120,7 +126,7 @@ class ChatSection {
         }
 
         document.addEventListener('click', (e) => {
-            if (this.contextMenuVisible && !this.contextMenu.contains(e.target)) {
+            if (this.contextMenuVisible && this.contextMenu && !this.contextMenu.contains(e.target)) {
                 this.hideContextMenu();
             }
             
@@ -128,6 +134,8 @@ class ChatSection {
                 this.hideAllMessageActions();
             }
         });
+
+        if (!this.chatMessages) return;
 
         this.chatMessages.addEventListener('contextmenu', (e) => {
             const messageGroup = e.target.closest('.message-group');
@@ -696,23 +704,19 @@ class ChatSection {
             
             const response = await window.ChatAPI.sendMessage(this.targetId, content, this.chatType, options);
             
-            // Update local message with server data if available
             if (response && response.data && response.data.message) {
                 const serverMessage = response.data.message;
                 const tempMessageElement = document.querySelector(`[data-message-id="${messageId}"]`);
                 if (tempMessageElement) {
                     tempMessageElement.setAttribute('data-message-id', serverMessage.id);
-                    // Update any other necessary attributes
                 }
             }
             
         } catch (error) {
             console.error('Failed to send message:', error);
-            // Put the content back in the input
             this.messageInput.value = content;
             this.updateSendButton();
             
-            // Remove the temporary message
             const tempMessageElement = document.querySelector(`[data-message-id="${messageId}"]`);
             if (tempMessageElement) {
                 const messageGroup = tempMessageElement.closest('.message-group');

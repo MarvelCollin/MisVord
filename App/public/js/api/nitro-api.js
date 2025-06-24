@@ -3,38 +3,14 @@ class NitroAPI {
         this.baseURL = '/api/admin/nitro';
     }
 
-    async parseResponse(response) {
-        const text = await response.text();
-        
-        if (text.trim().startsWith('<') || text.includes('<br />') || text.includes('</html>') || text.includes('<!DOCTYPE')) {
-            console.error('Server returned HTML instead of JSON:', text.substring(0, 200));
-            throw new Error('Server error occurred. Please try again.');
-        }
-        
-        if (text.includes('Fatal error') || text.includes('Parse error') || text.includes('Warning:') || text.includes('Notice:')) {
-            console.error('Server returned PHP error:', text.substring(0, 200));
-            throw new Error('Server configuration error. Please contact support.');
-        }
-        
-        if (!text) {
-            return {};
-        }
-
-        try {
-            return JSON.parse(text);
-        } catch (e) {
-            console.error('Failed to parse JSON response:', text);
-            throw new Error('Invalid response from server');
-        }
-    }
-
     async makeRequest(url, options = {}) {
         try {
             const defaultOptions = {
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
                     'Accept': 'application/json'
-                }
+                },
+                credentials: 'same-origin'
             };
 
             if (!(options.body instanceof FormData)) {
@@ -54,15 +30,31 @@ class NitroAPI {
                 delete mergedOptions.headers['Content-Type'];
             }
 
+            console.log(`Making request to ${url}`, mergedOptions);
             const response = await fetch(url, mergedOptions);
-            const data = await this.parseResponse(response);
             
             if (!response.ok) {
-                const errorMessage = data.error || data.message || `HTTP error! status: ${response.status}`;
-                throw new Error(errorMessage);
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
-
-            return data;
+            
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                // Try to handle non-JSON responses
+                const text = await response.text();
+                console.error('Non-JSON response:', text.substring(0, 500));
+                throw new Error('Server returned non-JSON response');
+            }
+            
+            const text = await response.text();
+            
+            try {
+                const data = JSON.parse(text);
+                return data;
+            } catch (parseError) {
+                console.error('JSON parse error:', parseError);
+                console.error('Raw response:', text.substring(0, 500));
+                throw new Error('Failed to parse JSON response');
+            }
         } catch (error) {
             console.error('Nitro API request failed:', error);
             throw error;

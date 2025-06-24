@@ -123,6 +123,17 @@ async function initializeMeeting() {
             setTimeout(() => {
                 updateParticipantsPanel();
             }, 500);
+
+            // Trigger global voice indicator
+            const channelName = document.querySelector('.text-white.font-medium')?.textContent || 'Voice Channel';
+            const voiceConnectEvent = new CustomEvent('voiceConnect', { 
+                detail: { 
+                    channelName: channelName,
+                    meetingId: meetingId
+                } 
+            });
+            window.dispatchEvent(voiceConnectEvent);
+            window.videosdkMeeting = meeting;
         });
 
         meeting.on("meeting-left", () => {
@@ -154,6 +165,11 @@ async function initializeMeeting() {
             
             // Show disconnected notification
             showToast("Disconnected from voice", "error");
+
+            // Trigger global voice indicator disconnect
+            const voiceDisconnectEvent = new CustomEvent('voiceDisconnect');
+            window.dispatchEvent(voiceDisconnectEvent);
+            window.videosdkMeeting = null;
         });
 
         meeting.on("participant-joined", (participant) => {

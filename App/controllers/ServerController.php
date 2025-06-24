@@ -172,7 +172,9 @@ class ServerController extends BaseController
         $input = $this->sanitize($input);
 
         $this->validate($input, [
-            'name' => 'required'
+            'name' => 'required',
+            'description' => 'required',
+            'category' => 'required'
         ]);
 
         $name = $input['name'];

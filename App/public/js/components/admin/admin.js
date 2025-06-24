@@ -15,8 +15,9 @@ class AdminManager {
     this.initSectionSwitching();
     this.initLogoutButton();
     this.initSystemLogs();
+    this.initKeyboardShortcuts();
+    this.initChartConfigModal();
     
-    // Initialize managers
     window.nitroManager = new NitroManager();
     window.serverManager = new ServerManager();
     window.userManager = new UserManager();
@@ -40,6 +41,117 @@ class AdminManager {
         this.switchSection(section);
       });
     });
+  }
+
+  initKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.key === '0') {
+        e.preventDefault();
+        if (this.currentSection === "overview") {
+          this.toggleChartConfigModal();
+        }
+      }
+    });
+  }
+
+  initChartConfigModal() {
+    const modal = document.getElementById('chart-config-modal');
+    const closeButton = document.getElementById('close-chart-config-modal');
+    const cancelButton = document.getElementById('cancel-chart-config');
+    const applyButton = document.getElementById('apply-chart-config');
+    const mockDataToggle = document.getElementById('use-mock-data');
+    const mockDataSettings = document.getElementById('mock-data-settings');
+    
+    if (mockDataToggle) {
+      mockDataToggle.addEventListener('change', () => {
+        if (mockDataToggle.checked) {
+          mockDataSettings.classList.remove('hidden');
+        } else {
+          mockDataSettings.classList.add('hidden');
+        }
+      });
+    }
+    
+    if (closeButton) {
+      closeButton.addEventListener('click', () => {
+        this.toggleChartConfigModal(false);
+      });
+    }
+    
+    if (cancelButton) {
+      cancelButton.addEventListener('click', () => {
+        this.toggleChartConfigModal(false);
+      });
+    }
+    
+    if (applyButton) {
+      applyButton.addEventListener('click', () => {
+        this.applyChartConfig();
+      });
+    }
+    
+    const chartControls = document.querySelector('.chart-period-control');
+    if (chartControls) {
+      const configButton = document.createElement('button');
+      configButton.className = 'charts-config-button';
+      configButton.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+        Config <span class="keyboard-shortcut">Ctrl+0</span>
+      `;
+      configButton.addEventListener('click', () => {
+        this.toggleChartConfigModal();
+      });
+      
+      chartControls.appendChild(configButton);
+    }
+  }
+  
+  applyChartConfig() {
+    const useMockData = document.getElementById('use-mock-data').checked;
+    const mockDataRange = document.getElementById('mock-data-range').value;
+    const mockDataTrend = document.getElementById('mock-data-trend').value;
+    
+    const config = {
+      useMockData,
+      mockDataRange,
+      mockDataTrend
+    };
+    
+    if (window.overviewManager) {
+      window.overviewManager.updateChartConfig(config);
+      showToast("Chart configuration updated", "success");
+    }
+    
+    this.toggleChartConfigModal(false);
+  }
+  
+  toggleChartConfigModal(show = true) {
+    const modal = document.getElementById('chart-config-modal');
+    if (!modal) return;
+    
+    if (show) {
+      modal.classList.remove('hidden');
+      
+      if (window.overviewManager && window.overviewManager.chartConfig) {
+        const { useMockData, mockDataRange, mockDataTrend } = window.overviewManager.chartConfig;
+        
+        document.getElementById('use-mock-data').checked = useMockData;
+        document.getElementById('mock-data-range').value = mockDataRange || 'medium';
+        document.getElementById('mock-data-trend').value = mockDataTrend || 'random';
+        
+        const mockDataSettings = document.getElementById('mock-data-settings');
+        if (useMockData) {
+          mockDataSettings.classList.remove('hidden');
+        } else {
+          mockDataSettings.classList.add('hidden');
+        }
+      }
+    } else {
+      modal.classList.add('hidden');
+    }
   }
 
   switchSection(section) {

@@ -83,6 +83,25 @@ class ServerAPI {
         return await this.makeRequest(`${this.baseURL}/create`, options);
     }
 
+    async getServerPageHTML(serverId) {
+        try {
+            const response = await fetch(`/server/${serverId}?render_html=true`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Failed to load server page: ${response.status}`);
+            }
+            
+            return await response.text();
+        } catch (error) {
+            console.error('Error fetching server page HTML:', error);
+            throw error;
+        }
+    }
+
     async getStats() {
         return await this.makeRequest(`/api/admin/servers/stats`);
     }

@@ -137,7 +137,6 @@ ob_start();
                     </div>
                 </div>
                 
-                <!-- Servers Stats Card -->
                 <div class="bg-discord-darker rounded-lg p-6">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-lg font-medium">Servers</h3>
@@ -155,7 +154,6 @@ ob_start();
                     </div>
                 </div>
                 
-                <!-- Messages Stats Card -->
                 <div class="bg-discord-darker rounded-lg p-6">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-lg font-medium">Messages</h3>
@@ -181,7 +179,7 @@ ob_start();
             <!-- Chart Controls -->
             <div class="flex justify-between items-center mt-8 mb-4">
                 <h2 class="text-xl font-semibold">Activity & Growth</h2>
-                <div class="flex space-x-4">
+                <div class="flex space-x-4 chart-period-control">
                     <div>
                         <select id="chart-period-switcher" class="bg-discord-darker border-none rounded px-4 py-2 text-sm">
                             <option value="daily">Daily</option>
@@ -394,13 +392,16 @@ ob_start();
                                 <input 
                                     type="text" 
                                     id="user_search" 
-                                    placeholder="Search for users..."
+                                    placeholder="Search for user or leave empty for unassigned"
                                     class="w-full bg-discord-dark border border-discord-dark rounded-md p-2.5 text-white"
+                                    autocomplete="off"
                                 >
                                 <input type="hidden" id="user_id" name="user_id">
-                                <div id="user-search-results" class="absolute z-10 bg-discord-dark w-full mt-1 rounded-md shadow-lg max-h-60 overflow-y-auto hidden"></div>
+                                <div id="user-search-results" class="absolute z-10 bg-discord-dark w-full max-h-60 overflow-y-auto rounded-md shadow-lg hidden">
+                                    <div class="p-2 text-sm text-gray-400">Type to search users...</div>
+                                </div>
                             </div>
-                            <div class="text-xs text-gray-400 mt-1">Leave empty for unassigned code</div>
+                            <div class="text-xs text-gray-400 mt-1">Search by username or email</div>
                         </div>
                         <button type="submit" class="bg-discord-blue hover:bg-discord-blue-dark text-white rounded-md px-4 py-2 w-full">
                             Generate Code
@@ -527,6 +528,65 @@ ob_start();
             </button>
             <button id="confirm-action" class="px-4 py-2 bg-red-500 rounded text-sm hover:bg-red-600">
                 Confirm
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="chart-config-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+    <div class="bg-discord-darker rounded-lg p-6 w-full max-w-md">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-lg font-medium">Chart Configuration</h3>
+            <button id="close-chart-config-modal" class="text-discord-lighter hover:text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        
+        <div class="mb-6">
+            <h4 class="text-md font-semibold mb-2">Data Source</h4>
+            <div class="flex items-center mb-4">
+                <label class="inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="use-mock-data" class="sr-only">
+                    <div class="relative w-11 h-6 bg-discord-dark rounded-full toggle-switch">
+                        <div class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform"></div>
+                    </div>
+                    <span class="ml-3 text-sm">Use Mock Data</span>
+                </label>
+            </div>
+            <p class="text-xs text-discord-lighter mb-4">Toggle between actual database data and mock data for charts visualization</p>
+            
+            <div id="mock-data-settings" class="border-t border-discord-dark pt-4 mt-4 hidden">
+                <h4 class="text-sm font-semibold mb-2">Mock Data Settings</h4>
+                
+                <div class="mb-4">
+                    <label for="mock-data-range" class="block text-sm text-discord-lighter mb-1">Data Range</label>
+                    <select id="mock-data-range" class="form-select w-full">
+                        <option value="small">Small Numbers (1-50)</option>
+                        <option value="medium" selected>Medium Numbers (10-500)</option>
+                        <option value="large">Large Numbers (100-5000)</option>
+                    </select>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="mock-data-trend" class="block text-sm text-discord-lighter mb-1">Data Trend</label>
+                    <select id="mock-data-trend" class="form-select w-full">
+                        <option value="random">Random</option>
+                        <option value="growing">Growing</option>
+                        <option value="declining">Declining</option>
+                        <option value="stable">Stable</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <div class="flex justify-end space-x-3">
+            <button type="button" id="cancel-chart-config" class="px-4 py-2 bg-discord-dark rounded text-sm">
+                Cancel
+            </button>
+            <button type="button" id="apply-chart-config" class="px-4 py-2 bg-discord-blue rounded text-sm hover:bg-discord-blue-dark">
+                Apply Changes
             </button>
         </div>
     </div>

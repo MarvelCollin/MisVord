@@ -5,17 +5,17 @@ class UserAPI {
 
     async parseResponse(response) {
         const text = await response.text();
-        
+
         if (text.trim().startsWith('<') || text.includes('<br />') || text.includes('</html>') || text.includes('<!DOCTYPE')) {
             console.error('Server returned HTML instead of JSON:', text.substring(0, 200));
             throw new Error('Server error occurred. Please try again.');
         }
-        
+
         if (text.includes('Fatal error') || text.includes('Parse error') || text.includes('Warning:') || text.includes('Notice:')) {
             console.error('Server returned PHP error:', text.substring(0, 200));
             throw new Error('Server configuration error. Please contact support.');
         }
-        
+
         if (!text) {
             return {};
         }
@@ -48,14 +48,14 @@ class UserAPI {
             };
 
             const response = await fetch(url, mergedOptions);
-            
+
             if (response.status === 404) {
                 console.error(`API endpoint not found or resource does not exist: ${url}`);
                 const responseText = await response.text();
                 console.log('404 Response:', responseText.substring(0, 500));
-                
+
                 try {
-                    // Try to parse JSON response
+
                     const data = JSON.parse(responseText);
                     return {
                         success: false,
@@ -65,7 +65,7 @@ class UserAPI {
                         }
                     };
                 } catch (e) {
-                    // If not JSON, return basic error
+
                     return {
                         success: false,
                         error: {
@@ -75,7 +75,7 @@ class UserAPI {
                     };
                 }
             }
-            
+
             if (response.status === 500) {
                 console.error('Server error occurred:', url);
                 const responseText = await response.text();
@@ -88,24 +88,24 @@ class UserAPI {
                     }
                 };
             }
-            
+
             const data = await this.parseResponse(response);
-            
+
             if (!response.ok) {
-                const errorMessage = data && (data.error || data.message) ? 
-                    (data.error || data.message) : 
+                const errorMessage = data && (data.error || data.message) ?
+                    (data.error || data.message) :
                     `HTTP error! status: ${response.status}`;
                 throw new Error(errorMessage);
             }
 
             return data;
         } catch (error) {
-            // Format error message 
+
             let errorMessage = error.message;
             if (error.message === '[object Object]') {
                 errorMessage = 'Unknown server error occurred';
             }
-            
+
             console.error(`User API request to ${url} failed:`, errorMessage);
             throw error;
         }
@@ -113,14 +113,14 @@ class UserAPI {
 
     async getUserProfile(userId, serverId = null) {
         let url = `/api/users/${userId}/profile`;
-        
+
         if (serverId) {
             url += `?server_id=${serverId}`;
         }
-        
+
         return await this.makeRequest(url);
     }
-    
+
     async getMutualRelations(userId) {
         return await this.makeRequest(`/api/users/${userId}/mutual`);
     }

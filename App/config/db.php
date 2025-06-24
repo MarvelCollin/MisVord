@@ -6,7 +6,7 @@ class Database {
         try {
             require_once __DIR__ . '/env.php';
 
-            // Check if running in Docker
+            
             $isDocker = (
                 getenv('IS_DOCKER') === 'true' || 
                 isset($_SERVER['IS_DOCKER']) || 
@@ -15,7 +15,7 @@ class Database {
                 file_exists('/.dockerenv')
             );
 
-            // If in Docker, use 'db' as the host name, otherwise use the value from .env
+            
             $host = $isDocker ? 'db' : EnvLoader::get('DB_HOST', 'localhost');
             $port = EnvLoader::get('DB_PORT', '1003');
             $dbname = EnvLoader::get('DB_NAME', 'misvord');
@@ -23,7 +23,7 @@ class Database {
             $password = EnvLoader::get('DB_PASS', 'kolin123');
             $charset = EnvLoader::get('DB_CHARSET', 'utf8mb4');
 
-            // Log the connection details
+            
             error_log("Database connection attempt - Host: $host, Port: $port, DB: $dbname, User: $username, Docker: " . ($isDocker ? 'Yes' : 'No'));
 
             $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=$charset";

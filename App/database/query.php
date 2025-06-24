@@ -122,7 +122,7 @@ class Query {
     }
 
     public function where($column, $operator = null, $value = null) {
-        // Handle closure for advanced where conditions
+        
         if ($column instanceof Closure) {
             $query = new self($this->pdo);
             $column($query);
@@ -132,7 +132,7 @@ class Query {
                 'query' => $query
             ];
             
-            // Merge the bindings from the nested query
+            
             $this->bindings = array_merge($this->bindings, $query->getBindings());
             return $this;
         }
@@ -257,6 +257,10 @@ class Query {
 
     public function whereNotLike($column, $pattern) {
         return $this->where($column, 'NOT LIKE', $pattern);
+    }
+
+    public function orWhereLike($column, $pattern) {
+        return $this->orWhere($column, 'LIKE', $pattern);
     }
 
     public function groupBy($column) {
@@ -422,7 +426,7 @@ class Query {
         $startTime = microtime(true);
         $this->limit(1);
         
-        // Check if the table is set
+        
         if (empty($this->table)) {
             if (function_exists('logger')) {
                 logger()->error("Query error: No table specified for first() method");
@@ -752,30 +756,30 @@ class Query {
         $query .= !empty($this->select) ? $this->select : "*";
         $query .= " FROM {$this->table}";
 
-        // Add joins if they exist
+        
         if (!empty($this->joins)) {
             foreach ($this->joins as $join) {
                 $query .= " {$join['type']} JOIN {$join['table']} ON {$join['first']} {$join['operator']} {$join['second']}";
             }
         }
 
-        // Add where conditions if they exist
+        
         if (!empty($this->where)) {
             $query .= ' ' . $this->buildWhereClause();
         }
 
-        // Add group by if it exists
+        
         if (!empty($this->groupBy)) {
             $query .= ' GROUP BY ' . implode(', ', $this->groupBy);
 
-            // Add having conditions if they exist
+            
             if (!empty($this->having)) {
                 $query .= ' ' . $this->buildHavingClause();
                 $this->bindings = array_merge($this->bindings, $this->havingBindings);
             }
         }
 
-        // Add order by if it exists
+        
         if (!empty($this->orderBy)) {
             $orderParts = [];
             foreach ($this->orderBy as $order) {
@@ -784,17 +788,17 @@ class Query {
             $query .= ' ORDER BY ' . implode(', ', $orderParts);
         }
 
-        // Add limit if it exists
+        
         if ($this->limit !== null) {
             $query .= " LIMIT {$this->limit}";
 
-            // Add offset if it exists
+            
             if ($this->offset !== null) {
                 $query .= " OFFSET {$this->offset}";
             }
         }
 
-        // Add unions if they exist
+        
         if (!empty($this->unionQueries)) {
             foreach ($this->unionQueries as $unionInfo) {
                 $unionQuery = $unionInfo['query']->buildSelectQuery();

@@ -1,21 +1,13 @@
 <?php
 require_once dirname(dirname(__DIR__)) . '/config/session.php';
 
-if (!headers_sent()) {
-    $redirectUrl = isset($_GET['redirect']) ? $_GET['redirect'] : null;
-    
-    if (session_status() === PHP_SESSION_ACTIVE) {
-        session_unset();
-        session_destroy();
-        session_write_close();
-        setcookie(session_name(), '', time()-3600, '/');
-    }
-    
+if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
     session_start();
-    
-    if ($redirectUrl) {
-        $_SESSION['login_redirect'] = $redirectUrl;
-    }
+}
+
+$redirectUrl = isset($_GET['redirect']) ? $_GET['redirect'] : null;
+if ($redirectUrl) {
+    $_SESSION['login_redirect'] = $redirectUrl;
 }
 
 if (!function_exists('asset')) {
@@ -48,8 +40,11 @@ $securityQuestion = $_SESSION['security_question'] ?? null;
 $email = $_SESSION['reset_email'] ?? '';
 $token = $_SESSION['reset_token'] ?? '';
 
-// Clear temporary form data from session
-unset($_SESSION['errors'], $_SESSION['old_input'], $_SESSION['success']);
+// We need to preserve the errors and old input for display,
+// but clear them for the next request
+$_SESSION['errors'] = [];
+$_SESSION['old_input'] = [];
+$_SESSION['success'] = null;
 
 // Set cache control headers on all authentication pages to prevent caching
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
@@ -126,23 +121,11 @@ try {
             </div>
         <?php endif; ?>
 
-        <?php if (isset($errors['auth']) || (isset($errors) && count($errors) > 0)): ?>
-            <div class="bg-red-500 text-white p-3 rounded-md mb-6 text-center animate-pulse" id="auth-error">
-                <?php 
-                    if (isset($errors['auth'])) {
-                        echo $errors['auth']; 
-                    } else {
-                        echo 'Login failed. Please check your credentials and try again.';
-                    }
-                ?>
-            </div>
-        <?php endif; ?>
-
         <div id="formsContainer" class="relative transition-all duration-300 ease-out" style="min-height: 200px;">
 
             <form action="/login" method="POST" class="space-y-4 sm:space-y-5 <?php echo $mode === 'login' ? 'block' : 'hidden'; ?>" id="loginForm">
-                <?php if (isset($errors['auth']) && $mode === 'login'): ?>
-                    <div class="bg-red-500 text-white p-3 rounded-md mb-4 text-center animate-pulse">
+                <?php if (isset($errors['auth'])): ?>
+                    <div class="bg-red-500 text-white p-3 rounded-md mb-4 text-center animate-pulse" id="form-error-message">
                         <?php echo $errors['auth']; ?>
                     </div>
                 <?php endif; ?>
@@ -517,8 +500,13 @@ try {
         if (window.authInitialized) return;
         window.authInitialized = true;
 
-        // Clear form fields to ensure a fresh start
-        clearAllFormFields();
+        // Check if we have an error message from the server
+        const hasServerError = document.querySelector('#form-error-message');
+        
+        // If there's no server error, clear form fields
+        if (!hasServerError) {
+            clearAllFormFields();
+        }
         
         // Clear any localStorage or sessionStorage data related to authentication
         clearStoredAuthData();
@@ -536,35 +524,30 @@ try {
     
     // Function to clear all form input fields
     function clearAllFormFields() {
-        // Reset all form fields
         document.querySelectorAll('form').forEach(form => {
             form.reset();
         });
         
-        // Clear all inputs except buttons and submit
         document.querySelectorAll('input:not([type="button"]):not([type="submit"])').forEach(input => {
-            input.value = '';
+            if (input.name !== 'email' || !input.value) {
+                input.value = '';
+            }
         });
         
-        // Reset select elements to default option
         document.querySelectorAll('select').forEach(select => {
             select.selectedIndex = 0;
         });
         
-        // Clear any error messages
-        document.querySelectorAll('.validation-error, .animate-pulse, #auth-error').forEach(element => {
+        document.querySelectorAll('.validation-error:not(#form-error-message)').forEach(element => {
             element.remove();
         });
         
-        // Remove error styling from inputs
         document.querySelectorAll('.border-red-500').forEach(element => {
             element.classList.remove('border-red-500');
         });
     }
     
-    // Function to clear authentication related data from storage
     function clearStoredAuthData() {
-        // Clear any authentication related localStorage items
         const authKeys = ['authToken', 'rememberMe', 'userAuth', 'lastEmail'];
         authKeys.forEach(key => {
             try {

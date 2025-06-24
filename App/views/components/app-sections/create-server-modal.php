@@ -147,14 +147,14 @@ $additional_js[] = 'components/servers/create-server-modal';
                 </div>
 
                 <div class="mb-4">
-                    <label for="server-description" class="block text-gray-300 text-sm font-medium mb-2">Description</label>
-                    <textarea id="server-description" name="description" class="bg-discord-dark text-white w-full px-3 py-2 rounded border border-gray-700 focus:border-discord-blue focus:outline-none" rows="3" placeholder="Tell us what your server is about"></textarea>
+                    <label for="server-description" class="block text-gray-300 text-sm font-medium mb-2">Description <span class="text-red-500">*</span></label>
+                    <textarea id="server-description" name="description" class="bg-discord-dark text-white w-full px-3 py-2 rounded border border-gray-700 focus:border-discord-blue focus:outline-none" rows="3" placeholder="Tell us what your server is about" required></textarea>
                     <p class="text-xs text-gray-400 mt-1">This will be displayed in server listings</p>
                 </div>
 
                 <div class="mb-4">
-                    <label for="server-category" class="block text-gray-300 text-sm font-medium mb-2">Server Category</label>
-                    <select id="server-category" name="category" class="bg-discord-dark text-white w-full px-3 py-2 rounded border border-gray-700 focus:border-discord-blue focus:outline-none">
+                    <label for="server-category" class="block text-gray-300 text-sm font-medium mb-2">Server Category <span class="text-red-500">*</span></label>
+                    <select id="server-category" name="category" class="bg-discord-dark text-white w-full px-3 py-2 rounded border border-gray-700 focus:border-discord-blue focus:outline-none" required>
                         <option value="">Select a category</option>
                         <option value="gaming">Gaming</option>
                         <option value="music">Music</option>
