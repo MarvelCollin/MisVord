@@ -15,8 +15,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     initServerSidebar();
     initServerGroups();
-    // Default folder state - uncollapsed with grid preview
-    updateAllFolderPreviews();
+    
+    // Force update all folder previews after a short delay to ensure proper rendering
+    setTimeout(() => {
+        updateAllFolderPreviews();
+        console.log('Forced update of all folder previews');
+    }, 500);
     
     // Add direct click handler to ensure folder clicks work
     document.querySelectorAll('.group-header').forEach(header => {
@@ -132,6 +136,18 @@ export function initServerSidebar() {
                 
                 // Re-render the sidebar
                 renderServerGroups();
+                
+                // Force update all folder previews after a short delay to ensure proper rendering
+                setTimeout(() => {
+                    const newGroup = document.querySelector(`.server-group[data-group-id="${groupId}"]`);
+                    if (newGroup) {
+                        console.log('Updating new folder preview');
+                        const group = LocalStorageManager.getServerGroups().find(g => g.id === groupId);
+                        if (group) {
+                            createFolderPreview(group, newGroup);
+                        }
+                    }
+                }, 100);
             }
         });
     });
@@ -310,12 +326,26 @@ function renderServerGroups() {
         // Set initial state (open/closed)
         if (group.collapsed) {
             serversContainer.classList.add('hidden');
+            groupElement.classList.remove('open');
         } else {
             groupElement.classList.add('open');
+            serversContainer.classList.remove('hidden');
         }
         
-        // Create the preview grid in the header
+        // Create the preview grid in the header and ensure folder icon is visible
         createFolderPreview(group, groupElement);
+        
+        // Make sure the folder icon is correctly displayed based on collapsed state
+        const folderIcon = groupElement.querySelector('.folder-icon');
+        const gridContainer = groupElement.querySelector('.server-preview-grid');
+        
+        if (group.collapsed) {
+            if (folderIcon) folderIcon.style.display = 'flex';
+            if (gridContainer) gridContainer.style.display = 'none';
+        } else {
+            if (folderIcon) folderIcon.style.display = 'none';
+            if (gridContainer) gridContainer.style.display = 'grid';
+        }
     });
     
     // Setup drop zones for groups
@@ -337,6 +367,12 @@ function createGroupElement(group) {
     const header = document.createElement('div');
     header.className = 'group-header';
     header.title = group.name;
+    
+    // Create default folder icon to ensure it's visible before preview is generated
+    const defaultFolderIcon = document.createElement('div');
+    defaultFolderIcon.className = 'folder-icon';
+    defaultFolderIcon.innerHTML = '<i class="fas fa-folder fa-2x"></i>';
+    header.appendChild(defaultFolderIcon);
     
     // Create servers container
     const serversContainer = document.createElement('div');

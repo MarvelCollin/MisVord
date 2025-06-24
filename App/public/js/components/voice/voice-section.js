@@ -194,7 +194,7 @@ class VoiceSectionManager {
     enterFullscreenMode(force = false) {
         if (this.fullscreenMode && !force) return;
         
-        console.log('Entering fullscreen voice mode');
+        console.log('Entering voice mode - keeping sidebars visible');
         
         // Try to find sidebars again if they weren't found before
         if (!this.serverSidebar || !this.channelSidebar) {
@@ -206,21 +206,12 @@ class VoiceSectionManager {
             this.voiceContainer.classList.add('voice-fullscreen-transition');
         }
         
-        // Add fullscreen class to body to hide sidebars via CSS
-        document.body.classList.add('voice-fullscreen-active');
-        
-        // Hide server and channel sidebars - use multiple approaches to ensure they're hidden
-        if (this.serverSidebar) {
-            this.serverSidebar.style.display = 'none';
-        }
-        
-        if (this.channelSidebar) {
-            this.channelSidebar.style.display = 'none';
-        }
+        // Don't hide sidebars - keep them visible
+        // Instead of hiding sidebars, just add a class to the voice container
         
         // Add fullscreen class to voice container
         if (this.voiceContainer) {
-            this.voiceContainer.classList.add('voice-fullscreen-mode');
+            this.voiceContainer.classList.add('voice-active-mode');
         }
         
         // Show header
@@ -235,23 +226,11 @@ class VoiceSectionManager {
     exitFullscreenMode() {
         if (!this.fullscreenMode) return;
         
-        console.log('Exiting fullscreen voice mode');
-        
-        // Remove fullscreen class from body
-        document.body.classList.remove('voice-fullscreen-active');
+        console.log('Exiting voice mode');
         
         // Remove fullscreen class
         if (this.voiceContainer) {
-            this.voiceContainer.classList.remove('voice-fullscreen-mode');
-        }
-        
-        // Show server and channel sidebars
-        if (this.serverSidebar) {
-            this.serverSidebar.style.display = 'flex';
-        }
-        
-        if (this.channelSidebar) {
-            this.channelSidebar.style.display = 'flex';
+            this.voiceContainer.classList.remove('voice-active-mode');
         }
         
         // Hide header

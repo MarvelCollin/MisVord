@@ -24,9 +24,6 @@ $additional_js[] = 'components/voice/voice-section';
 <!-- Add CSS for voice section -->
 <link rel="stylesheet" href="/css/voice-section.css">
 
-<!-- Add JS for voice section -->
-<script src="/js/components/voice/voice-section.js" defer></script>
-
 <!-- Add auto-join script -->
 <script>
 // Auto-join voice channel when page loads
@@ -114,15 +111,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             </div>
             
-            <!-- Discord-style join UI (shows before connecting) -->
-            <div id="joinUI" class="absolute inset-0 flex flex-col items-center justify-center z-10 bg-gradient-to-b from-[#1e1f3a] via-[#2b2272] to-[#1e203a]">
-                <h2 class="text-2xl font-bold text-white mb-2"><?php echo htmlspecialchars($activeChannel['name'] ?? 'Voice Channel'); ?></h2>
-                <p class="text-gray-300 text-base mb-6">No one is currently in voice</p>
-                
-                <button id="joinBtn" class="bg-[#5865F2] hover:bg-[#4752c4] text-white font-medium py-2 px-6 rounded transition-colors">
-                    Join Voice
-                </button>
-            </div>
+            <!-- Include join UI component -->
+            <?php include __DIR__ . '/../voice/voice-not-join.php'; ?>
         </div>
     </div>
     
@@ -317,11 +307,6 @@ document.addEventListener("DOMContentLoaded", function() {
     if (discordVoiceView) discordVoiceView.style.display = 'none';
     if (joinUI) joinUI.style.display = 'flex';
     
-    // Apply full-height gradient background
-    if (mainContent) {
-        mainContent.style.background = 'linear-gradient(180deg, #1e1f3a 0%, #2b2272 50%, #1e203a 100%)';
-    }
-    
     // Listen for connection events
     window.addEventListener('voiceConnect', function(event) {
         // Hide join UI, show Discord voice view and controls
@@ -340,25 +325,7 @@ document.addEventListener("DOMContentLoaded", function() {
         if (joinUI) joinUI.style.display = 'flex';
         if (discordVoiceView) discordVoiceView.style.display = 'none';
         if (voiceControlsContainer) voiceControlsContainer.style.display = 'none';
-        
-        // Restore gradient background when disconnected
-        if (mainContent) {
-            mainContent.style.background = 'linear-gradient(180deg, #1e1f3a 0%, #2b2272 50%, #1e203a 100%)';
-        }
     });
-    
-    // Add click event to join button to make it more responsive
-    const joinBtn = document.getElementById('joinBtn');
-    if (joinBtn) {
-        joinBtn.addEventListener('click', function() {
-            joinBtn.textContent = 'Connecting...';
-            joinBtn.classList.add('opacity-70', 'cursor-not-allowed');
-            setTimeout(() => {
-                // The actual connection will be handled by the existing click handler
-                // This just makes the UI more responsive
-            }, 100);
-        });
-    }
     
     // This function will be called by voice-manager.js when adding participants
     window.renderParticipant = function(participant) {

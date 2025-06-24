@@ -107,10 +107,33 @@
   justify-content: center;
   color: #999;
   font-size: 20px;
+  position: relative;
+  z-index: 5;
 }
 
 .folder-icon i {
-  color: #999;
+  color: #95a5a6;
+  font-size: 24px;
+}
+
+/* Hide folder icon when group is open */
+.server-group.open .folder-icon {
+  display: none !important;
+}
+
+/* Show grid when group is open */
+.server-group.open .server-preview-grid {
+  display: grid !important;
+}
+
+/* Hide grid when group is closed */
+.server-group:not(.open) .server-preview-grid {
+  display: none !important;
+}
+
+/* Show folder icon when group is closed */
+.server-group:not(.open) .folder-icon {
+  display: flex !important;
 }
 
 /* Server preview grid */
@@ -342,4 +365,16 @@
   box-shadow: 0 0 0 4px var(--discord-darker);
   z-index: 5;
   padding: 0 5px;
+}
+
+/* Server group when collapsed */
+.server-group:not(.open) .group-header {
+  background-color: var(--discord-folder-color);
+  border-radius: 16px;
+}
+
+/* Server group when open */
+.server-group.open .group-header {
+  background-color: var(--discord-folder-selected);
+  border-radius: 16px 16px 0 0;
 }
