@@ -1,5 +1,4 @@
 <?php
-require_once dirname(__DIR__, 3) . '/config/videosdk.php';
 
 if (!isset($currentServer) || empty($currentServer)) {
     echo '<div class="flex-1 bg-[#313338] flex items-center justify-center text-white text-lg">Select a server to view channels</div>';
@@ -16,12 +15,11 @@ if (!$activeChannel) {
 
 $meetingId = 'voice_channel_' . $activeChannelId;
 $userName = $_SESSION['username'] ?? 'Anonymous';
-$authToken = VideoSDKConfig::getAuthToken();
 
+$additional_js[] = 'components/videosdk/videosdk';
 $additional_js[] = 'components/voice/voice-manager';
 ?>
 
-<meta name="videosdk-token" content="<?php echo htmlspecialchars($authToken); ?>">
 <meta name="meeting-id" content="<?php echo htmlspecialchars($meetingId); ?>">
 <meta name="username" content="<?php echo htmlspecialchars($userName); ?>">
 <meta name="channel-id" content="<?php echo htmlspecialchars($activeChannelId); ?>">
@@ -35,7 +33,6 @@ $additional_js[] = 'components/voice/voice-manager';
     </div>
     
     <div class="flex-1 flex">
-        <!-- Participants Panel -->
         <div id="participantsPanel" class="w-64 bg-[#232428] border-r border-[#1e1f22] flex flex-col py-4 px-2 hidden">
             <div class="text-xs text-gray-400 uppercase mb-2">Voice Participants</div>
             <div id="participants" class="flex-1 flex flex-col gap-1"></div>
@@ -95,7 +92,6 @@ $additional_js[] = 'components/voice/voice-manager';
     --discord-channel-hover: rgba(79, 84, 92, 0.16);
 }
 
-/* Button effects */
 .btn-voice {
     position: relative;
     overflow: hidden;
@@ -133,8 +129,7 @@ $additional_js[] = 'components/voice/voice-manager';
         transform: scale(40, 40);
     }
 }
-
-/* Voice animations */
+                        
 @keyframes pulse {
     0% {
         box-shadow: 0 0 0 0 rgba(88, 101, 242, 0.4);
@@ -179,4 +174,4 @@ $additional_js[] = 'components/voice/voice-manager';
 }
 </style>
 
-<script src="https://sdk.videosdk.live/js-sdk/0.0.82/videosdk.js"></script>
+<script src="https://sdk.videosdk.live/js-sdk/0.2.7/videosdk.js"></script>

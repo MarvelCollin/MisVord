@@ -8,7 +8,25 @@ class AdminManager {
   constructor() {
     this.currentSection = "overview";
     
+    this.initAdminLogger();
     this.init();
+  }
+
+  initAdminLogger() {
+    if (!window.logger) {
+      window.logger = {
+        info: (module, ...args) => {},
+        debug: (module, ...args) => {},
+        warn: (module, ...args) => {},
+        error: (module, ...args) => {},
+        group: () => {},
+        groupEnd: () => {},
+        table: () => {},
+        time: () => {},
+        timeEnd: () => {},
+        trace: () => {}
+      };
+    }
   }
 
   init() {

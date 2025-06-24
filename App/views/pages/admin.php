@@ -380,11 +380,11 @@ ob_start();
                     </div>
                     <div class="flex space-x-2">
                         <button id="user-prev-page" class="discord-button bg-discord-dark disabled:opacity-50">
-                            <img src="/assets/common/prev-icon.png" alt="Previous" width="16" height="16" class="mr-2">
+                            <i class="fas fa-chevron-left mr-2"></i>
                             Previous
                         </button>
                         <button id="user-next-page" class="discord-button bg-discord-dark disabled:opacity-50">
-                            <img src="/assets/common/next-icon.png" alt="Next" width="16" height="16" class="mr-2">
+                            <i class="fas fa-chevron-right mr-2"></i>
                             Next
                         </button>
                     </div>
@@ -440,8 +440,14 @@ ob_start();
                         <span class="text-sm text-discord-lighter">Showing <span id="server-showing-count"><?php echo count($servers); ?></span> of <span id="server-total-count"><?php echo $stats['servers']['total']; ?></span> servers</span>
                     </div>
                     <div class="flex space-x-2">
-                        <button id="server-prev-page" class="px-3 py-1 bg-discord-dark rounded text-sm disabled:opacity-50">Previous</button>
-                        <button id="server-next-page" class="px-3 py-1 bg-discord-dark rounded text-sm disabled:opacity-50">Next</button>
+                        <button id="server-prev-page" class="discord-button bg-discord-dark disabled:opacity-50">
+                            <i class="fas fa-chevron-left mr-2"></i>
+                            Previous
+                        </button>
+                        <button id="server-next-page" class="discord-button bg-discord-dark disabled:opacity-50">
+                            <i class="fas fa-chevron-right mr-2"></i>
+                            Next
+                        </button>
                     </div>
                 </div>
             </div>
@@ -561,8 +567,14 @@ ob_start();
                         <span class="text-sm text-discord-lighter">Showing <span id="nitro-showing-count">0</span> of <span id="nitro-total-count">0</span> codes</span>
                     </div>
                     <div class="flex space-x-2">
-                        <button id="nitro-prev-page" class="px-3 py-1 bg-discord-dark rounded text-sm disabled:opacity-50">Previous</button>
-                        <button id="nitro-next-page" class="px-3 py-1 bg-discord-dark rounded text-sm disabled:opacity-50">Next</button>
+                        <button id="nitro-prev-page" class="discord-button bg-discord-dark disabled:opacity-50">
+                            <i class="fas fa-chevron-left mr-2"></i>
+                            Previous
+                        </button>
+                        <button id="nitro-next-page" class="discord-button bg-discord-dark disabled:opacity-50">
+                            <i class="fas fa-chevron-right mr-2"></i>
+                            Next
+                        </button>
                     </div>
                 </div>
             </div>
@@ -661,10 +673,11 @@ $content = ob_get_clean();
 // Add API scripts needed by the admin components
 echo '<script src="' . asset('/js/api/server-api.js') . '?v=' . time() . '" type="module"></script>';
 echo '<script src="' . asset('/js/api/user-admin-api.js') . '?v=' . time() . '" type="module"></script>';
-// Add debug script for testing API endpoints
-echo '<script src="' . asset('/js/debug/api-test.js') . '?v=' . time() . '"></script>';
-// Add admin debug tool
-echo '<script src="' . asset('/js/debug/admin-debug.js') . '?v=' . time() . '"></script>';
+echo '<script src="' . asset('/js/api/nitro-api.js') . '?v=' . time() . '" type="module"></script>';
+
+// Remove admin debug tools in production by uncommenting these lines
+// echo '<script src="' . asset('/js/debug/api-test.js') . '?v=' . time() . '"></script>';
+// echo '<script src="' . asset('/js/debug/admin-debug.js') . '?v=' . time() . '"></script>';
 require_once dirname(dirname(__DIR__)) . '/views/layout/main-app.php';
 ?>
 

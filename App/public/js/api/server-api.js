@@ -1,137 +1,119 @@
-class ServerAPI {
-    constructor() {
-        this.baseURL = '/api/servers';
-    }
+/**
+ * Server API module for handling server-related API calls
+ */
 
-    async parseResponse(response) {
-        const text = await response.text();
-        
-        if (text.trim().startsWith('<') || text.includes('<br />') || text.includes('</html>') || text.includes('<!DOCTYPE')) {
-            console.error('Server returned HTML instead of JSON:', text.substring(0, 200));
-            throw new Error('Server error occurred. Please try again.');
-        }
-        
-        if (text.includes('Fatal error') || text.includes('Parse error') || text.includes('Warning:') || text.includes('Notice:')) {
-            console.error('Server returned PHP error:', text.substring(0, 200));
-            throw new Error('Server configuration error. Please contact support.');
-        }
-        
-        if (!text) {
-            return {};
-        }
-
-        try {
-            return JSON.parse(text);
-        } catch (e) {
-            console.error('Failed to parse JSON response:', text);
-            throw new Error('Invalid response from server');
-        }
-    }
-
-    async makeRequest(url, options = {}) {
-        try {
-            const defaultOptions = {
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'application/json'
-                }
-            };
-
-            if (!(options.body instanceof FormData)) {
-                defaultOptions.headers['Content-Type'] = 'application/json';
-            }
-
-            const mergedOptions = {
-                ...defaultOptions,
-                ...options,
-                headers: {
-                    ...defaultOptions.headers,
-                    ...options.headers
-                }
-            };
-
-            if (options.body instanceof FormData) {
-                delete mergedOptions.headers['Content-Type'];
-            }
-
-            const response = await fetch(url, mergedOptions);
-            const data = await this.parseResponse(response);
-            
+const serverAPI = {
+    /**
+     * Create a new server
+     * @param {FormData} formData - Server form data
+     * @returns {Promise} - Promise with server creation response
+     */
+    createServer: function(formData) {
+        return fetch('/api/servers/create', {
+            method: 'POST',
+            body: formData,
+            credentials: 'include'
+        })
+        .then(response => {
             if (!response.ok) {
-                const errorMessage = data.error || data.message || `HTTP error! status: ${response.status}`;
-                throw new Error(errorMessage);
+                throw new Error(`HTTP error! Status: ${response.status}`);
             }
+            return response.json();
+        });
+    },
 
-            return data;
-        } catch (error) {
-            console.error('Server API request failed:', error);
-            throw error;
-        }
-    }
-
-    async createServer(serverData) {
-        const options = {
-            method: 'POST'
-        };
-
-        if (serverData instanceof FormData) {
-            options.body = serverData;
-        } else {
-            options.body = JSON.stringify(serverData);
-        }
-
-        return await this.makeRequest(`${this.baseURL}/create`, options);
-    }
-
-    async getServerPageHTML(serverId) {
-        try {
-            const response = await fetch(`/server/${serverId}?render_html=true`, {
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            });
-            
+    /**
+     * Get server page HTML
+     * @param {number} serverId - Server ID
+     * @returns {Promise} - Promise with server page HTML
+     */
+    getServerPageHTML: function(serverId) {
+        return fetch(`/server/${serverId}?render_html=1`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
             if (!response.ok) {
-                throw new Error(`Failed to load server page: ${response.status}`);
+                throw new Error(`HTTP error! Status: ${response.status}`);
             }
-            
-            return await response.text();
-        } catch (error) {
-            console.error('Error fetching server page HTML:', error);
-            throw error;
-        }
-    }
-
-    async getStats() {
-        return await this.makeRequest(`/api/admin/servers/stats`);
-    }
-
-    async listServers(page = 1, limit = 10, search = '') {
+            return response.text();
+        });
+    },
+    
+    /**
+     * Get server statistics
+     * @returns {Promise} - Promise with server statistics
+     */
+    getStats: function() {
+        return fetch('/api/admin/servers/stats', {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        });
+    },
+    
+    /**
+     * List servers with pagination
+     * @param {number} page - Page number
+     * @param {number} limit - Number of servers per page
+     * @param {string} search - Search query
+     * @returns {Promise} - Promise with servers list
+     */
+    listServers: function(page = 1, limit = 10, search = '') {
         const params = new URLSearchParams({
-            page, 
+            page,
             limit,
-            search
+            q: search
         });
-        return await this.makeRequest(`/api/admin/servers/list?${params.toString()}`);
-    }
-
-    async getServer(serverId) {
-        return await this.makeRequest(`${this.baseURL}/${serverId}`);
-    }
-
-    async deleteServer(serverId) {
-        return await this.makeRequest(`/api/admin/servers/${serverId}`, {
-            method: 'DELETE'
+        
+        return fetch(`/api/admin/servers?${params.toString()}`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        });
+    },
+    
+    /**
+     * Delete a server
+     * @param {number} serverId - Server ID
+     * @returns {Promise} - Promise with deletion response
+     */
+    deleteServer: function(serverId) {
+        return fetch(`/api/admin/servers/${serverId}`, {
+            method: 'DELETE',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
         });
     }
+};
 
-    async updateServer(serverId, data) {
-        return await this.makeRequest(`/api/admin/servers/update/${serverId}`, {
-            method: 'PUT',
-            body: JSON.stringify(data)
-        });
-    }
-}
+export default serverAPI;
 
-const serverAPI = new ServerAPI();
 window.serverAPI = serverAPI;

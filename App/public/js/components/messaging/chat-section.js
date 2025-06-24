@@ -1,15 +1,21 @@
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Chat section script loaded via DOM content loaded');
-    if (!window.chatSection) {
+    // Check if we're on an admin page before initializing
+    if (!window.chatSection && !isAdminPage()) {
         const chatSection = new ChatSection();
         chatSection.init();
         window.chatSection = chatSection;
     }
 });
 
+// Helper function to check if we're on an admin page
+function isAdminPage() {
+    return document.body.getAttribute('data-page') === 'admin';
+}
+
 // Also initialize immediately in case the script is loaded after DOM content loaded
 console.log('Chat section script immediate execution');
-if (document.readyState === 'complete' && !window.chatSection) {
+if (document.readyState === 'complete' && !window.chatSection && !isAdminPage()) {
     setTimeout(() => {
         console.log('Chat section delayed initialization');
         const chatSection = new ChatSection();

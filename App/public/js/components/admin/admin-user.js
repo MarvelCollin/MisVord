@@ -361,10 +361,17 @@ export class UserManager {
     if (totalCount) totalCount.textContent = this.originalTotal;
     
     const prevBtn = document.getElementById('user-prev-page');
-    if (prevBtn) prevBtn.disabled = this.currentUserPage <= 1;
+    if (prevBtn) {
+      prevBtn.disabled = this.currentUserPage <= 1;
+      prevBtn.classList.toggle('opacity-50', this.currentUserPage <= 1);
+    }
     
     const nextBtn = document.getElementById('user-next-page');
-    if (nextBtn) nextBtn.disabled = showing >= total && this.statusFilter === 'all' && this.roleFilter === 'all';
+    if (nextBtn) {
+      const noMorePages = showing >= total && this.statusFilter === 'all' && this.roleFilter === 'all';
+      nextBtn.disabled = noMorePages;
+      nextBtn.classList.toggle('opacity-50', noMorePages);
+    }
   }
   
   renderListView(users) {

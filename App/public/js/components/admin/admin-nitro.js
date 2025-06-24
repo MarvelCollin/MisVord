@@ -402,10 +402,17 @@ export class NitroManager {
     if (totalCount) totalCount.textContent = total;
     
     const prevBtn = document.getElementById('nitro-prev-page');
-    if (prevBtn) prevBtn.disabled = this.currentNitroPage <= 1;
+    if (prevBtn) {
+      prevBtn.disabled = this.currentNitroPage <= 1;
+      prevBtn.classList.toggle('opacity-50', this.currentNitroPage <= 1);
+    }
     
     const nextBtn = document.getElementById('nitro-next-page');
-    if (nextBtn) nextBtn.disabled = showing >= total;
+    if (nextBtn) {
+      const noMorePages = showing >= total;
+      nextBtn.disabled = noMorePages;
+      nextBtn.classList.toggle('opacity-50', noMorePages);
+    }
   }
   
   copyNitroCode(code) {

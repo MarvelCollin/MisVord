@@ -136,6 +136,16 @@ export class ServerManager {
       return;
     }
     
+    // Check if getStats method exists
+    if (typeof window.serverAPI.getStats !== 'function') {
+      console.warn('serverAPI.getStats is not available, using fallback stats');
+      this.updateStatsUI({
+        active: 0,
+        total: 0
+      });
+      return;
+    }
+    
     window.serverAPI.getStats()
       .then(response => {
         console.log('Server stats response:', response);
@@ -152,19 +162,28 @@ export class ServerManager {
           stats = response;
         }
         
-        // Set defaults if values don't exist
-        const active = stats.active || 0;
-        const totalServers = stats.total_servers || stats.total || 0;
-        
-        const activeServerCount = document.getElementById('active-server-count');
-        const totalServerCount = document.getElementById('total-server-count');
-        
-        if (activeServerCount) activeServerCount.textContent = active;
-        if (totalServerCount) totalServerCount.textContent = totalServers;
+        this.updateStatsUI(stats);
       })
       .catch(error => {
         console.error('Error loading server stats:', error);
+        this.updateStatsUI({
+          active: 0,
+          total: 0
+        });
       });
+  },
+  
+  updateStatsUI(stats) {
+    // Set defaults if values don't exist
+    const active = stats.active || 0;
+    const totalServers = stats.total_servers || stats.total || 0;
+    
+    const activeServerCount = document.getElementById('active-server-count');
+    const totalServerCount = document.getElementById('total-server-count');
+    
+    if (activeServerCount) activeServerCount.textContent = active;
+    if (totalServerCount) totalServerCount.textContent = totalServers;
+  }
   }
   
   renderServers(servers, total, showing) {
@@ -226,10 +245,17 @@ export class ServerManager {
     if (totalCount) totalCount.textContent = total;
     
     const prevBtn = document.getElementById('server-prev-page');
-    if (prevBtn) prevBtn.disabled = this.currentServerPage <= 1;
+    if (prevBtn) {
+      prevBtn.disabled = this.currentServerPage <= 1;
+      prevBtn.classList.toggle('opacity-50', this.currentServerPage <= 1);
+    }
     
     const nextBtn = document.getElementById('server-next-page');
-    if (nextBtn) nextBtn.disabled = showing >= total;
+    if (nextBtn) {
+      const noMorePages = showing >= total;
+      nextBtn.disabled = noMorePages;
+      nextBtn.classList.toggle('opacity-50', noMorePages);
+    }
   }
   
   viewServer(serverId) {
