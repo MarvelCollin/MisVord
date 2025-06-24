@@ -1,37 +1,12 @@
 import { pageUtils } from '../utils/index.js';
 
-const serverAPI = window.serverAPI;
-
 document.addEventListener("DOMContentLoaded", function () {
   initServerPage();
   
   const mainContent = document.querySelector('.flex-1');
   if (mainContent && mainContent.textContent.trim() === '[object Object]') {
-    fixObjectDisplay();
+    window.location.reload();
   }
-  
-  window.addEventListener('popstate', function(event) {
-    if (window.location.pathname.includes('/server/')) {
-      const serverId = getServerIdFromUrl();
-      if (serverId) {
-        handleSkeletonLoading(true);
-        serverAPI.getServerPageHTML(serverId)
-          .then(html => {
-            if (typeof html === 'string') {
-              const mainContent = document.querySelector('.flex-1');
-              if (mainContent) {
-                pageUtils.updatePageContent(mainContent, html);
-              }
-            }
-            handleSkeletonLoading(false);
-          })
-          .catch(err => {
-            console.error('Failed to load server page:', err);
-            handleSkeletonLoading(false);
-          });
-      }
-    }
-  });
 });
 
 function initServerPage() {
@@ -51,7 +26,7 @@ function initServerPage() {
     const objectDisplay = document.querySelector('.server-content');
     if (objectDisplay && objectDisplay.textContent.includes('[object Object]')) {
       console.log('Fixing [object Object] display issue');
-      fixObjectDisplay();
+      window.location.reload();
       return;
     }
 
@@ -67,28 +42,6 @@ function initServerPage() {
   }
 
   initializeChannelClickHandlers();
-}
-
-function fixObjectDisplay() {
-  const serverId = getServerIdFromUrl();
-  if (serverId) {
-    console.log('Reloading server page to fix [object Object] issue');
-    serverAPI.getServerPageHTML(serverId)
-      .then(html => {
-        const mainContent = document.querySelector('.flex-1');
-        if (mainContent && html) {
-          pageUtils.updatePageContent(mainContent, html);
-        } else {
-          window.location.reload();
-        }
-      })
-      .catch(err => {
-        console.error('Failed to fix display issue:', err);
-        window.location.reload();
-      });
-  } else {
-    window.location.reload();
-  }
 }
 
 function getServerIdFromUrl() {
@@ -190,7 +143,7 @@ function handleSkeletonLoading(show) {
           </div>
           
           <div class="mb-4">
-            <div class="h-5 bg-gray-700 rounded w-24 mb-3 animate-pulse"></div>
+            <div class="h-5 bg-gray-700 rounded w-24 mb-3 mx-2 animate-pulse"></div>
             ${Array(3).fill().map(() => `
               <div class="flex items-center py-1 mb-2">
                 <div class="h-4 w-4 bg-gray-700 rounded-sm mr-2 animate-pulse"></div>

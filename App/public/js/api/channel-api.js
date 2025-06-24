@@ -75,9 +75,36 @@ class ChannelAPI {
             throw new Error('Server ID and Channel ID are required');
         }
         
-        return await this.makeRequest(`/api/channel-content?server_id=${encodeURIComponent(serverId)}&channel_id=${encodeURIComponent(channelId)}&type=${encodeURIComponent(type)}`, {
-            method: 'GET'
-        });
+        try {
+            const url = `/api/channel-content?server_id=${encodeURIComponent(serverId)}&channel_id=${encodeURIComponent(channelId)}&type=${encodeURIComponent(type)}`;
+            console.log('Requesting channel content from:', url);
+            
+            const response = await this.makeRequest(url, {
+                method: 'GET'
+            });
+            
+            console.log('Raw channel API response:', response);
+            
+            if (response && response.success) {
+                if (!response.data.channel_name && response.data.channel && response.data.channel.name) {
+                    console.log('Channel name found in nested object, moving to top level for consistency');
+                    response.data.channel_name = response.data.channel.name;
+                }
+                
+                if (!response.data && response.channel_name) {
+                    console.log('Channel name found at root level, restructuring response');
+                    response.data = {
+                        channel_name: response.channel_name,
+                        ...response
+                    };
+                }
+            }
+            
+            return response;
+        } catch (error) {
+            console.error('Error in getChannelContent:', error);
+            throw error;
+        }
     }
 
     async createChannel(channelData) {

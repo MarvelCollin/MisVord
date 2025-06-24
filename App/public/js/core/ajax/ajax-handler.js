@@ -74,10 +74,24 @@ const AjaxHandler = {
     },
 
     handleSuccessResponse: function(response, options = {}) {
-
-        if (response.redirect && !options.preventRedirect) {
-            window.location.href = response.redirect;
-            return;
+        if (typeof response === 'object' && response !== null) {
+            if (response.redirect && !options.preventRedirect) {
+                window.location.href = response.redirect;
+                return;
+            }
+            
+            // Handle success message display
+            if (response.message && options.showToast !== false) {
+                this.showSuccessToast(response.message);
+            }
+        } else if (typeof response === 'string' && response.includes('Redirecting')) {
+            // If we received a plain text response that mentions redirecting,
+            // and we're not on a server page (likely server navigation),
+            // do a full page reload instead of trying to handle it with AJAX
+            if (options.preventRedirect !== true && !window.location.pathname.includes('/server/')) {
+                window.location.href = window.location.href;
+                return;
+            }
         }
 
         if (options.onSuccess) {

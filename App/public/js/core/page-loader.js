@@ -17,6 +17,7 @@ const PageLoader = {
     },
 
     isNavigationalLink: function(link) {
+        // Don't use AJAX for links with explicit attributes
         if (link.hasAttribute('data-no-ajax') || link.closest('[data-no-ajax]')) {
             return false;
         }
@@ -30,7 +31,23 @@ const PageLoader = {
         }
 
         // Check if the link is internal to the current site
-        return link.hostname === window.location.hostname;
+        if (link.hostname !== window.location.hostname) {
+            return false;
+        }
+
+        // Check if we're on a server page and navigating within server pages
+        const currentPath = window.location.pathname;
+        const targetPath = new URL(link.href).pathname;
+        
+        // Only use AJAX for:
+        // 1. Navigation within a server page
+        // 2. Navigation between channels
+        const isServerPage = currentPath.includes('/server/');
+        const isTargetServerPage = targetPath.includes('/server/');
+        
+        // Only use AJAX when we're already on a server page
+        // and navigating to another server page or channel
+        return isServerPage && isTargetServerPage;
     },
 
     loadPage: function(url, isPopState = false) {
@@ -52,36 +69,48 @@ const PageLoader = {
             }
         })
         .then(response => {
-            // It seems ajax-handler already parses JSON. If the server sends HTML, this will fail.
-            // I need to adjust server to send JSON with an html key.
-            // Or adjust the ajax handler to handle non-json responses.
-            // Let's assume for now the response is the HTML string.
-            // This is a big assumption. The current ajax-handler will fail.
-
-            // I will have to modify ajax-handler.js to support text/html responses.
-
             if (!isPopState) {
                 history.pushState({ path: url }, '', url);
             }
             
-            // The response from MisVordAjax is already JSON parsed.
-            // I'll assume the server sends { html: "..." }
-            if (response.html) {
-                mainContent.innerHTML = response.html;
-                this.updateTitle(response.title);
-                this.reinitializeScripts();
-            } else {
-                // This is a problem. The ajax handler expects JSON. If the server sends HTML, it will break.
-                // I will need to modify the server to wrap the HTML in a JSON response.
-                // And what if the response is not what I expect? I need error handling.
-                console.error("Response is not in expected format {html: '...'}", response);
-                // Fallback for now if the format is not what's expected but is a string.
-                if (typeof response === 'string') {
+            // Handle different response formats
+            if (typeof response === 'object' && response !== null) {
+                // If the response is a JSON object with an html key
+                if (response.html) {
+                    mainContent.innerHTML = response.html;
+                    this.updateTitle(response.title);
+                    this.reinitializeScripts();
+                } 
+                // If the response is a JSON object with a success field but no html field
+                // (likely an API response, not a page content response)
+                else if (response.success !== undefined) {
+                    console.error("Response is not in expected format {html: '...'}", response);
+                    // Fall back to full page reload for API responses
+                    window.location.href = url;
+                }
+                // Other JSON object responses
+                else {
+                    console.error("Unknown JSON response format", response);
+                    window.location.href = url;
+                }
+            } 
+            // If the response is a string (HTML)
+            else if (typeof response === 'string') {
+                // Check if it looks like HTML
+                if (response.trim().startsWith('<') || response.includes('</div>') || response.includes('</html>')) {
                     mainContent.innerHTML = response;
                     this.reinitializeScripts();
+                } else {
+                    // Not HTML, might be a plain text response or error
+                    console.error("Received unexpected plain text response", response);
+                    window.location.href = url;
                 }
+            } 
+            // Any other type of response
+            else {
+                console.error("Unknown response type", response);
+                window.location.href = url;
             }
-
         })
         .catch(error => {
             console.error('Error loading page:', error);

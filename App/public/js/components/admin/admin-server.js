@@ -1,5 +1,4 @@
 import { showToast } from "../../core/ui/toast.js";
-import serverAPI from "../../api/server-api.js";
 
 export class ServerManager {
   constructor() {
@@ -10,8 +9,18 @@ export class ServerManager {
 
   init() {
     this.initServerManagement();
-    this.loadServerStats();
-    this.loadServers();
+    
+    // Check if serverAPI is already available
+    if (window.serverAPI) {
+      this.loadServerStats();
+      this.loadServers();
+    } else {
+      // Add a small delay to wait for serverAPI to be loaded
+      setTimeout(() => {
+        this.loadServerStats();
+        this.loadServers();
+      }, 500);
+    }
   }
   
   showSkeleton(elementId) {
@@ -85,11 +94,17 @@ export class ServerManager {
   }
   
   loadServers() {
+    if (!window.serverAPI) {
+      console.warn('serverAPI not available yet, retrying in 500ms');
+      setTimeout(() => this.loadServers(), 500);
+      return;
+    }
+    
     const searchQuery = document.getElementById('server-search')?.value || "";
     
     this.showSkeleton("server-table-body");
     
-    serverAPI.listServers(this.currentServerPage, this.serversPerPage, searchQuery)
+    window.serverAPI.listServers(this.currentServerPage, this.serversPerPage, searchQuery)
       .then(response => {
         if (response.success) {
           const servers = response.data.servers;
@@ -110,7 +125,14 @@ export class ServerManager {
     this.showSkeleton("active-server-count");
     this.showSkeleton("total-server-count");
     
-    serverAPI.getStats()
+    // Check if serverAPI exists
+    if (!window.serverAPI) {
+      console.warn('serverAPI not available yet, retrying in 500ms');
+      setTimeout(() => this.loadServerStats(), 500);
+      return;
+    }
+    
+    window.serverAPI.getStats()
       .then(response => {
         if (response.success) {
           const stats = response.data.stats;
@@ -198,7 +220,12 @@ export class ServerManager {
   
   deleteServer(id) {
     this.showDeleteConfirmation('Delete Server', 'Are you sure you want to delete this server? This action cannot be undone and will delete all associated channels, messages, and data.', () => {
-      serverAPI.deleteServer(id)
+      if (!window.serverAPI) {
+        showToast("Server API is not available", "error");
+        return;
+      }
+      
+      window.serverAPI.deleteServer(id)
         .then(data => {
           if (data.success) {
             showToast("Server deleted successfully", "success");

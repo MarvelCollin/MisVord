@@ -10,31 +10,6 @@ $activeChannelId = $GLOBALS['activeChannelId'] ?? null;
 $activeChannel = $GLOBALS['activeChannel'] ?? null;
 
 if (!$activeChannel) {
-    if (isset($GLOBALS['currentChannel'])) {
-        $activeChannel = $GLOBALS['currentChannel'];
-    } else {
-        $serverChannels = $GLOBALS['serverChannels'] ?? [];
-        if (!empty($serverChannels) && $activeChannelId) {
-            foreach ($serverChannels as $channel) {
-                if ($channel['id'] == $activeChannelId) {
-                    $activeChannel = (object)$channel;
-                    break;
-                }
-            }
-        }
-    }
-}
-
-$channelName = 'Voice Channel';
-if ($activeChannel) {
-    if (is_object($activeChannel)) {
-        $channelName = $activeChannel->name ?? $channelName;
-    } elseif (is_array($activeChannel)) {
-        $channelName = $activeChannel['name'] ?? $channelName;
-    }
-}
-
-if (!$activeChannel) {
     echo '<div class="flex-1 bg-[#313338] flex items-center justify-center text-white text-lg">Select a voice channel</div>';
     return;
 }
@@ -50,15 +25,14 @@ $additional_js[] = 'components/voice/voice-manager';
 <meta name="meeting-id" content="<?php echo htmlspecialchars($meetingId); ?>">
 <meta name="username" content="<?php echo htmlspecialchars($userName); ?>">
 <meta name="channel-id" content="<?php echo htmlspecialchars($activeChannelId); ?>">
-<meta name="channel-type" content="voice">
 
 <!-- Main content area with Discord-style layout -->
-<div class="flex flex-col h-screen bg-[#313338] text-white voice-channel-wrapper" data-channel-id="<?php echo htmlspecialchars($activeChannelId); ?>">
+<div class="flex flex-col h-screen bg-[#313338] text-white">
     <!-- Channel header -->
     <div class="h-12 border-b border-[#1e1f22] flex items-center px-4 shadow-sm">
         <div class="flex items-center">
             <i class="fas fa-volume-high text-gray-400 mr-2"></i>
-            <span class="font-medium text-white"><?php echo htmlspecialchars($channelName); ?></span>
+            <span class="font-medium text-white"><?php echo htmlspecialchars($activeChannel['name'] ?? 'Voice Channel'); ?></span>
         </div>
     </div>
     
@@ -84,7 +58,7 @@ $additional_js[] = 'components/voice/voice-manager';
         <div class="flex items-center">
             <div class="mr-4 text-sm">
                 <div class="text-xs text-gray-400 uppercase">Voice Connected</div>
-                <div class="text-white font-medium"><?php echo htmlspecialchars($channelName); ?></div>
+                <div class="text-white font-medium"><?php echo htmlspecialchars($activeChannel['name'] ?? 'Voice Channel'); ?></div>
             </div>
             <div class="h-8 border-l border-gray-700 mx-2"></div>
             <div class="flex items-center space-x-1">
@@ -210,36 +184,3 @@ $additional_js[] = 'components/voice/voice-manager';
 </style>
 
 <script src="https://sdk.videosdk.live/js-sdk/0.0.82/videosdk.js"></script>
-
-<script>
-document.addEventListener('DOMContentLoaded', initializeVoiceChannel);
-document.addEventListener('channelChanged', handleChannelChange);
-
-function initializeVoiceChannel() {
-    const voiceChannelWrapper = document.querySelector('.voice-channel-wrapper');
-    if (!voiceChannelWrapper) return;
-    
-    const channelId = voiceChannelWrapper.getAttribute('data-channel-id');
-    if (!channelId) return;
-    
-    if (typeof window.voiceManager !== 'undefined' && typeof window.voiceManager.initialize === 'function') {
-        window.voiceManager.initialize();
-    }
-}
-
-function handleChannelChange(event) {
-    if (event.detail && event.detail.channelType === 'voice') {
-        setTimeout(initializeVoiceChannel, 100);
-    } else {
-        if (typeof window.voiceManager !== 'undefined' && typeof window.voiceManager.cleanup === 'function') {
-            window.voiceManager.cleanup();
-        }
-    }
-}
-
-window.addEventListener('beforeunload', function() {
-    if (typeof window.voiceManager !== 'undefined' && typeof window.voiceManager.cleanup === 'function') {
-        window.voiceManager.cleanup();
-    }
-});
-</script>

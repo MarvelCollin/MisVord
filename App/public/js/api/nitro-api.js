@@ -39,7 +39,6 @@ class NitroAPI {
             
             const contentType = response.headers.get('content-type');
             if (!contentType || !contentType.includes('application/json')) {
-                // Try to handle non-JSON responses
                 const text = await response.text();
                 console.error('Non-JSON response:', text.substring(0, 500));
                 throw new Error('Server returned non-JSON response');
@@ -102,3 +101,5 @@ class NitroAPI {
 
 const nitroAPI = new NitroAPI();
 window.nitroAPI = nitroAPI;
+
+export default nitroAPI;

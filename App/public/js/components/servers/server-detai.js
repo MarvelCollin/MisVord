@@ -102,62 +102,6 @@ class ServerDetailModal {
         
         this.updateJoinButton(server);
         this.currentInviteLink = server.invite_link;
-        
-        this.updateFeatures(server);
-    }
-    
-    updateFeatures(server) {
-        const featuresContainer = document.getElementById('server-modal-features');
-        
-        const hasVoiceChannels = true;
-        const hasTextChannels = true;
-        const isPublic = server.is_public;
-        
-        let featuresHTML = `
-            <div class="feature px-3 py-2 bg-discord-light/40 rounded-md text-xs">
-                <i class="fas fa-users mr-2"></i> Community
-            </div>
-        `;
-        
-        if (hasTextChannels) {
-            featuresHTML += `
-                <div class="feature px-3 py-2 bg-discord-light/40 rounded-md text-xs">
-                    <i class="fas fa-comment mr-2"></i> Text channels
-                </div>
-            `;
-        }
-        
-        if (hasVoiceChannels) {
-            featuresHTML += `
-                <div class="feature px-3 py-2 bg-discord-light/40 rounded-md text-xs">
-                    <i class="fas fa-video mr-2"></i> Voice channels
-                </div>
-            `;
-        }
-        
-        if (isPublic) {
-            featuresHTML += `
-                <div class="feature px-3 py-2 bg-discord-light/40 rounded-md text-xs">
-                    <i class="fas fa-globe mr-2"></i> Public
-                </div>
-            `;
-        }
-        
-        if (server.category) {
-            featuresHTML += `
-                <div class="feature px-3 py-2 bg-discord-light/40 rounded-md text-xs">
-                    <i class="fas fa-tag mr-2"></i> ${this.formatCategory(server.category)}
-                </div>
-            `;
-        }
-        
-        featuresContainer.innerHTML = featuresHTML;
-    }
-    
-    formatCategory(category) {
-        if (!category) return '';
-        
-        return category.charAt(0).toUpperCase() + category.slice(1);
     }
     
     updateJoinButton(server) {

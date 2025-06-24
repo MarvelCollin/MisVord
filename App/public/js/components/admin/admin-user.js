@@ -1,5 +1,4 @@
 import { showToast } from "../../core/ui/toast.js";
-import userAdminAPI from "../../api/user-admin-api.js";
 
 export class UserManager {
   constructor() {
@@ -20,12 +19,21 @@ export class UserManager {
     
     this.showSkeletons();
     
-    setTimeout(() => {
+    // Check if userAdminAPI is already available
+    if (window.userAdminAPI) {
       this.loadUserStats().then(() => {
         this.loadUsers();
         this.initialized = true;
       });
-    }, 300);
+    } else {
+      // Add a small delay to wait for userAdminAPI to be loaded
+      setTimeout(() => {
+        this.loadUserStats().then(() => {
+          this.loadUsers();
+          this.initialized = true;
+        });
+      }, 500);
+    }
   }
   
   showSkeleton(elementId) {
@@ -231,7 +239,17 @@ export class UserManager {
   }
   
   loadUserStats() {
-    return userAdminAPI.getStats()
+    // Check if userAdminAPI exists
+    if (!window.userAdminAPI) {
+      console.warn('userAdminAPI not available yet, retrying in 500ms');
+      return new Promise(resolve => {
+        setTimeout(() => {
+          this.loadUserStats().then(resolve);
+        }, 500);
+      });
+    }
+    
+    return window.userAdminAPI.getStats()
       .then(response => {
         if (response.success) {
           const stats = response.data.stats;
@@ -259,10 +277,17 @@ export class UserManager {
   loadUsers() {
     if (this.isLoading) return;
     
+    // Check if userAdminAPI exists
+    if (!window.userAdminAPI) {
+      console.warn('userAdminAPI not available yet, retrying in 500ms');
+      setTimeout(() => this.loadUsers(), 500);
+      return;
+    }
+    
     this.isLoading = true;
     const searchQuery = document.getElementById('user-search')?.value || "";
     
-    userAdminAPI.listUsers(this.currentUserPage, this.usersPerPage, searchQuery)
+    window.userAdminAPI.listUsers(this.currentUserPage, this.usersPerPage, searchQuery)
       .then(response => {
         if (response.success) {
           const users = response.data.users;
@@ -505,6 +530,13 @@ export class UserManager {
   }
   
   toggleUserBan(userId, currentStatus, username) {
+    // Check if userAdminAPI exists
+    if (!window.userAdminAPI) {
+      console.warn('userAdminAPI not available yet, retrying in 500ms');
+      setTimeout(() => this.toggleUserBan(userId, currentStatus, username), 500);
+      return;
+    }
+    
     const isBanned = currentStatus === 'banned';
     const action = isBanned ? 'unban' : 'ban';
     const title = isBanned ? 'Unban User' : 'Ban User';
@@ -513,7 +545,7 @@ export class UserManager {
       `Are you sure you want to ban <span class="text-white font-semibold">${username}</span>? This will prevent them from using the app.`;
     
     this.showDiscordConfirmation(title, message, () => {
-      userAdminAPI.toggleUserBan(userId)
+      window.userAdminAPI.toggleUserBan(userId)
         .then(data => {
           if (data.success) {
             showToast(`User ${isBanned ? 'unbanned' : 'banned'} successfully`, "success");

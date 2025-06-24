@@ -256,6 +256,15 @@ class BaseController
         
         error_log("API Response Structure: " . json_encode($response, JSON_PRETTY_PRINT));
         
+        if (function_exists('logger')) {
+            logger()->debug("API Response sent", [
+                'structure' => json_encode($response, JSON_PRETTY_PRINT),
+                'controller' => get_class($this),
+                'uri' => $_SERVER['REQUEST_URI'] ?? '',
+                'data_keys' => $data ? array_keys($data) : []
+            ]);
+        }
+        
         if ($this->isApiRoute() || $this->isAjaxRequest()) {
             header('Content-Type: application/json');
             echo json_encode($response);
