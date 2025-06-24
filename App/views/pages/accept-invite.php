@@ -1,7 +1,7 @@
 <?php
 
-$page_title = 'misvord - Accept Invite';
-$page_css = 'app';
+$page_title = 'MisVord - Accept Invite';
+$page_css = ['app', 'accept-invite'];
 $page_js = 'pages/accept-invite';
 $additional_js = [];
 
@@ -23,6 +23,7 @@ $server = $GLOBALS['inviteServer'] ?? null;
 $inviteCode = $GLOBALS['inviteCode'] ?? null;
 $invite = $GLOBALS['invite'] ?? null;
 $inviteError = $GLOBALS['inviteError'] ?? null;
+$username = $_SESSION['username'] ?? 'there';
 
 if (function_exists('logger')) {
     logger()->debug("Accept invite page loaded", [
@@ -37,122 +38,107 @@ if (function_exists('logger')) {
 
 ob_start();
 ?>
-    <div class="min-h-screen bg-discord-dark flex flex-col">
-        <nav class="bg-discord-light p-4">
-            <div class="container mx-auto flex justify-between items-center">
-                <a href="/" class="text-white font-bold text-xl">MisVord</a>
-
-                <div class="space-x-4">
-                    <?php if (isset($_SESSION['user_id'])): ?>
-                        <a href="/app" class="text-white hover:underline">Go to App</a>
-                        <a href="/logout" class="text-white hover:underline">Logout</a>
-                    <?php else: ?>
-                        <a href="/login?redirect=<?php echo urlencode('/join/' . $inviteCode); ?>" class="text-white hover:underline">Login</a>
-                        <a href="/register?redirect=<?php echo urlencode('/join/' . $inviteCode); ?>" class="text-white hover:underline">Register</a>
-                    <?php endif; ?>
+<div class="invite-container">
+    <div class="invite-card">
+        <?php if ($inviteError): ?>
+            <div id="invite-error-container" class="invite-body">
+                <div class="invite-error">
+                    <p><i class="fas fa-exclamation-triangle"></i> <span id="error-message"><?php echo htmlspecialchars($inviteError); ?></span></p>
+                    <p class="error-description">The invite may have expired or been revoked by the server owner.</p>
+                </div>
+                <div class="btn-container">
+                    <a href="/app" class="btn btn-secondary">Back to App</a>
                 </div>
             </div>
-        </nav>
-
-        <div class="flex-1 flex items-center justify-center p-4">
-            <div class="bg-discord-light rounded-lg shadow-lg w-full max-w-md p-6">
-                <?php if ($inviteError): ?>
-                    <div id="invite-error-container">
-                        <div class="bg-red-500 text-white p-3 rounded-md mb-4">
-                            <p><i class="fas fa-exclamation-triangle mr-2"></i> <span id="error-message"><?php echo htmlspecialchars($inviteError); ?></span></p>
-                            <p class="mt-2 text-sm">The invite may have expired or been revoked by the server owner.</p>
-                        </div>
-                        <div class="mt-4 text-center">
-                            <a href="/app" class="bg-gray-700 hover:bg-gray-600 text-white py-2 px-6 rounded-md transition duration-200">
-                                Back to App
-                            </a>
-                        </div>
-                    </div>
-                <?php else: ?>
-                    <div id="invite-error-container" class="hidden">
-                        <div class="bg-red-500 text-white p-3 rounded-md mb-4">
-                            <p><i class="fas fa-exclamation-triangle mr-2"></i> <span id="error-message">This invite link is invalid or has expired</span></p>
-                            <p class="mt-2 text-sm">The invite may have expired or been revoked by the server owner.</p>
-                        </div>
-                        <div class="mt-4 text-center">
-                            <a href="/app" class="bg-gray-700 hover:bg-gray-600 text-white py-2 px-6 rounded-md transition duration-200">
-                                Back to App
-                            </a>
-                        </div>
-                    </div>
-                    
-                    <div id="invite-content" <?php echo $inviteError ? 'class="hidden"' : ''; ?>>
+        <?php else: ?>
+            <div id="invite-error-container" class="invite-body hidden">
+                <div class="invite-error">
+                    <p><i class="fas fa-exclamation-triangle"></i> <span id="error-message">This invite link is invalid or has expired</span></p>
+                    <p class="error-description">The invite may have expired or been revoked by the server owner.</p>
+                </div>
+                <div class="btn-container">
+                    <a href="/app" class="btn btn-secondary">Back to App</a>
+                </div>
+            </div>
+            
+            <div id="invite-content" <?php echo $inviteError ? 'class="hidden"' : ''; ?>>
                 <?php if ($server): ?>
-                    <div class="text-center mb-6">
-                        <?php if ($server->image_url): ?>
-                            <img src="<?php echo htmlspecialchars($server->image_url); ?>" alt="<?php echo htmlspecialchars($server->name); ?>" class="w-24 h-24 rounded-full mx-auto mb-4">
-                        <?php else: ?>
-                            <div class="w-24 h-24 bg-discord-blurple rounded-full mx-auto mb-4 flex items-center justify-center">
-                                <span class="text-2xl font-bold text-white"><?php echo substr($server->name, 0, 1); ?></span>
-                            </div>
-                        <?php endif; ?>
-                        <h2 class="text-2xl font-bold text-white"><?php echo htmlspecialchars($server->name); ?></h2>
+                    <?php if (!empty($server->banner_url)): ?>
+                    <div class="server-banner">
+                        <img src="<?php echo htmlspecialchars($server->banner_url); ?>" alt="<?php echo htmlspecialchars($server->name); ?> banner">
+                    </div>
+                    <?php endif; ?>
+                    
+                    <div class="invite-header">
+                        <div class="server-icon">
+                            <?php if ($server->image_url): ?>
+                                <img src="<?php echo htmlspecialchars($server->image_url); ?>" alt="<?php echo htmlspecialchars($server->name); ?>">
+                            <?php else: ?>
+                                <?php echo substr($server->name, 0, 1); ?>
+                            <?php endif; ?>
+                        </div>
+                        <h2 class="server-name"><?php echo htmlspecialchars($server->name); ?></h2>
 
                         <?php if ($server->description): ?>
-                            <p class="text-gray-300 mt-2"><?php echo htmlspecialchars($server->description); ?></p>
+                            <p class="server-description"><?php echo htmlspecialchars($server->description); ?></p>
                         <?php endif; ?>
                         
                         <?php if ($invite && $invite->expires_at): ?>
-                            <p class="text-sm text-gray-400 mt-2">
-                                <i class="fas fa-clock mr-1"></i>
+                            <div class="invite-expiry">
+                                <i class="fas fa-clock"></i>
                                 This invite expires on <?php echo date('F j, Y, g:i a', strtotime($invite->expires_at)); ?>
-                            </p>
+                            </div>
                         <?php endif; ?>
                     </div>
 
-                    <div class="text-gray-300 mb-6">
-                        <p class="mb-2">You've been invited to join this server!</p>
+                    <div class="invite-body">
+                        <div class="invite-message">
+                            <p class="welcome-message">Hi <?php echo htmlspecialchars($username); ?>!</p>
+                            <p>You've been invited to join <strong><?php echo htmlspecialchars($server->name); ?></strong>.</p>
+                        </div>
 
                         <?php if (!isset($_SESSION['user_id'])): ?>
-                            <div class="bg-discord-dark p-3 rounded mt-4 text-center">
-                                <p class="text-yellow-400 mb-2">
+                            <div class="login-required">
+                                <p>
                                     <i class="fas fa-info-circle"></i> 
                                     You need to log in before you can accept this invitation.
                                 </p>
-                                <div class="flex space-x-4 justify-center mt-4">
-                                    <a href="/login?redirect=<?php echo urlencode('/join/' . $inviteCode); ?>" class="bg-discord-blurple hover:bg-blue-600 text-white py-2 px-6 rounded-md transition duration-200">
+                                <div class="auth-options">
+                                    <a href="/login?redirect=<?php echo urlencode('/join/' . $inviteCode); ?>" class="btn btn-primary">
                                         Log In
                                     </a>
-                                    <a href="/register?redirect=<?php echo urlencode('/join/' . $inviteCode); ?>" class="bg-gray-700 hover:bg-gray-600 text-white py-2 px-6 rounded-md transition duration-200">
+                                    <a href="/register?redirect=<?php echo urlencode('/join/' . $inviteCode); ?>" class="btn btn-secondary">
                                         Register
                                     </a>
                                 </div>
                             </div>
                         <?php else: ?>
-                            <div id="join-options" class="mt-6 space-y-4">
-                                <a href="/api/servers/join/<?php echo htmlspecialchars($inviteCode); ?>" id="join-server-btn" class="w-full block bg-discord-blurple hover:bg-blue-600 text-white font-medium py-3 px-4 rounded-md text-center transition duration-200">
+                            <div id="join-options" class="btn-container">
+                                <a href="/api/servers/join/<?php echo htmlspecialchars($inviteCode); ?>" id="join-server-btn" class="btn btn-primary">
                                     Accept Invitation
                                 </a>
-                                <a href="/app" class="w-full block bg-gray-700 hover:bg-gray-600 text-white font-medium py-3 px-4 rounded-md text-center transition duration-200">
+                                <a href="/app" class="btn btn-secondary">
                                     Cancel
                                 </a>
                             </div>
                         <?php endif; ?>
                     </div>
                 <?php else: ?>
-                    <div class="text-center py-10">
-                        <div class="text-4xl text-gray-500 mb-4">
+                    <div class="invite-invalid">
+                        <div class="icon">
                             <i class="fas fa-link-slash"></i>
                         </div>
-                        <h2 class="text-2xl font-bold text-white mb-2">Invalid Invite</h2>
-                        <p class="text-gray-300">This invite may be expired, or you might not have permission to join.</p>
-                          <div class="mt-8">
-                            <a href="/app" class="bg-discord-primary hover:bg-blue-600 text-white py-2 px-6 rounded-md transition duration-200">
-                                Back to App
-                            </a>
-                        </div>
-                        </div>
-                    <?php endif; ?>
+                        <h2>Invalid Invite</h2>
+                        <p>This invite may be expired, or you might not have permission to join.</p>
+                        <a href="/app" class="btn btn-primary">
+                            Back to App
+                        </a>
                     </div>
                 <?php endif; ?>
             </div>
-        </div>
+        <?php endif; ?>
     </div>
+</div>
 <?php
 $content = ob_get_clean();
 

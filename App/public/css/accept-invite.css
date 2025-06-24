@@ -1,0 +1,457 @@
+:root {
+  --discord-dark: #36393f;
+  --discord-darker: #2f3136;
+  --discord-darkest: #202225;
+  --discord-light: #40444b;
+  --discord-lighter: #4f545c;
+  --discord-blurple: #5865f2;
+  --discord-blurple-hover: #4752c4;
+  --discord-green: #3ba55c;
+  --discord-green-hover: #2d7d46;
+  --discord-red: #ed4245;
+  --discord-text: #dcddde;
+  --discord-white: #ffffff;
+  --discord-muted: #b9bbbe;
+}
+
+@keyframes gradientAnimation {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes floatingBlobs {
+  0% {
+    transform: translateY(0) translateX(0) rotate(0);
+  }
+  50% {
+    transform: translateY(-15px) translateX(10px) rotate(5deg);
+  }
+  100% {
+    transform: translateY(0) translateX(0) rotate(0);
+  }
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  color: var(--discord-text);
+  font-family: 'Whitney', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  background: linear-gradient(135deg, #313338 0%, #1e1f22 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+body::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(114, 137, 218, 0.08) 0%, rgba(114, 137, 218, 0) 60%),
+              radial-gradient(circle at right top, rgba(88, 101, 242, 0.05) 0%, rgba(88, 101, 242, 0) 70%),
+              radial-gradient(circle at left bottom, rgba(120, 84, 168, 0.05) 0%, rgba(120, 84, 168, 0) 70%);
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.8;
+  animation: gradientAnimation 15s ease infinite;
+}
+
+body::after {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  background-image: 
+    radial-gradient(circle at 20% 35%, rgba(88, 101, 242, 0.1) 0%, transparent 25%),
+    radial-gradient(circle at 80% 15%, rgba(235, 69, 158, 0.07) 0%, transparent 20%),
+    radial-gradient(circle at 40% 80%, rgba(58, 184, 148, 0.08) 0%, transparent 30%);
+  z-index: -1;
+  opacity: 1;
+  animation: floatingBlobs 20s ease-in-out infinite;
+}
+
+.invite-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 16px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  position: relative;
+  z-index: 1;
+}
+
+.invite-card {
+  background-color: var(--discord-darker);
+  border-radius: 8px;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+  width: 100%;
+  max-width: 440px;
+  overflow: hidden;
+  position: relative;
+  animation: fadeIn 0.3s ease-in-out;
+  transform: translateY(10px);
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.server-banner {
+  width: 100%;
+  height: 120px;
+  overflow: hidden;
+  position: relative;
+}
+
+.server-banner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transition: transform 0.3s ease;
+}
+
+.server-banner::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 30%;
+  background: linear-gradient(to top, var(--discord-darker), transparent);
+  pointer-events: none;
+}
+
+.invite-card:hover .server-banner img {
+  transform: scale(1.05);
+}
+
+.invite-header {
+  padding: 24px;
+  text-align: center;
+  position: relative;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.invite-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  font-size: 24px;
+  color: var(--discord-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.invite-close:hover {
+  color: var(--discord-white);
+}
+
+.server-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  background-color: var(--discord-blurple);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: bold;
+  color: var(--discord-white);
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 4px solid rgba(255, 255, 255, 0.1);
+}
+
+.server-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.server-name {
+  font-size: 24px;
+  font-weight: bold;
+  margin: 8px 0;
+  color: var(--discord-white);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.server-description {
+  font-size: 14px;
+  color: var(--discord-muted);
+  margin-bottom: 8px;
+}
+
+.invite-expiry {
+  font-size: 12px;
+  color: var(--discord-muted);
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.invite-expiry i {
+  margin-right: 4px;
+}
+
+.invite-body {
+  padding: 24px;
+}
+
+.invite-message {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.welcome-message {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--discord-white);
+  margin: 0 0 8px 0;
+}
+
+.invite-message p {
+  margin: 0 0 8px 0;
+}
+
+.invite-message p:last-child {
+  margin-bottom: 0;
+}
+
+.invite-message strong {
+  color: var(--discord-white);
+  font-weight: 600;
+}
+
+.login-required {
+  background-color: rgba(32, 34, 37, 0.6);
+  border-radius: 8px;
+  padding: 16px;
+  margin: 16px 0;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.login-required p {
+  color: #ffd866;
+  margin: 0 0 16px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+}
+
+.login-required p i {
+  margin-right: 8px;
+}
+
+.btn-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.btn {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 4px;
+  font-weight: 500;
+  font-size: 16px;
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(rgba(255,255,255,0.1), rgba(255,255,255,0));
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.btn:hover::after {
+  opacity: 1;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn-primary {
+  background-color: var(--discord-blurple);
+  color: var(--discord-white);
+  box-shadow: 0 4px 6px rgba(88, 101, 242, 0.2);
+}
+
+.btn-primary:hover {
+  background-color: var(--discord-blurple-hover);
+  box-shadow: 0 6px 10px rgba(88, 101, 242, 0.3);
+}
+
+.btn-secondary {
+  background-color: var(--discord-light);
+  color: var(--discord-white);
+}
+
+.btn-secondary:hover {
+  background-color: var(--discord-lighter);
+}
+
+.btn-success {
+  background-color: var(--discord-green);
+  color: var(--discord-white);
+  box-shadow: 0 4px 6px rgba(59, 165, 92, 0.2);
+}
+
+.btn-success:hover {
+  background-color: var(--discord-green-hover);
+  box-shadow: 0 6px 10px rgba(59, 165, 92, 0.3);
+}
+
+.btn-danger {
+  background-color: var(--discord-red);
+  color: var(--discord-white);
+}
+
+.btn-danger:hover {
+  background-color: #c03537;
+}
+
+.invite-error {
+  background-color: rgba(237, 66, 69, 0.1);
+  color: var(--discord-white);
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(237, 66, 69, 0.3);
+}
+
+.invite-error p {
+  margin: 0 0 8px 0;
+  display: flex;
+  align-items: center;
+}
+
+.invite-error p i {
+  margin-right: 8px;
+  color: var(--discord-red);
+}
+
+.invite-error .error-description {
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+.invite-invalid {
+  text-align: center;
+  padding: 32px 16px;
+}
+
+.invite-invalid .icon {
+  font-size: 48px;
+  color: var(--discord-muted);
+  margin-bottom: 16px;
+}
+
+.invite-invalid h2 {
+  font-size: 24px;
+  margin: 0 0 8px 0;
+  color: var(--discord-white);
+}
+
+.invite-invalid p {
+  color: var(--discord-muted);
+  margin-bottom: 24px;
+}
+
+.auth-options {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes floating {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+.loading {
+  position: relative;
+  pointer-events: none;
+}
+
+.loading i {
+  margin-right: 8px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 480px) {
+  .invite-card {
+    max-width: 100%;
+  }
+  
+  .auth-options {
+    flex-direction: column;
+  }
+}

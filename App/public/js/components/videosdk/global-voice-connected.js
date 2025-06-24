@@ -17,6 +17,7 @@ class GlobalVoiceIndicator {
     this.setupEventListeners();
     this.initialized = true;
 
+    // Only load indicator if already connected
     if (this.isConnected && window.videosdkMeeting) {
       this.loadIndicatorComponent(true);
     }
@@ -26,31 +27,44 @@ class GlobalVoiceIndicator {
 
   loadConnectionState() {
     const savedState = localStorage.getItem("voiceConnectionState");
-    if (savedState) {
-      try {
-        const state = JSON.parse(savedState);
-        this.isConnected = state.isConnected || false;
-        this.channelName = state.channelName || "";
-        this.meetingId = state.meetingId || "";
-        this.connectionTime = state.connectionTime || 0;
-
-        if (this.isConnected && !window.videosdkMeeting) {
-          this.resetState();
-        }
-      } catch (e) {
-        console.error("Failed to parse voice connection state", e);
+    
+    if (!savedState) {
+      this.resetState();
+      return;
+    }
+    
+    try {
+      const state = JSON.parse(savedState);
+      
+      // Only restore if we have a valid meeting ID and window.videosdkMeeting exists
+      if (state.isConnected && state.meetingId && window.videosdkMeeting) {
+        this.isConnected = state.isConnected;
+        this.channelName = state.channelName || "Voice Channel";
+        this.meetingId = state.meetingId;
+        this.connectionTime = state.connectionTime || Date.now();
+      } else {
+        // If videosdk meeting doesn't exist but we have saved state, clean it up
         this.resetState();
       }
+    } catch (e) {
+      console.error("Error loading voice connection state:", e);
+      this.resetState();
     }
   }
 
   saveConnectionState() {
+    if (!this.isConnected || !window.videosdkMeeting) {
+      localStorage.removeItem("voiceConnectionState");
+      return;
+    }
+    
     const state = {
       isConnected: this.isConnected,
       channelName: this.channelName,
       meetingId: this.meetingId,
-      connectionTime: this.connectionTime,
+      connectionTime: this.connectionTime
     };
+    
     localStorage.setItem("voiceConnectionState", JSON.stringify(state));
   }
 
@@ -60,69 +74,67 @@ class GlobalVoiceIndicator {
     this.meetingId = "";
     this.connectionTime = 0;
     localStorage.removeItem("voiceConnectionState");
-    this.hideIndicator();
+    
+    if (this.indicator) {
+      this.hideIndicator();
+    }
+    
     this.stopTimer();
   }
 
-  loadIndicatorComponent(shouldShowAfterLoad = false) {
-    if (this.indicator) return this.indicator;
+  async loadIndicatorComponent(shouldShow = false) {
+    // Don't create indicator if not connected
+    if (!this.isConnected && !window.videosdkMeeting) return;
     
-    if (!document.getElementById('voice-indicator')) {
-      fetch('/components/common/voice-indicator')
-        .then(response => response.text())
-        .then(html => {
-          if (!document.getElementById('voice-indicator')) {
-            document.body.insertAdjacentHTML('beforeend', html);
-            this.indicator = document.getElementById('voice-indicator');
-            
-            const disconnectBtn = this.indicator.querySelector(".disconnect-btn");
-            disconnectBtn.addEventListener("click", () => this.handleDisconnect());
-            
-            this.makeDraggable();
-            
-            if (shouldShowAfterLoad && this.isConnected) {
-              this.loadPosition();
-              this.updateChannelInfo();
-              this.showIndicator();
-              this.startTimer();
-            }
-          } else {
-            this.indicator = document.getElementById('voice-indicator');
-            
-            const disconnectBtn = this.indicator.querySelector(".disconnect-btn");
-            disconnectBtn.addEventListener("click", () => this.handleDisconnect());
-            
-            this.makeDraggable();
-            
-            if (shouldShowAfterLoad && this.isConnected) {
-              this.loadPosition();
-              this.updateChannelInfo();
-              this.showIndicator();
-              this.startTimer();
-            }
-          }
-        })
-        .catch(error => {
-          console.error('Error loading voice indicator component:', error);
-        });
-      
-      return null;
-    } else {
-      this.indicator = document.getElementById('voice-indicator');
-      
-      const disconnectBtn = this.indicator.querySelector(".disconnect-btn");
-      disconnectBtn.addEventListener("click", () => this.handleDisconnect());
-      
-      this.makeDraggable();
-      
-      if (shouldShowAfterLoad && this.isConnected) {
-        this.loadPosition();
-        this.updateChannelInfo();
+    // Check if indicator already exists
+    if (this.indicator) {
+      if (shouldShow) {
         this.showIndicator();
-        this.startTimer();
+      }
+      return;
+    }
+
+    try {
+      const response = await fetch('/views/components/common/voice-indicator.php');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      return this.indicator;
+      const html = await response.text();
+      
+      // Don't proceed if disconnected during fetch
+      if (!this.isConnected && !window.videosdkMeeting) return;
+      
+      // Create container for the indicator
+      const container = document.createElement('div');
+      container.innerHTML = html.trim();
+      this.indicator = container.firstChild;
+      
+      if (!this.indicator) {
+        console.error("Voice indicator component not found in response");
+        return;
+      }
+      
+      // Set display to none initially
+      this.indicator.style.display = shouldShow ? 'flex' : 'none';
+      this.indicator.classList.add("scale-0", "opacity-0");
+      
+      document.body.appendChild(this.indicator);
+      
+      this.setupIndicatorElements();
+      this.startTimer();
+      
+      if (shouldShow) {
+        setTimeout(() => {
+          if (this.isConnected) {
+            this.showIndicator();
+          } else {
+            this.cleanup();
+          }
+        }, 100);
+      }
+    } catch (error) {
+      console.error("Error loading voice indicator component:", error);
     }
   }
 
@@ -239,6 +251,22 @@ class GlobalVoiceIndicator {
         this.showIndicator();
       }
     });
+    
+    // Handle page unload/navigation
+    window.addEventListener("beforeunload", () => {
+      this.cleanup();
+    });
+    
+    window.addEventListener("unload", () => {
+      this.cleanup();
+    });
+    
+    // Handle popstate (browser back/forward)
+    window.addEventListener("popstate", () => {
+      if (!this.isConnected) {
+        this.cleanup();
+      }
+    });
   }
 
   handleConnect(channelName, meetingId) {
@@ -248,6 +276,7 @@ class GlobalVoiceIndicator {
     this.connectionTime = Date.now();
     this.saveConnectionState();
 
+    // Only load and show indicator when actually connected
     this.loadIndicatorComponent(true);
   }
 
@@ -255,36 +284,44 @@ class GlobalVoiceIndicator {
     this.isConnected = false;
     this.hideIndicator();
     this.stopTimer();
-    this.resetState();
-
+    
+    // Clear connection state in localStorage
+    localStorage.removeItem("voiceConnectionState");
+    
+    // Dispatch event for other components
     const event = new CustomEvent("globalVoiceDisconnect");
     window.dispatchEvent(event);
 
+    // Leave the VideoSDK meeting if it exists
     if (window.videosdkMeeting) {
       try {
         window.videosdkMeeting.leave();
+        window.videosdkMeeting = null;
       } catch (e) {
         console.error("Error when trying to leave meeting", e);
       }
     }
+    
+    // Complete reset of state
+    this.resetState();
+    
+    // Remove indicator completely from DOM
+    setTimeout(() => {
+      this.cleanup();
+    }, 350);
   }
 
   showIndicator() {
     if (!this.indicator) return;
+    if (!this.isConnected) return;
     
-    this.updateChannelInfo();
+    this.indicator.style.display = "flex";
     
-    if (this.indicator.style.display === "none") {
-      this.indicator.style.display = "";
-      
-      requestAnimationFrame(() => {
-        this.indicator.classList.remove("scale-0", "opacity-0");
-        this.indicator.classList.add("scale-100", "opacity-100");
-      });
-    } else {
-      this.indicator.classList.remove("scale-0", "opacity-0");
-      this.indicator.classList.add("scale-100", "opacity-100");
-    }
+    // Force a reflow to ensure transition works
+    void this.indicator.offsetWidth;
+    
+    this.indicator.classList.remove("scale-0", "opacity-0");
+    this.indicator.classList.add("scale-100", "opacity-100");
   }
 
   hideIndicator() {
@@ -302,27 +339,11 @@ class GlobalVoiceIndicator {
 
   startTimer() {
     if (this.timerInterval) clearInterval(this.timerInterval);
-
-    const timerEl = this.indicator
-      ? this.indicator.querySelector(".timer")
-      : null;
-    if (!timerEl) return;
-
+    
+    this.updateConnectionTime();
+    
     this.timerInterval = setInterval(() => {
-      if (!this.isConnected) {
-        clearInterval(this.timerInterval);
-        return;
-      }
-
-      const elapsedSeconds = Math.floor(
-        (Date.now() - this.connectionTime) / 1000
-      );
-      const minutes = Math.floor(elapsedSeconds / 60);
-      const seconds = elapsedSeconds % 60;
-
-      timerEl.textContent = `${minutes.toString().padStart(2, "0")}:${seconds
-        .toString()
-        .padStart(2, "0")}`;
+      this.updateConnectionTime();
     }, 1000);
   }
 
@@ -334,15 +355,23 @@ class GlobalVoiceIndicator {
   }
 
   startConnectionVerification() {
+    // Clear any existing interval
+    if (this.verificationInterval) {
+      clearInterval(this.verificationInterval);
+    }
+    
     this.verificationInterval = setInterval(() => {
-      if (this.isConnected) {
-        if (!window.videosdkMeeting) {
-          console.log("Voice connection lost, resetting state");
-          this.resetState();
-          this.hideIndicator();
-        }
+      // Check if connected but no VideoSDK meeting exists
+      if (this.isConnected && !window.videosdkMeeting) {
+        console.log("Voice connection state mismatch - no VideoSDK meeting exists. Disconnecting.");
+        this.handleDisconnect();
+      } 
+      // Double check if we're showing the indicator but not connected
+      else if (!this.isConnected && this.indicator) {
+        console.log("Voice indicator showing but not connected. Cleaning up.");
+        this.cleanup();
       }
-    }, 5000);
+    }, 3000);
   }
 
   stopConnectionVerification() {
@@ -353,11 +382,66 @@ class GlobalVoiceIndicator {
   }
 
   updateChannelInfo() {
+    if (!this.indicator || !this.isConnected) return;
+    
+    const channelNameEl = this.indicator.querySelector('.channel-name');
+    if (channelNameEl) {
+      // Set the username instead of channel name
+      const username = localStorage.getItem('username') || sessionStorage.getItem('username') || 'User';
+      channelNameEl.textContent = username;
+    }
+  }
+
+  updateConnectionTime() {
+    if (!this.indicator || !this.isConnected || !this.connectionTime) return;
+    
+    const durationEl = this.indicator.querySelector('.connection-duration');
+    if (!durationEl) return;
+    
+    const elapsedMs = Date.now() - this.connectionTime;
+    const elapsedSec = Math.floor(elapsedMs / 1000);
+    
+    const hours = Math.floor(elapsedSec / 3600);
+    const minutes = Math.floor((elapsedSec % 3600) / 60);
+    const seconds = elapsedSec % 60;
+    
+    let timeStr = '';
+    if (hours > 0) {
+      timeStr = `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    } else {
+      timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+    
+    durationEl.textContent = timeStr;
+  }
+
+  setupIndicatorElements() {
     if (!this.indicator) return;
     
-    const channelInfoEl = this.indicator.querySelector(".channel-info");
-    if (channelInfoEl) {
-      channelInfoEl.textContent = `${this.channelName} / ${this.meetingId.replace('voice_channel_', '')}`;
+    const disconnectBtn = this.indicator.querySelector(".disconnect-btn");
+    if (disconnectBtn) {
+      disconnectBtn.addEventListener("click", () => this.handleDisconnect());
+    }
+    
+    this.makeDraggable();
+    this.loadPosition();
+    this.updateChannelInfo();
+    this.updateConnectionTime();
+  }
+
+  cleanup() {
+    if (!this.isConnected) {
+      // Remove any indicators from DOM
+      if (this.indicator) {
+        this.indicator.remove();
+        this.indicator = null;
+      }
+      
+      // Clear any existing voice indicators
+      const existingIndicators = document.querySelectorAll('#voice-indicator');
+      existingIndicators.forEach(indicator => {
+        indicator.remove();
+      });
     }
   }
 }

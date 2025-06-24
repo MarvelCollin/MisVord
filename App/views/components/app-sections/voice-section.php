@@ -86,10 +86,7 @@ $additional_js[] = 'components/voice/voice-manager';
     
     <!-- Participant panel (slides up when users are present) -->
     <div id="participantsPanel" class="fixed bottom-16 right-4 w-64 max-h-72 bg-[#232428] rounded-t-lg shadow-lg hidden">
-        <div class="p-3 border-b border-[#1e1f22]">
-            <h3 class="text-sm font-medium text-white">Voice Connected — <?php echo htmlspecialchars($activeChannel['name'] ?? 'Voice Channel'); ?></h3>
-        </div>
-        <div id="participants" class="max-h-56 overflow-y-auto p-2">
+        <div id="participants" class="max-h-72 overflow-y-auto p-2">
             <!-- Participants will be added here by JS -->
         </div>
     </div>
