@@ -45,10 +45,7 @@ export class UserManager {
           <td class="py-4"><div class="skeleton" style="height: 1rem; width: 8rem;"></div></td>
           <td class="py-4"><div class="skeleton" style="height: 1rem; width: 6rem;"></div></td>
           <td class="py-4">
-            <div class="flex space-x-2">
-              <div class="skeleton" style="height: 1.5rem; width: 1.5rem;"></div>
-              <div class="skeleton" style="height: 1.5rem; width: 1.5rem;"></div>
-            </div>
+            <div class="skeleton" style="height: 2rem; width: 4rem; border-radius: 0.375rem;"></div>
           </td>
         </tr>
       `;
@@ -83,6 +80,8 @@ export class UserManager {
         this.loadUsers();
       }, 300));
     }
+
+    this.initDiscordConfirmModal();
   }
   
   loadUsers() {
@@ -99,11 +98,12 @@ export class UserManager {
           
           this.renderUsers(users, total, showing);
         } else {
-          showToast(data.message || "Failed to load users", "error");
+          showToast(response.message || "Failed to load users", "error");
         }
       })
       .catch(error => {
         showToast("An error occurred while loading users", "error");
+        console.error("Error loading users:", error);
       });
   }
   
@@ -147,10 +147,9 @@ export class UserManager {
       const row = document.createElement('tr');
       row.className = 'border-b border-discord-dark';
       
-      const userStatus = user.is_active ? 
-        '<span class="text-green-400">Active</span>' : 
-        '<span class="text-red-400">Inactive</span>';
+      const isBanned = user.status === 'banned';
       
+      const userStatus = this.getUserStatusBadge(user.status);
       const roles = user.is_admin ? 
         '<span class="bg-red-500 text-white rounded-full px-2 py-1 text-xs">Admin</span>' : 
         '<span class="bg-gray-500 text-white rounded-full px-2 py-1 text-xs">User</span>';
@@ -159,8 +158,8 @@ export class UserManager {
         <td class="py-4">${user.id}</td>
         <td class="py-4">
           <div class="flex items-center space-x-2">
-            ${user.avatar ? 
-              `<img src="${user.avatar}" alt="User avatar" class="h-6 w-6 rounded-full">` : 
+            ${user.avatar_url ? 
+              `<img src="${user.avatar_url}" alt="User avatar" class="h-6 w-6 rounded-full">` : 
               '<div class="h-6 w-6 bg-discord-dark rounded-full"></div>'
             }
             <span>${user.username}</span>
@@ -171,17 +170,22 @@ export class UserManager {
         <td class="py-4">${roles}</td>
         <td class="py-4">
           <div class="flex space-x-2">
-            <button class="text-blue-400 hover:text-blue-300" onclick="window.userManager.viewUser(${user.id})">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
-            </button>
-            <button class="text-red-400 hover:text-red-300" onclick="window.userManager.toggleUserStatus(${user.id}, ${user.is_active})">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-              </svg>
-            </button>
+            ${isBanned ? 
+              `<button class="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded-md text-xs flex items-center space-x-1" 
+                      onclick="window.userManager.toggleUserBan(${user.id}, '${user.status}', '${user.username}')">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Unban</span>
+              </button>` : 
+              `<button class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded-md text-xs flex items-center space-x-1" 
+                      onclick="window.userManager.toggleUserBan(${user.id}, '${user.status}', '${user.username}')">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                </svg>
+                <span>Ban</span>
+              </button>`
+            }
           </div>
         </td>
       `;
@@ -202,21 +206,40 @@ export class UserManager {
     if (nextBtn) nextBtn.disabled = showing >= total;
   }
   
+  getUserStatusBadge(status) {
+    switch (status) {
+      case 'banned':
+        return '<span class="bg-red-500 text-white rounded-full px-2 py-1 text-xs">Banned</span>';
+      case 'appear':
+        return '<span class="bg-green-500 text-white rounded-full px-2 py-1 text-xs">Online</span>';
+      case 'offline':
+        return '<span class="bg-gray-500 text-white rounded-full px-2 py-1 text-xs">Offline</span>';
+      case 'do_not_disturb':
+        return '<span class="bg-red-400 text-white rounded-full px-2 py-1 text-xs">Do Not Disturb</span>';
+      case 'invisible':
+        return '<span class="bg-gray-400 text-white rounded-full px-2 py-1 text-xs">Invisible</span>';
+      default:
+        return '<span class="bg-gray-500 text-white rounded-full px-2 py-1 text-xs">Unknown</span>';
+    }
+  }
+  
   viewUser(userId) {
     window.location.href = `/app/user/${userId}`;
   }
   
-  toggleUserStatus(userId, isActive) {
-    const action = isActive ? 'deactivate' : 'activate';
-    const confirmMessage = isActive ? 
-      'Are you sure you want to deactivate this user? They will not be able to login until reactivated.' : 
-      'Are you sure you want to activate this user?';
+  toggleUserBan(userId, currentStatus, username) {
+    const isBanned = currentStatus === 'banned';
+    const action = isBanned ? 'unban' : 'ban';
+    const title = isBanned ? 'Unban User' : 'Ban User';
+    const message = isBanned ? 
+      `Are you sure you want to unban <span class="text-white font-semibold">${username}</span>? They will be able to use the app again.` : 
+      `Are you sure you want to ban <span class="text-white font-semibold">${username}</span>? This will prevent them from using the app.`;
     
-    this.showDeleteConfirmation(`${action.charAt(0).toUpperCase() + action.slice(1)} User`, confirmMessage, () => {
-      userAdminAPI.toggleUserStatus(userId)
+    this.showDiscordConfirmation(title, message, () => {
+      userAdminAPI.toggleUserBan(userId)
         .then(data => {
           if (data.success) {
-            showToast(`User ${action}d successfully`, "success");
+            showToast(`User ${isBanned ? 'unbanned' : 'banned'} successfully`, "success");
             this.loadUsers();
             this.loadUserStats();
           } else {
@@ -224,37 +247,75 @@ export class UserManager {
           }
         })
         .catch(error => {
-          showToast(`An error occurred while ${action}ing the user`, "error");
+          showToast(`An error occurred while trying to ${action} the user`, "error");
+          console.error(`Error ${action}ing user:`, error);
         });
     });
   }
+
+  initDiscordConfirmModal() {
+    if (document.getElementById('discord-confirm-modal')) return;
+    
+    const modal = document.createElement('div');
+    modal.id = 'discord-confirm-modal';
+    modal.className = 'fixed inset-0 flex items-center justify-center z-50 hidden';
+    modal.innerHTML = `
+      <div class="fixed inset-0 bg-black bg-opacity-70"></div>
+      <div class="bg-discord-dark rounded-md w-full max-w-md p-6 relative z-10 transform transition-all">
+        <div class="flex justify-between items-center mb-4">
+          <h3 id="discord-confirm-title" class="text-xl font-bold text-white">Confirm Action</h3>
+          <button id="discord-confirm-close" class="text-gray-400 hover:text-white">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div class="mb-6">
+          <p id="discord-confirm-message" class="text-discord-lighter">Are you sure you want to perform this action?</p>
+        </div>
+        <div class="flex justify-end space-x-3">
+          <button id="discord-cancel-button" class="px-4 py-2 bg-discord-dark-secondary hover:bg-discord-dark-hover text-white rounded-md transition-colors">
+            Cancel
+          </button>
+          <button id="discord-confirm-button" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors">
+            Confirm
+          </button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    document.getElementById('discord-confirm-close').addEventListener('click', () => {
+      modal.classList.add('hidden');
+    });
+    
+    document.getElementById('discord-cancel-button').addEventListener('click', () => {
+      modal.classList.add('hidden');
+    });
+  }
   
-  showDeleteConfirmation(title, message, confirmCallback) {
-    const modal = document.getElementById('confirm-modal');
-    const confirmTitle = document.getElementById('confirm-title');
-    const confirmMessage = document.getElementById('confirm-message');
-    const confirmBtn = document.getElementById('confirm-action');
-    const cancelBtn = document.getElementById('cancel-confirm');
+  showDiscordConfirmation(title, message, confirmCallback) {
+    const modal = document.getElementById('discord-confirm-modal');
+    if (!modal) {
+      this.initDiscordConfirmModal();
+      return this.showDiscordConfirmation(title, message, confirmCallback);
+    }
+    
+    const confirmTitle = document.getElementById('discord-confirm-title');
+    const confirmMessage = document.getElementById('discord-confirm-message');
+    const confirmBtn = document.getElementById('discord-confirm-button');
     
     confirmTitle.textContent = title;
-    confirmMessage.textContent = message;
+    confirmMessage.innerHTML = message;
     
     const handleConfirm = () => {
       modal.classList.add('hidden');
       confirmBtn.removeEventListener('click', handleConfirm);
-      cancelBtn.removeEventListener('click', handleCancel);
       confirmCallback();
     };
     
-    const handleCancel = () => {
-      modal.classList.add('hidden');
-      confirmBtn.removeEventListener('click', handleConfirm);
-      cancelBtn.removeEventListener('click', handleCancel);
-    };
-    
     confirmBtn.addEventListener('click', handleConfirm);
-    cancelBtn.addEventListener('click', handleCancel);
-    
     modal.classList.remove('hidden');
   }
   

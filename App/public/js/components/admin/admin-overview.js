@@ -594,21 +594,6 @@ export class OverviewManager {
       
       barContainer.appendChild(bar);
       
-      if (heightPercent > 15) {
-        const valueLabel = document.createElement('div');
-        valueLabel.className = 'bar-value-label';
-        valueLabel.textContent = item.value;
-        valueLabel.style.position = 'absolute';
-        valueLabel.style.top = `-20px`;
-        valueLabel.style.fontSize = '10px';
-        valueLabel.style.color = '#b9bbbe';
-        valueLabel.style.width = '100%';
-        valueLabel.style.textAlign = 'center';
-        valueLabel.style.userSelect = 'none';
-        valueLabel.style.pointerEvents = 'none';
-        barContainer.appendChild(valueLabel);
-      }
-      
       chartArea.appendChild(barContainer);
       
       const label = document.createElement('div');
@@ -708,8 +693,13 @@ export class OverviewManager {
       if (minDistance < 5) {
         this.showTooltip(e, `${closestPoint.label}: ${closestPoint.value} messages`);
         
-        const highlightPoint = document.createElement('div');
-        highlightPoint.className = 'highlight-point';
+        let highlightPoint = chartArea.querySelector('.highlight-point');
+        if (!highlightPoint) {
+          highlightPoint = document.createElement('div');
+          highlightPoint.className = 'highlight-point';
+          chartArea.appendChild(highlightPoint);
+        }
+        
         highlightPoint.style.position = 'absolute';
         highlightPoint.style.width = '8px';
         highlightPoint.style.height = '8px';
@@ -722,21 +712,31 @@ export class OverviewManager {
         highlightPoint.style.zIndex = '2';
         highlightPoint.style.pointerEvents = 'none';
         
-        const existingHighlight = chartArea.querySelector('.highlight-point');
-        if (existingHighlight) {
-          chartArea.removeChild(existingHighlight);
+        if (chartArea.highlightHideTimeout) {
+          clearTimeout(chartArea.highlightHideTimeout);
+          chartArea.highlightHideTimeout = null;
         }
-        
-        chartArea.appendChild(highlightPoint);
       }
     });
     
     trackingArea.addEventListener('mouseleave', () => {
       this.hideTooltip();
       
-      const existingHighlight = chartArea.querySelector('.highlight-point');
-      if (existingHighlight) {
-        chartArea.removeChild(existingHighlight);
+      if (!chartArea.highlightHideTimeout) {
+        chartArea.highlightHideTimeout = setTimeout(() => {
+          const existingHighlight = chartArea.querySelector('.highlight-point');
+          if (existingHighlight) {
+            existingHighlight.style.opacity = '0';
+            existingHighlight.style.transition = 'opacity 0.3s ease';
+            
+            setTimeout(() => {
+              if (existingHighlight.parentNode === chartArea) {
+                chartArea.removeChild(existingHighlight);
+              }
+              chartArea.highlightHideTimeout = null;
+            }, 300);
+          }
+        }, 200);
       }
     });
     
@@ -754,18 +754,46 @@ export class OverviewManager {
     svg.style.overflow = "visible";
     svg.style.zIndex = "0";
     
-    const polyline = document.createElementNS(svgNS, "polyline");
-    polyline.setAttribute("fill", "none");
-    polyline.setAttribute("stroke", "#5865f2");
-    polyline.setAttribute("stroke-width", "2");
-    polyline.classList.add("chart-line");
+    // Create a smooth path instead of polyline
+    const path = document.createElementNS(svgNS, "path");
+    path.setAttribute("fill", "none");
+    path.setAttribute("stroke", "#5865f2");
+    path.setAttribute("stroke-width", "3");
+    path.setAttribute("stroke-linejoin", "round");
+    path.setAttribute("stroke-linecap", "round");
+    path.classList.add("chart-line");
     
-    const pointsString = points.map(point => `${point.x},${point.y}`).join(" ");
-    polyline.setAttribute("points", pointsString);
-    svg.appendChild(polyline);
+    // Generate smooth curve path using cardinal spline
+    let pathD = `M ${points[0].x},${points[0].y}`;
+    
+    for (let i = 0; i < points.length - 1; i++) {
+      const x1 = points[i].x;
+      const y1 = points[i].y;
+      const x2 = points[i + 1].x;
+      const y2 = points[i + 1].y;
+      
+      // Calculate control points for smooth curve
+      const smoothing = 0.2; // Adjust this value between 0 and 1 to control curve smoothness
+      
+      // Get previous and next points for better curve calculation
+      const prev = i > 0 ? points[i - 1] : points[i];
+      const next = i < points.length - 2 ? points[i + 2] : points[i + 1];
+      
+      // Calculate control points for natural cubic spline
+      const cp1x = x1 + (x2 - prev.x) * smoothing;
+      const cp1y = y1 + (y2 - prev.y) * smoothing;
+      const cp2x = x2 - (next.x - x1) * smoothing;
+      const cp2y = y2 - (next.y - y1) * smoothing;
+      
+      pathD += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${x2},${y2}`;
+    }
+    
+    path.setAttribute("d", pathD);
+    svg.appendChild(path);
     
     chartArea.appendChild(svg);
     
+    // Create data points that appear on top of the path
     points.forEach((point, index) => {
       const dataPoint = document.createElement('div');
       dataPoint.className = 'data-point blue';
@@ -806,15 +834,18 @@ export class OverviewManager {
 
     const style = document.createElement('style');
     style.textContent = `
-      @keyframes draw-line {
-        to {
+      @keyframes draw-path {
+        0% {
+          stroke-dashoffset: 1000;
+        }
+        100% {
           stroke-dashoffset: 0;
         }
       }
       .chart-line {
         stroke-dasharray: 1000;
         stroke-dashoffset: 1000;
-        animation: draw-line 2s ease-in-out forwards;
+        animation: draw-path 2s ease-in-out forwards;
       }
       .data-point.active {
         box-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
@@ -908,21 +939,6 @@ export class OverviewManager {
       
       barContainer.appendChild(bar);
       
-      if (heightPercent > 15) {
-        const valueLabel = document.createElement('div');
-        valueLabel.className = 'bar-value-label';
-        valueLabel.textContent = item.value;
-        valueLabel.style.position = 'absolute';
-        valueLabel.style.top = `-20px`;
-        valueLabel.style.fontSize = '10px';
-        valueLabel.style.color = '#b9bbbe';
-        valueLabel.style.width = '100%';
-        valueLabel.style.textAlign = 'center';
-        valueLabel.style.userSelect = 'none';
-        valueLabel.style.pointerEvents = 'none';
-        barContainer.appendChild(valueLabel);
-      }
-      
       chartArea.appendChild(barContainer);
       
       const label = document.createElement('div');
@@ -961,7 +977,6 @@ export class OverviewManager {
   }
 
   generateYAxisLabels(maxValue, count) {
-    // Round maxValue to a nice number
     const niceMax = this.roundToNice(maxValue);
     const step = niceMax / (count - 1);
     
@@ -988,14 +1003,12 @@ export class OverviewManager {
 
   formatAxisLabel(label) {
     if (this.currentChartPeriod === 'daily') {
-      // Try to extract day part only if it's a date
       if (label.includes('-')) {
         const parts = label.split('-');
         return parts[2] || label;
       }
       return label;
     } else {
-      // For weekly, show shorter format
       return label.substring(0, 5);
     }
   }
@@ -1014,11 +1027,9 @@ export class OverviewManager {
     tooltip.textContent = text;
     const tooltipRect = tooltip.getBoundingClientRect();
     
-    // Calculate position based on the bar's position
     const left = barRect.left + (barRect.width / 2);
     let top = barRect.top - 10;
     
-    // Adjust if tooltip would go off screen
     if (top - tooltipRect.height < 0) {
       top = barRect.bottom + 10;
       tooltip.classList.add('tooltip-bottom');
@@ -1029,13 +1040,11 @@ export class OverviewManager {
     tooltip.style.left = `${left}px`;
     tooltip.style.top = `${top}px`;
     
-    // Clear any existing hide timeout
     if (tooltip.hideTimeout) {
       clearTimeout(tooltip.hideTimeout);
       tooltip.hideTimeout = null;
     }
     
-    // Use the visible class for animation
     tooltip.classList.add('visible');
     tooltip.style.visibility = 'visible';
   }
@@ -1043,19 +1052,16 @@ export class OverviewManager {
   hideTooltip() {
     const tooltips = document.querySelectorAll('.chart-tooltip');
     tooltips.forEach(tooltip => {
-      // Don't set another timeout if one is already pending
       if (tooltip.hideTimeout) return;
       
-      // Add a delay before hiding
       tooltip.hideTimeout = setTimeout(() => {
         tooltip.classList.remove('visible');
         
-        // Wait for transition to complete before hiding
         setTimeout(() => {
           tooltip.style.visibility = 'hidden';
           tooltip.hideTimeout = null;
         }, 300);
-      }, 200); // 200ms delay before starting to hide
+      }, 200);
     });
   }
 }

@@ -425,6 +425,46 @@ class AdminController extends BaseController
         ]);
     }
     
+    public function toggleUserBan($userId) {
+        $this->requireAdminAuth();
+        
+        try {
+            require_once __DIR__ . '/../database/repositories/UserRepository.php';
+            $userRepository = new UserRepository();
+            
+            $user = $userRepository->find($userId);
+            
+            if (!$user) {
+                return $this->error("User not found", 404);
+            }
+            
+            $currentStatus = $user->status;
+            $newStatus = $currentStatus === 'banned' ? 'offline' : 'banned';
+            
+            $updated = $userRepository->update($userId, [
+                'status' => $newStatus
+            ]);
+            
+            if (!$updated) {
+                return $this->serverError("Failed to update user status");
+            }
+            
+            $actionType = $newStatus === 'banned' ? 'banned' : 'unbanned';
+            
+            $this->logActivity("user_{$actionType}", [
+                'admin_id' => $this->getCurrentUserId(),
+                'user_id' => $userId
+            ]);
+            
+            return $this->success([
+                'user_id' => $userId,
+                'status' => $newStatus
+            ], "User has been {$actionType} successfully");
+        } catch (Exception $e) {
+            return $this->serverError("Error toggling user ban: " . $e->getMessage());
+        }
+    }
+    
     protected function requireAdmin()
     {
         $this->requireAuth();

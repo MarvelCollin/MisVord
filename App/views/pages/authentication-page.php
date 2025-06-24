@@ -86,9 +86,16 @@ try {
     select#security_question option, select#google_security_question option {
         background-color: #202225;
     }
+
+    #register-step-1 {
+        display: block;
+    }
+
+    #register-step-2 {
+        display: none;
+    }
 </style>
 
-<!-- Main authentication container with auth page identifier -->
 <body data-page="auth">
 <div class="authentication-page w-full min-h-screen flex items-center justify-center bg-[#202225] p-4 sm:p-6 md:p-8">
 
@@ -200,120 +207,144 @@ try {
             </form>
 
             <form action="/register" method="POST" class="space-y-4 sm:space-y-5 <?php echo $mode === 'register' ? 'block' : 'hidden'; ?>" id="registerForm">
-
-                <div class="form-group">
-                    <label for="username" class="block text-sm font-medium text-gray-300 mb-1">Username</label>
-                    <input 
-                        id="username" 
-                        name="username" 
-                        class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 sm:p-3 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all text-sm sm:text-base" 
-                        value="<?php echo $oldInput['username'] ?? ''; ?>" 
-                    >
-                    <?php if (isset($errors['username'])): ?>
-                        <p class="text-red-500 text-sm mt-1"><?php echo $errors['username']; ?></p>
-                    <?php endif; ?>
+                <div class="flex items-center justify-center mb-4">
+                    <div class="flex items-center">
+                        <div class="step-indicator active" id="step-1-indicator">
+                            <span>1</span>
+                        </div>
+                        <div class="step-line" id="step-line"></div>
+                        <div class="step-indicator" id="step-2-indicator">
+                            <span>2</span>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="form-group">
-                    <label for="reg_email" class="block text-sm font-medium text-gray-300 mb-1">Email</label>
-                    <input 
-                        id="reg_email" 
-                        name="email" 
-                        class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
-                        value="<?php echo $oldInput['email'] ?? ''; ?>" 
-                    >
-                    <?php if (isset($errors['email'])): ?>
-                        <p class="text-red-500 text-sm mt-1"><?php echo $errors['email']; ?></p>
-                    <?php endif; ?>
-                </div>
-
-                <div class="form-group">
-                    <label for="reg_password" class="block text-sm font-medium text-gray-300 mb-1">Password</label>
-                    <div class="relative">
+                <div id="register-step-1" class="register-step active">
+                    <div class="form-group">
+                        <label for="username" class="block text-sm font-medium text-gray-300 mb-1">Username</label>
                         <input 
-                            id="reg_password" 
-                            name="password" 
-                            type="password"
-                            class="password-field w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
+                            id="username" 
+                            name="username" 
+                            class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 sm:p-3 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all text-sm sm:text-base" 
+                            value="<?php echo $oldInput['username'] ?? ''; ?>" 
                         >
-                        <button type="button" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors password-toggle">
-                            <i class="fa-solid fa-eye"></i>
+                        <?php if (isset($errors['username'])): ?>
+                            <p class="text-red-500 text-sm mt-1"><?php echo $errors['username']; ?></p>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="reg_email" class="block text-sm font-medium text-gray-300 mb-1">Email</label>
+                        <input 
+                            id="reg_email" 
+                            name="email" 
+                            class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
+                            value="<?php echo $oldInput['email'] ?? ''; ?>" 
+                        >
+                        <?php if (isset($errors['email'])): ?>
+                            <p class="text-red-500 text-sm mt-1"><?php echo $errors['email']; ?></p>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="reg_password" class="block text-sm font-medium text-gray-300 mb-1">Password</label>
+                        <div class="relative">
+                            <input 
+                                id="reg_password" 
+                                name="password" 
+                                type="password"
+                                class="password-field w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
+                            >
+                            <button type="button" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors password-toggle">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                        </div>
+                        <?php if (isset($errors['password'])): ?>
+                            <p class="text-red-500 text-sm mt-1"><?php echo $errors['password']; ?></p>
+                        <?php endif; ?>
+                        <div class="mt-1 h-1 bg-gray-700 rounded hidden" id="passwordStrength">
+                            <div class="h-full bg-discord-blue rounded" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password_confirm" class="block text-sm font-medium text-gray-300 mb-1">Confirm Password</label>
+                        <div class="relative">
+                            <input 
+                                id="password_confirm" 
+                                name="password_confirm" 
+                                type="password"
+                                class="password-field w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
+                            >
+                            <button type="button" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors password-toggle">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                        </div>
+                        <?php if (isset($errors['password_confirm'])): ?>
+                            <p class="text-red-500 text-sm mt-1"><?php echo $errors['password_confirm']; ?></p>
+                        <?php endif; ?>
+                        <div class="text-green-500 text-xs mt-1 hidden" id="passwordsMatch">Passwords match <i class="fa-solid fa-check"></i></div>
+                    </div>
+
+                    <button type="button" id="next-step-btn" class="w-full py-2.5 bg-discord-blue hover:bg-discord-blue/90 text-white font-medium rounded-md transition-all">
+                        Next Step
+                    </button>
+                </div>
+
+                <div id="register-step-2" class="register-step hidden">
+                    <div class="form-group">
+                        <label for="security_question" class="block text-sm font-medium text-gray-300 mb-1">Security Question</label>
+                        <select 
+                            id="security_question" 
+                            name="security_question" 
+                            class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all"
+                        >
+                            <option value="">Select a security question</option>
+                            <option value="What was the name of your first pet?" <?php echo (isset($oldInput['security_question']) && $oldInput['security_question'] === 'What was the name of your first pet?') ? 'selected' : ''; ?>>What was the name of your first pet?</option>
+                            <option value="In what city were you born?" <?php echo (isset($oldInput['security_question']) && $oldInput['security_question'] === 'In what city were you born?') ? 'selected' : ''; ?>>In what city were you born?</option>
+                            <option value="What was the name of your first school?" <?php echo (isset($oldInput['security_question']) && $oldInput['security_question'] === 'What was the name of your first school?') ? 'selected' : ''; ?>>What was the name of your first school?</option>
+                            <option value="What is your mother's maiden name?" <?php echo (isset($oldInput['security_question']) && $oldInput['security_question'] === 'What is your mother\'s maiden name?') ? 'selected' : ''; ?>>What is your mother's maiden name?</option>
+                            <option value="What was your childhood nickname?" <?php echo (isset($oldInput['security_question']) && $oldInput['security_question'] === 'What was your childhood nickname?') ? 'selected' : ''; ?>>What was your childhood nickname?</option>
+                        </select>
+                        <p class="text-gray-400 text-xs mt-1">Used for account recovery if you forget your password</p>
+                        <?php if (isset($errors['security_question'])): ?>
+                            <p class="text-red-500 text-sm mt-1"><?php echo $errors['security_question']; ?></p>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="security_answer" class="block text-sm font-medium text-gray-300 mb-1">Security Answer</label>
+                        <input 
+                            id="security_answer" 
+                            name="security_answer" 
+                            class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
+                            placeholder="Answer to your security question"
+                        >
+                        <?php if (isset($errors['security_answer'])): ?>
+                            <p class="text-red-500 text-sm mt-1"><?php echo $errors['security_answer']; ?></p>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Verification</label>
+                        <div id="register-captcha-container" class="mb-2"></div>
+                        <input 
+                            id="register_captcha" 
+                            name="captcha" 
+                            class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
+                            placeholder="Enter the code above" 
+                        >
+                    </div>
+
+                    <div class="flex space-x-3">
+                        <button type="button" id="prev-step-btn" class="w-1/3 py-2.5 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-md transition-all">
+                            Back
+                        </button>
+                        <button type="submit" class="w-2/3 py-2.5 bg-discord-blue hover:bg-discord-blue/90 text-white font-medium rounded-md transition-all">
+                            Register
                         </button>
                     </div>
-                    <?php if (isset($errors['password'])): ?>
-                        <p class="text-red-500 text-sm mt-1"><?php echo $errors['password']; ?></p>
-                    <?php endif; ?>
-                    <div class="mt-1 h-1 bg-gray-700 rounded hidden" id="passwordStrength">
-                        <div class="h-full bg-discord-blue rounded" style="width: 0%"></div>
-                    </div>
                 </div>
-
-                <div class="form-group">
-                    <label for="password_confirm" class="block text-sm font-medium text-gray-300 mb-1">Confirm Password</label>
-                    <div class="relative">
-                        <input 
-                            id="password_confirm" 
-                            name="password_confirm" 
-                            type="password"
-                            class="password-field w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
-                        >
-                        <button type="button" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors password-toggle">
-                            <i class="fa-solid fa-eye"></i>
-                        </button>
-                    </div>
-                    <?php if (isset($errors['password_confirm'])): ?>
-                        <p class="text-red-500 text-sm mt-1"><?php echo $errors['password_confirm']; ?></p>
-                    <?php endif; ?>
-                    <div class="text-green-500 text-xs mt-1 hidden" id="passwordsMatch">Passwords match <i class="fa-solid fa-check"></i></div>
-                </div>
-
-                <div class="form-group">
-                    <label for="security_question" class="block text-sm font-medium text-gray-300 mb-1">Security Question</label>
-                    <select 
-                        id="security_question" 
-                        name="security_question" 
-                        class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all"
-                    >
-                        <option value="">Select a security question</option>
-                        <option value="What was the name of your first pet?" <?php echo (isset($oldInput['security_question']) && $oldInput['security_question'] === 'What was the name of your first pet?') ? 'selected' : ''; ?>>What was the name of your first pet?</option>
-                        <option value="In what city were you born?" <?php echo (isset($oldInput['security_question']) && $oldInput['security_question'] === 'In what city were you born?') ? 'selected' : ''; ?>>In what city were you born?</option>
-                        <option value="What was the name of your first school?" <?php echo (isset($oldInput['security_question']) && $oldInput['security_question'] === 'What was the name of your first school?') ? 'selected' : ''; ?>>What was the name of your first school?</option>
-                        <option value="What is your mother's maiden name?" <?php echo (isset($oldInput['security_question']) && $oldInput['security_question'] === 'What is your mother\'s maiden name?') ? 'selected' : ''; ?>>What is your mother's maiden name?</option>
-                        <option value="What was your childhood nickname?" <?php echo (isset($oldInput['security_question']) && $oldInput['security_question'] === 'What was your childhood nickname?') ? 'selected' : ''; ?>>What was your childhood nickname?</option>
-                    </select>
-                    <p class="text-gray-400 text-xs mt-1">Used for account recovery if you forget your password</p>
-                    <?php if (isset($errors['security_question'])): ?>
-                        <p class="text-red-500 text-sm mt-1"><?php echo $errors['security_question']; ?></p>
-                    <?php endif; ?>
-                </div>
-
-                <div class="form-group">
-                    <label for="security_answer" class="block text-sm font-medium text-gray-300 mb-1">Security Answer</label>
-                    <input 
-                        id="security_answer" 
-                        name="security_answer" 
-                        class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
-                        placeholder="Answer to your security question"
-                    >
-                    <?php if (isset($errors['security_answer'])): ?>
-                        <p class="text-red-500 text-sm mt-1"><?php echo $errors['security_answer']; ?></p>
-                    <?php endif; ?>
-                </div>
-
-                <div class="form-group">
-                    <label class="block text-sm font-medium text-gray-300 mb-1">Verification</label>
-                    <div id="register-captcha-container" class="mb-2"></div>
-                    <input 
-                        id="register_captcha" 
-                        name="captcha" 
-                        class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
-                        placeholder="Enter the code above" 
-                    >
-                </div>
-
-                <button type="submit" class="w-full py-2.5 bg-discord-blue hover:bg-discord-blue/90 text-white font-medium rounded-md transition-all">
-                    Register
-                </button>
 
                 <div class="flex items-center my-5">
                     <div class="flex-1 h-px bg-gray-600/50"></div>

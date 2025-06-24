@@ -377,11 +377,6 @@ function initAuth() {
         } else {
             elements.matchIndicator.innerHTML = 'Passwords do not match <i class="fa-solid fa-xmark"></i>';
             elements.matchIndicator.className = 'text-red-500 text-xs mt-1';
-
-            elements.matchIndicator.classList.add('error-text-glitch');
-            setTimeout(() => {
-                elements.matchIndicator.classList.remove('error-text-glitch');
-            }, 1000);
         }
     }
 
@@ -441,29 +436,29 @@ function initAuth() {
                 if (!isValid) {
                     e.preventDefault(); 
                     
-                    // Find first error field and focus it
-                    const firstErrorField = form.querySelector('.border-red-500');
-                    if (firstErrorField) {
-                        firstErrorField.focus();
+                    const firstInvalidField = document.querySelector('.border-red-500');
+                    if (firstInvalidField) {
+                        if (firstInvalidField.id !== 'password_confirm') {
+                            firstInvalidField.classList.add('error-shake');
+                            setTimeout(() => firstInvalidField.classList.remove('error-shake'), 500);
+                        }
+                        firstInvalidField.focus();
                     }
                     
                     return false;
                 }
 
-                // Add timestamp to prevent caching
                 const timestampInput = document.createElement('input');
                 timestampInput.type = 'hidden';
                 timestampInput.name = '_t';
                 timestampInput.value = Date.now();
                 this.appendChild(timestampInput);
                 
-                // Disable submit button to prevent double submission and show loading state
                 const submitBtn = this.querySelector('button[type="submit"]');
                 if (submitBtn) {
                     submitBtn.disabled = true;
                     submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Processing...';
-                    
-                    // Re-enable after 5 seconds in case of network issues
+
                     setTimeout(() => {
                         submitBtn.disabled = false;
                         submitBtn.innerHTML = submitBtn.getAttribute('data-original-text') || 'Submit';
@@ -472,8 +467,7 @@ function initAuth() {
                 
                 return true;
             });
-            
-            // Store original button text
+                    
             const submitBtn = form.querySelector('button[type="submit"]');
             if (submitBtn) {
                 submitBtn.setAttribute('data-original-text', submitBtn.innerHTML);
@@ -580,6 +574,199 @@ function initAuth() {
         }
     }
 
+    function setupRegistrationSteps() {
+        const nextStepBtn = document.getElementById('next-step-btn');
+        const prevStepBtn = document.getElementById('prev-step-btn');
+        const step1 = document.getElementById('register-step-1');
+        const step2 = document.getElementById('register-step-2');
+        const stepLine = document.getElementById('step-line');
+        const step1Indicator = document.getElementById('step-1-indicator');
+        const step2Indicator = document.getElementById('step-2-indicator');
+        
+        if (!nextStepBtn || !prevStepBtn || !step1 || !step2) return;
+        
+        let currentStep = 1;
+        
+        nextStepBtn.addEventListener('click', function() {
+            const isValid = validateRegistrationStep1();
+            
+            if (!isValid) {
+                nextStepBtn.classList.add('animate-shake');
+                setTimeout(() => nextStepBtn.classList.remove('animate-shake'), 500);
+                return;
+            }
+            
+            step1.classList.remove('active');
+            step1.classList.add('previous');
+            
+            setTimeout(() => {
+                step1.classList.remove('previous');
+                step1.style.display = 'none';
+                
+                step2.style.display = 'block';
+                void step2.offsetWidth;
+                step2.classList.add('active');
+                
+                stepLine.classList.add('active');
+                step1Indicator.classList.add('active');
+                step2Indicator.classList.add('active');
+                
+                currentStep = 2;
+                
+                updateFormHeight();
+                
+                const firstField = step2.querySelector('select, input');
+                if (firstField) {
+                    firstField.focus();
+                }
+                
+                setupCaptcha();
+            }, 300);
+        });
+        
+        prevStepBtn.addEventListener('click', function() {
+            step2.classList.remove('active');
+            step2.classList.add('next');
+            
+            setTimeout(() => {
+                step2.classList.remove('next');
+                step2.style.display = 'none';
+                
+                step1.style.display = 'block';
+                void step1.offsetWidth;
+                step1.classList.add('active');
+                
+                stepLine.classList.remove('active');
+                step2Indicator.classList.remove('active');
+                
+                currentStep = 1;
+                
+                updateFormHeight();
+                
+                const lastField = step1.querySelector('input:last-of-type');
+                if (lastField) {
+                    lastField.focus();
+                }
+            }, 300);
+        });
+        
+        function validateRegistrationStep1() {
+            const username = document.getElementById('username');
+            const email = document.getElementById('reg_email');
+            const password = document.getElementById('reg_password');
+            const confirmPassword = document.getElementById('password_confirm');
+            
+            FormValidator.clearErrors(document.getElementById('registerForm'));
+            
+            let isValid = true;
+            
+            if (!username.value.trim()) {
+                FormValidator.showFieldError(username, 'Username is required');
+                isValid = false;
+            } else if (username.value.length < 3 || username.value.length > 32) {
+                FormValidator.showFieldError(username, 'Username must be between 3 and 32 characters');
+                isValid = false;
+            } else if (!/^[a-zA-Z0-9_]+$/.test(username.value)) {
+                FormValidator.showFieldError(username, 'Username can only contain letters, numbers, and underscores');
+                isValid = false;
+            }
+            
+            if (!email.value.trim()) {
+                FormValidator.showFieldError(email, 'Email is required');
+                isValid = false;
+            } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) {
+                FormValidator.showFieldError(email, 'Please enter a valid email address');
+                isValid = false;
+            }
+            
+            if (!password.value) {
+                FormValidator.showFieldError(password, 'Password is required');
+                isValid = false;
+            } else if (password.value.length < 8) {
+                FormValidator.showFieldError(password, 'Password must be at least 8 characters');
+                isValid = false;
+            } else if (!/[A-Z]/.test(password.value)) {
+                FormValidator.showFieldError(password, 'Password must contain at least one uppercase letter');
+                isValid = false;
+            } else if (!/[0-9]/.test(password.value)) {
+                FormValidator.showFieldError(password, 'Password must contain at least one number');
+                isValid = false;
+            }
+            
+            if (!confirmPassword.value) {
+                FormValidator.showFieldError(confirmPassword, 'Please confirm your password');
+                isValid = false;
+            } else if (password.value !== confirmPassword.value) {
+                FormValidator.showFieldError(confirmPassword, 'Passwords do not match');
+                isValid = false;
+                
+                confirmPassword.classList.remove('error-shake');
+            }
+            
+            if (!isValid) {
+                const firstInvalidField = document.querySelector('.border-red-500');
+                if (firstInvalidField) {
+                    if (firstInvalidField.id !== 'password_confirm') {
+                        firstInvalidField.classList.add('error-shake');
+                        setTimeout(() => firstInvalidField.classList.remove('error-shake'), 500);
+                    }
+                    firstInvalidField.focus();
+                }
+            }
+            
+            return isValid;
+        }
+        
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            if (currentStep === 1) {
+                e.preventDefault();
+                nextStepBtn.click();
+                return false;
+            }
+            
+            const securityQuestion = document.getElementById('security_question');
+            const securityAnswer = document.getElementById('security_answer');
+            const captcha = document.getElementById('register_captcha');
+            
+            let isValid = true;
+            
+            if (!securityQuestion.value) {
+                FormValidator.showFieldError(securityQuestion, 'Please select a security question');
+                isValid = false;
+            }
+            
+            if (!securityAnswer.value.trim()) {
+                FormValidator.showFieldError(securityAnswer, 'Security answer is required');
+                isValid = false;
+            } else if (securityAnswer.value.length < 3) {
+                FormValidator.showFieldError(securityAnswer, 'Security answer must be at least 3 characters');
+                isValid = false;
+            }
+            
+            if (!captcha.value.trim()) {
+                FormValidator.showFieldError(captcha, 'Verification code is required');
+                isValid = false;
+            }
+            
+            if (!isValid) {
+                e.preventDefault();
+                
+                const firstInvalidField = document.querySelector('.border-red-500');
+                if (firstInvalidField) {
+                    if (firstInvalidField.id !== 'password_confirm') {
+                        firstInvalidField.classList.add('error-shake');
+                        setTimeout(() => firstInvalidField.classList.remove('error-shake'), 500);
+                    }
+                    firstInvalidField.focus();
+                }
+                
+                return false;
+            }
+            
+            return true;
+        });
+    }
+
     function init() {
         initAnimations();
         setupFormToggles();
@@ -591,6 +778,7 @@ function initAuth() {
         setupCaptcha();
         checkForErrors();
         initPasswordFieldMasking();
+        setupRegistrationSteps();
 
         const firstInput = document.querySelector('form:not(.hidden) input:first-of-type');
         if (firstInput) {

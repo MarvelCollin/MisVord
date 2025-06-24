@@ -652,6 +652,11 @@ Route::put('/api/admin/users/([0-9]+)', function($id) {
     $controller->updateUser($id);
 });
 
+Route::post('/api/admin/users/([0-9]+)/toggle-ban', function($id) {
+    $controller = new AdminController();
+    $controller->toggleUserBan($id);
+});
+
 Route::delete('/api/admin/users/([0-9]+)', function($id) {
     $controller = new AdminController();
     $controller->deleteUser($id);

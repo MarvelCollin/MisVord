@@ -267,8 +267,21 @@ ob_start();
                                 </td>
                                 <td class="py-3"><?php echo htmlspecialchars(date('Y-m-d', strtotime($user->created_at))); ?></td>
                                 <td class="py-3">
-                                    <button class="text-blue-400 hover:text-blue-300 mr-2 edit-user" data-id="<?php echo $user->id; ?>">Edit</button>
-                                    <button class="text-red-400 hover:text-red-300 delete-user" data-id="<?php echo $user->id; ?>">Delete</button>
+                                    <?php if ($user->status === 'banned'): ?>
+                                    <button class="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded-md text-xs flex items-center space-x-1 unban-user" data-id="<?php echo $user->id; ?>" data-username="<?php echo htmlspecialchars($user->username); ?>">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <span>Unban</span>
+                                    </button>
+                                    <?php else: ?>
+                                    <button class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded-md text-xs flex items-center space-x-1 ban-user" data-id="<?php echo $user->id; ?>" data-username="<?php echo htmlspecialchars($user->username); ?>">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                        </svg>
+                                        <span>Ban</span>
+                                    </button>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                             <?php endforeach; ?>
@@ -466,67 +479,27 @@ ob_start();
     </div>
 </div>
 
-<!-- Modal for editing users -->
-<div id="edit-user-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-    <div class="bg-discord-darker rounded-lg p-6 w-full max-w-md">
-        <div class="flex justify-between items-center mb-6">
-            <h3 class="text-lg font-medium">Edit User</h3>
-            <button id="close-edit-modal" class="text-discord-lighter hover:text-white">
+
+
+<!-- Discord-style confirmation modal -->
+<div id="confirm-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+    <div class="bg-discord-darker rounded-md w-full max-w-md p-6 relative z-10">
+        <div class="flex justify-between items-center mb-4">
+            <h3 id="confirm-title" class="text-xl font-bold text-white">Confirm Action</h3>
+            <button id="close-confirm-modal" class="text-gray-400 hover:text-white">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
             </button>
         </div>
-        
-        <form id="edit-user-form">
-            <input type="hidden" id="edit-user-id">
-            
-            <div class="mb-4">
-                <label for="edit-username" class="block text-sm font-medium text-white mb-2">Username</label>
-                <input type="text" id="edit-username" name="username" class="form-input w-full">
-            </div>
-            
-            <div class="mb-4">
-                <label for="edit-email" class="block text-sm font-medium text-white mb-2">Email</label>
-                <input type="email" id="edit-email" name="email" class="form-input w-full">
-            </div>
-            
-            <div class="mb-6">
-                <label for="edit-status" class="block text-sm font-medium text-white mb-2">Status</label>
-                <select id="edit-status" name="status" class="form-select w-full">
-                    <option value="online">Online</option>
-                    <option value="idle">Idle</option>
-                    <option value="do_not_disturb">Do Not Disturb</option>
-                    <option value="offline">Offline</option>
-                    <option value="invisible">Invisible</option>
-                </select>
-            </div>
-            
-            <div class="flex justify-end space-x-3">
-                <button type="button" id="cancel-edit" class="px-4 py-2 bg-discord-dark rounded text-sm">
-                    Cancel
-                </button>
-                <button type="submit" class="px-4 py-2 bg-discord-blue rounded text-sm hover:bg-discord-blue-dark">
-                    Save Changes
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- Modal for confirmation -->
-<div id="confirm-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-    <div class="bg-discord-darker rounded-lg p-6 w-full max-w-md">
         <div class="mb-6">
-            <h3 class="text-lg font-medium" id="confirm-title">Confirm Action</h3>
-            <p class="text-discord-lighter mt-2" id="confirm-message">Are you sure you want to perform this action?</p>
+            <p id="confirm-message" class="text-discord-lighter">Are you sure you want to perform this action?</p>
         </div>
-        
         <div class="flex justify-end space-x-3">
-            <button id="cancel-confirm" class="px-4 py-2 bg-discord-dark rounded text-sm">
+            <button id="cancel-confirm" class="px-4 py-2 bg-discord-dark-secondary hover:bg-discord-dark-hover text-white rounded-md transition-colors">
                 Cancel
             </button>
-            <button id="confirm-action" class="px-4 py-2 bg-red-500 rounded text-sm hover:bg-red-600">
+            <button id="confirm-action" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors">
                 Confirm
             </button>
         </div>

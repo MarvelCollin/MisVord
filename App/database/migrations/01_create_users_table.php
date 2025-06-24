@@ -12,6 +12,8 @@ class CreateUsersTableMigration {
             $table->string('avatar_url', 255, true); 
             $table->string('banner_url', 255, true); 
             $table->string('status', 255, true, 'appear');
+            $table->string('display_name', 255, true);
+            $table->text('bio', true);
             $table->string('security_question', 255, true);
             $table->string('security_answer', 255, true);
             $table->timestamps();

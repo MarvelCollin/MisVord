@@ -173,6 +173,25 @@ class AuthenticationController extends BaseController
             exit;
         }
         
+        // Check if user is banned
+        if ($user->status === 'banned') {
+            $this->logFailedLogin($email, 'user_banned');
+            $_SESSION['errors'] = ['auth' => 'This account has been banned. Please contact an administrator.'];
+            $_SESSION['old_input'] = ['email' => $email];
+            
+            if (function_exists('logger')) {
+                logger()->warning("Banned user login attempt", [
+                    'email' => $email,
+                    'user_id' => $user->id
+                ]);
+            }
+            
+            $this->setSecurityHeaders();
+            session_write_close();
+            header('Location: /login');
+            exit;
+        }
+        
         $passwordVerified = $user->verifyPassword($password);
         
         if (!$passwordVerified) {
@@ -359,6 +378,8 @@ class AuthenticationController extends BaseController
             'discriminator' => $discriminator,
             'email' => $email,
             'status' => 'online',
+            'display_name' => $username,
+            'bio' => null,
             'security_question' => $securityQuestion,
             'security_answer' => password_hash($securityAnswer, PASSWORD_DEFAULT)
         ];
@@ -391,6 +412,9 @@ class AuthenticationController extends BaseController
             $user->setPassword($password);
             $user->discriminator = $discriminator;
             $user->status = 'online';
+            
+            $user->display_name = $username;
+            $user->bio = null;
             
             if (empty($securityQuestion) || empty($securityAnswer)) {
                 throw new Exception('Security question and answer are required');
@@ -683,10 +707,27 @@ class AuthenticationController extends BaseController
                 $user->username = $this->generateUniqueUsername($name ?? $email);
                 $user->discriminator = User::generateDiscriminator();
                 $user->google_id = $googleId;
+                $user->display_name = $user->username;
+                $user->bio = null;
                 $user->save();
 
                 $this->logActivity('google_registration', ['user_id' => $user->id, 'email' => $email]);
             } else {
+                // Check if user is banned
+                if ($user->status === 'banned') {
+                    $this->logActivity('banned_user_google_login_attempt', ['user_id' => $user->id, 'email' => $email]);
+                    
+                    if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                        return $this->error('This account has been banned. Please contact an administrator.', 403);
+                    }
+                    
+                    $_SESSION['errors'] = ['auth' => 'This account has been banned. Please contact an administrator.'];
+                    if (!headers_sent()) {
+                        header('Location: /login');
+                    }
+                    exit;
+                }
+                
                 $user->google_id = $googleId;
                 $user->save();
 

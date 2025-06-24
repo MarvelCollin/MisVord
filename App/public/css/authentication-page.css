@@ -492,8 +492,6 @@ button[type="submit"]:focus {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 0 0 3px rgba(88, 101, 242, 0.2);
 }
 
-
-
 .password-strength-bar {
   height: 4px;
   background: rgba(47, 49, 54, 0.5);
@@ -1062,4 +1060,116 @@ label {
   .text-center.mt-6 {
     margin-top: 1rem;
   }
+}
+
+/* Add styles for the registration step indicators and animations */
+.step-indicator {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: #40444b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #a3a6aa;
+  font-weight: 600;
+  font-size: 14px;
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.step-indicator.active {
+  background-color: #5865f2;
+  color: white;
+  transform: scale(1.1);
+  box-shadow: 0 0 0 4px rgba(88, 101, 242, 0.2);
+}
+
+.step-line {
+  height: 2px;
+  width: 50px;
+  background: linear-gradient(to right, #5865f2 50%, #40444b 50%);
+  background-size: 200% 100%;
+  background-position: right bottom;
+  margin: 0 10px;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.step-line.active {
+  background-position: left bottom;
+}
+
+.register-step {
+  display: none;
+  opacity: 0;
+  transform: translateX(20px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.register-step.active {
+  display: block;
+  opacity: 1;
+  transform: translateX(0);
+  animation: slideInRight 0.3s forwards;
+}
+
+.register-step.previous {
+  animation: slideOutLeft 0.3s forwards;
+}
+
+.register-step.next {
+  animation: slideOutRight 0.3s forwards;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideOutLeft {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+}
+
+@keyframes errorShake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  20%, 60% {
+    transform: translateX(-5px);
+  }
+  40%, 80% {
+    transform: translateX(5px);
+  }
+}
+
+.error-shake {
+  animation: errorShake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+.animate-shake {
+  animation: errorShake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }

@@ -17,6 +17,7 @@ class AdminManager {
     this.initSystemLogs();
     this.initKeyboardShortcuts();
     this.initChartConfigModal();
+    this.initUserBanActions();
     
     window.nitroManager = new NitroManager();
     window.serverManager = new ServerManager();
@@ -307,6 +308,138 @@ class AdminManager {
       clearTimeout(timeout);
       timeout = setTimeout(() => func.apply(this, args), wait);
     };
+  }
+
+  initUserBanActions() {
+    // Add event listeners for the ban and unban buttons
+    document.addEventListener('click', (e) => {
+      const banButton = e.target.closest('.ban-user');
+      const unbanButton = e.target.closest('.unban-user');
+      
+      if (banButton) {
+        const userId = banButton.getAttribute('data-id');
+        const username = banButton.getAttribute('data-username');
+        
+        this.showBanConfirmation(userId, username, false);
+      } else if (unbanButton) {
+        const userId = unbanButton.getAttribute('data-id');
+        const username = unbanButton.getAttribute('data-username');
+        
+        this.showBanConfirmation(userId, username, true);
+      }
+    });
+  }
+  
+  showBanConfirmation(userId, username, isUnban) {
+    const action = isUnban ? 'unban' : 'ban';
+    const title = isUnban ? 'Unban User' : 'Ban User';
+    const message = isUnban ? 
+      `Are you sure you want to unban <span class="text-white font-semibold">${username}</span>? They will be able to use the app again.` : 
+      `Are you sure you want to ban <span class="text-white font-semibold">${username}</span>? This will prevent them from using the app.`;
+    
+    this.showDiscordConfirmation(title, message, async () => {
+      try {
+        const response = await fetch(`/api/admin/users/${userId}/toggle-ban`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          showToast(`User ${isUnban ? 'unbanned' : 'banned'} successfully`, "success");
+          // Reload the users table
+          window.userManager.loadUsers();
+        } else {
+          showToast(data.message || `Failed to ${action} user`, "error");
+        }
+      } catch (error) {
+        console.error(`Error ${action}ing user:`, error);
+        showToast(`An error occurred while trying to ${action} the user`, "error");
+      }
+    });
+  }
+  
+  showDiscordConfirmation(title, message, confirmCallback) {
+    // Use existing confirm-modal if it exists
+    const confirmModal = document.getElementById('confirm-modal');
+    if (confirmModal) {
+      const confirmTitle = document.getElementById('confirm-title');
+      const confirmMessage = document.getElementById('confirm-message');
+      const confirmBtn = document.getElementById('confirm-action');
+      const cancelBtn = document.getElementById('cancel-confirm');
+      
+      confirmTitle.textContent = title;
+      confirmMessage.innerHTML = message;
+      
+      const handleConfirm = () => {
+        confirmModal.classList.add('hidden');
+        confirmBtn.removeEventListener('click', handleConfirm);
+        cancelBtn.removeEventListener('click', handleCancel);
+        confirmCallback();
+      };
+      
+      const handleCancel = () => {
+        confirmModal.classList.add('hidden');
+        confirmBtn.removeEventListener('click', handleConfirm);
+        cancelBtn.removeEventListener('click', handleCancel);
+      };
+      
+      confirmBtn.addEventListener('click', handleConfirm);
+      cancelBtn.addEventListener('click', handleCancel);
+      
+      confirmModal.classList.remove('hidden');
+      return;
+    }
+    
+    // Create a new Discord-styled confirmation modal if needed
+    const modal = document.createElement('div');
+    modal.id = 'discord-confirm-modal';
+    modal.className = 'fixed inset-0 flex items-center justify-center z-50';
+    modal.innerHTML = `
+      <div class="fixed inset-0 bg-black bg-opacity-70"></div>
+      <div class="bg-discord-dark rounded-md w-full max-w-md p-6 relative z-10 transform transition-all">
+        <div class="flex justify-between items-center mb-4">
+          <h3 id="discord-confirm-title" class="text-xl font-bold text-white">${title}</h3>
+          <button id="discord-confirm-close" class="text-gray-400 hover:text-white">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div class="mb-6">
+          <p id="discord-confirm-message" class="text-discord-lighter">${message}</p>
+        </div>
+        <div class="flex justify-end space-x-3">
+          <button id="discord-cancel-button" class="px-4 py-2 bg-discord-dark-secondary hover:bg-discord-dark-hover text-white rounded-md transition-colors">
+            Cancel
+          </button>
+          <button id="discord-confirm-button" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors">
+            ${isUnban ? 'Unban' : 'Ban'}
+          </button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    const closeBtn = document.getElementById('discord-confirm-close');
+    const cancelBtn = document.getElementById('discord-cancel-button');
+    const confirmBtn = document.getElementById('discord-confirm-button');
+    
+    const cleanup = () => {
+      document.body.removeChild(modal);
+    };
+    
+    closeBtn.addEventListener('click', cleanup);
+    cancelBtn.addEventListener('click', cleanup);
+    confirmBtn.addEventListener('click', () => {
+      cleanup();
+      confirmCallback();
+    });
   }
 }
 

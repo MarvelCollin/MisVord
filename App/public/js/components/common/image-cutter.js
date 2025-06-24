@@ -186,7 +186,6 @@ class ImageCutter {
             this.overlay.style.cursor = 'move';
             this.cutterContainer.appendChild(this.overlay);
 
-            // Add helper instructions
             const infoSection = document.createElement('div');
             infoSection.style.display = 'flex';
             infoSection.style.alignItems = 'center';

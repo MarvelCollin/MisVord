@@ -1,6 +1,6 @@
 class UserAdminAPI {
     constructor() {
-        this.baseURL = '/api/admin/users';
+        this.baseURL = '/api/admin';
     }
 
     async parseResponse(response) {
@@ -70,37 +70,66 @@ class UserAdminAPI {
     }
 
     async getStats() {
-        return await this.makeRequest(`${this.baseURL}/stats`);
+        try {
+            const response = await fetch(`${this.baseURL}/users/stats`);
+            return await response.json();
+        } catch (error) {
+            console.error('Error getting user stats:', error);
+            throw error;
+        }
     }
 
-    async listUsers(page = 1, limit = 10, search = '') {
-        const params = new URLSearchParams({
-            page, 
-            limit,
-            search
-        });
-        return await this.makeRequest(`${this.baseURL}?${params.toString()}`);
+    async listUsers(page = 1, limit = 10, query = '') {
+        let url = `${this.baseURL}/users?page=${page}&limit=${limit}`;
+        
+        if (query) {
+            url += `&q=${encodeURIComponent(query)}`;
+        }
+        
+        try {
+            const response = await fetch(url);
+            return await response.json();
+        } catch (error) {
+            console.error('Error listing users:', error);
+            throw error;
+        }
     }
 
     async getUser(userId) {
-        return await this.makeRequest(`${this.baseURL}/${userId}`);
+        try {
+            const response = await fetch(`${this.baseURL}/users/${userId}`);
+            return await response.json();
+        } catch (error) {
+            console.error('Error getting user:', error);
+            throw error;
+        }
     }
 
-    async toggleUserStatus(userId) {
-        return await this.makeRequest(`${this.baseURL}/${userId}/toggle-status`, {
-            method: 'POST'
-        });
+    async toggleUserBan(userId) {
+        try {
+            const response = await fetch(`${this.baseURL}/users/${userId}/toggle-ban`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Error toggling user ban status:', error);
+            throw error;
+        }
     }
 
     async updateUser(userId, userData) {
-        return await this.makeRequest(`${this.baseURL}/${userId}`, {
+        return await this.makeRequest(`${this.baseURL}/users/${userId}`, {
             method: 'PUT',
             body: JSON.stringify(userData)
         });
     }
 
     async deleteUser(userId) {
-        return await this.makeRequest(`${this.baseURL}/${userId}`, {
+        return await this.makeRequest(`${this.baseURL}/users/${userId}`, {
             method: 'DELETE'
         });
     }

@@ -14,20 +14,11 @@ class GlobalVoiceIndicator {
     if (this.initialized) return;
 
     this.loadConnectionState();
-    this.createIndicator();
     this.setupEventListeners();
-
     this.initialized = true;
 
-    if (this.isConnected) {
-      if (window.videosdkMeeting) {
-        this.showIndicator();
-        this.startTimer();
-      } else {
-        this.resetState();
-      }
-    } else {
-      this.hideIndicator();
+    if (this.isConnected && window.videosdkMeeting) {
+      this.loadIndicatorComponent(true);
     }
 
     this.startConnectionVerification();
@@ -73,39 +64,65 @@ class GlobalVoiceIndicator {
     this.stopTimer();
   }
 
-  createIndicator() {
-    if (this.indicator) return;
+  loadIndicatorComponent(shouldShowAfterLoad = false) {
+    if (this.indicator) return this.indicator;
     
-    // Load the voice indicator component if it's not already in the DOM
     if (!document.getElementById('voice-indicator')) {
       fetch('/components/common/voice-indicator')
         .then(response => response.text())
         .then(html => {
-          // Insert the component into the DOM
-          document.body.insertAdjacentHTML('beforeend', html);
-          
-          // Get the indicator element
-          this.indicator = document.getElementById('voice-indicator');
-          
-          // Add event listener to disconnect button
-          const disconnectBtn = this.indicator.querySelector(".disconnect-btn");
-          disconnectBtn.addEventListener("click", () => this.handleDisconnect());
-          
-          this.loadPosition();
-          this.makeDraggable();
+          if (!document.getElementById('voice-indicator')) {
+            document.body.insertAdjacentHTML('beforeend', html);
+            this.indicator = document.getElementById('voice-indicator');
+            
+            const disconnectBtn = this.indicator.querySelector(".disconnect-btn");
+            disconnectBtn.addEventListener("click", () => this.handleDisconnect());
+            
+            this.makeDraggable();
+            
+            if (shouldShowAfterLoad && this.isConnected) {
+              this.loadPosition();
+              this.updateChannelInfo();
+              this.showIndicator();
+              this.startTimer();
+            }
+          } else {
+            this.indicator = document.getElementById('voice-indicator');
+            
+            const disconnectBtn = this.indicator.querySelector(".disconnect-btn");
+            disconnectBtn.addEventListener("click", () => this.handleDisconnect());
+            
+            this.makeDraggable();
+            
+            if (shouldShowAfterLoad && this.isConnected) {
+              this.loadPosition();
+              this.updateChannelInfo();
+              this.showIndicator();
+              this.startTimer();
+            }
+          }
         })
         .catch(error => {
           console.error('Error loading voice indicator component:', error);
         });
+      
+      return null;
     } else {
       this.indicator = document.getElementById('voice-indicator');
       
-      // Add event listener to disconnect button
       const disconnectBtn = this.indicator.querySelector(".disconnect-btn");
       disconnectBtn.addEventListener("click", () => this.handleDisconnect());
       
-      this.loadPosition();
       this.makeDraggable();
+      
+      if (shouldShowAfterLoad && this.isConnected) {
+        this.loadPosition();
+        this.updateChannelInfo();
+        this.showIndicator();
+        this.startTimer();
+      }
+      
+      return this.indicator;
     }
   }
 
@@ -231,8 +248,7 @@ class GlobalVoiceIndicator {
     this.connectionTime = Date.now();
     this.saveConnectionState();
 
-    this.showIndicator();
-    this.startTimer();
+    this.loadIndicatorComponent(true);
   }
 
   handleDisconnect() {
@@ -255,18 +271,20 @@ class GlobalVoiceIndicator {
 
   showIndicator() {
     if (!this.indicator) return;
-
-    const channelInfoEl = this.indicator.querySelector(".channel-info");
-    if (channelInfoEl) {
-      channelInfoEl.textContent = `${this.channelName} / ${this.meetingId.replace('voice_channel_', '')}`;
+    
+    this.updateChannelInfo();
+    
+    if (this.indicator.style.display === "none") {
+      this.indicator.style.display = "";
+      
+      requestAnimationFrame(() => {
+        this.indicator.classList.remove("scale-0", "opacity-0");
+        this.indicator.classList.add("scale-100", "opacity-100");
+      });
+    } else {
+      this.indicator.classList.remove("scale-0", "opacity-0");
+      this.indicator.classList.add("scale-100", "opacity-100");
     }
-
-    this.indicator.style.display = "";
-    
-    this.indicator.offsetHeight;
-    
-    this.indicator.classList.remove("scale-0", "opacity-0");
-    this.indicator.classList.add("scale-100", "opacity-100");
   }
 
   hideIndicator() {
@@ -331,6 +349,15 @@ class GlobalVoiceIndicator {
     if (this.verificationInterval) {
       clearInterval(this.verificationInterval);
       this.verificationInterval = null;
+    }
+  }
+
+  updateChannelInfo() {
+    if (!this.indicator) return;
+    
+    const channelInfoEl = this.indicator.querySelector(".channel-info");
+    if (channelInfoEl) {
+      channelInfoEl.textContent = `${this.channelName} / ${this.meetingId.replace('voice_channel_', '')}`;
     }
   }
 }

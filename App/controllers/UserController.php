@@ -38,6 +38,10 @@ class UserController extends BaseController
             $currentUserId = $this->getCurrentUserId();
             $user->is_self = ($userId == $currentUserId);
             
+            if (empty($user->display_name)) {
+                $user->display_name = $user->username;
+            }
+            
             return $this->success([
                 'user' => $user
             ]);
@@ -72,6 +76,29 @@ class UserController extends BaseController
                     $errors['username'] = 'Username can only contain letters, numbers, and underscores';
                 } else {
                     $updateData['username'] = $username;
+                    $updateData['display_name'] = $username;
+                }
+            }
+            
+            if (isset($input['display_name'])) {
+                $displayName = trim($input['display_name']);
+                
+                if (!empty($displayName)) {
+                    if (strlen($displayName) > 32) {
+                        $errors['display_name'] = 'Display name must be no more than 32 characters';
+                    } else {
+                        $updateData['display_name'] = $displayName;
+                    }
+                }
+            }
+            
+            if (isset($input['bio'])) {
+                $bio = trim($input['bio']);
+                
+                if (strlen($bio) > 1000) {
+                    $errors['bio'] = 'Bio must be no more than 1000 characters';
+                } else {
+                    $updateData['bio'] = $bio;
                 }
             }
             
@@ -505,6 +532,7 @@ class UserController extends BaseController
             $userData['id'] = $user->id;
             $userData['username'] = $user->username ?? 'Unknown User';
             $userData['discriminator'] = $user->discriminator ?? '0000';
+            $userData['display_name'] = $user->display_name ?? $user->username ?? 'Unknown User';
             $userData['avatar_url'] = $user->avatar_url ?? null;
             $userData['banner_url'] = $user->banner_url ?? null;
             $userData['status'] = $user->status ?? 'offline';
