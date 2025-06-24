@@ -222,80 +222,171 @@ ob_start();
         
         <!-- Users Section -->
         <div id="users-section" class="admin-section hidden p-10">
-            <div class="mb-8">
-                <h1 class="text-2xl font-bold mb-2">User Management</h1>
-                <p class="text-discord-lighter">View and manage all users</p>
+            <div class="discord-header">
+                <div>
+                    <h1 class="discord-header-title">User Management</h1>
+                    <p class="text-discord-lighter">View and manage all users</p>
+                </div>
+                <div class="discord-header-actions">
+                    <div class="view-modes">
+                        <div class="view-mode-button active" id="view-mode-list" data-mode="list">
+                            <img src="/assets/common/list-view.png" alt="List View" width="20" height="20">
+                        </div>
+                        <div class="view-mode-button" id="view-mode-grid" data-mode="grid">
+                            <img src="/assets/common/grid-view.png" alt="Grid View" width="20" height="20">
+                        </div>
+                    </div>
+                </div>
             </div>
             
             <div class="bg-discord-darker rounded-lg p-6">
                 <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-lg font-medium">Users</h3>
-                    <input type="text" id="user-search" placeholder="Search users..." class="bg-discord-dark border-none rounded px-4 py-2 text-sm">
+                    <div class="flex items-center">
+                        <select class="user-filter-dropdown mr-4" id="user-status-filter">
+                            <option value="all">All Users</option>
+                            <option value="online">Online</option>
+                            <option value="offline">Offline</option>
+                            <option value="banned">Banned</option>
+                        </select>
+                        <select class="user-filter-dropdown" id="user-role-filter">
+                            <option value="all">All Roles</option>
+                            <option value="admin">Admin</option>
+                            <option value="user">User</option>
+                        </select>
+                    </div>
+                    <div class="user-search-container">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="user-search" placeholder="Search users..." class="user-search-input">
+                    </div>
                 </div>
                 
-                <div class="overflow-x-auto">
-                    <table class="w-full">
-                        <thead>
-                            <tr class="text-left text-discord-lighter border-b border-discord-dark">
-                                <th class="pb-3 font-medium">ID</th>
-                                <th class="pb-3 font-medium">Username</th>
-                                <th class="pb-3 font-medium">Email</th>
-                                <th class="pb-3 font-medium">Status</th>
-                                <th class="pb-3 font-medium">Created</th>
-                                <th class="pb-3 font-medium">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="users-table-body">
-                            <?php foreach ($users as $user): ?>
-                            <tr class="border-b border-discord-dark hover:bg-discord-dark/50">
-                                <td class="py-3"><?php echo htmlspecialchars($user->id); ?></td>
-                                <td class="py-3"><?php echo htmlspecialchars($user->username . '#' . $user->discriminator); ?></td>
-                                <td class="py-3"><?php echo htmlspecialchars($user->email); ?></td>
-                                <td class="py-3">
-                                    <span class="px-2 py-1 rounded text-xs
+                <!-- List View (Default) -->
+                <div id="user-list-view">
+                    <div id="users-container">
+                        <?php foreach ($users as $user): ?>
+                        <div class="user-card">
+                            <div class="user-avatar">
+                                <?php if (isset($user->avatar_url) && $user->avatar_url): ?>
+                                <img src="<?php echo htmlspecialchars($user->avatar_url); ?>" alt="<?php echo htmlspecialchars($user->username); ?>">
+                                <?php else: ?>
+                                <?php echo strtoupper(substr($user->username, 0, 1)); ?>
+                                <?php endif; ?>
+                            </div>
+                            <div class="user-info">
+                                <div class="user-name">
+                                    <?php echo htmlspecialchars($user->username . '#' . $user->discriminator); ?>
+                                    
+                                    <?php if ($user->email === 'admin@admin.com'): ?>
+                                    <span class="user-badge badge-admin">Admin</span>
+                                    <?php endif; ?>
+                                    
+                                    <span class="user-badge" style="
                                         <?php 
                                         echo match($user->status) {
-                                            'online' => 'bg-green-500/20 text-green-400',
-                                            'idle' => 'bg-yellow-500/20 text-yellow-400',
-                                            'do_not_disturb' => 'bg-red-500/20 text-red-400',
-                                            default => 'bg-gray-500/20 text-gray-400'
+                                            'online' => 'background-color: rgba(59, 165, 93, 0.1); color: #3ba55d;',
+                                            'idle' => 'background-color: rgba(250, 168, 26, 0.1); color: #faa81a;',
+                                            'do_not_disturb' => 'background-color: rgba(237, 66, 69, 0.1); color: #ed4245;',
+                                            'banned' => 'background-color: rgba(0, 0, 0, 0.1); color: #ffffff;',
+                                            default => 'background-color: rgba(116, 127, 141, 0.1); color: #747f8d;'
                                         };
                                         ?>
                                     ">
+                                        <span class="badge-status <?php echo $user->status === 'banned' ? 'banned' : ($user->status === 'online' ? 'online' : 'offline'); ?>"></span>
                                         <?php echo htmlspecialchars($user->status); ?>
                                     </span>
-                                </td>
-                                <td class="py-3"><?php echo htmlspecialchars(date('Y-m-d', strtotime($user->created_at))); ?></td>
-                                <td class="py-3">
-                                    <?php if ($user->status === 'banned'): ?>
-                                    <button class="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded-md text-xs flex items-center space-x-1 unban-user" data-id="<?php echo $user->id; ?>" data-username="<?php echo htmlspecialchars($user->username); ?>">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                        <span>Unban</span>
-                                    </button>
-                                    <?php else: ?>
-                                    <button class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded-md text-xs flex items-center space-x-1 ban-user" data-id="<?php echo $user->id; ?>" data-username="<?php echo htmlspecialchars($user->username); ?>">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                                        </svg>
-                                        <span>Ban</span>
-                                    </button>
-                                    <?php endif; ?>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+                                </div>
+                                <div class="user-meta">
+                                    <span>ID: <?php echo htmlspecialchars($user->id); ?></span> • 
+                                    <span><?php echo htmlspecialchars($user->email); ?></span> • 
+                                    <span>Joined: <?php echo htmlspecialchars(date('M d, Y', strtotime($user->created_at))); ?></span>
+                                </div>
+                            </div>
+                            <div class="user-actions">
+                                <?php if ($user->status === 'banned'): ?>
+                                <button class="discord-button success unban-user" data-id="<?php echo $user->id; ?>" data-username="<?php echo htmlspecialchars($user->username); ?>">
+                                    <img src="/assets/common/unban-icon.png" alt="Unban" width="16" height="16" class="mr-2">
+                                    Unban
+                                </button>
+                                <?php else: ?>
+                                <button class="discord-button danger ban-user" data-id="<?php echo $user->id; ?>" data-username="<?php echo htmlspecialchars($user->username); ?>">
+                                    <img src="/assets/common/ban-icon.png" alt="Ban" width="16" height="16" class="mr-2">
+                                    Ban
+                                </button>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
                 </div>
                 
-                <div class="flex justify-between items-center mt-4">
+                <!-- Grid View (Hidden by Default) -->
+                <div id="user-grid-view" class="hidden">
+                    <div class="user-grid">
+                        <?php foreach ($users as $user): ?>
+                        <div class="user-card-grid">
+                            <div class="user-card-header">
+                                <div class="user-avatar">
+                                    <?php if (isset($user->avatar_url) && $user->avatar_url): ?>
+                                    <img src="<?php echo htmlspecialchars($user->avatar_url); ?>" alt="<?php echo htmlspecialchars($user->username); ?>">
+                                    <?php else: ?>
+                                    <?php echo strtoupper(substr($user->username, 0, 1)); ?>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="ml-3">
+                                    <div class="user-name">
+                                        <?php echo htmlspecialchars($user->username); ?>
+                                        <span class="badge-status <?php echo $user->status === 'banned' ? 'banned' : ($user->status === 'online' ? 'online' : 'offline'); ?>"></span>
+                                    </div>
+                                    <div class="text-discord-lighter text-xs">#<?php echo htmlspecialchars($user->discriminator); ?></div>
+                                </div>
+                            </div>
+                            
+                            <div class="user-meta px-2 py-3 border-t border-b border-discord-dark">
+                                <div class="flex items-center mb-1">
+                                    <img src="/assets/common/email-icon.png" alt="Email" width="14" height="14" class="mr-2">
+                                    <span class="text-sm"><?php echo htmlspecialchars($user->email); ?></span>
+                                </div>
+                                <div class="flex items-center mb-1">
+                                    <img src="/assets/common/id-icon.png" alt="ID" width="14" height="14" class="mr-2">
+                                    <span class="text-sm">ID: <?php echo htmlspecialchars($user->id); ?></span>
+                                </div>
+                                <div class="flex items-center">
+                                    <img src="/assets/common/calendar-icon.png" alt="Joined" width="14" height="14" class="mr-2">
+                                    <span class="text-sm">Joined: <?php echo htmlspecialchars(date('M d, Y', strtotime($user->created_at))); ?></span>
+                                </div>
+                            </div>
+                            
+                            <div class="user-card-footer">
+                                <?php if ($user->status === 'banned'): ?>
+                                <button class="discord-button success unban-user" data-id="<?php echo $user->id; ?>" data-username="<?php echo htmlspecialchars($user->username); ?>">
+                                    <img src="/assets/common/unban-icon.png" alt="Unban" width="16" height="16" class="mr-2">
+                                    Unban
+                                </button>
+                                <?php else: ?>
+                                <button class="discord-button danger ban-user" data-id="<?php echo $user->id; ?>" data-username="<?php echo htmlspecialchars($user->username); ?>">
+                                    <img src="/assets/common/ban-icon.png" alt="Ban" width="16" height="16" class="mr-2">
+                                    Ban
+                                </button>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+                
+                <div class="flex justify-between items-center mt-6">
                     <div>
                         <span class="text-sm text-discord-lighter">Showing <span id="user-showing-count"><?php echo count($users); ?></span> of <span id="user-total-count"><?php echo $stats['users']['total']; ?></span> users</span>
                     </div>
                     <div class="flex space-x-2">
-                        <button id="user-prev-page" class="px-3 py-1 bg-discord-dark rounded text-sm disabled:opacity-50">Previous</button>
-                        <button id="user-next-page" class="px-3 py-1 bg-discord-dark rounded text-sm disabled:opacity-50">Next</button>
+                        <button id="user-prev-page" class="discord-button bg-discord-dark disabled:opacity-50">
+                            <img src="/assets/common/prev-icon.png" alt="Previous" width="16" height="16" class="mr-2">
+                            Previous
+                        </button>
+                        <button id="user-next-page" class="discord-button bg-discord-dark disabled:opacity-50">
+                            <img src="/assets/common/next-icon.png" alt="Next" width="16" height="16" class="mr-2">
+                            Next
+                        </button>
                     </div>
                 </div>
             </div>

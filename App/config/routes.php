@@ -742,6 +742,22 @@ Route::get('/components/common/voice-indicator', function() {
     require_once __DIR__ . '/../views/components/common/voice-indicator.php';
 });
 
+// Health routes
+Route::get('/api/health/ping', function() {
+    $controller = new HealthController();
+    $controller->ping();
+});
+
+Route::get('/api/health/info', function() {
+    $controller = new HealthController();
+    $controller->getNetworkInfo();
+});
+
+Route::get('/api/health/network-info', function() {
+    $controller = new HealthController();
+    $controller->getNetworkInfo();
+});
+
 return array_merge(Route::getRoutes(), [
     '404' => 'pages/404.php'
 ]);

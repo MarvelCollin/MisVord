@@ -520,3 +520,15 @@ button[type="submit"]:hover,
   box-shadow: 0 0 0 2px var(--discord-blurple),
     0 0 0 4px rgba(88, 101, 242, 0.2);
 }
+
+.custom-wifi-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  z-index: 9999;
+}
+
+.wifi-tooltip-wrapper {
+  position: relative;
+  display: inline-flex;
+}

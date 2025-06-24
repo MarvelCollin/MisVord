@@ -4,6 +4,10 @@ require_once __DIR__ . '/BaseController.php';
 
 class HealthController extends BaseController
 {
+    public function __construct()
+    {
+        parent::__construct();
+    }
 
     public function check()
     {
@@ -148,5 +152,83 @@ class HealthController extends BaseController
                 'timestamp' => date('Y-m-d H:i:s')
             ], JSON_PRETTY_PRINT);
         }
+    }
+
+    public function checkHealth()
+    {
+        $this->success(['status' => 'ok', 'time' => time()]);
+    }
+
+    public function ping()
+    {
+        $startTime = microtime(true);
+        
+        $serverLoad = function_exists('sys_getloadavg') ? sys_getloadavg() : [0, 0, 0];
+        $memoryUsage = memory_get_usage(true);
+        $networkName = $this->getNetworkName();
+        
+        $processingTime = (microtime(true) - $startTime) * 1000;
+        
+        header('Content-Type: application/json');
+        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+        
+        echo json_encode([
+            'status' => 'ok', 
+            'timestamp' => microtime(true),
+            'server_time' => time(),
+            'processing_time_ms' => round($processingTime, 2),
+            'server_load' => $serverLoad[0],
+            'memory_usage_mb' => round($memoryUsage / 1024 / 1024, 2),
+            'network_name' => $networkName
+        ]);
+    }
+
+    public function getNetworkInfo()
+    {
+        $networkName = $this->getNetworkName();
+        $ipAddress = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+        $hostname = gethostbyaddr($ipAddress);
+        
+        header('Content-Type: application/json');
+        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+        
+        echo json_encode([
+            'status' => 'ok',
+            'network_name' => $networkName,
+            'ip_address' => $ipAddress,
+            'hostname' => $hostname,
+            'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'Unknown',
+            'time' => time()
+        ]);
+    }
+    
+    private function getNetworkName()
+    {
+        $networkName = 'Unknown';
+        
+        if (strpos($_SERVER['HTTP_HOST'] ?? '', 'localhost') !== false) {
+            return 'Local Development';
+        }
+        
+        $ipAddress = $_SERVER['REMOTE_ADDR'] ?? '';
+        if ($ipAddress) {
+            $hostname = gethostbyaddr($ipAddress);
+            if ($hostname && $hostname !== $ipAddress) {
+                $parts = explode('.', $hostname);
+                if (count($parts) >= 2) {
+                    $domain = $parts[count($parts) - 2];
+                    if (strlen($domain) > 3) {
+                        $networkName = ucfirst($domain);
+                    }
+                }
+            }
+        }
+        
+        $xForwardedFor = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? '';
+        if ($xForwardedFor && strpos($xForwardedFor, ',') !== false) {
+            $networkName = 'Network via Proxy';
+        }
+        
+        return $networkName;
     }
 }

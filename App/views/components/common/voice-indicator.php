@@ -1,8 +1,12 @@
+<?php
+require_once __DIR__ . '/wifi-tooltip.php';
+?>
+
 <div id="voice-indicator" class="fixed bottom-4 left-4 z-50 bg-[#1e1f22] text-white rounded-md shadow-lg transform transition-all duration-300 scale-0 opacity-0 cursor-grab active:cursor-grabbing w-60" style="height: 90px;">
     <div class="px-3 py-1">
         <div class="flex items-center justify-between">
             <div class="flex items-center">
-                <i class="fas fa-wifi text-[#43b581] mr-2 text-sm"></i>
+                <?php echo wifi_icon_with_tooltip('text-[#43b581] mr-2 text-sm'); ?>
                 <div class="text-sm font-medium text-[#43b581] drag-handle cursor-grab active:cursor-grabbing">Voice Connected</div>
             </div>
             <div class="flex items-center space-x-2">

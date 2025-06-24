@@ -5,11 +5,16 @@ export class UserManager {
   constructor() {
     this.currentUserPage = 1;
     this.usersPerPage = 10;
+    this.currentView = 'list';
+    this.statusFilter = 'all';
+    this.roleFilter = 'all';
     this.init();
   }
 
   init() {
     this.initUserManagement();
+    this.initViewModes();
+    this.initFilters();
     this.loadUserStats();
     this.loadUsers();
   }
@@ -27,30 +32,58 @@ export class UserManager {
       case "active-user-count":
       case "total-user-count":
         return '<div class="skeleton" style="height: 1.5rem; width: 3rem;"></div>';
-      case "user-table-body":
-        return this.getUserTableSkeleton();
+      case "users-container":
+        return this.getUserCardsSkeleton();
+      case "user-grid-view":
+        return this.getUserGridSkeleton();
       default:
         return '';
     }
   }
   
-  getUserTableSkeleton() {
+  getUserCardsSkeleton() {
     let skeleton = '';
     for (let i = 0; i < this.usersPerPage; i++) {
       skeleton += `
-        <tr class="border-b border-discord-dark">
-          <td class="py-4"><div class="skeleton" style="height: 1.5rem; width: 2rem;"></div></td>
-          <td class="py-4"><div class="skeleton" style="height: 1.5rem; width: 8rem;"></div></td>
-          <td class="py-4"><div class="skeleton" style="height: 1rem; width: 6rem;"></div></td>
-          <td class="py-4"><div class="skeleton" style="height: 1rem; width: 8rem;"></div></td>
-          <td class="py-4"><div class="skeleton" style="height: 1rem; width: 6rem;"></div></td>
-          <td class="py-4">
-            <div class="skeleton" style="height: 2rem; width: 4rem; border-radius: 0.375rem;"></div>
-          </td>
-        </tr>
+        <div class="user-card">
+          <div class="skeleton" style="width: 40px; height: 40px; border-radius: 50%;"></div>
+          <div style="flex: 1; margin-left: 12px;">
+            <div class="skeleton" style="height: 1.25rem; width: 40%; margin-bottom: 8px;"></div>
+            <div class="skeleton" style="height: 0.875rem; width: 80%;"></div>
+          </div>
+          <div>
+            <div class="skeleton" style="height: 2rem; width: 5rem; border-radius: 4px;"></div>
+          </div>
+        </div>
       `;
     }
     return skeleton;
+  }
+  
+  getUserGridSkeleton() {
+    let skeleton = '';
+    for (let i = 0; i < this.usersPerPage; i++) {
+      skeleton += `
+        <div class="user-card-grid">
+          <div style="display: flex; align-items: center; margin-bottom: 12px;">
+            <div class="skeleton" style="width: 40px; height: 40px; border-radius: 50%;"></div>
+            <div style="margin-left: 12px;">
+              <div class="skeleton" style="height: 1.25rem; width: 80px; margin-bottom: 4px;"></div>
+              <div class="skeleton" style="height: 0.75rem; width: 40px;"></div>
+            </div>
+          </div>
+          <div style="padding: 8px 0; border-top: 1px solid #2f3136; border-bottom: 1px solid #2f3136;">
+            <div class="skeleton" style="height: 0.875rem; width: 90%; margin-bottom: 8px;"></div>
+            <div class="skeleton" style="height: 0.875rem; width: 80%; margin-bottom: 8px;"></div>
+            <div class="skeleton" style="height: 0.875rem; width: 70%;"></div>
+          </div>
+          <div style="display: flex; justify-content: flex-end; margin-top: 12px;">
+            <div class="skeleton" style="height: 2rem; width: 5rem; border-radius: 4px;"></div>
+          </div>
+        </div>
+      `;
+    }
+    return `<div class="user-grid">${skeleton}</div>`;
   }
 
   initUserManagement() {
@@ -81,13 +114,89 @@ export class UserManager {
       }, 300));
     }
 
-    this.initDiscordConfirmModal();
+    document.addEventListener('click', (e) => {
+      const banButton = e.target.closest('.ban-user');
+      const unbanButton = e.target.closest('.unban-user');
+      
+      if (banButton) {
+        const userId = banButton.getAttribute('data-id');
+        const username = banButton.getAttribute('data-username');
+        this.toggleUserBan(userId, 'offline', username);
+      }
+      
+      if (unbanButton) {
+        const userId = unbanButton.getAttribute('data-id');
+        const username = unbanButton.getAttribute('data-username');
+        this.toggleUserBan(userId, 'banned', username);
+      }
+    });
+  }
+  
+  initViewModes() {
+    const listViewBtn = document.getElementById('view-mode-list');
+    const gridViewBtn = document.getElementById('view-mode-grid');
+    
+    if (listViewBtn && gridViewBtn) {
+      listViewBtn.addEventListener('click', () => {
+        this.switchView('list');
+      });
+      
+      gridViewBtn.addEventListener('click', () => {
+        this.switchView('grid');
+      });
+    }
+  }
+  
+  switchView(viewMode) {
+    const listView = document.getElementById('user-list-view');
+    const gridView = document.getElementById('user-grid-view');
+    const listViewBtn = document.getElementById('view-mode-list');
+    const gridViewBtn = document.getElementById('view-mode-grid');
+    
+    if (viewMode === 'list') {
+      listView.classList.remove('hidden');
+      gridView.classList.add('hidden');
+      listViewBtn.classList.add('active');
+      gridViewBtn.classList.remove('active');
+      this.currentView = 'list';
+    } else {
+      listView.classList.add('hidden');
+      gridView.classList.remove('hidden');
+      listViewBtn.classList.remove('active');
+      gridViewBtn.classList.add('active');
+      this.currentView = 'grid';
+    }
+  }
+  
+  initFilters() {
+    const statusFilter = document.getElementById('user-status-filter');
+    const roleFilter = document.getElementById('user-role-filter');
+    
+    if (statusFilter) {
+      statusFilter.addEventListener('change', () => {
+        this.statusFilter = statusFilter.value;
+        this.currentUserPage = 1;
+        this.loadUsers();
+      });
+    }
+    
+    if (roleFilter) {
+      roleFilter.addEventListener('change', () => {
+        this.roleFilter = roleFilter.value;
+        this.currentUserPage = 1;
+        this.loadUsers();
+      });
+    }
   }
   
   loadUsers() {
     const searchQuery = document.getElementById('user-search')?.value || "";
     
-    this.showSkeleton("user-table-body");
+    if (this.currentView === 'list') {
+      this.showSkeleton("users-container");
+    } else {
+      this.showSkeleton("user-grid-view");
+    }
     
     userAdminAPI.listUsers(this.currentUserPage, this.usersPerPage, searchQuery)
       .then(response => {
@@ -129,69 +238,23 @@ export class UserManager {
   }
   
   renderUsers(users, total, showing) {
-    const tableBody = document.getElementById('user-table-body');
-    if (!tableBody) return;
-    
-    tableBody.innerHTML = '';
-    
-    if (!users || users.length === 0) {
-      const row = document.createElement('tr');
-      row.innerHTML = `
-        <td colspan="6" class="py-4 text-center text-discord-lighter">No users found</td>
-      `;
-      tableBody.appendChild(row);
-      return;
+    // Filter users based on current filters
+    if (this.statusFilter !== 'all') {
+      users = users.filter(user => user.status === this.statusFilter);
     }
     
-    users.forEach(user => {
-      const row = document.createElement('tr');
-      row.className = 'border-b border-discord-dark';
-      
-      const isBanned = user.status === 'banned';
-      
-      const userStatus = this.getUserStatusBadge(user.status);
-      const roles = user.is_admin ? 
-        '<span class="bg-red-500 text-white rounded-full px-2 py-1 text-xs">Admin</span>' : 
-        '<span class="bg-gray-500 text-white rounded-full px-2 py-1 text-xs">User</span>';
-      
-      row.innerHTML = `
-        <td class="py-4">${user.id}</td>
-        <td class="py-4">
-          <div class="flex items-center space-x-2">
-            ${user.avatar_url ? 
-              `<img src="${user.avatar_url}" alt="User avatar" class="h-6 w-6 rounded-full">` : 
-              '<div class="h-6 w-6 bg-discord-dark rounded-full"></div>'
-            }
-            <span>${user.username}</span>
-          </div>
-        </td>
-        <td class="py-4">${user.email}</td>
-        <td class="py-4">${userStatus}</td>
-        <td class="py-4">${roles}</td>
-        <td class="py-4">
-          <div class="flex space-x-2">
-            ${isBanned ? 
-              `<button class="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded-md text-xs flex items-center space-x-1" 
-                      onclick="window.userManager.toggleUserBan(${user.id}, '${user.status}', '${user.username}')">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>Unban</span>
-              </button>` : 
-              `<button class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded-md text-xs flex items-center space-x-1" 
-                      onclick="window.userManager.toggleUserBan(${user.id}, '${user.status}', '${user.username}')">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                </svg>
-                <span>Ban</span>
-              </button>`
-            }
-          </div>
-        </td>
-      `;
-      
-      tableBody.appendChild(row);
-    });
+    if (this.roleFilter !== 'all') {
+      users = users.filter(user => {
+        if (this.roleFilter === 'admin') {
+          return user.email === 'admin@admin.com';
+        } else {
+          return user.email !== 'admin@admin.com';
+        }
+      });
+    }
+    
+    this.renderListView(users);
+    this.renderGridView(users);
     
     const showingCount = document.getElementById('user-showing-count');
     if (showingCount) showingCount.textContent = showing;
@@ -206,25 +269,176 @@ export class UserManager {
     if (nextBtn) nextBtn.disabled = showing >= total;
   }
   
-  getUserStatusBadge(status) {
-    switch (status) {
-      case 'banned':
-        return '<span class="bg-red-500 text-white rounded-full px-2 py-1 text-xs">Banned</span>';
-      case 'appear':
-        return '<span class="bg-green-500 text-white rounded-full px-2 py-1 text-xs">Online</span>';
-      case 'offline':
-        return '<span class="bg-gray-500 text-white rounded-full px-2 py-1 text-xs">Offline</span>';
-      case 'do_not_disturb':
-        return '<span class="bg-red-400 text-white rounded-full px-2 py-1 text-xs">Do Not Disturb</span>';
-      case 'invisible':
-        return '<span class="bg-gray-400 text-white rounded-full px-2 py-1 text-xs">Invisible</span>';
-      default:
-        return '<span class="bg-gray-500 text-white rounded-full px-2 py-1 text-xs">Unknown</span>';
+  renderListView(users) {
+    const container = document.getElementById('users-container');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    if (!users || users.length === 0) {
+      container.innerHTML = `
+        <div class="p-6 text-center text-discord-lighter">
+          <img src="/assets/common/no-results.png" alt="No results" class="mx-auto mb-4" width="64" height="64">
+          <p>No users found matching your filters</p>
+        </div>
+      `;
+      return;
     }
+    
+    users.forEach(user => {
+      const userCard = document.createElement('div');
+      userCard.className = 'user-card';
+      
+      const isBanned = user.status === 'banned';
+      const isAdmin = user.email === 'admin@admin.com';
+      
+      let avatarContent = user.avatar_url 
+        ? `<img src="${user.avatar_url}" alt="${user.username}">`
+        : user.username.charAt(0).toUpperCase();
+      
+      let statusClass = 'offline';
+      if (user.status === 'online' || user.status === 'appear') statusClass = 'online';
+      if (user.status === 'idle') statusClass = 'idle';
+      if (user.status === 'do_not_disturb') statusClass = 'dnd';
+      if (user.status === 'banned') statusClass = 'banned';
+      
+      let statusStyle = '';
+      switch (user.status) {
+        case 'online':
+        case 'appear':
+          statusStyle = 'background-color: rgba(59, 165, 93, 0.1); color: #3ba55d;';
+          break;
+        case 'idle':
+          statusStyle = 'background-color: rgba(250, 168, 26, 0.1); color: #faa81a;';
+          break;
+        case 'do_not_disturb':
+          statusStyle = 'background-color: rgba(237, 66, 69, 0.1); color: #ed4245;';
+          break;
+        case 'banned':
+          statusStyle = 'background-color: rgba(0, 0, 0, 0.1); color: #ffffff;';
+          break;
+        default:
+          statusStyle = 'background-color: rgba(116, 127, 141, 0.1); color: #747f8d;';
+      }
+      
+      userCard.innerHTML = `
+        <div class="user-avatar">
+          ${avatarContent}
+        </div>
+        <div class="user-info">
+          <div class="user-name">
+            ${user.username}#${user.discriminator}
+            ${isAdmin ? '<span class="user-badge badge-admin">Admin</span>' : ''}
+            <span class="user-badge" style="${statusStyle}">
+              <span class="badge-status ${statusClass}"></span>
+              ${user.status}
+            </span>
+          </div>
+          <div class="user-meta">
+            <span>ID: ${user.id}</span> • 
+            <span>${user.email}</span> • 
+            <span>Joined: ${this.formatDate(user.created_at)}</span>
+          </div>
+        </div>
+        <div class="user-actions">
+          ${isBanned 
+            ? `<button class="discord-button success unban-user" data-id="${user.id}" data-username="${user.username}">
+                <img src="/assets/common/unban-icon.png" alt="Unban" width="16" height="16" class="mr-2">
+                Unban
+              </button>` 
+            : `<button class="discord-button danger ban-user" data-id="${user.id}" data-username="${user.username}">
+                <img src="/assets/common/ban-icon.png" alt="Ban" width="16" height="16" class="mr-2">
+                Ban
+              </button>`
+          }
+        </div>
+      `;
+      
+      container.appendChild(userCard);
+    });
   }
   
-  viewUser(userId) {
-    window.location.href = `/app/user/${userId}`;
+  renderGridView(users) {
+    const container = document.getElementById('user-grid-view');
+    if (!container) return;
+    
+    if (!users || users.length === 0) {
+      container.innerHTML = `
+        <div class="p-6 text-center text-discord-lighter">
+          <img src="/assets/common/no-results.png" alt="No results" class="mx-auto mb-4" width="64" height="64">
+          <p>No users found matching your filters</p>
+        </div>
+      `;
+      return;
+    }
+    
+    const grid = document.createElement('div');
+    grid.className = 'user-grid';
+    
+    users.forEach(user => {
+      const userCard = document.createElement('div');
+      userCard.className = 'user-card-grid';
+      
+      const isBanned = user.status === 'banned';
+      
+      let avatarContent = user.avatar_url 
+        ? `<img src="${user.avatar_url}" alt="${user.username}">`
+        : user.username.charAt(0).toUpperCase();
+      
+      let statusClass = 'offline';
+      if (user.status === 'online' || user.status === 'appear') statusClass = 'online';
+      if (user.status === 'idle') statusClass = 'idle';
+      if (user.status === 'do_not_disturb') statusClass = 'dnd';
+      if (user.status === 'banned') statusClass = 'banned';
+      
+      userCard.innerHTML = `
+        <div class="user-card-header">
+          <div class="user-avatar">
+            ${avatarContent}
+          </div>
+          <div class="ml-3">
+            <div class="user-name">
+              ${user.username}
+              <span class="badge-status ${statusClass}"></span>
+            </div>
+            <div class="text-discord-lighter text-xs">#${user.discriminator}</div>
+          </div>
+        </div>
+        
+        <div class="user-meta px-2 py-3 border-t border-b border-discord-dark">
+          <div class="flex items-center mb-1">
+            <img src="/assets/common/email-icon.png" alt="Email" width="14" height="14" class="mr-2">
+            <span class="text-sm">${user.email}</span>
+          </div>
+          <div class="flex items-center mb-1">
+            <img src="/assets/common/id-icon.png" alt="ID" width="14" height="14" class="mr-2">
+            <span class="text-sm">ID: ${user.id}</span>
+          </div>
+          <div class="flex items-center">
+            <img src="/assets/common/calendar-icon.png" alt="Joined" width="14" height="14" class="mr-2">
+            <span class="text-sm">Joined: ${this.formatDate(user.created_at)}</span>
+          </div>
+        </div>
+        
+        <div class="user-card-footer">
+          ${isBanned 
+            ? `<button class="discord-button success unban-user" data-id="${user.id}" data-username="${user.username}">
+                <img src="/assets/common/unban-icon.png" alt="Unban" width="16" height="16" class="mr-2">
+                Unban
+              </button>` 
+            : `<button class="discord-button danger ban-user" data-id="${user.id}" data-username="${user.username}">
+                <img src="/assets/common/ban-icon.png" alt="Ban" width="16" height="16" class="mr-2">
+                Ban
+              </button>`
+          }
+        </div>
+      `;
+      
+      grid.appendChild(userCard);
+    });
+    
+    container.innerHTML = '';
+    container.appendChild(grid);
   }
   
   toggleUserBan(userId, currentStatus, username) {
@@ -253,76 +467,45 @@ export class UserManager {
     });
   }
 
-  initDiscordConfirmModal() {
-    if (document.getElementById('discord-confirm-modal')) return;
-    
-    const modal = document.createElement('div');
-    modal.id = 'discord-confirm-modal';
-    modal.className = 'fixed inset-0 flex items-center justify-center z-50 hidden';
-    modal.innerHTML = `
-      <div class="fixed inset-0 bg-black bg-opacity-70"></div>
-      <div class="bg-discord-dark rounded-md w-full max-w-md p-6 relative z-10 transform transition-all">
-        <div class="flex justify-between items-center mb-4">
-          <h3 id="discord-confirm-title" class="text-xl font-bold text-white">Confirm Action</h3>
-          <button id="discord-confirm-close" class="text-gray-400 hover:text-white">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-        <div class="mb-6">
-          <p id="discord-confirm-message" class="text-discord-lighter">Are you sure you want to perform this action?</p>
-        </div>
-        <div class="flex justify-end space-x-3">
-          <button id="discord-cancel-button" class="px-4 py-2 bg-discord-dark-secondary hover:bg-discord-dark-hover text-white rounded-md transition-colors">
-            Cancel
-          </button>
-          <button id="discord-confirm-button" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors">
-            Confirm
-          </button>
-        </div>
-      </div>
-    `;
-    
-    document.body.appendChild(modal);
-    
-    document.getElementById('discord-confirm-close').addEventListener('click', () => {
-      modal.classList.add('hidden');
-    });
-    
-    document.getElementById('discord-cancel-button').addEventListener('click', () => {
-      modal.classList.add('hidden');
-    });
-  }
-  
   showDiscordConfirmation(title, message, confirmCallback) {
-    const modal = document.getElementById('discord-confirm-modal');
-    if (!modal) {
-      this.initDiscordConfirmModal();
-      return this.showDiscordConfirmation(title, message, confirmCallback);
+    const confirmModal = document.getElementById('confirm-modal');
+    if (confirmModal) {
+      const confirmTitle = document.getElementById('confirm-title');
+      const confirmMessage = document.getElementById('confirm-message');
+      const confirmBtn = document.getElementById('confirm-action');
+      const cancelBtn = document.getElementById('cancel-confirm');
+      const closeBtn = document.getElementById('close-confirm-modal');
+      
+      confirmTitle.textContent = title;
+      confirmMessage.innerHTML = message;
+      
+      const handleConfirm = () => {
+        confirmModal.classList.add('hidden');
+        confirmBtn.removeEventListener('click', handleConfirm);
+        cancelBtn.removeEventListener('click', handleCancel);
+        closeBtn.removeEventListener('click', handleCancel);
+        confirmCallback();
+      };
+      
+      const handleCancel = () => {
+        confirmModal.classList.add('hidden');
+        confirmBtn.removeEventListener('click', handleConfirm);
+        cancelBtn.removeEventListener('click', handleCancel);
+        closeBtn.removeEventListener('click', handleCancel);
+      };
+      
+      confirmBtn.addEventListener('click', handleConfirm);
+      cancelBtn.addEventListener('click', handleCancel);
+      closeBtn.addEventListener('click', handleCancel);
+      
+      confirmModal.classList.remove('hidden');
     }
-    
-    const confirmTitle = document.getElementById('discord-confirm-title');
-    const confirmMessage = document.getElementById('discord-confirm-message');
-    const confirmBtn = document.getElementById('discord-confirm-button');
-    
-    confirmTitle.textContent = title;
-    confirmMessage.innerHTML = message;
-    
-    const handleConfirm = () => {
-      modal.classList.add('hidden');
-      confirmBtn.removeEventListener('click', handleConfirm);
-      confirmCallback();
-    };
-    
-    confirmBtn.addEventListener('click', handleConfirm);
-    modal.classList.remove('hidden');
   }
   
   formatDate(dateString) {
     if (!dateString) return '';
     const date = new Date(dateString);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }
   
   debounce(func, wait) {
