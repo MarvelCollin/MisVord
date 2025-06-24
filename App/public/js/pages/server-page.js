@@ -1,5 +1,6 @@
-import serverAPI from '../api/server-api.js';
 import { pageUtils } from '../utils/index.js';
+
+const serverAPI = window.serverAPI;
 
 document.addEventListener("DOMContentLoaded", function () {
   initServerPage();

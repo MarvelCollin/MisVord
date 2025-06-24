@@ -20,13 +20,17 @@ function getChannelIcon($type) {
 
 function renderChannel($channel, $activeChannelId) {
     $type = $channel['type'] ?? 'text';
+    if (is_numeric($type)) {
+        $type = $type == 2 || $type == '2' ? 'voice' : 'text';
+    }
     $icon = getChannelIcon($type);
     $isActive = $activeChannelId == $channel['id'];
     $activeClass = $isActive ? 'bg-discord-lighten text-white' : '';
     
     echo '<div class="channel-item flex items-center py-2 px-3 rounded cursor-pointer text-gray-400 hover:text-gray-300 hover:bg-discord-lighten ' . $activeClass . '" 
               data-channel-id="' . $channel['id'] . '" 
-              data-channel-type="' . htmlspecialchars($type) . '">';
+              data-channel-type="' . htmlspecialchars($type) . '" 
+              data-channel-name="' . htmlspecialchars($channel['name']) . '">';
     echo '  <i class="fas fa-' . $icon . ' text-xs mr-3 text-gray-500"></i>';
     echo '  <span class="text-sm">' . htmlspecialchars($channel['name']) . '</span>';
     if ($type === 'voice') {
@@ -164,6 +168,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const channelId = this.getAttribute('data-channel-id');
             const channelType = this.getAttribute('data-channel-type'); 
+            const channelName = this.getAttribute('data-channel-name') || '';
             const serverId = document.querySelector('#current-server-id')?.value;
             
             if (!channelId || !serverId) return;
@@ -173,23 +178,112 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             this.classList.add('bg-discord-lighten', 'text-white');
             
-            loadChannelContent(serverId, channelId, channelType);
-            
-            const newUrl = `/server/${serverId}?channel=${channelId}${channelType === 'voice' ? '&type=voice' : ''}`;
-            history.pushState({serverId, channelId, type: channelType}, '', newUrl);
+            if (window.location.href.includes(`/server/${serverId}`)) {
+                loadChannelContent(serverId, channelId, channelType);
+                
+                const newUrl = `/server/${serverId}?channel=${channelId}${channelType === 'voice' ? '&type=voice' : ''}`;
+                
+                if (window.history && window.history.pushState) {
+                    window.history.pushState({
+                        serverId, 
+                        channelId, 
+                        type: channelType,
+                        channelName: channelName
+                    }, '', newUrl);
+                } else {
+                    window.location.href = newUrl;
+                }
+            } else {
+                const url = `/server/${serverId}?channel=${channelId}${channelType === 'voice' ? '&type=voice' : ''}`;
+                
+                if (typeof MisVordAjax !== 'undefined') {
+                    MisVordAjax.get(url, {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-Page-Request': 'true'
+                        }
+                    })
+                    .then(response => {
+                        if (response.success && response.html) {
+                            const mainContent = document.getElementById('main-content');
+                            if (mainContent) {
+                                mainContent.innerHTML = response.html;
+                                
+                                if (response.title) {
+                                    document.title = response.title;
+                                }
+                                
+                                if (window.history && window.history.pushState) {
+                                    window.history.pushState({path: url}, '', url);
+                                }
+                                
+                                if (typeof window.reinitUI === 'function') {
+                                    window.reinitUI();
+                                }
+                                
+                                if (typeof initializeAllComponents === 'function') {
+                                    initializeAllComponents();
+                                }
+                            }
+                        } else {
+                            window.location.href = url;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error loading page:', error);
+                        window.location.href = url;
+                    });
+                } else {
+                    window.location.href = url;
+                }
+            }
         });
     });
     
     window.addEventListener('popstate', function(event) {
-        if (event.state && event.state.serverId && event.state.channelId) {
-            loadChannelContent(event.state.serverId, event.state.channelId, event.state.type || 'text');
-            
-            const channelItem = document.querySelector(`.channel-item[data-channel-id="${event.state.channelId}"]`);
-            if (channelItem) {
-                document.querySelectorAll('.channel-item').forEach(el => {
-                    el.classList.remove('bg-discord-lighten', 'text-white');
-                });
-                channelItem.classList.add('bg-discord-lighten', 'text-white');
+        if (event.state) {
+            if (event.state.serverId && event.state.channelId) {
+                loadChannelContent(event.state.serverId, event.state.channelId, event.state.type || 'text');
+                
+                const channelItem = document.querySelector(`.channel-item[data-channel-id="${event.state.channelId}"]`);
+                if (channelItem) {
+                    document.querySelectorAll('.channel-item').forEach(el => {
+                        el.classList.remove('bg-discord-lighten', 'text-white');
+                    });
+                    channelItem.classList.add('bg-discord-lighten', 'text-white');
+                }
+            } else if (event.state.path) {
+                if (typeof MisVordAjax !== 'undefined') {
+                    MisVordAjax.get(event.state.path, {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-Page-Request': 'true'
+                        }
+                    })
+                    .then(response => {
+                        if (response.success && response.html) {
+                            const mainContent = document.getElementById('main-content');
+                            if (mainContent) {
+                                mainContent.innerHTML = response.html;
+                                
+                                if (response.title) {
+                                    document.title = response.title;
+                                }
+                                
+                                if (typeof window.reinitUI === 'function') {
+                                    window.reinitUI();
+                                }
+                                
+                                if (typeof initializeAllComponents === 'function') {
+                                    initializeAllComponents();
+                                }
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error handling popstate:', error);
+                    });
+                }
             }
         }
     });
@@ -197,11 +291,70 @@ document.addEventListener('DOMContentLoaded', function() {
 
 async function loadChannelContent(serverId, channelId, type = 'text') {
     try {
-        // Show loading state
-        const chatSection = document.querySelector('.chat-section-wrapper');
+        if (!serverId || !channelId) {
+            console.error('Missing required parameters', { serverId, channelId, type });
+            if (typeof showToast === 'function') {
+                showToast('Missing channel information. Please try again.', 'error');
+            }
+            return;
+        }
+
+        const chatSection = document.querySelector('.chat-section-wrapper') || document.querySelector('.chat-container');
         const participantSection = document.querySelector('.participant-section-wrapper');
         
-        if (!chatSection || !participantSection) return;
+        if (!chatSection) {
+            const mainContent = document.getElementById('main-content');
+            if (mainContent) {
+                const loadingSpinner = `
+                    <div class="flex items-center justify-center h-full w-full">
+                        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
+                    </div>
+                `;
+                mainContent.innerHTML = loadingSpinner;
+            }
+            
+            const newUrl = `/server/${serverId}?channel=${channelId}${type === 'voice' ? '&type=voice' : ''}`;
+            if (typeof MisVordAjax !== 'undefined') {
+                MisVordAjax.get(newUrl, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-Page-Request': 'true'
+                    }
+                })
+                .then(response => {
+                    if (response.success && response.html) {
+                        const mainContent = document.getElementById('main-content');
+                        if (mainContent) {
+                            mainContent.innerHTML = response.html;
+                            
+                            if (response.title) {
+                                document.title = response.title;
+                            }
+                            
+                            if (window.history && window.history.pushState) {
+                                window.history.pushState({path: newUrl}, '', newUrl);
+                            }
+                            
+                            if (typeof window.reinitUI === 'function') {
+                                window.reinitUI();
+                            }
+                            
+                            initializeAllComponents();
+                        }
+                    } else {
+                        console.error('Invalid response format', response);
+                        window.location.href = newUrl;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading page:', error);
+                    window.location.href = newUrl;
+                });
+            } else {
+                window.location.href = newUrl;
+            }
+            return;
+        }
         
         const loadingSpinner = `
             <div class="flex items-center justify-center h-full w-full">
@@ -211,7 +364,6 @@ async function loadChannelContent(serverId, channelId, type = 'text') {
         
         chatSection.innerHTML = loadingSpinner;
         
-        // Update current active channel in the UI
         const channelItems = document.querySelectorAll('.channel-item');
         channelItems.forEach(item => {
             if (item.getAttribute('data-channel-id') === channelId) {
@@ -221,15 +373,71 @@ async function loadChannelContent(serverId, channelId, type = 'text') {
             }
         });
         
-        // Fetch channel content
+        console.log('Fetching channel content for:', { serverId, channelId, type });
         const response = await window.channelAPI.getChannelContent(serverId, channelId, type);
+        console.log('Channel content response:', response);
         
         if (response && response.success) {
-            // Update DOM with new content
-            chatSection.innerHTML = response.data.html.chat_section || '';
-            participantSection.innerHTML = response.data.html.participant_section || '';
+            const isVoiceChannel = type === 'voice';
             
-            // Update metadata
+            if (isVoiceChannel && chatSection.classList.contains('chat-container')) {
+                const url = `/server/${serverId}?channel=${channelId}&type=voice`;
+                
+                if (typeof MisVordAjax !== 'undefined') {
+                    MisVordAjax.get(url, {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-Page-Request': 'true'
+                        }
+                    })
+                    .then(response => {
+                        if (response.success && response.html) {
+                            const mainContent = document.getElementById('main-content');
+                            if (mainContent) {
+                                mainContent.innerHTML = response.html;
+                                
+                                if (response.title) {
+                                    document.title = response.title;
+                                }
+                                
+                                if (window.history && window.history.pushState) {
+                                    window.history.pushState({
+                                        serverId, 
+                                        channelId, 
+                                        type: 'voice',
+                                        channelName: response.data.channel_name || (response.data.channel && response.data.channel.name)
+                                    }, '', url);
+                                }
+                                
+                                if (typeof window.reinitUI === 'function') {
+                                    window.reinitUI();
+                                }
+                                
+                                if (typeof initializeAllComponents === 'function') {
+                                    initializeAllComponents();
+                                }
+                            }
+                        } else {
+                            console.error('Invalid response format', response);
+                            window.location.href = url;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error loading voice channel:', error);
+                        window.location.href = url;
+                    });
+                } else {
+                    window.location.href = url;
+                }
+                return;
+            }
+            
+            chatSection.innerHTML = response.data.html.chat_section || '';
+            
+            if (participantSection) {
+                participantSection.innerHTML = response.data.html.participant_section || '';
+            }
+            
             const metaTags = document.querySelectorAll('meta[name^="chat-"]');
             metaTags.forEach(tag => {
                 if (tag.getAttribute('name') === 'chat-id') {
@@ -243,19 +451,25 @@ async function loadChannelContent(serverId, channelId, type = 'text') {
                 }
             });
             
-            // Update document title
             if (response.data.channel && response.data.channel.name) {
                 document.title = `${response.data.channel.name} | MisVord`;
+            } else if (response.data.channel_name) {
+                document.title = `${response.data.channel_name} | MisVord`;
+            } else {
+                const channelItem = document.querySelector(`.channel-item[data-channel-id="${channelId}"]`);
+                if (channelItem) {
+                    const channelName = channelItem.getAttribute('data-channel-name');
+                    if (channelName) {
+                        document.title = `${channelName} | MisVord`;
+                    }
+                }
             }
             
-            // Reset global chat section
             if (window.chatSection) {
-                // Clean up any existing event listeners or timers
                 if (window.chatSection.typingTimeout) {
                     clearTimeout(window.chatSection.typingTimeout);
                 }
                 
-                // Clean up to prevent memory leaks
                 if (window.chatSection.chatMessages) {
                     const oldChatMessages = document.getElementById('chat-messages');
                     if (oldChatMessages) {
@@ -267,22 +481,20 @@ async function loadChannelContent(serverId, channelId, type = 'text') {
                 }
             }
             
-            // Initialize components in the proper order
-            
-            // 1. First initialize global socket manager for the channel
             if (window.globalSocketManager && window.globalSocketManager.isReady()) {
                 window.globalSocketManager.setupChannelListeners(channelId);
             }
             
-            // 2. Then initialize chat section
-            if (typeof window.initializeChatSection === 'function') {
+            if (!isVoiceChannel && typeof window.initializeChatSection === 'function') {
                 window.initializeChatSection();
             }
             
-            // 3. Initialize other components
-            initializeRemainingComponents();
+            if (isVoiceChannel && typeof initializeVoiceChannel === 'function') {
+                setTimeout(initializeVoiceChannel, 100);
+            } else {
+                initializeRemainingComponents();
+            }
             
-            // Dispatch custom event for other components to respond to
             document.dispatchEvent(new CustomEvent('channelChanged', { 
                 detail: { 
                     serverId,
@@ -292,11 +504,29 @@ async function loadChannelContent(serverId, channelId, type = 'text') {
                 }
             }));
         } else {
-            throw new Error('Failed to load channel content');
+            throw new Error(response?.message || 'Failed to load channel content');
         }
     } catch (error) {
         console.error('Error loading channel content:', error);
-        showToast('Failed to load channel content. Please try again.', 'error');
+        if (typeof showToast === 'function') {
+            showToast('Failed to load channel content. Please try again.', 'error');
+        } else {
+            alert('Failed to load channel content. Please try again.');
+        }
+        
+        const chatSection = document.querySelector('.chat-section-wrapper') || document.querySelector('.chat-container');
+        if (chatSection) {
+            chatSection.innerHTML = `
+                <div class="flex flex-col h-full items-center justify-center text-white">
+                    <div class="text-4xl mb-4">🙁</div>
+                    <div class="text-xl mb-2">Oops! Something went wrong</div>
+                    <div class="text-sm text-gray-400 mb-4">We couldn't load this channel</div>
+                    <button onclick="window.location.reload()" class="bg-discord-primary hover:bg-discord-primary-darker px-4 py-2 rounded text-white">
+                        Reload Page
+                    </button>
+                </div>
+            `;
+        }
     }
 }
 

@@ -70,7 +70,12 @@ class ChannelAPI {
     }
 
     async getChannelContent(serverId, channelId, type = 'text') {
-        return await this.makeRequest(`/api/channel-content?server_id=${serverId}&channel_id=${channelId}&type=${type}`, {
+        if (!serverId || !channelId) {
+            console.error('Missing required parameters', { serverId, channelId });
+            throw new Error('Server ID and Channel ID are required');
+        }
+        
+        return await this.makeRequest(`/api/channel-content?server_id=${encodeURIComponent(serverId)}&channel_id=${encodeURIComponent(channelId)}&type=${encodeURIComponent(type)}`, {
             method: 'GET'
         });
     }

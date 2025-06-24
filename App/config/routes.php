@@ -547,7 +547,7 @@ Route::post('/api/servers/([0-9]+)/settings', function($serverId) {
 
 Route::get('/api/servers/([0-9]+)/members', function($serverId) {
     $controller = new ServerController();
-    $controller->getServerMembers($serverId);
+    $controller->getServerMembers($serverId);   
 });
 
 Route::get('/api/explore/servers/search', function() {

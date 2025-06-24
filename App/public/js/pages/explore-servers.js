@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     console.log('Explore servers DOM loaded');
     if (typeof window !== 'undefined' && window.logger) {
         window.logger.info('explore', 'Explore servers page initialized');
@@ -11,12 +11,12 @@ document.addEventListener('DOMContentLoaded', function() {
     initSidebarServerIcons();
     highlightExploreButton();
     initServerDetailTriggers();
-    
+
     console.log('showServerDetail function available:', typeof window.showServerDetail);
 });
 
 function highlightExploreButton() {
-    
+
     const exploreButton = document.querySelector('a[href="/explore-servers"]');
     if (exploreButton) {
         const parentDiv = exploreButton.closest('div');
@@ -28,14 +28,14 @@ function highlightExploreButton() {
 
 function initSidebarServerIcons() {
     const serverIcons = document.querySelectorAll('.sidebar-server-icon');
-    
+
     serverIcons.forEach(icon => {
         const parent = icon.parentElement;
-        
+
         icon.style.display = 'block';
         icon.style.margin = '0 auto 8px auto';
         icon.style.position = 'relative';
-        
+
         if (!icon.getAttribute('data-initialized')) {
             icon.setAttribute('data-initialized', 'true');
         }
@@ -44,7 +44,7 @@ function initSidebarServerIcons() {
 
 function initServerCards() {
     const serverCards = document.querySelectorAll('.server-card');
-    
+
     serverCards.forEach(card => {
         card.addEventListener('mouseenter', handleServerCardHover);
         card.addEventListener('mouseleave', handleServerCardLeave);
@@ -63,18 +63,18 @@ function handleServerCardLeave(e) {
 
 function initCategoryFilter() {
     const categoryButtons = document.querySelectorAll('[data-category]');
-    
+
     categoryButtons.forEach(button => {
-        button.addEventListener('click', function() {
+        button.addEventListener('click', function () {
             const category = this.getAttribute('data-category');
             filterServersByCategory(category);
             updateActiveCategory(this);
         });
     });
-    
+
     const categoryFilter = document.getElementById('category-filter');
     if (categoryFilter) {
-        categoryFilter.addEventListener('change', function() {
+        categoryFilter.addEventListener('change', function () {
             const category = this.value || 'all';
             filterServersByCategory(category);
         });
@@ -82,11 +82,12 @@ function initCategoryFilter() {
 }
 
 function filterServersByCategory(category) {
-    const serverCards = document.querySelectorAll('.server-card');
-    
+    // Only filter non-featured servers
+    const serverCards = document.querySelectorAll('.server-card:not(#featured-servers .server-card)');
+
     serverCards.forEach(card => {
         const serverCategory = card.getAttribute('data-category');
-        
+
         if (category === 'all' || serverCategory === category) {
             card.classList.remove('hidden');
         } else {
@@ -97,13 +98,13 @@ function filterServersByCategory(category) {
 
 function updateActiveCategory(activeButton) {
     const categoryButtons = document.querySelectorAll('[data-category]');
-    
+
     categoryButtons.forEach(button => {
         if (button === activeButton) {
-            button.classList.add('bg-discord-primary', 'text-white');
+            button.classList.add('bg-discord-green', 'text-white');
             button.classList.remove('bg-discord-dark', 'text-gray-300');
         } else {
-            button.classList.remove('bg-discord-primary', 'text-white');
+            button.classList.remove('bg-discord-green', 'text-white');
             button.classList.add('bg-discord-dark', 'text-gray-300');
         }
     });
@@ -111,13 +112,13 @@ function updateActiveCategory(activeButton) {
 
 function initSearchFilter() {
     const searchInput = document.querySelector('#server-search');
-    
+
     if (searchInput) {
         let debounceTimeout;
-        
-        searchInput.addEventListener('input', function() {
+
+        searchInput.addEventListener('input', function () {
             const query = this.value.toLowerCase();
-            
+
             clearTimeout(debounceTimeout);
             debounceTimeout = setTimeout(() => {
                 if (query.length >= 2) {
@@ -133,15 +134,15 @@ function initSearchFilter() {
 function performServerSearch(query) {
     const serverGrid = document.querySelector('.server-grid');
     if (!serverGrid) return;
-    
+
     const loadingIndicator = document.createElement('div');
     loadingIndicator.id = 'search-loading';
     loadingIndicator.className = 'text-gray-400 text-center py-4';
     loadingIndicator.textContent = 'Searching...';
-    
+
     serverGrid.innerHTML = '';
     serverGrid.appendChild(loadingIndicator);
-    
+
     window.serverAPI.searchServers(query)
         .then(data => {
             renderSearchResults(data.servers, data.userServerIds);
@@ -155,7 +156,7 @@ function performServerSearch(query) {
 function resetServerSearch() {
     const serverGrid = document.querySelector('.server-grid');
     if (!serverGrid) return;
-    
+
     const allServerCards = document.querySelectorAll('.server-card');
     allServerCards.forEach(card => {
         card.classList.remove('hidden');
@@ -165,21 +166,21 @@ function resetServerSearch() {
 function renderSearchResults(servers, userServerIds) {
     const serverGrid = document.querySelector('.server-grid');
     if (!serverGrid) return;
-    
+
     serverGrid.innerHTML = '';
-    
+
     if (!servers || servers.length === 0) {
         serverGrid.innerHTML = `<div class="text-gray-400 text-center py-4 col-span-full">No servers found matching your search.</div>`;
         return;
     }
-    
+
     servers.forEach(server => {
         const isJoined = userServerIds.includes(parseInt(server.id));
         server.is_member = isJoined;
         const serverCard = createServerCard(server, isJoined);
         serverGrid.appendChild(serverCard);
     });
-    
+
     initServerCards();
     initJoinServerHandlers();
     initServerDetailTriggers();
@@ -190,15 +191,15 @@ function createServerCard(server, isJoined) {
     card.className = 'server-card bg-discord-dark rounded-lg overflow-hidden shadow-lg transition-all duration-200 cursor-pointer';
     card.setAttribute('data-category', server.category || 'all');
     card.setAttribute('data-server-id', server.id);
-    
+
     const memberCount = server.member_count || 0;
-    
+
     card.innerHTML = `
         <div class="server-banner">
             ${server.banner_url ? `<img src="${server.banner_url}" class="w-full h-full object-cover" alt="${server.name} banner">` : ''}
             <div class="server-icon">
-                ${server.image_url ? `<img src="${server.image_url}" class="w-full h-full object-cover" alt="${server.name} icon">` : 
-                `<div class="w-full h-full flex items-center justify-center bg-discord-primary text-white font-bold text-xl">
+                ${server.image_url ? `<img src="${server.image_url}" class="w-full h-full object-cover" alt="${server.name} icon">` :
+            `<div class="w-full h-full flex items-center justify-center bg-discord-green text-white font-bold text-xl">
                     ${server.name.charAt(0).toUpperCase()}
                 </div>`}
             </div>
@@ -210,30 +211,30 @@ function createServerCard(server, isJoined) {
                 <div class="server-stats">
                     <span><span class="online-dot"></span> ${memberCount} ${memberCount === 1 ? 'member' : 'members'}</span>
                 </div>
-                <button class="join-server-btn px-4 py-1 rounded text-white font-medium text-sm ${isJoined ? 'bg-discord-green' : 'bg-discord-primary hover:bg-discord-primary/90'}" 
+                <button class="join-server-btn px-4 py-1 rounded text-white font-medium text-sm ${isJoined ? 'bg-discord-green' : 'bg-discord-green hover:bg-discord-green/90'}" 
                         data-server-id="${server.id}" ${isJoined ? 'disabled' : ''}>
                     ${isJoined ? 'Joined' : 'Join'}
                 </button>
             </div>
         </div>
     `;
-    
+
     return card;
 }
 
 function filterServersBySearch(query) {
-    
+
     if (query.length < 2) {
         resetServerSearch();
         return;
     }
-    
+
     const serverCards = document.querySelectorAll('.server-card');
-    
+
     serverCards.forEach(card => {
         const serverName = card.querySelector('.server-name')?.textContent.toLowerCase() || '';
         const serverDescription = card.querySelector('.server-description')?.textContent.toLowerCase() || '';
-        
+
         if (serverName.includes(query) || serverDescription.includes(query)) {
             card.classList.remove('hidden');
         } else {
@@ -244,9 +245,9 @@ function filterServersBySearch(query) {
 
 function initJoinServerHandlers() {
     const joinButtons = document.querySelectorAll('.join-server-btn');
-    
+
     joinButtons.forEach(button => {
-        button.addEventListener('click', function(e) {
+        button.addEventListener('click', function (e) {
             e.preventDefault();
             e.stopPropagation();
             const serverId = this.getAttribute('data-server-id');
@@ -257,29 +258,29 @@ function initJoinServerHandlers() {
 
 function joinServer(serverId, button) {
     if (!serverId) return;
-    
+
     const originalText = button.textContent;
     button.textContent = 'Joining...';
     button.disabled = true;
-    
+
     window.serverAPI.joinServer({ server_id: serverId })
         .then(data => {
             if (data.success) {
                 button.textContent = 'Joined!';
-                button.classList.remove('bg-discord-primary', 'hover:bg-discord-primary/90');
+                button.classList.remove('bg-discord-green', 'hover:bg-discord-green/90');
                 button.classList.add('bg-discord-green');
-                
+
                 if (window.showToast) {
                     window.showToast('Successfully joined server!', 'success');
                 }
-                
+
                 setTimeout(() => {
                     window.location.href = `/server/${serverId}`;
                 }, 1500);
             } else {
                 button.textContent = originalText;
                 button.disabled = false;
-                
+
                 if (window.showToast) {
                     window.showToast(data.message || 'Failed to join server', 'error');
                 }
@@ -289,7 +290,7 @@ function joinServer(serverId, button) {
             console.error('Error joining server:', error);
             button.textContent = originalText;
             button.disabled = false;
-            
+
             if (window.showToast) {
                 window.showToast('Error joining server', 'error');
             }
@@ -298,26 +299,27 @@ function joinServer(serverId, button) {
 
 function initServerDetailTriggers() {
     const serverCards = document.querySelectorAll('.server-card');
-    
+
     serverCards.forEach(card => {
         if (card.dataset.hasListener === 'true') {
             return;
         }
         card.dataset.hasListener = 'true';
 
-        card.addEventListener('click', function(e) {
+        card.addEventListener('click', function (e) {
             if (e.target.closest('.join-server-btn')) {
                 return;
             }
-            
+
             e.preventDefault();
             e.stopPropagation();
-            
+            e.stopImmediatePropagation();
+
             const serverId = this.getAttribute('data-server-id');
             if (!serverId) return;
-            
+
             const serverData = extractServerDataFromCard(this);
-            
+
             if (window.showServerDetail) {
                 window.showServerDetail(serverId, serverData);
             }
@@ -329,31 +331,31 @@ function extractServerDataFromCard(card) {
     const serverId = card.getAttribute('data-server-id');
     const serverName = card.querySelector('.server-name')?.textContent;
     const serverDescription = card.querySelector('.server-description')?.textContent;
-    
+
     let memberCount = 0;
     const memberCountElem = card.querySelector('.server-stats span');
     if (memberCountElem) {
         const memberMatch = memberCountElem.textContent.match(/\d+/);
         memberCount = memberMatch ? parseInt(memberMatch[0]) : 0;
     }
-    
+
     const joinButton = card.querySelector('.join-server-btn');
     const isJoined = joinButton ? (joinButton.textContent.includes('Joined') || joinButton.classList.contains('bg-discord-green')) : false;
-    
+
     let bannerUrl = null;
     const bannerImg = card.querySelector('.server-banner img') || card.querySelector('.h-32 img');
     if (bannerImg) {
         bannerUrl = bannerImg.src;
     }
-    
+
     let iconUrl = null;
     const iconImg = card.querySelector('.server-icon img') || card.querySelector('.rounded-xl img') || card.querySelector('.rounded-2xl img');
     if (iconImg) {
         iconUrl = iconImg.src;
     }
-    
+
     const category = card.getAttribute('data-category');
-    
+
     return {
         id: serverId,
         name: serverName || 'Unknown Server',

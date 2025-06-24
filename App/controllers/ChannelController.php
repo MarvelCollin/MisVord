@@ -5,6 +5,7 @@ require_once __DIR__ . '/../database/repositories/MessageRepository.php';
 require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
 require_once __DIR__ . '/../database/repositories/CategoryRepository.php';
 require_once __DIR__ . '/../database/repositories/ServerRepository.php';
+require_once __DIR__ . '/../database/repositories/ChannelMessageRepository.php';
 require_once __DIR__ . '/BaseController.php';
 
 class ChannelController extends BaseController
@@ -15,6 +16,7 @@ class ChannelController extends BaseController
     private $membershipRepository;
     private $categoryRepository;
     private $serverRepository;
+    private $channelMessageRepository;
 
     public function __construct()
     {
@@ -24,6 +26,7 @@ class ChannelController extends BaseController
         $this->membershipRepository = new UserServerMembershipRepository();
         $this->categoryRepository = new CategoryRepository();
         $this->serverRepository = new ServerRepository();
+        $this->channelMessageRepository = new ChannelMessageRepository();
     }
 
     public function index()
@@ -636,9 +639,9 @@ class ChannelController extends BaseController
         $this->requireAuth();
         
         $input = $this->getInput();
-        $serverId = $input['server_id'] ?? null;
-        $channelId = $input['channel_id'] ?? null;
-        $type = $input['type'] ?? 'text';
+        $serverId = $input['server_id'] ?? $_GET['server_id'] ?? null;
+        $channelId = $input['channel_id'] ?? $_GET['channel_id'] ?? null;
+        $type = $input['type'] ?? $_GET['type'] ?? 'text';
         
         if (!$serverId || !$channelId) {
             return $this->validationError(['message' => 'Server ID and Channel ID are required']);
@@ -655,22 +658,17 @@ class ChannelController extends BaseController
                 return $this->notFound('Channel not found');
             }
             
-            // Get complete channel data
             $fullChannel = (array)$channel;
             
-            // Get messages for this channel
             $messages = [];
             if ($type === 'text') {
-                $messages = $this->messageRepository->getChannelMessages($channelId, 50);
+                $messages = $this->channelMessageRepository->getMessagesForChannel($channelId, 50);
             }
             
-            // Get all participants for this server
             $participants = $this->membershipRepository->getServerMembers($serverId);
             
-            // Get the complete server object for context
             $server = $this->serverRepository->find($serverId);
             
-            // Set up global variables for template rendering
             $GLOBALS['currentServer'] = $server;
             $GLOBALS['activeChannelId'] = $channelId;
             $GLOBALS['channelMessages'] = $messages;
@@ -678,7 +676,11 @@ class ChannelController extends BaseController
             $GLOBALS['targetId'] = $channelId;
             $GLOBALS['chatData'] = $fullChannel;
             $GLOBALS['currentChannel'] = (object)$fullChannel;
+            $GLOBALS['activeChannel'] = (object)$fullChannel;
             $GLOBALS['serverParticipants'] = $participants;
+            
+            $allServerChannels = $this->channelRepository->getByServerId($serverId);
+            $GLOBALS['serverChannels'] = $allServerChannels;
             
             $this->logActivity('channel_content_loaded', [
                 'server_id' => $serverId,
@@ -686,15 +688,28 @@ class ChannelController extends BaseController
                 'type' => $type
             ]);
             
-            // Return comprehensive data for client-side use
+            $chatSectionHtml = '';
+            $participantSectionHtml = '';
+            
+            if ($type === 'voice') {
+                ob_start();
+                include __DIR__ . '/../views/components/app-sections/voice-section.php';
+                $chatSectionHtml = ob_get_clean();
+            } else {
+                $chatSectionHtml = $this->renderChatSection($channel, $messages);
+            }
+            
+            $participantSectionHtml = $this->renderParticipantSection($participants);
+            
             return $this->success([
                 'channel' => $fullChannel,
+                'channel_name' => $channel->name ?? 'Unknown Channel',
                 'messages' => $messages,
                 'participants' => $participants,
                 'server' => $server ? (array)$server : null,
                 'html' => [
-                    'chat_section' => $this->renderChatSection($channel, $messages),
-                    'participant_section' => $this->renderParticipantSection($participants)
+                    'chat_section' => $chatSectionHtml,
+                    'participant_section' => $participantSectionHtml
                 ]
             ]);
         } catch (Exception $e) {

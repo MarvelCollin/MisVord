@@ -17,7 +17,6 @@ if (!isset($_SESSION['user_id'])) {
 $currentServer = $GLOBALS['server'] ?? $GLOBALS['currentServer'] ?? null;
 $serverName = $currentServer ? $currentServer->name : 'Unknown Server';
 
-// Set loading state based on query parameter or default to false
 $GLOBALS['isLoading'] = isset($_GET['loading']) && $_GET['loading'] === 'true';
 
 $page_title = 'misvord - ' . $serverName;
@@ -42,15 +41,23 @@ if (isset($GLOBALS['currentServer'])) {    log_debug("Current server data", [
 } else {
     log_warning("No current server set in GLOBALS");
 }
-?>
 
-<?php ob_start(); ?>
+$isAjaxPageRequest = isset($_SERVER['HTTP_X_PAGE_REQUEST']) && $_SERVER['HTTP_X_PAGE_REQUEST'] === 'true';
 
-<?php include dirname(dirname(__DIR__)) . '/views/components/app-sections/app-layout.php'; ?>
+ob_start();
+include dirname(dirname(__DIR__)) . '/views/components/app-sections/app-layout.php';
+include dirname(dirname(__DIR__)) . '/views/components/app-sections/create-server-modal.php';
+$content = ob_get_clean();
 
-<?php include dirname(dirname(__DIR__)) . '/views/components/app-sections/create-server-modal.php'; ?>
-
-<?php 
-$content = ob_get_clean(); 
-include dirname(dirname(__DIR__)) . '/views/layout/main-app.php';
+if ($isAjaxPageRequest) {
+    header('Content-Type: application/json');
+    echo json_encode([
+        'success' => true,
+        'html' => $content,
+        'title' => $page_title
+    ]);
+    exit;
+} else {
+    include dirname(dirname(__DIR__)) . '/views/layout/main-app.php';
+}
 ?>
