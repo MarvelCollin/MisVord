@@ -45,26 +45,185 @@ export class OverviewManager {
     const chartContainer = document.getElementById(chartId);
     if (!chartContainer) return;
     
-    // Check if loading overlay already exists
-    let loadingOverlay = chartContainer.querySelector('.chart-loading');
-    if (!loadingOverlay) {
-      loadingOverlay = document.createElement('div');
-      loadingOverlay.className = 'chart-loading';
-      loadingOverlay.innerHTML = '<div class="loading-spinner"></div>';
-      chartContainer.appendChild(loadingOverlay);
-    } else {
-      loadingOverlay.classList.remove('hidden');
+    // Clear existing chart content
+    chartContainer.innerHTML = '';
+    
+    // Create a skeleton loader structure that resembles a chart
+    const skeletonStructure = document.createElement('div');
+    skeletonStructure.className = 'chart-skeleton';
+    skeletonStructure.style.width = '100%';
+    skeletonStructure.style.height = '100%';
+    skeletonStructure.style.position = 'relative';
+    
+    // Add title skeleton
+    const titleSkeleton = document.createElement('div');
+    titleSkeleton.className = 'skeleton';
+    titleSkeleton.style.height = '16px';
+    titleSkeleton.style.width = '120px';
+    titleSkeleton.style.marginBottom = '15px';
+    titleSkeleton.style.borderRadius = '4px';
+    skeletonStructure.appendChild(titleSkeleton);
+    
+    // Create chart structure
+    const chartSkeleton = document.createElement('div');
+    chartSkeleton.className = 'chart-grid-skeleton';
+    chartSkeleton.style.height = 'calc(100% - 30px)';
+    chartSkeleton.style.display = 'grid';
+    chartSkeleton.style.gridTemplateColumns = '40px 1fr';
+    chartSkeleton.style.gridTemplateRows = '1fr 25px';
+    
+    // Y-axis skeleton
+    const yAxisSkeleton = document.createElement('div');
+    yAxisSkeleton.className = 'y-axis-skeleton';
+    yAxisSkeleton.style.display = 'flex';
+    yAxisSkeleton.style.flexDirection = 'column';
+    yAxisSkeleton.style.justifyContent = 'space-between';
+    
+    // Add Y-axis labels (5 total)
+    for (let i = 0; i < 5; i++) {
+      const labelSkeleton = document.createElement('div');
+      labelSkeleton.className = 'skeleton';
+      labelSkeleton.style.height = '10px';
+      labelSkeleton.style.width = '25px';
+      labelSkeleton.style.marginRight = '10px';
+      labelSkeleton.style.borderRadius = '2px';
+      yAxisSkeleton.appendChild(labelSkeleton);
     }
+    
+    // Chart area skeleton
+    const chartAreaSkeleton = document.createElement('div');
+    chartAreaSkeleton.className = 'chart-area-skeleton';
+    chartAreaSkeleton.style.position = 'relative';
+    chartAreaSkeleton.style.borderLeft = '1px solid #36393f';
+    
+    // Add horizontal grid lines
+    for (let i = 0; i < 5; i++) {
+      const gridLine = document.createElement('div');
+      gridLine.style.position = 'absolute';
+      gridLine.style.left = '0';
+      gridLine.style.right = '0';
+      gridLine.style.height = '1px';
+      gridLine.style.bottom = `${i * 25}%`;
+      gridLine.style.backgroundColor = '#36393f';
+      chartAreaSkeleton.appendChild(gridLine);
+    }
+    
+    // Determine if we should add bar or line skeletons based on chart ID
+    if (chartId === 'users-chart' || chartId === 'servers-chart') {
+      // Add bar skeletons
+      const numBars = 12;
+      chartAreaSkeleton.style.display = 'flex';
+      chartAreaSkeleton.style.alignItems = 'flex-end';
+      chartAreaSkeleton.style.justifyContent = 'space-around';
+      
+      for (let i = 0; i < numBars; i++) {
+        const barContainer = document.createElement('div');
+        barContainer.style.flex = '1';
+        barContainer.style.display = 'flex';
+        barContainer.style.flexDirection = 'column';
+        barContainer.style.alignItems = 'center';
+        barContainer.style.maxWidth = '40px';
+        barContainer.style.position = 'relative';
+        
+        const barSkeleton = document.createElement('div');
+        barSkeleton.className = 'skeleton';
+        barSkeleton.style.width = '100%';
+        // Random heights for bars
+        const height = 10 + Math.random() * 70;
+        barSkeleton.style.height = `${height}%`;
+        barSkeleton.style.borderRadius = '3px 3px 0 0';
+        barSkeleton.style.animationDelay = `${i * 0.1}s`;
+        
+        barContainer.appendChild(barSkeleton);
+        chartAreaSkeleton.appendChild(barContainer);
+      }
+    } else {
+      // Add line skeleton for message chart
+      const svgNS = "http://www.w3.org/2000/svg";
+      const svg = document.createElementNS(svgNS, "svg");
+      svg.setAttribute("width", "100%");
+      svg.setAttribute("height", "100%");
+      svg.style.position = "absolute";
+      svg.style.left = "0";
+      svg.style.top = "0";
+      
+      // Create polyline with random points
+      const polyline = document.createElementNS(svgNS, "polyline");
+      polyline.setAttribute("fill", "none");
+      polyline.setAttribute("stroke", "#36393f");
+      polyline.setAttribute("stroke-width", "2");
+      
+      // Generate random points for the line
+      const numPoints = 12;
+      let pointsString = '';
+      for (let i = 0; i < numPoints; i++) {
+        const x = (i / (numPoints - 1)) * 100;
+        const y = 20 + Math.random() * 60;
+        pointsString += `${x},${y} `;
+      }
+      
+      polyline.setAttribute("points", pointsString.trim());
+      svg.appendChild(polyline);
+      
+      // Add point skeletons
+      for (let i = 0; i < numPoints; i++) {
+        const x = (i / (numPoints - 1)) * 100;
+        const y = 20 + Math.random() * 60;
+        
+        const pointSkeleton = document.createElement('div');
+        pointSkeleton.className = 'skeleton';
+        pointSkeleton.style.position = 'absolute';
+        pointSkeleton.style.width = '6px';
+        pointSkeleton.style.height = '6px';
+        pointSkeleton.style.borderRadius = '50%';
+        pointSkeleton.style.left = `${x}%`;
+        pointSkeleton.style.top = `${y}%`;
+        pointSkeleton.style.transform = 'translate(-50%, -50%)';
+        
+        chartAreaSkeleton.appendChild(pointSkeleton);
+      }
+      
+      chartAreaSkeleton.appendChild(svg);
+    }
+    
+    // X-axis skeleton
+    const xAxisSkeleton = document.createElement('div');
+    xAxisSkeleton.className = 'x-axis-skeleton';
+    xAxisSkeleton.style.display = 'flex';
+    xAxisSkeleton.style.justifyContent = 'space-around';
+    xAxisSkeleton.style.borderTop = '1px solid #36393f';
+    xAxisSkeleton.style.paddingTop = '10px';
+    
+    // Add X-axis labels
+    const numLabels = 12;
+    for (let i = 0; i < numLabels; i++) {
+      const labelSkeleton = document.createElement('div');
+      labelSkeleton.className = 'skeleton';
+      labelSkeleton.style.height = '10px';
+      labelSkeleton.style.width = '16px';
+      labelSkeleton.style.borderRadius = '2px';
+      xAxisSkeleton.appendChild(labelSkeleton);
+    }
+    
+    // Assemble the chart grid
+    chartSkeleton.appendChild(yAxisSkeleton);
+    chartSkeleton.appendChild(chartAreaSkeleton);
+    chartSkeleton.appendChild(document.createElement('div')); // spacer
+    chartSkeleton.appendChild(xAxisSkeleton);
+    
+    skeletonStructure.appendChild(chartSkeleton);
+    chartContainer.appendChild(skeletonStructure);
+    
+    // Add data-skeleton attribute for identification
+    chartContainer.setAttribute('data-skeleton', 'true');
   }
 
   hideChartLoading(chartId) {
     const chartContainer = document.getElementById(chartId);
     if (!chartContainer) return;
     
-    const loadingOverlay = chartContainer.querySelector('.chart-loading');
-    if (loadingOverlay) {
-      loadingOverlay.classList.add('hidden');
-    }
+    // Remove the skeleton attribute
+    chartContainer.removeAttribute('data-skeleton');
   }
 
   loadSystemStats() {
@@ -402,11 +561,23 @@ export class OverviewManager {
     xAxis.innerHTML = '';
     
     data.forEach((item, index) => {
+      // Create bar container to properly center the value label
+      const barContainer = document.createElement('div');
+      barContainer.className = 'bar-container';
+      barContainer.style.flex = '1';
+      barContainer.style.display = 'flex';
+      barContainer.style.flexDirection = 'column';
+      barContainer.style.alignItems = 'center';
+      barContainer.style.position = 'relative';
+      barContainer.style.maxWidth = '40px';
+      barContainer.style.margin = '0 5px';
+      
       // Create bar
       const bar = document.createElement('div');
       bar.className = 'bar blue';
       const heightPercent = (item.value / maxValue) * 100;
       bar.style.height = `${heightPercent}%`;
+      bar.style.width = '100%';
       bar.setAttribute('data-value', item.value);
       bar.setAttribute('data-label', item.label);
       bar.style.animationDelay = `${index * 0.1}s`;
@@ -432,7 +603,7 @@ export class OverviewManager {
         bar.style.transform = '';
       });
       
-      chartArea.appendChild(bar);
+      barContainer.appendChild(bar);
       
       // Create value label on top of bar for significant values
       if (heightPercent > 15) {  // Only show value labels for bars tall enough to fit them
@@ -440,17 +611,18 @@ export class OverviewManager {
         valueLabel.className = 'bar-value-label';
         valueLabel.textContent = item.value;
         valueLabel.style.position = 'absolute';
-        valueLabel.style.left = `50%`;
-        valueLabel.style.transform = 'translateX(-50%)';
-        valueLabel.style.bottom = `${heightPercent + 2}px`;
-        valueLabel.style.fontSize = '11px';
-        valueLabel.style.fontWeight = 'bold';
-        valueLabel.style.color = '#ffffff';
-        valueLabel.style.textShadow = '0px 0px 2px rgba(0,0,0,0.7)';
-        valueLabel.style.zIndex = '2';
+        valueLabel.style.bottom = `${heightPercent + 5}%`;
+        valueLabel.style.fontSize = '10px';
+        valueLabel.style.color = '#b9bbbe';
+        valueLabel.style.width = '100%';
+        valueLabel.style.textAlign = 'center';
+        valueLabel.style.userSelect = 'none';
         valueLabel.style.pointerEvents = 'none';
-        chartArea.appendChild(valueLabel);
+        valueLabel.style.transform = 'translateX(0)';
+        barContainer.appendChild(valueLabel);
       }
+      
+      chartArea.appendChild(barContainer);
       
       // Create x-axis label
       const label = document.createElement('div');
@@ -599,7 +771,6 @@ export class OverviewManager {
     
     chartArea.appendChild(trackingArea);
     
-    // Create SVG element for the line chart
     const svgNS = "http://www.w3.org/2000/svg";
     const svg = document.createElementNS(svgNS, "svg");
     svg.setAttribute("width", "100%");
@@ -612,7 +783,6 @@ export class OverviewManager {
     svg.style.overflow = "visible";
     svg.style.zIndex = "0";
     
-    // Create polyline for data points
     const polyline = document.createElementNS(svgNS, "polyline");
     polyline.setAttribute("fill", "none");
     polyline.setAttribute("stroke", "#5865f2");
@@ -741,11 +911,23 @@ export class OverviewManager {
     xAxis.innerHTML = '';
     
     data.forEach((item, index) => {
+      // Create bar container to properly center the value label
+      const barContainer = document.createElement('div');
+      barContainer.className = 'bar-container';
+      barContainer.style.flex = '1';
+      barContainer.style.display = 'flex';
+      barContainer.style.flexDirection = 'column';
+      barContainer.style.alignItems = 'center';
+      barContainer.style.position = 'relative';
+      barContainer.style.maxWidth = '40px';
+      barContainer.style.margin = '0 5px';
+      
       // Create bar
       const bar = document.createElement('div');
       bar.className = 'bar purple';
       const heightPercent = (item.value / maxValue) * 100;
       bar.style.height = `${heightPercent}%`;
+      bar.style.width = '100%';
       bar.setAttribute('data-value', item.value);
       bar.setAttribute('data-label', item.label);
       bar.style.animationDelay = `${index * 0.1}s`;
@@ -771,7 +953,7 @@ export class OverviewManager {
         bar.style.transform = '';
       });
       
-      chartArea.appendChild(bar);
+      barContainer.appendChild(bar);
       
       // Create value label on top of bar for significant values
       if (heightPercent > 15) {  // Only show value labels for bars tall enough to fit them
@@ -779,17 +961,18 @@ export class OverviewManager {
         valueLabel.className = 'bar-value-label';
         valueLabel.textContent = item.value;
         valueLabel.style.position = 'absolute';
-        valueLabel.style.left = `50%`;
-        valueLabel.style.transform = 'translateX(-50%)';
-        valueLabel.style.bottom = `${heightPercent + 2}px`;
-        valueLabel.style.fontSize = '11px';
-        valueLabel.style.fontWeight = 'bold';
-        valueLabel.style.color = '#ffffff';
-        valueLabel.style.textShadow = '0px 0px 2px rgba(0,0,0,0.7)';
-        valueLabel.style.zIndex = '2';
+        valueLabel.style.bottom = `${heightPercent + 5}%`;
+        valueLabel.style.fontSize = '10px';
+        valueLabel.style.color = '#b9bbbe';
+        valueLabel.style.width = '100%';
+        valueLabel.style.textAlign = 'center';
+        valueLabel.style.userSelect = 'none';
         valueLabel.style.pointerEvents = 'none';
-        chartArea.appendChild(valueLabel);
+        valueLabel.style.transform = 'translateX(0)';
+        barContainer.appendChild(valueLabel);
       }
+      
+      chartArea.appendChild(barContainer);
       
       // Create x-axis label
       const label = document.createElement('div');

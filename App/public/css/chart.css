@@ -62,14 +62,33 @@
   justify-content: space-around;
 }
 
-.bar {
+.bar-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
   flex: 1;
+  max-width: 40px;
   margin: 0 5px;
+  height: 100%;
+}
+
+.bar {
+  width: 100%;
   background-color: #5865f2;
   border-radius: 3px 3px 0 0;
   transition: height 1s ease;
-  max-width: 40px;
   min-height: 1px;
+}
+
+.bar-value-label {
+  position: absolute;
+  font-size: 10px;
+  color: #b9bbbe;
+  text-align: center;
+  user-select: none;
+  pointer-events: none;
+  width: 100%;
 }
 
 .bar-chart .x-axis {
