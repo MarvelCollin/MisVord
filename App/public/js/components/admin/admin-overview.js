@@ -515,7 +515,6 @@ export class OverviewManager {
     const chartContainer = document.getElementById('users-chart');
     if (!chartContainer) return;
     
-    // Use the appropriate data based on the selected period
     const data = this.currentChartPeriod === 'daily' ? 
       this.chartData.users.daily : 
       this.chartData.users.weekly;
@@ -525,20 +524,16 @@ export class OverviewManager {
       return;
     }
     
-    // Create chart structure
     const chartStructure = this.createChartStructure('bar-chart', 'New Users');
     chartContainer.innerHTML = '';
     chartContainer.appendChild(chartStructure);
     
-    // Get chart elements
-    const chartArea = chartContainer.querySelector('.chart-area');
-    const yAxis = chartContainer.querySelector('.y-axis');
-    const xAxis = chartContainer.querySelector('.x-axis');
+    const chartArea = chartStructure.querySelector('.chart-area');
+    const yAxis = chartStructure.querySelector('.y-axis');
+    const xAxis = chartStructure.querySelector('.x-axis');
     
-    // Find max value for scaling
-    const maxValue = Math.max(...data.map(item => item.value)) * 1.2; // Add 20% padding
+    const maxValue = Math.max(...data.map(item => item.value)) * 1.2;
     
-    // Setup y-axis labels
     const yLabels = this.generateYAxisLabels(maxValue, 5);
     yAxis.innerHTML = '';
     yLabels.forEach(label => {
@@ -546,7 +541,6 @@ export class OverviewManager {
       labelEl.textContent = label;
       yAxis.appendChild(labelEl);
       
-      // Add horizontal grid line
       const linePos = (1 - (label / maxValue)) * 100;
       if (label > 0) {
         const gridLine = document.createElement('div');
@@ -556,12 +550,10 @@ export class OverviewManager {
       }
     });
     
-    // Generate bars and x-axis labels
     chartArea.innerHTML = '';
     xAxis.innerHTML = '';
     
     data.forEach((item, index) => {
-      // Create bar container to properly center the value label
       const barContainer = document.createElement('div');
       barContainer.className = 'bar-container';
       barContainer.style.flex = '1';
@@ -571,8 +563,8 @@ export class OverviewManager {
       barContainer.style.position = 'relative';
       barContainer.style.maxWidth = '40px';
       barContainer.style.margin = '0 5px';
+      barContainer.style.justifyContent = 'flex-end';
       
-      // Create bar
       const bar = document.createElement('div');
       bar.className = 'bar blue';
       const heightPercent = (item.value / maxValue) * 100;
@@ -582,11 +574,9 @@ export class OverviewManager {
       bar.setAttribute('data-label', item.label);
       bar.style.animationDelay = `${index * 0.1}s`;
       
-      // Add hover effect
       bar.addEventListener('mouseenter', (e) => {
         this.showTooltip(e, `${item.label}: ${item.value} users`);
         
-        // Highlight the bar
         bar.style.backgroundColor = '#778aff';
         bar.style.boxShadow = '0 0 10px rgba(88, 101, 242, 0.5)';
         bar.style.transform = 'scaleY(1.03)';
@@ -597,7 +587,6 @@ export class OverviewManager {
       bar.addEventListener('mouseleave', () => {
         this.hideTooltip();
         
-        // Remove highlight
         bar.style.backgroundColor = '';
         bar.style.boxShadow = '';
         bar.style.transform = '';
@@ -605,32 +594,28 @@ export class OverviewManager {
       
       barContainer.appendChild(bar);
       
-      // Create value label on top of bar for significant values
-      if (heightPercent > 15) {  // Only show value labels for bars tall enough to fit them
+      if (heightPercent > 15) {
         const valueLabel = document.createElement('div');
         valueLabel.className = 'bar-value-label';
         valueLabel.textContent = item.value;
         valueLabel.style.position = 'absolute';
-        valueLabel.style.bottom = `${heightPercent + 5}%`;
+        valueLabel.style.top = `-20px`;
         valueLabel.style.fontSize = '10px';
         valueLabel.style.color = '#b9bbbe';
         valueLabel.style.width = '100%';
         valueLabel.style.textAlign = 'center';
         valueLabel.style.userSelect = 'none';
         valueLabel.style.pointerEvents = 'none';
-        valueLabel.style.transform = 'translateX(0)';
         barContainer.appendChild(valueLabel);
       }
       
       chartArea.appendChild(barContainer);
       
-      // Create x-axis label
       const label = document.createElement('div');
       label.textContent = this.formatAxisLabel(item.label);
       xAxis.appendChild(label);
     });
     
-    // Add hover effect for overall chart area
     const trackingArea = document.createElement('div');
     trackingArea.className = 'chart-tracking-area';
     trackingArea.style.position = 'absolute';
@@ -647,7 +632,6 @@ export class OverviewManager {
     const chartContainer = document.getElementById('messages-chart');
     if (!chartContainer) return;
     
-    // Use the appropriate data based on the selected period
     const data = this.currentChartPeriod === 'daily' ? 
       this.chartData.messages.daily : 
       this.chartData.messages.weekly;
@@ -657,20 +641,16 @@ export class OverviewManager {
       return;
     }
     
-    // Create chart structure
     const chartStructure = this.createChartStructure('line-chart', 'Message Activity');
     chartContainer.innerHTML = '';
     chartContainer.appendChild(chartStructure);
     
-    // Get chart elements
-    const chartArea = chartContainer.querySelector('.chart-area');
-    const yAxis = chartContainer.querySelector('.y-axis');
-    const xAxis = chartContainer.querySelector('.x-axis');
+    const chartArea = chartStructure.querySelector('.chart-area');
+    const yAxis = chartStructure.querySelector('.y-axis');
+    const xAxis = chartStructure.querySelector('.x-axis');
     
-    // Find max value for scaling
-    const maxValue = Math.max(...data.map(item => item.value)) * 1.2; // Add 20% padding
+    const maxValue = Math.max(...data.map(item => item.value)) * 1.2;
     
-    // Setup y-axis labels
     const yLabels = this.generateYAxisLabels(maxValue, 5);
     yAxis.innerHTML = '';
     yLabels.forEach(label => {
@@ -678,7 +658,6 @@ export class OverviewManager {
       labelEl.textContent = label;
       yAxis.appendChild(labelEl);
       
-      // Add horizontal grid line
       const linePos = (1 - (label / maxValue)) * 100;
       if (label > 0) {
         const gridLine = document.createElement('div');
@@ -688,14 +667,12 @@ export class OverviewManager {
       }
     });
     
-    // Clear chart area for points and lines
     chartArea.innerHTML = '';
     xAxis.innerHTML = '';
     
-    // Calculate point positions
     const points = data.map((item, index) => {
       const x = (index / (data.length - 1)) * 100;
-      const y = 100 - (item.value / maxValue) * 100; // Invert Y for SVG coordinates
+      const y = 100 - (item.value / maxValue) * 100;
       return { 
         x, 
         y, 
@@ -704,7 +681,6 @@ export class OverviewManager {
       };
     });
     
-    // Create interactive area for line tooltip tracking
     const trackingArea = document.createElement('div');
     trackingArea.className = 'chart-tracking-area';
     trackingArea.style.position = 'absolute';
@@ -714,12 +690,10 @@ export class OverviewManager {
     trackingArea.style.height = '100%';
     trackingArea.style.zIndex = '1';
     
-    // Add tooltip on mouse movement over tracking area
     trackingArea.addEventListener('mousemove', (e) => {
       const rect = trackingArea.getBoundingClientRect();
       const x = ((e.clientX - rect.left) / rect.width) * 100;
       
-      // Find the closest point
       let closestPoint = points[0];
       let minDistance = Math.abs(x - closestPoint.x);
       
@@ -731,10 +705,9 @@ export class OverviewManager {
         }
       }
       
-      if (minDistance < 5) { // Only show tooltip if close enough to a point
+      if (minDistance < 5) {
         this.showTooltip(e, `${closestPoint.label}: ${closestPoint.value} messages`);
         
-        // Highlight the nearest point
         const highlightPoint = document.createElement('div');
         highlightPoint.className = 'highlight-point';
         highlightPoint.style.position = 'absolute';
@@ -749,7 +722,6 @@ export class OverviewManager {
         highlightPoint.style.zIndex = '2';
         highlightPoint.style.pointerEvents = 'none';
         
-        // Remove any existing highlight point
         const existingHighlight = chartArea.querySelector('.highlight-point');
         if (existingHighlight) {
           chartArea.removeChild(existingHighlight);
@@ -762,7 +734,6 @@ export class OverviewManager {
     trackingArea.addEventListener('mouseleave', () => {
       this.hideTooltip();
       
-      // Remove highlight point
       const existingHighlight = chartArea.querySelector('.highlight-point');
       if (existingHighlight) {
         chartArea.removeChild(existingHighlight);
@@ -793,10 +764,8 @@ export class OverviewManager {
     polyline.setAttribute("points", pointsString);
     svg.appendChild(polyline);
     
-    // Add SVG to chart area
     chartArea.appendChild(svg);
     
-    // Create interactive points
     points.forEach((point, index) => {
       const dataPoint = document.createElement('div');
       dataPoint.className = 'data-point blue';
@@ -804,11 +773,9 @@ export class OverviewManager {
       dataPoint.style.bottom = `${100 - point.y}%`;
       dataPoint.style.animationDelay = `${index * 0.1}s`;
       
-      // Add hover effect
       dataPoint.addEventListener('mouseenter', (e) => {
         this.showTooltip(e, `${point.label}: ${point.value} messages`);
         
-        // Highlight the current point
         dataPoint.classList.add('active');
         dataPoint.style.transform = 'translate(-50%, 50%) scale(1.5)';
         dataPoint.style.backgroundColor = '#ffffff';
@@ -818,7 +785,6 @@ export class OverviewManager {
       dataPoint.addEventListener('mouseleave', () => {
         this.hideTooltip();
         
-        // Remove highlight
         dataPoint.classList.remove('active');
         dataPoint.style.transform = 'translate(-50%, 50%)';
         dataPoint.style.backgroundColor = '#5865f2';
@@ -827,7 +793,6 @@ export class OverviewManager {
       
       chartArea.appendChild(dataPoint);
       
-      // Create x-axis labels (only show every nth label on small screens)
       if (index === 0 || index === points.length - 1 || 
           (window.innerWidth > 768 || index % 2 === 0)) {
         const label = document.createElement('div');
@@ -839,7 +804,6 @@ export class OverviewManager {
       }
     });
 
-    // Add CSS animation for line drawing
     const style = document.createElement('style');
     style.textContent = `
       @keyframes draw-line {
@@ -867,7 +831,6 @@ export class OverviewManager {
     const chartContainer = document.getElementById('servers-chart');
     if (!chartContainer) return;
     
-    // Use server growth data
     const data = this.chartData.servers.growth;
     
     if (!data || data.length === 0) {
@@ -875,20 +838,16 @@ export class OverviewManager {
       return;
     }
     
-    // Create chart structure
     const chartStructure = this.createChartStructure('bar-chart', 'Server Growth');
     chartContainer.innerHTML = '';
     chartContainer.appendChild(chartStructure);
     
-    // Get chart elements
-    const chartArea = chartContainer.querySelector('.chart-area');
-    const yAxis = chartContainer.querySelector('.y-axis');
-    const xAxis = chartContainer.querySelector('.x-axis');
+    const chartArea = chartStructure.querySelector('.chart-area');
+    const yAxis = chartStructure.querySelector('.y-axis');
+    const xAxis = chartStructure.querySelector('.x-axis');
     
-    // Find max value for scaling
-    const maxValue = Math.max(...data.map(item => item.value)) * 1.2; // Add 20% padding
+    const maxValue = Math.max(...data.map(item => item.value)) * 1.2;
     
-    // Setup y-axis labels
     const yLabels = this.generateYAxisLabels(maxValue, 5);
     yAxis.innerHTML = '';
     yLabels.forEach(label => {
@@ -896,7 +855,6 @@ export class OverviewManager {
       labelEl.textContent = label;
       yAxis.appendChild(labelEl);
       
-      // Add horizontal grid line
       const linePos = (1 - (label / maxValue)) * 100;
       if (label > 0) {
         const gridLine = document.createElement('div');
@@ -906,12 +864,10 @@ export class OverviewManager {
       }
     });
     
-    // Generate bars and x-axis labels
     chartArea.innerHTML = '';
     xAxis.innerHTML = '';
     
     data.forEach((item, index) => {
-      // Create bar container to properly center the value label
       const barContainer = document.createElement('div');
       barContainer.className = 'bar-container';
       barContainer.style.flex = '1';
@@ -921,8 +877,8 @@ export class OverviewManager {
       barContainer.style.position = 'relative';
       barContainer.style.maxWidth = '40px';
       barContainer.style.margin = '0 5px';
+      barContainer.style.justifyContent = 'flex-end';
       
-      // Create bar
       const bar = document.createElement('div');
       bar.className = 'bar purple';
       const heightPercent = (item.value / maxValue) * 100;
@@ -932,11 +888,9 @@ export class OverviewManager {
       bar.setAttribute('data-label', item.label);
       bar.style.animationDelay = `${index * 0.1}s`;
       
-      // Add hover effect
       bar.addEventListener('mouseenter', (e) => {
         this.showTooltip(e, `${item.label}: ${item.value} servers`);
         
-        // Highlight the bar
         bar.style.backgroundColor = '#b06bc4';
         bar.style.boxShadow = '0 0 10px rgba(155, 89, 182, 0.5)';
         bar.style.transform = 'scaleY(1.03)';
@@ -947,7 +901,6 @@ export class OverviewManager {
       bar.addEventListener('mouseleave', () => {
         this.hideTooltip();
         
-        // Remove highlight
         bar.style.backgroundColor = '';
         bar.style.boxShadow = '';
         bar.style.transform = '';
@@ -955,32 +908,28 @@ export class OverviewManager {
       
       barContainer.appendChild(bar);
       
-      // Create value label on top of bar for significant values
-      if (heightPercent > 15) {  // Only show value labels for bars tall enough to fit them
+      if (heightPercent > 15) {
         const valueLabel = document.createElement('div');
         valueLabel.className = 'bar-value-label';
         valueLabel.textContent = item.value;
         valueLabel.style.position = 'absolute';
-        valueLabel.style.bottom = `${heightPercent + 5}%`;
+        valueLabel.style.top = `-20px`;
         valueLabel.style.fontSize = '10px';
         valueLabel.style.color = '#b9bbbe';
         valueLabel.style.width = '100%';
         valueLabel.style.textAlign = 'center';
         valueLabel.style.userSelect = 'none';
         valueLabel.style.pointerEvents = 'none';
-        valueLabel.style.transform = 'translateX(0)';
         barContainer.appendChild(valueLabel);
       }
       
       chartArea.appendChild(barContainer);
       
-      // Create x-axis label
       const label = document.createElement('div');
       label.textContent = this.formatAxisLabel(item.label);
       xAxis.appendChild(label);
     });
     
-    // Add hover effect for overall chart area
     const trackingArea = document.createElement('div');
     trackingArea.className = 'chart-tracking-area';
     trackingArea.style.position = 'absolute';
@@ -994,6 +943,7 @@ export class OverviewManager {
   }
 
   createChartStructure(chartType, chartTitle) {
+    const chartId = `chart-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     const structure = document.createElement('div');
     structure.innerHTML = `
       <div class="chart-title">${chartTitle}</div>
@@ -1003,9 +953,10 @@ export class OverviewManager {
         <div></div>
         <div class="x-axis"></div>
       </div>
-      <div class="chart-tooltip" id="chart-tooltip"></div>
+      <div class="chart-tooltip" id="${chartId}-tooltip"></div>
     `;
     structure.className = `chart-container ${chartType}`;
+    structure.setAttribute('data-chart-id', chartId);
     return structure;
   }
 
@@ -1050,51 +1001,62 @@ export class OverviewManager {
   }
 
   showTooltip(event, text) {
-    const tooltip = document.getElementById('chart-tooltip');
+    const targetBar = event.target;
+    const barRect = targetBar.getBoundingClientRect();
+    
+    const chartContainer = event.target.closest('.chart-container');
+    if (!chartContainer) return;
+    
+    const chartId = chartContainer.getAttribute('data-chart-id');
+    const tooltip = document.getElementById(`${chartId}-tooltip`);
     if (!tooltip) return;
     
     tooltip.textContent = text;
+    const tooltipRect = tooltip.getBoundingClientRect();
     
-    const chartArea = event.target.closest('.chart-area');
-    if (chartArea) {
-      const chartRect = chartArea.getBoundingClientRect();
-      const tooltipRect = tooltip.getBoundingClientRect();
-      
-      let left = event.clientX;
-      let top = event.clientY - 10;
-      
-      if (left + tooltipRect.width / 2 > chartRect.right) {
-        left = chartRect.right - tooltipRect.width / 2;
-      } else if (left - tooltipRect.width / 2 < chartRect.left) {
-        left = chartRect.left + tooltipRect.width / 2;
-      }
-      
-      if (top - tooltipRect.height < chartRect.top) {
-        top = event.clientY + 20; // Place tooltip below the cursor
-        tooltip.classList.add('tooltip-bottom');
-      } else {
-        tooltip.classList.remove('tooltip-bottom');
-      }
-      
-      tooltip.style.left = `${left}px`;
-      tooltip.style.top = `${top}px`;
+    // Calculate position based on the bar's position
+    const left = barRect.left + (barRect.width / 2);
+    let top = barRect.top - 10;
+    
+    // Adjust if tooltip would go off screen
+    if (top - tooltipRect.height < 0) {
+      top = barRect.bottom + 10;
+      tooltip.classList.add('tooltip-bottom');
     } else {
-      tooltip.style.left = `${event.clientX}px`;
-      tooltip.style.top = `${event.clientY - 10}px`;
+      tooltip.classList.remove('tooltip-bottom');
     }
     
-    tooltip.style.opacity = 1;
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
+    
+    // Clear any existing hide timeout
+    if (tooltip.hideTimeout) {
+      clearTimeout(tooltip.hideTimeout);
+      tooltip.hideTimeout = null;
+    }
+    
+    // Use the visible class for animation
+    tooltip.classList.add('visible');
     tooltip.style.visibility = 'visible';
   }
 
   hideTooltip() {
-    const tooltip = document.getElementById('chart-tooltip');
-    if (!tooltip) return;
-    
-    tooltip.style.opacity = 0;
-    setTimeout(() => {
-      tooltip.style.visibility = 'hidden';
-    }, 200);
+    const tooltips = document.querySelectorAll('.chart-tooltip');
+    tooltips.forEach(tooltip => {
+      // Don't set another timeout if one is already pending
+      if (tooltip.hideTimeout) return;
+      
+      // Add a delay before hiding
+      tooltip.hideTimeout = setTimeout(() => {
+        tooltip.classList.remove('visible');
+        
+        // Wait for transition to complete before hiding
+        setTimeout(() => {
+          tooltip.style.visibility = 'hidden';
+          tooltip.hideTimeout = null;
+        }, 300);
+      }, 200); // 200ms delay before starting to hide
+    });
   }
 }
 

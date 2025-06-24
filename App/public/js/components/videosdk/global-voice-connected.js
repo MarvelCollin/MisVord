@@ -75,55 +75,38 @@ class GlobalVoiceIndicator {
 
   createIndicator() {
     if (this.indicator) return;
-
-    const indicator = document.createElement("div");
-    indicator.className =
-      "fixed bottom-4 left-4 z-50 bg-[#1e1f22] text-white rounded-md shadow-lg transform transition-all duration-300 scale-0 opacity-0 cursor-grab active:cursor-grabbing w-56";
-    indicator.innerHTML = `
-        <div class="px-3 py-1.5">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center">
-                    <i class="fas fa-wifi text-[#43b581] mr-1.5 text-sm"></i>
-                    <div class="text-sm font-medium text-[#43b581] drag-handle cursor-grab active:cursor-grabbing">Voice Connected</div>
-                </div>
-                <div class="flex items-center space-x-2">
-                    <div class="text-white">
-                        <i class="fas fa-signal text-sm"></i>
-                    </div>
-                    <button class="disconnect-btn w-5 h-5 flex items-center justify-center rounded-full hover:bg-[#36393f]">
-                        <i class="fas fa-circle-xmark text-white text-xs"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="text-xs text-[#B9BBBE] drag-handle cursor-grab active:cursor-grabbing channel-info"></div>
-        </div>
-        <div class="border-t border-[#2f3136]">
-            <div class="flex justify-between px-3 py-1.5">
-                <button class="w-7 h-7 bg-[#2a2b30] rounded-full flex items-center justify-center hover:bg-[#36393f]">
-                    <i class="fas fa-microphone-slash text-[#B9BBBE] text-xs"></i>
-                </button>
-                <button class="w-7 h-7 bg-[#2a2b30] rounded-full flex items-center justify-center hover:bg-[#36393f]">
-                    <i class="fas fa-video text-[#B9BBBE] text-xs"></i>
-                </button>
-                <button class="w-7 h-7 bg-[#2a2b30] rounded-full flex items-center justify-center hover:bg-[#36393f] relative">
-                    <i class="fas fa-gamepad text-[#B9BBBE] text-xs"></i>
-                    <div class="absolute w-1 h-1 bg-white rounded-full top-0.5 right-0.5"></div>
-                </button>
-                <button class="w-7 h-7 bg-[#2a2b30] rounded-full flex items-center justify-center hover:bg-[#36393f]">
-                    <i class="fas fa-cog text-[#B9BBBE] text-xs"></i>
-                </button>
-            </div>
-        </div>
-    `;
-
-    document.body.appendChild(indicator);
-    this.indicator = indicator;
-
-    const disconnectBtn = indicator.querySelector(".disconnect-btn");
-    disconnectBtn.addEventListener("click", () => this.handleDisconnect());
-
-    this.loadPosition();
-    this.makeDraggable();
+    
+    // Load the voice indicator component if it's not already in the DOM
+    if (!document.getElementById('voice-indicator')) {
+      fetch('/components/common/voice-indicator')
+        .then(response => response.text())
+        .then(html => {
+          // Insert the component into the DOM
+          document.body.insertAdjacentHTML('beforeend', html);
+          
+          // Get the indicator element
+          this.indicator = document.getElementById('voice-indicator');
+          
+          // Add event listener to disconnect button
+          const disconnectBtn = this.indicator.querySelector(".disconnect-btn");
+          disconnectBtn.addEventListener("click", () => this.handleDisconnect());
+          
+          this.loadPosition();
+          this.makeDraggable();
+        })
+        .catch(error => {
+          console.error('Error loading voice indicator component:', error);
+        });
+    } else {
+      this.indicator = document.getElementById('voice-indicator');
+      
+      // Add event listener to disconnect button
+      const disconnectBtn = this.indicator.querySelector(".disconnect-btn");
+      disconnectBtn.addEventListener("click", () => this.handleDisconnect());
+      
+      this.loadPosition();
+      this.makeDraggable();
+    }
   }
 
   makeDraggable() {

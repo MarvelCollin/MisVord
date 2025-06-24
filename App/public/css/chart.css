@@ -214,7 +214,7 @@
 .line-chart .data-line.red { background-color: #ED4245; }
 
 .chart-tooltip {
-  position: absolute;
+  position: fixed;
   background-color: #18191c;
   border-radius: 4px;
   padding: 6px 10px;
@@ -223,12 +223,18 @@
   pointer-events: none;
   z-index: 100;
   opacity: 0;
-  transition: opacity 0.2s;
+  transition: opacity 0.3s ease, transform 0.3s ease;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
   white-space: nowrap;
-  transform: translate(-50%, -100%);
+  transform: translate(-50%, -100%) scale(0.95);
   margin-top: -10px;
   visibility: hidden;
+}
+
+.chart-tooltip.visible {
+  opacity: 1;
+  transform: translate(-50%, -100%) scale(1);
+  visibility: visible;
 }
 
 .chart-tooltip:after {
@@ -243,13 +249,17 @@
 }
 
 .chart-tooltip.tooltip-bottom {
-  transform: translate(-50%, 0);
+  transform: translate(-50%, 0) scale(0.95);
   margin-top: 10px;
 }
 
+.chart-tooltip.tooltip-bottom.visible {
+  transform: translate(-50%, 0) scale(1);
+}
+
 .chart-tooltip.tooltip-bottom:after {
-  bottom: auto;
   top: -5px;
+  bottom: auto;
   border-width: 0 5px 5px;
   border-color: transparent transparent #18191c transparent;
 }
