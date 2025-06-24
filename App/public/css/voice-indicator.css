@@ -1,0 +1,126 @@
+/* Voice Indicator Styles */
+
+.voice-ind-container {
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.45);
+  opacity: 1 !important;
+  transform: scale(1) !important;
+  transition: all 0.2s ease;
+  width: 220px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(79, 84, 92, 0.2);
+}
+
+.voice-ind-signal div {
+  transition: height 0.3s ease, opacity 0.3s ease, background-color 0.3s ease;
+}
+
+.voice-ind-signal div:nth-child(1) {
+  animation: signal-pulse 1.5s infinite;
+}
+
+.voice-ind-signal div:nth-child(2) {
+  animation: signal-pulse 1.5s infinite 0.3s;
+}
+
+.voice-ind-signal div:nth-child(3) {
+  animation: signal-pulse 1.5s infinite 0.6s;
+}
+
+@keyframes signal-pulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+.pulse-icon {
+  animation: pulse-green 2s infinite;
+}
+
+@keyframes pulse-green {
+  0% { opacity: 0.7; }
+  50% { opacity: 1; }
+  100% { opacity: 0.7; }
+}
+
+.voice-ind-btn {
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.voice-ind-btn:hover {
+  transform: translateY(-2px);
+}
+
+.voice-ind-btn:active {
+  transform: translateY(0);
+}
+
+.voice-ind-btn i {
+  transition: all 0.2s ease;
+}
+
+.voice-ind-btn:hover i {
+  transform: scale(1.1);
+}
+
+#voice-indicator.active {
+  opacity: 0.95 !important;
+  cursor: grabbing;
+}
+
+.channel-name, .connection-duration {
+  font-size: 11px;
+  letter-spacing: 0.2px;
+}
+
+.voice-ind-container:not(.scale-0) {
+  display: flex !important;
+  flex-direction: column;
+}
+
+.disconnect-btn {
+  transition: all 0.2s ease;
+}
+
+.disconnect-btn:hover {
+  background-color: rgba(237, 66, 69, 0.15);
+  transform: scale(1.1);
+}
+
+.disconnect-btn:hover i {
+  color: #ff5e62;
+}
+
+.voice-ind-main {
+  width: 100%;
+}
+
+.voice-ind-title {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  letter-spacing: 0.3px;
+}
+
+.voice-ind-controls {
+  background: linear-gradient(to bottom, #232428, #1e1f22);
+}
+
+.voice-ind-header {
+  background: linear-gradient(to bottom, #1e1f22, #232428);
+}
+
+.channel-name {
+  color: #43b581;
+  font-weight: 500;
+}
+
+@media (max-width: 640px) {
+  .voice-ind-container {
+    width: 180px;
+    bottom: 1rem;
+    left: 1rem;
+  }
+  
+  .voice-ind-title {
+    font-size: 12px;
+  }
+}

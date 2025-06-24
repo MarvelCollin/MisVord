@@ -168,7 +168,9 @@ class AdminManager {
     if (section === "overview") {
       window.overviewManager.loadSystemStats();
     } else if (section === "users") {
-      window.userManager.loadUsers();
+      // Show skeletons first
+      window.userManager.showSkeletons();
+      // Load stats which will then trigger loading users
       window.userManager.loadUserStats();
     } else if (section === "servers") {
       window.serverManager.loadServers();

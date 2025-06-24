@@ -1,7 +1,7 @@
-<div id="server-detail-modal" class="fixed inset-0 z-[9999] hidden">
-    <div class="modal-backdrop fixed inset-0 bg-black bg-opacity-80"></div>
-    <div class="modal-container bg-discord-darker rounded-lg w-full max-w-md mx-auto my-auto overflow-hidden shadow-xl relative z-[10000] transform transition-all">
-        <button id="close-server-modal" class="absolute top-4 right-4 text-gray-400 hover:text-white z-20">
+<div id="server-detail-modal" class="fixed inset-0 z-[99999]" style="display: none;">
+    <div class="modal-backdrop fixed inset-0 bg-black bg-opacity-80 z-[99998]"></div>
+    <div class="modal-container bg-discord-darker rounded-lg w-full max-w-md mx-auto my-auto overflow-hidden shadow-xl relative z-[100000] transform transition-all">
+        <button id="close-server-modal" class="absolute top-4 right-4 text-gray-400 hover:text-white z-[100001]">
             <i class="fas fa-times text-xl"></i>
         </button>
         
@@ -54,18 +54,7 @@
                         <h3 class="text-white text-sm font-medium">Features</h3>
                     </div>
                     <div id="server-modal-features" class="grid grid-cols-2 gap-2">
-                        <div class="feature px-3 py-2 bg-discord-light/40 rounded-md text-xs">
-                            <i class="fas fa-users mr-2"></i> Community
-                        </div>
-                        <div class="feature px-3 py-2 bg-discord-light/40 rounded-md text-xs">
-                            <i class="fas fa-video mr-2"></i> Voice channels
-                        </div>
-                        <div class="feature px-3 py-2 bg-discord-light/40 rounded-md text-xs">
-                            <i class="fas fa-comment mr-2"></i> Text channels
-                        </div>
-                        <div class="feature px-3 py-2 bg-discord-light/40 rounded-md text-xs">
-                            <i class="fas fa-globe mr-2"></i> Public
-                        </div>
+                        <!-- Features will be populated by JavaScript -->
                     </div>
                 </div>
             </div>
@@ -75,14 +64,22 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Modal element in DOM:', document.getElementById('server-detail-modal') !== null);
+    const modal = document.getElementById('server-detail-modal');
+    const closeBtn = document.getElementById('close-server-modal');
+    
+    if (closeBtn && modal) {
+        closeBtn.addEventListener('click', function() {
+            modal.classList.remove('active');
+            setTimeout(() => {
+                modal.style.display = 'none';
+            }, 200);
+            document.body.style.overflow = '';
+        });
+    }
     
     window.testServerModal = function() {
-        console.log('Testing server modal');
         const modal = document.getElementById('server-detail-modal');
         if (modal) {
-            console.log('Found modal element');
-            
             const nameElement = document.getElementById('server-modal-name');
             const descriptionElement = document.getElementById('server-modal-description');
             const membersCountElement = document.querySelector('#server-modal-members .member-count');
@@ -95,15 +92,14 @@ document.addEventListener('DOMContentLoaded', function() {
             if (onlineCountElement) onlineCountElement.textContent = '45';
             if (iconFallbackText) iconFallbackText.textContent = 'T';
             
-            modal.classList.add('active');
+            modal.style.display = 'flex';
+            setTimeout(() => {
+                modal.classList.add('active');
+            }, 10);
             document.body.style.overflow = 'hidden';
-            
-            console.log('Modal should now be visible');
             return true;
-        } else {    
-            console.error('Modal element not found');
-            return false;
         }
+        return false;
     };
 });
 </script>

@@ -53,7 +53,12 @@ class ServerDetailModal {
             }
             
             this.updateModalContent(server);
-            this.showModal();
+            
+            this.modal.style.display = 'flex';
+            setTimeout(() => {
+                this.modal.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }, 10);
             
         } catch (error) {
             console.error('Error loading server details:', error);
@@ -229,14 +234,12 @@ class ServerDetailModal {
         }
     }
     
-    showModal() {
-        document.body.style.overflow = 'hidden';
-        this.modal.classList.add('active');
-    }
-    
     hideModal() {
         document.body.style.overflow = '';
         this.modal.classList.remove('active');
+        setTimeout(() => {
+            this.modal.style.display = '';
+        }, 200); // Wait for transition to finish
     }
     
     isModalVisible() {

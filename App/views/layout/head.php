@@ -71,6 +71,7 @@ $cache_version = time();
 <link rel="stylesheet" href="<?php echo css('lazy-loading'); ?>?v=<?php echo $cache_version; ?>">
 <link rel="stylesheet" href="<?php echo css('message-context-menu'); ?>?v=<?php echo $cache_version; ?>">
 <link rel="stylesheet" href="<?= asset('/css/user-detail.css') ?>">
+<link rel="stylesheet" href="<?= asset('/css/voice-indicator.css') ?>">
 
 <?php if (isset($page_css)): ?>
     <?php if (is_array($page_css)): ?>

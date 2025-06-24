@@ -15,8 +15,17 @@ export class UserManager {
     this.initUserManagement();
     this.initViewModes();
     this.initFilters();
-    this.loadUserStats();
-    this.loadUsers();
+    
+    // Immediately show skeletons
+    this.showSkeletons();
+    
+    // Use a small delay to ensure skeleton is rendered before data loading starts
+    setTimeout(() => {
+      // First load stats, then load users
+      this.loadUserStats().then(() => {
+        this.loadUsers();
+      });
+    }, 300); // Small delay for skeleton to be visible
   }
   
   showSkeleton(elementId) {
@@ -94,6 +103,7 @@ export class UserManager {
       userPrevBtn.addEventListener('click', () => {
         if (this.currentUserPage > 1) {
           this.currentUserPage--;
+          this.showSkeletons();
           this.loadUsers();
         }
       });
@@ -102,6 +112,7 @@ export class UserManager {
     if (userNextBtn) {
       userNextBtn.addEventListener('click', () => {
         this.currentUserPage++;
+        this.showSkeletons();
         this.loadUsers();
       });
     }
@@ -110,6 +121,7 @@ export class UserManager {
     if (searchInput) {
       searchInput.addEventListener('input', this.debounce(() => {
         this.currentUserPage = 1;
+        this.showSkeletons();
         this.loadUsers();
       }, 300));
     }
@@ -154,12 +166,14 @@ export class UserManager {
     const gridViewBtn = document.getElementById('view-mode-grid');
     
     if (viewMode === 'list') {
+      this.showSkeleton("users-container");
       listView.classList.remove('hidden');
       gridView.classList.add('hidden');
       listViewBtn.classList.add('active');
       gridViewBtn.classList.remove('active');
       this.currentView = 'list';
     } else {
+      this.showSkeleton("user-grid-view");
       listView.classList.add('hidden');
       gridView.classList.remove('hidden');
       listViewBtn.classList.remove('active');
@@ -176,6 +190,7 @@ export class UserManager {
       statusFilter.addEventListener('change', () => {
         this.statusFilter = statusFilter.value;
         this.currentUserPage = 1;
+        this.showSkeletons();
         this.loadUsers();
       });
     }
@@ -184,25 +199,55 @@ export class UserManager {
       roleFilter.addEventListener('change', () => {
         this.roleFilter = roleFilter.value;
         this.currentUserPage = 1;
+        this.showSkeletons();
         this.loadUsers();
       });
     }
   }
   
+  showSkeletons() {
+    // Show skeleton loaders for both grid and list views
+    this.showSkeleton("users-container");
+    this.showSkeleton("user-grid-view");
+    this.showSkeleton("active-user-count");
+    this.showSkeleton("total-user-count");
+  }
+  
+  loadUserStats() {
+    return userAdminAPI.getStats()
+      .then(response => {
+        if (response.success) {
+          const stats = response.data.stats;
+          
+          const activeUserCount = document.getElementById('active-user-count');
+          const totalUserCount = document.getElementById('total-user-count');
+          
+          if (activeUserCount) activeUserCount.textContent = stats.active || 0;
+          if (totalUserCount) totalUserCount.textContent = stats.total || 0;
+          
+          // Also update the user counts in the table section
+          const userTotalCount = document.getElementById('user-total-count');
+          if (userTotalCount && !userTotalCount.textContent) {
+            userTotalCount.textContent = stats.total || 0;
+          }
+          
+          return stats;
+        }
+      })
+      .catch(error => {
+        console.error('Error loading user stats:', error);
+        return {};
+      });
+  }
+  
   loadUsers() {
     const searchQuery = document.getElementById('user-search')?.value || "";
-    
-    if (this.currentView === 'list') {
-      this.showSkeleton("users-container");
-    } else {
-      this.showSkeleton("user-grid-view");
-    }
     
     userAdminAPI.listUsers(this.currentUserPage, this.usersPerPage, searchQuery)
       .then(response => {
         if (response.success) {
           const users = response.data.users;
-          const total = response.data.total;
+          const total = response.data.pagination?.total || 0;
           const showing = users.length;
           
           this.renderUsers(users, total, showing);
@@ -216,35 +261,22 @@ export class UserManager {
       });
   }
   
-  loadUserStats() {
-    this.showSkeleton("active-user-count");
-    this.showSkeleton("total-user-count");
-    
-    userAdminAPI.getStats()
-      .then(response => {
-        if (response.success) {
-          const stats = response.data.stats;
-          
-          const activeUserCount = document.getElementById('active-user-count');
-          const totalUserCount = document.getElementById('total-user-count');
-          
-          if (activeUserCount) activeUserCount.textContent = stats.active || 0;
-          if (totalUserCount) totalUserCount.textContent = stats.total || 0;
-        }
-      })
-      .catch(error => {
-        console.error('Error loading user stats:', error);
-      });
-  }
-  
   renderUsers(users, total, showing) {
-    // Filter users based on current filters
+    // Store original data and counts
+    this.originalUsers = [...users];
+    this.originalTotal = total;
+    this.originalShowing = showing;
+    
+    // Make a copy of the users array to filter
+    let filteredUsers = [...users];
+    
+    // Apply filters to the copy
     if (this.statusFilter !== 'all') {
-      users = users.filter(user => user.status === this.statusFilter);
+      filteredUsers = filteredUsers.filter(user => user.status === this.statusFilter);
     }
     
     if (this.roleFilter !== 'all') {
-      users = users.filter(user => {
+      filteredUsers = filteredUsers.filter(user => {
         if (this.roleFilter === 'admin') {
           return user.email === 'admin@admin.com';
         } else {
@@ -253,20 +285,23 @@ export class UserManager {
       });
     }
     
-    this.renderListView(users);
-    this.renderGridView(users);
+    // Calculate the actual number showing after filtering
+    const filteredShowing = filteredUsers.length;
+    
+    this.renderListView(filteredUsers);
+    this.renderGridView(filteredUsers);
     
     const showingCount = document.getElementById('user-showing-count');
-    if (showingCount) showingCount.textContent = showing;
+    if (showingCount) showingCount.textContent = filteredShowing;
     
     const totalCount = document.getElementById('user-total-count');
-    if (totalCount) totalCount.textContent = total;
+    if (totalCount) totalCount.textContent = this.originalTotal;
     
     const prevBtn = document.getElementById('user-prev-page');
     if (prevBtn) prevBtn.disabled = this.currentUserPage <= 1;
     
     const nextBtn = document.getElementById('user-next-page');
-    if (nextBtn) nextBtn.disabled = showing >= total;
+    if (nextBtn) nextBtn.disabled = showing >= total && this.statusFilter === 'all' && this.roleFilter === 'all';
   }
   
   renderListView(users) {
@@ -278,7 +313,7 @@ export class UserManager {
     if (!users || users.length === 0) {
       container.innerHTML = `
         <div class="p-6 text-center text-discord-lighter">
-          <img src="/assets/common/no-results.png" alt="No results" class="mx-auto mb-4" width="64" height="64">
+          <i class="fas fa-search fa-3x mb-4"></i>
           <p>No users found matching your filters</p>
         </div>
       `;
@@ -291,10 +326,12 @@ export class UserManager {
       
       const isBanned = user.status === 'banned';
       const isAdmin = user.email === 'admin@admin.com';
+      const username = user.username || 'Unknown User';
+      const discriminator = user.discriminator || '0000';
       
       let avatarContent = user.avatar_url 
-        ? `<img src="${user.avatar_url}" alt="${user.username}">`
-        : user.username.charAt(0).toUpperCase();
+        ? `<img src="${user.avatar_url}" alt="${username}">`
+        : username.charAt(0).toUpperCase();
       
       let statusClass = 'offline';
       if (user.status === 'online' || user.status === 'appear') statusClass = 'online';
@@ -327,27 +364,27 @@ export class UserManager {
         </div>
         <div class="user-info">
           <div class="user-name">
-            ${user.username}#${user.discriminator}
+            ${username}#${discriminator}
             ${isAdmin ? '<span class="user-badge badge-admin">Admin</span>' : ''}
             <span class="user-badge" style="${statusStyle}">
               <span class="badge-status ${statusClass}"></span>
-              ${user.status}
+              ${user.status || 'offline'}
             </span>
           </div>
           <div class="user-meta">
-            <span>ID: ${user.id}</span> • 
-            <span>${user.email}</span> • 
+            <span>ID: ${user.id || 'N/A'}</span> • 
+            <span>${user.email || 'No Email'}</span> • 
             <span>Joined: ${this.formatDate(user.created_at)}</span>
           </div>
         </div>
         <div class="user-actions">
           ${isBanned 
-            ? `<button class="discord-button success unban-user" data-id="${user.id}" data-username="${user.username}">
-                <img src="/assets/common/unban-icon.png" alt="Unban" width="16" height="16" class="mr-2">
+            ? `<button class="discord-button success unban-user" data-id="${user.id}" data-username="${username}">
+                <i class="fas fa-user-check mr-2"></i>
                 Unban
               </button>` 
-            : `<button class="discord-button danger ban-user" data-id="${user.id}" data-username="${user.username}">
-                <img src="/assets/common/ban-icon.png" alt="Ban" width="16" height="16" class="mr-2">
+            : `<button class="discord-button danger ban-user" data-id="${user.id}" data-username="${username}">
+                <i class="fas fa-ban mr-2"></i>
                 Ban
               </button>`
           }
@@ -365,7 +402,7 @@ export class UserManager {
     if (!users || users.length === 0) {
       container.innerHTML = `
         <div class="p-6 text-center text-discord-lighter">
-          <img src="/assets/common/no-results.png" alt="No results" class="mx-auto mb-4" width="64" height="64">
+          <i class="fas fa-search fa-3x mb-4"></i>
           <p>No users found matching your filters</p>
         </div>
       `;
@@ -380,10 +417,12 @@ export class UserManager {
       userCard.className = 'user-card-grid';
       
       const isBanned = user.status === 'banned';
+      const username = user.username || 'Unknown User';
+      const discriminator = user.discriminator || '0000';
       
       let avatarContent = user.avatar_url 
-        ? `<img src="${user.avatar_url}" alt="${user.username}">`
-        : user.username.charAt(0).toUpperCase();
+        ? `<img src="${user.avatar_url}" alt="${username}">`
+        : username.charAt(0).toUpperCase();
       
       let statusClass = 'offline';
       if (user.status === 'online' || user.status === 'appear') statusClass = 'online';
@@ -398,36 +437,36 @@ export class UserManager {
           </div>
           <div class="ml-3">
             <div class="user-name">
-              ${user.username}
+              ${username}
               <span class="badge-status ${statusClass}"></span>
             </div>
-            <div class="text-discord-lighter text-xs">#${user.discriminator}</div>
+            <div class="text-discord-lighter text-xs">#${discriminator}</div>
           </div>
         </div>
         
         <div class="user-meta px-2 py-3 border-t border-b border-discord-dark">
           <div class="flex items-center mb-1">
-            <img src="/assets/common/email-icon.png" alt="Email" width="14" height="14" class="mr-2">
-            <span class="text-sm">${user.email}</span>
+            <i class="fas fa-envelope mr-2 text-discord-lighter" style="width: 14px;"></i>
+            <span class="text-sm">${user.email || 'No Email'}</span>
           </div>
           <div class="flex items-center mb-1">
-            <img src="/assets/common/id-icon.png" alt="ID" width="14" height="14" class="mr-2">
-            <span class="text-sm">ID: ${user.id}</span>
+            <i class="fas fa-id-card mr-2 text-discord-lighter" style="width: 14px;"></i>
+            <span class="text-sm">ID: ${user.id || 'N/A'}</span>
           </div>
           <div class="flex items-center">
-            <img src="/assets/common/calendar-icon.png" alt="Joined" width="14" height="14" class="mr-2">
+            <i class="fas fa-calendar-alt mr-2 text-discord-lighter" style="width: 14px;"></i>
             <span class="text-sm">Joined: ${this.formatDate(user.created_at)}</span>
           </div>
         </div>
         
         <div class="user-card-footer">
           ${isBanned 
-            ? `<button class="discord-button success unban-user" data-id="${user.id}" data-username="${user.username}">
-                <img src="/assets/common/unban-icon.png" alt="Unban" width="16" height="16" class="mr-2">
+            ? `<button class="discord-button success unban-user" data-id="${user.id}" data-username="${username}">
+                <i class="fas fa-user-check mr-2"></i>
                 Unban
               </button>` 
-            : `<button class="discord-button danger ban-user" data-id="${user.id}" data-username="${user.username}">
-                <img src="/assets/common/ban-icon.png" alt="Ban" width="16" height="16" class="mr-2">
+            : `<button class="discord-button danger ban-user" data-id="${user.id}" data-username="${username}">
+                <i class="fas fa-ban mr-2"></i>
                 Ban
               </button>`
           }

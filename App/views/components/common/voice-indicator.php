@@ -2,32 +2,49 @@
 require_once __DIR__ . '/wifi-tooltip.php';
 ?>
 
-<div id="voice-indicator" class="fixed bottom-4 left-4 z-50 bg-[#1e1f22] text-white rounded-md shadow-lg transform transition-all duration-300 scale-0 opacity-0 cursor-grab active:cursor-grabbing" style="width: 280px; height: 44px;">
-    <div class="h-full flex items-center px-3">
-        <!-- Left section: Connection status -->
-        <div class="flex items-center space-x-2 drag-handle cursor-grab active:cursor-grabbing">
-            <?php echo wifi_icon_with_tooltip('text-[#23a559] text-sm'); ?>
-            <div class="text-sm font-medium text-[#23a559]">Voice Connected</div>
-        </div>
-        
-        <!-- Right section: Controls & User info -->
-        <div class="flex items-center justify-end ml-auto">
-            <!-- User and timer -->
-            <div class="flex items-center pr-2 mr-2 border-r border-[#2f3136] drag-handle cursor-grab active:cursor-grabbing">
-                <span class="text-white text-sm font-medium channel-name">kolin</span>
-                <span class="mx-1 text-[#b5bac1] text-xs">•</span>
-                <span class="text-[#b5bac1] text-sm connection-duration">0:00</span>
-            </div>
-            
-            <!-- Controls -->
-            <div class="flex items-center space-x-2">
-                <div class="text-gray-300">
-                    <i class="fas fa-signal text-xs"></i>
+<div id="voice-indicator" class="voice-ind-container fixed bottom-4 left-4 z-50 bg-[#1e1f22] max-h-[60px] text-white rounded-lg shadow-lg transform transition-all duration-300 scale-0 opacity-0 cursor-grab active:cursor-grabbing">
+    <div class="voice-ind-header px-3 py-2">
+        <div class="voice-ind-main flex items-center justify-between gap-2">
+            <div class="voice-ind-info flex items-center gap-2 drag-handle cursor-grab active:cursor-grabbing">
+                <i class="fas fa-volume-up text-[#3ba55c] text-sm pulse-icon"></i>
+                <div class="voice-ind-titles flex flex-col">
+                    <div class="voice-ind-title text-sm font-medium text-white">Voice Connected</div>
+                    <div class="voice-ind-details text-[11px] text-[#a3a6aa] flex items-center">
+                        <span class="channel-name">k...</span>
+                        <span class="mx-1">/</span>
+                        <span class="connection-duration">00-05</span>
+                    </div>
                 </div>
-                <button class="disconnect-btn w-5 h-5 flex items-center justify-center rounded-full hover:bg-[#36393f]">
-                    <i class="fas fa-times text-gray-300 text-xs"></i>
+            </div>
+            <div class="voice-ind-actions flex items-center gap-3">
+                <div class="voice-ind-signal flex items-center gap-[2px]">
+                    <div class="h-2.5 w-[3px] bg-[#3ba55c] rounded-sm"></div>
+                    <div class="h-3.5 w-[3px] bg-[#3ba55c] rounded-sm"></div>
+                    <div class="h-4.5 w-[3px] bg-[#3ba55c] rounded-sm"></div>
+                </div>
+                <button class="disconnect-btn w-6 h-6 flex items-center justify-center rounded hover:bg-[#2c2e33] transition-all">
+                    <i class="fas fa-phone-slash text-[#ed4245] text-xs hover:text-[#fc5054] transition-colors"></i>
                 </button>
             </div>
         </div>
+    </div>
+    
+    <div class="voice-ind-controls border-t border-[#2f3136] bg-[#232428] px-3 py-2 flex justify-between rounded-b-lg">
+        <button class="voice-ind-btn w-9 h-8 bg-[#232428] hover:bg-[#2c2e33] rounded-md flex items-center justify-center transition-all">
+            <i class="fas fa-microphone-slash text-[#b9bbbe] hover:text-white text-sm transition-colors"></i>
+        </button>
+        
+        <button class="voice-ind-btn w-9 h-8 bg-[#232428] hover:bg-[#2c2e33] rounded-md flex items-center justify-center transition-all">
+            <i class="fas fa-desktop text-[#b9bbbe] hover:text-white text-sm transition-colors"></i>
+        </button>
+        
+        <button class="voice-ind-btn w-9 h-8 bg-[#232428] hover:bg-[#2c2e33] rounded-md flex items-center justify-center transition-all relative">
+            <i class="fas fa-gamepad text-[#b9bbbe] hover:text-white text-sm transition-colors"></i>
+            <div class="absolute w-2 h-2 bg-[#3ba55c] rounded-full top-0.5 right-0.5"></div>
+        </button>
+        
+        <button class="voice-ind-btn w-9 h-8 bg-[#232428] hover:bg-[#2c2e33] rounded-md flex items-center justify-center transition-all">
+            <i class="fas fa-cog text-[#b9bbbe] hover:text-white text-sm transition-colors"></i>
+        </button>
     </div>
 </div>

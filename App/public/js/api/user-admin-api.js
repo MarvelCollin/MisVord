@@ -72,7 +72,13 @@ class UserAdminAPI {
     async getStats() {
         try {
             const response = await fetch(`${this.baseURL}/users/stats`);
-            return await response.json();
+            const data = await this.parseResponse(response);
+            
+            if (!response.ok) {
+                throw new Error(data.message || `HTTP error! status: ${response.status}`);
+            }
+            
+            return data;
         } catch (error) {
             console.error('Error getting user stats:', error);
             throw error;
@@ -88,7 +94,13 @@ class UserAdminAPI {
         
         try {
             const response = await fetch(url);
-            return await response.json();
+            const data = await this.parseResponse(response);
+            
+            if (!response.ok) {
+                throw new Error(data.message || `HTTP error! status: ${response.status}`);
+            }
+            
+            return data;
         } catch (error) {
             console.error('Error listing users:', error);
             throw error;

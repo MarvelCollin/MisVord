@@ -230,10 +230,10 @@ ob_start();
                 <div class="discord-header-actions">
                     <div class="view-modes">
                         <div class="view-mode-button active" id="view-mode-list" data-mode="list">
-                            <img src="/assets/common/list-view.png" alt="List View" width="20" height="20">
+                            <i class="fas fa-list" style="width: 20px; height: 20px;"></i>
                         </div>
                         <div class="view-mode-button" id="view-mode-grid" data-mode="grid">
-                            <img src="/assets/common/grid-view.png" alt="Grid View" width="20" height="20">
+                            <i class="fas fa-th-large" style="width: 20px; height: 20px;"></i>
                         </div>
                     </div>
                 </div>
@@ -304,12 +304,12 @@ ob_start();
                             <div class="user-actions">
                                 <?php if ($user->status === 'banned'): ?>
                                 <button class="discord-button success unban-user" data-id="<?php echo $user->id; ?>" data-username="<?php echo htmlspecialchars($user->username); ?>">
-                                    <img src="/assets/common/unban-icon.png" alt="Unban" width="16" height="16" class="mr-2">
+                                    <i class="fas fa-user-check mr-2"></i>
                                     Unban
                                 </button>
                                 <?php else: ?>
                                 <button class="discord-button danger ban-user" data-id="<?php echo $user->id; ?>" data-username="<?php echo htmlspecialchars($user->username); ?>">
-                                    <img src="/assets/common/ban-icon.png" alt="Ban" width="16" height="16" class="mr-2">
+                                    <i class="fas fa-ban mr-2"></i>
                                     Ban
                                 </button>
                                 <?php endif; ?>
@@ -343,15 +343,15 @@ ob_start();
                             
                             <div class="user-meta px-2 py-3 border-t border-b border-discord-dark">
                                 <div class="flex items-center mb-1">
-                                    <img src="/assets/common/email-icon.png" alt="Email" width="14" height="14" class="mr-2">
+                                    <i class="fas fa-envelope mr-2 text-discord-lighter" style="width: 14px;"></i>
                                     <span class="text-sm"><?php echo htmlspecialchars($user->email); ?></span>
                                 </div>
                                 <div class="flex items-center mb-1">
-                                    <img src="/assets/common/id-icon.png" alt="ID" width="14" height="14" class="mr-2">
+                                    <i class="fas fa-id-card mr-2 text-discord-lighter" style="width: 14px;"></i>
                                     <span class="text-sm">ID: <?php echo htmlspecialchars($user->id); ?></span>
                                 </div>
                                 <div class="flex items-center">
-                                    <img src="/assets/common/calendar-icon.png" alt="Joined" width="14" height="14" class="mr-2">
+                                    <i class="fas fa-calendar-alt mr-2 text-discord-lighter" style="width: 14px;"></i>
                                     <span class="text-sm">Joined: <?php echo htmlspecialchars(date('M d, Y', strtotime($user->created_at))); ?></span>
                                 </div>
                             </div>
@@ -359,12 +359,12 @@ ob_start();
                             <div class="user-card-footer">
                                 <?php if ($user->status === 'banned'): ?>
                                 <button class="discord-button success unban-user" data-id="<?php echo $user->id; ?>" data-username="<?php echo htmlspecialchars($user->username); ?>">
-                                    <img src="/assets/common/unban-icon.png" alt="Unban" width="16" height="16" class="mr-2">
+                                    <i class="fas fa-user-check mr-2"></i>
                                     Unban
                                 </button>
                                 <?php else: ?>
                                 <button class="discord-button danger ban-user" data-id="<?php echo $user->id; ?>" data-username="<?php echo htmlspecialchars($user->username); ?>">
-                                    <img src="/assets/common/ban-icon.png" alt="Ban" width="16" height="16" class="mr-2">
+                                    <i class="fas fa-ban mr-2"></i>
                                     Ban
                                 </button>
                                 <?php endif; ?>

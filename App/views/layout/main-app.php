@@ -6,7 +6,6 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
 <head>
     <?php include_once __DIR__ . '/head.php'; ?>
     <script>
-        // Emergency recovery code - detects white screen and provides a recovery path
         window.addEventListener('load', function() {
             setTimeout(function() {
                 if (document.body && document.body.innerHTML.trim() === '') {
@@ -25,7 +24,6 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
                     recoveryUI.style.padding = '20px';
                     recoveryUI.style.textAlign = 'center';
                     
-                    // Add error message and recovery button
                     recoveryUI.innerHTML = `
                         <h1 style="font-size: 24px; margin-bottom: 20px;">Connection Issue Detected</h1>
                         <p style="font-size: 16px; margin-bottom: 30px;">We encountered a problem loading the page.</p>
@@ -39,25 +37,20 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
                         </button>
                     `;
                     
-                    // Append to body
                     document.body.appendChild(recoveryUI);
                     
-                    // Add event listener to clear session button
                     document.getElementById('clearSessionBtn').addEventListener('click', function() {
-                        // Clear browser storage
                         localStorage.clear();
                         sessionStorage.clear();
                         
-                        // Clear cookies by setting expired date
                         document.cookie.split(";").forEach(function(c) {
                             document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
                         });
                         
-                        // Redirect to login with fresh=1 parameter
                         window.location.href = '/login?fresh=1';
                     });
                 }
-            }, 1000); // Check after 1 second
+            }, 1000); 
         });
     </script>
 </head>
@@ -81,7 +74,6 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
     <script type="module" src="<?= asset('/js/components/index.js') ?>"></script>
     <script type="module" src="<?= asset('/js/pages/app.js') ?>"></script>
     
-    <!-- CSRF token for AJAX calls -->
     <meta name="csrf-token" content="<?php echo isset($_SESSION['csrf_token']) ? $_SESSION['csrf_token'] : ''; ?>">
 </body>
 </html>

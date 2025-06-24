@@ -313,31 +313,27 @@ function initServerDetailTriggers() {
         card.dataset.hasListener = 'true';
 
         card.addEventListener('click', function(e) {
+            if (e.target.closest('.join-server-btn')) {
+                console.log('Click was on join button, ignoring');
+                return;
+            }
+            
             e.preventDefault();
             e.stopPropagation();
-
-            try {
-                if (e.target.closest('.join-server-btn')) {
-                    console.log('Click was on join button, ignoring');
-                    return;
-                }
-                
-                const serverId = this.getAttribute('data-server-id');
-                
-                if (!serverId) {
-                    console.error('No server ID found on clicked card');
-                    return;
-                }
-                
-                const serverData = extractServerDataFromCard(this);
-                
-                if (window.showServerDetail) {
-                    window.showServerDetail(serverId, serverData);
-                } else {
-                    console.error('Server detail modal function not available');
-                }
-            } catch (error) {
-                console.error('Error in server card click handler:', error);
+            
+            const serverId = this.getAttribute('data-server-id');
+            
+            if (!serverId) {
+                console.error('No server ID found on clicked card');
+                return;
+            }
+            
+            const serverData = extractServerDataFromCard(this);
+            
+            if (window.showServerDetail) {
+                window.showServerDetail(serverId, serverData);
+            } else {
+                console.error('Server detail modal function not available');
             }
         });
     });
@@ -347,17 +343,30 @@ function extractServerDataFromCard(card) {
     const serverId = card.getAttribute('data-server-id');
     const serverName = card.querySelector('.server-name')?.textContent;
     const serverDescription = card.querySelector('.server-description')?.textContent;
-    const memberCountText = card.querySelector('.server-stats span')?.textContent;
-    const memberCount = memberCountText ? parseInt(memberCountText.match(/\d+/)[0]) : 0;
+    
+    // Handle different server card layouts (featured vs regular)
+    let memberCount = 0;
+    const memberCountElem = card.querySelector('.server-stats span');
+    if (memberCountElem) {
+        const memberMatch = memberCountElem.textContent.match(/\d+/);
+        memberCount = memberMatch ? parseInt(memberMatch[0]) : 0;
+    }
     
     const joinButton = card.querySelector('.join-server-btn');
-    const isJoined = joinButton ? joinButton.textContent.includes('Joined') : false;
+    const isJoined = joinButton ? (joinButton.textContent.includes('Joined') || joinButton.classList.contains('bg-discord-green')) : false;
     
-    const bannerImg = card.querySelector('.server-banner img');
-    const bannerUrl = bannerImg ? bannerImg.src : null;
+    // Handle different image layouts between featured and regular cards
+    let bannerUrl = null;
+    const bannerImg = card.querySelector('.server-banner img') || card.querySelector('.h-32 img');
+    if (bannerImg) {
+        bannerUrl = bannerImg.src;
+    }
     
-    const iconImg = card.querySelector('.server-icon img');
-    const iconUrl = iconImg ? iconImg.src : null;
+    let iconUrl = null;
+    const iconImg = card.querySelector('.server-icon img') || card.querySelector('.rounded-xl img') || card.querySelector('.rounded-2xl img');
+    if (iconImg) {
+        iconUrl = iconImg.src;
+    }
     
     const category = card.getAttribute('data-category');
     

@@ -84,12 +84,6 @@ $additional_js[] = 'components/voice/voice-manager';
         </div>
     </div>
     
-    <!-- Participant panel (slides up when users are present) -->
-    <div id="participantsPanel" class="fixed bottom-16 right-4 w-64 max-h-72 bg-[#232428] rounded-t-lg shadow-lg hidden">
-        <div id="participants" class="max-h-72 overflow-y-auto p-2">
-            <!-- Participants will be added here by JS -->
-        </div>
-    </div>
 </div>
 
 <style>

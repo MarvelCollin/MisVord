@@ -1,7 +1,6 @@
 <?php
 $additional_js = $additional_js ?? [];
 
-// Remove socket.io script from additional_js if it exists
 $additional_js = array_filter($additional_js, function($script) {
     return $script !== 'socket.io.min.js' && $script !== 'lib/socket.io.min.js';
 });
@@ -15,19 +14,15 @@ if ($is_settings_page) {
 
 $is_auth_page = isset($data_page) && $data_page === 'auth';
 
-// Define core scripts for non-auth pages
 $core_scripts = ['core/ui/toast'];
 if (!$is_auth_page) {
-    // Only include AJAX scripts for non-auth pages
     $core_scripts[] = 'core/ajax/ajax-handler';
     
-    // Socket manager should only be included for non-auth pages
     if (!$is_auth_page) {
         $core_scripts[] = 'core/socket/global-socket-manager';
     }
 }
 
-// Auth-specific scripts
 $auth_scripts = [];
 if ($is_auth_page) {
     $auth_scripts[] = 'components/common/validation';
@@ -36,7 +31,6 @@ if ($is_auth_page) {
 ?>
 
 <?php if (!$is_auth_page): ?>
-<!-- Socket.io is only loaded on non-auth pages -->
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" crossorigin="anonymous"></script>
 
 <script>

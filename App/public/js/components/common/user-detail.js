@@ -75,12 +75,6 @@ class UserDetailModal {
     show(options = {}) {
         console.log('User detail requested for user ID:', options.userId);
         
-        // Our database has users with IDs 3 and 4 based on our test
-        const validUserIds = ['3', '4'];
-        if (!validUserIds.includes(options.userId)) {
-            console.warn(`User ID ${options.userId} is not in the database. Valid user IDs are: ${validUserIds.join(', ')}`);
-        }
-        
         if (!options.userId) {
             console.error('User ID is required to show user detail modal');
             return;
@@ -88,6 +82,8 @@ class UserDetailModal {
         
         this.currentUserId = options.userId;
         this.currentServerId = options.serverId || null;
+        
+        this.modal.classList.add('active');
         
         // Position the modal relative to the trigger element if provided
         if (options.triggerElement && typeof options.triggerElement.getBoundingClientRect === 'function') {
@@ -126,20 +122,35 @@ class UserDetailModal {
             }
         }
 
-        this.showLoadingState();
+        // Minimum loading time to prevent flickering
+        const startTime = Date.now();
+        const minLoadingTime = 800;
 
+        // Apply skeleton loading state immediately
+        this.showLoadingState();
+        
+        // Fetch data with a minimum display time for the skeleton
         this.fetchUserData()
             .then(userData => {
-                if (userData) {
-                    this.displayUserData(userData);
-                }
+                const elapsedTime = Date.now() - startTime;
+                const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
+                
+                setTimeout(() => {
+                    if (userData) {
+                        this.displayUserData(userData);
+                    }
+                }, remainingTime);
             })
             .catch(error => {
                 console.error('Error fetching user data:', error);
-                this.showErrorState();
+                
+                const elapsedTime = Date.now() - startTime;
+                const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
+                
+                setTimeout(() => {
+                    this.showErrorState();
+                }, remainingTime);
             });
-
-        this.modal.classList.add('active');
     }
 
 
@@ -165,47 +176,138 @@ class UserDetailModal {
 
 
     showLoadingState() {
-        if (this.nameElement) this.nameElement.textContent = 'Loading...';
-        if (this.discriminatorElement) this.discriminatorElement.textContent = '';
-        if (this.aboutSection) this.aboutSection.innerHTML = '<div class="loading-placeholder"></div>';
-        if (this.memberSinceSection) this.memberSinceSection.innerHTML = '<div class="loading-placeholder"></div>';
-        if (this.rolesSection) this.rolesSection.innerHTML = '<div class="loading-placeholder"></div>';
-
-        if (this.mutualServersElement) this.mutualServersElement.textContent = 'Loading...';
-        if (this.mutualFriendsElement) this.mutualFriendsElement.textContent = 'Loading...';
-
+        if (this.nameElement) {
+            this.nameElement.innerHTML = '<div class="skeleton-loading skeleton-name"></div>';
+        }
+        
+        if (this.discriminatorElement) {
+            this.discriminatorElement.innerHTML = '<div class="skeleton-loading skeleton-discriminator"></div>';
+        }
+        
+        if (this.aboutSection) {
+            this.aboutSection.innerHTML = `
+                <div class="skeleton-loading skeleton-text"></div>
+                <div class="skeleton-loading skeleton-text medium"></div>
+                <div class="skeleton-loading skeleton-text short"></div>
+            `;
+        }
+        
+        if (this.memberSinceSection) {
+            this.memberSinceSection.innerHTML = '<div class="skeleton-loading skeleton-text short"></div>';
+        }
+        
+        if (this.rolesSection) {
+            this.rolesSection.innerHTML = `
+                <div class="skeleton-loading skeleton-role"></div>
+                <div class="skeleton-loading skeleton-role"></div>
+                <div class="skeleton-loading skeleton-role"></div>
+            `;
+        }
+        
+        if (this.mutualServersElement) {
+            this.mutualServersElement.innerHTML = '<div class="skeleton-loading skeleton-mutual"></div>';
+        }
+        
+        if (this.mutualFriendsElement) {
+            this.mutualFriendsElement.innerHTML = '<div class="skeleton-loading skeleton-mutual"></div>';
+        }
+        
         if (this.avatarContainer) {
             this.avatarContainer.innerHTML = `
-                <div class="user-avatar loading">
-                    <div class="w-20 h-20 rounded-full bg-gray-700 animate-pulse"></div>
+                <div class="user-avatar">
+                    <img src="/assets/main-logo.png" alt="Default Avatar" id="user-detail-avatar" class="opacity-30">
+                    <div class="skeleton-loading skeleton-avatar absolute top-0 left-0 right-0 bottom-0"></div>
                 </div>
             `;
         }
-        if (this.banner) this.banner.style.backgroundColor = '#5865f2';
+        
+        if (this.banner) {
+            this.banner.style.backgroundImage = `url(/assets/main-logo.png)`;
+            this.banner.style.backgroundSize = 'contain';
+            this.banner.style.backgroundRepeat = 'no-repeat';
+            this.banner.style.backgroundPosition = 'center';
+            this.banner.style.backgroundColor = '#5865f2';
+            this.banner.style.opacity = '0.3';
+        }
+        
+        const messageInput = this.modal.querySelector('.user-detail-message-input');
+        if (messageInput) {
+            messageInput.disabled = true;
+            messageInput.placeholder = 'Loading...';
+        }
+        
+        const actionButtons = this.modal.querySelectorAll('.user-detail-action-btn');
+        actionButtons.forEach(button => {
+            button.disabled = true;
+            button.classList.add('opacity-50');
+        });
     }
 
 
     showErrorState(errorMessage = 'User not found') {
-        if (this.nameElement) this.nameElement.textContent = errorMessage;
-        if (this.discriminatorElement) this.discriminatorElement.textContent = '';
-        if (this.aboutSection) this.aboutSection.textContent = 'Could not load user information.';
-        if (this.memberSinceSection) this.memberSinceSection.textContent = 'Unknown';
-        if (this.rolesSection) this.rolesSection.textContent = 'No roles available';
+        if (this.nameElement) {
+            this.nameElement.textContent = errorMessage;
+        }
         
-        if (this.mutualServersElement) this.mutualServersElement.textContent = '0 Mutual Servers';
-        if (this.mutualFriendsElement) this.mutualFriendsElement.textContent = '0 Mutual Friends';
-
+        if (this.discriminatorElement) {
+            this.discriminatorElement.textContent = '';
+        }
+        
+        if (this.aboutSection) {
+            this.aboutSection.textContent = 'Could not load user information.';
+            this.aboutSection.classList.add('text-discord-lighter');
+        }
+        
+        if (this.memberSinceSection) {
+            this.memberSinceSection.textContent = 'Unknown';
+            this.memberSinceSection.classList.add('text-discord-lighter');
+        }
+        
+        if (this.rolesSection) {
+            this.rolesSection.textContent = 'No roles available';
+            this.rolesSection.classList.add('text-discord-lighter');
+        }
+        
+        if (this.mutualServersElement) {
+            this.mutualServersElement.textContent = '0 Mutual Servers';
+        }
+        
+        if (this.mutualFriendsElement) {
+            this.mutualFriendsElement.textContent = '0 Mutual Friends';
+        }
+        
         if (this.avatarContainer) {
             this.avatarContainer.innerHTML = `
                 <div class="user-avatar">
-                    <div class="w-20 h-20 rounded-full border-4 border-discord-dark flex items-center justify-center bg-discord-dark text-white text-3xl font-bold">?</div>
+                    <img src="/assets/main-logo.png" alt="Default Avatar" id="user-detail-avatar">
                 </div>
             `;
         }
-        if (this.banner) this.banner.style.backgroundColor = '#5865f2';
+        
+        if (this.banner) {
+            this.banner.style.backgroundImage = `url(/assets/main-logo.png)`;
+            this.banner.style.backgroundSize = 'contain';
+            this.banner.style.backgroundRepeat = 'no-repeat';
+            this.banner.style.backgroundPosition = 'center';
+            this.banner.style.backgroundColor = '#5865f2';
+        }
+        
+        const messageInput = this.modal.querySelector('.user-detail-message-input');
+        if (messageInput) {
+            messageInput.disabled = true;
+            messageInput.placeholder = 'Unavailable';
+        }
+        
+        const sendBtn = this.modal.querySelector('#user-detail-send-btn');
+        if (sendBtn) {
+            sendBtn.disabled = true;
+            sendBtn.classList.add('opacity-50');
+        }
         
         const actionButtons = this.modal.querySelector('.user-detail-actions');
-        if (actionButtons) actionButtons.style.display = 'none';
+        if (actionButtons) {
+            actionButtons.style.display = 'none';
+        }
     }
 
 
@@ -289,108 +391,152 @@ class UserDetailModal {
 
         const isSelf = document.getElementById('app-container')?.dataset.userId === user.id?.toString();
 
-        if (this.nameElement) {
-            this.nameElement.textContent = user.username || 'Unknown User';
-        }
-
-        if (this.discriminatorElement) {
-            this.discriminatorElement.textContent = user.discriminator ? `#${user.discriminator}` : '#0000';
-        }
-
-        if (this.avatarContainer) {
-            this.avatarContainer.innerHTML = ''; // Clear previous content
-
-            const avatarWrapper = document.createElement('div');
-            avatarWrapper.className = 'user-avatar';
-
-            if (user.avatar_url) {
-                const img = document.createElement('img');
-                img.src = user.avatar_url;
-                img.alt = 'User Avatar';
-                img.id = 'user-detail-avatar';
-                avatarWrapper.appendChild(img);
-            } else {
-                const fallback = document.createElement('div');
-                fallback.className = 'fallback-avatar';
-                fallback.textContent = (user.username || '?').charAt(0).toUpperCase();
-                avatarWrapper.appendChild(fallback);
-            }
-
-            const statusIndicator = document.createElement('div');
-            statusIndicator.className = 'user-status-indicator';
-            if (user.status) {
-                statusIndicator.classList.add(user.status);
-            }
-            avatarWrapper.appendChild(statusIndicator);
-            this.avatarContainer.appendChild(avatarWrapper);
-        }
-
-        if (this.banner && user.banner_url) {
-            this.banner.style.backgroundImage = `url(${user.banner_url})`;
-        } else if (this.banner) {
-            this.banner.style.backgroundImage = '';
-            this.banner.style.backgroundColor = '#5865f2';
-        }
-
-        if (this.statusIndicator) {
-            this.statusIndicator.className = 'user-status-indicator';
-            if (user.status) {
-                this.statusIndicator.classList.add(user.status);
-            }
-        }
-
-        if (this.aboutSection) {
-            if (user.bio && user.bio.trim() !== '') {
-                this.aboutSection.textContent = user.bio;
-                this.aboutSection.classList.remove('text-discord-lighter');
-            } else {
-                this.aboutSection.textContent = 'This user has not added a bio yet.';
-                this.aboutSection.classList.add('text-discord-lighter');
-            }
-        }
-
-        if (this.memberSinceSection && user.created_at) {
-            const joinDate = new Date(user.created_at);
-            const formattedDate = joinDate.toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
-            this.memberSinceSection.textContent = formattedDate;
-        } else if (this.memberSinceSection) {
-            this.memberSinceSection.textContent = 'Unknown';
-        }
-
-        if (this.rolesSection && userData.roles) {
-            if (userData.roles.length > 0) {
-                this.rolesSection.innerHTML = '';
-                this.rolesSection.classList.remove('text-discord-lighter');
-                
-                userData.roles.forEach(role => {
-                    const roleElement = document.createElement('div');
-                    roleElement.className = 'user-detail-role';
-                    roleElement.textContent = role.name || 'Unknown Role';
-                    
-                    if (role.color) {
-                        roleElement.style.backgroundColor = role.color;
-                    }
-                    
-                    this.rolesSection.appendChild(roleElement);
+        // Create a fade-in effect for all containers
+        const containers = [
+            this.nameElement,
+            this.discriminatorElement,
+            this.avatarContainer,
+            this.banner,
+            this.aboutSection,
+            this.memberSinceSection,
+            this.rolesSection,
+            this.mutualServersElement,
+            this.mutualFriendsElement
+        ];
+        
+        // First remove any skeleton loading elements
+        containers.forEach(container => {
+            if (container) {
+                const skeletonElements = container.querySelectorAll('.skeleton-loading');
+                skeletonElements.forEach(element => {
+                    element.classList.add('fade-out');
                 });
-            } else {
-                this.rolesSection.textContent = 'No roles';
-                this.rolesSection.classList.add('text-discord-lighter');
             }
-        }
+        });
+        
+        // Small delay to let fade-out happen before updating content
+        setTimeout(() => {
+            // Reset banner opacity if it was set during loading
+            if (this.banner && this.banner.style.opacity !== '1') {
+                this.banner.style.opacity = '1';
+            }
+            
+            if (this.nameElement) {
+                this.nameElement.innerHTML = '';
+                this.nameElement.textContent = user.username || 'Unknown User';
+                this.nameElement.classList.add('fade-in');
+            }
 
+            if (this.discriminatorElement) {
+                this.discriminatorElement.innerHTML = '';
+                this.discriminatorElement.textContent = user.discriminator ? `#${user.discriminator}` : '#0000';
+                this.discriminatorElement.classList.add('fade-in');
+            }
+
+            if (this.avatarContainer) {
+                this.avatarContainer.innerHTML = '';
+                const avatarWrapper = document.createElement('div');
+                avatarWrapper.className = 'user-avatar fade-in';
+
+                if (user.avatar_url) {
+                    const img = document.createElement('img');
+                    img.src = user.avatar_url;
+                    img.alt = 'User Avatar';
+                    img.id = 'user-detail-avatar';
+                    avatarWrapper.appendChild(img);
+                } else {
+                    const img = document.createElement('img');
+                    img.src = '/assets/main-logo.png';
+                    img.alt = 'Default Avatar';
+                    img.id = 'user-detail-avatar';
+                    avatarWrapper.appendChild(img);
+                }
+
+                const statusIndicator = document.createElement('div');
+                statusIndicator.className = 'user-status-indicator';
+                if (user.status) {
+                    statusIndicator.classList.add(user.status);
+                }
+                avatarWrapper.appendChild(statusIndicator);
+                this.avatarContainer.appendChild(avatarWrapper);
+            }
+
+            if (this.banner) {
+                if (user.banner_url) {
+                    this.banner.style.backgroundImage = `url(${user.banner_url})`;
+                } else {
+                    this.banner.style.backgroundImage = `url(/assets/main-logo.png)`;
+                    this.banner.style.backgroundSize = 'contain';
+                    this.banner.style.backgroundRepeat = 'no-repeat';
+                    this.banner.style.backgroundPosition = 'center';
+                    this.banner.style.backgroundColor = '#5865f2';
+                }
+                this.banner.classList.add('fade-in');
+            }
+
+            if (this.aboutSection) {
+                this.aboutSection.innerHTML = '';
+                if (user.bio && user.bio.trim() !== '') {
+                    this.aboutSection.textContent = user.bio;
+                    this.aboutSection.classList.remove('text-discord-lighter');
+                } else {
+                    this.aboutSection.textContent = 'This user has not added a bio yet.';
+                    this.aboutSection.classList.add('text-discord-lighter');
+                }
+                this.aboutSection.classList.add('fade-in');
+            }
+
+            if (this.memberSinceSection && user.created_at) {
+                this.memberSinceSection.innerHTML = '';
+                const joinDate = new Date(user.created_at);
+                const formattedDate = joinDate.toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+                this.memberSinceSection.textContent = formattedDate;
+                this.memberSinceSection.classList.add('fade-in');
+            }
+
+            if (this.rolesSection && userData.roles) {
+                this.rolesSection.innerHTML = '';
+                if (userData.roles.length > 0) {
+                    userData.roles.forEach(role => {
+                        const roleElement = document.createElement('div');
+                        roleElement.className = 'user-detail-role fade-in';
+                        roleElement.textContent = role.name || 'Unknown Role';
+                        
+                        if (role.color) {
+                            roleElement.style.backgroundColor = role.color;
+                        }
+                        
+                        this.rolesSection.appendChild(roleElement);
+                    });
+                    this.rolesSection.classList.remove('text-discord-lighter');
+                } else {
+                    this.rolesSection.textContent = 'No roles';
+                    this.rolesSection.classList.add('text-discord-lighter', 'fade-in');
+                }
+            }
+
+            // Update the rest of the UI as before
+            this.updateMutualInfo(userData, isSelf);
+            this.updateMessageSection(user, isSelf);
+            this.updateActionButtons(userData);
+        }, 200);
+    }
+
+    updateMutualInfo(userData, isSelf) {
         if (this.mutualSection) {
             this.mutualSection.style.display = isSelf ? 'none' : 'flex';
         }
 
         if (!isSelf && userData.mutualData) {
             if (this.mutualServersElement) {
+                this.mutualServersElement.innerHTML = '';
                 const serverCount = userData.mutualData.mutual_server_count || 0;
                 this.mutualServersElement.textContent = `${serverCount} Mutual Server${serverCount !== 1 ? 's' : ''}`;
+                this.mutualServersElement.classList.add('fade-in');
                 
                 if (userData.mutualData.mutual_servers && userData.mutualData.mutual_servers.length > 0) {
                     const serverNames = userData.mutualData.mutual_servers.map(server => server.name || 'Unknown Server').join(', ');
@@ -399,8 +545,10 @@ class UserDetailModal {
             }
             
             if (this.mutualFriendsElement) {
+                this.mutualFriendsElement.innerHTML = '';
                 const friendCount = userData.mutualData.mutual_friend_count || 0;
                 this.mutualFriendsElement.textContent = `${friendCount} Mutual Friend${friendCount !== 1 ? 's' : ''}`;
+                this.mutualFriendsElement.classList.add('fade-in');
                 
                 if (userData.mutualData.mutual_friends && userData.mutualData.mutual_friends.length > 0) {
                     const friendNames = userData.mutualData.mutual_friends.map(friend => friend.username || 'Unknown User').join(', ');
@@ -408,26 +556,35 @@ class UserDetailModal {
                 }
             }
         } else if (!isSelf) {
-            if (this.mutualServersElement) this.mutualServersElement.textContent = '0 Mutual Servers';
-            if (this.mutualFriendsElement) this.mutualFriendsElement.textContent = '0 Mutual Friends';
+            if (this.mutualServersElement) {
+                this.mutualServersElement.innerHTML = '';
+                this.mutualServersElement.textContent = '0 Mutual Servers';
+                this.mutualServersElement.classList.add('fade-in');
+            }
+            if (this.mutualFriendsElement) {
+                this.mutualFriendsElement.innerHTML = '';
+                this.mutualFriendsElement.textContent = '0 Mutual Friends';
+                this.mutualFriendsElement.classList.add('fade-in');
+            }
         }
+    }
 
-        // Hide the message section when viewing own profile
+    updateMessageSection(user, isSelf) {
         const messageSection = this.modal.querySelector('.user-detail-message-section');
         if (messageSection) {
             messageSection.style.display = isSelf ? 'none' : 'block';
         }
 
         if (this.messageInput) {
-            this.messageInput.placeholder = `Message @${user.username || 'user'}`;
             this.messageInput.disabled = isSelf;
+            this.messageInput.placeholder = `Message @${user.username || 'user'}`;
+            this.messageInput.classList.add('fade-in');
         }
 
         if (this.sendBtn) {
             this.sendBtn.disabled = isSelf;
+            this.sendBtn.classList.add('fade-in');
         }
-
-        this.updateActionButtons(userData);
     }
 
     updateActionButtons(userData) {

@@ -48,6 +48,12 @@ function waitForVideoSDK(callback, maxAttempts = 50) {
 }
 
 async function createMeetingRoom() {
+    if (!authToken) {
+        console.error("Missing VideoSDK auth token");
+        showToast("Error: Missing authentication token", "error");
+        return null;
+    }
+    
     try {
         window.logger.info('voice', "Creating new meeting room...");
         
@@ -100,18 +106,29 @@ async function initializeMeeting() {
         meeting.on("meeting-joined", () => {
             window.logger.info('voice', "Meeting Joined");
             
+            // Get all UI elements
+            const joinBtn = document.getElementById("joinBtn");
+            const leaveBtn = document.getElementById("leaveBtn");
+            const micBtn = document.getElementById("micBtn");
+            const screenBtn = document.getElementById("screenBtn");
+            const joinVideoBtn = document.getElementById("joinVideoBtn");
+            
             // Hide join button, show leave button
-            document.getElementById("joinBtn").classList.add("hidden");
-            document.getElementById("leaveBtn").classList.remove("hidden");
-            document.getElementById("leaveBtn").disabled = false;
+            if (joinBtn) joinBtn.classList.add("hidden");
+            if (leaveBtn) {
+                leaveBtn.classList.remove("hidden");
+                leaveBtn.disabled = false;
+            }
             
             // Enable control buttons
-            document.getElementById("micBtn").disabled = false;
-            document.getElementById("screenBtn").disabled = false;
+            if (micBtn) micBtn.disabled = false;
+            if (screenBtn) screenBtn.disabled = false;
             
             // Show video button if needed
-            document.getElementById("joinVideoBtn").classList.remove("hidden");
-            document.getElementById("joinVideoBtn").disabled = false;
+            if (joinVideoBtn) {
+                joinVideoBtn.classList.remove("hidden");
+                joinVideoBtn.disabled = false;
+            }
             
             // Add notification
             showToast("Connected to voice", "success");
@@ -125,11 +142,13 @@ async function initializeMeeting() {
             }, 500);
 
             // Trigger global voice indicator
-            const channelName = document.querySelector('.text-white.font-medium')?.textContent || 'Voice Channel';
+            const channelNameElement = document.querySelector('.text-white.font-medium');
+            const channelName = channelNameElement ? channelNameElement.textContent : 'Voice Channel';
             const voiceConnectEvent = new CustomEvent('voiceConnect', { 
                 detail: { 
                     channelName: channelName,
-                    meetingId: meetingId
+                    meetingId: meetingId,
+                    channelId: channelId
                 } 
             });
             window.dispatchEvent(voiceConnectEvent);
@@ -140,28 +159,43 @@ async function initializeMeeting() {
             window.logger.info('voice', "Meeting Left");
             
             // Show join button, hide leave button
-            document.getElementById("joinBtn").classList.remove("hidden");
-            document.getElementById("leaveBtn").classList.add("hidden");
+            const joinBtn = document.getElementById("joinBtn");
+            const leaveBtn = document.getElementById("leaveBtn");
+            const micBtn = document.getElementById("micBtn");
+            const screenBtn = document.getElementById("screenBtn");
+            const joinVideoBtn = document.getElementById("joinVideoBtn");
+            const participants = document.getElementById("participants");
+            const videosContainer = document.getElementById("videosContainer");
+            const participantsPanel = document.getElementById("participantsPanel");
+            const videoContainer = document.getElementById("videoContainer");
+            
+            if (joinBtn) joinBtn.classList.remove("hidden");
+            if (leaveBtn) leaveBtn.classList.add("hidden");
             
             // Disable control buttons
-            document.getElementById("micBtn").disabled = true;
-            document.getElementById("screenBtn").disabled = true;
-            document.getElementById("joinVideoBtn").classList.add("hidden");
+            if (micBtn) micBtn.disabled = true;
+            if (screenBtn) screenBtn.disabled = true;
+            if (joinVideoBtn) joinVideoBtn.classList.add("hidden");
             
             // Reset button states
-            document.getElementById("micBtn").innerHTML = '<i class="fas fa-microphone text-sm"></i>';
-            document.getElementById("micBtn").classList.remove("bg-[#ED4245]");
-            document.getElementById("screenBtn").innerHTML = '<i class="fas fa-desktop text-sm"></i>';
-            document.getElementById("screenBtn").classList.remove("bg-[#5865F2]");
+            if (micBtn) {
+                micBtn.innerHTML = '<i class="fas fa-microphone text-sm"></i>';
+                micBtn.classList.remove("bg-[#ED4245]");
+            }
+            
+            if (screenBtn) {
+                screenBtn.innerHTML = '<i class="fas fa-desktop text-sm"></i>';
+                screenBtn.classList.remove("bg-[#5865F2]");
+            }
             
             // Clear participants
-            document.getElementById("participants").innerHTML = "";
-            document.getElementById("videosContainer").innerHTML = "";
+            if (participants) participants.innerHTML = "";
+            if (videosContainer) videosContainer.innerHTML = "";
             participantCount = 0;
             
             // Hide panels
-            document.getElementById("participantsPanel").classList.add("hidden");
-            document.getElementById("videoContainer").classList.add("hidden");
+            if (participantsPanel) participantsPanel.classList.add("hidden");
+            if (videoContainer) videoContainer.classList.add("hidden");
             
             // Show disconnected notification
             showToast("Disconnected from voice", "error");
@@ -213,33 +247,40 @@ async function initializeMeeting() {
 }
 
 function addParticipant(participant) {
+    if (!participant) {
+        console.error("Invalid participant object");
+        return;
+    }
+    
     participantCount++;
     
     // Get initials for avatar
-    const initials = participant.displayName.charAt(0).toUpperCase();
+    const initials = participant.displayName ? participant.displayName.charAt(0).toUpperCase() : 'U';
     
     // Generate a consistent color based on the display name
-    const nameHash = [...participant.displayName].reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const nameHash = [...(participant.displayName || 'User')].reduce((acc, char) => acc + char.charCodeAt(0), 0);
     const hue = nameHash % 360;
     const avatarColor = `hsl(${hue}, 70%, 40%)`;
   
     // Add to participants list in the panel
     const participantsList = document.getElementById("participants");
-    const participantDiv = document.createElement("div");
-    participantDiv.id = `participant-list-${participant.id}`;
-    participantDiv.className = "flex items-center justify-between p-2 rounded hover:bg-[#36373d] mb-1 text-sm";
-    participantDiv.innerHTML = `
-        <div class="flex items-center gap-2">
-            <div class="w-8 h-8 rounded-full flex items-center justify-center text-white" style="background-color: ${avatarColor}">
-                ${initials}
+    if (participantsList) {
+        const participantDiv = document.createElement("div");
+        participantDiv.id = `participant-list-${participant.id}`;
+        participantDiv.className = "flex items-center justify-between p-2 rounded hover:bg-[#36373d] mb-1 text-sm";
+        participantDiv.innerHTML = `
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-full flex items-center justify-center text-white" style="background-color: ${avatarColor}">
+                    ${initials}
+                </div>
+                <span class="font-medium text-white">${participant.displayName || 'Unknown User'}</span>
             </div>
-            <span class="font-medium text-white">${participant.displayName}</span>
-        </div>
-        <div class="flex items-center space-x-1">
-            <i id="mic-status-${participant.id}" class="fas fa-microphone-slash text-gray-500 text-xs"></i>
-        </div>
-    `;
-    participantsList.appendChild(participantDiv);
+            <div class="flex items-center space-x-1">
+                <i id="mic-status-${participant.id}" class="fas fa-microphone-slash text-gray-500 text-xs"></i>
+            </div>
+        `;
+        participantsList.appendChild(participantDiv);
+    }
     
     // Create audio element for the participant
     const audioContainer = document.createElement("div");
@@ -249,8 +290,8 @@ function addParticipant(participant) {
     document.body.appendChild(audioContainer);
     
     // Show/create video element if needed (initially hidden)
-    if (!document.getElementById(`video-${participant.id}`)) {
-        const videosContainer = document.getElementById("videosContainer");
+    const videosContainer = document.getElementById("videosContainer");
+    if (videosContainer) {
         const videoDiv = document.createElement("div");
         videoDiv.id = `video-${participant.id}`;
         videoDiv.className = "relative w-36 h-36 mx-auto"; // Make it centered like Discord
@@ -262,7 +303,7 @@ function addParticipant(participant) {
             <video class="w-full h-full object-cover rounded-full hidden" autoplay playsinline></video>
             <div class="absolute -bottom-6 w-full text-center">
                 <div class="bg-[#212225] rounded-full px-2 py-0.5 inline-flex items-center gap-1">
-                    <span class="text-xs text-white">${participant.displayName}</span>
+                    <span class="text-xs text-white">${participant.displayName || 'Unknown User'}</span>
                     <i id="user-mic-${participant.id}" class="fas fa-microphone-slash text-gray-400 text-xs"></i>
                 </div>
             </div>
@@ -271,7 +312,10 @@ function addParticipant(participant) {
     }
     
     // Update the video display
-    document.getElementById("videoContainer").classList.remove("hidden");
+    const videoContainer = document.getElementById("videoContainer");
+    if (videoContainer) {
+        videoContainer.classList.remove("hidden");
+    }
     
     // Setup stream event handlers
     participant.on("stream-enabled", (stream) => {
@@ -279,9 +323,12 @@ function addParticipant(participant) {
             const audioEl = document.getElementById(`audio-${participant.id}`);
             const micStatusEl = document.getElementById(`mic-status-${participant.id}`);
             const userMicEl = document.getElementById(`user-mic-${participant.id}`);
-            const audioObj = new MediaStream();
-            audioObj.addTrack(stream.track);
-            audioEl.srcObject = audioObj;
+            
+            if (audioEl) {
+                const audioObj = new MediaStream();
+                audioObj.addTrack(stream.track);
+                audioEl.srcObject = audioObj;
+            }
             
             if (micStatusEl) {
                 micStatusEl.classList.remove("fa-microphone-slash");
@@ -298,7 +345,9 @@ function addParticipant(participant) {
             }
             
             // Setup audio visualization/detection
-            setupAudioDetection(participant.id, audioObj);
+            if (audioEl && audioEl.srcObject) {
+                setupAudioDetection(participant.id, audioEl.srcObject);
+            }
         }
         
         if (stream.kind === "video") {
@@ -307,40 +356,51 @@ function addParticipant(participant) {
                 const avatarEl = videoEl.querySelector(".absolute");
                 const videoStreamEl = videoEl.querySelector("video");
                 
-                const videoStream = new MediaStream();
-                videoStream.addTrack(stream.track);
-                videoStreamEl.srcObject = videoStream;
-                
-                avatarEl.classList.add("hidden");
-                videoStreamEl.classList.remove("hidden");
+                if (videoStreamEl) {
+                    const videoStream = new MediaStream();
+                    videoStream.addTrack(stream.track);
+                    videoStreamEl.srcObject = videoStream;
+                    
+                    if (avatarEl) avatarEl.classList.add("hidden");
+                    videoStreamEl.classList.remove("hidden");
+                }
             }
         }
         
         if (stream.kind === "share") {
             // Create a special screen share container
             let screenShareEl = document.getElementById(`screen-share-${participant.id}`);
-            if (!screenShareEl) {
-                const videosContainer = document.getElementById("videosContainer");
+            const videosContainer = document.getElementById("videosContainer");
+            
+            if (!screenShareEl && videosContainer) {
                 screenShareEl = document.createElement("div");
                 screenShareEl.id = `screen-share-${participant.id}`;
                 screenShareEl.className = "w-full max-w-2xl h-64 bg-black rounded-md overflow-hidden mt-4";
                 screenShareEl.innerHTML = `
                     <video class="w-full h-full object-contain" autoplay playsinline></video>
                     <div class="absolute bottom-2 right-2 bg-[#212225] rounded-full px-2 py-1 text-xs text-white">
-                        ${participant.displayName}'s screen
+                        ${participant.displayName || 'Unknown User'}'s screen
                     </div>
                 `;
                 videosContainer.prepend(screenShareEl);
             }
             
-            const videoStream = new MediaStream();
-            videoStream.addTrack(stream.track);
-            screenShareEl.querySelector("video").srcObject = videoStream;
+            if (screenShareEl) {
+                const videoElement = screenShareEl.querySelector("video");
+                if (videoElement) {
+                    const videoStream = new MediaStream();
+                    videoStream.addTrack(stream.track);
+                    videoElement.srcObject = videoStream;
+                }
+            }
             
             // Update screen share button for local participant
-            if (participant.id === meeting.localParticipant.id) {
-                document.getElementById("screenBtn").classList.add("bg-[#5865F2]");
-                document.getElementById("screenBtn").classList.remove("bg-[#272729]");
+            if (participant.id === meeting?.localParticipant?.id) {
+                const screenBtn = document.getElementById("screenBtn");
+                if (screenBtn) {
+                    screenBtn.classList.add("bg-[#5865F2]");
+                    screenBtn.classList.remove("bg-[#272729]");
+                }
             }
         }
     });
@@ -377,8 +437,8 @@ function addParticipant(participant) {
                 const avatarEl = videoEl.querySelector(".absolute");
                 const videoStreamEl = videoEl.querySelector("video");
                 
-                avatarEl.classList.remove("hidden");
-                videoStreamEl.classList.add("hidden");
+                if (avatarEl) avatarEl.classList.remove("hidden");
+                if (videoStreamEl) videoStreamEl.classList.add("hidden");
             }
         }
         
@@ -389,9 +449,12 @@ function addParticipant(participant) {
             }
             
             // Update screen share button for local participant
-            if (participant.id === meeting.localParticipant.id) {
-                document.getElementById("screenBtn").classList.remove("bg-[#5865F2]");
-                document.getElementById("screenBtn").classList.add("bg-[#272729]");
+            if (participant.id === meeting?.localParticipant?.id) {
+                const screenBtn = document.getElementById("screenBtn");
+                if (screenBtn) {
+                    screenBtn.classList.remove("bg-[#5865F2]");
+                    screenBtn.classList.add("bg-[#272729]");
+                }
             }
         }
     });
@@ -401,6 +464,11 @@ function addParticipant(participant) {
 }
 
 function setupAudioDetection(participantId, audioStream) {
+    if (!participantId || !audioStream) {
+        console.error("Missing required parameters for audio detection");
+        return;
+    }
+    
     try {
         const audioContext = new AudioContext();
         const mediaStreamSource = audioContext.createMediaStreamSource(audioStream);
@@ -410,21 +478,26 @@ function setupAudioDetection(participantId, audioStream) {
         mediaStreamSource.connect(analyser);
         
         const checkAudioLevel = () => {
-            if (!document.getElementById(`participant-list-${participantId}`)) return;
+            const participantEl = document.getElementById(`participant-list-${participantId}`);
+            if (!participantEl) return;
             
             analyser.getByteFrequencyData(dataArray);
             const audioLevel = dataArray.reduce((acc, val) => acc + val, 0) / dataArray.length;
             
-            const participantEl = document.getElementById(`participant-list-${participantId}`);
             if (audioLevel > 10) {
                 participantEl.classList.add("speaking");
-                participantEl.querySelector(".fa-microphone")?.classList.add("text-white");
+                const micIcon = participantEl.querySelector(".fa-microphone");
+                if (micIcon) micIcon.classList.add("text-white");
             } else {
                 participantEl.classList.remove("speaking");
-                participantEl.querySelector(".fa-microphone")?.classList.remove("text-white");
+                const micIcon = participantEl.querySelector(".fa-microphone");
+                if (micIcon) micIcon.classList.remove("text-white");
             }
             
-            requestAnimationFrame(checkAudioLevel);
+            // Only continue if the participant element still exists
+            if (document.getElementById(`participant-list-${participantId}`)) {
+                requestAnimationFrame(checkAudioLevel);
+            }
         };
         
         checkAudioLevel();
@@ -434,6 +507,11 @@ function setupAudioDetection(participantId, audioStream) {
 }
 
 function removeParticipant(participant) {
+    if (!participant || !participant.id) {
+        console.error("Invalid participant object in removeParticipant");
+        return;
+    }
+    
     participantCount--;
     
     // Remove from participants list with fade effect
@@ -443,7 +521,9 @@ function removeParticipant(participant) {
         participantListEl.style.opacity = "0";
         
         setTimeout(() => {
-            participantListEl.remove();
+            if (participantListEl.parentNode) {
+                participantListEl.remove();
+            }
         }, 300);
     }
     
@@ -454,7 +534,9 @@ function removeParticipant(participant) {
         videoEl.style.opacity = "0";
         
         setTimeout(() => {
-            videoEl.remove();
+            if (videoEl.parentNode) {
+                videoEl.remove();
+            }
         }, 300);
     }
     
@@ -464,12 +546,19 @@ function removeParticipant(participant) {
         audioContainer.remove();
     }
     
+    // Remove screen share if exists
+    const screenShareEl = document.getElementById(`screen-share-${participant.id}`);
+    if (screenShareEl) {
+        screenShareEl.remove();
+    }
+    
     // Update participants panel
     updateParticipantsPanel();
 }
 
 function updateParticipantsPanel() {
     const panel = document.getElementById("participantsPanel");
+    if (!panel) return;
     
     if (participantCount > 0) {
         panel.classList.remove("hidden");
@@ -479,6 +568,8 @@ function updateParticipantsPanel() {
 }
 
 function showToast(message, type = "info") {
+    if (!message) return;
+    
     // Create toast container if it doesn't exist
     let toastContainer = document.getElementById("toast-container");
     if (!toastContainer) {
@@ -524,7 +615,9 @@ function showToast(message, type = "info") {
         toast.style.transform = "translateX(20px)";
         
         setTimeout(() => {
-            toast.remove();
+            if (toast.parentNode) {
+                toast.remove();
+            }
         }, 300);
     }, 3000);
 }
