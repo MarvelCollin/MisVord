@@ -171,7 +171,7 @@ export class ServerManager {
           total: 0
         });
       });
-  },
+  }
   
   updateStatsUI(stats) {
     // Set defaults if values don't exist
@@ -183,7 +183,6 @@ export class ServerManager {
     
     if (activeServerCount) activeServerCount.textContent = active;
     if (totalServerCount) totalServerCount.textContent = totalServers;
-  }
   }
   
   renderServers(servers, total, showing) {

@@ -58,6 +58,8 @@ function initServerSettingsPage() {
         initMembersTab();
     } else if (activeSection === 'roles') {
         initRolesTab();
+    } else if (activeSection === 'delete') {
+        initDeleteServerTab();
     }
     
     initCloseButton();
@@ -1036,5 +1038,127 @@ function resetServerPreviewBanner() {
     if (previewBanner) {
         previewBanner.style.backgroundImage = '';
         previewBanner.classList.add('bg-gradient-to-b', 'from-[#7a8087]', 'to-[#36393f]');
+    }
+}
+
+/**
+ * Initialize the delete server tab functionality
+ */
+function initDeleteServerTab() {
+    const openDeleteModalBtn = document.getElementById('open-delete-modal');
+    const deleteServerModal = document.getElementById('delete-server-modal');
+    const closeDeleteModalBtn = document.getElementById('close-delete-modal');
+    const cancelDeleteBtn = document.getElementById('cancel-delete-server');
+    const confirmDeleteBtn = document.getElementById('confirm-delete-server');
+    const confirmServerNameInput = document.getElementById('confirm-server-name');
+    const deleteServerNameSpan = document.getElementById('delete-server-name');
+    const serverNameToConfirmElements = document.querySelectorAll('.server-name-to-confirm');
+    
+    const serverId = document.querySelector('meta[name="server-id"]')?.content;
+    const serverName = document.querySelector('.w-60.bg-discord-light .text-sm.font-semibold')?.textContent;
+    
+    if (!serverId || !serverName || !openDeleteModalBtn || !deleteServerModal) return;
+    
+    if (deleteServerNameSpan) {
+        deleteServerNameSpan.textContent = serverName;
+    }
+    
+    serverNameToConfirmElements.forEach(element => {
+        element.textContent = serverName;
+    });
+    
+    function openModal() {
+        deleteServerModal.classList.remove('hidden');
+        setTimeout(() => {
+            deleteServerModal.querySelector('.bg-discord-dark').classList.add('scale-100');
+            deleteServerModal.querySelector('.bg-discord-dark').classList.remove('scale-95');
+            confirmServerNameInput.focus();
+        }, 10);
+    }
+    
+    function closeModal() {
+        deleteServerModal.querySelector('.bg-discord-dark').classList.add('scale-95');
+        deleteServerModal.querySelector('.bg-discord-dark').classList.remove('scale-100');
+        setTimeout(() => {
+            deleteServerModal.classList.add('hidden');
+            confirmServerNameInput.value = '';
+            updateDeleteButton();
+        }, 200);
+    }
+    
+    function updateDeleteButton() {
+        const inputValue = confirmServerNameInput.value;
+        const isMatch = inputValue === serverName;
+        
+        if (isMatch) {
+            confirmDeleteBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            confirmDeleteBtn.removeAttribute('disabled');
+        } else {
+            confirmDeleteBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            confirmDeleteBtn.setAttribute('disabled', 'disabled');
+        }
+    }
+    
+    if (openDeleteModalBtn) {
+        openDeleteModalBtn.addEventListener('click', openModal);
+    }
+    
+    if (closeDeleteModalBtn) {
+        closeDeleteModalBtn.addEventListener('click', closeModal);
+    }
+    
+    if (cancelDeleteBtn) {
+        cancelDeleteBtn.addEventListener('click', closeModal);
+    }
+    
+    if (confirmServerNameInput) {
+        confirmServerNameInput.addEventListener('input', updateDeleteButton);
+    }
+    
+    deleteServerModal.addEventListener('click', (e) => {
+        if (e.target === deleteServerModal) {
+            closeModal();
+        }
+    });
+    
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !deleteServerModal.classList.contains('hidden')) {
+            closeModal();
+        }
+    });
+    
+    if (confirmDeleteBtn) {
+        confirmDeleteBtn.addEventListener('click', async () => {
+            if (confirmServerNameInput.value !== serverName) return;
+            
+            try {
+                confirmDeleteBtn.disabled = true;
+                confirmDeleteBtn.innerHTML = `
+                    <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Deleting...
+                `;
+                
+                const response = await window.serverAPI.deleteUserServer(serverId);
+                
+                if (response && response.success) {
+                    showToast('Server has been deleted successfully', 'success');
+                    
+                    setTimeout(() => {
+                        window.location.href = '/home';
+                    }, 1500);
+                } else {
+                    throw new Error(response.message || 'Failed to delete server');
+                }
+            } catch (error) {
+                console.error('Error deleting server:', error);
+                showToast(error.message || 'Failed to delete server', 'error');
+                
+                confirmDeleteBtn.disabled = false;
+                confirmDeleteBtn.textContent = 'Delete Server';
+            }
+        });
     }
 }

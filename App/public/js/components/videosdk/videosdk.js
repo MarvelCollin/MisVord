@@ -35,17 +35,24 @@ class VideoSDKManager {
         return this;
     }
     
-    detectSDKVersion() {
-        // Try to detect SDK version based on available features
+    detectSDKVersion() {                        
         if (VideoSDK.Constants && VideoSDK.Constants.modes && VideoSDK.Constants.modes.SEND_AND_RECV) {
             this.sdkVersion = "0.1.x";
+        } else if (VideoSDK.version) {
+            this.sdkVersion = VideoSDK.version;
         } else if (VideoSDK.config && VideoSDK.initMeeting) {
             this.sdkVersion = "0.2.x";
         } else {
             this.sdkVersion = "unknown";
         }
         
+        this.hasE2EE = typeof VideoSDK.enableE2EE === 'function';
+        this.hasFastChannelSwitching = typeof VideoSDK.enableFastChannelSwitching === 'function';
+        this.hasMediaRelay = typeof VideoSDK.enableMediaRelay === 'function';
+        this.hasAdaptiveSubscriptions = typeof VideoSDK.enableAdaptiveSubscriptions === 'function';
+        
         this.log(`Detected VideoSDK version: ${this.sdkVersion}`);
+        this.log(`Features: E2EE: ${this.hasE2EE}, Fast Channel Switching: ${this.hasFastChannelSwitching}, Media Relay: ${this.hasMediaRelay}, Adaptive Subscriptions: ${this.hasAdaptiveSubscriptions}`);
     }
     
     getMetaConfig() {
@@ -115,6 +122,7 @@ class VideoSDKManager {
         
         try {
             this.log("Creating new meeting room...");
+            console.log("[VIDEOSDK] Creating new meeting room", customId ? `with custom ID: ${customId}` : "with auto-generated ID");
             
             const postData = customId ? { customRoomId: customId } : {};
             
@@ -130,12 +138,14 @@ class VideoSDKManager {
             if (response.ok) {
                 const data = await response.json();
                 this.log("Meeting room created:", data);
+                console.log(`[VIDEOSDK] Meeting room created successfully with ID: ${data.roomId}`);
                 this.meetingCreated = true;
                 this.meetingCreationAttempts = 0;
                 return data.roomId;
             } else {
                 const errorText = await response.text();
                 this.logError("Failed to create meeting room:", response.status, errorText);
+                console.error(`[VIDEOSDK] Failed to create meeting room: ${response.status} - ${errorText}`);
                 throw new Error(`HTTP Error: ${response.status}`);
             }
         } catch (error) {
@@ -237,7 +247,6 @@ class VideoSDKManager {
         
         let mergedOptions = {...defaultOptions, ...options};
         
-        // Adjust options based on SDK version
         if (this.sdkVersion === "0.1.x" && VideoSDK.Constants) {
             if (!mergedOptions.mode) {
                 mergedOptions.mode = VideoSDK.Constants.modes.SEND_AND_RECV;
@@ -249,14 +258,17 @@ class VideoSDKManager {
         }
         
         try {
+            console.log(`[VIDEOSDK] Initializing meeting with ID: ${mergedOptions.meetingId}, username: ${mergedOptions.name}`);
             this.meeting = VideoSDK.initMeeting(mergedOptions);
             
             this.setupEventHandlers();
             
             this.log("Meeting initialized:", mergedOptions.meetingId);
+            console.log(`[VIDEOSDK] Meeting initialized successfully with ID: ${mergedOptions.meetingId}`);
             return this.meeting;
         } catch (error) {
             this.logError("Failed to initialize meeting", error);
+            console.error(`[VIDEOSDK] Failed to initialize meeting: ${error.message || error}`);
             throw error;
         }
     }
@@ -264,17 +276,66 @@ class VideoSDKManager {
     setupEventHandlers() {
         if (!this.meeting) return;
         
-        const standardEvents = [
+        // Define events based on SDK version
+        let standardEvents = [
             "meeting-joined",
             "meeting-left",
             "participant-joined",
             "participant-left",
             "speaker-changed",
             "presenter-changed",
-            "error"
+            "error",
+            "recording-started",
+            "recording-stopped",
+            "livestream-started", 
+            "livestream-stopped"
         ];
         
+        // Add version-specific events
+        if (this.sdkVersion === "0.2.x" || this.sdkVersion.startsWith("0.2")) {
+            standardEvents = standardEvents.concat([
+                "hls-state-changed",
+                "transcription-state-changed",
+                "transcription-text",
+                "meeting-state-changed"
+            ]);
+        }
+        
+        // These events might not be supported in all versions
+        const advancedEvents = [
+            "device-changed",
+            "stream-paused",
+            "stream-resumed",
+            "paused-all-streams",
+            "resumed-all-streams"
+        ];
+        
+        // Try to register standard events
         standardEvents.forEach(eventName => {
+            this.registerEventHandler(eventName);
+        });
+        
+        // Try to register advanced events only if they're supported
+        advancedEvents.forEach(eventName => {
+            try {
+                this.registerEventHandler(eventName);
+            } catch (error) {
+                this.log(`Event ${eventName} not supported in this SDK version, skipping`);
+            }
+        });
+    }
+    
+    registerEventHandler(eventName) {
+        try {
+            // Check if the event is supported by trying to register a dummy handler first
+            // This is safer than trying to check the SDK's event list directly
+            const isEventSupported = this.isEventSupported(eventName);
+            
+            if (!isEventSupported) {
+                this.log(`Event ${eventName} not supported in this SDK version, skipping`);
+                return;
+            }
+            
             this.meeting.on(eventName, (...args) => {
                 if (eventName !== "error") {
                     this.log(`Event: ${eventName}`);
@@ -292,7 +353,26 @@ class VideoSDKManager {
                     });
                 }
             });
-        });
+        } catch (error) {
+            this.logError(`Failed to register event handler for ${eventName}:`, error);
+            // Don't throw the error, just log it and continue
+        }
+    }
+    
+    isEventSupported(eventName) {
+        try {
+            // Try to register a dummy handler that does nothing
+            const dummyHandler = () => {};
+            this.meeting.on(eventName, dummyHandler);
+            
+            // If we get here, the event is supported
+            // Now remove the dummy handler to clean up
+            this.meeting.off(eventName, dummyHandler);
+            return true;
+        } catch (error) {
+            // If we get an error, the event is not supported
+            return false;
+        }
     }
     
     on(eventName, handler) {
@@ -308,10 +388,14 @@ class VideoSDKManager {
         }
         
         try {
+            console.log(`[VIDEOSDK] Joining meeting with ID: ${this.meeting.id || 'unknown'}`);
+            this.log(`Joining meeting with ID: ${this.meeting.id || 'unknown'}`);
             await this.meeting.join();
+            console.log(`[VIDEOSDK] Successfully joined meeting with ID: ${this.meeting.id || 'unknown'}`);
             return true;
         } catch (error) {
             this.logError("Failed to join meeting", error);
+            console.error(`[VIDEOSDK] Failed to join meeting: ${error.message || error}`);
             throw error;
         }
     }
@@ -325,38 +409,128 @@ class VideoSDKManager {
     }
     
     toggleMic() {
-        if (!this.meeting || !this.meeting.localParticipant) return false;
+        if (!this.meeting) return false;
         
-        if (this.meeting.localParticipant.streams.has("audio")) {
-            this.meeting.muteMic();
+        try {
+            const isMicEnabled = this.sdkVersion === "0.2.x" 
+                ? this.meeting.localParticipant.isMicEnabled
+                : this.meeting.localParticipant.streams.has("audio");
+                
+            if (isMicEnabled) {
+                this.meeting.muteMic();
+            } else {
+                this.meeting.unmuteMic();
+            }
+            return !isMicEnabled;
+        } catch (error) {
+            this.logError("Error toggling mic:", error);
             return false;
-        } else {
-            this.meeting.unmuteMic();
-            return true;
         }
     }
     
     toggleWebcam() {
-        if (!this.meeting || !this.meeting.localParticipant) return false;
+        if (!this.meeting) return false;
         
-        if (this.meeting.localParticipant.streams.has("video")) {
-            this.meeting.disableWebcam();
+        try {
+            const isWebcamEnabled = this.sdkVersion === "0.2.x" 
+                ? this.meeting.localParticipant.isWebcamEnabled
+                : this.meeting.localParticipant.streams.has("video");
+                
+            if (isWebcamEnabled) {
+                this.meeting.disableWebcam();
+            } else {
+                this.meeting.enableWebcam();
+            }
+            return !isWebcamEnabled;
+        } catch (error) {
+            this.logError("Error toggling webcam:", error);
             return false;
-        } else {
-            this.meeting.enableWebcam();
-            return true;
         }
     }
     
     toggleScreenShare() {
-        if (!this.meeting || !this.meeting.localParticipant) return false;
+        if (!this.meeting) return false;
         
-        if (this.meeting.localParticipant.streams.has("share")) {
-            this.meeting.disableScreenShare();
+        try {
+            const isScreenShareEnabled = this.sdkVersion === "0.2.x" 
+                ? this.meeting.localParticipant.isScreenShareEnabled
+                : this.meeting.localParticipant.streams.has("share");
+                
+            if (isScreenShareEnabled) {
+                this.meeting.disableScreenShare();
+            } else {
+                this.meeting.enableScreenShare();
+            }
+            return !isScreenShareEnabled;
+        } catch (error) {
+            this.logError("Error toggling screen share:", error);
             return false;
-        } else {
-            this.meeting.enableScreenShare();
+        }
+    }
+    
+    
+    toggleE2EE(enabled = true) {
+        if (!this.hasE2EE) {
+            this.logError("E2EE feature not available in this VideoSDK version");
+            return false;
+        }
+        
+        try {
+            if (enabled) {
+                VideoSDK.enableE2EE();
+                this.log("End-to-end encryption enabled");
+            } else {
+                VideoSDK.disableE2EE();
+                this.log("End-to-end encryption disabled");
+            }
             return true;
+        } catch (error) {
+            this.logError("Error toggling E2EE:", error);
+            return false;
+        }
+    }
+    
+    
+    toggleFastChannelSwitching(enabled = true) {
+        if (!this.hasFastChannelSwitching) {
+            this.logError("Fast channel switching feature not available in this VideoSDK version");
+            return false;
+        }
+        
+        try {
+            if (enabled) {
+                VideoSDK.enableFastChannelSwitching();
+                this.log("Fast channel switching enabled");
+            } else {
+                VideoSDK.disableFastChannelSwitching();
+                this.log("Fast channel switching disabled");
+            }
+            return true;
+        } catch (error) {
+            this.logError("Error toggling fast channel switching:", error);
+            return false;
+        }
+    }
+    
+
+    toggleAdaptiveSubscriptions(enabled = true) {
+        if (!this.hasAdaptiveSubscriptions || !this.meeting) {
+            this.logError("Adaptive subscriptions feature not available");
+            return false;
+        }
+        
+        try {
+            if (enabled) {
+                this.meeting.enableAdaptiveSubscriptions();
+                this.log("Adaptive subscriptions enabled");
+            } else {
+                this.meeting.disableAdaptiveSubscriptions();
+                this.log("Adaptive subscriptions disabled");
+            }
+            return true;
+        } catch (error) {
+            this.logError("Error toggling adaptive subscriptions:", error);
+            return false;
         }
     }
 

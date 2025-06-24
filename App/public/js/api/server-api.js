@@ -93,7 +93,7 @@ const serverAPI = {
     },
     
     /**
-     * Delete a server
+     * Delete a server (admin API)
      * @param {number} serverId - Server ID
      * @returns {Promise} - Promise with deletion response
      */
@@ -104,6 +104,31 @@ const serverAPI = {
                 'Accept': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
             }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        });
+    },
+    
+    /**
+     * Delete a server (user API)
+     * @param {number} serverId - Server ID
+     * @returns {Promise} - Promise with deletion response
+     */
+    deleteUserServer: function(serverId) {
+        return fetch(`/api/servers`, {
+            method: 'DELETE',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                server_id: serverId
+            })
         })
         .then(response => {
             if (!response.ok) {

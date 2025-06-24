@@ -112,7 +112,7 @@ ob_start();
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="bg-discord-darker rounded-lg p-6">
+                <div id="total-users-card" class="bg-discord-darker rounded-lg p-6 skeleton">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-lg font-medium">Users</h3>
                         <span class="text-blue-400">
@@ -124,20 +124,48 @@ ob_start();
                     <div class="flex flex-col">
                         <div class="flex justify-between items-center mb-2">
                             <span class="text-discord-lighter">Total Users</span>
-                            <span class="text-xl font-bold" id="total-users"><?php echo number_format($stats['users']['total']); ?></span>
-                        </div>
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="text-discord-lighter">Online</span>
-                            <span class="text-green-400" id="online-users"><?php echo number_format($stats['users']['online']); ?></span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-discord-lighter">New (7 days)</span>
-                            <span class="text-blue-400" id="new-users"><?php echo number_format($stats['users']['recent']); ?></span>
+                            <span class="text-xl font-bold card-value"><?php echo number_format($stats['users']['total']); ?></span>
                         </div>
                     </div>
                 </div>
                 
-                <div class="bg-discord-darker rounded-lg p-6">
+                <div id="online-users-card" class="bg-discord-darker rounded-lg p-6 skeleton">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-medium">Online Users</h3>
+                        <span class="text-green-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.636 18.364a9 9 0 010-12.728m12.728 0a9 9 0 010 12.728m-9.9-2.829a5 5 0 010-7.07m7.072 0a5 5 0 010 7.07M13 12a1 1 0 11-2 0 1 1 0 012 0z" />
+                            </svg>
+                        </span>
+                    </div>
+                    <div class="flex flex-col">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-discord-lighter">Online Users</span>
+                            <span class="text-green-400 font-bold card-value"><?php echo number_format($stats['users']['online']); ?></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="new-users-card" class="bg-discord-darker rounded-lg p-6 skeleton">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-medium">New Users</h3>
+                        <span class="text-blue-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                            </svg>
+                        </span>
+                    </div>
+                    <div class="flex flex-col">
+                        <div class="flex justify-between items-center">
+                            <span class="text-discord-lighter">New (7 days)</span>
+                            <span class="text-blue-400 font-bold card-value"><?php echo number_format($stats['users']['recent']); ?></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                <div id="total-servers-card" class="bg-discord-darker rounded-lg p-6 skeleton">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-lg font-medium">Servers</h3>
                         <span class="text-indigo-400">
@@ -149,14 +177,14 @@ ob_start();
                     <div class="flex flex-col">
                         <div class="flex justify-between items-center mb-2">
                             <span class="text-discord-lighter">Total Servers</span>
-                            <span class="text-xl font-bold" id="total-servers"><?php echo number_format($stats['servers']['total']); ?></span>
+                            <span class="text-xl font-bold card-value"><?php echo number_format($stats['servers']['total']); ?></span>
                         </div>
                     </div>
                 </div>
                 
-                <div class="bg-discord-darker rounded-lg p-6">
+                <div id="total-messages-card" class="bg-discord-darker rounded-lg p-6 skeleton">
                     <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-medium">Messages</h3>
+                        <h3 class="text-lg font-medium">Total Messages</h3>
                         <span class="text-yellow-400">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
@@ -166,11 +194,24 @@ ob_start();
                     <div class="flex flex-col">
                         <div class="flex justify-between items-center mb-2">
                             <span class="text-discord-lighter">Total Messages</span>
-                            <span class="text-xl font-bold" id="total-messages"><?php echo number_format($stats['messages']['total']); ?></span>
+                            <span class="text-xl font-bold card-value"><?php echo number_format($stats['messages']['total']); ?></span>
                         </div>
+                    </div>
+                </div>
+                
+                <div id="todays-messages-card" class="bg-discord-darker rounded-lg p-6 skeleton">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-medium">Today's Messages</h3>
+                        <span class="text-yellow-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </span>
+                    </div>
+                    <div class="flex flex-col">
                         <div class="flex justify-between items-center">
                             <span class="text-discord-lighter">Today</span>
-                            <span class="text-yellow-400" id="todays-messages"><?php echo number_format($stats['messages']['today']); ?></span>
+                            <span class="text-yellow-400 font-bold card-value"><?php echo number_format($stats['messages']['today']); ?></span>
                         </div>
                     </div>
                 </div>

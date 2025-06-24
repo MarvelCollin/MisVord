@@ -3,6 +3,7 @@ const eventController = require('./eventController');
 const userSockets = new Map();
 const userStatus = new Map();
 const recentMessages = new Map();
+const voiceMeetings = new Map(); // Map of channelId -> { meetingId, participants: Set() }
 
 function setup(io) {
     eventController.setIO(io);
@@ -36,6 +37,11 @@ function setup(io) {
         client.on('reaction-added', (data) => forwardEvent(io, client, 'reaction-added', data, null));
         client.on('reaction-removed', (data) => forwardEvent(io, client, 'reaction-removed', data, null));
         client.on('message-pinned', (data) => forwardEvent(io, client, 'message-pinned', data, null));
+        
+        // Voice meeting coordination events
+        client.on('check-voice-meeting', (data) => handleCheckVoiceMeeting(io, client, data));
+        client.on('register-voice-meeting', (data) => handleRegisterVoiceMeeting(io, client, data));
+        client.on('unregister-voice-meeting', (data) => handleUnregisterVoiceMeeting(io, client, data));
         
         client.on('debug-rooms', () => handleDebugRooms(io, client));
         client.on('get-room-info', () => handleGetRoomInfo(io, client));
@@ -252,6 +258,30 @@ function handleDisconnect(io, client) {
     
     console.log(`Client disconnected: ${client.id}, User: ${userId}`);
     
+    // Clean up voice meetings
+    for (const [channelId, meetingInfo] of voiceMeetings.entries()) {
+        if (meetingInfo.participants.has(client.id)) {
+            console.log(`Removing disconnected user from voice meeting in channel ${channelId}`);
+            meetingInfo.participants.delete(client.id);
+            
+            // If no participants left, remove the meeting
+            if (meetingInfo.participants.size === 0) {
+                console.log(`No participants left in meeting for channel ${channelId}, removing meeting`);
+                voiceMeetings.delete(channelId);
+            } else {
+                // Notify others that the user left
+                const room = `channel-${channelId}`;
+                io.to(room).emit('voice-participant-left', {
+                    channelId,
+                    meetingId: meetingInfo.meetingId,
+                    username: client.data?.username || 'Unknown',
+                    userId: client.data?.userId,
+                    participantCount: meetingInfo.participants.size
+                });
+            }
+        }
+    }
+    
     if (userId && userSockets.has(userId)) {
         userSockets.get(userId).delete(client.id);
         
@@ -416,6 +446,149 @@ function getTargetRoom(data) {
     return null;
 }
 
+// Handle checking if a voice meeting exists for a channel
+function handleCheckVoiceMeeting(io, client, data) {
+    if (!client.data?.authenticated) {
+        client.emit('error', { message: 'Authentication required' });
+        return;
+    }
+    
+    const { channelId } = data;
+    
+    if (!channelId) {
+        client.emit('error', { message: 'Channel ID is required' });
+        return;
+    }
+    
+    console.log(`Checking voice meeting for channel ${channelId}`);
+    
+    if (voiceMeetings.has(channelId)) {
+        const meetingInfo = voiceMeetings.get(channelId);
+        console.log(`Found existing meeting ${meetingInfo.meetingId} for channel ${channelId} with ${meetingInfo.participants.size} participants`);
+        
+        client.emit('voice-meeting-info', {
+            channelId,
+            meetingId: meetingInfo.meetingId,
+            participantCount: meetingInfo.participants.size
+        });
+    } else {
+        console.log(`No existing meeting found for channel ${channelId}`);
+        client.emit('voice-meeting-info', {
+            channelId,
+            meetingId: null,
+            participantCount: 0
+        });
+    }
+}
+
+// Handle registering a voice meeting for a channel
+function handleRegisterVoiceMeeting(io, client, data) {
+    if (!client.data?.authenticated) {
+        client.emit('error', { message: 'Authentication required' });
+        return;
+    }
+    
+    const { channelId, meetingId, username } = data;
+    
+    if (!channelId || !meetingId) {
+        client.emit('error', { message: 'Channel ID and Meeting ID are required' });
+        return;
+    }
+    
+    console.log(`Registering voice meeting ${meetingId} for channel ${channelId} by ${username || client.data.username}`);
+    
+    // Add the meeting if it doesn't exist
+    if (!voiceMeetings.has(channelId)) {
+        voiceMeetings.set(channelId, {
+            meetingId,
+            participants: new Set([client.id])
+        });
+    } else {
+        // Update the meeting if it exists
+        const meetingInfo = voiceMeetings.get(channelId);
+        meetingInfo.participants.add(client.id);
+    }
+    
+    // Broadcast to the channel that someone joined the voice meeting
+    const room = `channel-${channelId}`;
+    io.to(room).emit('voice-participant-joined', {
+        channelId,
+        meetingId,
+        username: username || client.data.username,
+        userId: client.data.userId,
+        participantCount: voiceMeetings.get(channelId).participants.size
+    });
+}
+
+// Handle unregistering from a voice meeting
+function handleUnregisterVoiceMeeting(io, client, data) {
+    if (!client.data?.authenticated) {
+        client.emit('error', { message: 'Authentication required' });
+        return;
+    }
+    
+    const { channelId, meetingId, username } = data;
+    
+    if (!channelId || !meetingId) {
+        client.emit('error', { message: 'Channel ID and Meeting ID are required' });
+        return;
+    }
+    
+    console.log(`Unregistering from voice meeting ${meetingId} for channel ${channelId} by ${username || client.data.username}`);
+    
+    if (voiceMeetings.has(channelId)) {
+        const meetingInfo = voiceMeetings.get(channelId);
+        meetingInfo.participants.delete(client.id);
+        
+        // If no participants left, remove the meeting
+        if (meetingInfo.participants.size === 0) {
+            console.log(`No participants left in meeting ${meetingId} for channel ${channelId}, removing meeting`);
+            voiceMeetings.delete(channelId);
+        }
+        
+        // Broadcast to the channel that someone left the voice meeting
+        const room = `channel-${channelId}`;
+        io.to(room).emit('voice-participant-left', {
+            channelId,
+            meetingId,
+            username: username || client.data.username,
+            userId: client.data.userId,
+            participantCount: voiceMeetings.has(channelId) ? voiceMeetings.get(channelId).participants.size : 0
+        });
+    }
+}
+
+// Get voice meetings information for API
+function getVoiceMeetingsInfo() {
+    const meetings = [];
+    
+    for (const [channelId, meetingInfo] of voiceMeetings.entries()) {
+        const participants = [];
+        
+        // Get participant information for each socket in the meeting
+        for (const socketId of meetingInfo.participants) {
+            const socket = io.sockets.sockets.get(socketId);
+            if (socket && socket.data) {
+                participants.push({
+                    socketId,
+                    userId: socket.data.userId,
+                    username: socket.data.username || 'Unknown'
+                });
+            }
+        }
+        
+        meetings.push({
+            channelId,
+            meetingId: meetingInfo.meetingId,
+            participants,
+            participantCount: meetingInfo.participants.size
+        });
+    }
+    
+    return meetings;
+}
+
 module.exports = {
-    setup
+    setup,
+    getVoiceMeetingsInfo
 };

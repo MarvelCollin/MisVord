@@ -174,4 +174,29 @@ $additional_js[] = 'components/voice/voice-manager';
 }
 </style>
 
-<script src="https://sdk.videosdk.live/js-sdk/0.2.7/videosdk.js"></script>
+<!-- Add scripts only if not already loaded -->
+<script>
+if (typeof VideoSDK === 'undefined') {
+    console.log("Loading VideoSDK from voice-section.php");
+    const videoSDKScript = document.createElement('script');
+    videoSDKScript.src = "https://sdk.videosdk.live/js-sdk/0.2.7/videosdk.js";
+    document.head.appendChild(videoSDKScript);
+} else {
+    console.log("VideoSDK already loaded");
+}
+
+// Make sure our scripts get loaded through the PHP architecture
+if (typeof window.videoSDKManager === 'undefined') {
+    console.log("Adding videosdk.js to additional_js");
+    if (typeof additional_js !== 'undefined') {
+        if (!additional_js.includes('components/videosdk/videosdk')) {
+            additional_js.push('components/videosdk/videosdk');
+        }
+    }
+}
+if (typeof additional_js !== 'undefined') {
+    if (!additional_js.includes('components/voice/voice-manager')) {
+        additional_js.push('components/voice/voice-manager');
+    }
+}
+</script>

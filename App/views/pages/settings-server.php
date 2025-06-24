@@ -74,13 +74,75 @@ ob_start();
                         Bans
                     </a>
                 </li>
+                
+                <!-- Add Delete Server option at the bottom -->
+                <li class="mt-6">
+                    <div class="sidebar-category">
+                        <span>DANGER ZONE</span>
+                    </div>
+                </li>
+                <li>
+                    <a href="?server_id=<?php echo $serverId; ?>&section=delete" class="sidebar-item text-discord-red <?php echo $section === 'delete' ? 'active' : ''; ?>">
+                        Delete Server
+                    </a>
+                </li>
             </ul>
         </nav>
     </div>
 
     <!-- Main Content Area -->
     <div class="flex-1 bg-discord-dark overflow-y-auto">
-        <?php if ($section === 'profile'): ?>
+        <?php if ($section === 'delete'): ?>
+            <!-- Delete Server Section -->
+            <div class="p-10 max-w-[740px]">
+                <div class="mb-8">
+                    <h1 class="text-2xl font-bold mb-2 text-discord-red">Delete Server</h1>
+                    <p class="text-discord-lighter">This action is permanent and cannot be undone</p>
+                </div>
+                
+                <div class="bg-discord-darker rounded-lg p-6 space-y-6">
+                    <div class="bg-discord-red bg-opacity-10 text-discord-red border-l-4 border-discord-red px-4 py-3 rounded-r">
+                        <div class="flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            <span class="font-medium">This action cannot be undone</span>
+                        </div>
+                    </div>
+                    
+                    <p class="text-white">
+                        Deleting this server will:
+                    </p>
+                    
+                    <ul class="ml-6 space-y-2 text-discord-lighter">
+                        <li class="flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-discord-red" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            Permanently delete all channels and their content
+                        </li>
+                        <li class="flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-discord-red" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            Remove all members from the server
+                        </li>
+                        <li class="flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-discord-red" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            Delete all server settings and custom emojis
+                        </li>
+                    </ul>
+                    
+                    <div class="pt-4">
+                        <button id="open-delete-modal" class="bg-discord-red hover:bg-red-700 text-white font-medium py-2 px-6 rounded-md transition-colors">
+                            Delete Server
+                        </button>
+                    </div>
+                </div>
+            </div>
+        <?php elseif ($section === 'profile'): ?>
             <!-- Server Profile Section -->
             <div class="p-10 max-w-[740px]">
                 <div class="mb-8">
@@ -502,3 +564,5 @@ ob_start();
 $content = ob_get_clean(); 
 include dirname(dirname(__DIR__)) . '/views/layout/main-app.php';
 ?>
+
+<?php include dirname(dirname(__DIR__)) . '/views/components/server/delete-server-modal.php'; ?>

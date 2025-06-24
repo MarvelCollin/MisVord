@@ -508,3 +508,4 @@
 [2025-06-24 10:18:03] INFO [b0f1bf] Database connected successfully - Context: {"database":"misvord"}
 [2025-06-24 10:18:03] DEBUG [b0f1bf] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
 [2025-06-24 10:18:03] INFO [b0f1bf] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-24 15:41:49] DEBUG [d46e1b] Controller instantiated - Context: {"controller":"AdminController","request_uri":"","request_method":"GET","is_ajax":"no"}

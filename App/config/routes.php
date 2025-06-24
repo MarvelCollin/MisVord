@@ -761,6 +761,11 @@ Route::get('/api/health/network-info', function() {
     $controller->getNetworkInfo();
 });
 
+Route::delete('/api/servers', function() {
+    $controller = new ServerController();
+    $controller->delete();
+});
+
 return array_merge(Route::getRoutes(), [
     '404' => 'pages/404.php'
 ]);

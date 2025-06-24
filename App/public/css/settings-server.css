@@ -1143,3 +1143,50 @@ textarea.form-input {
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
 }
 
+/* Delete Server Modal */
+#delete-server-modal .bg-discord-dark {
+  transform: scale(0.95);
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+#delete-server-modal .bg-discord-dark.scale-100 {
+  transform: scale(1);
+}
+
+#confirm-server-name {
+  background-color: var(--discord-dark-input);
+  color: var(--discord-white);
+  border: 1px solid #3f4248;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+#confirm-server-name:focus {
+  border-color: var(--discord-red);
+  box-shadow: 0 0 0 2px rgba(237, 66, 69, 0.25);
+  outline: none;
+}
+
+#confirm-server-name.match {
+  border-color: var(--discord-red);
+}
+
+#confirm-delete-server {
+  transition: background-color 0.2s ease, opacity 0.2s ease;
+}
+
+#confirm-delete-server:not([disabled]):hover {
+  background-color: #d83c3e;
+}
+
+.text-discord-red {
+  color: var(--discord-red);
+}
+
+.border-discord-red {
+  border-color: var(--discord-red);
+}
+
+.bg-discord-red.bg-opacity-10 {
+  background-color: rgba(237, 66, 69, 0.1);
+}
+

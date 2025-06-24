@@ -244,62 +244,66 @@ export class OverviewManager {
   }
 
   loadSystemStats() {
-    if (this.chartConfig.useMockData) {
-      setTimeout(() => {
-        this.updateSystemStats(this.generateMockSystemStats());
-      }, 500);
-      return;
-    }
+    // Always try to load real data first
+    const apiEndpoint = '/api/admin/stats';
     
-    fetch("/api/admin/stats", {
-      method: "GET",
-      headers: {
-        "Accept": "application/json",
-        "X-Requested-With": "XMLHttpRequest"
-      }
-    })
+    fetch(apiEndpoint)
       .then(response => response.json())
       .then(data => {
-        console.log("System stats API response:", data);
-        
-        // Handle different response structures
-        let stats;
-        if (data.success && data.data && data.data.stats) {
-          stats = data.data.stats;
-        } else if (data.success && data.stats) {
-          stats = data.stats;
-        } else if (data.stats) {
-          stats = data.stats;
+        if (data.success && data.stats) {
+          this.updateSystemStats(data.stats);
         } else {
-          console.error("Unexpected API response format:", data);
-          stats = {}; // Default empty stats
+          console.error('Failed to load system stats:', data);
         }
-        
-        // Map API response to the expected format for the UI
-        const mappedStats = {
-          totalUsers: stats.users?.total || 0,
-          onlineUsers: stats.users?.online || 0,
-          newUsers: stats.users?.recent || 0,
-          totalServers: stats.servers?.total || 0,
-          totalMessages: stats.messages?.total || 0,
-          todaysMessages: stats.messages?.today || 0
-        };
-        
-        this.updateSystemStats(mappedStats);
       })
       .catch(error => {
-        console.error("Error loading system stats:", error);
-        showToast("An error occurred while loading system stats", "error");
+        console.error('Error loading system stats:', error);
+        // Only use mock data if real data fails and mock data is enabled
+        if (this.chartConfig && this.chartConfig.useMockData === true) {
+          setTimeout(() => {
+            this.updateSystemStats(this.generateMockSystemStats());
+          }, 500);
+        }
       });
   }
   
   updateSystemStats(stats) {
-    document.getElementById("total-users").textContent = stats.totalUsers || 0;
-    document.getElementById("online-users").textContent = stats.onlineUsers || 0;
-    document.getElementById("new-users").textContent = stats.newUsers || 0;
-    document.getElementById("total-servers").textContent = stats.totalServers || 0;
-    document.getElementById("total-messages").textContent = stats.totalMessages || 0;
-    document.getElementById("todays-messages").textContent = stats.todaysMessages || 0;
+    const totalUsersEl = document.getElementById('total-users-card');
+    const onlineUsersEl = document.getElementById('online-users-card'); 
+    const newUsersEl = document.getElementById('new-users-card');
+    const totalServersEl = document.getElementById('total-servers-card');
+    const totalMessagesEl = document.getElementById('total-messages-card');
+    const todaysMessagesEl = document.getElementById('todays-messages-card');
+    
+    if (totalUsersEl) {
+      totalUsersEl.querySelector('.card-value').textContent = stats.users ? stats.users.total : '0';
+      totalUsersEl.classList.remove('skeleton');
+    }
+    
+    if (onlineUsersEl) {
+      onlineUsersEl.querySelector('.card-value').textContent = stats.users ? stats.users.online : '0';
+      onlineUsersEl.classList.remove('skeleton');
+    }
+    
+    if (newUsersEl) {
+      newUsersEl.querySelector('.card-value').textContent = stats.users ? stats.users.recent : '0';
+      newUsersEl.classList.remove('skeleton');
+    }
+    
+    if (totalServersEl) {
+      totalServersEl.querySelector('.card-value').textContent = stats.servers ? stats.servers.total : '0';
+      totalServersEl.classList.remove('skeleton');
+    }
+    
+    if (totalMessagesEl) {
+      totalMessagesEl.querySelector('.card-value').textContent = stats.messages ? stats.messages.total : '0';
+      totalMessagesEl.classList.remove('skeleton');
+    }
+    
+    if (todaysMessagesEl) {
+      todaysMessagesEl.querySelector('.card-value').textContent = stats.messages ? stats.messages.today : '0';
+      todaysMessagesEl.classList.remove('skeleton');
+    }
   }
 
   setupChartControls() {
@@ -343,7 +347,8 @@ export class OverviewManager {
   }
 
   loadChartData() {
-    if (this.chartConfig.useMockData) {
+    // Always check if we're supposed to use mock data, default to real data
+    if (this.chartConfig && this.chartConfig.useMockData === true) {
       this.loadMockChartData();
       return;
     }
@@ -481,12 +486,18 @@ export class OverviewManager {
     const range = this.getMockRange();
     
     return {
-      totalUsers: this.getRandomInt(range.medium.min * 10, range.medium.max * 10),
-      onlineUsers: this.getRandomInt(range.small.min, range.small.max * 2),
-      newUsers: this.getRandomInt(range.small.min, range.small.max),
-      totalServers: this.getRandomInt(range.small.min * 5, range.medium.min),
-      totalMessages: this.getRandomInt(range.large.min, range.large.max),
-      todaysMessages: this.getRandomInt(range.medium.min, range.medium.max)
+      users: {
+        total: this.getRandomInt(range.medium.min * 10, range.medium.max * 10),
+        online: this.getRandomInt(range.small.min, range.small.max * 2),
+        recent: this.getRandomInt(range.small.min, range.small.max)
+      },
+      servers: {
+        total: this.getRandomInt(range.small.min * 5, range.medium.min)
+      },
+      messages: {
+        total: this.getRandomInt(range.large.min, range.large.max),
+        today: this.getRandomInt(range.medium.min, range.medium.max)
+      }
     };
   }
   

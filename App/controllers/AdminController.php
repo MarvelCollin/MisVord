@@ -39,16 +39,16 @@ class AdminController extends BaseController
         
         $stats = [
             'users' => [
-                'total' => $this->userRepository->count(),
-                'online' => $this->userRepository->countByStatus('online'),
-                'recent' => $this->userRepository->countRecentUsers(7)
+                'total' => intval($this->userRepository->count()),
+                'online' => intval($this->userRepository->countByStatus('online')),
+                'recent' => intval($this->userRepository->countRecentUsers(7))
             ],
             'servers' => [
-                'total' => $this->serverRepository->count()
+                'total' => intval($this->serverRepository->count())
             ],
             'messages' => [
-                'total' => $this->messageRepository->count(),
-                'today' => $this->messageRepository->countToday()
+                'total' => intval($this->messageRepository->count()),
+                'today' => intval($this->messageRepository->countToday())
             ]
         ];
         

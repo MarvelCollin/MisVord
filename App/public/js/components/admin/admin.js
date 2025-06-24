@@ -84,7 +84,7 @@ class AdminManager {
     if (mockDataToggle) {
       // Store a reference to chartConfig for this instance
       this.chartConfig = window.overviewManager?.chartConfig || {
-        useMockData: false,
+        useMockData: false, // Ensure we default to real data (not mock data)
         mockDataRange: 'medium',
         mockDataTrend: 'random'
       };
@@ -198,7 +198,22 @@ class AdminManager {
         // Set the checkbox state
         const mockDataCheckbox = document.getElementById('use-mock-data');
         if (mockDataCheckbox) {
-          mockDataCheckbox.checked = useMockData;
+          mockDataCheckbox.checked = useMockData === true;
+          
+          // Update the toggle switch UI to match the state
+          const toggleSwitch = mockDataCheckbox.closest('.toggle-switch');
+          if (toggleSwitch) {
+            const dot = toggleSwitch.querySelector('.dot');
+            if (dot) {
+              if (mockDataCheckbox.checked) {
+                dot.classList.add('translate-x-5');
+                toggleSwitch.classList.add('bg-discord-blue');
+              } else {
+                dot.classList.remove('translate-x-5');
+                toggleSwitch.classList.remove('bg-discord-blue');
+              }
+            }
+          }
         }
         
         // Set the dropdown values

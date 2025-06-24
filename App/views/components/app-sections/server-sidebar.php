@@ -44,67 +44,268 @@ if (file_exists($tooltipPath)) {
 </style>
 <?php endif; ?>
 
+<!-- Server Group Styling -->
+<style>
+/* Global Discord styling and variables */
+:root {
+    --discord-darker: #1e1f22;
+    --discord-dark: #2b2d31;
+    --discord-primary: #5865f2;
+    --discord-green: #3ba55c;
+    --discord-red: #ed4245;
+    --discord-text-normal: #dcddde;
+    --discord-text-muted: #a3a6aa;
+}
+
+/* Server list and server icon base styling */
+.server-list {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+    position: relative;
+    width: 72px;
+}
+
+.server-icon {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+}
+
+.server-icon a {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+/* Server groups styling */
+.server-group {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    width: 100%;
+    align-items: center;
+}
+
+.group-header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px;
+    height: 24px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.group-name {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--discord-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: text;
+}
+
+.group-name:hover {
+    color: var(--discord-text-normal);
+}
+
+.group-header i {
+    font-size: 9px;
+    color: var(--discord-text-muted);
+}
+
+.group-servers {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    gap: 8px;
+    padding: 4px 0;
+}
+
+/* Drag and drop styling */
+.server-icon.dragging {
+    opacity: 0.4;
+    cursor: grabbing;
+}
+
+.server-group.drag-over {
+    background-color: rgba(88, 101, 242, 0.1);
+}
+
+.server-group.drag-over .group-servers {
+    background-color: rgba(88, 101, 242, 0.2);
+    border-radius: 4px;
+}
+
+.server-icon.drop-target::after {
+    content: "";
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    right: -4px;
+    bottom: -4px;
+    border: 2px dashed var(--discord-primary);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* Divider styling */
+.server-divider {
+    height: 2px;
+    width: 32px;
+    background-color: #36393f;
+    border-radius: 1px;
+    margin: 4px 0;
+}
+
+/* Drop target styling for server list */
+.server-list.drop-target::after {
+    content: "";
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    height: 2px;
+    background-color: var(--discord-primary);
+    bottom: 60px;
+    transition: all 0.2s;
+}
+
+/* Active server styling */
+.server-icon.active .server-button {
+    border-radius: 16px !important;
+    background-color: var(--discord-primary) !important;
+}
+
+.server-icon.active::before {
+    content: "";
+    position: absolute;
+    left: -6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 40px;
+    background-color: white;
+    border-radius: 0 4px 4px 0;
+}
+
+/* Basic hover effect for server icons */
+.server-button {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background-color: #36393f;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    overflow: hidden;
+}
+
+.server-icon:not(.active):hover .server-button {
+    border-radius: 16px;
+    background-color: var(--discord-primary);
+}
+
+.server-icon:not(.active):hover::before {
+    content: "";
+    position: absolute;
+    left: -6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 20px;
+    background-color: white;
+    border-radius: 0 4px 4px 0;
+    transition: height 0.2s;
+}
+</style>
+
 <div class="flex h-full">
-    <div class="w-[72px] bg-discord-darker flex flex-col items-center pt-3 pb-3 space-y-2 overflow-visible">
-        <?php
-        $homeContent = '<div class="relative">
-            <a href="/home" class="block group flex items-center justify-center relative w-12 h-12">
-                <div class="w-12 h-12 rounded-2xl ' . ($isHomePage ? 'bg-discord-primary rounded-[16px]' : 'bg-discord-dark rounded-full hover:rounded-2xl hover:bg-discord-primary') . ' flex items-center justify-center transition-all duration-200">
-                    <i class="fa-brands fa-discord text-white text-xl"></i>
+    <div class="w-[72px] bg-discord-darker flex flex-col items-center pt-3 pb-3 overflow-visible">
+        <div id="server-list" class="server-list flex-1 overflow-y-auto">
+            <!-- Home Button -->
+            <div class="server-icon mb-2 <?php echo $isHomePage ? 'active' : ''; ?>">
+                <a href="/home" class="server-button flex items-center justify-center">
+                    <div class="server-button <?php echo $isHomePage ? 'rounded-2xl bg-discord-primary' : 'rounded-full bg-discord-dark hover:bg-discord-primary hover:rounded-2xl'; ?> flex items-center justify-center">
+                        <i class="fa-brands fa-discord text-white text-xl"></i>
+                    </div>
+                </a>
+                <div class="tooltip hidden absolute left-16 bg-black text-white py-1 px-2 rounded text-sm whitespace-nowrap z-50">
+                    Home
                 </div>
-            </a>
-            ' . ($isHomePage ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-10 bg-white rounded-r-md"></div>' : '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-0 bg-white rounded-r-md group-hover:h-5 transition-all duration-150"></div>') . '
-        </div>';
-        
-        echo tooltip($homeContent, 'Home', 'right');
-        ?>
-        
-        <?php if (!empty($servers)): ?>
-        <div class="w-8 h-0.5 bg-discord-dark rounded my-1"></div>
-        <?php endif; ?>
-          <?php if (!empty($servers)): ?>            <?php foreach ($servers as $server): ?>
-                <?php 
-                $isActive = (string)$currentServerId === (string)($server['id'] ?? $server->id);
-                $serverInitials = substr($server['name'] ?? $server->name ?? 'S', 0, 1);
-                $serverImage = $server['image_url'] ?? $server->image_url ?? '';
-                $serverId = $server['id'] ?? $server->id;
-                $serverName = $server['name'] ?? $server->name ?? 'Server';
-                ?>
-                
-                <?php
-                $serverContent = '<div class="relative sidebar-server-icon' . ($isActive ? ' active' : '') . '" data-server-id="' . $serverId . '">
-                    <a href="/server/' . $serverId . '" class="block group">
-                        <div class="w-12 h-12 overflow-hidden ' . ($isActive ? 'rounded-2xl bg-discord-primary' : 'rounded-full hover:rounded-2xl bg-discord-dark') . ' transition-all duration-200 flex items-center justify-center">
-                            ' . (!empty($serverImage) ? 
-                                '<img src="' . htmlspecialchars($serverImage) . '" alt="' . htmlspecialchars($serverName) . '" class="w-full h-full object-cover">' :
-                                '<span class="text-white font-bold text-xl">' . htmlspecialchars($serverInitials) . '</span>') . '
-                        </div>
-                    </a>
-                    ' . ($isActive ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-10 bg-white rounded-r-md"></div>' : '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-0 bg-white rounded-r-md group-hover:h-5 transition-all duration-150"></div>') . '
-                </div>';
-                
-                echo tooltip($serverContent, htmlspecialchars($serverName), 'right', 'mb-2');
-            endforeach; ?>
-        <?php endif; ?>
-        
-        <?php
-        $createServerContent = '<button data-action="create-server" class="w-12 h-12 bg-discord-dark rounded-full hover:rounded-2xl flex items-center justify-center hover:bg-discord-green transition-all duration-200 border-none cursor-pointer outline-none">
-            <i class="fas fa-plus text-green-500 hover:text-white text-xl transition-colors duration-200"></i>
-        </button>';
-        
-        echo tooltip($createServerContent, 'Add a Server', 'right', 'mb-2');
-        ?>
-        
-        <?php
-        $exploreContent = '<a href="/explore-servers" class="block">
-            <div class="w-12 h-12 rounded-' . ($isExplorePage ? '2xl bg-discord-primary' : 'full hover:rounded-2xl bg-discord-dark hover:bg-discord-green') . ' flex items-center justify-center transition-all duration-200">
-                <i class="fas fa-compass ' . ($isExplorePage ? 'text-white' : 'text-green-500 hover:text-white') . ' text-xl transition-colors duration-200"></i>
             </div>
-            ' . ($isExplorePage ? '<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-10 bg-white rounded-r-md"></div>' : '') . '
-        </a>';
-        
-        echo tooltip($exploreContent, 'Explore Public Servers', 'right');
-        ?>
+            
+            <!-- Server List Divider -->
+            <?php if (!empty($servers)): ?>
+            <div class="server-divider"></div>
+            <?php endif; ?>
+            
+            <!-- Server Icons will be populated here -->
+            <?php if (!empty($servers)): ?>
+                <?php foreach ($servers as $server): ?>
+                    <?php 
+                    $isActive = (string)$currentServerId === (string)($server['id'] ?? $server->id);
+                    $serverInitials = substr($server['name'] ?? $server->name ?? 'S', 0, 1);
+                    $serverImage = $server['image_url'] ?? $server->image_url ?? '';
+                    $serverId = $server['id'] ?? $server->id;
+                    $serverName = $server['name'] ?? $server->name ?? 'Server';
+                    ?>
+                    
+                    <div class="server-icon mb-2 <?php echo $isActive ? 'active' : ''; ?>" data-server-id="<?php echo $serverId; ?>">
+                        <a href="/server/<?php echo $serverId; ?>" class="block">
+                            <div class="server-button <?php echo $isActive ? 'rounded-2xl bg-discord-primary' : 'rounded-full bg-discord-dark'; ?> flex items-center justify-center">
+                                <?php if (!empty($serverImage)): ?>
+                                    <img src="<?php echo htmlspecialchars($serverImage); ?>" alt="<?php echo htmlspecialchars($serverName); ?>" class="w-full h-full object-cover">
+                                <?php else: ?>
+                                    <span class="text-white font-bold text-xl"><?php echo htmlspecialchars($serverInitials); ?></span>
+                                <?php endif; ?>
+                            </div>
+                        </a>
+                        <div class="tooltip hidden absolute left-16 bg-black text-white py-1 px-2 rounded text-sm whitespace-nowrap z-50">
+                            <?php echo htmlspecialchars($serverName); ?>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            <?php endif; ?>
+            
+            <!-- Add Server Button -->
+            <div class="server-icon mt-2">
+                <button data-action="create-server" class="server-button bg-discord-dark rounded-full hover:rounded-2xl hover:bg-discord-green border-none cursor-pointer outline-none">
+                    <i class="fas fa-plus text-green-500 hover:text-white text-xl transition-colors duration-200"></i>
+                </button>
+                <div class="tooltip hidden absolute left-16 bg-black text-white py-1 px-2 rounded text-sm whitespace-nowrap z-50">
+                    Add a Server
+                </div>
+            </div>
+            
+            <!-- Explore Servers Button -->
+            <div class="server-icon mt-2 <?php echo $isExplorePage ? 'active' : ''; ?>">
+                <a href="/explore-servers" class="block">
+                    <div class="server-button <?php echo $isExplorePage ? 'rounded-2xl bg-discord-primary' : 'rounded-full bg-discord-dark hover:bg-discord-green hover:rounded-2xl'; ?> flex items-center justify-center">
+                        <i class="fas fa-compass <?php echo $isExplorePage ? 'text-white' : 'text-green-500 hover:text-white'; ?> text-xl transition-colors duration-200"></i>
+                    </div>
+                </a>
+                <div class="tooltip hidden absolute left-16 bg-black text-white py-1 px-2 rounded text-sm whitespace-nowrap z-50">
+                    Explore Public Servers
+                </div>
+            </div>
+        </div>
     </div>
     
     <?php
@@ -189,5 +390,19 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Server sidebar loaded with servers:', <?php echo json_encode($servers); ?>);
     console.log('Current user ID:', <?php echo $currentUserId; ?>);
     console.log('Is home page:', <?php echo $isHomePage ? 'true' : 'false'; ?>);
+    
+    // Initialize tooltips
+    document.querySelectorAll('.server-icon').forEach(icon => {
+        const tooltip = icon.querySelector('.tooltip');
+        if (tooltip) {
+            icon.addEventListener('mouseenter', () => {
+                tooltip.classList.remove('hidden');
+            });
+            
+            icon.addEventListener('mouseleave', () => {
+                tooltip.classList.add('hidden');
+            });
+        }
+    });
 });
 </script>

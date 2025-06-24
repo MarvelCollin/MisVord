@@ -3,110 +3,416 @@ document.addEventListener("DOMContentLoaded", () => {
         window.waitForVideoSDK(() => {
             window.logger.info('voice', "VideoSDK ready. Auto-joining voice channel...");
             
+            // Add a small delay to ensure VideoSDK is fully initialized
             setTimeout(() => {
+                try {
                 const joinBtn = document.getElementById("joinBtn");
                 if (joinBtn) joinBtn.click();
-            }, 500);
+                } catch (error) {
+                    console.error("Error auto-joining voice channel:", error);
+                }
+            }, 1000);
         });
     }
 });
 
 window.addEventListener("load", () => {
     if (document.getElementById('videoContainer') && !window.videoSDKManager?.meeting) {
-        window.waitForVideoSDK(initVoiceInterface);
+        try {
+            window.waitForVideoSDK(initVoiceInterface);
+        } catch (error) {
+            console.error("Error initializing voice interface:", error);
+            showToast("Error initializing voice interface. Please refresh the page.", "error");
+        }
+    }
+
+    const joinBtn = document.getElementById("joinBtn");
+    if (joinBtn) {
+        joinBtn.addEventListener("click", async () => {
+            try {
+                joinBtn.disabled = true;
+                joinBtn.innerHTML = '<i class="fas fa-spinner fa-spin text-sm"></i>';
+                
+                const config = window.videoSDKManager.getMetaConfig();
+                const channelId = config.channelId;
+                
+                console.log(`[VOICE] Join button clicked for channel ${channelId}`);
+                
+                // Check if a meeting already exists for this channel
+                const existingMeetingId = await checkExistingMeeting(channelId);
+                
+                if (existingMeetingId) {
+                    console.log(`[VOICE] Found existing meeting ${existingMeetingId} for channel ${channelId}`);
+                    
+                    // Update meta tag with the existing meeting ID
+                    const metaTag = document.querySelector('meta[name="meeting-id"]');
+                    if (metaTag) {
+                        metaTag.setAttribute('content', existingMeetingId);
+                    }
+                    
+                    // Use the existing meeting ID
+                    if (window.videoSDKManager) {
+                        console.log(`[VOICE] Joining existing meeting with ID: ${existingMeetingId}`);
+                        window.logger.info('voice', `Joining existing meeting with ID: ${existingMeetingId}`);
+                        
+                        // Initialize meeting with the existing meeting ID
+                        window.videoSDKManager.initMeeting({
+                            meetingId: existingMeetingId,
+                            name: window.videoSDKManager.getMetaConfig().participantName,
+                            micEnabled: true,
+                            webcamEnabled: false
+                        });
+                        
+                        // Join the meeting
+                        await window.videoSDKManager.joinMeeting();
+        } else {
+                        // Fall back to original join flow
+                        meetingId = existingMeetingId;
+                        await initializeMeeting();
+                        
+                        if (meeting) {
+                            try {
+                                console.log(`[VOICE] Fallback: Joining existing meeting with ID: ${meetingId}`);
+                                window.logger.info('voice', `Fallback: Joining existing meeting with ID: ${meetingId}`);
+                                await meeting.join();
+                            } catch (error) {
+                                console.error("Failed to join meeting:", error);
+                                showToast("Failed to join: " + error.message, "error");
+                                joinBtn.disabled = false;
+                                joinBtn.innerHTML = '<i class="fas fa-phone text-sm"></i>';
+                            }
+                        } else {
+                            console.error("Meeting not initialized");
+                            joinBtn.disabled = false;
+                            joinBtn.innerHTML = '<i class="fas fa-phone text-sm"></i>';
+                        }
+                    }
+                } else {
+                    // No existing meeting, create a new one - Use consistent ID based on channel ID
+                    const channelBasedMeetingId = `voice_channel_${channelId}`;
+                    
+                    if (window.videoSDKManager) {
+                        // Create a new meeting room with consistent ID based on channel
+                        const newMeetingId = await window.videoSDKManager.createMeetingRoom(channelBasedMeetingId);
+                        
+                        if (!newMeetingId) {
+                            showToast("Failed to create meeting room", "error");
+                            joinBtn.disabled = false;
+                            joinBtn.innerHTML = '<i class="fas fa-phone text-sm"></i>';
+                            return;
+                        }
+                        
+                        console.log(`[VOICE] Creating new meeting with ID: ${newMeetingId}`);
+                        window.logger.info('voice', `Creating new meeting with ID: ${newMeetingId}`);
+                        
+                        // Update meta tag with the new meeting ID
+                        const metaTag = document.querySelector('meta[name="meeting-id"]');
+                        if (metaTag) {
+                            metaTag.setAttribute('content', newMeetingId);
+                        }
+                        
+                        // Initialize meeting with the new meeting ID
+                        window.videoSDKManager.initMeeting({
+                            meetingId: newMeetingId,
+                            name: window.videoSDKManager.getMetaConfig().participantName,
+                            micEnabled: true,
+                            webcamEnabled: false
+                        });
+                        
+                        // Join the meeting
+                        console.log(`[VOICE] Joining meeting with ID: ${newMeetingId}`);
+                        window.logger.info('voice', `Joining meeting with ID: ${newMeetingId}`);
+                        await window.videoSDKManager.joinMeeting();
+                        
+                        // Register the new meeting with the socket server
+                        registerMeeting(channelId, newMeetingId);
+        } else {
+                        // Fall back to original join flow if manager not available
+                        const newMeetingId = await createMeetingRoom(channelBasedMeetingId);
+                        
+                        if (!newMeetingId) {
+                            showToast("Failed to create meeting room", "error");
+                            joinBtn.disabled = false;
+                            joinBtn.innerHTML = '<i class="fas fa-phone text-sm"></i>';
+                            return;
+                        }
+                        
+                        console.log(`[VOICE] Fallback: Creating new meeting with ID: ${newMeetingId}`);
+                        window.logger.info('voice', `Fallback: Creating new meeting with ID: ${newMeetingId}`);
+                        
+                        meetingId = newMeetingId;
+                        
+                        await initializeMeeting();
+                        
+                        if (meeting) {
+                            try {
+                                console.log(`[VOICE] Fallback: Joining meeting with ID: ${meetingId}`);
+                                window.logger.info('voice', `Fallback: Joining meeting with ID: ${meetingId}`);
+                                await meeting.join();
+                                
+                                // Register the new meeting with the socket server
+                                registerMeeting(channelId, meetingId);
+    } catch (error) {
+                                console.error("Failed to join meeting:", error);
+                                showToast("Failed to join: " + error.message, "error");
+                                joinBtn.disabled = false;
+                                joinBtn.innerHTML = '<i class="fas fa-phone text-sm"></i>';
+                            }
+                        } else {
+                            console.error("Meeting not initialized");
+                            joinBtn.disabled = false;
+                            joinBtn.innerHTML = '<i class="fas fa-phone text-sm"></i>';
+                        }
+                    }
+                }
+                
+            } catch (error) {
+                console.error("Error in join process:", error);
+                showToast("Error: " + error.message, "error");
+                joinBtn.disabled = false;
+                joinBtn.innerHTML = '<i class="fas fa-phone text-sm"></i>';
+            }
+        });
+    }
+
+    const leaveBtn = document.getElementById("leaveBtn");
+    if (leaveBtn) {
+        leaveBtn.addEventListener("click", () => {
+            const config = window.videoSDKManager.getMetaConfig();
+            const channelId = config.channelId;
+            
+            if (window.videoSDKManager?.meeting) {
+                const meetingId = window.videoSDKManager.meeting.id;
+                console.log(`[VOICE] Leaving meeting ${meetingId} for channel ${channelId}`);
+                window.videoSDKManager.leaveMeeting();
+                
+                // Unregister the meeting if we're the last participant
+                unregisterMeeting(channelId, meetingId);
+            } else if (meeting) {
+                console.log(`[VOICE] Leaving meeting ${activeMeetingId} for channel ${activeChannelId}`);
+                meeting.leave();
+                
+                // Unregister the meeting if we're the last participant
+                unregisterMeeting(activeChannelId, activeMeetingId);
+            }
+        });
+    }
+
+    const micBtn = document.getElementById("micBtn");
+    if (micBtn) {
+        micBtn.addEventListener("click", () => {
+            if (window.videoSDKManager?.meeting?.localParticipant) {
+                const isMicOn = window.videoSDKManager.toggleMic();
+                
+                if (isMicOn) {
+                    micBtn.innerHTML = '<i class="fas fa-microphone text-sm"></i>';
+                    micBtn.classList.remove('bg-[#ED4245]');
+                    micBtn.classList.add('bg-[#272729]');
+                } else {
+                    micBtn.innerHTML = '<i class="fas fa-microphone-slash text-sm"></i>';
+                    micBtn.classList.add('bg-[#ED4245]');
+                    micBtn.classList.remove('bg-[#272729]');
+                }
+            } else if (meeting && meeting.localParticipant) {
+                if (meeting.localParticipant.streams.has("audio")) {
+                    meeting.muteMic();
+                    micBtn.innerHTML = '<i class="fas fa-microphone-slash text-sm"></i>';
+                    micBtn.classList.add('bg-[#ED4245]');
+                    micBtn.classList.remove('bg-[#272729]');
+                } else {
+                    meeting.unmuteMic();
+                    micBtn.innerHTML = '<i class="fas fa-microphone text-sm"></i>';
+                    micBtn.classList.remove('bg-[#ED4245]');
+                    micBtn.classList.add('bg-[#272729]');
+                }
+            }
+        });
+    }
+
+    const joinVideoBtn = document.getElementById("joinVideoBtn");
+    if (joinVideoBtn) {
+        joinVideoBtn.addEventListener("click", () => {
+            if (window.videoSDKManager?.meeting?.localParticipant) {
+                const isVideoOn = window.videoSDKManager.toggleWebcam();
+                
+                if (isVideoOn) {
+                    joinVideoBtn.innerHTML = '<i class="fas fa-video text-sm"></i>';
+                    joinVideoBtn.classList.remove('bg-[#ED4245]');
+                    joinVideoBtn.classList.add('bg-[#272729]');
+                } else {
+                    joinVideoBtn.innerHTML = '<i class="fas fa-video-slash text-sm"></i>';
+                    joinVideoBtn.classList.add('bg-[#ED4245]');
+                    joinVideoBtn.classList.remove('bg-[#272729]');
+                }
+            } else if (meeting && meeting.localParticipant) {
+                if (meeting.localParticipant.streams.has("video")) {
+                    meeting.disableWebcam();
+                    joinVideoBtn.innerHTML = '<i class="fas fa-video-slash text-sm"></i>';
+                    joinVideoBtn.classList.add('bg-[#ED4245]');
+                    joinVideoBtn.classList.remove('bg-[#272729]');
+                } else {
+                    meeting.enableWebcam();
+                    joinVideoBtn.innerHTML = '<i class="fas fa-video text-sm"></i>';
+                    joinVideoBtn.classList.remove('bg-[#ED4245]');
+                    joinVideoBtn.classList.add('bg-[#272729]');
+                }
+            }
+        });
+    }
+
+    const screenBtn = document.getElementById("screenBtn");
+    if (screenBtn) {
+        screenBtn.addEventListener("click", () => {
+            if (window.videoSDKManager?.meeting?.localParticipant) {
+                const isScreenShareOn = window.videoSDKManager.toggleScreenShare();
+                
+                if (isScreenShareOn) {
+                    screenBtn.innerHTML = '<i class="fas fa-desktop text-sm"></i>';
+                    screenBtn.classList.add('bg-[#5865F2]');
+                    screenBtn.classList.remove('bg-[#272729]');
+                } else {
+                    screenBtn.innerHTML = '<i class="fas fa-desktop text-sm"></i>';
+                    screenBtn.classList.remove('bg-[#5865F2]');
+                    screenBtn.classList.add('bg-[#272729]');
+                }
+            } else if (meeting && meeting.localParticipant) {
+                if (meeting.localParticipant.streams.has("share")) {
+                    meeting.disableScreenShare();
+                    screenBtn.innerHTML = '<i class="fas fa-desktop text-sm"></i>';
+                    screenBtn.classList.remove('bg-[#5865F2]');
+                    screenBtn.classList.add('bg-[#272729]');
+                } else {
+                    meeting.enableScreenShare();
+                    screenBtn.innerHTML = '<i class="fas fa-desktop text-sm"></i>';
+                    screenBtn.classList.add('bg-[#5865F2]');
+                    screenBtn.classList.remove('bg-[#272729]');
+                }
+            }
+        });
     }
 });
 
-const getMeta = (name) => {
-    const meta = document.querySelector(`meta[name="${name}"]`);
-    return meta ? meta.getAttribute('content') : null;
-};
-
-let meeting;
-let meetingCreated = false;
-let meetingCreationAttempts = 0;
-const MAX_MEETING_CREATION_ATTEMPTS = 3;
 let participantCount = 0;
-const authToken = getMeta('videosdk-token');
-let meetingId = getMeta('meeting-id');
-const participantName = getMeta('username');
-const channelId = getMeta('channel-id');
+let meeting;
+let activeChannelId;
+let activeMeetingId;
 
-function waitForVideoSDK(callback, maxAttempts = 50) {
-    let attempts = 0;
-    const checkSDK = () => {
-        attempts++;
-        if (typeof VideoSDK !== 'undefined' && VideoSDK.config && VideoSDK.initMeeting) {
-            window.logger.debug('voice', "VideoSDK loaded successfully");
-            callback();
-        } else if (attempts < maxAttempts) {
-            setTimeout(checkSDK, 100);
-        } else {
-            window.logger.error('voice', "VideoSDK failed to load after", maxAttempts * 100, "ms");
-            alert("Failed to load VideoSDK. Please refresh the page.");
-        }
-    };
-    checkSDK();
+// Create meeting room with custom ID - fallback method without VideoSDKManager
+async function createMeetingRoom(customId = null) {
+    console.log("[VOICE] Fallback: Creating meeting room with ID:", customId);
+    // Use default predefined ID if we can't connect to VideoSDK
+    return customId || `voice_meeting_${Date.now()}`;
 }
 
-async function createMeetingRoom() {
-    if (!authToken) {
-        console.error("Missing VideoSDK auth token");
-        showToast("Error: Missing authentication token", "error");
-        return null;
+// Connect to socket if available
+function connectToSocket() {
+    if (window.socket) {
+        console.log("[VOICE] Using existing socket connection");
+        return window.socket;
     }
     
-    try {
-        window.logger.info('voice', "Creating new meeting room...");
-        
-        const response = await fetch('https://api.videosdk.live/v2/rooms', {
-            method: 'POST',
-            headers: {
-                'Authorization': authToken,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({})
-        });
-        
-        if (response.ok) {
-            const data = await response.json();
-            window.logger.debug('voice', "Meeting room created:", data);
-            meetingCreated = true;
-            meetingCreationAttempts = 0;
-            return data.roomId;
-        } else {
-            const errorText = await response.text();
-            window.logger.error('voice', "Failed to create meeting room:", response.status, errorText);
-            
-            throw new Error(`HTTP Error: ${response.status}`);
-        }
-    } catch (error) {
-        window.logger.error('voice', "Error creating meeting room:", error);
-        
-        // Increment attempt counter and check if we've reached the limit
-        meetingCreationAttempts++;
-        if (meetingCreationAttempts < MAX_MEETING_CREATION_ATTEMPTS) {
-            window.logger.warn('voice', `Retrying meeting creation (Attempt ${meetingCreationAttempts + 1}/${MAX_MEETING_CREATION_ATTEMPTS})...`);
-            // Wait a moment before retrying
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            return createMeetingRoom();
-        }
-        
-        showToast("Failed to create meeting room. Please try again later.", "error");
-        return null;
+    // First, try to use the global socket manager if available
+    if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+        console.log("[VOICE] Using global socket manager connection");
+        window.socket = window.globalSocketManager.io;
+        return window.socket;
     }
+    
+    if (typeof io !== 'undefined') {
+        console.log("[VOICE] Creating new socket connection");
+        
+        // Get socket connection details from meta tags (standard approach in the app)
+        const socketHost = document.querySelector('meta[name="socket-host"]')?.content || 'localhost';
+        const socketPort = document.querySelector('meta[name="socket-port"]')?.content || '1002';
+        const socketUrl = `http://${socketHost}:${socketPort}`;
+        
+        console.log(`[VOICE] Connecting to socket server at ${socketUrl}`);
+        window.socket = io(socketUrl, {
+            transports: ['websocket', 'polling'],
+            reconnection: true
+        });
+        return window.socket;
+    }
+    
+    console.warn("[VOICE] Socket.io not available");
+    return null;
+}
+
+// Check if a meeting exists for the current channel
+async function checkExistingMeeting(channelId) {
+    return new Promise((resolve) => {
+        const socket = connectToSocket();
+        if (!socket) {
+            console.log("[VOICE] No socket connection, creating new meeting");
+            resolve(null);
+            return;
+        }
+        
+        console.log(`[VOICE] Checking if meeting exists for channel ${channelId}`);
+        socket.emit('check-voice-meeting', { channelId });
+        
+        // Set a timeout in case we don't get a response
+        const timeout = setTimeout(() => {
+            console.log("[VOICE] No response from server, creating new meeting");
+            resolve(null);
+        }, 2000);
+        
+        // Listen for response
+        socket.once('voice-meeting-info', (data) => {
+            clearTimeout(timeout);
+            console.log(`[VOICE] Received meeting info:`, data);
+            if (data && data.meetingId) {
+                resolve(data.meetingId);
+            } else {
+                resolve(null);
+            }
+        });
+    });
+}
+
+// Register a meeting with the socket server
+function registerMeeting(channelId, meetingId) {
+    const socket = connectToSocket();
+    if (!socket) return;
+    
+    console.log(`[VOICE] Registering meeting ${meetingId} for channel ${channelId}`);
+    socket.emit('register-voice-meeting', { 
+        channelId, 
+        meetingId,
+        username: window.videoSDKManager.getMetaConfig().participantName
+    });
+}
+
+// Unregister a meeting with the socket server when leaving
+function unregisterMeeting(channelId, meetingId) {
+    const socket = connectToSocket();
+    if (!socket) return;
+    
+    console.log(`[VOICE] Unregistering from meeting ${meetingId} for channel ${channelId}`);
+    socket.emit('unregister-voice-meeting', { 
+        channelId, 
+        meetingId,
+        username: window.videoSDKManager.getMetaConfig().participantName
+    });
 }
 
 async function initializeMeeting() {
     try {
-        VideoSDK.config(authToken);
+        // Get configuration from meta tags
+        const config = window.videoSDKManager.getMetaConfig();
+        activeChannelId = config.channelId;
         
-        meeting = VideoSDK.initMeeting({
-            meetingId: meetingId,
-            name: participantName,
+        // Initialize VideoSDK
+        window.videoSDKManager.init(config.authToken);
+        
+        // Create meeting instance
+        meeting = window.videoSDKManager.initMeeting({
+            meetingId: config.meetingId,
+            name: config.participantName,
             micEnabled: true,
             webcamEnabled: false,
             participantCanToggleSelfWebcam: true,
+            participantCanToggleSelfMic: true,
             participantCanMute: true,
             participantCanUnmute: true,
             chatEnabled: false,
@@ -116,6 +422,7 @@ async function initializeMeeting() {
             raiseHandEnabled: false
         });
         
+        activeMeetingId = config.meetingId;
         window.logger.debug('voice', "Meeting initialized:", meeting);
 
         meeting.on("meeting-joined", () => {
@@ -161,15 +468,19 @@ async function initializeMeeting() {
             
             const channelNameElement = document.querySelector('.text-white.font-medium');
             const channelName = channelNameElement ? channelNameElement.textContent : 'Voice Channel';
+            const config = window.videoSDKManager.getMetaConfig();
             const voiceConnectEvent = new CustomEvent('voiceConnect', { 
                 detail: { 
                     channelName: channelName,
-                    meetingId: meetingId,
-                    channelId: channelId
+                    meetingId: config.meetingId,
+                    channelId: config.channelId
                 } 
             });
             window.dispatchEvent(voiceConnectEvent);
             window.videosdkMeeting = meeting;
+            
+            // Register the meeting with the socket server
+            registerMeeting(config.channelId, config.meetingId);
         });
 
         meeting.on("meeting-left", () => {
@@ -238,16 +549,25 @@ async function initializeMeeting() {
         meeting.on("error", async (error) => {
             console.error("Meeting error:", error);
             
-            if (error.message && (error.message.includes('404') || error.message.includes('not found') || error.code === 4001)) {
+            // Handle different error formats between versions
+            const errorMessage = error.message || error.msg || "";
+            const errorCode = error.code || 0;
+            
+            if (errorMessage.includes('404') || errorMessage.includes('not found') || errorCode === 4001) {
                 window.logger.warn('voice', "Meeting not found, attempting to create a new meeting...");
                 
-                if (!meetingCreated) {
-                    const newMeetingId = await createMeetingRoom();
+                try {
+                    // Create a new meeting using VideoSDKManager
+                    const config = window.videoSDKManager.getMetaConfig();
+                    const newMeetingId = await window.videoSDKManager.createMeetingRoom();
+                    
                     if (newMeetingId) {
-                        meetingId = newMeetingId;
-                        meetingCreated = true;
-                        window.logger.info('voice', "New meeting created with ID:", meetingId);
-                        
+                        window.logger.info('voice', "New meeting created with ID:", newMeetingId);
+                        // Update meta tag with the new meeting ID
+                        const metaTag = document.querySelector('meta[name="meeting-id"]');
+                        if (metaTag) {
+                            metaTag.setAttribute('content', newMeetingId);
+                        }
                         // Re-initialize the meeting with the new ID
                         await initializeMeeting();
                         return;
@@ -255,9 +575,13 @@ async function initializeMeeting() {
                         window.logger.error('voice', "Failed to create new meeting after error");
                         showToast("Error: Could not recreate the voice meeting", "error");
                         resetUIState();
-                        return;
                     }
+                } catch (recreateError) {
+                    window.logger.error('voice', "Error recreating meeting:", recreateError);
+                    showToast("Error: Could not recreate the voice meeting", "error");
+                    resetUIState();
                 }
+                return;
             }
             
             showToast("Error: " + (error.message || "Unknown error occurred"), "error");
@@ -670,187 +994,6 @@ function showToast(message, type = "info") {
     }, 3000);
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-    const joinBtn = document.getElementById("joinBtn");
-    if (joinBtn) {
-        joinBtn.addEventListener("click", async () => {
-            try {
-                joinBtn.disabled = true;
-                joinBtn.innerHTML = '<i class="fas fa-spinner fa-spin text-sm"></i>';
-                
-                // Check if we have the VideoSDK manager available
-                if (window.videoSDKManager) {
-                    // Initialize SDK if not already done
-                    if (!window.videoSDKManager.initialized) {
-                        const config = window.videoSDKManager.getMetaConfig();
-                        window.videoSDKManager.init(config.authToken);
-                    }
-                    
-                    // Create a new meeting room
-                    const newMeetingId = await window.videoSDKManager.createMeetingRoom();
-                    
-                    if (!newMeetingId) {
-                        showToast("Failed to create meeting room", "error");
-                        joinBtn.disabled = false;
-                        joinBtn.innerHTML = '<i class="fas fa-phone text-sm"></i>';
-                        return;
-                    }
-                    
-                    // Initialize meeting with the new meeting ID
-                    window.videoSDKManager.initMeeting({
-                        meetingId: newMeetingId,
-                        name: participantName,
-                        micEnabled: true,
-                        webcamEnabled: false
-                    });
-                    
-                    // Join the meeting
-                    await window.videoSDKManager.joinMeeting();
-                } else {
-                    // Fall back to original join flow if manager not available
-                    const newMeetingId = await createMeetingRoom();
-                    
-                    if (!newMeetingId) {
-                        showToast("Failed to create meeting room", "error");
-                        joinBtn.disabled = false;
-                        joinBtn.innerHTML = '<i class="fas fa-phone text-sm"></i>';
-                        return;
-                    }
-                    
-                    meetingId = newMeetingId;
-                    
-                    await initializeMeeting();
-                    
-                    if (meeting) {
-                        try {
-                            await meeting.join();
-                        } catch (error) {
-                            console.error("Failed to join meeting:", error);
-                            showToast("Failed to join: " + error.message, "error");
-                            joinBtn.disabled = false;
-                            joinBtn.innerHTML = '<i class="fas fa-phone text-sm"></i>';
-                        }
-                    } else {
-                        console.error("Meeting not initialized");
-                        joinBtn.disabled = false;
-                        joinBtn.innerHTML = '<i class="fas fa-phone text-sm"></i>';
-                    }
-                }
-                
-            } catch (error) {
-                console.error("Error in join process:", error);
-                showToast("Error: " + error.message, "error");
-                joinBtn.disabled = false;
-                joinBtn.innerHTML = '<i class="fas fa-phone text-sm"></i>';
-            }
-        });
-    }
-
-    const leaveBtn = document.getElementById("leaveBtn");
-    if (leaveBtn) {
-        leaveBtn.addEventListener("click", () => {
-            if (window.videoSDKManager?.meeting) {
-                window.videoSDKManager.leaveMeeting();
-            } else if (meeting) {
-                meeting.leave();
-            }
-        });
-    }
-
-    const micBtn = document.getElementById("micBtn");
-    if (micBtn) {
-        micBtn.addEventListener("click", () => {
-            if (window.videoSDKManager?.meeting?.localParticipant) {
-                const isMicOn = window.videoSDKManager.toggleMic();
-                
-                if (isMicOn) {
-                    micBtn.innerHTML = '<i class="fas fa-microphone text-sm"></i>';
-                    micBtn.classList.remove('bg-[#ED4245]');
-                    micBtn.classList.add('bg-[#272729]');
-                } else {
-                    micBtn.innerHTML = '<i class="fas fa-microphone-slash text-sm"></i>';
-                    micBtn.classList.add('bg-[#ED4245]');
-                    micBtn.classList.remove('bg-[#272729]');
-                }
-            } else if (meeting && meeting.localParticipant) {
-                if (meeting.localParticipant.streams.has("audio")) {
-                    meeting.muteMic();
-                    micBtn.innerHTML = '<i class="fas fa-microphone-slash text-sm"></i>';
-                    micBtn.classList.add('bg-[#ED4245]');
-                    micBtn.classList.remove('bg-[#272729]');
-                } else {
-                    meeting.unmuteMic();
-                    micBtn.innerHTML = '<i class="fas fa-microphone text-sm"></i>';
-                    micBtn.classList.remove('bg-[#ED4245]');
-                    micBtn.classList.add('bg-[#272729]');
-                }
-            }
-        });
-    }
-
-    const joinVideoBtn = document.getElementById("joinVideoBtn");
-    if (joinVideoBtn) {
-        joinVideoBtn.addEventListener("click", () => {
-            if (window.videoSDKManager?.meeting?.localParticipant) {
-                const isVideoOn = window.videoSDKManager.toggleWebcam();
-                
-                if (isVideoOn) {
-                    joinVideoBtn.innerHTML = '<i class="fas fa-video text-sm"></i>';
-                    joinVideoBtn.classList.remove('bg-[#ED4245]');
-                    joinVideoBtn.classList.add('bg-[#272729]');
-                } else {
-                    joinVideoBtn.innerHTML = '<i class="fas fa-video-slash text-sm"></i>';
-                    joinVideoBtn.classList.add('bg-[#ED4245]');
-                    joinVideoBtn.classList.remove('bg-[#272729]');
-                }
-            } else if (meeting && meeting.localParticipant) {
-                if (meeting.localParticipant.streams.has("video")) {
-                    meeting.disableWebcam();
-                    joinVideoBtn.innerHTML = '<i class="fas fa-video-slash text-sm"></i>';
-                    joinVideoBtn.classList.add('bg-[#ED4245]');
-                    joinVideoBtn.classList.remove('bg-[#272729]');
-                } else {
-                    meeting.enableWebcam();
-                    joinVideoBtn.innerHTML = '<i class="fas fa-video text-sm"></i>';
-                    joinVideoBtn.classList.remove('bg-[#ED4245]');
-                    joinVideoBtn.classList.add('bg-[#272729]');
-                }
-            }
-        });
-    }
-
-    const screenBtn = document.getElementById("screenBtn");
-    if (screenBtn) {
-        screenBtn.addEventListener("click", () => {
-            if (window.videoSDKManager?.meeting?.localParticipant) {
-                const isScreenShareOn = window.videoSDKManager.toggleScreenShare();
-                
-                if (isScreenShareOn) {
-                    screenBtn.innerHTML = '<i class="fas fa-desktop text-sm"></i>';
-                    screenBtn.classList.add('bg-[#5865F2]');
-                    screenBtn.classList.remove('bg-[#272729]');
-                } else {
-                    screenBtn.innerHTML = '<i class="fas fa-desktop text-sm"></i>';
-                    screenBtn.classList.remove('bg-[#5865F2]');
-                    screenBtn.classList.add('bg-[#272729]');
-                }
-            } else if (meeting && meeting.localParticipant) {
-                if (meeting.localParticipant.streams.has("share")) {
-                    meeting.disableScreenShare();
-                    screenBtn.innerHTML = '<i class="fas fa-desktop text-sm"></i>';
-                    screenBtn.classList.remove('bg-[#5865F2]');
-                    screenBtn.classList.add('bg-[#272729]');
-                } else {
-                    meeting.enableScreenShare();
-                    screenBtn.innerHTML = '<i class="fas fa-desktop text-sm"></i>';
-                    screenBtn.classList.add('bg-[#5865F2]');
-                    screenBtn.classList.remove('bg-[#272729]');
-                }
-            }
-        });
-    }
-});
-
 async function initVoiceInterface() {
     try {
         if (window.videoSDKManager) {
@@ -861,10 +1004,10 @@ async function initVoiceInterface() {
             setupEventHandlers();
             
             window.logger.debug('voice', "Voice interface initialized successfully");
-        } else {
+                } else {
             initializeMeeting();
-        }
-    } catch (error) {
+                }
+            } catch (error) {
         console.error("Failed to initialize voice interface:", error);
         showToast("Failed to initialize voice interface: " + error.message, "error");
     }
@@ -876,13 +1019,13 @@ function setupEventHandlers() {
         window.logger.info('voice', "Meeting Joined");
         
         const joinBtn = document.getElementById("joinBtn");
-        const leaveBtn = document.getElementById("leaveBtn");
+    const leaveBtn = document.getElementById("leaveBtn");
         const micBtn = document.getElementById("micBtn");
         const screenBtn = document.getElementById("screenBtn");
         const joinVideoBtn = document.getElementById("joinVideoBtn");
         
         if (joinBtn) joinBtn.classList.add("hidden");
-        if (leaveBtn) {
+    if (leaveBtn) {
             leaveBtn.classList.remove("hidden");
             leaveBtn.disabled = false;
         }
@@ -913,7 +1056,7 @@ function setupEventHandlers() {
             detail: { 
                 channelName: channelName,
                 meetingId: window.videoSDKManager.getMetaConfig().meetingId,
-                channelId: channelId
+                channelId: window.videoSDKManager.getMetaConfig().channelId
             } 
         });
         window.dispatchEvent(voiceConnectEvent);
@@ -925,7 +1068,7 @@ function setupEventHandlers() {
         
         const joinBtn = document.getElementById("joinBtn");
         const leaveBtn = document.getElementById("leaveBtn");
-        const micBtn = document.getElementById("micBtn");
+    const micBtn = document.getElementById("micBtn");
         const screenBtn = document.getElementById("screenBtn");
         const joinVideoBtn = document.getElementById("joinVideoBtn");
         const participants = document.getElementById("participants");
@@ -940,8 +1083,8 @@ function setupEventHandlers() {
         if (screenBtn) screenBtn.disabled = true;
         if (joinVideoBtn) joinVideoBtn.classList.add("hidden");
         
-        if (micBtn) {
-            micBtn.innerHTML = '<i class="fas fa-microphone text-sm"></i>';
+    if (micBtn) {
+                    micBtn.innerHTML = '<i class="fas fa-microphone text-sm"></i>';
             micBtn.classList.remove("bg-[#ED4245]");
         }
         
@@ -991,9 +1134,10 @@ function setupEventHandlers() {
                         window.logger.info('voice', "New meeting created with ID:", newMeetingId);
                         
                         // Initialize a new meeting with the new ID
+                        const config = window.videoSDKManager.getMetaConfig();
                         const meeting = window.videoSDKManager.initMeeting({
                             meetingId: newMeetingId,
-                            name: participantName,
+                            name: config.participantName,
                             micEnabled: true,
                             webcamEnabled: false
                         });
@@ -1001,7 +1145,7 @@ function setupEventHandlers() {
                         // Try joining the meeting
                         await window.videoSDKManager.joinMeeting();
                         return;
-                    } else {
+                } else {
                         window.logger.error('voice', "Failed to create new meeting after error");
                         showToast("Error: Could not recreate the voice meeting", "error");
                         resetUIState();

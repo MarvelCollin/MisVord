@@ -446,7 +446,7 @@ function fetchVoiceSection(channelId) {
           if (!window.VideoSDK) {
             console.log("Loading VideoSDK script");
             const script = document.createElement('script');
-            script.src = 'https://sdk.videosdk.live/js-sdk/0.0.82/videosdk.js';
+            script.src = 'https://sdk.videosdk.live/js-sdk/0.2.7/videosdk.js';
             document.head.appendChild(script);
           }
           
@@ -464,14 +464,33 @@ function fetchVoiceSection(channelId) {
           if (!window.VideoSDK) {
             console.log("Loading VideoSDK script (fallback)");
             const script = document.createElement('script');
-            script.src = 'https://sdk.videosdk.live/js-sdk/0.0.82/videosdk.js';
+            script.src = 'https://sdk.videosdk.live/js-sdk/0.2.7/videosdk.js';
             document.head.appendChild(script);
           }
           
-          console.log("Loading voice manager script (fallback)");
-          const voiceScript = document.createElement('script');
-          voiceScript.src = '/js/components/voice/voice-manager.js?v=' + Date.now();
-          document.head.appendChild(voiceScript);
+          // First check if the VideoSDK manager is loaded
+          if (!window.videoSDKManager) {
+            console.log("Loading VideoSDK manager script (fallback)");
+            const videoSDKManagerScript = document.createElement('script');
+            videoSDKManagerScript.src = '/js/components/videosdk/videosdk.js?v=' + Date.now();
+            videoSDKManagerScript.type = 'module';
+            document.head.appendChild(videoSDKManagerScript);
+            
+            // Wait for VideoSDK manager to load before loading voice manager
+            videoSDKManagerScript.onload = function() {
+              console.log("Loading voice manager script (fallback)");
+              const voiceScript = document.createElement('script');
+              voiceScript.src = '/js/components/voice/voice-manager.js?v=' + Date.now();
+              voiceScript.type = 'module';
+              document.head.appendChild(voiceScript);
+            };
+          } else {
+            console.log("Loading voice manager script (fallback)");
+            const voiceScript = document.createElement('script');
+            voiceScript.src = '/js/components/voice/voice-manager.js?v=' + Date.now();
+            voiceScript.type = 'module';
+            document.head.appendChild(voiceScript);
+          }
         }
         
         handleSkeletonLoading(false);
@@ -839,7 +858,7 @@ function initVoicePage() {
   if (!window.VideoSDK && !document.querySelector('script[src*="videosdk.js"]')) {
     console.log("Loading VideoSDK script for voice page");
     const script = document.createElement('script');
-    script.src = 'https://sdk.videosdk.live/js-sdk/0.0.82/videosdk.js';
+    script.src = 'https://sdk.videosdk.live/js-sdk/0.2.7/videosdk.js';
     document.head.appendChild(script);
   }
 }
