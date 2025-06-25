@@ -158,7 +158,6 @@ if (file_exists($tooltipPath)) {
             });
         });
 
-        // Update user status indicators based on WebSocket data
         function updateUserStatusIndicators() {
             if (!window.ChatAPI || typeof window.ChatAPI.getOnlineUsers !== 'function') {
                 console.warn('ChatAPI not available for status updates');
@@ -195,20 +194,16 @@ if (file_exists($tooltipPath)) {
             });
         }
 
-        // Update status indicators when page loads
         updateUserStatusIndicators();
 
-        // Update status indicators periodically
         setInterval(updateUserStatusIndicators, 30000);
 
-        // Update status when socket connection is established
         if (window.globalSocketManager) {
             window.globalSocketManager.onReady = function() {
                 updateUserStatusIndicators();
             };
         }
 
-        // Listen for presence updates
         if (window.globalSocketManager && window.globalSocketManager.io) {
             window.globalSocketManager.io.on('user-presence-update', function() {
                 updateUserStatusIndicators();

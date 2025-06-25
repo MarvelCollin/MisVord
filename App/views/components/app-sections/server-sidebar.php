@@ -202,7 +202,6 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Current user ID:', <?php echo $currentUserId; ?>);
     console.log('Is home page:', <?php echo $isHomePage ? 'true' : 'false'; ?>);
     
-    // Initialize tooltips
     document.querySelectorAll('.server-icon').forEach(icon => {
         const tooltip = icon.querySelector('.tooltip');
         if (tooltip) {

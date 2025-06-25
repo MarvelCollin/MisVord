@@ -302,7 +302,6 @@ class FriendController extends BaseController
                     return;
                 }
                 
-                // Prevent sending friend requests to bots
                 if ($targetUser->status === 'bot') {
                     $this->error('Cannot send friend request to bot users', 400);
                     return;
@@ -328,7 +327,6 @@ class FriendController extends BaseController
                     return $this->error('User not found', 404);
                 }
                 
-                // Prevent sending friend requests to bots
                 if ($targetUser->status === 'bot') {
                     return $this->error('Cannot send friend request to bot users', 400);
                 }

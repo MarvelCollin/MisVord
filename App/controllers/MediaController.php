@@ -107,7 +107,7 @@ class MediaController extends BaseController
                 return $this->serverError('Failed to save uploaded file: ' . ($uploadError['message'] ?? 'Unknown error'));
             }
 
-            $fileUrl = "/storage/{$fileName}";
+            $fileUrl = "/public/storage/{$fileName}";
             
             return $this->success([
                 'file_url' => $fileUrl,
@@ -164,7 +164,7 @@ class MediaController extends BaseController
                 }
 
                 $uploadedFiles[] = [
-                    'file_url' => "/storage/{$fileName}",
+                    'file_url' => "/public/storage/{$fileName}",
                     'file_name' => $originalName,
                     'file_size' => $fileSize,
                     'mime_type' => $mimeType,

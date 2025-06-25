@@ -222,7 +222,7 @@ export class NitroManager {
               
               resultItem.innerHTML = `
                 <div class="w-8 h-8 rounded-full overflow-hidden bg-discord-dark mr-2">
-                  <img src="${user.avatar_url || '/assets/default-avatar.svg'}" alt="Avatar" class="w-full h-full object-cover">
+                  <img src="${user.avatar_url || '/public/assets/common/main-logo.png'}" alt="Avatar" class="w-full h-full object-cover">
                 </div>
                 <div>
                   <div class="text-sm font-medium">${displayName}</div>

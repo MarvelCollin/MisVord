@@ -65,10 +65,8 @@ class ServerController extends BaseController
                 $channels = $this->channelRepository->getByServerId($id);
                 $categories = $this->categoryRepository->getForServer($id);
 
-                // Get server members and roles
                 $serverMembers = $this->userServerMembershipRepository->getServerMembers($id);
                 
-                // Get server roles
                 $serverRoles = $this->roleRepository->getForServer($id);
 
                 if (function_exists('logger')) {
@@ -361,7 +359,6 @@ class ServerController extends BaseController
 
     public function join($inviteCode = null)
     {
-        // Add additional debug logging to check authentication status
         if (function_exists('logger')) {
             logger()->debug("Join method called", [
                 'invite_code' => $inviteCode,
@@ -375,14 +372,11 @@ class ServerController extends BaseController
             ]);
         }
         
-        // Ensure session is started
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
         
-        // Check if user is logged in
         if (!isset($_SESSION['user_id'])) {
-            // Always redirect to login page with the invite code as a redirect parameter
             $redirectUrl = '/login?redirect=/join/' . urlencode($inviteCode);
             
             if (function_exists('logger')) {
@@ -411,25 +405,21 @@ class ServerController extends BaseController
         }
 
         try {
-            // First check if the invite code exists at all
             $invite = $this->inviteRepository->findByCode($inviteCode);
             
             if (!$invite) {
                 return $this->notFound('Invite not found or expired');
             }
             
-            // Then check if it's valid (not expired)
             if (!$invite->isValid()) {
                 return $this->notFound('Invite has expired');
             }
             
-            // Now get the server
             $server = $this->serverRepository->find($invite->server_id);
             if (!$server) {
                 return $this->notFound('Server not found');
             }
             
-            // Check if user is already a member
             if ($this->userServerMembershipRepository->isMember($this->getCurrentUserId(), $server->id)) {
                 $redirectUrl = "/server/{$server->id}";
                 
@@ -439,13 +429,11 @@ class ServerController extends BaseController
                         'redirect' => $redirectUrl
                     ]);
                 } else {
-                    // Direct browser request - redirect to the server
                     header('Location: ' . $redirectUrl);
                     exit;
                 }
             }
             
-            // Add the user to the server
             $result = $this->userServerMembershipRepository->create([
                 'user_id' => $this->getCurrentUserId(),
                 'server_id' => $server->id,
@@ -457,7 +445,6 @@ class ServerController extends BaseController
                 return $this->serverError('Failed to join server');
             }
             
-            // Increment the invite usage count
             $this->inviteRepository->useInvite($inviteCode);
 
             $this->logActivity('server_joined', [
@@ -481,7 +468,6 @@ class ServerController extends BaseController
                     'redirect' => $redirectUrl
                 ]);
             } else {
-                // Direct browser request - redirect to the server
                 header('Location: ' . $redirectUrl);
                 exit;
             }

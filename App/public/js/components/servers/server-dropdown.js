@@ -608,7 +608,7 @@ function createFriendElement(friend) {
     el.dataset.userId = friend.id;
     el.dataset.username = friend.username;
     
-    const avatarUrl = friend.avatar_url || '/assets/common/default-avatar.png';
+    const avatarUrl = friend.avatar_url || '/public/assets/common/main-logo.png';
     
     el.innerHTML = `
         <div style="flex-shrink: 0; margin-right: 12px;">

@@ -208,7 +208,7 @@ class ChatController extends BaseController
                             'content' => $repliedMessage->content,
                             'user_id' => $repliedMessage->user_id,
                             'username' => $repliedUser ? $repliedUser->username : 'Unknown',
-                            'avatar_url' => $repliedUser && $repliedUser->avatar_url ? $repliedUser->avatar_url : '/public/assets/default-avatar.svg'
+                            'avatar_url' => $repliedUser && $repliedUser->avatar_url ? $repliedUser->avatar_url : '/public/assets/common/main-logo.png'
                         ];
                     }
                 }
@@ -282,7 +282,7 @@ class ChatController extends BaseController
                             'content' => $repliedMessage->content,
                             'user_id' => $repliedMessage->user_id,
                             'username' => $repliedUser ? $repliedUser->username : 'Unknown',
-                            'avatar_url' => $repliedUser && $repliedUser->avatar_url ? $repliedUser->avatar_url : '/public/assets/default-avatar.svg'
+                            'avatar_url' => $repliedUser && $repliedUser->avatar_url ? $repliedUser->avatar_url : '/public/assets/common/main-logo.png'
                         ];
                     }
                 }
@@ -634,7 +634,7 @@ class ChatController extends BaseController
                     'content' => $repliedMessage->content,
                     'userId' => $repliedUserId,
                     'username' => $repliedUser ? $repliedUser->username : 'Unknown User',
-                    'avatar_url' => $repliedUser && $repliedUser->avatar_url ? $repliedUser->avatar_url : '/public/assets/default-avatar.svg'
+                    'avatar_url' => $repliedUser && $repliedUser->avatar_url ? $repliedUser->avatar_url : '/public/assets/common/main-logo.png'
                 ];
             }
         }
@@ -860,30 +860,34 @@ class ChatController extends BaseController
         }
 
         try {
-            $message->content = '[deleted]';
-
-            if ($message->save()) {
-                require_once __DIR__ . '/../database/models/ChannelMessage.php';
-                require_once __DIR__ . '/../database/models/ChatRoomMessage.php';
-                
-                $targetId = null;
+            require_once __DIR__ . '/../database/models/ChannelMessage.php';
+            require_once __DIR__ . '/../database/models/ChatRoomMessage.php';
+            
+            $targetId = null;
+            $targetType = 'channel';
+            
+            $channelMessage = ChannelMessage::findByMessageId($messageId);
+            if ($channelMessage) {
+                $targetId = $channelMessage->channel_id;
                 $targetType = 'channel';
                 
-                $channelMessage = ChannelMessage::findByMessageId($messageId);
-                if ($channelMessage) {
-                    $targetId = $channelMessage->channel_id;
-                    $targetType = 'channel';
-                } else {
-                    $query = new Query();
-                    $chatRoomMessage = $query->table('chat_room_messages')
+                ChannelMessage::deleteByMessageId($messageId);
+            } else {
+                $query = new Query();
+                $chatRoomMessage = $query->table('chat_room_messages')
+                    ->where('message_id', $messageId)
+                    ->first();
+                if ($chatRoomMessage) {
+                    $targetId = $chatRoomMessage['room_id'];
+                    $targetType = 'dm';
+                    
+                    $query->table('chat_room_messages')
                         ->where('message_id', $messageId)
-                        ->first();
-                    if ($chatRoomMessage) {
-                        $targetId = $chatRoomMessage['room_id'];
-                        $targetType = 'dm';
-                    }
+                        ->delete();
                 }
-                
+            }
+            
+            if ($this->messageRepository->delete($messageId)) {
                 return $this->success([
                     'message_id' => $messageId,
                     'socket_event' => 'message-deleted',

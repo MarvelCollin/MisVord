@@ -206,7 +206,7 @@ class UserController extends BaseController
                 return $this->serverError('Failed to save avatar file');
             }
             
-            $avatarUrl = '/storage/' . $filename;
+            $avatarUrl = '/public/storage/' . $filename;
             
             $result = $this->userRepository->update($userId, [
                 'avatar_url' => $avatarUrl
@@ -298,7 +298,7 @@ class UserController extends BaseController
                 return $this->serverError('Failed to save banner file');
             }
             
-            $bannerUrl = '/storage/' . $filename;
+            $bannerUrl = '/public/storage/' . $filename;
             
             $result = $this->userRepository->update($userId, [
                 'banner_url' => $bannerUrl
@@ -933,7 +933,6 @@ class UserController extends BaseController
             if (!$user) {
                 error_log("❌ User not found for ID: " . $userId);
                 
-                // Try direct query to see if user exists at all
                 require_once __DIR__ . '/../database/query.php';
                 $query = new Query();
                 $directResult = $query->table('users')->where('id', $userId)->first();
@@ -957,7 +956,6 @@ class UserController extends BaseController
             if (!isset($user->security_question) || empty($user->security_question)) {
                 error_log("⚠️ No security question set for user: " . $userId);
                 
-                // Check if the field exists in the database at all
                 require_once __DIR__ . '/../database/query.php';
                 $query = new Query();
                 $directResult = $query->table('users')->where('id', $userId)->first();
@@ -1023,7 +1021,6 @@ class UserController extends BaseController
                 'user_id' => $user->id
             ]);
             
-            // Store verification in session for password change
             $_SESSION['security_verified_for_password_change'] = true;
             $_SESSION['security_verified_time'] = time();
             
@@ -1087,7 +1084,6 @@ class UserController extends BaseController
                 return $this->error('Password must contain at least one number', 400);
             }
             
-            // Verify security answer
             $verified = $this->userRepository->verifySecurityAnswer($user->id, $input['security_answer']);
             
             if (!$verified) {
@@ -1103,7 +1099,6 @@ class UserController extends BaseController
                 return $this->serverError('Failed to update password');
             }
             
-            // Clear security verification session
             unset($_SESSION['security_verified_for_password_change']);
             unset($_SESSION['security_verified_time']);
             

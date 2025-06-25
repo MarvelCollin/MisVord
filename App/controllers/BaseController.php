@@ -499,7 +499,6 @@ class BaseController
             }
         }
 
-        // Ensure $input is an array before merging
         if (!is_array($input)) {
             $input = [];
         }
@@ -578,7 +577,7 @@ class BaseController
             throw new Exception('Failed to upload file');
         }
 
-        return "/storage/{$filename}";
+        return "/public/storage/{$filename}";
     }
     
     protected function notifyViaSocket($userId, $event, $data)

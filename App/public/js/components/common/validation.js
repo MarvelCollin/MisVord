@@ -5,7 +5,6 @@ const FormValidator = {
     },
 
     validatePassword(password, minLength = 8) {
-        // Immediately fail on empty passwords
         if (!password || typeof password !== 'string') {
             return {
                 valid: false,
@@ -13,10 +12,8 @@ const FormValidator = {
             };
         }
         
-        // Trim whitespace to match server behavior
         password = password.trim();
         
-        // Length check
         if (password.length < minLength) {
             return {
                 valid: false,
@@ -24,7 +21,6 @@ const FormValidator = {
             };
         }
 
-        // Character type checks
         const hasUppercase = /[A-Z]/.test(password);
         const hasLowercase = /[a-z]/.test(password);
         const hasNumber = /[0-9]/.test(password);
@@ -50,9 +46,6 @@ const FormValidator = {
                 message: 'Password must contain at least one number'
             };
         }
-
-        // Special character is a good practice but not required in the server validation
-        // So we don't fail on it, just use it for password strength calculation
 
         return { valid: true };
     },

@@ -92,11 +92,9 @@ document.addEventListener('DOMContentLoaded', function() {
             console.warn('LazyLoader.triggerDataLoaded not available yet');
         }
         
-        // Update friend status with WebSocket data
         updateFriendStatus();
     }, 750);
     
-    // Function to update friend status based on WebSocket data
     function updateFriendStatus() {
         if (!window.ChatAPI || typeof window.ChatAPI.getOnlineUsers !== 'function') {
             console.warn('ChatAPI not available for status updates');
@@ -179,17 +177,14 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Update status indicators periodically
     setInterval(updateFriendStatus, 30000);
 
-    // Update status when socket connection is established
     if (window.globalSocketManager) {
         window.globalSocketManager.onReady = function() {
             updateFriendStatus();
         };
     }
 
-    // Listen for presence updates
     if (window.globalSocketManager && window.globalSocketManager.io) {
         window.globalSocketManager.io.on('user-presence-update', function() {
             updateFriendStatus();

@@ -212,7 +212,7 @@ function initUserAvatarUpload() {
             .then(data => {
                 if (data.success) {
                     if (iconPreview) {
-                        iconPreview.src = '/public/assets/default-avatar.svg';
+                        iconPreview.src = '/public/assets/common/main-logo.png';
                     }
                     
                     if (iconContainer) {
@@ -225,7 +225,7 @@ function initUserAvatarUpload() {
                         iconInput.value = '';
                     }
                     
-                    updateAllAvatars('/public/assets/default-avatar.svg');
+                    updateAllAvatars('/public/assets/common/main-logo.png');
                     
                     showToast('Profile picture removed successfully', 'success');
                 } else {

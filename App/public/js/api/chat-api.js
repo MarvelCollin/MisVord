@@ -92,7 +92,6 @@ class ChatAPI {
             
             console.log('🔍 API response for getMessages:', response);
             
-            // Check for messages in different locations in the response
             if (Array.isArray(response.messages)) {
                 console.log(`🔍 Found ${response.messages.length} messages in response.messages`);
             } else if (response.data && Array.isArray(response.data.messages)) {

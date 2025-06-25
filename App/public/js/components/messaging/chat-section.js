@@ -859,7 +859,6 @@ class ChatSection {
             if (filePreviewIcon) {
                 filePreviewIcon.style.display = 'block';
                 
-                // Set appropriate icon based on file type
                 const fileTypeIcon = this.getFileTypeIcon(file.type);
                 filePreviewIcon.innerHTML = `<i class="${fileTypeIcon}"></i>`;
             }
@@ -1345,9 +1344,9 @@ class ChatSection {
             
             if (message.reply_data) {
                 const replyAvatar = document.createElement('img');
-                replyAvatar.src = message.reply_data.avatar_url || '/public/assets/default-avatar.svg';
+                replyAvatar.src = message.reply_data.avatar_url || '/public/assets/common/main-logo.png';
                 replyAvatar.className = 'reply-avatar';
-                replyAvatar.onerror = function() { this.src = '/public/assets/default-avatar.svg'; };
+                replyAvatar.onerror = function() { this.src = '/public/assets/common/main-logo.png'; };
 
                 const replyUsername = document.createElement('span');
                 replyUsername.className = 'reply-username';
@@ -1407,7 +1406,7 @@ class ChatSection {
                 image.loading = 'lazy';
                 image.onerror = function() {
                     this.onerror = null;
-                    this.src = '/assets/default-avatar.svg';
+                    this.src = '/public/assets/common/main-logo.png';
                     this.classList.add('w-16', 'h-16');
                     imageWrapper.classList.add('bg-[#2b2d31]', 'p-3', 'rounded-lg');
                     

@@ -90,7 +90,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     friendEl.className = 'flex items-center mb-4 p-3 bg-discord-background rounded-md hover:bg-discord-darker cursor-pointer';
                     friendEl.innerHTML = `
                         <div class="relative mr-3">
-                            <img src="${friend.avatar_url || '/public/assets/default-avatar.svg'}" 
+                            <img src="${friend.avatar_url || '/public/assets/common/main-logo.png'}" 
                                  alt="${friend.username}" 
                                  class="w-10 h-10 rounded-full">
                             <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full ${statusClass} border-2 border-discord-dark"></div>
