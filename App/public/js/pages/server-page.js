@@ -396,12 +396,16 @@ function fetchChatSection(channelId) {
 }
 
 function fetchVoiceSection(channelId) {
-  console.log(`fetchVoiceSection called with channelId: ${channelId}`);
+  console.log(`🔊 fetchVoiceSection called with channelId: ${channelId}`);
   
   // Always set auto-join flag when fetching a voice channel
-  console.log('Setting auto-join for voice channel:', channelId);
+  console.log('🔊 Setting auto-join flags for voice channel:', channelId);
   localStorage.setItem('autoJoinVoiceChannel', channelId);
   sessionStorage.setItem('forceAutoJoin', 'true');
+  console.log('🔊 Auto-join flags set:', {
+    autoJoinChannelId: localStorage.getItem('autoJoinVoiceChannel'),
+    forceAutoJoin: sessionStorage.getItem('forceAutoJoin')
+  });
   
   const apiUrl = `/server/${getServerIdFromUrl()}?channel=${channelId}&type=voice&ajax=true`;
   console.log(`Fetching from URL: ${apiUrl}`);
@@ -483,6 +487,16 @@ function fetchVoiceSection(channelId) {
         
         if (voiceSection) {
           console.log("Found voice section in response, updating center content only");
+          
+          // Extract and execute scripts from the voice section before replacing content
+          const scripts = voiceSection.querySelectorAll('script');
+          let scriptContent = '';
+          scripts.forEach(script => {
+            if (script.innerHTML) {
+              scriptContent += script.innerHTML + '\n';
+            }
+          });
+          
           centralContentArea.replaceWith(voiceSection);
           
           // Clear any existing chat or voice section
@@ -494,6 +508,45 @@ function fetchVoiceSection(channelId) {
           // Load all required voice scripts in the correct order
           loadVoiceScripts().then(() => {
             console.log("All voice scripts loaded successfully");
+            
+            // Execute the extracted scripts after voice scripts are loaded
+            if (scriptContent) {
+              console.log("Executing voice section scripts");
+              try {
+                const scriptElement = document.createElement('script');
+                scriptElement.textContent = scriptContent;
+                document.head.appendChild(scriptElement);
+                
+                // Also trigger the auto-join logic manually to ensure it runs
+                setTimeout(() => {
+                  console.log("🔊 Manually triggering auto-join check after AJAX load");
+                  if (typeof window.handleAutoJoin === 'function') {
+                    console.log("🔊 Found window.handleAutoJoin, calling it");
+                    window.handleAutoJoin();
+                  } else {
+                    // Fallback auto-join logic
+                    const autoJoinChannelId = localStorage.getItem('autoJoinVoiceChannel');
+                    const currentChannelId = channelId;
+                    const forceAutoJoin = sessionStorage.getItem('forceAutoJoin') === 'true';
+                    
+                    if (autoJoinChannelId && autoJoinChannelId === currentChannelId && forceAutoJoin) {
+                      console.log('🔊 Fallback auto-join triggered');
+                      localStorage.removeItem('autoJoinVoiceChannel');
+                      sessionStorage.removeItem('forceAutoJoin');
+                      
+                      setTimeout(() => {
+                        const joinBtn = document.getElementById('joinBtn');
+                        if (joinBtn && !joinBtn.disabled) {
+                          joinBtn.click();
+                        }
+                      }, 1000);
+                    }
+                  }
+                }, 200);
+              } catch (error) {
+                console.error("Error executing voice section scripts:", error);
+              }
+            }
           }).catch(err => {
             console.error("Error in voice script loading chain:", err);
           });
@@ -514,6 +567,27 @@ function fetchVoiceSection(channelId) {
           // Even if we couldn't find the specific section, still load the voice scripts
           loadVoiceScripts().then(() => {
             console.log("All voice scripts loaded successfully (fallback)");
+            
+            // Trigger auto-join even in fallback mode
+            setTimeout(() => {
+              console.log("Triggering auto-join check in fallback mode");
+              const autoJoinChannelId = localStorage.getItem('autoJoinVoiceChannel');
+              const currentChannelId = channelId;
+              const forceAutoJoin = sessionStorage.getItem('forceAutoJoin') === 'true';
+              
+              if (autoJoinChannelId && autoJoinChannelId === currentChannelId && forceAutoJoin) {
+                console.log('Fallback auto-join triggered');
+                localStorage.removeItem('autoJoinVoiceChannel');
+                sessionStorage.removeItem('forceAutoJoin');
+                
+                setTimeout(() => {
+                  const joinBtn = document.getElementById('joinBtn');
+                  if (joinBtn && !joinBtn.disabled) {
+                    joinBtn.click();
+                  }
+                }, 1000);
+              }
+            }, 200);
           }).catch(err => {
             console.error("Error in voice script loading chain (fallback):", err);
           });

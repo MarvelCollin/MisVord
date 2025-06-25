@@ -73,6 +73,7 @@ async function renderFolders() {
     const serverImageData = new Map();
     
     document.querySelectorAll('.server-icon[data-server-id]').forEach(icon => {
+        icon.removeAttribute('data-setup');
         const serverId = icon.getAttribute('data-server-id');
         serverElements.set(serverId, icon);
         
@@ -136,11 +137,12 @@ async function renderFolders() {
             }
         });
         
-        createFolderPreviewWithData(group, folderElement, serverImageData);
+        createFolderPreview(group, folderElement, serverImageData);
         updateFolderState(group, folderElement);
         setupFolderEvents(group, folderElement);
     }
     
+    setupServerIcons();
     setupDropZones();
     isRendering = false;
 }
@@ -162,7 +164,7 @@ function createFolderElement(group) {
     return folder;
 }
 
-function createFolderPreviewWithData(group, folderElement, serverImageData) {
+function createFolderPreview(group, folderElement, serverImageData) {
     const header = folderElement.querySelector('.group-header');
     header.innerHTML = '';
     
@@ -304,7 +306,9 @@ function setupDropZones() {
                 
                 if (serverId && groupId) {
                     LocalStorageManager.addServerToGroup(groupId, serverId);
-                    renderFolders();
+                    setTimeout(() => {
+                        renderFolders();
+                    }, 50);
                 }
             });
         });
@@ -326,7 +330,9 @@ function setupDropZones() {
                 
                 if (serverId && groupId) {
                     LocalStorageManager.addServerToGroup(groupId, serverId);
-                    renderFolders();
+                    setTimeout(() => {
+                        renderFolders();
+                    }, 50);
                 }
             });
         });
@@ -356,7 +362,9 @@ function setupDropZones() {
         const serverId = e.dataTransfer.getData('text/plain');
         if (serverId) {
             LocalStorageManager.removeServerFromAllGroups(serverId);
-            renderFolders();
+            setTimeout(() => {
+                renderFolders();
+            }, 50);
         }
     });
 }

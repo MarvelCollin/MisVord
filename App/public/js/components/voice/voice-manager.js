@@ -49,7 +49,7 @@ class VoiceManager {
     }
     
     async joinVoice() {
-        if (this.isConnected) return;
+        if (this.isConnected) return Promise.resolve();
         
         const joinBtn = document.getElementById('joinBtn');
         if (joinBtn) {
@@ -58,10 +58,17 @@ class VoiceManager {
         }
         
         try {
+            console.log('VoiceManager: Starting voice connection...');
             await this.requestPermissions();
+            
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
             this.isConnected = true;
             this.dispatchEvent('voiceConnect');
             this.showToast('Connected to voice channel', 'success');
+            
+            console.log('VoiceManager: Voice connection successful');
+            return Promise.resolve();
         } catch (error) {
             console.error('Failed to join voice:', error);
             this.showToast('Failed to connect to voice', 'error');
@@ -69,6 +76,7 @@ class VoiceManager {
                 joinBtn.disabled = false;
                 joinBtn.textContent = 'Join Voice';
             }
+            return Promise.reject(error);
         }
     }
     

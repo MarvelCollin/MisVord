@@ -240,17 +240,20 @@ function initAuth() {
             
             hideAllForms();
             showForm(targetForm);
-
-            updateFormHeight();
             
             currentForm = targetForm;
 
             setTimeout(() => {
+                updateFormHeight();
                 const activeForm = document.querySelector('form:not(.hidden)');
                 const firstInput = activeForm?.querySelector('input:first-of-type');
                 if (firstInput) {
                     firstInput.focus();
                 }
+            }, 50);
+
+            setTimeout(() => {
+                updateFormHeight();
             }, timing.formTransition);
 
             document.title = `${getFormTitle(targetForm)} - misvord`;
@@ -297,7 +300,12 @@ function initAuth() {
     function updateFormHeight() {
         const activeForm = document.querySelector('form:not(.hidden)');
         if (activeForm && elements.formsContainer) {
-            elements.formsContainer.style.height = `${activeForm.offsetHeight}px`;
+            const formHeight = activeForm.scrollHeight;
+            const minHeight = window.innerWidth <= 360 ? 300 : 
+                              window.innerWidth <= 480 ? 320 :
+                              window.innerWidth <= 640 ? 350 : 400;
+            const finalHeight = Math.max(formHeight + 40, minHeight);
+            elements.formsContainer.style.height = `${finalHeight}px`;
         }
     }
 
@@ -509,8 +517,21 @@ function initAuth() {
             clearTimeout(resizeTimeout);
             resizeTimeout = setTimeout(function() {
                 updateFormHeight();
-            }, 250);
+            }, 100);
         });
+        
+        const observer = new MutationObserver(function() {
+            setTimeout(updateFormHeight, 50);
+        });
+        
+        if (elements.formsContainer) {
+            observer.observe(elements.formsContainer, {
+                childList: true,
+                subtree: true,
+                attributes: true,
+                attributeFilter: ['class', 'style']
+            });
+        }
     }
     
     function checkForErrors() {
@@ -613,14 +634,16 @@ function initAuth() {
                 
                 currentStep = 2;
                 
-                updateFormHeight();
-                
                 const firstField = step2.querySelector('select, input');
                 if (firstField) {
                     firstField.focus();
                 }
                 
                 setupCaptcha();
+                
+                setTimeout(() => {
+                    updateFormHeight();
+                }, 100);
             }, 300);
         });
         
@@ -641,12 +664,14 @@ function initAuth() {
                 
                 currentStep = 1;
                 
-                updateFormHeight();
-                
                 const lastField = step1.querySelector('input:last-of-type');
                 if (lastField) {
                     lastField.focus();
                 }
+                
+                setTimeout(() => {
+                    updateFormHeight();
+                }, 100);
             }, 300);
         });
         
@@ -780,12 +805,13 @@ function initAuth() {
         initPasswordFieldMasking();
         setupRegistrationSteps();
 
-        const firstInput = document.querySelector('form:not(.hidden) input:first-of-type');
-        if (firstInput) {
-            setTimeout(() => {
+        setTimeout(() => {
+            updateFormHeight();
+            const firstInput = document.querySelector('form:not(.hidden) input:first-of-type');
+            if (firstInput) {
                 firstInput.focus();
-            }, timing.formTransition);
-        }
+            }
+        }, 100);
     }
 
     init();

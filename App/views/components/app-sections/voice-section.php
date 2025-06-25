@@ -25,7 +25,8 @@ $additional_js[] = 'core/ui/toast';
 <link rel="stylesheet" href="/public/css/voice-section.css">
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+// Function to handle auto-join logic - can be called immediately or on DOM ready
+window.handleAutoJoin = function() {
     localStorage.setItem('onVoiceChannelPage', 'true');
     
     // Check for auto-join flag
@@ -33,11 +34,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const currentChannelId = document.querySelector('meta[name="channel-id"]')?.getAttribute('content');
     const forceAutoJoin = sessionStorage.getItem('forceAutoJoin') === 'true';
     
-    console.log('Voice section loaded:', {autoJoinChannelId, currentChannelId, forceAutoJoin});
+    console.log('🔊 Voice section loaded - checking auto-join:', {autoJoinChannelId, currentChannelId, forceAutoJoin});
     
     if (autoJoinChannelId && autoJoinChannelId === currentChannelId && forceAutoJoin) {
         // Auto-join this voice channel
-        console.log('Auto-joining voice channel immediately');
+        console.log('🔊 ✅ Auto-join conditions met! Joining voice channel immediately');
         
         // Clear the flags
         localStorage.removeItem('autoJoinVoiceChannel');
@@ -47,12 +48,30 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(function() {
             const joinBtn = document.getElementById('joinBtn');
             if (joinBtn && !joinBtn.disabled) {
-                console.log('Auto-clicking join button');
+                console.log('🔊 ✅ Auto-clicking join button');
                 joinBtn.click();
+            } else {
+                console.log('🔊 ⚠️ Join button not ready, retrying in 500ms');
+                setTimeout(function() {
+                    const retryJoinBtn = document.getElementById('joinBtn');
+                    if (retryJoinBtn && !retryJoinBtn.disabled) {
+                        console.log('🔊 ✅ Auto-clicking join button (retry)');
+                        retryJoinBtn.click();
+                    }
+                }, 500);
             }
-        }, 1000);
+        }, 800);
     }
-});
+}
+
+// If DOM is already loaded (AJAX content loading), run immediately
+if (document.readyState === 'loading') {
+    // If DOM is still loading, wait for it
+    document.addEventListener('DOMContentLoaded', window.handleAutoJoin);
+} else {
+    // DOM is already loaded, run immediately
+    window.handleAutoJoin();
+}
 </script>
 
 <meta name="meeting-id" content="<?php echo htmlspecialchars($meetingId); ?>">
@@ -363,489 +382,119 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <!-- Add scripts only if not already loaded -->
 <script>
-if (typeof VideoSDK === 'undefined') {
-    console.log("Loading VideoSDK from voice-section.php");
-    const videoSDKScript = document.createElement('script');
-    videoSDKScript.src = "https://sdk.videosdk.live/js-sdk/0.2.7/videosdk.js";
-    document.head.appendChild(videoSDKScript);
-} else {
-    console.log("VideoSDK already loaded");
+if (!document.querySelector('script[src*="voice-manager.js"]')) {
+    const voiceScript = document.createElement('script');
+    voiceScript.src = '/public/js/components/voice/voice-manager.js?v=' + Date.now();
+    voiceScript.onload = function() {
+        console.log('Voice manager script loaded');
+    };
+    document.head.appendChild(voiceScript);
 }
 
-// Make sure our scripts get loaded through the PHP architecture
-if (typeof window.videoSDKManager === 'undefined') {
-    console.log("Adding videosdk.js to additional_js");
-    if (typeof additional_js !== 'undefined') {
-        if (!additional_js.includes('components/videosdk/videosdk')) {
-            additional_js.push('components/videosdk/videosdk');
+let isConnected = false;
+
+// Function to initialize voice UI - can be called immediately or on DOM ready
+window.initVoiceUI = function() {
+    const joinBtn = document.getElementById('joinBtn');
+    const joinView = document.getElementById('joinView');
+    const connectingView = document.getElementById('connectingView');
+    const connectedView = document.getElementById('connectedView');
+    const voiceControls = document.getElementById('voiceControls');
+    
+    function autoJoinVoice() {
+        if (isConnected) return;
+        
+        console.log('Auto-joining voice channel...');
+        
+        joinView.classList.add('hidden');
+        connectingView.classList.remove('hidden');
+        
+        if (window.voiceManager) {
+            console.log('Using VoiceManager for auto-join');
+            window.voiceManager.joinVoice().then(() => {
+                setTimeout(() => {
+                    connectingView.classList.add('hidden');
+                    connectedView.classList.remove('hidden');
+                    voiceControls.classList.remove('hidden');
+                    isConnected = true;
+                }, 300);
+            }).catch((error) => {
+                console.error('Auto-join failed:', error);
+                connectingView.classList.add('hidden');
+                joinView.classList.remove('hidden');
+            });
+        } else {
+            setTimeout(() => {
+                connectingView.classList.add('hidden');
+                connectedView.classList.remove('hidden');
+                voiceControls.classList.remove('hidden');
+                
+                isConnected = true;
+                window.dispatchEvent(new Event('voiceConnect'));
+                
+                if (window.showToast) {
+                    window.showToast('Connected to <?php echo htmlspecialchars($activeChannel->name ?? 'voice channel'); ?>', 'success', 3000);
+                }
+            }, 1500);
         }
     }
-}
-if (typeof additional_js !== 'undefined') {
-    if (!additional_js.includes('components/voice/voice-manager')) {
-        additional_js.push('components/voice/voice-manager');
+    
+    function waitForVoiceManager(attempts = 0) {
+        if (window.voiceManager && typeof window.voiceManager.joinVoice === 'function') {
+            console.log('Voice manager ready, starting auto-join');
+            autoJoinVoice();
+        } else if (attempts < 50) {
+            setTimeout(() => waitForVoiceManager(attempts + 1), 200);
+        } else {
+            console.warn('Voice manager not available after 10 seconds, falling back to UI-only mode');
+            autoJoinVoice();
+        }
     }
-}
+    
+    setTimeout(() => {
+        waitForVoiceManager();
+    }, 1000);
+    
+    joinBtn.addEventListener('click', function() {
+        if (isConnected) return;
+        
+        joinBtn.disabled = true;
+        joinBtn.textContent = 'Connecting...';
+        
+        if (window.voiceManager && typeof window.voiceManager.joinVoice === 'function') {
+            console.log('Manual join using VoiceManager');
+            autoJoinVoice();
+        } else {
+            console.log('Manual join using fallback mode');
+            autoJoinVoice();
+        }
+    });
 
-// JavaScript to handle participant template rendering and UI visibility
-document.addEventListener("DOMContentLoaded", function() {
-    // Signal that the voice channel content has loaded
+    
+    window.addEventListener('voiceDisconnect', function() {
+        isConnected = false;
+        
+        connectedView.classList.add('hidden');
+        voiceControls.classList.add('hidden');
+        joinView.classList.remove('hidden');
+        
+        joinBtn.disabled = false;
+        joinBtn.textContent = 'Join Voice';
+    });
+    
     document.dispatchEvent(new CustomEvent('channelContentLoaded', {
         detail: {
             type: 'voice',
             channelId: '<?php echo htmlspecialchars($activeChannelId); ?>'
         }
     }));
-    
-    // Check if we should auto-join this channel
-    if (window.attemptAutoJoinVoice) {
-        // Try to auto-join a few times to make sure the UI is fully loaded
-        setTimeout(() => window.attemptAutoJoinVoice(), 300);
-        setTimeout(() => window.attemptAutoJoinVoice(), 800);
-        setTimeout(() => window.attemptAutoJoinVoice(), 1500);
-    }
-    
-    // Handle UI visibility
-    const joinUI = document.getElementById('joinUI');
-    const discordVoiceView = document.getElementById('discordVoiceView');
-    const voiceControlsContainer = document.querySelector('.voice-controls-container');
-    const mainContent = document.querySelector('.flex-1.flex.flex-col');
-    const skeletonLoadingView = document.getElementById('skeletonLoadingView');
-    const skeletonHeader = document.getElementById('skeleton-header');
-    const emptyVoiceMessage = document.getElementById('emptyVoiceMessage');
-    const voiceUIElements = document.querySelectorAll('.voice-ui-element');
-    
-    // Function to show voice UI elements with animation
-    function showVoiceUIElements() {
-        // Hide skeleton header
-        if (skeletonHeader) skeletonHeader.style.display = 'none';
-        
-        // Show all voice UI elements with staggered animation
-        voiceUIElements.forEach((element, index) => {
-            setTimeout(() => {
-                // Don't show joinUI if we're in connected state
-                if (element.id === 'joinUI' && localStorage.getItem('voiceActive') === 'true') {
-                    return; // Skip showing joinUI when connected
-                }
-                
-                element.classList.remove('hidden');
-                
-                // Special handling for joinUI to ensure proper layout (only when not connected)
-                if (element.id === 'joinUI' && localStorage.getItem('voiceActive') !== 'true') {
-                    element.style.display = 'flex';
-                    element.style.minHeight = '100vh';
-                    element.style.height = '100%';
-                    element.style.opacity = '1';
-                    element.style.visibility = 'visible';
-                }
-                
-                // Add a small delay to allow the browser to process the display change
-                setTimeout(() => {
-                    element.classList.add('visible');
-                }, 50);
-            }, index * 100); // Stagger the animations
-        });
-    }
-    
-    // Function to hide voice UI elements
-    function hideVoiceUIElements() {
-        // Show skeleton header
-        if (skeletonHeader) skeletonHeader.style.display = 'flex';
-        
-        // Hide all voice UI elements
-        voiceUIElements.forEach(element => {
-            element.classList.remove('visible');
-            element.classList.add('hidden');
-            
-            // Extra hiding for joinUI
-            if (element.id === 'joinUI') {
-                element.style.display = 'none';
-                element.style.visibility = 'hidden';
-                element.style.opacity = '0';
-            }
-        });
-    }
-    
-    // Function to show connection toast
-    function showConnectionToast() {
-        if (!window.showToast) return;
-        
-        // Show toast
-        window.showToast('Connected to <?php echo htmlspecialchars($activeChannel->name ?? 'voice channel'); ?>', 'success', 5000);
-    }
-    
-    // Function to preload all voice UI elements
-    function preloadVoiceElements() {
-        return new Promise((resolve) => {
-            // Preload all voice UI elements but keep them hidden
-            voiceUIElements.forEach(element => {
-                element.classList.remove('hidden');
-                element.style.visibility = 'hidden';
-                element.style.position = 'absolute';
-            });
-            
-            // Ensure all images and assets are loaded
-            const images = document.querySelectorAll('#voice-container img');
-            let loadedImages = 0;
-            const totalImages = images.length;
-            
-            if (totalImages === 0) {
-                setTimeout(resolve, 100);
-                return;
-            }
-            
-            images.forEach(img => {
-                if (img.complete) {
-                    loadedImages++;
-                    if (loadedImages === totalImages) {
-                        setTimeout(resolve, 100);
-                    }
-                } else {
-                    img.addEventListener('load', () => {
-                        loadedImages++;
-                        if (loadedImages === totalImages) {
-                            setTimeout(resolve, 100);
-                        }
-                    });
-                }
-            });
-            
-            // Fallback timeout
-            setTimeout(resolve, 800);
-        });
-    }
-    
-    // Initial state: show join UI immediately, hide skeleton
-    if (skeletonLoadingView) skeletonLoadingView.style.display = 'none';
-    
-    // Preload elements in background while showing join UI
-    preloadVoiceElements().then(() => {
-        console.log('Voice elements preloaded and ready');
-    });
-    
-    // Check if we're already connected
-    const isAlreadyConnected = localStorage.getItem('voiceActive') === 'true';
-    
-    if (!isAlreadyConnected) {
-        // Show join UI immediately only if not connected
-        showVoiceUIElements();
-        if (discordVoiceView) discordVoiceView.style.display = 'none';
-        if (joinUI) {
-            joinUI.style.display = 'flex';
-            joinUI.style.opacity = '1';
-            joinUI.style.visibility = 'visible';
-            joinUI.classList.remove('hidden');
-        }
-        if (voiceControlsContainer) voiceControlsContainer.style.display = 'none';
-    } else {
-        // If already connected, hide join UI and show appropriate connected state
-        if (joinUI) {
-            joinUI.style.display = 'none';
-            joinUI.style.visibility = 'hidden';
-            joinUI.classList.add('hidden');
-            joinUI.style.opacity = '0';
-        }
-        if (skeletonLoadingView) skeletonLoadingView.style.display = 'flex';
-    }
-    
-    // Listen for join button clicks
-    const joinBtn = document.getElementById('joinBtn');
-    if (joinBtn) {
-        joinBtn.addEventListener('click', async function(event) {
-            // Prevent multiple clicks
-            if (joinBtn.disabled) return;
-            
-            console.log('Join button clicked - starting connection process');
-            
-            // Set loading state
-            joinBtn.textContent = 'Connecting...';
-            joinBtn.classList.add('opacity-70', 'cursor-not-allowed');
-            joinBtn.disabled = true;
-            
-            // Fade out current UI smoothly
-            if (joinUI) {
-                joinUI.style.transition = 'opacity 0.3s ease';
-                joinUI.style.opacity = '0';
-            }
-            
-            // After fade out, show skeleton and start connection
-            setTimeout(() => {
-                // Hide all UI elements
-                hideVoiceUIElements();
-                
-                // Show skeleton loading
-                if (skeletonLoadingView) {
-                    skeletonLoadingView.classList.remove('fade-out');
-                    skeletonLoadingView.style.opacity = '1';
-                    skeletonLoadingView.style.display = 'flex';
-                }
-                
-                // Don't set voiceActive here - wait for actual connection
-                console.log('Showing skeleton, waiting for voice connection...');
-                
-                // The voice-manager.js will handle the actual connection and fire voiceConnect event
-                // We just need to wait for that event
-            }, 300);
-        });
-    }
-    
-    // Function to ensure all elements are ready before showing
-    function ensureElementsReady() {
-        return new Promise((resolve) => {
-            // Check if all critical elements are loaded
-            const checkElements = () => {
-                const voiceTools = document.querySelector('.voice-tools');
-                const voiceIndicator = document.getElementById('voice-connection-indicator');
-                const userStatus = document.getElementById('user-voice-status');
-                
-                // Check if elements have proper dimensions
-                if (voiceTools && voiceIndicator && userStatus) {
-                    const toolsRect = voiceTools.getBoundingClientRect();
-                    if (toolsRect.width > 0 && toolsRect.height > 0) {
-                        resolve();
-                        return;
-                    }
-                }
-                
-                // Retry after a short delay
-                setTimeout(checkElements, 50);
-            };
-            
-            checkElements();
-            
-            // Fallback timeout
-            setTimeout(resolve, 1000);
-        });
-    }
-    
-    // Listen for connection events
-    window.addEventListener('voiceConnect', async function(event) {
-        console.log('Voice connection established - transitioning from skeleton to content');
-        
-        // Mark voice as active now that we're actually connected
-        localStorage.setItem('voiceActive', 'true');
-        
-        // Ensure all elements are ready before showing
-        await preloadVoiceElements();
-        await ensureElementsReady();
-        
-        // Reset visibility and position of elements
-        voiceUIElements.forEach(element => {
-            element.style.visibility = '';
-            element.style.position = '';
-        });
-        
-        // Prepare connected content but keep it hidden initially
-        if (joinUI) {
-            joinUI.style.display = 'none';
-            joinUI.style.visibility = 'hidden';
-            joinUI.classList.add('hidden');
-        }
-        if (discordVoiceView) {
-            discordVoiceView.style.display = 'flex';
-            discordVoiceView.style.opacity = '0';
-            discordVoiceView.classList.remove('hidden');
-        }
-        if (voiceControlsContainer) {
-            voiceControlsContainer.style.display = 'flex';
-            voiceControlsContainer.style.opacity = '0';
-            voiceControlsContainer.classList.remove('hidden');
-        }
-        
-        // Start transition: fade out skeleton
-        if (skeletonLoadingView) {
-            skeletonLoadingView.style.transition = 'opacity 0.3s ease';
-            skeletonLoadingView.style.opacity = '0';
-            
-            // After skeleton fades out, show connected content
-            setTimeout(() => {
-                // Hide skeleton completely
-                skeletonLoadingView.style.display = 'none';
-                
-                // Ensure joinUI is completely hidden
-                if (joinUI) {
-                    joinUI.style.display = 'none';
-                    joinUI.style.visibility = 'hidden';
-                    joinUI.classList.add('hidden');
-                    joinUI.style.opacity = '0';
-                }
-                
-                // Show voice UI elements (but not joinUI due to our check)
-                showVoiceUIElements();
-                
-                // Fade in connected content
-                if (discordVoiceView) {
-                    discordVoiceView.style.transition = 'opacity 0.3s ease';
-                    discordVoiceView.style.opacity = '1';
-                }
-                
-                if (voiceControlsContainer) {
-                    voiceControlsContainer.style.transition = 'opacity 0.3s ease';
-                    voiceControlsContainer.style.opacity = '1';
-                }
-                
-                // Remove gradient background when connected
-                if (mainContent) {
-                    mainContent.style.background = '#2b2d31';
-                }
-                
-                // Show connection toast after content is visible
-                setTimeout(() => {
-                    showConnectionToast();
-                    
-                    // Check for participants
-                    const hasParticipants = document.getElementById('participants').children.length > 0;
-                    if (!hasParticipants && emptyVoiceMessage) {
-                        emptyVoiceMessage.style.display = 'flex';
-                    }
-                }, 200);
-                
-            }, 300);
-        }
-    });
-    
-    window.addEventListener('voiceDisconnect', function(event) {
-        console.log('Voice disconnected - showing join UI');
-        
-        // Mark voice as inactive
-        localStorage.setItem('voiceActive', 'false');
-        
-        // Hide skeleton and connected content
-        if (skeletonLoadingView) skeletonLoadingView.style.display = 'none';
-        if (discordVoiceView) discordVoiceView.style.display = 'none';
-        if (voiceControlsContainer) voiceControlsContainer.style.display = 'none';
-        
-        // Apply gradient background from voice-not-join.php
-        if (mainContent) {
-            mainContent.style.background = 'linear-gradient(180deg, #1e1f3a 0%, #2b2272 50%, #1e203a 100%)';
-        }
-        
-        // Ensure parent containers have proper height
-        const voiceContainer = document.getElementById('voice-container');
-        if (voiceContainer) {
-            voiceContainer.style.height = '100vh';
-            voiceContainer.style.minHeight = '100vh';
-        }
-        
-        // Reset and show join UI
-        if (joinUI) {
-            // Reset all styles and classes
-            joinUI.className = 'flex-1 flex flex-col items-center justify-center z-10 bg-gradient-to-b from-[#1e1f3a] via-[#2b2272] to-[#1e203a]';
-            joinUI.style.cssText = 'display: flex; height: 100%; width: 100%; min-height: 100vh; opacity: 1;';
-            
-            // Load voice-not-join content
-            joinUI.innerHTML = `
-                <h2 class="text-2xl font-bold text-white mb-2"><?php echo htmlspecialchars($activeChannel['name'] ?? 'Voice Channel'); ?></h2>
-                <p class="text-gray-300 text-base mb-6">No one is currently in voice</p>
-                
-                <button id="joinBtn" class="bg-[#5865F2] hover:bg-[#4752c4] text-white font-medium py-2 px-6 rounded transition-colors">
-                    Join Voice
-                </button>
-            `;
-        }
-        
-        // Show voice UI elements  
-        showVoiceUIElements();
-        
-        // Reattach the join button handler for the new button
-        setTimeout(() => {
-            const newJoinBtn = document.getElementById('joinBtn');
-            if (newJoinBtn) {
-                newJoinBtn.addEventListener('click', function(event) {
-                    // Prevent multiple clicks
-                    if (newJoinBtn.disabled) return;
-                    
-                    console.log('Join button clicked after disconnect - starting connection process');
-                    
-                    // Set loading state
-                    newJoinBtn.textContent = 'Connecting...';
-                    newJoinBtn.classList.add('opacity-70', 'cursor-not-allowed');
-                    newJoinBtn.disabled = true;
-                    
-                    // Fade out current UI smoothly
-                    if (joinUI) {
-                        joinUI.style.transition = 'opacity 0.3s ease';
-                        joinUI.style.opacity = '0';
-                    }
-                    
-                    // After fade out, show skeleton and start connection
-                    setTimeout(() => {
-                        // Hide all UI elements
-                        hideVoiceUIElements();
-                        
-                        // Show skeleton loading
-                        if (skeletonLoadingView) {
-                            skeletonLoadingView.classList.remove('fade-out');
-                            skeletonLoadingView.style.opacity = '1';
-                            skeletonLoadingView.style.display = 'flex';
-                        }
-                        
-                        console.log('Showing skeleton after disconnect, waiting for voice connection...');
-                    }, 300);
-                });
-            }
-        }, 100);
-    });
-    
-    // This function will be called by voice-manager.js when adding participants
-    window.renderParticipant = function(participant) {
-        if (!participant) return;
-        
-        const template = document.getElementById('participantTemplate');
-        if (!template) return;
-        
-        const clone = document.importNode(template.content, true);
-        
-        // Set participant details
-        const nameElement = clone.querySelector('.participant-name');
-        if (nameElement) nameElement.textContent = participant.displayName || 'User';
-        
-        // Set avatar initial
-        const avatarElement = clone.querySelector('.participant-avatar span');
-        if (avatarElement) {
-            const initial = participant.displayName ? participant.displayName.charAt(0).toUpperCase() : 'U';
-            avatarElement.textContent = initial;
-        }
-        
-        // Add to participants container with animation
-        const container = document.getElementById('participants');
-        if (container) {
-            const participantDiv = document.createElement('div');
-            participantDiv.id = `participant-item-${participant.id}`;
-            participantDiv.appendChild(clone);
-            participantDiv.classList.add('opacity-0', 'transform', 'translate-y-4');
-            container.appendChild(participantDiv);
-            
-            // Trigger animation after a small delay
-            setTimeout(() => {
-                participantDiv.classList.add('transition-all', 'duration-300', 'ease-in-out');
-                participantDiv.classList.remove('opacity-0', 'translate-y-4');
-            }, 50);
-            
-            // Hide empty message if we have participants
-            if (emptyVoiceMessage) emptyVoiceMessage.style.display = 'none';
-        }
-    };
-});
+}
 
-// Add IDs to server and channel sidebars for fullscreen mode
-document.addEventListener('DOMContentLoaded', function() {
-    // Find server sidebar
-    const serverSidebar = document.querySelector('#app-container > .flex > .flex.flex-col.bg-discord-dark');
-    if (serverSidebar && !serverSidebar.id) {
-        serverSidebar.id = 'server-sidebar';
-    }
-    
-    // Find channel sidebar
-    const channelSidebar = document.querySelector('#app-container > .flex > .w-60.flex.flex-col.bg-discord-light');
-    if (channelSidebar && !channelSidebar.id) {
-        channelSidebar.id = 'channel-sidebar';
-    }
-    
-    // Find main content
-    const mainContent = document.querySelector('#app-container > .flex > .flex-1');
-    if (mainContent && !mainContent.id) {
-        mainContent.id = 'main-content';
-    }
-});
+// Initialize voice UI immediately if DOM is ready, or wait for DOM ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', window.initVoiceUI);
+} else {
+    // DOM is already loaded (AJAX scenario), run immediately
+    setTimeout(window.initVoiceUI, 100);
+}
 </script>

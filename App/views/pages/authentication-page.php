@@ -104,7 +104,7 @@ try {
 </style>
 
 <body data-page="auth">
-<div class="authentication-page w-full min-h-screen flex items-center justify-center bg-[#202225] p-4 sm:p-6 md:p-8">
+<div class="authentication-page w-full min-h-screen bg-[#202225]">
 
     <div class="w-full max-w-md mx-auto rounded-xl shadow-2xl relative z-10 glass-hero transform transition-all duration-700 ease-out bg-[#2f3136]/80 backdrop-filter backdrop-blur-md border border-white/10 p-6 sm:p-8" id="authContainer">
 
