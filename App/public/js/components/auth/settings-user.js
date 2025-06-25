@@ -31,42 +31,43 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function closeUnwantedModals() {
     setTimeout(() => {
-        const allModals = document.querySelectorAll('div[role="dialog"], .modal, [class*="modal"]');
+        const closeButton = document.querySelector('#close-leave-server-modal');
+        if (closeButton) {
+            closeButton.click();
+            return;
+        }
         
-        allModals.forEach(modal => {
-            const modalText = modal.textContent || '';
-            const hasLeaveText = modalText.includes('Leave Server');
-            const hasConfirmText = modalText.includes('Are you sure you want to leave this server');
-            const hasRejoinText = modalText.includes('rejoin this server unless you are re-invited');
-            
-            if (hasLeaveText || hasConfirmText || hasRejoinText) {
-                const buttons = modal.querySelectorAll('button');
-                
-                let cancelButton = null;
-                for (let btn of buttons) {
-                    const btnText = btn.textContent || '';
-                    if (btnText.includes('Cancel') || btn.querySelector('svg')) {
-                        cancelButton = btn;
-                        break;
-                    }
-                }
-                
-                if (cancelButton) {
-                    cancelButton.click();
-                } else {
-                    modal.style.display = 'none';
-                    modal.style.visibility = 'hidden';
-                    modal.style.opacity = '0';
-                }
-                
-                document.querySelectorAll('.modal-backdrop, .modal-overlay, .backdrop, [class*="overlay"]').forEach(element => {
-                    element.style.display = 'none';
-                    element.style.visibility = 'hidden';
-                    element.style.opacity = '0';
-                });
+        const cancelButton = document.querySelector('#cancel-leave-server');
+        if (cancelButton) {
+            cancelButton.click();
+            return;
+        }
+        
+        const leaveServerModal = document.querySelector('div:has(h2:contains("Leave Server"))');
+        if (leaveServerModal) {
+            const modalParent = leaveServerModal.parentElement;
+            if (modalParent) {
+                modalParent.style.display = 'none';
+                modalParent.style.visibility = 'hidden';
+                modalParent.style.opacity = '0';
+            }
+        }
+        
+        document.querySelectorAll('[class*="modal"], [role="dialog"]').forEach(modal => {
+            if (modal && modal.textContent && 
+                (modal.textContent.includes('Leave Server') || 
+                 modal.textContent.includes('leave this server'))) {
+                modal.style.display = 'none';
+                modal.style.visibility = 'hidden';
+                modal.style.opacity = '0';
+                modal.style.pointerEvents = 'none';
             }
         });
-    }, 500);
+        
+        document.body.style.overflow = '';
+    }, 10);
+    
+    preventLeaveServerModalDisplaying();
 }
 
 function initUserSettingsPage() {
@@ -872,4 +873,58 @@ function getStatusDisplayName(status) {
         'offline': 'Invisible'
     };
     return statusMap[status] || 'Online';
+}
+
+function preventLeaveServerModalDisplaying() {
+    const originalShowModal = window.showModal;
+    if (originalShowModal && !window.modalOverrideInstalled) {
+        window.modalOverrideInstalled = true;
+        window.showModal = function(modalContent, options = {}) {
+            if (typeof modalContent === 'string' && 
+                (modalContent.includes('Leave Server') || 
+                modalContent.includes('leave this server'))) {
+                return;
+            }
+            return originalShowModal.call(this, modalContent, options);
+        };
+    }
+    
+    const originalCreateElement = document.createElement;
+    if (originalCreateElement && !window.createElementOverrideInstalled) {
+        window.createElementOverrideInstalled = true;
+        document.createElement = function(tagName) {
+            const element = originalCreateElement.call(document, tagName);
+            
+            if (tagName.toLowerCase() === 'div') {
+                const originalAppendChild = element.appendChild;
+                element.appendChild = function(child) {
+                    if (child && child.textContent && 
+                        (child.textContent.includes('Leave Server') || 
+                         child.textContent.includes('leave this server'))) {
+                        return child;
+                    }
+                    return originalAppendChild.call(this, child);
+                };
+            }
+            
+            return element;
+        };
+    }
+    
+    setInterval(() => {
+        document.querySelectorAll('[id*="leave-server"], [id*="server-leave"]').forEach(el => {
+            if (el) el.style.display = 'none';
+        });
+        
+        const modalElements = document.querySelectorAll('div.modal, [role="dialog"], [aria-modal="true"]');
+        modalElements.forEach(modal => {
+            if (!modal) return;
+            
+            if (modal.textContent && 
+                (modal.textContent.includes('Leave Server') || 
+                 modal.textContent.includes('leave this server'))) {
+                modal.remove();
+            }
+        });
+    }, 500);
 }

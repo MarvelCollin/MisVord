@@ -10,6 +10,12 @@ $additionalStyles = [
 require_once dirname(__DIR__) . '/layout/head.php';
 ?>
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.body.setAttribute('data-page', 'nitro');
+});
+</script>
+
 <div class="flex flex-col min-h-screen bg-discord-dark text-white">
     <?php require_once dirname(__DIR__) . '/layout/app.php'; ?>
 

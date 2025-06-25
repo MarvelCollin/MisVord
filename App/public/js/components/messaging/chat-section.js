@@ -1,12 +1,13 @@
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Chat section script loaded via DOM content loaded');
-    if (!window.chatSection && !isAdminPage()) {
+    if (!window.chatSection && !isExcludedPage()) {
         initializeChatSection();
     }
 });
 
-function isAdminPage() {
-    return document.body.getAttribute('data-page') === 'admin';
+function isExcludedPage() {
+    const pageType = document.body.getAttribute('data-page');
+    return pageType === 'admin' || pageType === 'nitro';
 }
 
 function initializeChatSection() {
@@ -23,7 +24,7 @@ function initializeChatSection() {
 }
 
 console.log('Chat section script immediate execution');
-if (document.readyState === 'complete' && !window.chatSection && !isAdminPage()) {
+if (document.readyState === 'complete' && !window.chatSection && !isExcludedPage()) {
     setTimeout(() => {
         console.log('Chat section delayed initialization');
         initializeChatSection();
@@ -56,7 +57,7 @@ class ChatSection {
         this.totalMessagesLoaded = 0;
         this.activeReplyingTo = null;
         this.currentFileUpload = null;
-        this.maxFileSize = 8 * 1024 * 1024; // 8MB max file size
+        this.maxFileSize = 100 * 1024 * 1024;
     }
     
     init() {
@@ -1284,7 +1285,6 @@ class ChatSection {
             contentElement.innerHTML = this.formatMessageContent(message.content);
         }
         
-        // Handle attachments
         if (message.attachment_url) {
             const attachmentContainer = document.createElement('div');
             attachmentContainer.className = 'message-attachment mt-2';
@@ -1322,7 +1322,6 @@ class ChatSection {
                 attachmentContainer.appendChild(imageWrapper);
                 
             } else {
-                // Generic file attachment display
                 const fileLink = document.createElement('a');
                 fileLink.href = message.attachment_url;
                 fileLink.target = '_blank';
@@ -1336,7 +1335,6 @@ class ChatSection {
                 
                 let fileIcon = 'fas fa-file';
                 
-                // Determine appropriate icon based on file extension
                 if (message.attachment_url) {
                     const extension = message.attachment_url.split('.').pop().toLowerCase();
                     

@@ -597,6 +597,24 @@ class ChatAPI {
             throw error;
         }
     }
+
+    async uploadFile(formData) {
+        try {
+            const response = await fetch(`${this.baseURL}/upload`, {
+                method: 'POST',
+                body: formData, // FormData handles content-type automatically
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Failed to upload file: ${response.status}`);
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Error uploading file:', error);
+            throw error;
+        }
+    }
 }
 
 const chatAPI = new ChatAPI();
