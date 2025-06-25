@@ -916,4 +916,160 @@ class UserController extends BaseController
         
         return require_once dirname(__DIR__) . '/views/pages/settings-user.php';
     }
+
+    public function getCurrentUserSecurityQuestion()
+    {
+        $this->requireAuth();
+        $userId = $this->getCurrentUserId();
+        
+        try {
+            $user = $this->userRepository->find($userId);
+            
+            if (!$user) {
+                return $this->error('User not found', 404);
+            }
+            
+            if (!isset($user->security_question) || empty($user->security_question)) {
+                return $this->error('No security question set for this account', 400);
+            }
+            
+            $this->logActivity('security_question_requested_current_user', [
+                'user_id' => $userId
+            ]);
+            
+            return $this->success([
+                'security_question' => $user->security_question
+            ]);
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while retrieving security question: ' . $e->getMessage());
+        }
+    }
+
+    public function verifyCurrentUserSecurityAnswer()
+    {
+        $this->requireAuth();
+        $userId = $this->getCurrentUserId();
+        $input = $this->getInput();
+        
+        try {
+            if (!isset($input['security_answer']) || empty($input['security_answer'])) {
+                return $this->error('Security answer is required', 400);
+            }
+            
+            $user = $this->userRepository->find($userId);
+            
+            if (!$user) {
+                return $this->error('User not found', 404);
+            }
+            
+            if (!isset($user->security_question) || empty($user->security_question)) {
+                return $this->error('No security question set for this account', 400);
+            }
+            
+            $verified = $this->userRepository->verifySecurityAnswer($user->id, $input['security_answer']);
+            
+            if (!$verified) {
+                $this->logActivity('security_answer_failed_current_user', [
+                    'user_id' => $user->id
+                ]);
+                return $this->error('Incorrect security answer', 401);
+            }
+            
+            $this->logActivity('security_answer_verified_current_user', [
+                'user_id' => $user->id
+            ]);
+            
+            // Store verification in session for password change
+            $_SESSION['security_verified_for_password_change'] = true;
+            $_SESSION['security_verified_time'] = time();
+            
+            return $this->success(null, 'Security answer verified successfully');
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while verifying security answer: ' . $e->getMessage());
+        }
+    }
+
+    public function changePasswordWithSecurityAnswer()
+    {
+        $this->requireAuth();
+        $userId = $this->getCurrentUserId();
+        $input = $this->getInput();
+        
+        try {
+            $errors = [];
+            
+            if (!isset($input['security_answer']) || empty($input['security_answer'])) {
+                $errors['security_answer'] = 'Security answer is required';
+            }
+            
+            if (!isset($input['new_password']) || empty($input['new_password'])) {
+                $errors['new_password'] = 'New password is required';
+            }
+            
+            if (!isset($input['confirm_password']) || empty($input['confirm_password'])) {
+                $errors['confirm_password'] = 'Confirm password is required';
+            }
+            
+            if (!empty($errors)) {
+                return $this->error('Missing required fields', 400, $errors);
+            }
+            
+            $user = $this->userRepository->find($userId);
+            
+            if (!$user) {
+                return $this->error('User not found', 404);
+            }
+            
+            if (!isset($user->security_question) || empty($user->security_question)) {
+                return $this->error('No security question set for this account', 400);
+            }
+            
+            $newPassword = $input['new_password'];
+            $confirmPassword = $input['confirm_password'];
+            
+            if ($newPassword !== $confirmPassword) {
+                return $this->error('Passwords do not match', 400);
+            }
+            
+            if (strlen($newPassword) < 8) {
+                return $this->error('Password must be at least 8 characters long', 400);
+            }
+            
+            if (!preg_match('/[A-Z]/', $newPassword)) {
+                return $this->error('Password must contain at least one uppercase letter', 400);
+            }
+            
+            if (!preg_match('/[0-9]/', $newPassword)) {
+                return $this->error('Password must contain at least one number', 400);
+            }
+            
+            // Verify security answer
+            $verified = $this->userRepository->verifySecurityAnswer($user->id, $input['security_answer']);
+            
+            if (!$verified) {
+                $this->logActivity('password_change_failed_security_answer', [
+                    'user_id' => $user->id
+                ]);
+                return $this->error('Incorrect security answer', 401);
+            }
+            
+            $result = $this->userRepository->updatePassword($user->id, $newPassword);
+            
+            if (!$result) {
+                return $this->serverError('Failed to update password');
+            }
+            
+            // Clear security verification session
+            unset($_SESSION['security_verified_for_password_change']);
+            unset($_SESSION['security_verified_time']);
+            
+            $this->logActivity('password_changed_with_security_answer', [
+                'user_id' => $user->id
+            ]);
+            
+            return $this->success(null, 'Password changed successfully');
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while changing password: ' . $e->getMessage());
+        }
+    }
 } 

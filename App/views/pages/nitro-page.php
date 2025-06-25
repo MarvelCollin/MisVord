@@ -22,6 +22,12 @@ document.addEventListener('DOMContentLoaded', function() {
     <div class="flex-1">
         <div class="nitro-hero-section bg-gradient-to-b from-purple-600 via-purple-700 to-discord-dark">
             <div class="max-w-7xl mx-auto px-6 py-16">
+                <div class="flex justify-start mb-8">
+                    <button onclick="history.back()" class="back-button flex items-center gap-2 bg-discord-darker/50 hover:bg-discord-darker/80 text-white px-4 py-2 rounded-lg transition-all duration-300 hover:scale-105 transform backdrop-blur-sm border border-white/10 hover:border-purple-500/50">
+                        <i class="fas fa-arrow-left"></i>
+                        <span>Back</span>
+                    </button>
+                </div>
                 <div class="text-center relative z-10">
                     <div class="absolute -top-10 -left-10 w-32 h-32 bg-purple-500/20 rounded-full blur-3xl animate-pulse floating-particle"></div>
                     <div class="absolute -top-5 -right-5 w-24 h-24 bg-blue-500/20 rounded-full blur-3xl animate-pulse floating-particle"></div>
@@ -121,23 +127,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             Enter a valid code to unlock all Nitro benefits
                         </p>
                     </div>
-                    <div class="mt-8">
-                        <h4 class="text-lg font-medium mb-3 text-center">Recent Subscribers</h4>
-                        <div class="flex justify-center">
-                            <div class="flex -space-x-3">
-                                <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center border-2 border-discord-darker text-xs font-bold recent-subscriber-avatar cursor-pointer">MJ</div>
-                                <div class="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center border-2 border-discord-darker text-xs font-bold recent-subscriber-avatar cursor-pointer">AP</div>
-                                <div class="w-10 h-10 rounded-full bg-yellow-500 flex items-center justify-center border-2 border-discord-darker text-xs font-bold recent-subscriber-avatar cursor-pointer">TK</div>
-                                <div class="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center border-2 border-discord-darker text-xs font-bold recent-subscriber-avatar cursor-pointer">SL</div>
-                                <div class="w-10 h-10 rounded-full bg-discord-light flex items-center justify-center border-2 border-discord-darker recent-subscriber-avatar cursor-pointer">
-                                    <span class="text-xs font-bold">+24</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="text-center mt-2">
-                            <span class="text-xs text-gray-500 animate-pulse">Live updates</span>
-                        </div>
-                    </div>
+
                 </div>
             </div>
 

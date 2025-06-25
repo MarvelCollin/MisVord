@@ -425,6 +425,11 @@ if ($chatType === 'channel') {
                 <span>Pin Message</span>
                 <i class="fas fa-thumbtack w-4"></i>
             </button>
+            <div class="border-t border-[#3f4147] my-1"></div>
+            <button data-action="delete" class="flex items-center justify-between w-full px-2 py-1.5 text-[#ed4245] hover:bg-[#ed4245] hover:text-white rounded">
+                <span>Delete Message</span>
+                <i class="fas fa-trash w-4"></i>
+            </button>
         </div>
     </div>
 </div>

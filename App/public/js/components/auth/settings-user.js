@@ -49,7 +49,6 @@ function initUserSettingsPage() {
         initStatusSelector();
         initEmailReveal();
         initPasswordChangeForms();
-        initTwoFactorAuth();
     }
     
     initCloseButton();
@@ -442,7 +441,7 @@ function uploadBanner(dataUrl) {
  * Update all avatar instances in the UI
  */
 function updateAllAvatars(url) {
-    const avatarElements = document.querySelectorAll('.user-avatar img, .user-avatar-preview img, #user-avatar-preview');
+    const avatarElements = document.querySelectorAll('.user-avatar img, #user-avatar-preview');
     
     avatarElements.forEach(avatar => {
         avatar.src = url;
@@ -452,30 +451,14 @@ function updateAllAvatars(url) {
     if (avatarMeta) {
         avatarMeta.content = url;
     }
-    
-    const userPreviewAvatar = document.querySelector('.user-avatar-preview img');
-    if (userPreviewAvatar) {
-        userPreviewAvatar.src = url;
-    }
 }
 
 /**
  * Update all banner instances in the UI
  */
 function updateAllBanners(url) {
-    const userBanner = document.querySelector('.user-banner');
-    if (userBanner) {
-        if (url) {
-            userBanner.style.backgroundImage = `url('${url}')`;
-            userBanner.style.backgroundSize = 'cover';
-            userBanner.style.backgroundPosition = 'center';
-        } else {
-            userBanner.style.backgroundImage = `url('/public/assets/common/main-logo.png')`;
-            userBanner.style.backgroundSize = 'contain';
-            userBanner.style.backgroundRepeat = 'no-repeat';
-            userBanner.style.backgroundPosition = 'center';
-        }
-    }
+    // Banner updates can be handled here if needed in the future
+    // Currently no preview panel exists
 }
 
 /**
@@ -651,26 +634,222 @@ function initEmailReveal() {
  */
 function initPasswordChangeForms() {
     const changePasswordBtn = document.getElementById('change-password-btn');
+    const modal = document.getElementById('change-password-modal');
+    const closeModalBtn = document.getElementById('close-password-modal');
+    const cancelBtn = document.getElementById('cancel-password-change');
+    
+    const securityQuestionStep = document.getElementById('security-question-step');
+    const newPasswordStep = document.getElementById('new-password-step');
+    
+    const securityQuestionText = document.getElementById('security-question-text');
+    const securityAnswerInput = document.getElementById('security-answer-input');
+    const securityAnswerError = document.getElementById('security-answer-error');
+    const verifyBtn = document.getElementById('verify-security-answer');
+    
+    const newPasswordInput = document.getElementById('new-password-input');
+    const confirmPasswordInput = document.getElementById('confirm-password-input');
+    const passwordError = document.getElementById('password-error');
+    const backBtn = document.getElementById('back-to-security');
+    const confirmBtn = document.getElementById('confirm-password-change');
+    
+    let userSecurityQuestion = '';
     
     if (!changePasswordBtn) return;
     
-    changePasswordBtn.addEventListener('click', function() {
-        showToast('Password change functionality will be implemented soon.', 'info');
+    // Ensure modal is hidden on page load
+    modal.classList.remove('show');
+    modal.classList.add('hidden');
+    
+    function openModal() {
+        modal.classList.add('show');
+        modal.classList.remove('hidden');
+        securityQuestionStep.classList.remove('hidden');
+        newPasswordStep.classList.add('hidden');
+        resetForm();
+        loadSecurityQuestion();
+    }
+    
+    function closeModal() {
+        modal.classList.remove('show');
+        modal.classList.add('hidden');
+        resetForm();
+    }
+    
+    function resetForm() {
+        securityAnswerInput.value = '';
+        newPasswordInput.value = '';
+        confirmPasswordInput.value = '';
+        hideErrors();
+    }
+    
+    function hideErrors() {
+        securityAnswerError.classList.add('hidden');
+        passwordError.classList.add('hidden');
+    }
+    
+    function showSecurityError(message) {
+        securityAnswerError.textContent = message;
+        securityAnswerError.classList.remove('hidden');
+    }
+    
+    function showPasswordError(message) {
+        passwordError.textContent = message;
+        passwordError.classList.remove('hidden');
+    }
+    
+    async function loadSecurityQuestion() {
+        try {
+            const userId = document.querySelector('meta[name="user-id"]')?.content;
+            if (!userId) {
+                throw new Error('User ID not found');
+            }
+            
+            const response = await window.userAPI.getUserSecurityQuestion();
+            
+            if (response && response.success) {
+                userSecurityQuestion = response.security_question;
+                securityQuestionText.textContent = userSecurityQuestion;
+            } else {
+                throw new Error(response.message || 'Failed to load security question');
+            }
+        } catch (error) {
+            console.error('Error loading security question:', error);
+            showSecurityError('Failed to load security question. Please try again.');
+        }
+    }
+    
+    async function verifySecurityAnswer() {
+        hideErrors();
+        
+        const answer = securityAnswerInput.value.trim();
+        if (!answer) {
+            showSecurityError('Please enter your security answer');
+            return;
+        }
+        
+        try {
+            verifyBtn.disabled = true;
+            verifyBtn.textContent = 'Verifying...';
+            
+            const response = await window.userAPI.verifySecurityAnswerForPasswordChange(answer);
+            
+            if (response && response.success) {
+                securityQuestionStep.classList.add('hidden');
+                newPasswordStep.classList.remove('hidden');
+            } else {
+                throw new Error(response.message || 'Incorrect security answer');
+            }
+        } catch (error) {
+            console.error('Error verifying security answer:', error);
+            showSecurityError(error.message || 'Incorrect security answer');
+        } finally {
+            verifyBtn.disabled = false;
+            verifyBtn.textContent = 'Verify';
+        }
+    }
+    
+    function validatePassword(password) {
+        if (password.length < 8) {
+            return 'Password must be at least 8 characters long';
+        }
+        if (!/[A-Z]/.test(password)) {
+            return 'Password must contain at least one uppercase letter';
+        }
+        if (!/[0-9]/.test(password)) {
+            return 'Password must contain at least one number';
+        }
+        return null;
+    }
+    
+    async function changePassword() {
+        hideErrors();
+        
+        const newPassword = newPasswordInput.value;
+        const confirmPassword = confirmPasswordInput.value;
+        
+        const passwordValidation = validatePassword(newPassword);
+        if (passwordValidation) {
+            showPasswordError(passwordValidation);
+            return;
+        }
+        
+        if (newPassword !== confirmPassword) {
+            showPasswordError('Passwords do not match');
+            return;
+        }
+        
+        try {
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = 'Changing...';
+            
+            const response = await window.userAPI.changePasswordWithSecurity(
+                securityAnswerInput.value,
+                newPassword,
+                confirmPassword
+            );
+            
+            if (response && response.success) {
+                showToast('Password changed successfully', 'success');
+                closeModal();
+            } else {
+                throw new Error(response.message || 'Failed to change password');
+            }
+        } catch (error) {
+            console.error('Error changing password:', error);
+            showPasswordError(error.message || 'Failed to change password');
+        } finally {
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = 'Change Password';
+        }
+    }
+    
+    // Event listeners
+    changePasswordBtn.addEventListener('click', openModal);
+    closeModalBtn.addEventListener('click', closeModal);
+    cancelBtn.addEventListener('click', closeModal);
+    
+    verifyBtn.addEventListener('click', verifySecurityAnswer);
+    
+    backBtn.addEventListener('click', () => {
+        newPasswordStep.classList.add('hidden');
+        securityQuestionStep.classList.remove('hidden');
+        hideErrors();
+    });
+    
+    confirmBtn.addEventListener('click', changePassword);
+    
+    // Enter key handlers
+    securityAnswerInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            verifySecurityAnswer();
+        }
+    });
+    
+    confirmPasswordInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            changePassword();
+        }
+    });
+    
+    // Close modal on outside click
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeModal();
+        }
+    });
+    
+    // Close modal on escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('show')) {
+            closeModal();
+        }
     });
 }
 
 /**
  * Initialize two-factor authentication
  */
-function initTwoFactorAuth() {
-    const enable2faBtn = document.getElementById('enable-2fa-btn');
-    
-    if (!enable2faBtn) return;
-    
-    enable2faBtn.addEventListener('click', function() {
-        showToast('Two-factor authentication setup will be implemented soon.', 'info');
-    });
-}
+
 
 /**
  * Initialize password field masking for text fields with password-field class
@@ -796,9 +975,6 @@ function getToastIcon(type) {
     }
 }
 
-/**
- * Debounce function to limit how often a function is called
- */
 function debounce(func, wait) {
     let timeout;
     return function(...args) {

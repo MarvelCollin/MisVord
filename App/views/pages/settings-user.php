@@ -238,20 +238,6 @@ ob_start();
                                     Change Password
                                 </button>
                             </div>
-                            
-                            <div class="mt-8">
-                                <div class="flex items-center justify-between">
-                                    <div>
-                                        <h4 class="font-medium text-white">Authenticator App</h4>
-                                        <p class="text-discord-lighter text-sm">
-                                            Protect your Discord account with an extra layer of security. Once configured, you'll be required to enter your password and complete one additional step in order to sign in.
-                                        </p>
-                                    </div>
-                                    <button type="button" id="enable-2fa-btn" class="bg-[#5865f2] hover:bg-[#4752c4] text-white rounded px-4 py-1.5 text-sm">
-                                        Enable Authenticator App
-                                    </button>
-                                </div>
-                            </div>
                         </section>
                         
                         <div class="flex justify-end pt-4">
@@ -290,106 +276,99 @@ ob_start();
             </div>
         <?php endif; ?>
     </main>
-    
-    <aside class="w-80">
-        <div class="p-6">
-            <div class="sticky top-6">
-                <h3 class="text-sm font-semibold text-discord-lighter uppercase mb-4">Preview</h3>
+</div>
+
+<!-- Password Change Modal -->
+<div id="change-password-modal" class="fixed inset-0 z-50 items-center justify-center bg-black bg-opacity-70 hidden">
+    <div class="w-full max-w-md">
+        <div class="bg-discord-background rounded-lg shadow-lg overflow-hidden">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold text-white">Change Password</h2>
+                    <button id="close-password-modal" class="text-gray-400 hover:text-white">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
                 
-                <div class="user-preview-card">
-                    <?php
-                    $bannerStyle = 'background-color: #2b2d31;';
-                    if ($user->banner_url) {
-                        $bannerStyle .= 'background-image: url(\'' . htmlspecialchars($user->banner_url) . '\'); background-size: cover; background-position: center;';
-                    } else {
-                        $bannerStyle .= 'background-image: url(\'' . asset('/common/main-logo.png') . '\'); background-size: contain; background-repeat: no-repeat; background-position: center;';
-                    }
-                    ?>
-                    <div class="user-banner" style="<?php echo $bannerStyle; ?>">
-                        <div class="user-avatar-preview">
-                            <img src="<?php echo $user->avatar_url ? htmlspecialchars($user->avatar_url) : asset('/common/main-logo.png'); ?>" alt="User Avatar">
-                            
-                            <?php 
-                            $statusClass = 'bg-green-500';
-                            if ($user->status === 'invisible') $statusClass = 'bg-gray-500';
-                            else if ($user->status === 'do_not_disturb') $statusClass = 'bg-red-500';
-                            else if ($user->status === 'offline') $statusClass = 'bg-[#747f8d]';
-                            ?>
-                            <div class="absolute bottom-0 right-0 status-indicator <?php echo $statusClass; ?>"></div>
+                <!-- Step 1: Security Question -->
+                <div id="security-question-step" class="space-y-4">
+                    <div class="text-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-yellow-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                        <h3 class="text-lg font-medium text-white mb-2">Security Verification Required</h3>
+                        <p class="text-gray-400 text-sm mb-4">Please answer your security question to continue</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Security Question</label>
+                        <div id="security-question-text" class="bg-discord-dark border border-gray-700 rounded px-3 py-2 text-white text-sm mb-4">
+                            Loading...
                         </div>
                     </div>
                     
-                    <div class="user-info">
-                        <h3 class="user-name"><?php echo htmlspecialchars($user->username ?? ''); ?></h3>
-                        <div class="user-meta">
-                            <span>#<?php echo htmlspecialchars($user->discriminator ?? '0000'); ?></span>
-                        </div>
-                        
-                        <div class="status-selector">
-                            <div class="status-option <?php echo $user->status === 'appear' ? 'bg-discord-background-modifier-selected' : ''; ?>" data-status="appear">
-                                <span class="bg-green-500"></span>
-                                <span>Online</span>
-                            </div>
-                            <div class="status-option <?php echo $user->status === 'invisible' ? 'bg-discord-background-modifier-selected' : ''; ?>" data-status="invisible">
-                                <span class="bg-gray-500"></span>
-                                <span>Invisible</span>
-                            </div>
-                            <div class="status-option <?php echo $user->status === 'do_not_disturb' ? 'bg-discord-background-modifier-selected' : ''; ?>" data-status="do_not_disturb">
-                                <span class="bg-red-500"></span>
-                                <span>Do Not Disturb</span>
-                            </div>
-                            <div class="status-option <?php echo $user->status === 'offline' ? 'bg-discord-background-modifier-selected' : ''; ?>" data-status="offline">
-                                <span class="bg-[#747f8d]"></span>
-                                <span>Invisible</span>
-                            </div>
-                        </div>
-                        
-                        <div class="custom-status">
-                            <span>Set a custom status</span>
-                            <i class="fas fa-pencil-alt"></i>
-                        </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Your Answer</label>
+                        <input type="text" id="security-answer-input" 
+                               class="w-full bg-discord-dark border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-discord-primary"
+                               placeholder="Enter your security answer">
+                        <div id="security-answer-error" class="text-red-500 text-sm mt-1 hidden"></div>
+                    </div>
+                    
+                    <div class="pt-4 flex space-x-3">
+                        <button type="button" id="cancel-password-change" 
+                                class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded">
+                            Cancel
+                        </button>
+                        <button type="button" id="verify-security-answer" 
+                                class="flex-1 bg-discord-primary hover:bg-discord-primary/90 text-white font-medium py-2 px-4 rounded">
+                            Verify
+                        </button>
                     </div>
                 </div>
                 
-                <div class="mt-6">
-                    <h4 class="text-sm font-semibold text-discord-lighter uppercase mb-4">Account Badges</h4>
-                    <div class="flex flex-wrap gap-2">
-                        <?php if (!empty($userBadges)): ?>
-                            <?php foreach ($userBadges as $badge): ?>
-                                <div class="w-8 h-8 bg-discord-darkest rounded-md flex items-center justify-center" title="<?php echo htmlspecialchars($badge->name); ?>">
-                                    <?php if (!empty($badge->icon_url)): ?>
-                                        <img src="<?php echo htmlspecialchars($badge->icon_url); ?>" alt="<?php echo htmlspecialchars($badge->name); ?>" class="w-5 h-5">
-                                    <?php else: ?>
-                                        <?php 
-                                        $iconClass = 'fas fa-shield-alt text-[#5865f2]';
-                                        if ($badge->badge_type === 'nitro') $iconClass = 'fas fa-rocket text-[#5865f2]';
-                                        elseif ($badge->badge_type === 'boost') $iconClass = 'fas fa-bolt text-[#ff73fa]';
-                                        ?>
-                                        <i class="<?php echo $iconClass; ?>"></i>
-                                    <?php endif; ?>
-                                </div>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <div class="w-8 h-8 bg-discord-darkest rounded-md flex items-center justify-center" title="Discord Staff">
-                                <i class="fas fa-shield-alt text-[#5865f2]"></i>
-                            </div>
-                            <div class="w-8 h-8 bg-discord-darkest rounded-md flex items-center justify-center" title="Nitro Subscriber">
-                                <i class="fas fa-rocket text-[#5865f2]"></i>
-                            </div>
-                            <div class="w-8 h-8 bg-discord-darkest rounded-md flex items-center justify-center" title="Server Booster">
-                                <i class="fas fa-bolt text-[#ff73fa]"></i>
-                            </div>
-                        <?php endif; ?>
+                <!-- Step 2: New Password -->
+                <div id="new-password-step" class="space-y-4 hidden">
+                    <div class="text-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-green-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <h3 class="text-lg font-medium text-white mb-2">Set New Password</h3>
+                        <p class="text-gray-400 text-sm mb-4">Enter your new password below</p>
                     </div>
-                </div>
-                
-                <div class="mt-4 text-xs text-discord-lighter">
-                    <p class="mb-2">This is how others will see you.</p>
-                    <p>Changes will be applied after saving.</p>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">New Password</label>
+                        <input type="password" id="new-password-input" 
+                               class="w-full bg-discord-dark border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-discord-primary"
+                               placeholder="Enter new password">
+                        <div class="text-xs text-gray-400 mt-1">Must be at least 8 characters with uppercase, number</div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Confirm New Password</label>
+                        <input type="password" id="confirm-password-input" 
+                               class="w-full bg-discord-dark border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-discord-primary"
+                               placeholder="Confirm new password">
+                        <div id="password-error" class="text-red-500 text-sm mt-1 hidden"></div>
+                    </div>
+                    
+                    <div class="pt-4 flex space-x-3">
+                        <button type="button" id="back-to-security" 
+                                class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded">
+                            Back
+                        </button>
+                        <button type="button" id="confirm-password-change" 
+                                class="flex-1 bg-discord-primary hover:bg-discord-primary/90 text-white font-medium py-2 px-4 rounded">
+                            Change Password
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
-    </aside>
+    </div>
 </div>
 
 <button class="close-button">

@@ -130,6 +130,14 @@ class ChatAPI {
                 content: content
             };
             
+            if (options.messageType) {
+                requestData.message_type = options.messageType;
+            }
+            
+            if (options.attachmentUrl) {
+                requestData.attachment_url = options.attachmentUrl;
+            }
+            
             if (options.replyToMessageId) {
                 requestData.reply_message_id = options.replyToMessageId;
             }
@@ -196,7 +204,8 @@ class ChatAPI {
                     id: messageId,
                     channelId: targetId,
                     content: content,
-                    messageType: 'text',
+                    messageType: options.messageType || 'text',
+                    attachment_url: options.attachmentUrl || null,
                     timestamp: timestamp,
                     userId: userId,
                     username: username
@@ -216,7 +225,8 @@ class ChatAPI {
                     id: messageId,
                     roomId: targetId,
                     content: content,
-                    messageType: 'text',
+                    messageType: options.messageType || 'text',
+                    attachment_url: options.attachmentUrl || null,
                     timestamp: timestamp,
                     userId: userId,
                     username: username

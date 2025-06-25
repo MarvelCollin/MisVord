@@ -611,7 +611,9 @@ class ChatController extends BaseController
             'avatar_url' => $avatarUrl,
             'sent_at' => is_array($message) ? ($message['sent_at'] ?? $message['created_at']) : $message->created_at,
             'edited_at' => is_array($message) ? ($message['edited_at'] ?? null) : ($message->edited_at ?? null),
-            'type' => is_array($message) ? ($message['message_type'] ?? 'text') : ($message->type ?? 'text')
+            'type' => is_array($message) ? ($message['message_type'] ?? 'text') : ($message->type ?? 'text'),
+            'message_type' => is_array($message) ? ($message['message_type'] ?? 'text') : ($message->message_type ?? 'text'),
+            'attachment_url' => is_array($message) ? ($message['attachment_url'] ?? null) : ($message->attachment_url ?? null)
         ];
         
         

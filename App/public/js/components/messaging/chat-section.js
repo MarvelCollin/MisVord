@@ -310,6 +310,11 @@ class ChatSection {
             editBtn.style.display = isOwnMessage ? 'flex' : 'none';
         }
         
+        const deleteBtn = this.contextMenu.querySelector('[data-action="delete"]');
+        if (deleteBtn) {
+            deleteBtn.style.display = isOwnMessage ? 'flex' : 'none';
+        }
+        
         this.setupContextMenuListeners();
     }
     
@@ -860,6 +865,7 @@ class ChatSection {
             
             if (this.currentFileUpload) {
                 try {
+                    const fileType = this.currentFileUpload.type;
                     const formData = new FormData();
                     formData.append('file', this.currentFileUpload);
                     
@@ -869,7 +875,7 @@ class ChatSection {
                     
                     if (uploadResponse && uploadResponse.url) {
                         attachmentUrl = uploadResponse.url;
-                        messageType = this.currentFileUpload.type.startsWith('image/') ? 'image' : 'file';
+                        messageType = fileType && fileType.startsWith('image/') ? 'image' : 'file';
                     } else {
                         throw new Error('Failed to upload file');
                     }
@@ -1136,7 +1142,9 @@ class ChatSection {
             isLocalOnly: message.isLocalOnly || false,
             reply_message_id: message.reply_message_id || null,
             reply_data: message.reply_data || null,
-            edited_at: message.edited_at || null
+            edited_at: message.edited_at || null,
+            messageType: message.messageType || message.message_type || 'text',
+            attachment_url: message.attachment_url || message.attachmentUrl || null
         };
         
         const existingMessageElement = document.querySelector(`[data-message-id="${msg.id}"]`);
@@ -1514,6 +1522,12 @@ class ChatSection {
                         
                         if (data.userId != self.userId) {
                             self.addMessage(data);
+                        } else {
+                            const tempMessage = document.querySelector(`[data-message-id^="temp_"]`);
+                            if (tempMessage) {
+                                tempMessage.setAttribute('data-message-id', messageId);
+                                console.log('✅ Updated temp message with socket ID:', messageId);
+                            }
                         }
                     }
                 }
@@ -1530,6 +1544,12 @@ class ChatSection {
                         
                         if (data.userId != self.userId) {
                             self.addMessage(data);
+                        } else {
+                            const tempMessage = document.querySelector(`[data-message-id^="temp_"]`);
+                            if (tempMessage) {
+                                tempMessage.setAttribute('data-message-id', messageId);
+                                console.log('✅ Updated temp message with socket ID:', messageId);
+                            }
                         }
                     }
                 }

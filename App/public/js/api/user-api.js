@@ -124,6 +124,30 @@ class UserAPI {
     async getMutualRelations(userId) {
         return await this.makeRequest(`/api/users/${userId}/mutual`);
     }
+
+    async getUserSecurityQuestion() {
+        return await this.makeRequest('/api/user/security-question');
+    }
+
+    async verifySecurityAnswerForPasswordChange(securityAnswer) {
+        return await this.makeRequest('/api/user/verify-security-answer', {
+            method: 'POST',
+            body: JSON.stringify({
+                security_answer: securityAnswer
+            })
+        });
+    }
+
+    async changePasswordWithSecurity(securityAnswer, newPassword, confirmPassword) {
+        return await this.makeRequest('/api/user/change-password-security', {
+            method: 'POST',
+            body: JSON.stringify({
+                security_answer: securityAnswer,
+                new_password: newPassword,
+                confirm_password: confirmPassword
+            })
+        });
+    }
 }
 
 const userAPI = new UserAPI();

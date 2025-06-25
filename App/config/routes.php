@@ -639,6 +639,21 @@ Route::post('/user/status', function() {
     $controller->updateStatus();
 });
 
+Route::get('/api/user/security-question', function() {
+    $controller = new UserController();
+    $controller->getCurrentUserSecurityQuestion();
+});
+
+Route::post('/api/user/verify-security-answer', function() {
+    $controller = new UserController();
+    $controller->verifyCurrentUserSecurityAnswer();
+});
+
+Route::post('/api/user/change-password-security', function() {
+    $controller = new UserController();
+    $controller->changePasswordWithSecurityAnswer();
+});
+
 Route::get('/api/servers/invite/([a-zA-Z0-9]+)', function($code) {
     require_once __DIR__ . '/../controllers/ServerController.php';
     $controller = new ServerController();

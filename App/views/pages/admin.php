@@ -217,7 +217,6 @@ ob_start();
                 </div>
             </div>
 
-            <!-- Chart Controls -->
             <div class="flex justify-between items-center mt-8 mb-4">
                 <h2 class="text-xl font-semibold">Activity & Growth</h2>
                 <div class="flex space-x-4 chart-period-control">
@@ -236,32 +235,24 @@ ob_start();
                 </div>
             </div>
 
-            <!-- Charts Grid -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <!-- User Growth Chart -->
                 <div class="bg-discord-darker rounded-lg p-6">
                     <div id="users-chart" class="h-64">
-                        <!-- Chart will be rendered here -->
                     </div>
                 </div>
 
-                <!-- Message Activity Chart -->
                 <div class="bg-discord-darker rounded-lg p-6">
                     <div id="messages-chart" class="h-64">
-                        <!-- Chart will be rendered here -->
                     </div>
                 </div>
             </div>
-
-            <!-- Server Growth Chart -->
+        
             <div class="bg-discord-darker rounded-lg p-6">
                 <div id="servers-chart" class="h-64">
-                    <!-- Chart will be rendered here -->
                 </div>
             </div>
         </div>
-        
-        <!-- Users Section -->
+                                        
         <div id="users-section" class="admin-section hidden p-10">
             <div class="discord-header">
                 <div>
@@ -301,7 +292,6 @@ ob_start();
                     </div>
                 </div>
                 
-                <!-- List View (Default) -->
                 <div id="user-list-view">
                     <div id="users-container">
                         <?php foreach ($users as $user): ?>
@@ -360,7 +350,6 @@ ob_start();
                     </div>
                 </div>
                 
-                <!-- Grid View (Hidden by Default) -->
                 <div id="user-grid-view" class="hidden">
                     <div class="user-grid">
                         <?php foreach ($users as $user): ?>
@@ -433,7 +422,6 @@ ob_start();
             </div>
         </div>
         
-        <!-- Servers Section -->
         <div id="servers-section" class="admin-section hidden p-10">
             <div class="mb-8">
                 <h1 class="text-2xl font-bold mb-2">Server Management</h1>
@@ -711,14 +699,10 @@ ob_start();
 
 <?php
 $content = ob_get_clean();
-// Add API scripts needed by the admin components
 echo '<script src="' . asset('/js/api/server-api.js') . '?v=' . time() . '" type="module"></script>';
 echo '<script src="' . asset('/js/api/user-admin-api.js') . '?v=' . time() . '" type="module"></script>';
 echo '<script src="' . asset('/js/api/nitro-api.js') . '?v=' . time() . '" type="module"></script>';
 
-// Remove admin debug tools in production by uncommenting these lines
-// echo '<script src="' . asset('/js/debug/api-test.js') . '?v=' . time() . '"></script>';
-// echo '<script src="' . asset('/js/debug/admin-debug.js') . '?v=' . time() . '"></script>';
 require_once dirname(dirname(__DIR__)) . '/views/layout/main-app.php';
 ?>
 

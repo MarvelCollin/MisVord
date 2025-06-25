@@ -28,7 +28,7 @@ function initFloatingParticles() {
     }, 1000);
 
     for (let i = 0; i < 15; i++) {
-        setTimeout(() => createFloatingParticle(heroSection), i * 200);
+        setTimeout(() => createFloatingParticle(heroSection), i * 400 + Math.random() * 300);
     }
 }
 
@@ -76,7 +76,9 @@ function initScrollAnimations() {
         } else {
             el.classList.add('slide-right');
         }
-        observer.observe(el);
+        setTimeout(() => {
+            observer.observe(el);
+        }, index * 100);
     });
 }
 
@@ -91,17 +93,19 @@ function animatePricingCard(card) {
                 feature.style.transform = '';
                 feature.style.color = '';
             }, 300);
-        }, index * 100);
+        }, (index * 150) + 200);
     });
 }
 
 function animatePerkItem(item) {
     const icon = item.querySelector('i');
     if (icon) {
-        icon.style.animation = 'magical-sparkle 1s ease-out';
         setTimeout(() => {
-            icon.style.animation = '';
-        }, 1000);
+            icon.style.animation = 'magical-sparkle 1s ease-out';
+            setTimeout(() => {
+                icon.style.animation = '';
+            }, 1000);
+        }, 300);
     }
 }
 
@@ -145,7 +149,6 @@ function initMagicalEffects() {
     const sparkleElements = document.querySelectorAll('.nitro-card-hover, .nitro-subscribe-btn, #redeem-code-btn');
     
     sparkleElements.forEach(element => {
-        element.addEventListener('mouseenter', createSparkleEffect);
         element.addEventListener('click', createBurstEffect);
     });
 }
@@ -339,7 +342,6 @@ function initCodeInput() {
                 if (container) {
                     container.style.boxShadow = '0 0 30px rgba(139, 92, 246, 0.6)';
                 }
-                createSparkleEffect({ target: container });
                 setTimeout(() => {
                     redeemBtn.classList.remove('animate-pulse');
                     if (iconElement) iconElement.style.animation = '';
@@ -565,20 +567,20 @@ function initSubscriptionButtons() {
     
     subscribeButtons.forEach(button => {
         if (button.textContent.includes('Subscribe')) {
-            button.addEventListener('mouseenter', function() {
-                createSparkleEffect({ target: button });
-            });
+
             
             button.addEventListener('click', function() {
                 const tier = 'premium';
                 const price = 9.99;
                 handleSubscription(tier, price);
                 
-                button.style.transform = 'scale(0.95)';
-                createBurstEffect({ target: button });
                 setTimeout(() => {
-                    button.style.transform = '';
-                }, 150);
+                    button.style.transform = 'scale(0.95)';
+                    createBurstEffect({ target: button });
+                    setTimeout(() => {
+                        button.style.transform = '';
+                    }, 150);
+                }, 50);
             });
         }
     });
@@ -655,9 +657,10 @@ function initHoverEffects() {
         card.addEventListener('mouseenter', function() {
             const icon = card.querySelector('.nitro-perk-icon');
             if (icon) {
-                icon.style.transform = 'scale(1.3) rotate(10deg)';
-                icon.style.filter = 'drop-shadow(0 0 15px rgba(139, 92, 246, 0.8))';
-                createSparkleEffect({ target: icon });
+                setTimeout(() => {
+                    icon.style.transform = 'scale(1.3) rotate(10deg)';
+                    icon.style.filter = 'drop-shadow(0 0 15px rgba(139, 92, 246, 0.8))';
+                }, 100);
             }
         });
         
@@ -677,12 +680,16 @@ function initHoverEffects() {
     const nitroCards = document.querySelectorAll('.nitro-card-hover');
     nitroCards.forEach(card => {
         card.addEventListener('mouseenter', function() {
-            card.style.transform = 'translateY(-12px) scale(1.03)';
-            card.style.zIndex = '20';
-            createRippleEffect({ 
-                clientX: card.getBoundingClientRect().left + card.offsetWidth / 2,
-                clientY: card.getBoundingClientRect().top + card.offsetHeight / 2
-            }, card);
+            setTimeout(() => {
+                card.style.transform = 'translateY(-12px) scale(1.03)';
+                card.style.zIndex = '20';
+            }, 50);
+            setTimeout(() => {
+                createRippleEffect({ 
+                    clientX: card.getBoundingClientRect().left + card.offsetWidth / 2,
+                    clientY: card.getBoundingClientRect().top + card.offsetHeight / 2
+                }, card);
+            }, 200);
         });
         
         card.addEventListener('mouseleave', function() {
@@ -691,35 +698,18 @@ function initHoverEffects() {
         });
     });
     
-    const subscriberAvatars = document.querySelectorAll('.recent-subscriber-avatar');
-    subscriberAvatars.forEach((avatar, index) => {
-        avatar.addEventListener('mouseenter', function() {
-            avatar.style.transform = 'scale(1.2) translateY(-5px) rotate(5deg)';
-            avatar.style.zIndex = '10';
-            avatar.style.boxShadow = '0 10px 25px rgba(0, 0, 0, 0.3)';
-            
-            setTimeout(() => createSparkleEffect({ target: avatar }), 100);
-        });
-        
-        avatar.addEventListener('mouseleave', function() {
-            avatar.style.transform = '';
-            avatar.style.zIndex = '';
-            avatar.style.boxShadow = '';
-        });
-        
-        avatar.addEventListener('click', function() {
-            createBurstEffect({ target: avatar });
-        });
-    });
+
 }
 
 function initFeatureInteractions() {
     const featureItems = document.querySelectorAll('li[class*="hover:translate-x-1"]');
     featureItems.forEach((item, index) => {
         item.addEventListener('mouseenter', function() {
-            item.style.transform = 'translateX(0.5rem) scale(1.02)';
-            item.style.background = 'linear-gradient(90deg, rgba(139, 92, 246, 0.1), transparent)';
-            item.style.borderRadius = '8px';
+            setTimeout(() => {
+                item.style.transform = 'translateX(0.5rem) scale(1.02)';
+                item.style.background = 'linear-gradient(90deg, rgba(139, 92, 246, 0.1), transparent)';
+                item.style.borderRadius = '8px';
+            }, 100);
         });
         
         item.addEventListener('mouseleave', function() {
@@ -731,15 +721,16 @@ function initFeatureInteractions() {
         item.addEventListener('click', function() {
             const checkIcon = item.querySelector('.fa-check');
             if (checkIcon) {
-                checkIcon.style.transform = 'scale(1.5)';
-                checkIcon.style.color = '#10b981';
-                checkIcon.style.filter = 'drop-shadow(0 0 10px #10b981)';
-                createSparkleEffect({ target: checkIcon });
                 setTimeout(() => {
-                    checkIcon.style.transform = '';
-                    checkIcon.style.color = '';
-                    checkIcon.style.filter = '';
-                }, 300);
+                    checkIcon.style.transform = 'scale(1.5)';
+                    checkIcon.style.color = '#10b981';
+                    checkIcon.style.filter = 'drop-shadow(0 0 10px #10b981)';
+                    setTimeout(() => {
+                        checkIcon.style.transform = '';
+                        checkIcon.style.color = '';
+                        checkIcon.style.filter = '';
+                    }, 300);
+                }, 100);
             }
         });
     });
@@ -747,9 +738,11 @@ function initFeatureInteractions() {
     const boostFeatures = document.querySelectorAll('.grid.grid-cols-2 .flex.items-center');
     boostFeatures.forEach(feature => {
         feature.addEventListener('mouseenter', function() {
-            feature.style.transform = 'scale(1.05)';
-            feature.style.background = 'rgba(139, 92, 246, 0.1)';
-            feature.style.borderRadius = '6px';
+            setTimeout(() => {
+                feature.style.transform = 'scale(1.05)';
+                feature.style.background = 'rgba(139, 92, 246, 0.1)';
+                feature.style.borderRadius = '6px';
+            }, 80);
         });
         
         feature.addEventListener('mouseleave', function() {
@@ -804,8 +797,6 @@ function showToast(message, type = 'info') {
         toast.innerHTML = toastHtml;
         const toastElement = toast.firstElementChild;
         document.body.appendChild(toastElement);
-        
-        createSparkleEffect({ target: toastElement });
         
         setTimeout(() => {
             const toastEl = document.querySelector('.animate-slide-up');

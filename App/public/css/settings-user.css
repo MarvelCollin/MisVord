@@ -49,7 +49,7 @@ body {
 .flex.min-h-screen {
   margin: 0 auto;
   width: 100%;
-  max-width: 1200px;
+  max-width: 1000px;
   height: 100vh;
   overflow: hidden;
   display: flex;
@@ -179,7 +179,7 @@ body {
   background-color: var(--discord-background);
   overflow-y: auto;
   height: 100vh;
-  border-radius: 0;
+  border-radius: 0 8px 8px 0;
   margin: 0;
 }
 
@@ -201,11 +201,11 @@ body {
 }
 
 .p-10 {
-  padding: 60px 40px 80px 40px;
+  padding: 60px 80px 80px 40px;
 }
 
 .max-w-\[740px\] {
-  max-width: 740px;
+  max-width: 100%;
   width: 100%;
 }
 
@@ -522,159 +522,6 @@ button:active {
   background-color: var(--discord-primary-dark);
 }
 
-.w-80 {
-  width: 320px;
-  min-width: 320px;
-  background-color: var(--discord-background);
-  border-left: 1px solid rgba(79, 84, 92, 0.3);
-  border-radius: 0 8px 8px 0;
-  height: 100vh;
-  overflow-y: auto;
-}
-
-.w-80::-webkit-scrollbar {
-  width: 8px;
-}
-
-.w-80::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.w-80::-webkit-scrollbar-thumb {
-  background-color: rgba(32, 34, 37, 0.6);
-  border-radius: 4px;
-}
-
-.w-80::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(32, 34, 37, 0.8);
-}
-
-.w-80 .p-6 {
-  padding: var(--spacing-lg);
-}
-
-.sticky.top-6 {
-  position: sticky;
-  top: var(--spacing-lg);
-}
-
-.text-sm.font-semibold.text-discord-lighter.uppercase.mb-4 {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--discord-text-muted);
-  text-transform: uppercase;
-  margin-bottom: var(--spacing-md);
-  letter-spacing: 0.025em;
-}
-
-.user-preview-card {
-  background-color: var(--discord-background-secondary);
-  border-radius: var(--border-radius);
-  overflow: hidden;
-  border: 1px solid rgba(79, 84, 92, 0.3);
-}
-
-.user-banner {
-  height: 120px;
-  position: relative;
-  background-size: cover;
-  background-position: center;
-}
-
-.user-avatar-preview {
-  position: absolute;
-  bottom: -20px;
-  left: var(--spacing-md);
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  border: 4px solid var(--discord-background-secondary);
-  overflow: hidden;
-  background-color: var(--discord-background-tertiary);
-}
-
-.user-avatar-preview img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.user-info {
-  padding: 32px var(--spacing-md) var(--spacing-md);
-}
-
-.user-name {
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--discord-white);
-  margin-bottom: var(--spacing-xs);
-}
-
-.user-meta {
-  font-size: 14px;
-  color: var(--discord-text-muted);
-  margin-bottom: var(--spacing-md);
-}
-
-.status-selector {
-  margin-top: var(--spacing-md);
-}
-
-.status-option {
-  display: flex;
-  align-items: center;
-  padding: var(--spacing-sm);
-  border-radius: var(--border-radius-sm);
-  cursor: pointer;
-  transition: all 0.15s ease;
-  margin-bottom: 2px;
-}
-
-.status-option:hover {
-  background-color: var(--discord-background-modifier-hover);
-}
-
-.status-option.bg-discord-background-modifier-selected {
-  background-color: var(--discord-background-modifier-selected);
-}
-
-.status-option span:first-child {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  margin-right: var(--spacing-sm);
-}
-
-.status-option span:last-child {
-  font-size: 14px;
-  color: var(--discord-white);
-  font-weight: 500;
-}
-
-.custom-status {
-  display: flex;
-  align-items: center;
-  padding: var(--spacing-sm);
-  border-radius: var(--border-radius-sm);
-  cursor: pointer;
-  transition: all 0.15s ease;
-  margin-top: var(--spacing-sm);
-}
-
-.custom-status:hover {
-  background-color: var(--discord-background-modifier-hover);
-}
-
-.custom-status span {
-  font-size: 14px;
-  color: var(--discord-text-muted);
-}
-
-.custom-status i {
-  margin-left: auto;
-  color: var(--discord-text-muted);
-}
-
 .close-button {
   position: absolute;
   top: 60px;
@@ -746,8 +593,9 @@ button:active {
 @media (max-width: 768px) {
   .flex.min-h-screen {
     flex-direction: column;
-    padding: 0 10px;
+    padding: 10px;
     gap: 10px;
+    max-width: 100%;
   }
   
   .w-60 {
@@ -760,21 +608,17 @@ button:active {
     border-bottom: 1px solid rgba(79, 84, 92, 0.3);
   }
   
-  .w-80 {
-    width: 100%;
-    min-width: auto;
-    order: 3;
-    border-radius: 0 0 8px 8px;
-    border-left: none;
-    border-top: 1px solid rgba(79, 84, 92, 0.3);
-  }
-  
   .flex-1.bg-discord-dark {
-    border-radius: 0;
+    border-radius: 0 0 8px 8px;
   }
   
   .p-10 {
     padding: var(--spacing-lg);
+  }
+  
+  .close-button {
+    top: 20px;
+    right: 20px;
   }
 }
 
@@ -865,6 +709,179 @@ button:active {
 
 .flex.flex-wrap.gap-2 > * {
   margin: 0;
+}
+
+/* Password Change Modal Styles */
+#change-password-modal {
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+  display: none !important;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+#change-password-modal.show {
+  display: flex !important;
+  animation: fadeIn 0.2s ease forwards;
+}
+
+#change-password-modal.hidden {
+  display: none !important;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+#change-password-modal .bg-discord-background {
+  background-color: var(--discord-background-secondary);
+  border: 1px solid rgba(79, 84, 92, 0.3);
+  transform: scale(0.95);
+  transition: all 0.2s ease;
+}
+
+#change-password-modal.show .bg-discord-background {
+  transform: scale(1);
+}
+
+/* Step transitions */
+#security-question-step,
+#new-password-step {
+  transition: all 0.3s ease;
+  opacity: 1;
+  transform: translateX(0);
+}
+
+#security-question-step.hidden,
+#new-password-step.hidden {
+  opacity: 0;
+  transform: translateX(-20px);
+  pointer-events: none;
+}
+
+/* Input animations */
+#change-password-modal input[type="text"],
+#change-password-modal input[type="password"] {
+  background-color: var(--discord-background-tertiary);
+  border: 1px solid rgba(79, 84, 92, 0.6);
+  color: var(--discord-text-normal);
+  transition: all 0.2s ease;
+  transform: translateY(0);
+}
+
+#change-password-modal input[type="text"]:focus,
+#change-password-modal input[type="password"]:focus {
+  border-color: var(--discord-primary);
+  box-shadow: 0 0 0 3px rgba(88, 101, 242, 0.1);
+  transform: translateY(-1px);
+}
+
+/* Button animations */
+#change-password-modal button {
+  transition: all 0.2s ease;
+  font-weight: 500;
+  transform: translateY(0);
+}
+
+#change-password-modal button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+#change-password-modal button:active:not(:disabled) {
+  transform: translateY(0);
+  transition: all 0.1s ease;
+}
+
+#change-password-modal button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: translateY(0);
+}
+
+/* Loading animation for buttons */
+#change-password-modal button.loading {
+  position: relative;
+  overflow: hidden;
+}
+
+#change-password-modal button.loading::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+/* Error message animations */
+#security-answer-error,
+#password-error {
+  transition: all 0.2s ease;
+  opacity: 0;
+  transform: translateY(-5px);
+  max-height: 0;
+  overflow: hidden;
+}
+
+#security-answer-error:not(.hidden),
+#password-error:not(.hidden) {
+  opacity: 1;
+  transform: translateY(0);
+  max-height: 50px;
+}
+
+/* Icon animations */
+#change-password-modal svg {
+  transition: all 0.3s ease;
+}
+
+#change-password-modal .text-yellow-500 svg {
+  animation: pulse 2s infinite;
+}
+
+#change-password-modal .text-green-500 svg {
+  animation: checkmark 0.5s ease;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes checkmark {
+  0% {
+    opacity: 0;
+    transform: scale(0.8) rotate(-10deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
 }
 
 
