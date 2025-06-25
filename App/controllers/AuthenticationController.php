@@ -623,6 +623,7 @@ class AuthenticationController extends BaseController
             $_SESSION['username'] = $user->username;
             $_SESSION['discriminator'] = $user->discriminator;
             $_SESSION['avatar_url'] = $user->avatar_url;
+            $_SESSION['has_nitro'] = $user->has_nitro;
             $_SESSION['banner_url'] = $user->banner_url;
             $_SESSION['google_auth_completed'] = true;
 

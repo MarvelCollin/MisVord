@@ -51,4 +51,140 @@
 
 .nitro-benefit-item:hover .nitro-benefit-icon {
     transform: scale(1.2);
+}
+
+.nitro-hero-section {
+    position: relative;
+    overflow: hidden;
+}
+
+.nitro-hero-section::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.1) 0%, transparent 70%);
+    animation: rotate 30s linear infinite;
+}
+
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+#nitro-code-input {
+    font-family: 'Consolas', 'Monaco', monospace;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+#nitro-code-input:focus {
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.3);
+}
+
+.nitro-perk-card {
+    backdrop-filter: blur(10px);
+    background: rgba(47, 49, 54, 0.8);
+}
+
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+.nitro-badge-animation {
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.05);
+        opacity: 0.9;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.nitro-subscribe-btn:hover {
+    animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -200% center;
+    }
+    100% {
+        background-position: 200% center;
+    }
+}
+
+.nitro-shimmer {
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.1) 50%,
+        transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s linear infinite;
+}
+
+.nitro-card-hover {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nitro-card-hover:hover {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+@keyframes gradient-shift {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+.nitro-gradient-animate {
+    background-size: 200% 200%;
+    animation: gradient-shift 3s ease infinite;
+}
+
+.nitro-glow {
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+}
+
+.nitro-glow:hover {
+    box-shadow: 0 0 30px rgba(139, 92, 246, 0.7);
+}
+
+@media (max-width: 768px) {
+    .nitro-hero-section h1 {
+        font-size: 3rem;
+    }
+    
+    .nitro-hero-section p {
+        font-size: 1rem;
+    }
 } 

@@ -99,6 +99,30 @@ class NitroController extends BaseController {
         return $this->error('Failed to redeem nitro code');
     }
     
+    public function getUserNitroStatus() {
+        $this->requireAuth();
+        
+        $userId = $this->getCurrentUserId();
+        $user = $this->userRepository->find($userId);
+        
+        if (!$user) {
+            return $this->error('User not found');
+        }
+        
+        $nitroCodes = $this->nitroRepository->findByUserId($userId);
+        
+        return $this->success([
+            'has_nitro' => (bool)$user->has_nitro,
+            'codes_redeemed' => count($nitroCodes),
+            'codes' => array_map(function($nitro) {
+                return [
+                    'code' => substr($nitro->code, 0, 4) . '-****-****-' . substr($nitro->code, -4),
+                    'redeemed_at' => $nitro->updated_at
+                ];
+            }, $nitroCodes)
+        ]);
+    }
+    
     public function listCodes() {
         $this->requireAdmin();
         

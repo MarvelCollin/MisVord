@@ -3,162 +3,260 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function initNitroPage() {
-    initFaqAccordion();
+    initCodeInput();
+    initRedeemButton();
     initSubscriptionButtons();
+    initBillingToggle();
+    checkUserNitroStatus();
 }
 
-function initFaqAccordion() {
-    const faqItems = document.querySelectorAll('.nitro-faq-item');
-    
-    faqItems.forEach(item => {
-        const header = item.querySelector('div:first-child');
-        const content = item.querySelector('.nitro-faq-answer');
-        const icon = header.querySelector('i');
+function initCodeInput() {
+    const codeInput = document.getElementById('nitro-code-input');
+    if (!codeInput) return;
+
+    codeInput.addEventListener('input', function(e) {
+        let value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
         
-        header.addEventListener('click', () => {
-            const isExpanded = !content.classList.contains('hidden');
-            
-            faqItems.forEach(otherItem => {
-                const otherContent = otherItem.querySelector('.nitro-faq-answer');
-                const otherIcon = otherItem.querySelector('i');
-                
-                if (otherItem !== item) {
-                    otherContent.classList.add('hidden');
-                    otherIcon.classList.remove('fa-chevron-up');
-                    otherIcon.classList.add('fa-chevron-down');
-                }
-            });
-            
-            if (isExpanded) {
-                content.classList.add('hidden');
-                icon.classList.remove('fa-chevron-up');
-                icon.classList.add('fa-chevron-down');
-            } else {
-                content.classList.remove('hidden');
-                icon.classList.remove('fa-chevron-down');
-                icon.classList.add('fa-chevron-up');
+        let formatted = '';
+        for (let i = 0; i < value.length && i < 16; i++) {
+            if (i > 0 && i % 4 === 0) {
+                formatted += '-';
             }
-        });
+            formatted += value[i];
+        }
+        
+        e.target.value = formatted;
+        
+        const redeemBtn = document.getElementById('redeem-code-btn');
+        if (redeemBtn) {
+            redeemBtn.disabled = value.length !== 16;
+        }
     });
+
+    codeInput.addEventListener('paste', function(e) {
+        e.preventDefault();
+        const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+        const cleanedText = pastedText.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        
+        const event = new Event('input', { bubbles: true });
+        codeInput.value = cleanedText;
+        codeInput.dispatchEvent(event);
+    });
+}
+
+function initRedeemButton() {
+    const redeemBtn = document.getElementById('redeem-code-btn');
+    const codeInput = document.getElementById('nitro-code-input');
+    
+    if (!redeemBtn || !codeInput) return;
+
+    redeemBtn.addEventListener('click', async function() {
+        const code = codeInput.value.replace(/-/g, '');
+        
+        if (code.length !== 16) {
+            showToast('Please enter a valid 16-character code', 'error');
+            return;
+        }
+
+        redeemBtn.disabled = true;
+        redeemBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Redeeming...';
+
+        try {
+            const response = await fetch('/api/nitro/redeem', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({ code })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showSuccessModal();
+                codeInput.value = '';
+                
+                if (window.globalSocketManager) {
+                    window.globalSocketManager.emit('nitro_activated', {
+                        userId: window.currentUserId
+                    });
+                }
+            } else {
+                showToast(data.message || 'Invalid or already used code', 'error');
+            }
+        } catch (error) {
+            console.error('Redeem error:', error);
+            showToast('Failed to redeem code. Please try again.', 'error');
+        } finally {
+            redeemBtn.disabled = false;
+            redeemBtn.innerHTML = 'Redeem Code';
+        }
+    });
+}
+
+function showSuccessModal() {
+    const modal = document.getElementById('nitro-success-modal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        
+        confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 }
+        });
+    }
 }
 
 function initSubscriptionButtons() {
-    const buttons = document.querySelectorAll('button');
-    let subscribeBasic, subscribePremium;
+    const subscribeButtons = document.querySelectorAll('button');
     
-    buttons.forEach(button => {
-        if (button.textContent.trim() === 'Subscribe to Basic') {
-            subscribeBasic = button;
-        } else if (button.textContent.trim() === 'Subscribe to Premium') {
-            subscribePremium = button;
+    subscribeButtons.forEach(button => {
+        if (button.textContent.includes('Subscribe')) {
+            button.addEventListener('click', function() {
+                const card = button.closest('.rounded-lg');
+                let tier = 'basic';
+                let price = 2.99;
+                
+                if (card && card.querySelector('.text-xl').textContent.includes('Nitro') && !card.querySelector('.text-xl').textContent.includes('Basic')) {
+                    tier = 'premium';
+                    price = 9.99;
+                }
+                
+                handleSubscription(tier, price);
+            });
         }
     });
-    
-    if (subscribeBasic) {
-        subscribeBasic.addEventListener('click', () => {
-            handleSubscription('basic', 4.99);
-        });
-    }
-    
-    if (subscribePremium) {
-        subscribePremium.addEventListener('click', () => {
-            handleSubscription('premium', 9.99);
-        });
-    }
 }
 
 function handleSubscription(tier, price) {
-    if (!window.globalSocketManager) {
-        console.warn('Socket manager not available for real-time notifications');
-    }
-    
-    fetchPaymentGateway(tier, price)
-        .then(response => {
-            if (response.success) {
-                showPaymentModal(response.paymentUrl, tier);
-            } else {
-                showErrorToast('Unable to initialize payment process. Please try again later.');
-            }
-        })
-        .catch(error => {
-            console.error('Payment process error:', error);
-            showErrorToast('Payment service currently unavailable. Please try again later.');
-        });
+    showPaymentModal(tier, price);
 }
 
-function fetchPaymentGateway(tier, price) {
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            resolve({
-                success: true,
-                paymentUrl: '/payment/checkout?tier=' + tier + '&price=' + price,
-                transactionId: generateTransactionId()
-            });
-        }, 800);
-    });
-}
-
-function showPaymentModal(paymentUrl, tier) {
+function showPaymentModal(tier, price) {
     const modalHtml = `
-        <div class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
-            <div class="bg-discord-dark rounded-lg max-w-lg w-full p-6 shadow-xl">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-xl font-bold">Complete Your Purchase</h3>
-                    <button class="text-discord-lighter hover:text-white" id="close-payment-modal">
-                        <i class="fas fa-times"></i>
+        <div class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4" id="payment-modal">
+            <div class="bg-discord-light rounded-lg max-w-md w-full p-6 animate-fade-in">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-2xl font-bold">Confirm Subscription</h3>
+                    <button class="text-gray-400 hover:text-white transition-colors" onclick="closePaymentModal()">
+                        <i class="fas fa-times text-xl"></i>
                     </button>
                 </div>
-                <p class="mb-4 text-discord-lighter">You're about to subscribe to Nitro ${tier.charAt(0).toUpperCase() + tier.slice(1)}. Complete the payment to activate your benefits immediately.</p>
-                <div class="bg-discord-darker p-4 rounded-md mb-4">
-                    <div class="flex justify-between mb-2">
-                        <span>Subscription</span>
-                        <span>Nitro ${tier.charAt(0).toUpperCase() + tier.slice(1)}</span>
+                
+                <div class="bg-discord-darker rounded-lg p-4 mb-6">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-gray-300">Plan</span>
+                        <span class="font-semibold">Nitro ${tier.charAt(0).toUpperCase() + tier.slice(1)}</span>
                     </div>
-                    <div class="flex justify-between font-bold">
-                        <span>Total</span>
-                        <span>$${tier === 'basic' ? '4.99' : '9.99'}/month</span>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-300">Price</span>
+                        <span class="font-semibold">$${price}/month</span>
                     </div>
                 </div>
-                <div class="flex space-x-3">
-                    <button class="flex-1 py-2 px-4 bg-gray-600 hover:bg-gray-700 rounded-md transition-colors" id="cancel-payment">
-                        Cancel
+                
+                <div class="space-y-3">
+                    <button class="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 rounded-md transition-colors flex items-center justify-center">
+                        <i class="fab fa-cc-stripe mr-2"></i>
+                        Pay with Card
                     </button>
-                    <button class="flex-1 py-2 px-4 bg-purple-600 hover:bg-purple-700 rounded-md transition-colors" id="confirm-payment">
-                        Proceed to Payment
+                    <button class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-md transition-colors flex items-center justify-center">
+                        <i class="fab fa-paypal mr-2"></i>
+                        PayPal
                     </button>
                 </div>
+                
+                <p class="text-gray-400 text-sm text-center mt-4">
+                    By subscribing, you agree to our Terms of Service
+                </p>
             </div>
         </div>
     `;
     
-    const modalContainer = document.createElement('div');
-    modalContainer.innerHTML = modalHtml;
-    document.body.appendChild(modalContainer.firstElementChild);
-    
-    document.getElementById('close-payment-modal').addEventListener('click', closePaymentModal);
-    document.getElementById('cancel-payment').addEventListener('click', closePaymentModal);
-    document.getElementById('confirm-payment').addEventListener('click', () => {
-        window.location.href = paymentUrl;
-    });
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
 }
 
 function closePaymentModal() {
-    const modal = document.querySelector('.fixed.inset-0.bg-black.bg-opacity-70');
+    const modal = document.getElementById('payment-modal');
     if (modal) {
         modal.remove();
     }
 }
 
-function showErrorToast(message) {
-    if (window.showToast) {
-        window.showToast(message, 'error');
-    } else {
-        alert(message);
+function initBillingToggle() {
+    const monthlyBtn = document.querySelector('button:contains("Monthly Billing")');
+    const yearlyBtn = document.querySelector('button:contains("Yearly Billing")');
+    
+    if (monthlyBtn && yearlyBtn) {
+        monthlyBtn.addEventListener('click', function() {
+            monthlyBtn.classList.add('bg-white', 'text-gray-900');
+            monthlyBtn.classList.remove('bg-purple-800/50', 'text-white');
+            yearlyBtn.classList.add('bg-purple-800/50', 'text-white');
+            yearlyBtn.classList.remove('bg-white', 'text-gray-900');
+            updatePrices('monthly');
+        });
+        
+        yearlyBtn.addEventListener('click', function() {
+            yearlyBtn.classList.add('bg-white', 'text-gray-900');
+            yearlyBtn.classList.remove('bg-purple-800/50', 'text-white');
+            monthlyBtn.classList.add('bg-purple-800/50', 'text-white');
+            monthlyBtn.classList.remove('bg-white', 'text-gray-900');
+            updatePrices('yearly');
+        });
     }
 }
 
-function generateTransactionId() {
-    return 'txn_' + Math.random().toString(36).substr(2, 9);
+function updatePrices(billing) {
+    const priceElements = document.querySelectorAll('.text-purple-400.font-semibold');
+    priceElements.forEach(element => {
+        if (element.textContent.includes('$9.99')) {
+            element.textContent = billing === 'yearly' ? '$99.99/year' : '$9.99/month';
+        }
+    });
+}
+
+async function checkUserNitroStatus() {
+    try {
+        const response = await fetch('/api/auth/check', {
+            credentials: 'same-origin'
+        });
+        
+        const data = await response.json();
+        
+        if (data.authenticated && data.user_id) {
+            window.currentUserId = data.user_id;
+        }
+    } catch (error) {
+        console.error('Failed to check user status:', error);
+    }
+}
+
+function showToast(message, type = 'info') {
+    if (window.showToast) {
+        window.showToast(message, type);
+    } else {
+        const toastHtml = `
+            <div class="fixed bottom-4 right-4 bg-${type === 'error' ? 'red' : 'green'}-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-slide-up">
+                ${message}
+            </div>
+        `;
+        
+        const toast = document.createElement('div');
+        toast.innerHTML = toastHtml;
+        document.body.appendChild(toast.firstElementChild);
+        
+        setTimeout(() => {
+            const toastEl = document.querySelector('.animate-slide-up');
+            if (toastEl) toastEl.remove();
+        }, 3000);
+    }
+}
+
+if (typeof confetti === 'undefined') {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js';
+    document.head.appendChild(script);
 }
 
 document.querySelector = document.querySelector || function() { return null; };

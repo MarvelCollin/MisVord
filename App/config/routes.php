@@ -745,6 +745,16 @@ Route::post('/api/admin/nitro/redeem', function() {
     $controller->redeem();
 });
 
+Route::post('/api/nitro/redeem', function() {
+    $controller = new NitroController();
+    $controller->redeem();
+});
+
+Route::get('/api/nitro/status', function() {
+    $controller = new NitroController();
+    $controller->getUserNitroStatus();
+});
+
 Route::get('/api/admin/stats/users/growth', function() {
     $controller = new AdminController();
     $controller->getUserGrowthStats();
