@@ -59,23 +59,50 @@ class UserServerMembershipRepository extends Repository {
         return $membership && $membership->role === 'owner';
     }
     
-    public function getServerMembers($serverId)
+    public function getServerMembers($serverId, $includeBots = true)
+    {
+        try {
+            $query = new Query();
+            $queryBuilder = $query->table('users u')
+                ->join('user_server_memberships usm', 'u.id', '=', 'usm.user_id')
+                ->where('usm.server_id', $serverId);
+            
+            if (!$includeBots) {
+                $queryBuilder->where('u.status', '!=', 'bot');
+            }
+            
+            $results = $queryBuilder
+                ->select('u.id, u.username, u.discriminator, u.avatar_url, u.status, usm.role, usm.created_at as joined_at')
+                ->orderBy('usm.created_at', 'ASC')
+                ->get();
+            
+            return $results;
+        } catch (Exception $e) {
+            error_log("Error getting server members: " . $e->getMessage());
+            return [];
+        }
+    }
+    
+    public function getRegularMembers($serverId)
+    {
+        return $this->getServerMembers($serverId, false);
+    }
+    
+    public function getBotMembers($serverId)
     {
         try {
             $query = new Query();
             $results = $query->table('users u')
                 ->join('user_server_memberships usm', 'u.id', '=', 'usm.user_id')
                 ->where('usm.server_id', $serverId)
+                ->where('u.status', 'bot')
                 ->select('u.id, u.username, u.discriminator, u.avatar_url, u.status, usm.role, usm.created_at as joined_at')
                 ->orderBy('usm.created_at', 'ASC')
                 ->get();
             
-            error_log("Server ID: " . $serverId);
-            error_log("Members found: " . count($results));
-            
             return $results;
         } catch (Exception $e) {
-            error_log("Error getting server members: " . $e->getMessage());
+            error_log("Error getting bot members: " . $e->getMessage());
             return [];
         }
     }

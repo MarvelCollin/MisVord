@@ -15,63 +15,9 @@ if (!$activeChannel) {
 
 $meetingId = 'voice_channel_' . $activeChannelId;
 $userName = $_SESSION['username'] ?? 'Anonymous';
-
-$additional_js[] = 'components/voice/voice-manager';
-$additional_js[] = 'core/ui/toast';
 ?>
 
 <link rel="stylesheet" href="/public/css/voice-section.css">
-
-<script>
-// Global flags to prevent race conditions
-window.voiceAutoJoinInProgress = false;
-window.voiceUIInitialized = false;
-
-// Function to handle auto-join logic - can be called immediately or on DOM ready
-window.handleAutoJoin = function() {
-    if (window.voiceAutoJoinInProgress) {
-        console.log('🔊 Auto-join already in progress, skipping');
-        return;
-    }
-    
-    localStorage.setItem('onVoiceChannelPage', 'true');
-    
-    // Check for auto-join flag
-    const autoJoinChannelId = localStorage.getItem('autoJoinVoiceChannel');
-    const currentChannelId = document.querySelector('meta[name="channel-id"]')?.getAttribute('content');
-    const forceAutoJoin = sessionStorage.getItem('forceAutoJoin') === 'true';
-    
-    console.log('🔊 Voice section loaded - checking auto-join:', {autoJoinChannelId, currentChannelId, forceAutoJoin});
-    
-    if (autoJoinChannelId && autoJoinChannelId === currentChannelId && forceAutoJoin) {
-        // Auto-join this voice channel
-        console.log('🔊 ✅ Auto-join conditions met! Joining voice channel immediately');
-        window.voiceAutoJoinInProgress = true;
-        
-        // Clear the flags
-        localStorage.removeItem('autoJoinVoiceChannel');
-        sessionStorage.removeItem('forceAutoJoin');
-        
-        // Set a flag for initVoiceUI to know auto-join should happen
-        sessionStorage.setItem('triggerAutoJoin', 'true');
-        
-        // If voice UI is already initialized, trigger auto-join immediately
-        if (window.voiceUIInitialized && window.triggerVoiceAutoJoin) {
-            console.log('🔊 Voice UI already initialized, triggering auto-join now');
-            window.triggerVoiceAutoJoin();
-        }
-    }
-}
-
-// If DOM is already loaded (AJAX content loading), run immediately
-if (document.readyState === 'loading') {
-    // If DOM is still loading, wait for it
-    document.addEventListener('DOMContentLoaded', window.handleAutoJoin);
-} else {
-    // DOM is already loaded, run immediately
-    window.handleAutoJoin();
-}
-</script>
 
 <meta name="meeting-id" content="<?php echo htmlspecialchars($meetingId); ?>">
 <meta name="username" content="<?php echo htmlspecialchars($userName); ?>">
@@ -110,41 +56,41 @@ if (document.readyState === 'loading') {
                 <div class="flex-1 flex flex-col justify-center items-center">
                     <div class="w-full max-w-xl">
                         <div class="user-voice-item w-full bg-[#313338] rounded-md overflow-hidden mb-4">
-                    <div class="px-3 py-2 flex items-center justify-between">
-                        <div class="flex items-center">
-                            <div class="relative w-8 h-8 rounded-full bg-[#5865F2] flex items-center justify-center overflow-hidden mr-2">
-                                <span class="text-white text-sm font-semibold"><?php echo substr($userName, 0, 1); ?></span>
-                            </div>
-                            <div class="flex flex-col">
+                            <div class="px-3 py-2 flex items-center justify-between">
                                 <div class="flex items-center">
-                                    <span class="text-white text-sm font-medium"><?php echo htmlspecialchars($userName); ?></span>
-                                    <span class="ml-1 text-xs px-1.5 py-0.5 bg-[#5865F2] text-white rounded text-[10px] uppercase font-bold">you</span>
-                                </div>
+                                    <div class="relative w-8 h-8 rounded-full bg-[#5865F2] flex items-center justify-center overflow-hidden mr-2">
+                                        <span class="text-white text-sm font-semibold"><?php echo substr($userName, 0, 1); ?></span>
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <div class="flex items-center">
+                                            <span class="text-white text-sm font-medium"><?php echo htmlspecialchars($userName); ?></span>
+                                            <span class="ml-1 text-xs px-1.5 py-0.5 bg-[#5865F2] text-white rounded text-[10px] uppercase font-bold">you</span>
+                                        </div>
                                         <div class="text-xs text-gray-400">
-                                    <span class="text-[#3ba55c]">Connected to voice</span>
+                                            <span class="text-[#3ba55c]">Connected to voice</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-gray-400">
+                                    <div class="flex items-center space-x-1">
+                                        <div class="w-4 h-4 flex items-center justify-center">
+                                            <i class="fas fa-microphone text-xs"></i>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="text-gray-400">
-                            <div class="flex items-center space-x-1">
-                                <div class="w-4 h-4 flex items-center justify-center">
-                                    <i class="fas fa-microphone text-xs"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
+                        
                         <div id="participants" class="w-full"></div>
-                
+                        
                         <div id="emptyMessage" class="flex flex-col items-center justify-center py-8 text-center">
-                    <div class="w-40 h-40 mb-4 opacity-70">
-                        <img src="https://discord.com/assets/cb0d3973-ea92-4d74-9f1e-88ed59493a63.svg" alt="No one here" class="w-full h-full" />
+                            <div class="w-40 h-40 mb-4 opacity-70">
+                                <img src="https://discord.com/assets/cb0d3973-ea92-4d74-9f1e-88ed59493a63.svg" alt="No one here" class="w-full h-full" />
+                            </div>
+                            <h2 class="text-xl font-bold mb-2 text-white">No one's around to hang out with</h2>
+                            <p class="text-gray-400 max-w-md text-sm">When friends are in this voice channel, you'll see them here.</p>
+                        </div>
                     </div>
-                    <h2 class="text-xl font-bold mb-2 text-white">No one's around to hang out with</h2>
-                    <p class="text-gray-400 max-w-md text-sm">When friends are in this voice channel, you'll see them here.</p>
-                </div>
-            </div>
                 </div>
             </div>
         </div>
@@ -166,7 +112,6 @@ if (document.readyState === 'loading') {
     --discord-channel-hover: rgba(79, 84, 92, 0.16);
 }
 
-/* Voice UI class to hide/show elements */
 .voice-ui-element {
     transition: opacity 0.3s ease, transform 0.3s ease;
     opacity: 0;
@@ -271,27 +216,9 @@ if (document.readyState === 'loading') {
     to { transform: translateY(0); opacity: 1; }
 }
 
-#skeletonLoadingView {
-    transition: opacity 0.3s ease;
-}
-
-.voice-controls-container {
-    transition: opacity 0.3s ease;
-}
-
 #voice-container {
     min-height: 100vh;
     height: 100vh;
-}
-
-#joinUI {
-    min-height: 100vh !important;
-    height: 100% !important;
-}
-
-#joinUI.visible {
-    opacity: 1 !important;
-    transform: translateY(0) !important;
 }
 
 .flex-1 {
@@ -304,22 +231,6 @@ if (document.readyState === 'loading') {
     min-height: 100vh !important;
 }
 
-#voice-container.bg-\[#313338\] {
-    background-color: #313338 !important;
-}
-
-#joinUI h2, #joinUI p, #joinUI button {
-    z-index: 20;
-    position: relative;
-}
-
-#joinUI.hidden {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-}
-
-/* Skeleton loading animation */
 .skeleton-circle,
 .skeleton-text,
 .skeleton-icon {
@@ -380,31 +291,13 @@ if (document.readyState === 'loading') {
 </template>
 
 <script>
-if (!document.querySelector('script[src*="voice-manager.js"]')) {
-    const voiceScript = document.createElement('script');
-    voiceScript.src = '/public/js/components/voice/voice-manager.js?v=' + Date.now();
-    voiceScript.onload = function() {
-        console.log('🔊 Voice manager script loaded dynamically');
-        
-            setTimeout(() => {
-            const shouldAutoJoin = sessionStorage.getItem('triggerAutoJoin') === 'true';
-            if (shouldAutoJoin && window.voiceUIInitialized && typeof window.triggerVoiceAutoJoin === 'function' && !window.voiceAutoJoinInProgress) {
-                console.log('🔊 Voice manager now available, triggering pending auto-join');
-                window.triggerVoiceAutoJoin();
-            }
-        }, 300);
-    };
-    document.head.appendChild(voiceScript);
-}
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Voice section template loaded');
+    initializeVoiceUI();
+});
 
-// Function to initialize voice UI - can be called immediately or on DOM ready
-window.initVoiceUI = function() {
-    if (window.voiceUIInitialized) {
-        console.log('🔊 Voice UI already initialized, skipping');
-                return;
-    }
-    
-    console.log('🔊 Initializing voice UI');
+function initializeVoiceUI() {
+    console.log('Initializing voice UI');
     
     const joinBtn = document.getElementById('joinBtn');
     const joinView = document.getElementById('joinView');
@@ -413,122 +306,67 @@ window.initVoiceUI = function() {
     const voiceControls = document.getElementById('voiceControls');
     
     if (!joinBtn || !joinView || !connectingView || !connectedView) {
-        console.log('🔊 ⚠️ Voice UI elements not found, retrying in 200ms');
-        setTimeout(window.initVoiceUI, 200);
+        console.log('Voice UI elements not found, retrying...');
+        setTimeout(initializeVoiceUI, 200);
         return;
     }
     
     let isConnected = false;
     
-    function autoJoinVoice() {
+    function joinVoice() {
         if (isConnected) {
-            console.log('🔊 Already connected to voice, skipping auto-join');
-                        return;
-                    }
+            console.log('Already connected to voice');
+            return;
+        }
         
-        console.log('🔊 Starting auto-join process...');
+        console.log('Starting voice connection...');
         
         joinView.classList.add('hidden');
         connectingView.classList.remove('hidden');
         
-        if (window.voiceManager && typeof window.voiceManager.joinVoice === 'function') {
-            console.log('🔊 Using VoiceManager for auto-join');
-            window.voiceManager.joinVoice().then(() => {
-                setTimeout(() => {
-                    connectingView.classList.add('hidden');
-                    connectedView.classList.remove('hidden');
-                    voiceControls.classList.remove('hidden');
-                    isConnected = true;
-                    console.log('🔊 ✅ Voice connection successful');
-                }, 300);
-            }).catch((error) => {
-                console.error('🔊 ❌ Auto-join failed:', error);
-                connectingView.classList.add('hidden');
-                joinView.classList.remove('hidden');
-                window.voiceAutoJoinInProgress = false;
-            });
-        } else {
-            console.log('🔊 Using fallback auto-join (no VoiceManager)');
-            setTimeout(() => {
-                connectingView.classList.add('hidden');
-                connectedView.classList.remove('hidden');
-                voiceControls.classList.remove('hidden');
-                
-                isConnected = true;
-                window.dispatchEvent(new Event('voiceConnect'));
-                
-                if (window.showToast) {
-                    window.showToast('Connected to <?php echo htmlspecialchars($activeChannel->name ?? 'voice channel'); ?>', 'success', 3000);
-                }
-                console.log('🔊 ✅ Voice connection successful (fallback)');
-            }, 1500);
-        }
-        
-        // Reset the auto-join flag
         setTimeout(() => {
-            window.voiceAutoJoinInProgress = false;
-            sessionStorage.removeItem('triggerAutoJoin');
-        }, 2000);
+            connectingView.classList.add('hidden');
+            connectedView.classList.remove('hidden');
+            if (voiceControls) {
+                voiceControls.classList.remove('hidden');
+            }
+            isConnected = true;
+            console.log('Voice connection successful');
+        }, 1500);
     }
     
-    // Make auto-join function globally available
-    window.triggerVoiceAutoJoin = autoJoinVoice;
-    
-    // Set up join button click handler
     joinBtn.addEventListener('click', function() {
         if (isConnected) {
-            console.log('🔊 Already connected, ignoring click');
+            console.log('Already connected, ignoring click');
             return;
         }
         
-        console.log('🔊 Manual join button clicked');
+        console.log('Join button clicked');
         joinBtn.disabled = true;
         joinBtn.textContent = 'Connecting...';
         
-        autoJoinVoice();
+        joinVoice();
     });
     
-    // Set up disconnect handler
     window.addEventListener('voiceDisconnect', function() {
-        console.log('🔊 Voice disconnect event received');
+        console.log('Voice disconnect event received');
         isConnected = false;
         
         connectedView.classList.add('hidden');
-        voiceControls.classList.add('hidden');
+        if (voiceControls) {
+            voiceControls.classList.add('hidden');
+        }
         joinView.classList.remove('hidden');
         
         joinBtn.disabled = false;
         joinBtn.textContent = 'Join Voice';
-        window.voiceAutoJoinInProgress = false;
     });
     
-    // Mark as initialized
-    window.voiceUIInitialized = true;
-    console.log('🔊 ✅ Voice UI initialization complete');
-    
-    // Check if auto-join was requested before UI was ready
-    const shouldAutoJoin = sessionStorage.getItem('triggerAutoJoin') === 'true';
-    if (shouldAutoJoin && !window.voiceAutoJoinInProgress) {
-        console.log('🔊 Auto-join was requested, triggering now that UI is ready');
-        setTimeout(() => {
-            autoJoinVoice();
-        }, 500);
-    }
-    
-    // Dispatch custom event
     document.dispatchEvent(new CustomEvent('channelContentLoaded', {
         detail: {
             type: 'voice',
             channelId: '<?php echo htmlspecialchars($activeChannelId); ?>'
         }
     }));
-}
-
-// Initialize voice UI immediately if DOM is ready, or wait for DOM ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', window.initVoiceUI);
-} else {
-    // DOM is already loaded (AJAX scenario), run immediately
-    setTimeout(window.initVoiceUI, 100);
 }
 </script>

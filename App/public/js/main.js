@@ -1,33 +1,44 @@
+import { showToast } from './core/index.js';
 import { logger } from './logger.js';
-
-if (typeof window !== 'undefined' && !window.logger) {
-    window.logger = {
-        info: (module, ...args) => console.log(`[${module.toUpperCase()}]`, ...args),
-        debug: (module, ...args) => console.log(`[${module.toUpperCase()}]`, ...args),
-        warn: (module, ...args) => console.warn(`[${module.toUpperCase()}]`, ...args),
-        error: (module, ...args) => console.error(`[${module.toUpperCase()}]`, ...args)
-    };
-}
-
-import { showToast, MisVordAjax } from './core/index.js';
-import globalSocketManager from './core/socket/global-socket-manager.js';
+import { globalSocketManager } from './core/socket/global-socket-manager.js';
 import PageLoader from './core/page-loader.js';
 import * as Components from './components/index.js';
 import * as Utils from './utils/index.js';
 import { LazyLoader } from './utils/lazy-loader.js';
 
 document.addEventListener('DOMContentLoaded', function() {
-    window.logger.info('general', 'MisVord application initialized');
-
-    window.showToast = showToast;
-    window.MisVordAjax = MisVordAjax;
+    console.log('Main application loaded');
     
+    if (typeof window !== 'undefined') {
+        window.showToast = showToast;
+        window.logger = logger;
+        window.globalSocketManager = globalSocketManager;
+        
+        logger.info('general', 'Global utilities loaded:', {
+            showToast: typeof showToast,
+            logger: typeof logger,
+            globalSocketManager: typeof globalSocketManager
+        });
+        
+        const currentPage = window.location.pathname;
+        
+        logger.debug('general', 'Page loaded:', currentPage);
+        
+        logger.debug('general', 'Available globals:', [
+            'showToast',
+            'logger', 
+            'globalSocketManager'
+        ].join(', '));
+    }
+
     PageLoader.init();
 
-      if (LazyLoader) {
+    if (LazyLoader) {
         window.LazyLoader = Object.assign(window.LazyLoader || {}, LazyLoader);
         window.LazyLoader.init();
-    }    initGlobalUI();
+    }
+
+    initGlobalUI();
     initGlobalSocketManager();
     initPageSpecificComponents();
     
@@ -35,7 +46,7 @@ document.addEventListener('DOMContentLoaded', function() {
         detail: {
             LazyLoader: window.LazyLoader,
             showToast,
-            MisVordAjax
+            logger
         }
     }));
 });
@@ -131,43 +142,43 @@ window.misvord = {
 function initGlobalSocketManager() {
     const isAuthPage = document.body && document.body.getAttribute('data-page') === 'auth';
     if (isAuthPage) {
-        window.logger.info('socket', 'Authentication page detected, skipping socket initialization');
+        logger.info('socket', 'Authentication page detected, skipping socket initialization');
         return;
     }
 
     if (typeof io === 'undefined') {
-        window.logger.error('socket', 'Socket.io library not loaded, skipping socket initialization');
+        logger.error('socket', 'Socket.io library not loaded, skipping socket initialization');
         return;
     }
     
     if (window.globalSocketManager) {
-        window.logger.info('socket', 'Global socket manager already initialized, skipping...');
+        logger.info('socket', 'Global socket manager already initialized, skipping...');
         return;
     }
     
-    window.logger.info('socket', 'Initializing global socket manager...');
+    logger.info('socket', 'Initializing global socket manager...');
 
     const userData = getUserDataFromPage();
     
     if (userData && userData.user_id) {
-        window.logger.info('socket', 'User authenticated, initializing socket connection for:', userData.username);
+        logger.info('socket', 'User authenticated, initializing socket connection for:', userData.username);
         
         try {
             globalSocketManager.init(userData);
             window.globalSocketManager = globalSocketManager;
             
             window.addEventListener('globalSocketReady', function(event) {
-                window.logger.info('socket', 'Global socket manager ready:', event.detail);
+                logger.info('socket', 'Global socket manager ready:', event.detail);
                 
                 window.dispatchEvent(new CustomEvent('misVordGlobalReady', {
                     detail: { socketManager: event.detail.manager }
                 }));
             });
         } catch (error) {
-            window.logger.error('socket', 'Failed to initialize socket manager:', error);
+            logger.error('socket', 'Failed to initialize socket manager:', error);
         }
     } else {
-        window.logger.info('socket', 'Guest user detected, socket connection disabled');
+        logger.info('socket', 'Guest user detected, socket connection disabled');
         window.globalSocketManager = globalSocketManager;
     }
 }
@@ -223,7 +234,7 @@ function getUserDataFromPage() {
             };
         }
     }    
-    window.logger.debug('general', 'User data extracted from page:', userData);
+    logger.debug('general', 'User data extracted from page:', userData);
     return userData;
 }
 

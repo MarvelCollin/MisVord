@@ -135,38 +135,39 @@ $additional_js[] = 'components/app-layout';
                     </div>
                 </div>
             <?php elseif ($contentType === 'server'): ?>
-                <?php
+                <div class="main-content-area flex-1">
+                    <?php
+                    $activeChannelId = $GLOBALS['activeChannelId'] ?? null;
+                    $channels = $GLOBALS['serverChannels'] ?? [];
+                    $activeChannel = null;
+                    $channelType = 'text'; 
 
-                $activeChannelId = $GLOBALS['activeChannelId'] ?? null;
-                $channels = $GLOBALS['serverChannels'] ?? [];
-                $activeChannel = null;
-                $channelType = 'text'; 
+                    foreach ($channels as $channel) {
+                        if ($channel['id'] == $activeChannelId) {
+                            $activeChannel = $channel;
 
-                foreach ($channels as $channel) {
-                    if ($channel['id'] == $activeChannelId) {
-                        $activeChannel = $channel;
+                            if (isset($channel['type_name']) && $channel['type_name'] === 'voice') {
+                                $channelType = 'voice';
+                            } elseif (isset($channel['type']) && ($channel['type'] === 'voice' || $channel['type'] === 2)) {
+                                $channelType = 'voice';
+                            }
 
-                        if (isset($channel['type_name']) && $channel['type_name'] === 'voice') {
-                            $channelType = 'voice';
-                        } elseif (isset($channel['type']) && ($channel['type'] === 'voice' || $channel['type'] === 2)) {
-                            $channelType = 'voice';
+                            $GLOBALS['activeChannel'] = $activeChannel;
+                            break;
                         }
-
-                        $GLOBALS['activeChannel'] = $activeChannel;
-                        break;
                     }
-                }
 
-                if (isset($_GET['type']) && $_GET['type'] === 'voice') {
-                    $channelType = 'voice';
-                }
+                    if (isset($_GET['type']) && $_GET['type'] === 'voice') {
+                        $channelType = 'voice';
+                    }
 
-                if ($channelType === 'voice') {
-                    include dirname(__DIR__) . '/app-sections/voice-section.php';
-                } else {
-                    include dirname(__DIR__) . '/app-sections/chat-section.php';
-                }
-                ?>
+                    if ($channelType === 'voice') {
+                        include dirname(__DIR__) . '/app-sections/voice-section.php';
+                    } else {
+                        include dirname(__DIR__) . '/app-sections/chat-section.php';
+                    }
+                    ?>
+                </div>
             <?php elseif ($contentType === 'dm'): ?>
                 <?php include dirname(__DIR__) . '/app-sections/chat-section.php'; ?>
             <?php endif; ?>

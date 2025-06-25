@@ -1,4 +1,3 @@
-import { MisVordAjax } from '../../core/ajax/ajax-handler.js';
 import { showToast } from '../../core/ui/toast.js';
 // Using window.serverAPI instead of import
 // import serverAPI from '../../api/server-api.js';
@@ -53,12 +52,10 @@ function ensureServerDataLoaded() {
 }
 
 function initCreateServerForm() {
-
     const serverImageInput = document.getElementById('server-image');
     const imagePreview = document.getElementById('server-image-preview');
 
     if (serverImageInput && imagePreview) {
-
         if (!serverImageInput.hasAttribute('data-listener-added')) {
             serverImageInput.addEventListener('change', function() {
                 if (this.files && this.files[0]) {
@@ -76,11 +73,11 @@ function initCreateServerForm() {
     }
 }
 
-function initJoinServerForm() {
+async function initJoinServerForm() {
     const joinServerForm = document.getElementById('join-server-form');
 
     if (joinServerForm) {
-        joinServerForm.addEventListener('submit', function(e) {
+        joinServerForm.addEventListener('submit', async function(e) {
             e.preventDefault();
 
             const inviteCode = document.getElementById('invite-code').value.trim();
@@ -90,26 +87,43 @@ function initJoinServerForm() {
                 return;
             }
 
-            MisVordAjax.post(`/join/${inviteCode}`, null, {
-                onSuccess: function(response) {
-                    if (response.success) {
-                        showToast('Joined server successfully', 'success');
-
-                        const modal = document.getElementById('join-server-modal');
-                        if (modal && typeof closeModal === 'function') {
-                            closeModal(modal);
-                        }
-
-                        if (response.data && response.data.redirect) {
-                            window.location.href = response.data.redirect;
-                        } else if (response.data && response.data.server && response.data.server.id) {
-                            window.location.href = `/server/${response.data.server.id}`;
-                        } else {
-                            refreshServerList();
-                        }
+            try {
+                const response = await fetch(`/join/${inviteCode}`, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
                     }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
-            });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast('Joined server successfully', 'success');
+
+                    const modal = document.getElementById('join-server-modal');
+                    if (modal && typeof closeModal === 'function') {
+                        closeModal(modal);
+                    }
+
+                    if (data.data && data.data.redirect) {
+                        window.location.href = data.data.redirect;
+                    } else if (data.data && data.data.server && data.data.server.id) {
+                        window.location.href = `/server/${data.data.server.id}`;
+                    } else {
+                        refreshServerList();
+                    }
+                } else {
+                    showToast(data.message || 'Failed to join server', 'error');
+                }
+            } catch (error) {
+                console.error('Error joining server:', error);
+                showToast('Error joining server', 'error');
+            }
         });
     }
 }
@@ -131,73 +145,104 @@ function initLeaveServerButtons() {
     });
 }
 
-function leaveServer(serverId) {
-    MisVordAjax.post(`/api/servers/${serverId}/leave`, null, {
-        onSuccess: function(response) {
-            if (response.success) {
-                showToast('Left server successfully', 'success');
-
-                window.location.href = '/app';
+async function leaveServer(serverId) {
+    try {
+        const response = await fetch(`/api/servers/${serverId}/leave`, {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
             }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-    });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showToast('Left server successfully', 'success');
+            window.location.href = '/app';
+        } else {
+            showToast(data.message || 'Failed to leave server', 'error');
+        }
+    } catch (error) {
+        console.error('Error leaving server:', error);
+        showToast('Error leaving server', 'error');
+    }
 }
 
-function initServerSettingsForm() {
+async function initServerSettingsForm() {
     const serverSettingsForm = document.getElementById('server-settings-form');
 
     if (serverSettingsForm) {
-        serverSettingsForm.addEventListener('submit', function(e) {
+        serverSettingsForm.addEventListener('submit', async function(e) {
             e.preventDefault();
 
             const formData = new FormData(serverSettingsForm);
             const serverId = formData.get('server_id');
 
-            MisVordAjax.submitForm(serverSettingsForm, {
-                onSuccess: function(response) {
-                    if (response.success) {
-                        showToast('Server settings updated successfully', 'success');
+            try {
+                const response = await fetch(serverSettingsForm.action || window.location.href, {
+                    method: serverSettingsForm.method || 'POST',
+                    body: formData
+                });
 
-                        const modal = document.getElementById('server-settings-modal');
-                        if (modal && typeof closeModal === 'function') {
-                            closeModal(modal);
-                        }
-
-                        if (response.data && response.data.server) {
-                            updateServerUI(response.data.server);
-                        }
-                    }
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
-            });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast('Server settings updated successfully', 'success');
+
+                    const modal = document.getElementById('server-settings-modal');
+                    if (modal && typeof closeModal === 'function') {
+                        closeModal(modal);
+                    }
+
+                    if (data.data && data.data.server) {
+                        updateServerUI(data.data.server);
+                    }
+                } else {
+                    showToast(data.message || 'Failed to update server settings', 'error');
+                }
+            } catch (error) {
+                console.error('Error updating server settings:', error);
+                showToast('Error updating server settings', 'error');
+            }
         });
     }
 }
 
 function refreshServerList() {
-    window.serverAPI.getServers()
-        .then(response => {
-            if (response.success && response.data && response.data.servers) {
-                updateServerListUI(response.data.servers);
-            }
-        })
-        .catch(error => {
-            console.error('Error refreshing server list:', error);
-        });
+    if (window.serverAPI) {
+        window.serverAPI.getServers()
+            .then(response => {
+                if (response.success && response.data && response.data.servers) {
+                    updateServerListUI(response.data.servers);
+                }
+            })
+            .catch(error => {
+                console.error('Error refreshing server list:', error);
+            });
+    } else {
+        window.location.reload();
+    }
 }
 
 function updateServerListUI(servers) {
     const serverList = document.querySelector('.server-list');
 
     if (serverList) {
-
         console.log('Server list would be updated with:', servers);
-
         window.location.reload();
     }
 }
 
 function updateServerUI(server) {
-
     const serverNameElements = document.querySelectorAll('.server-name');
     serverNameElements.forEach(el => {
         if (el) {
@@ -213,5 +258,4 @@ function updateServerUI(server) {
             }
         });
     }
-
 }

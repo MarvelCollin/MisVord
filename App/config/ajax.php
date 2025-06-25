@@ -1,7 +1,8 @@
 <?php
 
 return [
-    'enabled' => true,
+    'api_driven' => true,
+    'traditional_ajax' => false,
     'debug' => false,
     'default_response_format' => 'json',
     'csrf_protection' => true,
@@ -9,7 +10,7 @@ return [
         'enabled' => true,
         'allowed_origins' => ['*'],
         'allowed_methods' => ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-        'allowed_headers' => ['Content-Type', 'X-Requested-With', 'Authorization'],
+        'allowed_headers' => ['Content-Type', 'Accept', 'Authorization'],
         'expose_headers' => [],
         'max_age' => 86400,
         'supports_credentials' => true
@@ -26,7 +27,8 @@ return [
         'method_not_allowed' => 405,
         'validation_error' => 422,
         'server_error' => 500
-    ],    'socket' => [
+    ],
+    'socket' => [
         'enabled' => true,
         'host' => getenv('SOCKET_HOST') ?: 'localhost',
         'port' => getenv('SOCKET_PORT') ?: 1002,
@@ -40,12 +42,12 @@ return [
     ]
 ];
 
-function isAjaxRequest() {
-    return !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
-           strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+function isApiRequest() {
+    return !empty($_SERVER['HTTP_ACCEPT']) && 
+           strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false;
 }
 
-function ajaxResponse($data, $status = 200) {
+function apiResponse($data, $status = 200) {
     header('Content-Type: application/json');
     http_response_code($status);
     echo json_encode([
@@ -56,7 +58,7 @@ function ajaxResponse($data, $status = 200) {
     exit;
 }
 
-function ajaxError($message, $status = 400, $errors = null) {
+function apiError($message, $status = 400, $errors = null) {
     header('Content-Type: application/json');
     http_response_code($status);
     
@@ -74,7 +76,7 @@ function ajaxError($message, $status = 400, $errors = null) {
     exit;
 }
 
-function getAjaxConfig($key = null) {
+function getApiConfig($key = null) {
     static $config = null;
     
     if ($config === null) {

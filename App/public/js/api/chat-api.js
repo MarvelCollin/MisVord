@@ -115,6 +115,14 @@ class ChatAPI {
         const url = `${this.baseURL}/send`;
         const apiChatType = chatType === 'direct' ? 'dm' : chatType;
         
+        console.log('📡 ChatAPI.sendMessage called:', {
+            targetId,
+            content: content.substring(0, 50) + '...',
+            chatType,
+            apiChatType,
+            url
+        });
+        
         try {
             const requestData = {
                 target_type: apiChatType,
@@ -126,25 +134,48 @@ class ChatAPI {
                 requestData.reply_message_id = options.replyToMessageId;
             }
             
+            console.log('📤 Request data:', requestData);
+            
             const response = await this.makeRequest(url, {
                 method: 'POST',
                 body: JSON.stringify(requestData)
             });
             
+            console.log('📥 API Response:', response);
+            
             if (response && response.success !== false) {
+                console.log('✅ API success, sending socket message...');
                 this.sendDirectSocketMessage(targetId, content, chatType, options);
+            } else {
+                console.warn('⚠️ API response indicates failure:', response);
             }
             
             return response;
         } catch (error) {
-            console.error('Error sending message to database:', error);
+            console.error('❌ Error sending message to database:', error);
             throw error;
         }
     }
 
     sendDirectSocketMessage(targetId, content, chatType = 'channel', options = {}) {
-        if (!window.globalSocketManager || !window.globalSocketManager.isReady() || !window.globalSocketManager.io) {
-            console.warn('⚠️ Socket not ready, cannot send direct socket message');
+        console.log('🔌 sendDirectSocketMessage called:', { targetId, chatType });
+        
+        if (!window.globalSocketManager) {
+            console.error('❌ globalSocketManager not available');
+            return false;
+        }
+        
+        if (!window.globalSocketManager.isReady()) {
+            console.error('❌ Socket not ready:', {
+                connected: window.globalSocketManager.connected,
+                authenticated: window.globalSocketManager.authenticated,
+                hasIO: !!window.globalSocketManager.io
+            });
+            return false;
+        }
+        
+        if (!window.globalSocketManager.io) {
+            console.error('❌ Socket IO not available');
             return false;
         }
         
@@ -153,6 +184,8 @@ class ChatAPI {
         const timestamp = Date.now();
         const messageId = `msg_${timestamp}_${Math.random().toString(36).substring(2, 9)}`;
         const io = window.globalSocketManager.io;
+        
+        console.log('✅ Socket ready, preparing message:', { userId, username, messageId });
         
         try {
             let eventName, messageData;
@@ -199,13 +232,17 @@ class ChatAPI {
             }
             
             if (eventName && messageData) {
+                console.log(`🚀 Emitting ${eventName}:`, messageData);
                 io.emit(eventName, messageData);
-                console.log(`Emitting ${eventName} with ID ${messageId}`);
+                console.log(`✅ Socket message emitted: ${eventName} with ID ${messageId}`);
+            } else {
+                console.error('❌ Could not determine event name or message data');
+                return false;
             }
             
             return true;
         } catch (e) {
-            console.error('Failed to send direct socket message:', e);
+            console.error('❌ Failed to send direct socket message:', e);
             return false;
         }
     }
@@ -451,15 +488,18 @@ class ChatAPI {
         const status = {
             socketManagerExists: !!window.globalSocketManager,
             socketReady: window.globalSocketManager?.isReady() || false,
-            socketConnected: window.globalSocketManager?.socket?.connected || false,
-            socketId: window.globalSocketManager?.socket?.id || 'none',
+            socketConnected: window.globalSocketManager?.connected || false,
+            socketAuthenticated: window.globalSocketManager?.authenticated || false,
+            socketId: window.globalSocketManager?.io?.id || 'none',
             userId: window.globalSocketManager?.userId || 'none',
             username: window.globalSocketManager?.username || 'none',
             targetId: targetId,
-            chatType: chatType
+            chatType: chatType,
+            chatAPIExists: !!window.ChatAPI,
+            chatSectionExists: !!window.chatSection
         };
         
-        console.log('Socket connection debug info:', status);
+        console.log('🔍 Socket & Chat Debug Info:', status);
         
         if (status.socketReady) {
             const testContent = `Socket test message at ${new Date().toISOString()}`;
@@ -468,6 +508,39 @@ class ChatAPI {
         }
         
         return { ...status, testSent: false };
+    }
+    
+    testMessageSend(content = 'Test message') {
+        console.log('🧪 Testing message send functionality...');
+        
+        if (!window.chatSection) {
+            console.error('❌ ChatSection not available');
+            return false;
+        }
+        
+        if (!window.chatSection.targetId) {
+            console.error('❌ No target ID set in ChatSection');
+            return false;
+        }
+        
+        console.log('✅ Calling chatSection.sendMessage with test content');
+        
+        const originalValue = window.chatSection.messageInput?.value || '';
+        if (window.chatSection.messageInput) {
+            window.chatSection.messageInput.value = content;
+        }
+        
+        try {
+            window.chatSection.sendMessage();
+            return true;
+        } catch (error) {
+            console.error('❌ Test message send failed:', error);
+            return false;
+        } finally {
+            if (window.chatSection.messageInput) {
+                window.chatSection.messageInput.value = originalValue;
+            }
+        }
     }
 
     formatMessage(message) {
@@ -528,4 +601,28 @@ class ChatAPI {
 
 const chatAPI = new ChatAPI();
 window.ChatAPI = chatAPI;
+
+window.debugMessageSend = function() {
+    console.log('🔧 Running message send diagnostics...');
+    
+    if (!window.ChatAPI) {
+        console.error('❌ ChatAPI not available');
+        return;
+    }
+    
+    const targetId = document.querySelector('meta[name="chat-id"]')?.content;
+    const chatType = document.querySelector('meta[name="chat-type"]')?.content;
+    
+    if (!targetId) {
+        console.error('❌ No chat target ID found');
+        return;
+    }
+    
+    window.ChatAPI.debugSocketConnection(targetId, chatType);
+    
+    setTimeout(() => {
+        console.log('🧪 Testing actual message send...');
+        window.ChatAPI.testMessageSend('Debug test message from console');
+    }, 1000);
+};
 

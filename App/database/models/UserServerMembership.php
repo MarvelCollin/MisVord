@@ -13,11 +13,17 @@ class UserServerMembership extends Model {
         return $result ? new static($result) : null;
     }
 
-    public static function getUsersForServer($serverId) {
+    public static function getUsersForServer($serverId, $includeBots = true) {
         $query = new Query();
-        return $query->table('user_server_memberships usm')
+        $queryBuilder = $query->table('user_server_memberships usm')
             ->join('users u', 'usm.user_id', '=', 'u.id')
-            ->where('usm.server_id', $serverId)
+            ->where('usm.server_id', $serverId);
+        
+        if (!$includeBots) {
+            $queryBuilder->where('u.status', '!=', 'bot');
+        }
+        
+        return $queryBuilder
             ->select('u.*, usm.created_at, usm.role')
             ->get();
     }

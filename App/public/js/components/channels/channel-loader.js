@@ -1,5 +1,4 @@
 import { showToast } from "../../core/ui/toast.js";
-import { MisVordAjax } from "../../core/ajax/ajax-handler.js";
 
 export class ChannelLoader {
   constructor() {
@@ -76,6 +75,7 @@ export class ChannelLoader {
       this.updateChannelInList(channel);
     });
   }
+  
   async refreshChannelsForServer(serverId) {
     try {
       console.log(`Refreshing channels for server ${serverId}`);
@@ -94,44 +94,45 @@ export class ChannelLoader {
         return;
       }
 
-      const csrfToken = document
-        .querySelector('meta[name="csrf-token"]')
-        ?.getAttribute("content");
-      const options = csrfToken
-        ? { headers: { "X-CSRF-Token": csrfToken } }
-        : {};
+      try {
+        const response = await fetch(`/api/servers/${serverId}/channels`, {
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
 
-      const response = await MisVordAjax.get(
-        `/api/servers/${serverId}/channels`,
-        options
-      );
-
-      if (response && response.success) {
-        if (container) {
-          this.renderChannels(container, response.data);
-          console.log(`Channels refreshed for server ${serverId}`);
-        }
-      } else {
-        console.error(
-          "Failed to refresh channels:",
-          response?.message || "Unknown error"
-        );
-
-        if (originalHtml && originalHtml.indexOf("No channels found") === -1) {
-          console.log("Keeping existing channel content due to API error");
-          return;
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
 
-        if (response?.error?.code !== 401) {
-          showToast("Failed to refresh channels", "error");
+        const data = await response.json();
+
+        if (data && data.success) {
+          if (container) {
+            this.renderChannels(container, data.data);
+            console.log(`Channels refreshed for server ${serverId}`);
+          }
+        } else {
+          console.error("Failed to refresh channels:", data?.message || "Unknown error");
+
+          if (originalHtml && originalHtml.indexOf("No channels found") === -1) {
+            console.log("Keeping existing channel content due to API error");
+            return;
+          }
+
+          if (response.status !== 401) {
+            showToast("Failed to refresh channels", "error");
+          }
+        }
+      } catch (error) {
+        console.error("Error refreshing channels:", error);
+        
+        if (error.name !== "AbortError") {
+          showToast("Error refreshing channels", "error");
         }
       }
     } catch (error) {
-      console.error("Error refreshing channels:", error);
-
-      if (error.name !== "AbortError") {
-        showToast("Error refreshing channels", "error");
-      }
+      console.error("Error in refreshChannelsForServer:", error);
     }
   }
 
@@ -278,6 +279,7 @@ export class ChannelLoader {
       </div>
     `;
   }
+  
   renderChannel(channel) {
     const isActive = window.location.search.includes(`channel=${channel.id}`);
 
@@ -306,6 +308,7 @@ export class ChannelLoader {
       </div>
     `;
   }
+  
   setupChannelEvents(container) {
     const categories = container.querySelectorAll(".category-header");
     categories.forEach((header) => {

@@ -17,6 +17,7 @@ require_once __DIR__ . '/../controllers/SettingsController.php';
 require_once __DIR__ . '/../controllers/MediaController.php';
 require_once __DIR__ . '/../controllers/UserController.php';
 require_once __DIR__ . '/../controllers/AdminController.php';
+require_once __DIR__ . '/../controllers/BotController.php';
 require_once __DIR__ . '/env.php';
 
 class Route {
@@ -781,6 +782,36 @@ Route::get('/api/health/network-info', function() {
 Route::delete('/api/servers', function() {
     $controller = new ServerController();
     $controller->delete();
+});
+
+Route::get('/api/bots', function() {
+    $controller = new BotController();
+    $controller->list();
+});
+
+Route::post('/api/bots/create', function() {
+    $controller = new BotController();
+    $controller->create();
+});
+
+Route::get('/api/bots/check/([^/]+)', function($username) {
+    $controller = new BotController();
+    $controller->check($username);
+});
+
+Route::post('/api/bots/add-to-server', function() {
+    $controller = new BotController();
+    $controller->addToServer();
+});
+
+Route::post('/api/bots/remove-from-server', function() {
+    $controller = new BotController();
+    $controller->removeFromServer();
+});
+
+Route::delete('/api/bots/([0-9]+)', function($botId) {
+    $controller = new BotController();
+    $controller->delete($botId);
 });
 
 return array_merge(Route::getRoutes(), [

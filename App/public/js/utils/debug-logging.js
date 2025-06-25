@@ -30,7 +30,9 @@ document.addEventListener('DOMContentLoaded', function() {
     safeLog.debug('general', 'Available modules check:');
     safeLog.debug('general', '- LazyLoader:', typeof window.LazyLoader);
     safeLog.debug('general', '- showToast:', typeof window.showToast);
-    safeLog.debug('general', '- MisVordAjax:', typeof window.MisVordAjax);    function handleLazyLoaderReady() {
+    safeLog.debug('general', '- globalSocketManager:', typeof window.globalSocketManager);
+    
+    function handleLazyLoaderReady() {
         safeLog.info('ui', 'LazyLoader is available globally');
         
         const lazyElements = document.querySelectorAll('[data-lazyload]');
@@ -57,7 +59,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 handleLazyLoaderReady();
             } else {
                 safeLog.error('ui', 'LazyLoader is NOT available globally - skeleton loading will not work');
-                safeLog.debug('ui', 'Available global objects:', Object.keys(window).filter(key => key.includes('Lazy') || key.includes('Ajax')));
+                const relevantGlobals = Object.keys(window).filter(key => 
+                    (key.includes('API') || key.includes('Manager') || key.includes('Loader') || 
+                     key.includes('Lazy') || key.includes('API')));
+                safeLog.debug('ui', 'Available global objects:', relevantGlobals);
             }
         }, 2000);
     }

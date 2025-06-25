@@ -70,15 +70,10 @@ if ($chatType === 'channel') {
     }
     return;
 }
-
-$additional_js[] = 'components/messaging/chat-section';
-$additional_css[] = 'chat-section';
 ?>
 
-<!-- Direct CSS inclusion to ensure styles are loaded -->
 <link rel="stylesheet" href="<?php echo css('chat-section'); ?>?v=<?php echo time(); ?>">
 
-<!-- Backup inline styles for critical elements -->
 <style>
 .message-group {
     position: relative;
@@ -157,7 +152,6 @@ $additional_css[] = 'chat-section';
 <meta name="chat-placeholder" content="<?php echo htmlspecialchars($placeholder ?? ''); ?>">
 
 <div class="flex flex-col flex-1 h-screen chat-container bg-[#313338]">
-    <!-- Channel Header -->
     <div class="h-12 border-b border-[#1e1f22] flex items-center px-4 shadow-sm bg-[#313338]">
         <div class="flex items-center">
             <i class="<?php echo $chatIcon; ?> text-[#b5bac1] mr-2"></i>
@@ -192,14 +186,33 @@ $additional_css[] = 'chat-section';
         </div>
     </div>
 
-    <!-- Chat Messages Area -->
-    <div class="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-[#1e1f22] scrollbar-track-transparent bg-[#313338]" id="chat-messages" data-lazyload="chat">
-        <!-- Messages will be loaded here -->
+    <div class="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-[#1e1f22] scrollbar-track-transparent bg-[#313338]" id="chat-messages">
+        <?php if (!empty($messages)): ?>
+            <?php foreach ($messages as $message): ?>
+                <div class="flex items-start p-4 hover:bg-[#36393f]">
+                    <div class="w-10 h-10 bg-[#5865f2] rounded-full flex items-center justify-center mr-3">
+                        <span class="text-white text-sm font-bold"><?php echo substr($message['username'] ?? 'U', 0, 1); ?></span>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex items-center mb-1">
+                            <span class="font-semibold text-white mr-2"><?php echo htmlspecialchars($message['username'] ?? 'Unknown'); ?></span>
+                            <span class="text-xs text-gray-400"><?php echo date('H:i', strtotime($message['created_at'] ?? 'now')); ?></span>
+                        </div>
+                        <div class="text-[#dcddde]"><?php echo htmlspecialchars($message['content'] ?? ''); ?></div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <div class="flex items-center justify-center h-full text-gray-400">
+                <div class="text-center">
+                    <i class="fas fa-comments text-6xl mb-4 opacity-50"></i>
+                    <h3 class="text-lg font-semibold mb-2">No messages yet</h3>
+                    <p class="text-sm">Be the first to send a message in #{<?php echo htmlspecialchars($chatTitle); ?>}</p>
+                </div>
+            </div>
+        <?php endif; ?>
     </div>
 
-
-
-    <!-- Typing Indicator -->
     <div id="typing-indicator" class="text-xs text-[#b5bac1] pb-1 pl-5 flex items-center hidden">
         <div class="flex items-center mr-2">
             <span class="h-1 w-1 bg-[#b5bac1] rounded-full animate-bounce mr-0.5" style="animation-delay: 0ms"></span>
@@ -209,7 +222,6 @@ $additional_css[] = 'chat-section';
         <span>Someone is typing...</span>
     </div>
 
-    <!-- Message Input Area -->
     <div class="px-4 pb-6 bg-[#313338]">
         <div class="relative">
             <form id="message-form" class="relative" onsubmit="return false;">
@@ -263,7 +275,6 @@ $additional_css[] = 'chat-section';
         </div>
     </div>
     
-    <!-- Context Menu Template (Hidden by default) -->
     <div id="message-context-menu" class="hidden fixed bg-[#18191c] rounded-md shadow-lg z-50 py-2 min-w-[180px] text-sm font-medium">
         <div class="px-1">
             <button data-action="reaction" class="flex items-center justify-between w-full px-2 py-1.5 text-[#b5bac1] hover:bg-[#5865f2] hover:text-white rounded">
@@ -289,3 +300,58 @@ $additional_css[] = 'chat-section';
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Chat section template loaded');
+    initializeChatUI();
+});
+
+function initializeChatUI() {
+    console.log('Initializing chat UI');
+    
+    const messageInput = document.getElementById('message-input');
+    const sendButton = document.getElementById('send-button');
+    const messageForm = document.getElementById('message-form');
+    
+    if (!messageInput || !sendButton) {
+        console.log('Chat UI elements not found, retrying...');
+        setTimeout(initializeChatUI, 200);
+        return;
+    }
+    
+    function updateSendButton() {
+        const hasContent = messageInput.value.trim().length > 0;
+        sendButton.disabled = !hasContent;
+        sendButton.style.opacity = hasContent ? '1' : '0.5';
+    }
+    
+    function sendMessage() {
+        if (window.chatSection && window.chatSection.sendMessage) {
+            window.chatSection.sendMessage();
+        } else {
+            console.error('ChatSection not initialized');
+        }
+    }
+    
+    messageInput.addEventListener('input', updateSendButton);
+    
+    messageInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+    
+    sendButton.addEventListener('click', sendMessage);
+    
+    updateSendButton();
+    
+    document.dispatchEvent(new CustomEvent('channelContentLoaded', {
+        detail: {
+            type: 'chat',
+            channelId: document.querySelector('meta[name="channel-id"]')?.getAttribute('content')
+        }
+    }));
+}
+</script>

@@ -20,8 +20,6 @@ $serverId = $currentServer ? $currentServer->id : 0;
 
 $GLOBALS['isLoading'] = isset($_GET['loading']) && $_GET['loading'] === 'true';
 
-$isAjaxRequest = isset($_GET['ajax']) && $_GET['ajax'] === 'true';
-
 $page_title = 'misvord - ' . $serverName;
 $body_class = 'bg-discord-dark text-white';
 $page_css = 'app';
@@ -45,40 +43,6 @@ if (isset($GLOBALS['currentServer'])) {    log_debug("Current server data", [
     ]);
 } else {
     log_warning("No current server set in GLOBALS");
-}
-            
-if ($isAjaxRequest) {
-    $activeChannelId = $_GET['channel'] ?? null;
-    $channelType = isset($_GET['type']) && $_GET['type'] === 'voice' ? 'voice' : 'text';
-    
-    $activeChannel = null;
-    if ($activeChannelId && isset($GLOBALS['serverChannels'])) {
-        foreach ($GLOBALS['serverChannels'] as $channel) {
-            if ($channel['id'] == $activeChannelId) {
-                $activeChannel = (object) $channel;
-                break;
-            }
-        }
-    }
-    
-    if ($activeChannelId && !$activeChannel) {
-        require_once dirname(dirname(__DIR__)) . '/database/repositories/ChannelRepository.php';
-        $channelRepo = new ChannelRepository();
-        $channelData = $channelRepo->find($activeChannelId);
-        if ($channelData) {
-            $activeChannel = $channelData;
-        }
-    }
-    
-    $GLOBALS['activeChannelId'] = $activeChannelId;
-    $GLOBALS['activeChannel'] = $activeChannel;
-    
-    if ($channelType === 'voice') {
-        include dirname(dirname(__DIR__)) . '/views/components/app-sections/voice-section.php';
-    } else {
-        include dirname(dirname(__DIR__)) . '/views/components/app-sections/chat-section.php';
-    }
-    exit;
 }
 ?>
 

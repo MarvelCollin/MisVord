@@ -673,7 +673,7 @@ class ChannelController extends BaseController
                 $responseData['username'] = $_SESSION['username'] ?? 'Anonymous';
                 $responseData['participants'] = [];
             } else {
-                $messages = $this->messageRepository->getChannelMessages($channelId, 50);
+                $messages = $this->messageRepository->getForChannel($channelId, 50);
                 $responseData['messages'] = $messages;
             }
             

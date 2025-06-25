@@ -146,85 +146,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.ctrlKey && e.key === '2') {
             e.preventDefault();
             
-            const socketStatus = getDetailedSocketStatus();
+            console.log('🤖 Bot Development Modal triggered...');
             
-            console.log('🔌 Socket Status Debug:', socketStatus);
-            
-            if (window.MisVordMessaging && !window.MisVordMessaging.initialized) {
-                console.log('🔧 MisVordMessaging exists but not initialized, attempting manual initialization...');
-                try {
-                    window.MisVordMessaging.init();
-                    console.log('✅ Manual MisVordMessaging initialization successful');
-                } catch (error) {
-                    console.error('❌ Manual MisVordMessaging initialization failed:', error);
-                }
-            }
-
-            if (window.MisVordMessaging && window.globalSocketManager && 
-                !window.MisVordMessaging.connected && window.globalSocketManager.isReady()) {
-                console.log('🔧 Forcing MisVordMessaging connection to global socket manager...');
-                try {
-                    if (window.MisVordMessaging.socketManager && window.MisVordMessaging.socketManager.connectToGlobalSocketManager) {
-                        window.MisVordMessaging.socketManager.connectToGlobalSocketManager();
-                        console.log('✅ Forced connection attempt completed');
-                    }
-                } catch (error) {
-                    console.error('❌ Forced connection failed:', error);
-                }
-            }
-            
-            const updatedSocketStatus = getDetailedSocketStatus();
-            
-            const statusEmoji = updatedSocketStatus.overallStatus === 'fully-connected' ? '✅' : 
-                               updatedSocketStatus.overallStatus === 'connected-but-issues' ? '⚠️' : '❌';
-            
-            const statusText = updatedSocketStatus.overallStatus === 'fully-connected' ? 
-                `${statusEmoji} Socket Fully Connected (ID: ${updatedSocketStatus.socketId})` :
-                updatedSocketStatus.overallStatus === 'connected-but-issues' ? 
-                `${statusEmoji} Socket Connected but has issues: ${updatedSocketStatus.issues.join(', ')}` :
-                `${statusEmoji} Socket Disconnected: ${updatedSocketStatus.issues.join(', ')}`;
-            
-            const toastType = updatedSocketStatus.overallStatus === 'fully-connected' ? 'success' : 
-                             updatedSocketStatus.overallStatus === 'connected-but-issues' ? 'warning' : 'error';
-            
-            if (window.showToast) {
-                window.showToast(statusText, toastType, 8000); // Show for 8 seconds
+            if (window.openBotDevModal) {
+                window.openBotDevModal();
             } else {
-                alert(statusText);
+                console.log('Bot development modal not found - make sure bot-dev.php is included');
             }
-            
-            console.group('🔍 Detailed Socket Status');
-            console.table({
-                'Socket.IO Available': updatedSocketStatus.socketIOAvailable,
-                'Global Socket Ready': updatedSocketStatus.globalSocketReady,
-                'Socket Connected': updatedSocketStatus.socketConnected,
-                'User Authenticated': updatedSocketStatus.userAuthenticated,
-                'Messaging Ready': updatedSocketStatus.messagingReady,
-                'Overall Status': updatedSocketStatus.overallStatus,
-                'Socket ID': updatedSocketStatus.socketId || 'None',
-                'Socket Host': document.querySelector('meta[name="socket-host"]')?.content || 'Not found',
-                'Socket Port': document.querySelector('meta[name="socket-port"]')?.content || 'Not found',
-                'Issues': updatedSocketStatus.issues.join(', ') || 'None'
-            });
-            
-            if (window.MisVordMessaging) {
-                console.log('📱 MisVordMessaging Debug Info:');
-                console.log('  - Available:', !!window.MisVordMessaging);
-                console.log('  - Initialized:', window.MisVordMessaging.initialized);
-                console.log('  - Connected:', window.MisVordMessaging.connected);
-                console.log('  - Socket Manager:', !!window.MisVordMessaging.socketManager);
-                console.log('  - Active Channel:', window.MisVordMessaging.activeChannel);
-                console.log('  - Chat Type:', window.MisVordMessaging.chatType);
-                console.log('  - User ID:', window.MisVordMessaging.userId);
-                console.log('  - Username:', window.MisVordMessaging.username);
-                
-                if (window.MisVordMessaging.socketManager) {
-                    console.log('  - Socket Manager Connected:', window.MisVordMessaging.socketManager.connected);
-                    console.log('  - Socket Manager Authenticated:', window.MisVordMessaging.socketManager.authenticated);
-                }
-            }
-            
-            console.groupEnd();
         }
         
         if (e.ctrlKey && e.key === '3') {
@@ -438,7 +366,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return status;
     }
     
-    console.log('🧪 Debug mode active: Ctrl+1 (test message), Ctrl+2 (socket status), Ctrl+3 (force messaging init), Ctrl+4 (join DM room), Ctrl+5 (debug room status)');
+    console.log('🧪 Debug mode active: Ctrl+1 (test message), Ctrl+2 (bot modal), Ctrl+3 (force messaging init), Ctrl+4 (join DM room), Ctrl+5 (debug room status)');
     
     if (window.MisVordMessaging && !window.MisVordMessaging.initialized) {
         console.log('🔧 MisVordMessaging exists but not initialized, attempting manual initialization...');

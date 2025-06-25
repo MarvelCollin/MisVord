@@ -16,8 +16,6 @@ $is_auth_page = isset($data_page) && $data_page === 'auth';
 
 $core_scripts = ['core/ui/toast'];
 if (!$is_auth_page) {
-    $core_scripts[] = 'core/ajax/ajax-handler';
-    
     if (!$is_auth_page) {
         $core_scripts[] = 'core/socket/global-socket-manager';
     }
@@ -45,8 +43,8 @@ if ($is_auth_page) {
 <?php endif; ?>
 
 <?php if (!$is_auth_page): ?>
+<script src="<?php echo js('api/chat-api'); ?>?v=<?php echo time(); ?>"></script>
 <script src="<?php echo js('api/friend-api'); ?>?v=<?php echo time(); ?>" type="module"></script>
-<script src="<?php echo js('api/chat-api'); ?>?v=<?php echo time(); ?>" type="module"></script>
 <script src="<?php echo js('api/channel-api'); ?>?v=<?php echo time(); ?>" type="module"></script>
 <script src="<?php echo js('api/server-api'); ?>?v=<?php echo time(); ?>" type="module"></script>
 <?php endif; ?>

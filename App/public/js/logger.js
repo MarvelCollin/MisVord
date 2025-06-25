@@ -16,7 +16,7 @@ class MisVordLogger {
                 channel: true,
                 voice: true,
                 ui: true,
-                ajax: true,
+                api: true,
                 general: true
             },
             showTimestamp: true,

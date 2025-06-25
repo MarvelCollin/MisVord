@@ -142,13 +142,32 @@ function renderCategorySkeleton($count = 1) {
 .group:hover .opacity-0 {
     opacity: 1 !important;
 }
+
+.channel-item.switching {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.channel-switch-indicator {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 1s linear infinite;
+    margin-left: 8px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🏗️ Initializing channel section');
+    console.log('Initializing channel section with API-driven approach');
     
-    // Show channel list after skeleton
     setTimeout(function() {
         const skeleton = document.querySelector('.channel-skeleton');
         const channelList = document.querySelector('.channel-list');
@@ -159,17 +178,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }, 800);
     
-    // Initialize channel click handlers
     initializeChannelHandlers();
 });
 
 function initializeChannelHandlers() {
-    console.log('🎯 Setting up channel click handlers');
+    console.log('Setting up API-driven channel handlers');
     
     const channelItems = document.querySelectorAll('.channel-item');
     
     channelItems.forEach(item => {
-        // Remove any existing listeners by cloning
         const clone = item.cloneNode(true);
         item.parentNode.replaceChild(clone, item);
         
@@ -182,135 +199,126 @@ function initializeChannelHandlers() {
             const serverId = document.getElementById('current-server-id')?.value;
             
             if (!channelId || !serverId) {
-                console.error('❌ Missing channel ID or server ID');
+                console.error('Missing channel ID or server ID');
                 return;
             }
             
-            console.log('📡 Channel clicked:', {channelId, channelType, serverId});
+            console.log('Channel clicked:', {channelId, channelType, serverId});
             
-            // Update active state immediately for better UX
-            document.querySelectorAll('.channel-item').forEach(ch => {
-                ch.classList.remove('bg-discord-lighten', 'text-white', 'active-channel');
-            });
-            clone.classList.add('bg-discord-lighten', 'text-white', 'active-channel');
-            
-            // Add loading indicator
-            const originalContent = clone.innerHTML;
-            clone.innerHTML = `
-                <div class="flex items-center">
-                    <div class="animate-spin rounded-full h-3 w-3 border border-white border-t-transparent mr-2"></div>
-                    <span class="text-sm">Loading...</span>
-                </div>
-            `;
-            
-            // Use the proper AJAX system from server-page.js
-            const switchPromise = channelType === 'voice' 
-                ? handleVoiceChannelSwitch(channelId, serverId)
-                : handleTextChannelSwitch(channelId, serverId);
-            
-            // Restore content after a minimum time or on completion
-            Promise.race([
-                switchPromise,
-                new Promise(resolve => setTimeout(resolve, 2000)) // 2 second timeout
-            ]).finally(() => {
-                clone.innerHTML = originalContent;
-            });
+            handleChannelSwitch(serverId, channelId, channelType, clone);
         });
     });
 }
 
-async function handleVoiceChannelSwitch(channelId, serverId) {
-    console.log('🔊 Switching to voice channel:', channelId);
-    
-    // Update meta tags immediately
-    updateChannelMetaTags(channelId, 'voice');
-    
-    // Update URL
-    const newUrl = `/server/${serverId}?channel=${channelId}&type=voice`;
-    history.pushState({ channelId, channelType: 'voice', serverId }, '', newUrl);
-    
+async function handleChannelSwitch(serverId, channelId, channelType, clickedElement) {
     try {
-        // Ensure server-page.js is loaded
-        if (typeof window.ensureServerPageLoaded === 'function') {
-            await window.ensureServerPageLoaded();
+        updateActiveChannelUI(clickedElement);
+        addSwitchingIndicator(clickedElement);
+        
+        if (window.channelRenderer) {
+            await window.channelRenderer.switchToChannel(serverId, channelId, channelType);
+        } else {
+            console.warn('Channel renderer not available, loading...');
+            await loadChannelRenderer();
+            if (window.channelRenderer) {
+                await window.channelRenderer.switchToChannel(serverId, channelId, channelType);
+            } else {
+                throw new Error('Failed to load channel renderer');
+            }
         }
         
-        // Use server-page.js AJAX system
-        if (typeof window.fetchVoiceSection === 'function') {
-            console.log('✅ Using fetchVoiceSection');
-            window.fetchVoiceSection(channelId);
-        } else {
-            throw new Error('fetchVoiceSection not available');
-        }
     } catch (error) {
-        console.error('❌ Voice channel switch failed:', error);
-        // Fallback to page reload
-        window.location.href = newUrl;
+        console.error('Channel switch failed:', error);
+        showChannelSwitchError(error.message);
+        resetChannelUI();
+    } finally {
+        removeSwitchingIndicator(clickedElement);
     }
 }
 
-async function handleTextChannelSwitch(channelId, serverId) {
-    console.log('💬 Switching to text channel:', channelId);
+function updateActiveChannelUI(clickedElement) {
+    document.querySelectorAll('.channel-item').forEach(ch => {
+        ch.classList.remove('bg-discord-lighten', 'text-white', 'active-channel');
+    });
     
-    // Update meta tags immediately
-    updateChannelMetaTags(channelId, 'text');
+    clickedElement.classList.add('bg-discord-lighten', 'text-white', 'active-channel');
+}
+
+function addSwitchingIndicator(element) {
+    element.classList.add('switching');
     
-    // Update URL
-    const newUrl = `/server/${serverId}?channel=${channelId}&type=text`;
-    history.pushState({ channelId, channelType: 'text', serverId }, '', newUrl);
+    const indicator = document.createElement('span');
+    indicator.className = 'channel-switch-indicator';
+    element.appendChild(indicator);
+}
+
+function removeSwitchingIndicator(element) {
+    element.classList.remove('switching');
     
-    try {
-        // Ensure server-page.js is loaded
-        if (typeof window.ensureServerPageLoaded === 'function') {
-            await window.ensureServerPageLoaded();
+    const indicator = element.querySelector('.channel-switch-indicator');
+    if (indicator) {
+        indicator.remove();
+    }
+}
+
+function resetChannelUI() {
+    document.querySelectorAll('.channel-item').forEach(ch => {
+        ch.classList.remove('switching');
+        const indicator = ch.querySelector('.channel-switch-indicator');
+        if (indicator) {
+            indicator.remove();
+        }
+    });
+}
+
+function showChannelSwitchError(message) {
+    const mainContent = document.querySelector('.main-content-area');
+    if (mainContent) {
+        mainContent.innerHTML = `
+            <div class="flex items-center justify-center h-full text-red-400">
+                <div class="text-center">
+                    <i class="fas fa-exclamation-triangle text-4xl mb-4"></i>
+                    <div class="text-lg font-semibold mb-2">Channel Switch Failed</div>
+                    <div class="text-sm">${message}</div>
+                    <button onclick="location.reload()" class="mt-4 bg-red-600 text-white px-4 py-2 rounded">
+                        Reload Page
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+}
+
+async function loadChannelRenderer() {
+    return new Promise((resolve, reject) => {
+        if (window.channelRenderer) {
+            resolve();
+            return;
         }
         
-        // Use server-page.js AJAX system
-        if (typeof window.fetchChatSection === 'function') {
-            console.log('✅ Using fetchChatSection');
-            window.fetchChatSection(channelId);
-        } else {
-            throw new Error('fetchChatSection not available');
-        }
-    } catch (error) {
-        console.error('❌ Text channel switch failed:', error);
-        // Fallback to page reload
-        window.location.href = newUrl;
-    }
+        const script = document.createElement('script');
+        script.src = '/public/js/api/channel-api.js?v=' + Date.now();
+        script.onload = () => {
+            console.log('Channel API loaded');
+            setTimeout(() => {
+                if (window.channelRenderer) {
+                    resolve();
+                } else {
+                    reject(new Error('Channel renderer not initialized'));
+                }
+            }, 100);
+        };
+        script.onerror = () => reject(new Error('Failed to load channel API'));
+        document.head.appendChild(script);
+    });
 }
 
-// Helper function to update meta tags
-function updateChannelMetaTags(channelId, channelType) {
-    console.log('🏷️ Updating meta tags for channel:', channelId, channelType);
-    
-    // Update channel-id meta tag
-    let channelIdMeta = document.querySelector('meta[name="channel-id"]');
-    if (channelIdMeta) {
-        channelIdMeta.setAttribute('content', channelId);
-    } else {
-        channelIdMeta = document.createElement('meta');
-        channelIdMeta.setAttribute('name', 'channel-id');
-        channelIdMeta.setAttribute('content', channelId);
-        document.head.appendChild(channelIdMeta);
-    }
-    
-    // For text channels, also update chat-id
-    if (channelType === 'text') {
-        let chatIdMeta = document.querySelector('meta[name="chat-id"]');
-        if (chatIdMeta) {
-            chatIdMeta.setAttribute('content', channelId);
-        } else {
-            chatIdMeta = document.createElement('meta');
-            chatIdMeta.setAttribute('name', 'chat-id');
-            chatIdMeta.setAttribute('content', channelId);
-            document.head.appendChild(chatIdMeta);
-        }
-    }
-}
-
-// Global function for external use
 window.refreshChannelHandlers = function() {
-    console.log('🔄 Refreshing channel handlers');
+    console.log('Refreshing channel handlers');
     initializeChannelHandlers();
 };
+
+document.addEventListener('channelSwitched', function(e) {
+    console.log('Channel switched successfully:', e.detail);
+});
 </script>

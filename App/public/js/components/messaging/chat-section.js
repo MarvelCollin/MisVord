@@ -1,26 +1,32 @@
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Chat section script loaded via DOM content loaded');
-    // Check if we're on an admin page before initializing
     if (!window.chatSection && !isAdminPage()) {
-        const chatSection = new ChatSection();
-        chatSection.init();
-        window.chatSection = chatSection;
+        initializeChatSection();
     }
 });
 
-// Helper function to check if we're on an admin page
 function isAdminPage() {
     return document.body.getAttribute('data-page') === 'admin';
 }
 
-// Also initialize immediately in case the script is loaded after DOM content loaded
+function initializeChatSection() {
+    if (typeof window.ChatAPI === 'undefined') {
+        console.log('ChatAPI not ready, retrying...');
+        setTimeout(initializeChatSection, 100);
+        return;
+    }
+    
+    console.log('Initializing ChatSection with ChatAPI ready');
+    const chatSection = new ChatSection();
+    chatSection.init();
+    window.chatSection = chatSection;
+}
+
 console.log('Chat section script immediate execution');
 if (document.readyState === 'complete' && !window.chatSection && !isAdminPage()) {
     setTimeout(() => {
         console.log('Chat section delayed initialization');
-        const chatSection = new ChatSection();
-        chatSection.init();
-        window.chatSection = chatSection;
+        initializeChatSection();
     }, 100);
 }
 
@@ -668,10 +674,22 @@ class ChatSection {
     }
     
     async sendMessage() {
-        if (!this.messageInput) return;
+        if (!this.messageInput) {
+            console.error('❌ Message input not found');
+            return;
+        }
         
         const content = this.messageInput.value.trim();
-        if (!content) return;
+        if (!content) {
+            console.warn('⚠️ No message content to send');
+            return;
+        }
+        
+        console.log('📤 Attempting to send message:', { 
+            content: content.substring(0, 50) + '...', 
+            chatType: this.chatType, 
+            targetId: this.targetId 
+        });
         
         const timestamp = Date.now();
         const messageId = `temp_${timestamp}_${Math.random().toString(36).substring(2, 15)}`;
@@ -683,9 +701,12 @@ class ChatSection {
             this.sendStopTyping();
             
             if (!window.ChatAPI) {
-                console.error('ChatAPI not available');
+                console.error('❌ ChatAPI not available');
+                this.showNotification('ChatAPI not available', 'error');
                 return;
             }
+            
+            console.log('✅ ChatAPI available, proceeding with message send...');
             
             const tempMessage = {
                 id: messageId,
@@ -722,14 +743,21 @@ class ChatSection {
             this.processedMessageIds.add(messageId);
             this.addMessage(tempMessage);
             
+            console.log('🌐 Calling ChatAPI.sendMessage...');
             const response = await window.ChatAPI.sendMessage(this.targetId, content, this.chatType, options);
+            
+            console.log('📨 Message send response:', response);
             
             if (response && response.data && response.data.message) {
                 const serverMessage = response.data.message;
+                console.log('✅ Server confirmed message:', serverMessage);
                 const tempMessageElement = document.querySelector(`[data-message-id="${messageId}"]`);
                 if (tempMessageElement) {
                     tempMessageElement.setAttribute('data-message-id', serverMessage.id);
+                    console.log('✅ Updated temp message with server ID:', serverMessage.id);
                 }
+            } else {
+                console.warn('⚠️ Unexpected response format:', response);
             }
             
         } catch (error) {
