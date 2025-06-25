@@ -24,15 +24,12 @@ class AuthenticationController extends BaseController
             ]);
         }
         
-        // Clear all session data for fresh logins or normal access without authentication
         if ((isset($_GET['fresh']) && $_GET['fresh'] == '1') || !$this->isAuthenticated()) {
-            // Save redirect URL if present
             $redirectUrl = $_GET['redirect'] ?? null;
             
             $this->clearAuthSession();
             session_start();
             
-            // Restore redirect URL after session clear
             if ($redirectUrl) {
                 $_SESSION['login_redirect'] = $redirectUrl;
             }
@@ -79,7 +76,6 @@ class AuthenticationController extends BaseController
     }
     public function login()
     {
-        // Clear previous errors
         $_SESSION['errors'] = [];
         $_SESSION['old_input'] = [];
         
@@ -123,7 +119,6 @@ class AuthenticationController extends BaseController
         $email = isset($input['email']) ? trim($input['email']) : '';
         $password = isset($input['password']) ? $input['password'] : '';
 
-        // Input validation
         if (empty($email)) {
             $this->logFailedLogin($email, 'empty_email');
             $_SESSION['errors'] = ['auth' => 'Email is required'];
@@ -143,7 +138,6 @@ class AuthenticationController extends BaseController
             exit;
         }
 
-        // Admin hardcoded login - ensure exact match
         if ($email === 'admin@admin.com' && $password === 'admin123') {
             session_regenerate_id(true);
             $_SESSION = array();
@@ -159,10 +153,8 @@ class AuthenticationController extends BaseController
             exit;
         }
 
-        // Find user by email
         $user = $this->userRepository->findByEmail($email);
 
-        // User not found
         if (!$user) {
             $this->logFailedLogin($email, 'user_not_found');
             $_SESSION['errors'] = ['auth' => 'No account found with this email address.'];
@@ -173,7 +165,6 @@ class AuthenticationController extends BaseController
             exit;
         }
         
-        // Check if user is banned
         if ($user->status === 'banned') {
             $this->logFailedLogin($email, 'user_banned');
             $_SESSION['errors'] = ['auth' => 'This account has been banned. Please contact an administrator.'];
@@ -210,14 +201,15 @@ class AuthenticationController extends BaseController
             }
             
             $this->setSecurityHeaders();
-            session_write_close(); // Make sure the session is saved before redirect
+            session_write_close();
             header('Location: /login');
             exit;
         }
 
-        // Password is correct - proceed with login
+        $this->clearAuthSession();
+        session_start();
         session_regenerate_id(true);
-        $_SESSION = array();
+        
         $_SESSION['user_id'] = $user->id;
         $_SESSION['username'] = $user->username;
         $_SESSION['discriminator'] = $user->discriminator;
@@ -243,15 +235,12 @@ class AuthenticationController extends BaseController
 
     public function showRegister()
     {
-        // Clear session for fresh registrations
         if ((isset($_GET['fresh']) && $_GET['fresh'] == '1') || !$this->isAuthenticated()) {
-            // Save redirect URL if present
             $redirectUrl = $_GET['redirect'] ?? null;
             
             $this->clearAuthSession();
             session_start();
-            
-            // Restore redirect URL after session clear
+
             if ($redirectUrl) {
                 $_SESSION['login_redirect'] = $redirectUrl;
             }
@@ -509,7 +498,6 @@ class AuthenticationController extends BaseController
 
     public function showForgotPassword()
     {
-        // Clear session for fresh password reset requests
         if ((isset($_GET['fresh']) && $_GET['fresh'] == '1') || !$this->isAuthenticated()) {
             $this->clearAuthSession();
             session_start();
@@ -519,7 +507,6 @@ class AuthenticationController extends BaseController
             return $this->redirectResponse('/home');
         }
 
-        // Clear any existing password reset data
         unset($_SESSION['security_question']);
         unset($_SESSION['reset_email']);
         unset($_SESSION['old_input']);

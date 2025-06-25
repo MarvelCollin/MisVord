@@ -22,6 +22,27 @@ body.voice-fullscreen-active .w-60.bg-\[\#2b2d31\] {
     display: none !important;
 }
 
+/* Animation classes */
+.voice-active-mode {
+    position: relative;
+}
+
+.voice-active-animate {
+    animation: voiceActiveEnter 0.3s ease-out forwards;
+}
+
+@keyframes voiceActiveEnter {
+    0% {
+        transform: scale(0.98);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Header animations */
 .voice-fullscreen-mode .voice-header {
     position: absolute;
     top: 0;
@@ -32,6 +53,9 @@ body.voice-fullscreen-active .w-60.bg-\[\#2b2d31\] {
     justify-content: space-between;
     align-items: center;
     z-index: 10;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    opacity: 0;
+    transform: translateY(-10px);
 }
 
 .voice-fullscreen-mode .voice-header .channel-name {
@@ -58,6 +82,44 @@ body.voice-fullscreen-active .w-60.bg-\[\#2b2d31\] {
     background: rgba(0, 0, 0, 0.5);
 }
 
+/* Toast notification animations */
+#connectionToast {
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Participant animations */
+.user-voice-item {
+    transition: background-color 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
+}
+
+.user-voice-item:hover {
+    transform: translateY(-2px);
+}
+
+/* Skeleton animation enhancements */
+.skeleton-circle::after,
+.skeleton-text::after,
+.skeleton-icon::after {
+    animation: shimmer 1.5s infinite cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+    50% {
+        transform: translateX(0);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+/* Voice UI element transitions */
+.voice-ui-element {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
 .voice-fullscreen-mode #joinUI {
     background: transparent !important;
     display: flex;
@@ -74,11 +136,16 @@ body.voice-fullscreen-active .w-60.bg-\[\#2b2d31\] {
     border-radius: 4px;
     border: none;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: background-color 0.2s, transform 0.2s;
 }
 
 .voice-fullscreen-mode #joinBtn:hover {
     background-color: #4752c4;
+    transform: translateY(-2px);
+}
+
+.voice-fullscreen-mode #joinBtn:active {
+    transform: translateY(0);
 }
 
 .voice-fullscreen-mode .voice-controls-container {
@@ -88,12 +155,14 @@ body.voice-fullscreen-active .w-60.bg-\[\#2b2d31\] {
     width: 100%;
     display: flex;
     justify-content: center;
+    transition: transform 0.3s ease, opacity 0.3s ease;
 }
 
 .voice-fullscreen-mode #discordVoiceView {
     background: transparent !important;
     max-width: 500px;
     width: 100%;
+    transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
 .voice-fullscreen-mode .user-voice-item {
@@ -105,6 +174,16 @@ body.voice-fullscreen-active .w-60.bg-\[\#2b2d31\] {
 .voice-fullscreen-mode #emptyVoiceMessage {
     color: white;
     text-align: center;
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeInUp 0.5s forwards 0.3s;
+}
+
+@keyframes fadeInUp {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .voice-fullscreen-mode #emptyVoiceMessage h2 {
@@ -114,6 +193,20 @@ body.voice-fullscreen-active .w-60.bg-\[\#2b2d31\] {
 
 .voice-fullscreen-mode #emptyVoiceMessage p {
     color: rgba(255, 255, 255, 0.7);
+}
+
+/* Animation for fade-out */
+.fade-out {
+    animation: fadeOut 0.3s ease forwards;
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
 }
 
 /* Animation for transition */

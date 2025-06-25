@@ -116,6 +116,7 @@
   font-size: 24px;
 }
 
+/* Make !important to ensure proper state visibility */
 /* Hide folder icon when group is open */
 .server-group.open .folder-icon {
   display: none !important;
@@ -134,6 +135,15 @@
 /* Show folder icon when group is closed */
 .server-group:not(.open) .folder-icon {
   display: flex !important;
+}
+
+/* Always set borderRadius on initial state */
+.server-group:not(.open) .group-header {
+  border-radius: 16px !important;
+}
+
+.server-group.open .group-header {
+  border-radius: 16px 16px 0 0 !important;
 }
 
 /* Server preview grid */
@@ -365,16 +375,4 @@
   box-shadow: 0 0 0 4px var(--discord-darker);
   z-index: 5;
   padding: 0 5px;
-}
-
-/* Server group when collapsed */
-.server-group:not(.open) .group-header {
-  background-color: var(--discord-folder-color);
-  border-radius: 16px;
-}
-
-/* Server group when open */
-.server-group.open .group-header {
-  background-color: var(--discord-folder-selected);
-  border-radius: 16px 16px 0 0;
 }

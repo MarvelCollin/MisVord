@@ -21,17 +21,12 @@ $additional_js[] = 'components/voice/voice-manager';
 $additional_js[] = 'components/voice/voice-section';
 ?>
 
-<!-- Add CSS for voice section -->
-<link rel="stylesheet" href="/css/voice-section.css">
+<link rel="stylesheet" href="/public/css/voice-section.css">
 
-<!-- Add auto-join script -->
 <script>
-// Auto-join voice channel when page loads
 document.addEventListener('DOMContentLoaded', function() {
-    // Set a flag to indicate we're on a voice channel page
     localStorage.setItem('onVoiceChannelPage', 'true');
     
-    // Try to click join button automatically after a delay
     setTimeout(function() {
         const joinBtn = document.getElementById('joinBtn');
         if (joinBtn) {
@@ -47,8 +42,8 @@ document.addEventListener('DOMContentLoaded', function() {
 <meta name="channel-id" content="<?php echo htmlspecialchars($activeChannelId); ?>">
 
 <div class="flex flex-col h-screen bg-[#313338] text-white" id="voice-container">
-    <!-- Channel header -->
-    <div class="h-12 border-b border-[#1e1f22] flex items-center px-4 shadow-sm bg-[#313338] z-20">
+    <!-- Channel header - Hidden during skeleton loading -->
+    <div class="h-12 border-b border-[#1e1f22] flex items-center px-4 shadow-sm bg-[#313338] z-20 voice-ui-element hidden">
         <div class="flex items-center">
             <i class="fas fa-volume-high text-gray-400 mr-2"></i>
             <span class="font-medium text-white"><?php echo htmlspecialchars($activeChannel['name'] ?? 'Voice Channel'); ?></span>
@@ -60,17 +55,70 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     </div>
     
+    <!-- Skeleton header - Shown during loading -->
+    <div class="h-12 border-b border-[#1e1f22] flex items-center px-4 shadow-sm bg-[#313338] z-20" id="skeleton-header">
+        <div class="flex items-center">
+            <div class="skeleton-circle w-4 h-4 bg-[#3b3d44] rounded-full mr-2"></div>
+            <div class="skeleton-text w-32 h-4 bg-[#3b3d44] rounded"></div>
+        </div>
+    </div>
+    
     <!-- Main content area -->
     <div class="flex-1 flex">
         <!-- No participants message when empty -->
         <div class="flex-1 flex flex-col">
             <!-- Video grid container -->
-            <div id="videoContainer" class="w-full h-full flex flex-wrap justify-center items-center gap-8 p-4 hidden">
+            <div id="videoContainer" class="w-full h-full flex flex-wrap justify-center items-center gap-8 p-4 hidden voice-ui-element">
                 <div id="videosContainer" class="flex flex-wrap justify-center items-center gap-8"></div>
             </div>
             
-            <!-- Discord-style voice channel view -->
-            <div class="flex-1 flex flex-col justify-center items-center bg-[#2b2d31]" id="discordVoiceView">
+            <!-- Skeleton loading view (shown first) -->
+            <div id="skeletonLoadingView" class="flex-1 flex flex-col justify-center items-center bg-[#2b2d31]">
+                <div class="w-full max-w-xl">
+                    <!-- Current user skeleton -->
+                    <div class="user-voice-item w-full bg-[#313338] rounded-md overflow-hidden mb-4">
+                        <div class="px-3 py-2 flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="skeleton-circle w-8 h-8 rounded-full bg-[#3b3d44] mr-2"></div>
+                                <div class="flex flex-col">
+                                    <div class="skeleton-text w-28 h-4 bg-[#3b3d44] rounded mb-1"></div>
+                                    <div class="skeleton-text w-24 h-3 bg-[#3b3d44] rounded"></div>
+                                </div>
+                            </div>
+                            <div class="skeleton-icon w-4 h-4 bg-[#3b3d44] rounded"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Skeleton participants -->
+                    <div class="user-voice-item w-full bg-[#313338] rounded-md overflow-hidden mb-2">
+                        <div class="px-3 py-2 flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="skeleton-circle w-8 h-8 rounded-full bg-[#3b3d44] mr-2"></div>
+                                <div class="flex flex-col">
+                                    <div class="skeleton-text w-24 h-4 bg-[#3b3d44] rounded mb-1"></div>
+                                    <div class="skeleton-text w-16 h-3 bg-[#3b3d44] rounded"></div>
+                                </div>
+                            </div>
+                            <div class="skeleton-icon w-4 h-4 bg-[#3b3d44] rounded"></div>
+                        </div>
+                    </div>
+                    <div class="user-voice-item w-full bg-[#313338] rounded-md overflow-hidden mb-2">
+                        <div class="px-3 py-2 flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="skeleton-circle w-8 h-8 rounded-full bg-[#3b3d44] mr-2"></div>
+                                <div class="flex flex-col">
+                                    <div class="skeleton-text w-20 h-4 bg-[#3b3d44] rounded mb-1"></div>
+                                    <div class="skeleton-text w-12 h-3 bg-[#3b3d44] rounded"></div>
+                                </div>
+                            </div>
+                            <div class="skeleton-icon w-4 h-4 bg-[#3b3d44] rounded"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Discord-style voice channel view (shown when connected) -->
+            <div class="flex-1 flex flex-col justify-center items-center bg-[#2b2d31] hidden voice-ui-element" id="discordVoiceView">
                 <!-- Current user (you) -->
                 <div class="user-voice-item w-full max-w-xl mb-4 bg-[#313338] rounded-md overflow-hidden">
                     <div class="px-3 py-2 flex items-center justify-between">
@@ -102,7 +150,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div id="participants" class="w-full max-w-xl"></div>
                 
                 <!-- Empty state message (shows when no other participants) -->
-                <div id="emptyVoiceMessage" class="flex flex-col items-center justify-center py-8 text-center">
+                <div id="emptyVoiceMessage" class="flex flex-col items-center justify-center py-8 text-center hidden">
                     <div class="w-40 h-40 mb-4 opacity-70">
                         <img src="https://discord.com/assets/cb0d3973-ea92-4d74-9f1e-88ed59493a63.svg" alt="No one here" class="w-full h-full" />
                     </div>
@@ -111,14 +159,34 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             </div>
             
-            <!-- Include join UI component -->
-            <?php include __DIR__ . '/../voice/voice-not-join.php'; ?>
+            <!-- Join UI component (hidden initially) -->
+            <div id="joinUI" class="flex-1 flex flex-col items-center justify-center z-10 hidden voice-ui-element bg-gradient-to-b from-[#1e1f3a] via-[#2b2272] to-[#1e203a]">
+                <h2 class="text-2xl font-bold text-white mb-2"><?php echo htmlspecialchars($activeChannel['name'] ?? 'Voice Channel'); ?></h2>
+                <p class="text-gray-300 text-base mb-6">No one is currently in voice</p>
+                
+                <button id="joinBtn" class="bg-[#5865F2] hover:bg-[#4752c4] text-white font-medium py-2 px-6 rounded transition-colors">
+                    Join Voice
+                </button>
+            </div>
         </div>
     </div>
     
-    <!-- Voice tools at bottom -->
-    <div class="voice-controls-container">
+    <!-- Voice tools at bottom - Hidden during loading -->
+    <div class="voice-controls-container voice-ui-element hidden">
         <?php include __DIR__ . '/../voice/voice-tool.php'; ?>
+    </div>
+
+    <!-- Connection toast notification -->
+    <div id="connectionToast" class="fixed bottom-5 right-5 bg-[#36393f] border-l-4 border-[#3ba55c] rounded shadow-lg px-4 py-3 z-50 flex items-center transform translate-x-full transition-transform duration-300">
+        <div class="flex items-center">
+            <div class="flex-shrink-0 mr-3">
+                <i class="fas fa-check-circle text-[#3ba55c] text-xl"></i>
+            </div>
+            <div>
+                <p class="font-medium text-white text-sm">Connected to voice</p>
+                <p class="text-gray-300 text-xs"><?php echo htmlspecialchars($activeChannel['name'] ?? 'Voice Channel'); ?></p>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -131,6 +199,18 @@ document.addEventListener('DOMContentLoaded', function() {
     --discord-background: #313338;
     --discord-dark: #1e1f22;
     --discord-channel-hover: rgba(79, 84, 92, 0.16);
+}
+
+/* Voice UI class to hide/show elements */
+.voice-ui-element {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    opacity: 0;
+    transform: translateY(5px);
+}
+
+.voice-ui-element.visible {
+    opacity: 1;
+    transform: translateY(0);
 }
 
 .btn-voice {
@@ -225,6 +305,40 @@ document.addEventListener('DOMContentLoaded', function() {
     from { transform: translateY(20px); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
 }
+
+/* Skeleton loading animation */
+.skeleton-circle,
+.skeleton-text,
+.skeleton-icon {
+    position: relative;
+    overflow: hidden;
+}
+
+.skeleton-circle::after,
+.skeleton-text::after,
+.skeleton-icon::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    transform: translateX(-100%);
+    background-image: linear-gradient(
+        90deg,
+        rgba(59, 61, 68, 0) 0,
+        rgba(59, 61, 68, 0.2) 20%,
+        rgba(59, 61, 68, 0.5) 60%,
+        rgba(59, 61, 68, 0)
+    );
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    100% {
+        transform: translateX(100%);
+    }
+}
 </style>
 
 <template id="participantTemplate">
@@ -296,23 +410,133 @@ document.addEventListener("DOMContentLoaded", function() {
         setTimeout(() => window.attemptAutoJoinVoice(), 1500);
     }
     
-    // Handle join UI visibility
+    // Handle UI visibility
     const joinUI = document.getElementById('joinUI');
     const discordVoiceView = document.getElementById('discordVoiceView');
     const voiceControlsContainer = document.querySelector('.voice-controls-container');
     const mainContent = document.querySelector('.flex-1.flex.flex-col');
+    const skeletonLoadingView = document.getElementById('skeletonLoadingView');
+    const skeletonHeader = document.getElementById('skeleton-header');
+    const emptyVoiceMessage = document.getElementById('emptyVoiceMessage');
+    const voiceUIElements = document.querySelectorAll('.voice-ui-element');
+    const connectionToast = document.getElementById('connectionToast');
     
-    // Hide voice controls and discord view initially, show join UI
-    if (voiceControlsContainer) voiceControlsContainer.style.display = 'none';
-    if (discordVoiceView) discordVoiceView.style.display = 'none';
-    if (joinUI) joinUI.style.display = 'flex';
+    // Function to show voice UI elements with animation
+    function showVoiceUIElements() {
+        // Hide skeleton header
+        if (skeletonHeader) skeletonHeader.style.display = 'none';
+        
+        // Show all voice UI elements with staggered animation
+        voiceUIElements.forEach((element, index) => {
+            setTimeout(() => {
+                element.classList.remove('hidden');
+                // Add a small delay to allow the browser to process the display change
+                setTimeout(() => {
+                    element.classList.add('visible');
+                }, 50);
+            }, index * 100); // Stagger the animations
+        });
+    }
+    
+    // Function to hide voice UI elements
+    function hideVoiceUIElements() {
+        // Show skeleton header
+        if (skeletonHeader) skeletonHeader.style.display = 'flex';
+        
+        // Hide all voice UI elements
+        voiceUIElements.forEach(element => {
+            element.classList.remove('visible');
+            element.classList.add('hidden');
+        });
+    }
+    
+    // Function to show connection toast
+    function showConnectionToast() {
+        if (!connectionToast) return;
+        
+        // Show toast
+        connectionToast.classList.remove('translate-x-full');
+        
+        // Hide after 5 seconds
+        setTimeout(() => {
+            connectionToast.classList.add('translate-x-full');
+        }, 5000);
+    }
+    
+    // Initial state: hide all UI elements, show only skeleton loading
+    hideVoiceUIElements();
+    if (skeletonLoadingView) skeletonLoadingView.style.display = 'flex';
+    
+    // After a short delay, check if there's a voice session already or show join UI
+    setTimeout(() => {
+        const isVoiceActive = localStorage.getItem('voiceActive') === 'true';
+        
+        if (isVoiceActive) {
+            // If voice is active, trigger connect event
+            window.dispatchEvent(new Event('voiceConnect'));
+        } else {
+            // Not connected, show join UI and header
+            if (skeletonLoadingView) skeletonLoadingView.style.display = 'none';
+            showVoiceUIElements();
+            if (discordVoiceView) discordVoiceView.style.display = 'none';
+            if (joinUI) joinUI.style.display = 'flex';
+            if (voiceControlsContainer) voiceControlsContainer.style.display = 'none';
+        }
+    }, 1500);
+    
+    // Listen for join button clicks
+    const joinBtn = document.getElementById('joinBtn');
+    if (joinBtn) {
+        joinBtn.addEventListener('click', function() {
+            // Set loading state
+            joinBtn.textContent = 'Connecting...';
+            joinBtn.classList.add('opacity-70', 'cursor-not-allowed');
+            
+            // Hide all UI, show skeleton loading while connecting
+            hideVoiceUIElements();
+            if (skeletonLoadingView) skeletonLoadingView.style.display = 'flex';
+            
+            // Mark voice as active
+            localStorage.setItem('voiceActive', 'true');
+        });
+    }
     
     // Listen for connection events
     window.addEventListener('voiceConnect', function(event) {
-        // Hide join UI, show Discord voice view and controls
-        if (joinUI) joinUI.style.display = 'none';
-        if (discordVoiceView) discordVoiceView.style.display = 'flex';
-        if (voiceControlsContainer) voiceControlsContainer.style.display = 'block';
+        // Hide skeleton, show proper Discord voice UI with animation
+        if (skeletonLoadingView) {
+            // Add fade out animation to skeleton
+            skeletonLoadingView.classList.add('fade-out');
+            
+            // After fade out completes, hide skeleton and show UI
+            setTimeout(() => {
+                skeletonLoadingView.style.display = 'none';
+                showVoiceUIElements();
+                
+                // Show voice view, hide join UI
+                if (joinUI) joinUI.style.display = 'none';
+                if (discordVoiceView) discordVoiceView.style.display = 'flex';
+                
+                // Show the connection toast
+                showConnectionToast();
+                
+                // After a delay, check if there are any participants
+                setTimeout(() => {
+                    const hasParticipants = document.getElementById('participants').children.length > 0;
+                    
+                    // Show empty message if no participants
+                    if (!hasParticipants && emptyVoiceMessage) {
+                        emptyVoiceMessage.style.display = 'flex';
+                    }
+                }, 1000);
+            }, 300); // Match the fade-out animation duration
+        } else {
+            // Fallback if skeleton view is not present
+            showVoiceUIElements();
+            if (joinUI) joinUI.style.display = 'none';
+            if (discordVoiceView) discordVoiceView.style.display = 'flex';
+            showConnectionToast();
+        }
         
         // Remove gradient background when connected
         if (mainContent) {
@@ -321,10 +545,16 @@ document.addEventListener("DOMContentLoaded", function() {
     });
     
     window.addEventListener('voiceDisconnect', function(event) {
-        // Show join UI, hide Discord voice view and controls
-        if (joinUI) joinUI.style.display = 'flex';
+        // Reset to join UI state
+        if (skeletonLoadingView) skeletonLoadingView.style.display = 'none';
+        showVoiceUIElements();
+        
         if (discordVoiceView) discordVoiceView.style.display = 'none';
+        if (joinUI) joinUI.style.display = 'flex';
         if (voiceControlsContainer) voiceControlsContainer.style.display = 'none';
+        
+        // Mark voice as inactive
+        localStorage.setItem('voiceActive', 'false');
     });
     
     // This function will be called by voice-manager.js when adding participants
@@ -347,17 +577,23 @@ document.addEventListener("DOMContentLoaded", function() {
             avatarElement.textContent = initial;
         }
         
-        // Add to participants container
+        // Add to participants container with animation
         const container = document.getElementById('participants');
         if (container) {
             const participantDiv = document.createElement('div');
             participantDiv.id = `participant-item-${participant.id}`;
             participantDiv.appendChild(clone);
+            participantDiv.classList.add('opacity-0', 'transform', 'translate-y-4');
             container.appendChild(participantDiv);
             
+            // Trigger animation after a small delay
+            setTimeout(() => {
+                participantDiv.classList.add('transition-all', 'duration-300', 'ease-in-out');
+                participantDiv.classList.remove('opacity-0', 'translate-y-4');
+            }, 50);
+            
             // Hide empty message if we have participants
-            const emptyMessage = document.getElementById('emptyVoiceMessage');
-            if (emptyMessage) emptyMessage.style.display = 'none';
+            if (emptyVoiceMessage) emptyVoiceMessage.style.display = 'none';
         }
     };
 });

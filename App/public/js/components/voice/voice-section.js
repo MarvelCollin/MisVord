@@ -21,6 +21,8 @@ class VoiceSectionManager {
         this.leaveBtn = null;
         this.headerElement = null;
         this.channelName = '';
+        this.connectionToast = null;
+        this.isConnecting = false;
         
         // Initialize when DOM is ready
         if (document.readyState === 'loading') {
@@ -68,6 +70,7 @@ class VoiceSectionManager {
         this.mainContent = document.getElementById('main-content');
         this.joinBtn = document.getElementById('joinBtn');
         this.leaveBtn = document.getElementById('leaveBtn');
+        this.connectionToast = document.getElementById('connectionToast');
         
         if (!this.voiceContainer) {
             console.error('Voice container not found');
@@ -149,12 +152,41 @@ class VoiceSectionManager {
         }
     }
     
+    showConnectionToast() {
+        if (!this.connectionToast) {
+            this.connectionToast = document.getElementById('connectionToast');
+            if (!this.connectionToast) return;
+        }
+        
+        // Show toast
+        this.connectionToast.classList.remove('translate-x-full');
+        
+        // Hide after 5 seconds
+        setTimeout(() => {
+            this.connectionToast.classList.add('translate-x-full');
+        }, 5000);
+    }
+    
     attachEventListeners() {
         // Join button should enter fullscreen mode
         if (this.joinBtn) {
             this.joinBtn.addEventListener('click', () => {
+                // Track that we're connecting
+                this.isConnecting = true;
+                
                 // Wait for the voice connection to establish
-                setTimeout(() => this.enterFullscreenMode(), 500);
+                setTimeout(() => {
+                    if (!this.isConnecting) return; // If we already connected, don't do it again
+                    
+                    this.enterFullscreenMode();
+                    this.showConnectionToast();
+                    
+                    // Reset connecting state
+                    this.isConnecting = false;
+                    
+                    // Dispatch voice connect event for other components
+                    window.dispatchEvent(new Event('voiceConnect'));
+                }, 500);
             });
         }
         
@@ -162,6 +194,12 @@ class VoiceSectionManager {
         if (this.leaveBtn) {
             this.leaveBtn.addEventListener('click', () => {
                 this.exitFullscreenMode();
+                
+                // Reset connecting state
+                this.isConnecting = false;
+                
+                // Dispatch voice disconnect event for other components
+                window.dispatchEvent(new Event('voiceDisconnect'));
             });
         }
         
@@ -171,6 +209,9 @@ class VoiceSectionManager {
             exitBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 this.exitFullscreenMode();
+                
+                // Also trigger voice disconnect since they're exiting
+                window.dispatchEvent(new Event('voiceDisconnect'));
             });
         }
         
@@ -181,9 +222,12 @@ class VoiceSectionManager {
             }
         });
         
-        // Listen for voice connection events
+        // Listen for voice connection events from other components
         window.addEventListener('voiceConnect', () => {
-            this.enterFullscreenMode();
+            if (!this.fullscreenMode) {
+                this.enterFullscreenMode();
+                this.showConnectionToast();
+            }
         });
         
         window.addEventListener('voiceDisconnect', () => {
@@ -209,14 +253,26 @@ class VoiceSectionManager {
         // Don't hide sidebars - keep them visible
         // Instead of hiding sidebars, just add a class to the voice container
         
-        // Add fullscreen class to voice container
+        // Add fullscreen class to voice container with animation
         if (this.voiceContainer) {
             this.voiceContainer.classList.add('voice-active-mode');
+            
+            // Trigger a reflow to ensure the animation plays
+            void this.voiceContainer.offsetWidth;
+            
+            this.voiceContainer.classList.add('voice-active-animate');
         }
         
-        // Show header
+        // Show header with animation
         if (this.headerElement) {
+            this.headerElement.style.opacity = '0';
             this.headerElement.style.display = 'flex';
+            
+            // Trigger animation after a small delay
+            setTimeout(() => {
+                this.headerElement.style.opacity = '1';
+                this.headerElement.style.transform = 'translateY(0)';
+            }, 50);
         }
         
         // Set flag
@@ -228,14 +284,25 @@ class VoiceSectionManager {
         
         console.log('Exiting voice mode');
         
-        // Remove fullscreen class
+        // Remove fullscreen class with animation
         if (this.voiceContainer) {
-            this.voiceContainer.classList.remove('voice-active-mode');
+            this.voiceContainer.classList.remove('voice-active-animate');
+            
+            // Allow time for animation to play
+            setTimeout(() => {
+                this.voiceContainer.classList.remove('voice-active-mode');
+            }, 300);
         }
         
-        // Hide header
+        // Hide header with animation
         if (this.headerElement) {
-            this.headerElement.style.display = 'none';
+            this.headerElement.style.opacity = '0';
+            this.headerElement.style.transform = 'translateY(-10px)';
+            
+            // Hide after animation completes
+            setTimeout(() => {
+                this.headerElement.style.display = 'none';
+            }, 300);
         }
         
         // Remove transition class after animation completes
@@ -260,7 +327,7 @@ class VoiceSectionManager {
         const link = document.createElement('link');
         link.rel = 'stylesheet';
         link.type = 'text/css';
-        link.href = '/css/voice-section.css';
+        link.href = '/public/css/voice-section.css';
         
         // Append to head
         document.head.appendChild(link);

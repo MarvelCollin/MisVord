@@ -157,10 +157,11 @@ class BaseController
                 $params["path"], $params["domain"],
                 $params["secure"], $params["httponly"]
             );
+            setcookie('PHPSESSID', '', time() - 42000, '/');
         }
         
         session_destroy();
-        }
+    }
         
     protected function requireAuth()
     {
