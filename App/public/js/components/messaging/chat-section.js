@@ -77,7 +77,11 @@ class ChatSection {
         this.showLoadingSkeletons();
         
         this.setupEventListeners();
-        this.loadMessages();
+        
+        setTimeout(() => {
+            this.loadMessages();
+        }, 100);
+        
         this.setupIoListeners();
         console.log('ChatSection initialization complete');
     }
@@ -1454,48 +1458,53 @@ class ChatSection {
     
     createMessageSkeleton(isAlternate = false) {
         const skeletonGroup = document.createElement('div');
-        skeletonGroup.className = 'message-group flex p-1 px-4 py-1 relative animate-pulse';
+        skeletonGroup.className = 'message-group-item animate-pulse';
         
-        const avatarContainer = document.createElement('div');
-        avatarContainer.className = 'flex-shrink-0 mr-3 mt-0.5';
+        const groupWrapper = document.createElement('div');
+        groupWrapper.className = 'message-group-wrapper';
+        
+        const avatarWrapper = document.createElement('div');
+        avatarWrapper.className = 'message-avatar-wrapper';
         
         const avatar = document.createElement('div');
-        avatar.className = 'w-10 h-10 rounded-full bg-[#3c3f45]';
+        avatar.className = 'w-full h-full rounded-full bg-[#3c3f45]';
         
-        avatarContainer.appendChild(avatar);
+        avatarWrapper.appendChild(avatar);
         
-        const messageContent = document.createElement('div');
-        messageContent.className = 'flex-grow';
+        const contentArea = document.createElement('div');
+        contentArea.className = 'message-content-area';
         
-        const headerRow = document.createElement('div');
-        headerRow.className = 'flex items-center mb-1';
+        const headerInfo = document.createElement('div');
+        headerInfo.className = 'message-header-info';
         
         const usernameBar = document.createElement('div');
-        usernameBar.className = 'h-4 bg-[#3c3f45] rounded w-24';
+        usernameBar.className = 'h-4 bg-[#3c3f45] rounded w-24 inline-block';
         
         const timeBar = document.createElement('div');
-        timeBar.className = 'h-3 bg-[#3c3f45] rounded w-12 ml-2';
+        timeBar.className = 'h-3 bg-[#3c3f45] rounded w-12 inline-block ml-2';
         
-        headerRow.appendChild(usernameBar);
-        headerRow.appendChild(timeBar);
+        headerInfo.appendChild(usernameBar);
+        headerInfo.appendChild(timeBar);
+        
+        const messageText = document.createElement('div');
+        messageText.className = 'message-body-text';
         
         const contentBar1 = document.createElement('div');
         contentBar1.className = 'h-4 bg-[#3c3f45] rounded w-full max-w-lg mb-1';
         
         const contentBar2 = document.createElement('div');
-        contentBar2.className = 'h-4 bg-[#3c3f45] rounded w-3/4 max-w-md';
+        contentBar2.className = isAlternate ? 'h-4 bg-[#3c3f45] rounded w-1/2 max-w-md' : 'h-4 bg-[#3c3f45] rounded w-3/4 max-w-md';
         
-        if (isAlternate) {
-            contentBar2.classList.add('w-1/2');
-            contentBar2.classList.remove('w-3/4');
-        }
+        messageText.appendChild(contentBar1);
+        messageText.appendChild(contentBar2);
         
-        messageContent.appendChild(headerRow);
-        messageContent.appendChild(contentBar1);
-        messageContent.appendChild(contentBar2);
+        contentArea.appendChild(headerInfo);
+        contentArea.appendChild(messageText);
         
-        skeletonGroup.appendChild(avatarContainer);
-        skeletonGroup.appendChild(messageContent);
+        groupWrapper.appendChild(avatarWrapper);
+        groupWrapper.appendChild(contentArea);
+        
+        skeletonGroup.appendChild(groupWrapper);
         
         return skeletonGroup;
     }

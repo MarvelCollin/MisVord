@@ -440,7 +440,7 @@ function uploadBanner(dataUrl) {
  * Update all avatar instances in the UI
  */
 function updateAllAvatars(url) {
-    const avatarElements = document.querySelectorAll('.user-avatar img, .user-avatar-preview img, .server-icon-preview img');
+    const avatarElements = document.querySelectorAll('.user-avatar img, .user-avatar-preview img, .server-icon-preview img, #server-icon-preview');
     
     avatarElements.forEach(avatar => {
         avatar.src = url;
@@ -576,7 +576,7 @@ function updateUserStatus(status) {
     .then(data => {
         if (data.success) {
             updateStatusIndicators(status);
-            showToast(`Status updated to ${status}`, 'success');
+            showToast(`Status updated to ${getStatusDisplayName(status)}`, 'success');
         } else {
             showToast(data.message || 'Failed to update status', 'error');
         }
@@ -637,10 +637,10 @@ function initEmailReveal() {
             if (parts.length > 1) {
                 const username = parts[0];
                 const domain = parts[1];
-                const maskedUsername = username.substring(0, 2) + '*'.repeat(username.length - 2);
+                const maskedUsername = username.substring(0, 2) + '*'.repeat(Math.max(0, username.length - 2));
                 emailDisplay.textContent = maskedUsername + '@' + domain;
             } else {
-                emailDisplay.textContent = email.substring(0, 2) + '*'.repeat(email.length - 5) + email.substring(email.length - 3);
+                emailDisplay.textContent = email.substring(0, 2) + '*'.repeat(Math.max(0, email.length - 5)) + email.substring(email.length - 3);
             }
             revealButton.textContent = 'Reveal';
         }
@@ -711,8 +711,7 @@ function setupPasswordField(field) {
     const parent = field.parentElement;
     if (!parent.querySelector('.password-toggle')) {
         const toggleBtn = document.createElement('button');
-        toggleBtn.type = 'button';P
-        
+        toggleBtn.type = 'button';
         toggleBtn.className = 'password-toggle absolute right-2 top-1/2 transform -translate-y-1/2';
         toggleBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z" /><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" /></svg>';
         
@@ -742,20 +741,26 @@ function showToast(message, type = 'info') {
         window.showToast(message, type);
     } else {
         const toast = document.createElement('div');
-        toast.className = `fixed bottom-4 right-4 p-4 rounded shadow-lg z-50 ${getToastClass(type)}`;
+        toast.className = `fixed bottom-4 right-4 p-4 rounded-lg shadow-lg z-50 ${getToastClass(type)} transition-all duration-300 transform translate-y-0 opacity-100`;
         toast.innerHTML = `
             <div class="flex items-center">
                 ${getToastIcon(type)}
-                <span class="ml-2">${message}</span>
+                <span class="ml-2 font-medium">${message}</span>
             </div>
         `;
         document.body.appendChild(toast);
         
+        requestAnimationFrame(() => {
+            toast.classList.add('animate-in');
+        });
+        
         setTimeout(() => {
-            toast.classList.add('opacity-0', 'transition-opacity', 'duration-500');
+            toast.classList.add('opacity-0', 'translate-y-2');
             setTimeout(() => {
-                document.body.removeChild(toast);
-            }, 500);
+                if (document.body.contains(toast)) {
+                    document.body.removeChild(toast);
+                }
+            }, 300);
         }, 3000);
     }
 }
@@ -766,13 +771,13 @@ function showToast(message, type = 'info') {
 function getToastClass(type) {
     switch (type) {
         case 'success':
-            return 'bg-green-500 text-white';
+            return 'bg-green-600 text-white border-l-4 border-green-400';
         case 'error':
-            return 'bg-red-500 text-white';
+            return 'bg-red-600 text-white border-l-4 border-red-400';
         case 'warning':
-            return 'bg-yellow-500 text-white';
+            return 'bg-yellow-600 text-white border-l-4 border-yellow-400';
         default:
-            return 'bg-blue-500 text-white';
+            return 'bg-blue-600 text-white border-l-4 border-blue-400';
     }
 }
 
@@ -788,7 +793,7 @@ function getToastIcon(type) {
         case 'warning':
             return '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>';
         default:
-            return '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>';
+            return '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zm-1 2a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>';
     }
 }
 
@@ -811,4 +816,14 @@ function logoutUser() {
     localStorage.removeItem('active_server');
     
     window.location.href = '/logout';
+}
+
+function getStatusDisplayName(status) {
+    const statusMap = {
+        'appear': 'Online',
+        'invisible': 'Invisible',
+        'do_not_disturb': 'Do Not Disturb',
+        'offline': 'Invisible'
+    };
+    return statusMap[status] || 'Online';
 }

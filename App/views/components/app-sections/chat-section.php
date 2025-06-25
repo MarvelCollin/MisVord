@@ -311,57 +311,7 @@ if ($chatType === 'channel') {
     </div>
 
     <div class="flex-1 overflow-y-auto discord-scrollbar bg-[#313338]" id="chat-messages">
-        <?php if (!empty($messages)): ?>
-            <?php 
-            $lastUserId = null;
-            foreach ($messages as $message): 
-                $isNewGroup = $lastUserId !== ($message['user_id'] ?? null);
-                $lastUserId = $message['user_id'] ?? null;
-            ?>
-                <?php if ($isNewGroup): ?>
-                <div class="message-group-item group" data-user-id="<?php echo htmlspecialchars($message['user_id'] ?? ''); ?>">
-                    <div class="message-group-wrapper">
-                        <div class="message-avatar-wrapper">
-                            <?php if (!empty($message['avatar_url'])): ?>
-                                <img src="<?php echo htmlspecialchars($message['avatar_url']); ?>" alt="<?php echo htmlspecialchars($message['username'] ?? 'User'); ?>'s avatar" onerror="this.src='/assets/main-logo.png'">
-                            <?php else: ?>
-                                <img src="/assets/main-logo.png" alt="<?php echo htmlspecialchars($message['username'] ?? 'User'); ?>'s avatar">
-                            <?php endif; ?>
-                        </div>
-                        <div class="message-content-area">
-                            <div class="message-header-info">
-                                <span class="message-username-text"><?php echo htmlspecialchars($message['username'] ?? 'Unknown'); ?></span>
-                                <span class="message-timestamp-text"><?php echo date('H:i', strtotime($message['sent_at'] ?? $message['created_at'] ?? 'now')); ?></span>
-                            </div>
-                            <div class="message-body-text" data-message-id="<?php echo htmlspecialchars($message['id'] ?? ''); ?>" data-user-id="<?php echo htmlspecialchars($message['user_id'] ?? ''); ?>">
-                                <?php echo nl2br(htmlspecialchars($message['content'] ?? '')); ?>
-                                <?php if (!empty($message['edited_at'])): ?>
-                                    <span class="edited-badge text-xs text-[#a3a6aa] ml-1">(edited)</span>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <?php else: ?>
-                <div class="message-group-item pl-20 pr-4 py-0.5" data-message-id="<?php echo htmlspecialchars($message['id'] ?? ''); ?>" data-user-id="<?php echo htmlspecialchars($message['user_id'] ?? ''); ?>">
-                    <div class="message-body-text text-[#dcddde]">
-                        <?php echo nl2br(htmlspecialchars($message['content'] ?? '')); ?>
-                        <?php if (!empty($message['edited_at'])): ?>
-                            <span class="edited-badge text-xs text-[#a3a6aa] ml-1">(edited)</span>
-                        <?php endif; ?>
-                    </div>
-                </div>
-                <?php endif; ?>
-            <?php endforeach; ?>
-        <?php else: ?>
-            <div class="flex items-center justify-center h-full text-gray-400">
-                <div class="text-center">
-                    <i class="fas fa-comments text-6xl mb-4 opacity-50"></i>
-                    <h3 class="text-lg font-semibold mb-2">No messages yet</h3>
-                    <p class="text-sm">Be the first to send a message in #<?php echo htmlspecialchars($chatTitle); ?></p>
-                </div>
-            </div>
-        <?php endif; ?>
+        <!-- Messages will be loaded via JavaScript with skeleton loading -->
     </div>
 
     <div id="typing-indicator" class="text-xs text-[#b5bac1] pb-1 pl-5 flex items-center hidden">
@@ -458,6 +408,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function initializeChatUI() {
     console.log('Initializing chat UI');
+    
+    const chatMessages = document.getElementById('chat-messages');
+    if (chatMessages && !chatMessages.hasChildNodes()) {
+        console.log('Chat messages empty, skeleton loading should be visible');
+    }
     
     const messageInput = document.getElementById('message-input');
     const sendButton = document.getElementById('send-button');
