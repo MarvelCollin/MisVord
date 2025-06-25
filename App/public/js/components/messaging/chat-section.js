@@ -55,6 +55,8 @@ class ChatSection {
         this.messagesPerPage = 20;
         this.totalMessagesLoaded = 0;
         this.activeReplyingTo = null;
+        this.currentFileUpload = null;
+        this.maxFileSize = 8 * 1024 * 1024; // 8MB max file size
     }
     
     init() {
@@ -154,6 +156,44 @@ class ChatSection {
         if (this.sendButton) {
             this.sendButton.addEventListener('click', () => {
                 this.sendMessage();
+            });
+        }
+        
+        // Setup file upload related event listeners
+        const attachmentButton = document.getElementById('attachment-button');
+        const attachmentDropdown = document.getElementById('attachment-dropdown');
+        const fileUpload = document.getElementById('file-upload');
+        const filePreview = document.getElementById('file-preview');
+        const filePreviewRemove = document.getElementById('file-preview-remove');
+        
+        if (attachmentButton && attachmentDropdown) {
+            attachmentButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                attachmentDropdown.classList.toggle('hidden');
+            });
+            
+            document.addEventListener('click', (e) => {
+                if (!attachmentButton.contains(e.target) && !attachmentDropdown.contains(e.target)) {
+                    attachmentDropdown.classList.add('hidden');
+                }
+            });
+        }
+        
+        if (fileUpload) {
+            fileUpload.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    this.handleFileSelection(file);
+                    if (attachmentDropdown) {
+                        attachmentDropdown.classList.add('hidden');
+                    }
+                }
+            });
+        }
+        
+        if (filePreviewRemove) {
+            filePreviewRemove.addEventListener('click', () => {
+                this.removeFileUpload();
             });
         }
 
@@ -679,6 +719,107 @@ class ChatSection {
         }
     }
     
+    handleFileSelection(file) {
+        if (file.size > this.maxFileSize) {
+            this.showNotification(`File is too large. Maximum size is ${this.formatFileSize(this.maxFileSize)}`, 'error');
+            return;
+        }
+
+        this.currentFileUpload = file;
+        
+        const filePreview = document.getElementById('file-preview');
+        const filePreviewName = document.getElementById('file-preview-name');
+        const filePreviewSize = document.getElementById('file-preview-size');
+        const filePreviewImage = document.getElementById('file-preview-image');
+        const filePreviewIcon = document.getElementById('file-preview-icon');
+        
+        if (filePreviewName) filePreviewName.textContent = file.name;
+        if (filePreviewSize) filePreviewSize.textContent = this.formatFileSize(file.size);
+        
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                if (filePreviewImage) {
+                    filePreviewImage.style.display = 'block';
+                    filePreviewImage.style.backgroundImage = `url(${e.target.result})`;
+                    filePreviewImage.style.backgroundSize = 'contain';
+                    filePreviewImage.style.backgroundPosition = 'center';
+                    filePreviewImage.style.backgroundRepeat = 'no-repeat';
+                    filePreviewImage.style.height = '150px';
+                }
+                if (filePreviewIcon) filePreviewIcon.style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+        } else {
+            if (filePreviewImage) filePreviewImage.style.display = 'none';
+            if (filePreviewIcon) {
+                filePreviewIcon.style.display = 'block';
+                
+                // Set appropriate icon based on file type
+                const fileTypeIcon = this.getFileTypeIcon(file.type);
+                filePreviewIcon.innerHTML = `<i class="${fileTypeIcon}"></i>`;
+            }
+        }
+        
+        if (filePreview) filePreview.classList.remove('hidden');
+        this.updateSendButton();
+    }
+    
+    removeFileUpload() {
+        this.currentFileUpload = null;
+        
+        const filePreview = document.getElementById('file-preview');
+        const fileUpload = document.getElementById('file-upload');
+        
+        if (filePreview) filePreview.classList.add('hidden');
+        if (fileUpload) fileUpload.value = '';
+        
+        this.updateSendButton();
+    }
+    
+    formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+    
+    getFileTypeIcon(mimeType) {
+        if (mimeType.startsWith('image/')) return 'fas fa-file-image';
+        if (mimeType.startsWith('video/')) return 'fas fa-file-video';
+        if (mimeType.startsWith('audio/')) return 'fas fa-file-audio';
+        if (mimeType.includes('pdf')) return 'fas fa-file-pdf';
+        if (mimeType.includes('word') || mimeType.includes('document')) return 'fas fa-file-word';
+        if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return 'fas fa-file-excel';
+        if (mimeType.includes('powerpoint') || mimeType.includes('presentation')) return 'fas fa-file-powerpoint';
+        if (mimeType.includes('zip') || mimeType.includes('compressed')) return 'fas fa-file-archive';
+        if (mimeType.includes('text/')) return 'fas fa-file-alt';
+        if (mimeType.includes('code') || mimeType.includes('javascript') || mimeType.includes('html') || mimeType.includes('css')) return 'fas fa-file-code';
+        
+        return 'fas fa-file';
+    }
+    
+    updateSendButton() {
+        if (!this.sendButton) return;
+        
+        const hasContent = (this.messageInput && this.messageInput.value.trim().length > 0) || this.currentFileUpload;
+        
+        if (hasContent) {
+            this.sendButton.disabled = false;
+            this.sendButton.classList.add('text-white');
+            this.sendButton.classList.add('bg-[#5865f2]');
+            this.sendButton.classList.add('rounded-full');
+        } else {
+            this.sendButton.disabled = true;
+            this.sendButton.classList.remove('text-white');
+            this.sendButton.classList.remove('bg-[#5865f2]');
+            this.sendButton.classList.remove('rounded-full');
+        }
+    }
+    
     async sendMessage() {
         if (!this.messageInput) {
             console.error('❌ Message input not found');
@@ -686,15 +827,16 @@ class ChatSection {
         }
         
         const content = this.messageInput.value.trim();
-        if (!content) {
-            console.warn('⚠️ No message content to send');
+        if (!content && !this.currentFileUpload) {
+            console.warn('⚠️ No message content or file to send');
             return;
         }
         
         console.log('📤 Attempting to send message:', { 
             content: content.substring(0, 50) + '...', 
             chatType: this.chatType, 
-            targetId: this.targetId 
+            targetId: this.targetId,
+            hasFile: !!this.currentFileUpload
         });
         
         const timestamp = Date.now();
@@ -703,7 +845,6 @@ class ChatSection {
         try {
             this.messageInput.value = '';
             this.resizeTextarea();
-            this.updateSendButton();
             this.sendStopTyping();
             
             if (!window.ChatAPI) {
@@ -713,6 +854,34 @@ class ChatSection {
             }
             
             console.log('✅ ChatAPI available, proceeding with message send...');
+            
+            let attachmentUrl = null;
+            let messageType = 'text';
+            
+            // Handle file upload if present
+            if (this.currentFileUpload) {
+                try {
+                    const formData = new FormData();
+                    formData.append('file', this.currentFileUpload);
+                    
+                    // Show upload progress
+                    this.showNotification('Uploading file...', 'info');
+                    
+                    // Use ChatAPI to upload file
+                    const uploadResponse = await window.ChatAPI.uploadFile(formData);
+                    
+                    if (uploadResponse && uploadResponse.url) {
+                        attachmentUrl = uploadResponse.url;
+                        messageType = this.currentFileUpload.type.startsWith('image/') ? 'image' : 'file';
+                    } else {
+                        throw new Error('Failed to upload file');
+                    }
+                } catch (error) {
+                    console.error('❌ File upload failed:', error);
+                    this.showNotification('Failed to upload file. ' + error.message, 'error');
+                    return;
+                }
+            }
             
             const tempMessage = {
                 id: messageId,
@@ -724,7 +893,8 @@ class ChatSection {
                 sent_at: timestamp,
                 timestamp: timestamp,
                 isLocalOnly: true,
-                messageType: 'text',
+                messageType: messageType,
+                attachment_url: attachmentUrl,
                 _localMessage: true
             };
             
@@ -734,7 +904,10 @@ class ChatSection {
                 tempMessage.roomId = this.targetId;
             }
             
-            const options = {};
+            const options = {
+                messageType: messageType,
+                attachmentUrl: attachmentUrl
+            };
             
             if (this.activeReplyingTo) {
                 tempMessage.reply_message_id = this.activeReplyingTo.messageId;
@@ -748,6 +921,8 @@ class ChatSection {
             
             this.processedMessageIds.add(messageId);
             this.addMessage(tempMessage);
+            this.removeFileUpload();
+            this.updateSendButton();
             
             console.log('🌐 Calling ChatAPI.sendMessage...');
             const response = await window.ChatAPI.sendMessage(this.targetId, content, this.chatType, options);
@@ -784,24 +959,6 @@ class ChatSection {
             this.processedMessageIds.delete(messageId);
             
             this.showNotification('Failed to send message: ' + (error.message || 'Unknown error'), 'error');
-        }
-    }
-    
-    updateSendButton() {
-        if (!this.sendButton) return;
-        
-        const hasContent = this.messageInput && this.messageInput.value.trim().length > 0;
-        
-        if (hasContent) {
-            this.sendButton.disabled = false;
-            this.sendButton.classList.add('text-white');
-            this.sendButton.classList.add('bg-[#5865f2]');
-            this.sendButton.classList.add('rounded-full');
-        } else {
-            this.sendButton.disabled = true;
-            this.sendButton.classList.remove('text-white');
-            this.sendButton.classList.remove('bg-[#5865f2]');
-            this.sendButton.classList.remove('rounded-full');
         }
     }
     
@@ -1122,7 +1279,103 @@ class ChatSection {
         
         const contentElement = document.createElement('div');
         contentElement.className = 'message-main-text text-[#dcddde]';
-        contentElement.innerHTML = this.formatMessageContent(message.content);
+        
+        if (message.content && message.content.trim() !== '') {
+            contentElement.innerHTML = this.formatMessageContent(message.content);
+        }
+        
+        // Handle attachments
+        if (message.attachment_url) {
+            const attachmentContainer = document.createElement('div');
+            attachmentContainer.className = 'message-attachment mt-2';
+            
+            if (message.messageType === 'image' || 
+                (message.attachment_url && 
+                 (/\.(jpeg|jpg|gif|png|webp)$/i.test(message.attachment_url) || 
+                  message.attachment_url.includes('image/')))) {
+                
+                const imageWrapper = document.createElement('div');
+                imageWrapper.className = 'image-attachment cursor-pointer relative';
+                
+                const image = document.createElement('img');
+                image.className = 'max-w-md max-h-96 rounded-lg';
+                image.src = message.attachment_url;
+                image.alt = 'Image attachment';
+                image.loading = 'lazy';
+                image.onerror = function() {
+                    this.onerror = null;
+                    this.src = '/assets/default-avatar.svg';
+                    this.classList.add('w-16', 'h-16');
+                    imageWrapper.classList.add('bg-[#2b2d31]', 'p-3', 'rounded-lg');
+                    
+                    const errorText = document.createElement('div');
+                    errorText.className = 'text-sm text-[#b5bac1] mt-2';
+                    errorText.textContent = 'Image failed to load';
+                    imageWrapper.appendChild(errorText);
+                };
+                
+                image.addEventListener('click', () => {
+                    window.open(message.attachment_url, '_blank');
+                });
+                
+                imageWrapper.appendChild(image);
+                attachmentContainer.appendChild(imageWrapper);
+                
+            } else {
+                // Generic file attachment display
+                const fileLink = document.createElement('a');
+                fileLink.href = message.attachment_url;
+                fileLink.target = '_blank';
+                fileLink.className = 'block no-underline';
+                
+                const fileContainer = document.createElement('div');
+                fileContainer.className = 'bg-[#2b2d31] p-3 rounded-lg inline-flex items-center max-w-md hover:bg-[#36373d] transition-colors';
+                
+                const fileIconWrapper = document.createElement('div');
+                fileIconWrapper.className = 'text-3xl text-[#b5bac1] mr-3';
+                
+                let fileIcon = 'fas fa-file';
+                
+                // Determine appropriate icon based on file extension
+                if (message.attachment_url) {
+                    const extension = message.attachment_url.split('.').pop().toLowerCase();
+                    
+                    if (['doc', 'docx'].includes(extension)) fileIcon = 'fas fa-file-word';
+                    else if (['xls', 'xlsx', 'csv'].includes(extension)) fileIcon = 'fas fa-file-excel';
+                    else if (['ppt', 'pptx'].includes(extension)) fileIcon = 'fas fa-file-powerpoint';
+                    else if (['pdf'].includes(extension)) fileIcon = 'fas fa-file-pdf';
+                    else if (['zip', 'rar', 'tar', 'gz'].includes(extension)) fileIcon = 'fas fa-file-archive';
+                    else if (['txt', 'log', 'md'].includes(extension)) fileIcon = 'fas fa-file-alt';
+                    else if (['js', 'php', 'html', 'css', 'py', 'java', 'cpp', 'cs', 'rb'].includes(extension)) fileIcon = 'fas fa-file-code';
+                    else if (['mp3', 'wav', 'ogg'].includes(extension)) fileIcon = 'fas fa-file-audio';
+                    else if (['mp4', 'avi', 'mov', 'wmv'].includes(extension)) fileIcon = 'fas fa-file-video';
+                }
+                
+                fileIconWrapper.innerHTML = `<i class="${fileIcon}"></i>`;
+                
+                const fileInfoWrapper = document.createElement('div');
+                fileInfoWrapper.className = 'overflow-hidden';
+                
+                const fileName = document.createElement('div');
+                fileName.className = 'text-[#dcddde] font-medium text-sm truncate';
+                fileName.textContent = message.attachment_url.split('/').pop() || 'File';
+                
+                const fileAction = document.createElement('div');
+                fileAction.className = 'text-[#b5bac1] text-xs';
+                fileAction.textContent = 'Click to download';
+                
+                fileInfoWrapper.appendChild(fileName);
+                fileInfoWrapper.appendChild(fileAction);
+                
+                fileContainer.appendChild(fileIconWrapper);
+                fileContainer.appendChild(fileInfoWrapper);
+                
+                fileLink.appendChild(fileContainer);
+                attachmentContainer.appendChild(fileLink);
+            }
+            
+            contentElement.appendChild(attachmentContainer);
+        }
         
         messageElement.appendChild(contentElement);
         

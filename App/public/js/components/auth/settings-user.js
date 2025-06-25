@@ -30,62 +30,40 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function closeUnwantedModals() {
-    // Look for any modal dialogs that shouldn't appear on settings page
     setTimeout(() => {
-        // Try to find the exact Leave Server modal shown in screenshot
-        const exactModalMatch = Array.from(document.querySelectorAll('div[role="dialog"], .modal, [class*="modal"]')).find(modal => 
-            modal.textContent.includes('Leave Server') && 
-            modal.textContent.includes('Are you sure you want to leave this server') &&
-            modal.textContent.includes('You won\'t be able to rejoin this server unless you are re-invited')
-        );
+        const allModals = document.querySelectorAll('div[role="dialog"], .modal, [class*="modal"]');
         
-        if (exactModalMatch) {
-            // Try to find the cancel button or X button
-            const cancelButton = Array.from(exactModalMatch.querySelectorAll('button, a')).find(button => 
-                button.textContent.includes('Cancel') || 
-                button.querySelector('svg')
-            );
+        allModals.forEach(modal => {
+            const modalText = modal.textContent || '';
+            const hasLeaveText = modalText.includes('Leave Server');
+            const hasConfirmText = modalText.includes('Are you sure you want to leave this server');
+            const hasRejoinText = modalText.includes('rejoin this server unless you are re-invited');
             
-            if (cancelButton) {
-                cancelButton.click();
-            } else {
-                // If no cancel button, hide the modal directly
-                exactModalMatch.style.display = 'none';
-                exactModalMatch.style.visibility = 'hidden';
-                exactModalMatch.style.opacity = '0';
-            }
-            
-            // Also remove backdrop/overlay
-            document.querySelectorAll('.modal-backdrop, .modal-overlay, .backdrop, [class*="overlay"]').forEach(element => {
-                element.style.display = 'none';
-                element.style.visibility = 'hidden';
-                element.style.opacity = '0';
-            });
-        }
-        
-        // Look for any modal dialogs that shouldn't appear on settings page
-        const leaveServerModal = document.querySelector('[class*="modal"]:has(h2, h3):has(button:contains("Leave Server"))');
-        if (leaveServerModal) {
-            // Find the close button and click it
-            const closeButton = leaveServerModal.querySelector('button[class*="close"], .modal-close, .close-button, button:has(svg)');
-            if (closeButton) {
-                closeButton.click();
-            } else {
-                // If no close button, try to hide the modal
-                leaveServerModal.style.display = 'none';
+            if (hasLeaveText || hasConfirmText || hasRejoinText) {
+                const buttons = modal.querySelectorAll('button');
                 
-                // Also look for backdrop/overlay
-                const modalBackdrop = document.querySelector('.modal-backdrop, .modal-overlay, .backdrop, .overlay');
-                if (modalBackdrop) {
-                    modalBackdrop.style.display = 'none';
+                let cancelButton = null;
+                for (let btn of buttons) {
+                    const btnText = btn.textContent || '';
+                    if (btnText.includes('Cancel') || btn.querySelector('svg')) {
+                        cancelButton = btn;
+                        break;
+                    }
                 }
-            }
-        }
-        
-        // Also look for any elements containing "Leave Server" text that might be modals
-        document.querySelectorAll('.modal, [class*="modal"], [role="dialog"]').forEach(modal => {
-            if (modal.textContent.includes('Leave Server')) {
-                modal.style.display = 'none';
+                
+                if (cancelButton) {
+                    cancelButton.click();
+                } else {
+                    modal.style.display = 'none';
+                    modal.style.visibility = 'hidden';
+                    modal.style.opacity = '0';
+                }
+                
+                document.querySelectorAll('.modal-backdrop, .modal-overlay, .backdrop, [class*="overlay"]').forEach(element => {
+                    element.style.display = 'none';
+                    element.style.visibility = 'hidden';
+                    element.style.opacity = '0';
+                });
             }
         });
     }, 500);

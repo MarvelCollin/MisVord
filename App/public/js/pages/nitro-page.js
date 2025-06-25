@@ -115,15 +115,8 @@ function initSubscriptionButtons() {
     subscribeButtons.forEach(button => {
         if (button.textContent.includes('Subscribe')) {
             button.addEventListener('click', function() {
-                const card = button.closest('.rounded-lg');
-                let tier = 'basic';
-                let price = 2.99;
-                
-                if (card && card.querySelector('.text-xl').textContent.includes('Nitro') && !card.querySelector('.text-xl').textContent.includes('Basic')) {
-                    tier = 'premium';
-                    price = 9.99;
-                }
-                
+                const tier = 'premium';
+                const price = 9.99;
                 handleSubscription(tier, price);
             });
         }

@@ -814,29 +814,29 @@ button:active {
   margin: 0;
 }
 
-.flex.min-h-screen ~ .leave-server-modal,
-.flex.min-h-screen ~ div[class*="modal"]:has(div:contains("Leave Server")),
-body.settings-page [class*="modal-container"]:has(button:contains("Leave Server")),
+.flex.min-h-screen ~ [role="dialog"],
+.flex.min-h-screen ~ .modal,
+body.settings-page .modal,
+body.settings-page [role="dialog"],
 .settings-page .modal-backdrop {
   display: none !important;
 }
 
-/* Ensure the modal is fully gone */
-.settings-page [aria-label*="Leave Server"],
-.settings-page [role="dialog"]:has(h2:contains("Leave Server")),
-.settings-page div:has(> div > div > div:contains("Leave Server")) {
+[aria-label="Leave Server"],
+div[role="dialog"] [aria-label*="Leave Server"],
+[class*="leave-server"],
+div[role="dialog"] > div > div > h3:first-child:contains("Leave Server"),
+[class*="modal-container"] {
   display: none !important;
   visibility: hidden !important;
   opacity: 0 !important;
   pointer-events: none !important;
 }
 
-/* Target the exact modal shown in screenshot */
-div[role="dialog"]:has(div:contains("Are you sure you want to leave this server")) {
+div[aria-label*="dialog"][class*="modal"] {
   display: none !important;
 }
 
-/* Hide any modals and overlays */
 body.settings-page .modal-backdrop,
 body.settings-page .modal-overlay,
 body.settings-page [class*="overlay"] {

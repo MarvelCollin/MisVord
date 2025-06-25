@@ -6,6 +6,8 @@
   --message-text-color: #dcddde;
   --message-username-color: #f2f3f5;
   --message-timestamp-color: #a3a6aa;
+  --attachment-bg: #2b2d31;
+  --attachment-hover-bg: #36373d;
 }
 
 /* Message container */
@@ -256,4 +258,166 @@ button {
 .highlight-message {
     background-color: rgba(88, 101, 242, 0.2);
     transition: background-color 0.5s ease;
+}
+
+/* Attachment styles */
+.message-attachment {
+    margin-top: 4px;
+    display: inline-block;
+    max-width: 100%;
+}
+
+.image-attachment {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    border-radius: 4px;
+}
+
+.image-attachment img {
+    max-width: 100%;
+    max-height: 300px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: filter 0.2s ease;
+}
+
+.image-attachment img:hover {
+    filter: brightness(0.9);
+}
+
+.image-attachment .download-overlay {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background-color: rgba(0, 0, 0, 0.6);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.image-attachment:hover .download-overlay {
+    opacity: 1;
+}
+
+.file-attachment {
+    background-color: var(--attachment-bg);
+    padding: 12px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    max-width: 320px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.file-attachment:hover {
+    background-color: var(--attachment-hover-bg);
+}
+
+.file-icon {
+    font-size: 24px;
+    margin-right: 12px;
+    color: #b5bac1;
+}
+
+.file-info {
+    flex: 1;
+    overflow: hidden;
+}
+
+.file-name {
+    color: var(--message-text-color);
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.file-size {
+    color: #a3a6aa;
+    font-size: 12px;
+}
+
+/* File upload preview */
+#file-preview {
+    background-color: var(--attachment-bg);
+    padding: 12px;
+    border-radius: 4px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    max-width: 320px;
+}
+
+#file-preview-image {
+    max-height: 150px;
+    max-width: 100%;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    background-position: center;
+    background-size: contain;
+    background-repeat: no-repeat;
+}
+
+#file-preview-name {
+    color: var(--message-text-color);
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#file-preview-size {
+    color: #a3a6aa;
+    font-size: 12px;
+}
+
+/* Upload dropdown */
+#attachment-dropdown {
+    background-color: #18191c;
+    border-radius: 4px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    z-index: 50;
+}
+
+#attachment-dropdown .upload-option {
+    padding: 10px 16px;
+    color: #b5bac1;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+}
+
+#attachment-dropdown .upload-option:hover {
+    background-color: #5865f2;
+    color: #fff;
+}
+
+#attachment-dropdown .upload-option i {
+    margin-right: 8px;
+}
+
+/* Progress bar styles */
+.upload-progress {
+    width: 100%;
+    height: 4px;
+    background-color: #36393f;
+    border-radius: 2px;
+    margin-top: 8px;
+    overflow: hidden;
+}
+
+.upload-progress-bar {
+    height: 100%;
+    background-color: #5865f2;
+    width: 0%;
+    transition: width 0.3s linear;
 }

@@ -408,35 +408,42 @@ include dirname(dirname(__DIR__)) . '/views/layout/main-app.php';
 ?>
 
 <script>
-// Fix for unexpected Leave Server modal
 document.addEventListener('DOMContentLoaded', function() {
-    // Remove any "Leave Server" modals
     function removeLeaveServerModals() {
-        // Look for the specific modal from the screenshot
-        const modalTexts = ['Leave Server', 'Are you sure you want to leave this server', 'You won\'t be able to rejoin this server unless you are re-invited'];
+        const modalTexts = ['Leave Server', 'Are you sure', 'rejoin', 'Cancel'];
         
-        // Query all potential modals
-        document.querySelectorAll('div[role="dialog"], .modal, [class*="modal"]').forEach(modal => {
-            // Check if this modal contains the text we're looking for
-            if (modalTexts.every(text => modal.textContent.includes(text))) {
-                console.log('Found and removing unwanted Leave Server modal');
+        const allOverlays = document.querySelectorAll('.backdrop, .overlay, .modal-overlay, .modal-backdrop');
+        allOverlays.forEach(overlay => {
+            overlay.style.display = 'none';
+            overlay.style.visibility = 'hidden';
+            overlay.style.opacity = '0';
+            overlay.style.pointerEvents = 'none';
+        });
+        
+        const allModals = document.querySelectorAll('div[role="dialog"], .modal, [class*="modal"], .modal-content');
+        allModals.forEach(modal => {
+            if (!modal || !modal.textContent) return;
+            
+            let foundKeywords = 0;
+            modalTexts.forEach(text => {
+                if (modal.textContent.indexOf(text) >= 0) {
+                    foundKeywords++;
+                }
+            });
+            
+            if (foundKeywords >= 2) {
                 modal.remove();
-                
-                // Also remove any backdrop/overlay
-                document.querySelectorAll('.modal-backdrop, .modal-overlay, .backdrop, [class*="overlay"]').forEach(element => {
-                    element.remove();
-                });
             }
         });
         
-        // Re-enable scrolling on body if it was disabled
         document.body.style.overflow = '';
         document.body.classList.remove('modal-open');
     }
     
-    // Try immediately and after a short delay
     removeLeaveServerModals();
+    setTimeout(removeLeaveServerModals, 100);
     setTimeout(removeLeaveServerModals, 500);
     setTimeout(removeLeaveServerModals, 1000);
+    setTimeout(removeLeaveServerModals, 2000);
 });
 </script>
