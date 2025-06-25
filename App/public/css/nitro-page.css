@@ -1,7 +1,8 @@
 .nitro-faq-answer {
     max-height: 0;
     overflow: hidden;
-    transition: max-height 0.3s ease;
+    transition: max-height 0.5s ease-in-out;
+    transition-delay: 0.1s;
 }
 
 .nitro-faq-answer:not(.hidden) {
@@ -9,7 +10,8 @@
 }
 
 .nitro-faq-item {
-    transition: all 0.3s ease;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transition-delay: 0.05s;
 }
 
 .nitro-faq-item:hover {
@@ -23,17 +25,53 @@
 }
 
 @keyframes floating-particles {
-    0% { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0; }
-    10% { opacity: 1; }
-    50% { transform: translateY(-200px) translateX(100px) rotate(180deg); opacity: 0.8; }
-    90% { opacity: 1; }
-    100% { transform: translateY(-400px) translateX(-50px) rotate(360deg); opacity: 0; }
+    0% { 
+        transform: translateY(0) translateX(0) rotate(0deg); 
+        opacity: 0; 
+    }
+    10% { 
+        opacity: 0.6; 
+    }
+    15% { 
+        opacity: 1; 
+    }
+    50% { 
+        transform: translateY(-200px) translateX(100px) rotate(180deg); 
+        opacity: 0.8; 
+    }
+    85% { 
+        opacity: 0.8; 
+    }
+    90% { 
+        opacity: 0.4; 
+    }
+    100% { 
+        transform: translateY(-400px) translateX(-50px) rotate(360deg); 
+        opacity: 0; 
+    }
 }
 
 @keyframes wave-animation {
-    0% { transform: translateX(-100%) translateY(0); }
-    50% { transform: translateX(0) translateY(-10px); }
-    100% { transform: translateX(100%) translateY(0); }
+    0% { 
+        transform: translateZ(0) translateX(-100%) translateY(0); 
+        opacity: 0.3; 
+    }
+    25% { 
+        transform: translateZ(0) translateX(-50%) translateY(-5px); 
+        opacity: 0.6; 
+    }
+    50% { 
+        transform: translateZ(0) translateX(0) translateY(-10px); 
+        opacity: 1; 
+    }
+    75% { 
+        transform: translateZ(0) translateX(50%) translateY(-5px); 
+        opacity: 0.6; 
+    }
+    100% { 
+        transform: translateZ(0) translateX(100%) translateY(0); 
+        opacity: 0.3; 
+    }
 }
 
 @keyframes neon-glow {
@@ -43,10 +81,36 @@
 }
 
 @keyframes magical-sparkle {
-    0% { transform: scale(0) rotate(0deg); opacity: 0; }
-    20% { transform: scale(1) rotate(90deg); opacity: 1; }
-    80% { transform: scale(1) rotate(270deg); opacity: 1; }
-    100% { transform: scale(0) rotate(360deg); opacity: 0; }
+    0% { 
+        transform: scale(0) rotate(0deg); 
+        opacity: 0; 
+    }
+    10% { 
+        opacity: 0.4; 
+    }
+    20% { 
+        transform: scale(1) rotate(90deg); 
+        opacity: 1; 
+    }
+    40% { 
+        transform: scale(1.1) rotate(180deg); 
+        opacity: 1; 
+    }
+    60% { 
+        transform: scale(1) rotate(270deg); 
+        opacity: 1; 
+    }
+    80% { 
+        transform: scale(0.9) rotate(330deg); 
+        opacity: 0.8; 
+    }
+    90% { 
+        opacity: 0.4; 
+    }
+    100% { 
+        transform: scale(0) rotate(360deg); 
+        opacity: 0; 
+    }
 }
 
 @keyframes bounce-in {
@@ -127,8 +191,14 @@
     right: 0;
     height: 150px;
     background: linear-gradient(to bottom, transparent, rgba(35, 39, 42, 0.9) 80%);
-    z-index: 1;
+    z-index: 2;
     pointer-events: none;
+}
+
+.dynamic-background-gradient {
+    will-change: background;
+    backface-visibility: hidden;
+    transform: translateZ(0);
 }
 
 .nitro-hero-section .text-6xl {
@@ -147,20 +217,32 @@
     height: 6px;
     background: radial-gradient(circle, rgba(139, 92, 246, 0.8), transparent);
     border-radius: 50%;
-    animation: floating-particles 8s linear infinite;
+    animation: floating-particles 10s linear infinite;
     pointer-events: none;
 }
 
 .floating-particle:nth-child(2n) {
     background: radial-gradient(circle, rgba(59, 130, 246, 0.8), transparent);
-    animation-delay: -2s;
-    animation-duration: 10s;
+    animation-delay: -3s;
+    animation-duration: 12s;
 }
 
 .floating-particle:nth-child(3n) {
     background: radial-gradient(circle, rgba(236, 72, 153, 0.8), transparent);
-    animation-delay: -4s;
-    animation-duration: 12s;
+    animation-delay: -6s;
+    animation-duration: 14s;
+}
+
+.floating-particle:nth-child(4n) {
+    background: radial-gradient(circle, rgba(16, 185, 129, 0.8), transparent);
+    animation-delay: -9s;
+    animation-duration: 16s;
+}
+
+.floating-particle:nth-child(5n) {
+    background: radial-gradient(circle, rgba(245, 158, 11, 0.8), transparent);
+    animation-delay: -12s;
+    animation-duration: 18s;
 }
 
 .wave-effect {
@@ -170,7 +252,11 @@
     width: 200%;
     height: 100px;
     background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.1), transparent);
-    animation: wave-animation 6s ease-in-out infinite;
+    animation: wave-animation 8s ease-in-out infinite;
+    animation-delay: 1.5s;
+    will-change: transform;
+    backface-visibility: hidden;
+    transform: translateZ(0);
 }
 
 @keyframes shimmer {
@@ -225,7 +311,8 @@
 }
 
 .nitro-card-hover {
-    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    transition-delay: 0.1s;
     position: relative;
     z-index: 10;
     overflow: hidden;
@@ -234,6 +321,7 @@
 .nitro-card-hover:hover {
     transform: translateY(-12px) scale(1.03) rotateX(5deg);
     box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5), 0 0 30px rgba(139, 92, 246, 0.3);
+    transition-delay: 0s;
 }
 
 .nitro-card-hover::before {
@@ -277,17 +365,20 @@
 .nitro-subscribe-btn {
     position: relative;
     overflow: hidden;
-    transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    transition-delay: 0.05s;
     background: linear-gradient(45deg, #8b5cf6, #3b82f6, #ec4899, #8b5cf6);
     background-size: 400% 400%;
-    animation: morphing-gradient 8s ease infinite;
+    animation: morphing-gradient 10s ease infinite;
+    animation-delay: 1s;
     z-index: 1;
 }
 
 .nitro-subscribe-btn:hover {
     transform: translateY(-3px) scale(1.05);
     box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4), 0 0 25px rgba(139, 92, 246, 0.5);
-    animation-duration: 4s;
+    animation-duration: 5s;
+    transition-delay: 0s;
 }
 
 .nitro-subscribe-btn::after {
@@ -468,12 +559,14 @@
 .scroll-reveal {
     opacity: 0;
     transform: translateY(50px);
-    transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 1s cubic-bezier(0.4, 0, 0.2, 1);
+    transition-delay: 0.1s;
 }
 
 .scroll-reveal.revealed {
     opacity: 1;
     transform: translateY(0);
+    transition-delay: 0s;
 }
 
 .scroll-reveal.slide-left {

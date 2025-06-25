@@ -51,10 +51,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (!friendsList) return;
         
-        // Show loading state
         friendsList.innerHTML = generateSkeletonItems(5);
-        
-        // Use the global FriendAPI to get friends
         if (window.FriendAPI) {
             window.FriendAPI.getFriends()
                 .then(friends => {
@@ -203,7 +200,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return div.innerHTML;
     }
 
-    // Initialize event listeners
     const newDirectMessageBtn = document.getElementById('new-direct-message-btn');
     const closeBtn = document.getElementById('close-new-direct-modal');
     const cancelBtn = document.getElementById('cancel-new-direct');

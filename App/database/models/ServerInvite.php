@@ -29,12 +29,10 @@ class ServerInvite extends Model {
     }
 
     public function isValid() {
-        // If expires_at is null or empty, the invite is always valid
         if (empty($this->expires_at) || is_null($this->expires_at) || $this->expires_at === 'null') {
             return true;
         }
         
-        // Check if the expiration time is valid and not in the past
         $expirationTime = strtotime($this->expires_at);
         if ($expirationTime === false || $expirationTime < time()) {
             return false;
@@ -44,8 +42,6 @@ class ServerInvite extends Model {
     }
 
     public function incrementUses() {
-        // In the current schema, there's no 'uses' column
-        // This method exists for future compatibility
         return true;
     }
 

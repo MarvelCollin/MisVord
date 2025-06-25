@@ -93,5 +93,14 @@ function getToastIcon(type) {
     }
 }
 
-// Make it globally available
-window.showToast = showToast;
+if (typeof window !== 'undefined') {
+    window.showToast = showToast;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof window !== 'undefined') {
+        window.showToast = showToast;
+    }
+});
+
+export { showToast as default };

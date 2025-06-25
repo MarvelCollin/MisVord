@@ -14,23 +14,17 @@ function loadScript(src, type = '', async = false) {
 
 async function loadVoiceScripts() {
   try {
-    // First load the VideoSDK from CDN
     if (!window.VideoSDK) {
       console.log("Loading VideoSDK from CDN");
       await loadScript('https://sdk.videosdk.live/js-sdk/0.2.7/videosdk.js');
       console.log("VideoSDK loaded successfully");
     }
     
-    // Skip VideoSDK manager for now due to ES6 module compatibility issues
-    // The basic voice functionality should work with just the CDN VideoSDK
     console.log("Skipping VideoSDK manager (ES6 module compatibility issues)");
     
-    // Then load voice manager
     console.log("Loading voice manager");
     await loadScript('/public/js/components/voice/voice-manager.js?v=' + Date.now());
     console.log("Voice manager loaded successfully");
-    
-    // Note: Voice UI is now handled directly in voice-section.php, no separate JS file needed
     
     return true;
   } catch (error) {
@@ -42,13 +36,11 @@ async function loadVoiceScripts() {
 document.addEventListener("DOMContentLoaded", function () {
   console.log("DOM content loaded event triggered in server-page.js");
   
-  // Check if we're on a voice channel page
   const isVoicePage = window.location.href.includes('type=voice');
   if (isVoicePage) {
     console.log("Detected voice channel page, initializing voice page");
     initVoicePage();
   } else {
-    // Regular server page initialization
     initServerPage();
   }
   

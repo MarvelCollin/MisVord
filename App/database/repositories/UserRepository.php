@@ -333,7 +333,6 @@ class UserRepository extends Repository {
         $query = new Query();
         $date = date('Y-m-d H:i:s', strtotime("-$hours hours"));
         
-        // Exclude bots from activity statistics
         $result = $query->table(User::getTable())
             ->where('updated_at', '>=', $date)
             ->where('status', '!=', 'bot')

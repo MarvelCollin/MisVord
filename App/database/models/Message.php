@@ -30,7 +30,6 @@ class Message extends Model {
         
         error_log("Found " . count($results) . " messages for channel $channelId");
         
-        // Return messages in chronological order (oldest first)
         return array_reverse($results);
     }
       public static function getRecentForChannel($channelId, $limit = 10) {

@@ -276,7 +276,6 @@ class VideoSDKManager {
     setupEventHandlers() {
         if (!this.meeting) return;
         
-        // Define events based on SDK version
         let standardEvents = [
             "meeting-joined",
             "meeting-left",
@@ -291,7 +290,6 @@ class VideoSDKManager {
             "livestream-stopped"
         ];
         
-        // Add version-specific events
         if (this.sdkVersion === "0.2.x" || this.sdkVersion.startsWith("0.2")) {
             standardEvents = standardEvents.concat([
                 "hls-state-changed",
@@ -301,7 +299,6 @@ class VideoSDKManager {
             ]);
         }
         
-        // These events might not be supported in all versions
         const advancedEvents = [
             "device-changed",
             "stream-paused",
@@ -310,12 +307,10 @@ class VideoSDKManager {
             "resumed-all-streams"
         ];
         
-        // Try to register standard events
         standardEvents.forEach(eventName => {
             this.registerEventHandler(eventName);
         });
         
-        // Try to register advanced events only if they're supported
         advancedEvents.forEach(eventName => {
             try {
                 this.registerEventHandler(eventName);
@@ -327,8 +322,6 @@ class VideoSDKManager {
     
     registerEventHandler(eventName) {
         try {
-            // Check if the event is supported by trying to register a dummy handler first
-            // This is safer than trying to check the SDK's event list directly
             const isEventSupported = this.isEventSupported(eventName);
             
             if (!isEventSupported) {
@@ -355,22 +348,17 @@ class VideoSDKManager {
             });
         } catch (error) {
             this.logError(`Failed to register event handler for ${eventName}:`, error);
-            // Don't throw the error, just log it and continue
         }
     }
     
     isEventSupported(eventName) {
         try {
-            // Try to register a dummy handler that does nothing
             const dummyHandler = () => {};
             this.meeting.on(eventName, dummyHandler);
             
-            // If we get here, the event is supported
-            // Now remove the dummy handler to clean up
             this.meeting.off(eventName, dummyHandler);
             return true;
         } catch (error) {
-            // If we get an error, the event is not supported
             return false;
         }
     }

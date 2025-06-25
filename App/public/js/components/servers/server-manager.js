@@ -1,6 +1,4 @@
 import { showToast } from '../../core/ui/toast.js';
-// Using window.serverAPI instead of import
-// import serverAPI from '../../api/server-api.js';
 
 document.addEventListener('DOMContentLoaded', function() {
     initServerManager();

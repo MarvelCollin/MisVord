@@ -1,22 +1,22 @@
 document.addEventListener('DOMContentLoaded', function() {
-    initNitroPage();
+    setTimeout(() => {
+        initNitroPage();
+    }, 200);
 });
 
 function initNitroPage() {
-    initCodeInput();
-    initRedeemButton();
-    initSubscriptionButtons();
-
-    checkUserNitroStatus();
-    initHoverEffects();
-    initFeatureInteractions();
-    initScrollAnimations();
-    initFloatingParticles();
-    initDynamicBackgrounds();
-    initMagicalEffects();
-    initCounterAnimations();
-    initWaveEffects();
-
+    setTimeout(() => initCodeInput(), 100);
+    setTimeout(() => initRedeemButton(), 200);
+    setTimeout(() => initSubscriptionButtons(), 300);
+    setTimeout(() => checkUserNitroStatus(), 400);
+    setTimeout(() => initHoverEffects(), 500);
+    setTimeout(() => initFeatureInteractions(), 600);
+    setTimeout(() => initScrollAnimations(), 700);
+    setTimeout(() => initFloatingParticles(), 800);
+    setTimeout(() => initDynamicBackgrounds(), 900);
+    setTimeout(() => initMagicalEffects(), 1000);
+    setTimeout(() => initCounterAnimations(), 1100);
+    setTimeout(() => initWaveEffects(), 1200);
 }
 
 function initFloatingParticles() {
@@ -25,10 +25,10 @@ function initFloatingParticles() {
 
     setInterval(() => {
         createFloatingParticle(heroSection);
-    }, 1000);
+    }, 2500);
 
     for (let i = 0; i < 15; i++) {
-        setTimeout(() => createFloatingParticle(heroSection), i * 400 + Math.random() * 300);
+        setTimeout(() => createFloatingParticle(heroSection), i * 800 + Math.random() * 600);
     }
 }
 
@@ -36,12 +36,23 @@ function createFloatingParticle(container) {
     const particle = document.createElement('div');
     particle.className = 'floating-particle';
     particle.style.left = Math.random() * 100 + '%';
-    particle.style.animationDelay = Math.random() * 2 + 's';
+    particle.style.animationDelay = Math.random() * 3 + 's';
+    particle.style.opacity = '0';
     container.appendChild(particle);
+    
+    setTimeout(() => {
+        particle.style.transition = 'opacity 0.5s ease-in-out';
+        particle.style.opacity = '1';
+    }, 100);
 
     setTimeout(() => {
         if (particle.parentNode) {
-            particle.parentNode.removeChild(particle);
+            particle.style.opacity = '0';
+            setTimeout(() => {
+                if (particle.parentNode) {
+                    particle.parentNode.removeChild(particle);
+                }
+            }, 500);
         }
     }, 12000);
 }
@@ -53,17 +64,19 @@ function initScrollAnimations() {
     };
 
     const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
+        entries.forEach((entry, index) => {
             if (entry.isIntersecting) {
-                entry.target.classList.add('revealed');
-                
-                if (entry.target.classList.contains('pricing-card')) {
-                    animatePricingCard(entry.target);
-                }
-                
-                if (entry.target.classList.contains('perk-item')) {
-                    animatePerkItem(entry.target);
-                }
+                setTimeout(() => {
+                    entry.target.classList.add('revealed');
+                    
+                    if (entry.target.classList.contains('pricing-card')) {
+                        setTimeout(() => animatePricingCard(entry.target), 200);
+                    }
+                    
+                    if (entry.target.classList.contains('perk-item')) {
+                        setTimeout(() => animatePerkItem(entry.target), 300);
+                    }
+                }, index * 150);
             }
         });
     }, observerOptions);
@@ -78,7 +91,7 @@ function initScrollAnimations() {
         }
         setTimeout(() => {
             observer.observe(el);
-        }, index * 100);
+        }, index * 200);
     });
 }
 
@@ -86,14 +99,15 @@ function animatePricingCard(card) {
     const features = card.querySelectorAll('li');
     features.forEach((feature, index) => {
         setTimeout(() => {
+            feature.style.transition = 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
             feature.style.transform = 'translateX(10px)';
             feature.style.opacity = '1';
             feature.style.color = '#8b5cf6';
             setTimeout(() => {
                 feature.style.transform = '';
                 feature.style.color = '';
-            }, 300);
-        }, (index * 150) + 200);
+            }, 400);
+        }, (index * 200) + 300);
     });
 }
 
@@ -101,11 +115,11 @@ function animatePerkItem(item) {
     const icon = item.querySelector('i');
     if (icon) {
         setTimeout(() => {
-            icon.style.animation = 'magical-sparkle 1s ease-out';
+            icon.style.animation = 'magical-sparkle 1.2s ease-out';
             setTimeout(() => {
                 icon.style.animation = '';
-            }, 1000);
-        }, 300);
+            }, 1200);
+        }, 400);
     }
 }
 
@@ -117,39 +131,97 @@ function initDynamicBackgrounds() {
     waveElement.className = 'wave-effect';
     heroSection.appendChild(waveElement);
 
-    document.addEventListener('mousemove', (e) => {
-        const mouseX = e.clientX / window.innerWidth;
-        const mouseY = e.clientY / window.innerHeight;
-        
-        const cards = document.querySelectorAll('.nitro-card-hover');
-        cards.forEach(card => {
-            const rect = card.getBoundingClientRect();
-            const cardCenterX = rect.left + rect.width / 2;
-            const cardCenterY = rect.top + rect.height / 2;
-            
-            const deltaX = (e.clientX - cardCenterX) / 20;
-            const deltaY = (e.clientY - cardCenterY) / 20;
-            
-            if (rect.top < window.innerHeight && rect.bottom > 0) {
-                card.style.transform = `perspective(1000px) rotateY(${deltaX * 0.1}deg) rotateX(${-deltaY * 0.1}deg)`;
-            }
-        });
-        
-        heroSection.style.background = `
+    let mouseX = 0.5;
+    let mouseY = 0.5;
+    let targetX = 0.5;
+    let targetY = 0.5;
+    let animationId;
+    let lastUpdate = 0;
+
+    const backgroundGradient = document.createElement('div');
+    backgroundGradient.className = 'dynamic-background-gradient';
+    backgroundGradient.style.cssText = `
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 0;
+        opacity: 0.8;
+        transition: opacity 0.3s ease;
+    `;
+    heroSection.insertBefore(backgroundGradient, heroSection.firstChild);
+
+    function updateBackground() {
+        const now = performance.now();
+        if (now - lastUpdate < 16) {
+            animationId = requestAnimationFrame(updateBackground);
+            return;
+        }
+        lastUpdate = now;
+
+        mouseX += (targetX - mouseX) * 0.1;
+        mouseY += (targetY - mouseY) * 0.1;
+
+        backgroundGradient.style.background = `
             radial-gradient(circle at ${mouseX * 100}% ${mouseY * 100}%, 
-            rgba(139, 92, 246, 0.3) 0%, 
-            rgba(59, 130, 246, 0.2) 30%, 
-            rgba(236, 72, 153, 0.1) 60%, 
-            transparent 80%)
+            rgba(139, 92, 246, 0.4) 0%, 
+            rgba(59, 130, 246, 0.25) 25%, 
+            rgba(236, 72, 153, 0.15) 50%, 
+            rgba(16, 185, 129, 0.1) 75%, 
+            transparent 90%)
         `;
+
+        if (Math.abs(targetX - mouseX) > 0.001 || Math.abs(targetY - mouseY) > 0.001) {
+            animationId = requestAnimationFrame(updateBackground);
+        }
+    }
+
+    let cardAnimationTimer;
+    document.addEventListener('mousemove', (e) => {
+        targetX = e.clientX / window.innerWidth;
+        targetY = e.clientY / window.innerHeight;
+
+        if (!animationId) {
+            animationId = requestAnimationFrame(updateBackground);
+        }
+
+        clearTimeout(cardAnimationTimer);
+        cardAnimationTimer = setTimeout(() => {
+            const cards = document.querySelectorAll('.nitro-card-hover');
+            cards.forEach(card => {
+                const rect = card.getBoundingClientRect();
+                const cardCenterX = rect.left + rect.width / 2;
+                const cardCenterY = rect.top + rect.height / 2;
+                
+                const deltaX = (e.clientX - cardCenterX) / 25;
+                const deltaY = (e.clientY - cardCenterY) / 25;
+                
+                if (rect.top < window.innerHeight && rect.bottom > 0) {
+                    card.style.transition = 'transform 0.2s ease-out';
+                    card.style.transform = `perspective(1000px) rotateY(${deltaX * 0.08}deg) rotateX(${-deltaY * 0.08}deg)`;
+                }
+            });
+        }, 8);
+    });
+
+    document.addEventListener('mouseleave', () => {
+        targetX = 0.5;
+        targetY = 0.5;
+        if (!animationId) {
+            animationId = requestAnimationFrame(updateBackground);
+        }
     });
 }
 
 function initMagicalEffects() {
     const sparkleElements = document.querySelectorAll('.nitro-card-hover, .nitro-subscribe-btn, #redeem-code-btn');
     
-    sparkleElements.forEach(element => {
-        element.addEventListener('click', createBurstEffect);
+    sparkleElements.forEach((element, index) => {
+        setTimeout(() => {
+            element.addEventListener('click', createBurstEffect);
+        }, index * 100);
     });
 }
 
@@ -169,16 +241,21 @@ function createSparkleEffect(e) {
             sparkle.style.borderRadius = '50%';
             sparkle.style.pointerEvents = 'none';
             sparkle.style.zIndex = '1000';
-            sparkle.style.animation = 'magical-sparkle 0.8s ease-out forwards';
+            sparkle.style.opacity = '0';
+            sparkle.style.animation = 'magical-sparkle 1s ease-out forwards';
             
             e.target.appendChild(sparkle);
+            
+            setTimeout(() => {
+                sparkle.style.opacity = '1';
+            }, 50);
             
             setTimeout(() => {
                 if (sparkle.parentNode) {
                     sparkle.parentNode.removeChild(sparkle);
                 }
-            }, 800);
-        }, i * 100);
+            }, 1000);
+        }, i * 150);
     }
 }
 
@@ -188,52 +265,63 @@ function createBurstEffect(e) {
     const centerY = rect.height / 2;
     
     for (let i = 0; i < 12; i++) {
-        const particle = document.createElement('div');
-        const angle = (i / 12) * Math.PI * 2;
-        const velocity = 50 + Math.random() * 30;
-        
-        particle.style.position = 'absolute';
-        particle.style.left = centerX + 'px';
-        particle.style.top = centerY + 'px';
-        particle.style.width = '6px';
-        particle.style.height = '6px';
-        particle.style.background = `hsl(${Math.random() * 60 + 260}, 70%, 60%)`;
-        particle.style.borderRadius = '50%';
-        particle.style.pointerEvents = 'none';
-        particle.style.zIndex = '1000';
-        
-        e.target.appendChild(particle);
-        
-        const endX = centerX + Math.cos(angle) * velocity;
-        const endY = centerY + Math.sin(angle) * velocity;
-        
-        particle.animate([
-            { transform: `translate(0, 0) scale(1)`, opacity: 1 },
-            { transform: `translate(${endX - centerX}px, ${endY - centerY}px) scale(0)`, opacity: 0 }
-        ], {
-            duration: 600,
-            easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)'
-        }).onfinish = () => {
-            if (particle.parentNode) {
-                particle.parentNode.removeChild(particle);
-            }
-        };
+        setTimeout(() => {
+            const particle = document.createElement('div');
+            const angle = (i / 12) * Math.PI * 2;
+            const velocity = 50 + Math.random() * 30;
+            
+            particle.style.position = 'absolute';
+            particle.style.left = centerX + 'px';
+            particle.style.top = centerY + 'px';
+            particle.style.width = '6px';
+            particle.style.height = '6px';
+            particle.style.background = `hsl(${Math.random() * 60 + 260}, 70%, 60%)`;
+            particle.style.borderRadius = '50%';
+            particle.style.pointerEvents = 'none';
+            particle.style.zIndex = '1000';
+            particle.style.opacity = '0';
+            
+            e.target.appendChild(particle);
+            
+            setTimeout(() => {
+                particle.style.opacity = '1';
+            }, 20);
+            
+            const endX = centerX + Math.cos(angle) * velocity;
+            const endY = centerY + Math.sin(angle) * velocity;
+            
+            particle.animate([
+                { transform: `translate(0, 0) scale(1)`, opacity: 1 },
+                { transform: `translate(${endX - centerX}px, ${endY - centerY}px) scale(0)`, opacity: 0 }
+            ], {
+                duration: 800,
+                easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)'
+            }).onfinish = () => {
+                if (particle.parentNode) {
+                    particle.parentNode.removeChild(particle);
+                }
+            };
+        }, i * 80);
     }
 }
 
 function initCounterAnimations() {
     const priceElements = document.querySelectorAll('[id*="price"]');
     
-    priceElements.forEach(element => {
+    priceElements.forEach((element, index) => {
         const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
-                    animateCounter(entry.target);
+                    setTimeout(() => {
+                        animateCounter(entry.target);
+                    }, 500);
                     observer.unobserve(entry.target);
                 }
             });
         });
-        observer.observe(element);
+        setTimeout(() => {
+            observer.observe(element);
+        }, index * 200);
     });
 }
 
@@ -243,8 +331,8 @@ function animateCounter(element) {
     
     if (numbers) {
         const finalNumber = parseFloat(numbers[0]);
-        const duration = 1500;
-        const steps = 60;
+        const duration = 2000;
+        const steps = 80;
         const increment = finalNumber / steps;
         let currentNumber = 0;
         let step = 0;
@@ -266,10 +354,14 @@ function animateCounter(element) {
 function initWaveEffects() {
     const containers = document.querySelectorAll('.bg-discord-light, .bg-discord-darker');
     
-    containers.forEach(container => {
-        container.addEventListener('mouseenter', function(e) {
-            createRippleEffect(e, container);
-        });
+    containers.forEach((container, index) => {
+        setTimeout(() => {
+            container.addEventListener('mouseenter', function(e) {
+                setTimeout(() => {
+                    createRippleEffect(e, container);
+                }, 100);
+            });
+        }, index * 100);
     });
 }
 
@@ -288,16 +380,20 @@ function createRippleEffect(e, container) {
     ripple.style.pointerEvents = 'none';
     ripple.style.zIndex = '1';
     ripple.style.transform = 'scale(0)';
-    ripple.style.opacity = '1';
+    ripple.style.opacity = '0';
     
     container.style.position = 'relative';
     container.appendChild(ripple);
+    
+    setTimeout(() => {
+        ripple.style.opacity = '1';
+    }, 20);
     
     ripple.animate([
         { transform: 'scale(0)', opacity: 1 },
         { transform: 'scale(1)', opacity: 0 }
     ], {
-        duration: 800,
+        duration: 1000,
         easing: 'ease-out'
     }).onfinish = () => {
         if (ripple.parentNode) {
@@ -305,8 +401,6 @@ function createRippleEffect(e, container) {
         }
     };
 }
-
-
 
 function initCodeInput() {
     const codeInput = document.getElementById('nitro-code-input');
@@ -331,29 +425,39 @@ function initCodeInput() {
         
         if (redeemBtn) {
             const isValidCode = value.length >= 10;
-            redeemBtn.disabled = !isValidCode;
             
-            if (isValidCode) {
-                redeemBtn.classList.add('animate-pulse');
-                if (iconElement) {
-                    iconElement.style.color = '#8b5cf6';
-                    iconElement.style.animation = 'magical-sparkle 1s ease-out';
+            setTimeout(() => {
+                redeemBtn.disabled = !isValidCode;
+                
+                if (isValidCode) {
+                    setTimeout(() => {
+                        redeemBtn.classList.add('animate-pulse');
+                        if (iconElement) {
+                            iconElement.style.transition = 'all 0.5s ease-in-out';
+                            iconElement.style.color = '#8b5cf6';
+                            iconElement.style.animation = 'magical-sparkle 1.5s ease-out';
+                        }
+                        if (container) {
+                            container.style.transition = 'all 0.5s ease-in-out';
+                            container.style.boxShadow = '0 0 30px rgba(139, 92, 246, 0.6)';
+                        }
+                    }, 200);
+                    
+                    setTimeout(() => {
+                        redeemBtn.classList.remove('animate-pulse');
+                        if (iconElement) iconElement.style.animation = '';
+                    }, 1500);
+                } else {
+                    if (iconElement) {
+                        iconElement.style.transition = 'all 0.3s ease-in-out';
+                        iconElement.style.color = '';
+                    }
+                    if (container) {
+                        container.style.transition = 'all 0.3s ease-in-out';
+                        container.style.boxShadow = '';
+                    }
                 }
-                if (container) {
-                    container.style.boxShadow = '0 0 30px rgba(139, 92, 246, 0.6)';
-                }
-                setTimeout(() => {
-                    redeemBtn.classList.remove('animate-pulse');
-                    if (iconElement) iconElement.style.animation = '';
-                }, 1000);
-            } else {
-                if (iconElement) {
-                    iconElement.style.color = '';
-                }
-                if (container) {
-                    container.style.boxShadow = '';
-                }
-            }
+            }, 150);
         }
     });
 
@@ -366,26 +470,37 @@ function initCodeInput() {
         codeInput.value = cleanedText;
         codeInput.dispatchEvent(event);
         
-        createBurstEffect({ target: codeInput.parentElement });
+        setTimeout(() => {
+            createBurstEffect({ target: codeInput.parentElement });
+        }, 200);
     });
     
     codeInput.addEventListener('focus', function() {
         const container = document.getElementById('code-input-container');
         if (container) {
-            container.style.transform = 'scale(1.03)';
-            container.style.boxShadow = '0 15px 35px rgba(139, 92, 246, 0.4)';
-            createRippleEffect({ 
-                clientX: container.getBoundingClientRect().left + container.offsetWidth / 2,
-                clientY: container.getBoundingClientRect().top + container.offsetHeight / 2
-            }, container);
+            setTimeout(() => {
+                container.style.transition = 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+                container.style.transform = 'scale(1.03)';
+                container.style.boxShadow = '0 15px 35px rgba(139, 92, 246, 0.4)';
+                
+                setTimeout(() => {
+                    createRippleEffect({ 
+                        clientX: container.getBoundingClientRect().left + container.offsetWidth / 2,
+                        clientY: container.getBoundingClientRect().top + container.offsetHeight / 2
+                    }, container);
+                }, 200);
+            }, 100);
         }
     });
     
     codeInput.addEventListener('blur', function() {
         const container = document.getElementById('code-input-container');
         if (container) {
-            container.style.transform = '';
-            container.style.boxShadow = '';
+            setTimeout(() => {
+                container.style.transition = 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+                container.style.transform = '';
+                container.style.boxShadow = '';
+            }, 50);
         }
     });
 }
@@ -482,48 +597,60 @@ function initRedeemButton() {
 function createLoadingEffect(element) {
     const particles = [];
     for (let i = 0; i < 6; i++) {
-        const particle = document.createElement('div');
-        particle.style.position = 'absolute';
-        particle.style.width = '4px';
-        particle.style.height = '4px';
-        particle.style.background = '#8b5cf6';
-        particle.style.borderRadius = '50%';
-        particle.style.left = '50%';
-        particle.style.top = '50%';
-        particle.style.pointerEvents = 'none';
-        particle.style.zIndex = '1000';
-        
-        element.style.position = 'relative';
-        element.appendChild(particle);
-        
-        const angle = (i / 6) * Math.PI * 2;
-        const radius = 20;
-        
-        particle.animate([
-            { 
-                transform: `translate(-50%, -50%) rotate(${angle}rad) translateX(${radius}px) rotate(-${angle}rad)`,
-                opacity: 1
-            },
-            { 
-                transform: `translate(-50%, -50%) rotate(${angle + Math.PI * 2}rad) translateX(${radius}px) rotate(-${angle + Math.PI * 2}rad)`,
-                opacity: 0.3
-            }
-        ], {
-            duration: 1000,
-            iterations: Infinity,
-            easing: 'linear'
-        });
-        
-        particles.push(particle);
+        setTimeout(() => {
+            const particle = document.createElement('div');
+            particle.style.position = 'absolute';
+            particle.style.width = '4px';
+            particle.style.height = '4px';
+            particle.style.background = '#8b5cf6';
+            particle.style.borderRadius = '50%';
+            particle.style.left = '50%';
+            particle.style.top = '50%';
+            particle.style.pointerEvents = 'none';
+            particle.style.zIndex = '1000';
+            particle.style.opacity = '0';
+            
+            element.style.position = 'relative';
+            element.appendChild(particle);
+            
+            const angle = (i / 6) * Math.PI * 2;
+            const radius = 20;
+            
+            setTimeout(() => {
+                particle.style.opacity = '1';
+            }, 50);
+            
+            particle.animate([
+                { 
+                    transform: `translate(-50%, -50%) rotate(${angle}rad) translateX(${radius}px) rotate(-${angle}rad)`,
+                    opacity: 1
+                },
+                { 
+                    transform: `translate(-50%, -50%) rotate(${angle + Math.PI * 2}rad) translateX(${radius}px) rotate(-${angle + Math.PI * 2}rad)`,
+                    opacity: 0.3
+                }
+            ], {
+                duration: 1200,
+                iterations: Infinity,
+                easing: 'linear'
+            });
+            
+            particles.push(particle);
+        }, i * 100);
     }
     
     setTimeout(() => {
         particles.forEach(particle => {
             if (particle.parentNode) {
-                particle.parentNode.removeChild(particle);
+                particle.style.opacity = '0';
+                setTimeout(() => {
+                    if (particle.parentNode) {
+                        particle.parentNode.removeChild(particle);
+                    }
+                }, 300);
             }
         });
-    }, 3000);
+    }, 4000);
 }
 
 function createCelebrationEffect() {
@@ -541,21 +668,27 @@ function createCelebrationEffect() {
             confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
             confetti.style.pointerEvents = 'none';
             confetti.style.zIndex = '10000';
+            confetti.style.opacity = '0';
             
             document.body.appendChild(confetti);
+            
+            setTimeout(() => {
+                confetti.style.transition = 'opacity 0.3s ease-in-out';
+                confetti.style.opacity = '1';
+            }, 100);
             
             confetti.animate([
                 { transform: 'translateY(0) rotate(0deg)', opacity: 1 },
                 { transform: `translateY(${window.innerHeight + 20}px) rotate(720deg)`, opacity: 0 }
             ], {
-                duration: Math.random() * 2000 + 2000,
+                duration: Math.random() * 2500 + 2500,
                 easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)'
             }).onfinish = () => {
                 if (confetti.parentNode) {
                     confetti.parentNode.removeChild(confetti);
                 }
             };
-        }, i * 50);
+        }, i * 120);
     }
 }
 
@@ -593,23 +726,27 @@ function showSuccessModal() {
 function initSubscriptionButtons() {
     const subscribeButtons = document.querySelectorAll('button');
     
-    subscribeButtons.forEach(button => {
+    subscribeButtons.forEach((button, index) => {
         if (button.textContent.includes('Subscribe')) {
-
-            
-            button.addEventListener('click', function() {
-                const tier = 'premium';
-                const price = 9.99;
-                handleSubscription(tier, price);
-                
-                setTimeout(() => {
-                    button.style.transform = 'scale(0.95)';
-                    createBurstEffect({ target: button });
+            setTimeout(() => {
+                button.addEventListener('click', function() {
+                    const tier = 'premium';
+                    const price = 9.99;
+                    
                     setTimeout(() => {
-                        button.style.transform = '';
-                    }, 150);
-                }, 50);
-            });
+                        handleSubscription(tier, price);
+                    }, 100);
+                    
+                    setTimeout(() => {
+                        button.style.transition = 'all 0.2s ease-out';
+                        button.style.transform = 'scale(0.95)';
+                        createBurstEffect({ target: button });
+                        setTimeout(() => {
+                            button.style.transform = '';
+                        }, 200);
+                    }, 80);
+                });
+            }, index * 150);
         }
     });
 }
@@ -677,120 +814,147 @@ function closePaymentModal() {
     }
 }
 
-
-
 function initHoverEffects() {
     const perkCards = document.querySelectorAll('.flex.gap-4.group');
     perkCards.forEach((card, index) => {
-        card.addEventListener('mouseenter', function() {
-            const icon = card.querySelector('.nitro-perk-icon');
-            if (icon) {
+        setTimeout(() => {
+            card.addEventListener('mouseenter', function() {
+                const icon = card.querySelector('.nitro-perk-icon');
+                if (icon) {
+                    setTimeout(() => {
+                        icon.style.transition = 'all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
+                        icon.style.transform = 'scale(1.3) rotate(10deg)';
+                        icon.style.filter = 'drop-shadow(0 0 15px rgba(139, 92, 246, 0.8))';
+                    }, 150);
+                }
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                const icon = card.querySelector('.nitro-perk-icon');
+                if (icon) {
+                    setTimeout(() => {
+                        icon.style.transition = 'all 0.3s ease-out';
+                        icon.style.transform = '';
+                        icon.style.filter = '';
+                    }, 50);
+                }
+            });
+            
+            card.addEventListener('click', function() {
                 setTimeout(() => {
-                    icon.style.transform = 'scale(1.3) rotate(10deg)';
-                    icon.style.filter = 'drop-shadow(0 0 15px rgba(139, 92, 246, 0.8))';
+                    createBurstEffect({ target: card });
                 }, 100);
-            }
-        });
-        
-        card.addEventListener('mouseleave', function() {
-            const icon = card.querySelector('.nitro-perk-icon');
-            if (icon) {
-                icon.style.transform = '';
-                icon.style.filter = '';
-            }
-        });
-        
-        card.addEventListener('click', function() {
-            createBurstEffect({ target: card });
-        });
+            });
+        }, index * 80);
     });
     
     const nitroCards = document.querySelectorAll('.nitro-card-hover');
-    nitroCards.forEach(card => {
-        card.addEventListener('mouseenter', function() {
-            setTimeout(() => {
-                card.style.transform = 'translateY(-12px) scale(1.03)';
-                card.style.zIndex = '20';
-            }, 50);
-            setTimeout(() => {
-                createRippleEffect({ 
-                    clientX: card.getBoundingClientRect().left + card.offsetWidth / 2,
-                    clientY: card.getBoundingClientRect().top + card.offsetHeight / 2
-                }, card);
-            }, 200);
-        });
-        
-        card.addEventListener('mouseleave', function() {
-            card.style.transform = '';
-            card.style.zIndex = '';
-        });
+    nitroCards.forEach((card, index) => {
+        setTimeout(() => {
+            card.addEventListener('mouseenter', function() {
+                setTimeout(() => {
+                    card.style.transition = 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+                    card.style.transform = 'translateY(-12px) scale(1.03)';
+                    card.style.zIndex = '20';
+                }, 80);
+                setTimeout(() => {
+                    createRippleEffect({ 
+                        clientX: card.getBoundingClientRect().left + card.offsetWidth / 2,
+                        clientY: card.getBoundingClientRect().top + card.offsetHeight / 2
+                    }, card);
+                }, 300);
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                setTimeout(() => {
+                    card.style.transition = 'all 0.3s ease-out';
+                    card.style.transform = '';
+                    card.style.zIndex = '';
+                }, 50);
+            });
+        }, index * 100);
     });
-    
-
 }
 
 function initFeatureInteractions() {
     const featureItems = document.querySelectorAll('li[class*="hover:translate-x-1"]');
     featureItems.forEach((item, index) => {
-        item.addEventListener('mouseenter', function() {
-            setTimeout(() => {
-                item.style.transform = 'translateX(0.5rem) scale(1.02)';
-                item.style.background = 'linear-gradient(90deg, rgba(139, 92, 246, 0.1), transparent)';
-                item.style.borderRadius = '8px';
-            }, 100);
-        });
-        
-        item.addEventListener('mouseleave', function() {
-            item.style.transform = '';
-            item.style.background = '';
-            item.style.borderRadius = '';
-        });
-        
-        item.addEventListener('click', function() {
-            const checkIcon = item.querySelector('.fa-check');
-            if (checkIcon) {
+        setTimeout(() => {
+            item.addEventListener('mouseenter', function() {
                 setTimeout(() => {
-                    checkIcon.style.transform = 'scale(1.5)';
-                    checkIcon.style.color = '#10b981';
-                    checkIcon.style.filter = 'drop-shadow(0 0 10px #10b981)';
+                    item.style.transition = 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+                    item.style.transform = 'translateX(0.5rem) scale(1.02)';
+                    item.style.background = 'linear-gradient(90deg, rgba(139, 92, 246, 0.1), transparent)';
+                    item.style.borderRadius = '8px';
+                }, 120);
+            });
+            
+            item.addEventListener('mouseleave', function() {
+                setTimeout(() => {
+                    item.style.transition = 'all 0.3s ease-out';
+                    item.style.transform = '';
+                    item.style.background = '';
+                    item.style.borderRadius = '';
+                }, 50);
+            });
+            
+            item.addEventListener('click', function() {
+                const checkIcon = item.querySelector('.fa-check');
+                if (checkIcon) {
                     setTimeout(() => {
-                        checkIcon.style.transform = '';
-                        checkIcon.style.color = '';
-                        checkIcon.style.filter = '';
-                    }, 300);
-                }, 100);
-            }
-        });
+                        checkIcon.style.transition = 'all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
+                        checkIcon.style.transform = 'scale(1.5)';
+                        checkIcon.style.color = '#10b981';
+                        checkIcon.style.filter = 'drop-shadow(0 0 10px #10b981)';
+                        setTimeout(() => {
+                            checkIcon.style.transform = '';
+                            checkIcon.style.color = '';
+                            checkIcon.style.filter = '';
+                        }, 400);
+                    }, 150);
+                }
+            });
+        }, index * 60);
     });
     
     const boostFeatures = document.querySelectorAll('.grid.grid-cols-2 .flex.items-center');
-    boostFeatures.forEach(feature => {
-        feature.addEventListener('mouseenter', function() {
-            setTimeout(() => {
-                feature.style.transform = 'scale(1.05)';
-                feature.style.background = 'rgba(139, 92, 246, 0.1)';
-                feature.style.borderRadius = '6px';
-            }, 80);
-        });
-        
-        feature.addEventListener('mouseleave', function() {
-            feature.style.transform = '';
-            feature.style.background = '';
-            feature.style.borderRadius = '';
-        });
-        
-        feature.addEventListener('click', function() {
-            const icon = feature.querySelector('.fa-check');
-            if (icon) {
-                icon.style.animation = 'magical-sparkle 0.5s ease-in-out';
-                icon.style.filter = 'drop-shadow(0 0 10px #10b981)';
+    boostFeatures.forEach((feature, index) => {
+        setTimeout(() => {
+            feature.addEventListener('mouseenter', function() {
                 setTimeout(() => {
-                    icon.style.animation = '';
-                    icon.style.filter = '';
-                }, 500);
-            }
-            createBurstEffect({ target: feature });
-        });
+                    feature.style.transition = 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+                    feature.style.transform = 'scale(1.05)';
+                    feature.style.background = 'rgba(139, 92, 246, 0.1)';
+                    feature.style.borderRadius = '6px';
+                }, 100);
+            });
+            
+            feature.addEventListener('mouseleave', function() {
+                setTimeout(() => {
+                    feature.style.transition = 'all 0.3s ease-out';
+                    feature.style.transform = '';
+                    feature.style.background = '';
+                    feature.style.borderRadius = '';
+                }, 50);
+            });
+            
+            feature.addEventListener('click', function() {
+                const icon = feature.querySelector('.fa-check');
+                if (icon) {
+                    setTimeout(() => {
+                        icon.style.animation = 'magical-sparkle 0.8s ease-in-out';
+                        icon.style.filter = 'drop-shadow(0 0 10px #10b981)';
+                        setTimeout(() => {
+                            icon.style.animation = '';
+                            icon.style.filter = '';
+                        }, 800);
+                    }, 100);
+                }
+                setTimeout(() => {
+                    createBurstEffect({ target: feature });
+                }, 200);
+            });
+        }, index * 80);
     });
 }
 

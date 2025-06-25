@@ -754,16 +754,20 @@ button:active {
 /* Step transitions */
 #security-question-step,
 #new-password-step {
-  transition: all 0.3s ease;
-  opacity: 1;
-  transform: translateX(0);
+  animation: fadeIn 0.3s ease-in-out;
 }
 
 #security-question-step.hidden,
 #new-password-step.hidden {
-  opacity: 0;
-  transform: translateX(-20px);
-  pointer-events: none;
+  display: none !important;
+}
+
+#set-security-step {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+#set-security-step.hidden {
+  display: none !important;
 }
 
 /* Input animations */
@@ -927,6 +931,26 @@ button:active {
 
 #change-password-modal .bg-discord-dark {
   background-color: var(--discord-background-tertiary);
+}
+
+#change-password-modal select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+  padding-right: 2.5rem;
+  appearance: none;
+}
+
+#change-password-modal select:focus {
+  outline: none;
+  border-color: var(--discord-primary);
+  box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.2);
+}
+
+#change-password-modal select option {
+  background-color: #2b2d31;
+  color: white;
 }
 
 

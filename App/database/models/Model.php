@@ -127,7 +127,6 @@ abstract class Model {
         $result = [];
         
         foreach ($this->attributes as $key => $value) {
-            // Handle nested objects
             if (is_object($value) && method_exists($value, 'toArray')) {
                 $result[$key] = $value->toArray();
             } else {

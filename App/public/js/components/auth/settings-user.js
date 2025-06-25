@@ -190,7 +190,25 @@ function initUserAvatarUpload() {
                 },
                 credentials: 'same-origin'
             })
-            .then(response => response.json())
+            .then(async response => {
+                if (!response.ok) {
+                    let errorMessage = `HTTP error! status: ${response.status}`;
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.message || errorData.error?.message || errorMessage;
+                    } catch (parseError) {
+                        console.warn('Could not parse error response as JSON:', parseError);
+                    }
+                    throw new Error(errorMessage);
+                }
+                
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Server returned non-JSON response');
+                }
+                
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
                     if (iconPreview) {
@@ -211,12 +229,12 @@ function initUserAvatarUpload() {
                     
                     showToast('Profile picture removed successfully', 'success');
                 } else {
-                    showToast(data.message || 'Failed to remove profile picture', 'error');
+                    throw new Error(data.message || data.error?.message || 'Failed to remove profile picture');
                 }
             })
             .catch(error => {
                 console.error('Error removing profile picture:', error);
-                showToast('Error removing profile picture', 'error');
+                showToast(error.message || 'Error removing profile picture', 'error');
             });
         });
     }
@@ -328,7 +346,25 @@ function initUserBannerUpload() {
                 },
                 credentials: 'same-origin'
             })
-            .then(response => response.json())
+            .then(async response => {
+                if (!response.ok) {
+                    let errorMessage = `HTTP error! status: ${response.status}`;
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.message || errorData.error?.message || errorMessage;
+                    } catch (parseError) {
+                        console.warn('Could not parse error response as JSON:', parseError);
+                    }
+                    throw new Error(errorMessage);
+                }
+                
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Server returned non-JSON response');
+                }
+                
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
                     if (bannerPreview) {
@@ -352,12 +388,12 @@ function initUserBannerUpload() {
                     
                     showToast('Profile banner removed successfully', 'success');
                 } else {
-                    showToast(data.message || 'Failed to remove profile banner', 'error');
+                    throw new Error(data.message || data.error?.message || 'Failed to remove profile banner');
                 }
             })
             .catch(error => {
                 console.error('Error removing profile banner:', error);
-                showToast('Error removing profile banner', 'error');
+                showToast(error.message || 'Error removing profile banner', 'error');
             });
         });
     }
@@ -377,26 +413,48 @@ function uploadAvatar(dataUrl) {
     fetch('/user/avatar/update', {
         method: 'POST',
         body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        },
         credentials: 'same-origin'
     })
-    .then(response => response.json())
+    .then(async response => {
+        if (!response.ok) {
+            let errorMessage = `HTTP error! status: ${response.status}`;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.message || errorData.error?.message || errorMessage;
+            } catch (parseError) {
+                console.warn('Could not parse error response as JSON:', parseError);
+            }
+            throw new Error(errorMessage);
+        }
+        
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Server returned non-JSON response');
+        }
+        
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
             showToast('Profile picture updated successfully', 'success');
             
-            updateAllAvatars(data.avatar_url || dataUrl);
+            const avatarUrl = data.data?.avatar_url || data.avatar_url;
+            updateAllAvatars(avatarUrl || dataUrl);
             
             const removeAvatarBtn = document.getElementById('remove-avatar-btn');
             if (removeAvatarBtn && removeAvatarBtn.classList.contains('hidden')) {
                 removeAvatarBtn.classList.remove('hidden');
             }
         } else {
-            showToast(data.message || 'Failed to update profile picture', 'error');
+            throw new Error(data.message || data.error?.message || 'Failed to update profile picture');
         }
     })
     .catch(error => {
         console.error('Error uploading avatar:', error);
-        showToast('Error uploading profile picture', 'error');
+        showToast(error.message || 'Error uploading profile picture', 'error');
     });
 }
 
@@ -414,26 +472,48 @@ function uploadBanner(dataUrl) {
     fetch('/user/banner/update', {
         method: 'POST',
         body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        },
         credentials: 'same-origin'
     })
-    .then(response => response.json())
+    .then(async response => {
+        if (!response.ok) {
+            let errorMessage = `HTTP error! status: ${response.status}`;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.message || errorData.error?.message || errorMessage;
+            } catch (parseError) {
+                console.warn('Could not parse error response as JSON:', parseError);
+            }
+            throw new Error(errorMessage);
+        }
+        
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Server returned non-JSON response');
+        }
+        
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
             showToast('Profile banner updated successfully', 'success');
             
-            updateAllBanners(data.banner_url || dataUrl);
+            const bannerUrl = data.data?.banner_url || data.banner_url;
+            updateAllBanners(bannerUrl || dataUrl);
             
             const removeBannerBtn = document.getElementById('remove-banner-btn');
             if (removeBannerBtn && removeBannerBtn.classList.contains('hidden')) {
                 removeBannerBtn.classList.remove('hidden');
             }
         } else {
-            showToast(data.message || 'Failed to update profile banner', 'error');
+            throw new Error(data.message || data.error?.message || 'Failed to update profile banner');
         }
     })
     .catch(error => {
         console.error('Error uploading banner:', error);
-        showToast('Error uploading profile banner', 'error');
+        showToast(error.message || 'Error uploading profile banner', 'error');
     });
 }
 
@@ -457,6 +537,30 @@ function updateAllAvatars(url) {
  * Update all banner instances in the UI
  */
 function updateAllBanners(url) {
+    const bannerElements = document.querySelectorAll('.user-banner img, #user-banner-preview');
+    
+    bannerElements.forEach(banner => {
+        if (url) {
+            banner.src = url;
+            banner.style.display = 'block';
+        } else {
+            banner.style.display = 'none';
+        }
+    });
+    
+    const bannerMeta = document.querySelector('meta[name="user-banner"]');
+    if (bannerMeta) {
+        bannerMeta.content = url || '';
+    }
+    
+    const bannerContainers = document.querySelectorAll('.user-banner-container');
+    bannerContainers.forEach(container => {
+        if (url) {
+            container.style.backgroundImage = `url(${url})`;
+        } else {
+            container.style.backgroundImage = 'none';
+        }
+    });
 }
 
 /**
@@ -552,18 +656,36 @@ function updateUserStatus(status) {
         body: JSON.stringify({ status }),
         credentials: 'same-origin'
     })
-    .then(response => response.json())
+    .then(async response => {
+        if (!response.ok) {
+            let errorMessage = `HTTP error! status: ${response.status}`;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.message || errorData.error?.message || errorMessage;
+            } catch (parseError) {
+                console.warn('Could not parse error response as JSON:', parseError);
+            }
+            throw new Error(errorMessage);
+        }
+        
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Server returned non-JSON response');
+        }
+        
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
             updateStatusIndicators(status);
             showToast(`Status updated to ${getStatusDisplayName(status)}`, 'success');
         } else {
-            showToast(data.message || 'Failed to update status', 'error');
+            throw new Error(data.message || data.error?.message || 'Failed to update status');
         }
     })
     .catch(error => {
         console.error('Error updating status:', error);
-        showToast('Error updating status', 'error');
+        showToast(error.message || 'Error updating status', 'error');
     });
 }
 
@@ -638,6 +760,7 @@ function initPasswordChangeForms() {
     
     const securityQuestionStep = document.getElementById('security-question-step');
     const newPasswordStep = document.getElementById('new-password-step');
+    const setSecurityStep = document.getElementById('set-security-step');
     
     const securityQuestionText = document.getElementById('security-question-text');
     const securityAnswerInput = document.getElementById('security-answer-input');
@@ -650,7 +773,13 @@ function initPasswordChangeForms() {
     const backBtn = document.getElementById('back-to-security');
     const confirmBtn = document.getElementById('confirm-password-change');
     
+    const setQuestionSelect = document.getElementById('set-question-select');
+    const setAnswerInput = document.getElementById('set-answer-input');
+    const setSecurityError = document.getElementById('set-security-error');
+    const setSecurityBtn = document.getElementById('set-security-question-btn');
+    
     let userSecurityQuestion = '';
+    let needsSecurityQuestion = false;
     
     if (!changePasswordBtn) return;
     
@@ -661,8 +790,7 @@ function initPasswordChangeForms() {
         console.log('🚀 PASSWORD MODAL OPENING - Starting debug process...');
         modal.classList.add('show');
         modal.classList.remove('hidden');
-        securityQuestionStep.classList.remove('hidden');
-        newPasswordStep.classList.add('hidden');
+        showStep('security-question');
         resetForm();
         loadSecurityQuestion();
     }
@@ -673,16 +801,37 @@ function initPasswordChangeForms() {
         resetForm();
     }
     
+    function showStep(step) {
+        securityQuestionStep.classList.add('hidden');
+        newPasswordStep.classList.add('hidden');
+        if (setSecurityStep) setSecurityStep.classList.add('hidden');
+        
+        if (step === 'security-question') {
+            securityQuestionStep.classList.remove('hidden');
+        } else if (step === 'new-password') {
+            newPasswordStep.classList.remove('hidden');
+        } else if (step === 'set-security' && setSecurityStep) {
+            setSecurityStep.classList.remove('hidden');
+            if (securityQuestionText.textContent === 'Loading...') {
+                securityQuestionText.textContent = '';
+            }
+        }
+    }
+    
     function resetForm() {
         securityAnswerInput.value = '';
         newPasswordInput.value = '';
         confirmPasswordInput.value = '';
+        if (setQuestionSelect) setQuestionSelect.value = '';
+        if (setAnswerInput) setAnswerInput.value = '';
         hideErrors();
+        needsSecurityQuestion = false;
     }
     
     function hideErrors() {
         securityAnswerError.classList.add('hidden');
         passwordError.classList.add('hidden');
+        if (setSecurityError) setSecurityError.classList.add('hidden');
     }
     
     function showSecurityError(message) {
@@ -695,13 +844,27 @@ function initPasswordChangeForms() {
         passwordError.classList.remove('hidden');
     }
     
+    function showSetSecurityError(message) {
+        if (setSecurityError) {
+            setSecurityError.textContent = message;
+            setSecurityError.classList.remove('hidden');
+        }
+    }
+    
     async function loadSecurityQuestion() {
         try {
             console.log('🔐 Loading security question...');
             
             if (!window.userAPI) {
                 console.error('❌ User API not loaded');
-                throw new Error('User API not loaded');
+                needsSecurityQuestion = true;
+                if (setSecurityStep) {
+                    showStep('set-security');
+                    showSetSecurityError('User API not loaded. Please refresh the page.');
+                } else {
+                    showSecurityError('User API not loaded. Please refresh the page.');
+                }
+                return;
             }
             
             console.log('📡 Making API request to get security question...');
@@ -709,17 +872,114 @@ function initPasswordChangeForms() {
             
             console.log('📥 API Response:', response);
             
-            if (response && response.success) {
-                userSecurityQuestion = response.security_question;
+            if (response && response.success && response.data && response.data.security_question) {
+                userSecurityQuestion = response.data.security_question;
                 console.log('✅ Security question loaded:', userSecurityQuestion);
                 securityQuestionText.textContent = userSecurityQuestion;
+                needsSecurityQuestion = false;
+            } else if (response && !response.success) {
+                console.error('❌ API returned error:', response.error);
+                needsSecurityQuestion = true;
+                
+                if (response.error && response.error.includes('No security question set')) {
+                    if (setSecurityStep) {
+                        showStep('set-security');
+                        showSetSecurityError('You need to set a security question before changing your password.');
+                    } else {
+                        showSecurityError('You need to set a security question first. Please contact support.');
+                    }
+                } else {
+                    if (setSecurityStep) {
+                        showStep('set-security');
+                        showSetSecurityError('Unable to load security question. Please set one now.');
+                    } else {
+                        showSecurityError('Failed to load security question: ' + (response.error || 'Unknown error'));
+                    }
+                }
             } else {
-                console.error('❌ API Response failed:', response);
-                throw new Error(response.message || response.error || 'Failed to load security question');
+                console.error('❌ Unexpected response format:', response);
+                needsSecurityQuestion = true;
+                if (setSecurityStep) {
+                    showStep('set-security');
+                    showSetSecurityError('Unable to load security question. Please set one now.');
+                } else {
+                    showSecurityError('Unexpected response from server.');
+                }
             }
         } catch (error) {
             console.error('💥 Error loading security question:', error);
-            showSecurityError('Failed to load security question: ' + error.message);
+            needsSecurityQuestion = true;
+            
+            if (setSecurityStep) {
+                showStep('set-security');
+                showSetSecurityError('Unable to load security question. Please set one now.');
+            } else {
+                showSecurityError('Failed to load security question: ' + error.message);
+            }
+        }
+    }
+    
+    async function setSecurityQuestion() {
+        if (!setQuestionSelect || !setAnswerInput) return;
+        
+        hideErrors();
+        
+        const question = setQuestionSelect.value.trim();
+        const answer = setAnswerInput.value.trim();
+        
+        if (!question) {
+            showSetSecurityError('Please select a security question');
+            return;
+        }
+        
+        if (!answer) {
+            showSetSecurityError('Please enter your security answer');
+            return;
+        }
+        
+        if (answer.length < 3) {
+            showSetSecurityError('Security answer must be at least 3 characters long');
+            return;
+        }
+        
+        try {
+            setSecurityBtn.disabled = true;
+            setSecurityBtn.classList.add('loading');
+            setSecurityBtn.textContent = 'Setting...';
+            
+            const response = await fetch('/api/user/set-security-question', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    security_question: question,
+                    security_answer: answer
+                }),
+                credentials: 'same-origin'
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                userSecurityQuestion = question;
+                securityQuestionText.textContent = question;
+                needsSecurityQuestion = false;
+                showStep('security-question');
+                showToast('Security question set successfully', 'success');
+            } else {
+                throw new Error(data.message || data.error || 'Failed to set security question');
+            }
+        } catch (error) {
+            console.error('Error setting security question:', error);
+            showSetSecurityError(error.message || 'Failed to set security question');
+        } finally {
+            setTimeout(() => {
+                setSecurityBtn.disabled = false;
+                setSecurityBtn.classList.remove('loading');
+                setSecurityBtn.textContent = 'Set Security Question';
+            }, 300);
         }
     }
     
@@ -746,11 +1006,10 @@ function initPasswordChangeForms() {
             
             if (response && response.success) {
                 setTimeout(() => {
-                    securityQuestionStep.classList.add('hidden');
-                    newPasswordStep.classList.remove('hidden');
+                    showStep('new-password');
                 }, 200);
             } else {
-                throw new Error(response.message || 'Incorrect security answer');
+                throw new Error(response.error || 'Incorrect security answer');
             }
         } catch (error) {
             console.error('Error verifying security answer:', error);
@@ -816,7 +1075,7 @@ function initPasswordChangeForms() {
                     closeModal();
                 }, 500);
             } else {
-                throw new Error(response.message || 'Failed to change password');
+                throw new Error(response.error || 'Failed to change password');
             }
         } catch (error) {
             console.error('Error changing password:', error);
@@ -836,11 +1095,18 @@ function initPasswordChangeForms() {
     
     verifyBtn.addEventListener('click', verifySecurityAnswer);
     
+    if (setSecurityBtn) {
+        setSecurityBtn.addEventListener('click', setSecurityQuestion);
+    }
+    
     backBtn.addEventListener('click', () => {
         hideErrors();
         setTimeout(() => {
-            newPasswordStep.classList.add('hidden');
-            securityQuestionStep.classList.remove('hidden');
+            if (needsSecurityQuestion && setSecurityStep) {
+                showStep('set-security');
+            } else {
+                showStep('security-question');
+            }
         }, 100);
     });
     
@@ -857,6 +1123,14 @@ function initPasswordChangeForms() {
             changePassword();
         }
     });
+    
+    if (setAnswerInput) {
+        setAnswerInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                setSecurityQuestion();
+            }
+        });
+    }
     
     modal.addEventListener('click', (e) => {
         if (e.target === modal) {
@@ -1027,3 +1301,4 @@ function getStatusDisplayName(status) {
     };
     return statusMap[status] || 'Online';
 }
+

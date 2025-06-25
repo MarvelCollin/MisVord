@@ -261,6 +261,4 @@ document.addEventListener('DOMContentLoaded', function() {
 <script src="<?php echo js('/pages/nitro-page'); ?>"></script>
 
 <?php 
-// This file doesn't exist, it's not required for the page to work
-// require_once dirname(__DIR__) . '/layout/foot.php'; 
 ?>

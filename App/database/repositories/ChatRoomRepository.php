@@ -97,7 +97,6 @@ class ChatRoomRepository extends Repository {
         
         error_log("Found " . count($results) . " messages for DM room $roomId");
         
-        // Return messages in chronological order (oldest first)
         return array_reverse($results);
     }
     

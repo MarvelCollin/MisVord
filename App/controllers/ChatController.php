@@ -8,6 +8,7 @@ require_once __DIR__ . '/../database/repositories/UserRepository.php';
 require_once __DIR__ . '/../database/repositories/FriendListRepository.php';
 require_once __DIR__ . '/../database/models/Message.php';
 require_once __DIR__ . '/../database/models/User.php';
+require_once __DIR__ . '/../database/query.php';
 require_once __DIR__ . '/BaseController.php';
 
 class ChatController extends BaseController
@@ -609,7 +610,7 @@ class ChatController extends BaseController
             'user_id' => $userId,
             'username' => $username,
             'avatar_url' => $avatarUrl,
-            'sent_at' => is_array($message) ? ($message['sent_at'] ?? $message['created_at']) : $message->created_at,
+            'sent_at' => is_array($message) ? ($message['sent_at'] ?? $message['created_at']) : ($message->sent_at ?? $message->created_at),
             'edited_at' => is_array($message) ? ($message['edited_at'] ?? null) : ($message->edited_at ?? null),
             'type' => is_array($message) ? ($message['message_type'] ?? 'text') : ($message->type ?? 'text'),
             'message_type' => is_array($message) ? ($message['message_type'] ?? 'text') : ($message->message_type ?? 'text'),
@@ -799,14 +800,40 @@ class ChatController extends BaseController
             $message->edited_at = date('Y-m-d H:i:s');
 
             if ($message->save()) {
+                require_once __DIR__ . '/../database/models/ChannelMessage.php';
+                require_once __DIR__ . '/../database/models/ChatRoomMessage.php';
+                
+                $targetId = null;
+                $targetType = 'channel';
+                
+                $channelMessage = ChannelMessage::findByMessageId($messageId);
+                if ($channelMessage) {
+                    $targetId = $channelMessage->channel_id;
+                    $targetType = 'channel';
+                } else {
+                    $query = new Query();
+                    $chatRoomMessage = $query->table('chat_room_messages')
+                        ->where('message_id', $messageId)
+                        ->first();
+                    if ($chatRoomMessage) {
+                        $targetId = $chatRoomMessage['room_id'];
+                        $targetType = 'dm';
+                    }
+                }
+                
                 $formattedMessage = $this->formatMessage($message);
                 
                 return $this->success([
                     'message' => $formattedMessage,
                     'socket_event' => 'message-updated',
                     'socket_data' => [
-                        'target_type' => 'channel',
-                        'target_id' => $message->channel_id ?? null,
+                        'target_type' => $targetType,
+                        'target_id' => $targetId,
+                        'message' => $formattedMessage
+                    ],
+                    'data' => [
+                        'target_type' => $targetType,
+                        'target_id' => $targetId,
                         'message' => $formattedMessage
                     ]
                 ], 'Message updated successfully');
@@ -834,15 +861,40 @@ class ChatController extends BaseController
 
         try {
             $message->content = '[deleted]';
-            $message->deleted_at = date('Y-m-d H:i:s');
 
             if ($message->save()) {
+                require_once __DIR__ . '/../database/models/ChannelMessage.php';
+                require_once __DIR__ . '/../database/models/ChatRoomMessage.php';
+                
+                $targetId = null;
+                $targetType = 'channel';
+                
+                $channelMessage = ChannelMessage::findByMessageId($messageId);
+                if ($channelMessage) {
+                    $targetId = $channelMessage->channel_id;
+                    $targetType = 'channel';
+                } else {
+                    $query = new Query();
+                    $chatRoomMessage = $query->table('chat_room_messages')
+                        ->where('message_id', $messageId)
+                        ->first();
+                    if ($chatRoomMessage) {
+                        $targetId = $chatRoomMessage['room_id'];
+                        $targetType = 'dm';
+                    }
+                }
+                
                 return $this->success([
                     'message_id' => $messageId,
                     'socket_event' => 'message-deleted',
                     'socket_data' => [
-                        'target_type' => 'channel',
-                        'target_id' => $message->channel_id ?? null,
+                        'target_type' => $targetType,
+                        'target_id' => $targetId,
+                        'message_id' => $messageId
+                    ],
+                    'data' => [
+                        'target_type' => $targetType,
+                        'target_id' => $targetId,
                         'message_id' => $messageId
                     ]
                 ], 'Message deleted successfully');
@@ -864,12 +916,25 @@ class ChatController extends BaseController
             return $this->notFound('Message not found');
         }
 
-        if ($message->channel_id) {
-            $channel = $this->channelRepository->find($message->channel_id);
+        require_once __DIR__ . '/../database/models/ChannelMessage.php';
+        
+        $channelMessage = ChannelMessage::findByMessageId($messageId);
+        if ($channelMessage) {
+            $channel = $this->channelRepository->find($channelMessage->channel_id);
             if ($channel && $channel->server_id != 0) {
                 $membership = $this->userServerMembershipRepository->findByUserAndServer($userId, $channel->server_id);
                 if (!$membership) {
                     return $this->forbidden('You are not a member of this server');
+                }
+            }
+        } else {
+            $query = new Query();
+            $chatRoomMessage = $query->table('chat_room_messages')
+                ->where('message_id', $messageId)
+                ->first();
+            if ($chatRoomMessage) {
+                if (!$this->chatRoomRepository->isParticipant($chatRoomMessage['room_id'], $userId)) {
+                    return $this->forbidden('You are not a participant in this chat');
                 }
             }
         }

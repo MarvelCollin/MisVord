@@ -88,7 +88,6 @@ class RoleRepository extends Repository {
                 ->orderBy('r.id', 'DESC')
                 ->get();
             
-            // Check if user is the server owner by checking membership role
             $membershipQuery = new Query();
             $ownerMembership = $membershipQuery->table('user_server_memberships')
                 ->where('user_id', $userId)
@@ -97,11 +96,10 @@ class RoleRepository extends Repository {
                 ->first();
             
             if ($ownerMembership) {
-                // Add a virtual "Owner" role
                 array_unshift($roles, [
                     'id' => 0,
                     'name' => 'Owner',
-                    'color' => '#f1c40f', // Gold color
+                    'color' => '#f1c40f',
                     'server_id' => $serverId
                 ]);
             }
@@ -124,6 +122,5 @@ class RoleRepository extends Repository {
     }
     
     public function deleteRole($roleId) {
-        // Implementation of deleteRole method
     }
 } 

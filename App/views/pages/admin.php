@@ -46,7 +46,6 @@ $head_scripts = ['logger-init'];
 $data_page = 'admin';
 $body_attributes = 'data-page="admin"';
 
-// Ensure the admin CSS is directly included
 echo '<link rel="stylesheet" href="' . asset('/css/admin.css') . '?v=' . time() . '">';
 echo '<link rel="stylesheet" href="' . asset('/css/chart.css') . '?v=' . time() . '">';
 

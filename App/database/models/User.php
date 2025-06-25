@@ -159,7 +159,6 @@ class User extends Model {
     public static function createBot($data) {
         $data['status'] = 'bot';
         
-        // Ensure required fields have defaults
         if (!isset($data['discriminator'])) {
             $data['discriminator'] = self::generateDiscriminator();
         }

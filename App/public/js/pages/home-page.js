@@ -9,7 +9,6 @@ document.addEventListener('DOMContentLoaded', function() {
     setupSocketListeners();
     initPendingRequests();
     
-    // Initialize the correct tab based on URL
     initTabFromUrl();
 });
 
@@ -64,20 +63,7 @@ function createProfileCardContent(user) {
 
     const statusColor = statusColors[user.status] || 'bg-gray-500';
 
-    const badges = user.badges || [];
-    let badgeHtml = '';
 
-    if (badges.length > 0) {
-        badgeHtml = `
-            <div class="profile-badges">
-                ${badges.map(badge => `
-                    <div class="profile-badge" title="${badge.name}">
-                        <img src="${badge.icon}" alt="${badge.name}" class="w-full h-full">
-                    </div>
-                `).join('')}
-            </div>
-        `;
-    }
 
     return `
         <div class="profile-header" style="background-color: ${user.banner_color || '#5865f2'}"></div>
@@ -96,8 +82,6 @@ function createProfileCardContent(user) {
                     </div>
                 </div>
             </div>
-
-            ${badgeHtml}
 
             ${user.about ? `
                 <div class="mb-3">

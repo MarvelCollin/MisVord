@@ -368,7 +368,6 @@ class UserController extends BaseController
         $input = $this->getInput();
         
         try {
-            // Check if the user is a bot - bots should not be able to update their status via this method
             $user = $this->userRepository->find($userId);
             if ($user && $user->status === 'bot') {
                 return $this->error('Bot users cannot update their status through this endpoint', 403);
@@ -528,7 +527,6 @@ class UserController extends BaseController
                 return $this->error('User not found', 404);
             }
             
-            // Prevent viewing bot profiles (except for self)
             if ($user->status === 'bot' && $userId != $currentUserId) {
                 return $this->error('User not found', 404);
             }
@@ -847,7 +845,6 @@ class UserController extends BaseController
                 
                 foreach ($otherUserFriends as $friend) {
                     if (isset($friend['id']) && in_array($friend['id'], $currentUserFriendIds)) {
-                        // Skip bots from mutual friends
                         if (isset($friend['status']) && $friend['status'] === 'bot') {
                             continue;
                         }

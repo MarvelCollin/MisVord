@@ -12,43 +12,35 @@ function initServerSidebar() {
     performCompleteRender();
 }
 
-// Force complete re-render for every action - acts like first time load
 function performCompleteRender() {
     clearAllPreviousState();
     renderFolders();
 }
 
 function clearAllPreviousState() {
-    // Clear all setup attributes to force fresh event listener setup
     document.querySelectorAll('.server-icon[data-setup]').forEach(icon => {
         icon.removeAttribute('data-setup');
         icon.draggable = false;
-        // Clone node to remove all event listeners
         const newIcon = icon.cloneNode(true);
         icon.parentNode.replaceChild(newIcon, icon);
     });
     
-    // Clear all drop zone setup attributes
     document.querySelectorAll('.server-group[data-drop-setup]').forEach(folder => {
         folder.removeAttribute('data-drop-setup');
-        // Clone to remove event listeners
         const newFolder = folder.cloneNode(true);
         folder.parentNode.replaceChild(newFolder, folder);
     });
     
-    // Clear server list drop setup
     const serverList = document.getElementById('server-list');
     if (serverList && serverList.hasAttribute('data-drop-setup')) {
         serverList.removeAttribute('data-drop-setup');
         serverList.classList.remove('drop-target');
     }
     
-    // Remove any existing drag over states
     document.querySelectorAll('.drag-over, .drop-target').forEach(el => {
         el.classList.remove('drag-over', 'drop-target');
     });
     
-    // Clear any existing context menus
     const existingMenu = document.getElementById('group-context-menu');
     if (existingMenu) existingMenu.remove();
 }

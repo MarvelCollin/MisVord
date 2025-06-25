@@ -7,7 +7,6 @@ require_once __DIR__ . '/../controllers/MessageController.php';
 require_once __DIR__ . '/../controllers/ChatController.php';
 require_once __DIR__ . '/../controllers/GoogleAuthController.php';
 require_once __DIR__ . '/../controllers/RoleController.php';
-require_once __DIR__ . '/../controllers/EmojiController.php';
 require_once __DIR__ . '/../controllers/FriendController.php';
 require_once __DIR__ . '/../controllers/NitroController.php';
 require_once __DIR__ . '/../controllers/HealthController.php';
@@ -312,55 +311,7 @@ Route::get('/api/roles/([0-9]+)/permissions', function($roleId) {
     $controller->getRolePermissions($roleId);
 });
 
-Route::get('/api/servers/([0-9]+)/emojis', function($serverId) {
-    $controller = new EmojiController();
-    $controller->getServerEmojis($serverId);
-});
 
-Route::get('/api/servers/([0-9]+)/emojis/top', function($serverId) {
-    $controller = new EmojiController();
-    $controller->getTopServerEmojis($serverId);
-});
-
-Route::post('/api/servers/([0-9]+)/emojis', function($serverId) {
-    $controller = new EmojiController();
-    $controller->createEmoji($serverId);
-});
-
-Route::post('/api/emojis/([0-9]+)', function($emojiId) {
-    $controller = new EmojiController();
-    $controller->updateEmoji($emojiId);
-});
-
-Route::delete('/api/emojis/([0-9]+)', function($emojiId) {
-    $controller = new EmojiController();
-    $controller->deleteEmoji($emojiId);
-});
-
-Route::post('/api/messages/([0-9]+)/reactions', function($messageId) {
-    $controller = new MessageController();
-    $controller->addReaction($messageId);
-});
-
-Route::delete('/api/messages/([0-9]+)/reactions', function($messageId) {
-    $controller = new MessageController();
-    $controller->removeReaction($messageId);
-});
-
-Route::get('/api/messages/([0-9]+)/reactions', function($messageId) {
-    $controller = new MessageController();
-    $controller->getReactions($messageId);
-});
-
-Route::get('/api/users/me/emojis/top', function() {
-    $controller = new EmojiController();
-    $controller->getUserTopEmojis();
-});
-
-Route::get('/api/users/([0-9]+)/emojis/top', function($userId) {
-    $controller = new EmojiController();
-    $controller->getUserTopEmojis($userId);
-});
 
 Route::get('/api/friends', function() {
     $controller = new FriendController();
@@ -736,6 +687,11 @@ Route::get('/api/debug/user-security', function() {
 Route::post('/api/user/verify-security-answer', function() {
     $controller = new UserController();
     $controller->verifyCurrentUserSecurityAnswer();
+});
+
+Route::post('/api/user/set-security-question', function() {
+    $controller = new UserController();
+    $controller->setSecurityQuestion();
 });
 
 Route::post('/api/user/change-password-security', function() {

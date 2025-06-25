@@ -77,10 +77,8 @@ export class LocalStorageManager {
         const group = groups.find(g => g.id === groupId);
         
         if (group && !group.servers.includes(serverId)) {
-            // Remove server from any existing group first
             this.removeServerFromAllGroups(serverId);
             
-            // Add to new group
             group.servers.push(serverId);
             this.saveServerGroups(groups);
         }

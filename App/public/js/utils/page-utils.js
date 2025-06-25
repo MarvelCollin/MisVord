@@ -1,5 +1,4 @@
-// Using window global variables instead of imports
-// import serverAPI from '../api/server-api.js';
+
 
 export const pageUtils = {  
     updatePageContent(container, html) {

@@ -48,66 +48,56 @@ class UserAPI {
             };
 
             const response = await fetch(url, mergedOptions);
+            const data = await this.parseResponse(response);
 
             if (response.status === 404) {
                 console.error(`API endpoint not found or resource does not exist: ${url}`);
-                const responseText = await response.text();
-                console.log('404 Response:', responseText.substring(0, 500));
-
-                try {
-
-                    const data = JSON.parse(responseText);
-                    return {
-                        success: false,
-                        error: {
-                            code: 404,
-                            message: data.message || data.error || `API endpoint not found: ${url}`
-                        }
-                    };
-                } catch (e) {
-
-                    return {
-                        success: false,
-                        error: {
-                            code: 404,
-                            message: `API endpoint not found: ${url}`
-                        }
-                    };
-                }
+                return {
+                    success: false,
+                    error: data.message || data.error || `API endpoint not found: ${url}`,
+                    status: 404
+                };
             }
 
             if (response.status === 500) {
                 console.error('Server error occurred:', url);
-                const responseText = await response.text();
-                console.log('500 Response:', responseText.substring(0, 500));
                 return {
                     success: false,
-                    error: {
-                        code: 500,
-                        message: `Internal server error occurred. Please try again later.`
-                    }
+                    error: data.message || data.error || 'Internal server error occurred. Please try again later.',
+                    status: 500
                 };
             }
 
-            const data = await this.parseResponse(response);
-
             if (!response.ok) {
-                const errorMessage = data && (data.error || data.message) ?
-                    (data.error || data.message) :
-                    `HTTP error! status: ${response.status}`;
-                throw new Error(errorMessage);
+                return {
+                    success: false,
+                    error: data.message || data.error || `HTTP error! status: ${response.status}`,
+                    status: response.status,
+                    data: data
+                };
             }
 
-            return data;
+            if (data.success) {
+                return data;
+            } else {
+                return {
+                    success: false,
+                    error: data.message || data.error || 'Request failed',
+                    status: response.status,
+                    data: data
+                };
+            }
         } catch (error) {
-
             let errorMessage = error.message;
             if (error.message === '[object Object]') {
                 errorMessage = 'Unknown server error occurred';
             }
 
             console.error(`User API request to ${url} failed:`, errorMessage);
-            throw error;
+            return {
+                success: false,
+                error: errorMessage
+            };
         }
     }
 

@@ -15,7 +15,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (!nitroBadgeContainer) return;
     
-    // Fetch nitro status from API
     fetch('/api/nitro/status', {
         method: 'GET',
         headers: {
@@ -37,7 +36,6 @@ document.addEventListener('DOMContentLoaded', function() {
     })
     .catch(error => {
         console.log('Nitro status check failed:', error);
-        // Silently fail - badge remains hidden
     });
 });
 </script> 

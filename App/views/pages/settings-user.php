@@ -2,7 +2,6 @@
 require_once dirname(dirname(__DIR__)) . '/config/session.php';
 require_once dirname(dirname(__DIR__)) . '/controllers/AuthenticationController.php';
 require_once dirname(dirname(__DIR__)) . '/database/repositories/UserRepository.php';
-require_once dirname(dirname(__DIR__)) . '/database/repositories/UserBadgeRepository.php';
 
 if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
     session_start();
@@ -30,18 +29,13 @@ $userRepository = new UserRepository();
 $user = $userRepository->find($user_id);
 
 if (!$user) {
-    // Handle the case where the user is not found
     $page_title = 'Error - misvord';
     $content = '<div class="flex items-center justify-center h-screen bg-discord-dark text-white"><p>Could not load user data. Please try again later.</p></div>';
     include dirname(dirname(__DIR__)) . '/views/layout/main-app.php';
     exit;
 }
 
-$userBadges = [];
-if (class_exists('UserBadgeRepository')) {
-    $badgeRepository = new UserBadgeRepository();
-    $userBadges = $badgeRepository->getForUser($user_id);
-}
+
 
 $section = $_GET['section'] ?? 'my-account';
 
@@ -329,7 +323,50 @@ ob_start();
                     </div>
                 </div>
                 
-                <!-- Step 2: New Password -->
+                <div id="set-security-step" class="space-y-4 hidden">
+                    <div class="text-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-blue-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <h3 class="text-lg font-medium text-white mb-2">Set Security Question</h3>
+                        <p class="text-gray-400 text-sm mb-4">Please set a security question to secure your account</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Security Question</label>
+                        <select id="set-question-select" 
+                                class="w-full bg-discord-dark border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-discord-primary">
+                            <option value="">Select a security question</option>
+                            <option value="What was the name of your first pet?">What was the name of your first pet?</option>
+                            <option value="In what city were you born?">In what city were you born?</option>
+                            <option value="What was the name of your first school?">What was the name of your first school?</option>
+                            <option value="What is your mother's maiden name?">What is your mother's maiden name?</option>
+                            <option value="What was your favorite food as a child?">What was your favorite food as a child?</option>
+                            <option value="What is the name of the street where you grew up?">What is the name of the street where you grew up?</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Your Answer</label>
+                        <input type="text" id="set-answer-input" 
+                               class="w-full bg-discord-dark border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-discord-primary"
+                               placeholder="Enter your security answer">
+                        <div class="text-xs text-gray-400 mt-1">Make sure you remember this answer - you'll need it to change your password</div>
+                        <div id="set-security-error" class="text-red-500 text-sm mt-1 hidden"></div>
+                    </div>
+                    
+                    <div class="pt-4 flex space-x-3">
+                        <button type="button" id="cancel-password-change" 
+                                class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded">
+                            Cancel
+                        </button>
+                        <button type="button" id="set-security-question-btn" 
+                                class="flex-1 bg-discord-primary hover:bg-discord-primary/90 text-white font-medium py-2 px-4 rounded">
+                            Set Security Question
+                        </button>
+                    </div>
+                </div>
+                
                 <div id="new-password-step" class="space-y-4 hidden">
                     <div class="text-center">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-green-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
