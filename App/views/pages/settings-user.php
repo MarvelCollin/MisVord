@@ -115,11 +115,11 @@ ob_start();
                                 <p class="text-discord-lighter text-xs mb-3">We recommend an image of at least 512×512.</p>
                                 
                                 <div class="flex items-center space-x-4">
-                                    <div id="server-icon-container" class="relative">
+                                    <div id="user-avatar-container" class="relative">
                                         <?php if ($user->avatar_url): ?>
-                                            <img id="server-icon-preview" src="<?php echo htmlspecialchars($user->avatar_url); ?>" alt="User Avatar">
+                                            <img id="user-avatar-preview" src="<?php echo htmlspecialchars($user->avatar_url); ?>" alt="User Avatar">
                                         <?php else: ?>
-                                            <div id="server-icon-placeholder">
+                                            <div id="user-avatar-placeholder">
                                                 <img src="<?php echo asset('/common/main-logo.png'); ?>" alt="Default Avatar">
                                             </div>
                                         <?php endif; ?>
@@ -154,11 +154,11 @@ ob_start();
                                 <p class="text-discord-lighter text-xs mb-3">Express yourself with a banner image. Recommended size: 960×240.</p>
                                 
                                 <div class="space-y-4">
-                                    <div id="banner-container">
+                                    <div id="user-banner-container">
                                         <?php if ($user->banner_url): ?>
-                                            <img id="banner-preview" src="<?php echo htmlspecialchars($user->banner_url); ?>" alt="User Banner">
+                                            <img id="user-banner-preview" src="<?php echo htmlspecialchars($user->banner_url); ?>" alt="User Banner">
                                         <?php else: ?>
-                                            <div id="banner-placeholder">
+                                            <div id="user-banner-placeholder">
                                                 <span>Click to add a banner</span>
                                             </div>
                                         <?php endif; ?>
@@ -176,7 +176,7 @@ ob_start();
                                         <?php endif; ?>
                                     </div>
                                     
-                                    <input type="file" id="banner-input" name="banner" class="hidden" accept="image/*">
+                                    <input type="file" id="user-banner-input" name="banner" class="hidden" accept="image/*">
                                 </div>
                             </div>
                             
@@ -296,7 +296,7 @@ ob_start();
             <div class="sticky top-6">
                 <h3 class="text-sm font-semibold text-discord-lighter uppercase mb-4">Preview</h3>
                 
-                <div class="server-preview-card">
+                <div class="user-preview-card">
                     <?php
                     $bannerStyle = 'background-color: #2b2d31;';
                     if ($user->banner_url) {
@@ -305,8 +305,8 @@ ob_start();
                         $bannerStyle .= 'background-image: url(\'' . asset('/common/main-logo.png') . '\'); background-size: contain; background-repeat: no-repeat; background-position: center;';
                     }
                     ?>
-                    <div class="server-banner" style="<?php echo $bannerStyle; ?>">
-                        <div class="server-icon-preview">
+                    <div class="user-banner" style="<?php echo $bannerStyle; ?>">
+                        <div class="user-avatar-preview">
                             <img src="<?php echo $user->avatar_url ? htmlspecialchars($user->avatar_url) : asset('/common/main-logo.png'); ?>" alt="User Avatar">
                             
                             <?php 
@@ -319,9 +319,9 @@ ob_start();
                         </div>
                     </div>
                     
-                    <div class="server-info">
-                        <h3 class="server-name"><?php echo htmlspecialchars($user->username ?? ''); ?></h3>
-                        <div class="server-meta">
+                    <div class="user-info">
+                        <h3 class="user-name"><?php echo htmlspecialchars($user->username ?? ''); ?></h3>
+                        <div class="user-meta">
                             <span>#<?php echo htmlspecialchars($user->discriminator ?? '0000'); ?></span>
                         </div>
                         
@@ -406,13 +406,3 @@ ob_start();
 $content = ob_get_clean(); 
 include dirname(dirname(__DIR__)) . '/views/layout/main-app.php';
 ?>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const leaveServerModal = document.getElementById('leave-server-modal');
-    const deleteServerModal = document.getElementById('delete-server-modal');
-    
-    if (leaveServerModal) leaveServerModal.remove();
-    if (deleteServerModal) deleteServerModal.remove();
-});
-</script>

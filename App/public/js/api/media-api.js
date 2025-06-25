@@ -11,7 +11,16 @@ class MediaAPI {
             });
             
             if (!response.ok) {
-                throw new Error(`Failed to upload file: ${response.status}`);
+                const errorText = await response.text();
+                console.error('Upload response error:', errorText);
+                throw new Error(`Failed to upload file: ${response.status} - ${response.statusText}`);
+            }
+            
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const htmlResponse = await response.text();
+                console.error('Non-JSON response received:', htmlResponse);
+                throw new Error('Server returned an error page instead of JSON. Check server logs.');
             }
             
             return await response.json();

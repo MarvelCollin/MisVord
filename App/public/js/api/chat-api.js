@@ -607,14 +607,16 @@ class ChatAPI {
             const response = await window.MediaAPI.uploadFile(formData);
             
             if (!response || !response.success) {
-                throw new Error(response?.message || 'Upload failed');
+                throw new Error(response?.error?.message || response?.message || 'Upload failed');
             }
             
+            const data = response.data || response;
+            
             return {
-                url: response.file_url,
-                name: response.file_name,
-                size: response.file_size,
-                type: response.mime_type
+                url: data.file_url,
+                name: data.file_name,
+                size: data.file_size,
+                type: data.mime_type
             };
         } catch (error) {
             console.error('Error uploading file:', error);

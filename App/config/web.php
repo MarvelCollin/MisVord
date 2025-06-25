@@ -32,12 +32,17 @@ function displayActiveRoute($uri, $matchedRoute, $viewFile)
 
 function handleRoute($routes)
 {
-    error_reporting(E_ALL);
-    ini_set('display_errors', 1);
+    $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+    
+    if (strpos($uri, '/api/') === 0) {
+        error_reporting(0);
+        ini_set('display_errors', 0);
+    } else {
+        error_reporting(E_ALL);
+        ini_set('display_errors', 1);
+    }
     
     $method = $_SERVER['REQUEST_METHOD'];
-    
-    $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
     
     if (strpos($uri, '/api/') !== 0) {
         $scriptName = $_SERVER['SCRIPT_NAME'];

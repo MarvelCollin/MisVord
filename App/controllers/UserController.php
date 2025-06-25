@@ -187,7 +187,7 @@ class UserController extends BaseController
                 return $this->error('No avatar file provided or upload error', 400);
             }
             
-            $uploadDir = dirname(__DIR__) . '/storage/uploads/avatars/';
+            $uploadDir = dirname(__DIR__) . '/public/storage/';
             if (!file_exists($uploadDir)) {
                 mkdir($uploadDir, 0755, true);
             }
@@ -206,7 +206,7 @@ class UserController extends BaseController
                 return $this->serverError('Failed to save avatar file');
             }
             
-            $avatarUrl = '/storage/uploads/avatars/' . $filename;
+            $avatarUrl = '/storage/' . $filename;
             
             $result = $this->userRepository->update($userId, [
                 'avatar_url' => $avatarUrl
@@ -279,7 +279,7 @@ class UserController extends BaseController
                 return $this->error('No banner file provided or upload error', 400);
             }
             
-            $uploadDir = dirname(__DIR__) . '/storage/uploads/banners/';
+            $uploadDir = dirname(__DIR__) . '/public/storage/';
             if (!file_exists($uploadDir)) {
                 mkdir($uploadDir, 0755, true);
             }
@@ -298,7 +298,7 @@ class UserController extends BaseController
                 return $this->serverError('Failed to save banner file');
             }
             
-            $bannerUrl = '/storage/uploads/banners/' . $filename;
+            $bannerUrl = '/storage/' . $filename;
             
             $result = $this->userRepository->update($userId, [
                 'banner_url' => $bannerUrl

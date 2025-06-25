@@ -23,98 +23,89 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="nitro-hero-section bg-gradient-to-b from-purple-600 via-purple-700 to-discord-dark">
             <div class="max-w-7xl mx-auto px-6 py-16">
                 <div class="text-center relative z-10">
-                    <div class="absolute -top-10 -left-10 w-32 h-32 bg-purple-500/20 rounded-full blur-3xl"></div>
-                    <div class="absolute -top-5 -right-5 w-24 h-24 bg-blue-500/20 rounded-full blur-3xl"></div>
+                    <div class="absolute -top-10 -left-10 w-32 h-32 bg-purple-500/20 rounded-full blur-3xl animate-pulse floating-particle"></div>
+                    <div class="absolute -top-5 -right-5 w-24 h-24 bg-blue-500/20 rounded-full blur-3xl animate-pulse floating-particle"></div>
+                    <div class="absolute top-20 left-1/4 w-16 h-16 bg-pink-500/30 rounded-full blur-2xl floating-particle"></div>
+                    <div class="absolute bottom-10 right-1/3 w-20 h-20 bg-indigo-500/25 rounded-full blur-3xl floating-particle"></div>
                     <h1 class="text-6xl font-bold mb-6 text-white relative inline-block">
                         Get more with Nitro
-                        <span class="absolute -top-3 -right-8 text-xl text-yellow-400">✨</span>
                     </h1>
-                    <p class="text-xl text-purple-100 mb-8 max-w-2xl mx-auto">
+                    <p class="text-xl text-purple-100 mb-12 max-w-2xl mx-auto">
                         Unlock perks to make your Discord experience even better - bigger file uploads, HD video, custom profiles, and more!
                     </p>
-                    <div class="pricing-toggle-container inline-flex mb-12">
-                        <div class="pricing-toggle-highlight bg-white w-36"></div>
-                        <button id="monthly-btn" class="text-gray-900 px-8 py-3 rounded-full font-semibold transition-colors">
-                            Monthly
-                        </button>
-                        <button id="yearly-btn" class="text-white px-8 py-3 rounded-full font-semibold transition-colors">
-                            Yearly <span class="bg-green-500 text-white text-xs py-0.5 px-2 rounded-full ml-1">SAVE 16%</span>
-                        </button>
-                    </div>
                 </div>
             </div>
         </div>
 
         <div class="max-w-7xl mx-auto px-6 -mt-24 relative z-10">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16">
-                <!-- Single Nitro Tier -->
-                <div class="bg-discord-light rounded-lg p-8 border-2 border-purple-500 relative transform shadow-2xl nitro-card-hover">
-                    <div class="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-purple-500 text-white px-4 py-1 rounded-full text-sm font-bold">
+                <div class="bg-discord-light rounded-lg p-8 border-2 border-purple-500 relative transform shadow-2xl nitro-card-hover scroll-reveal">
+                    <div class="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-purple-500 text-white px-4 py-1 rounded-full text-sm font-bold animate-pulse">
                         PREMIUM EXPERIENCE
                     </div>
                     <div class="flex items-center gap-3 mb-6">
-                        <div class="w-12 h-12 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center">
+                        <div class="w-12 h-12 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center hover:scale-110 transition-transform">
                             <i class="fas fa-crown text-white text-xl"></i>
                         </div>
                         <div>
                             <h3 class="text-xl font-bold">Nitro</h3>
-                            <p class="text-purple-400 font-semibold">$9.99/month</p>
+                            <p class="text-purple-400 font-semibold" id="nitro-price">$9.99/month</p>
                         </div>
                     </div>
                     <ul class="space-y-4 mb-8">
-                        <li class="flex items-start gap-3 hover:translate-x-1 transition-transform">
+                        <li class="flex items-start gap-3 hover:translate-x-1 transition-transform cursor-pointer">
                             <i class="fas fa-check text-green-500 mt-1"></i>
                             <span>500MB uploads <span class="text-green-400">(up from 8MB)</span></span>
                         </li>
-                        <li class="flex items-start gap-3 hover:translate-x-1 transition-transform">
+                        <li class="flex items-start gap-3 hover:translate-x-1 transition-transform cursor-pointer">
                             <i class="fas fa-check text-green-500 mt-1"></i>
                             <span>4K 60fps HD video streaming</span>
                         </li>
-                        <li class="flex items-start gap-3 hover:translate-x-1 transition-transform">
+                        <li class="flex items-start gap-3 hover:translate-x-1 transition-transform cursor-pointer">
                             <i class="fas fa-check text-green-500 mt-1"></i>
                             <span>Custom profiles and animated banners</span>
                         </li>
-                        <li class="flex items-start gap-3 hover:translate-x-1 transition-transform">
+                        <li class="flex items-start gap-3 hover:translate-x-1 transition-transform cursor-pointer">
                             <i class="fas fa-check text-green-500 mt-1"></i>
                             <span>2 Server Boosts + 30% off extra Boosts</span>
                         </li>
-                        <li class="flex items-start gap-3 hover:translate-x-1 transition-transform">
+                        <li class="flex items-start gap-3 hover:translate-x-1 transition-transform cursor-pointer">
                             <i class="fas fa-check text-green-500 mt-1"></i>
                             <span>Longer messages (up to 4,000 characters)</span>
                         </li>
-                        <li class="flex items-start gap-3 hover:translate-x-1 transition-transform">
+                        <li class="flex items-start gap-3 hover:translate-x-1 transition-transform cursor-pointer">
                             <i class="fas fa-check text-green-500 mt-1"></i>
                             <span>Custom emoji anywhere</span>
                         </li>
-                        <li class="flex items-start gap-3 hover:translate-x-1 transition-transform">
+                        <li class="flex items-start gap-3 hover:translate-x-1 transition-transform cursor-pointer">
                             <i class="fas fa-check text-green-500 mt-1"></i>
                             <span>Custom server profiles</span>
                         </li>
                     </ul>
                     <button class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium py-3 rounded-md transition-all nitro-subscribe-btn">
-                        Subscribe
+                        <i class="fas fa-crown mr-2"></i>Subscribe
                     </button>
                 </div>
 
-                <div class="bg-discord-darker rounded-lg p-8 border border-gray-700">
+                <div class="bg-discord-darker rounded-lg p-8 border border-gray-700 hover:border-purple-500 transition-colors scroll-reveal">
                     <div class="text-center mb-6">
-                        <div class="w-20 h-20 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4 relative">
+                        <div class="w-20 h-20 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4 relative hover:scale-110 transition-transform">
                             <i class="fas fa-gift text-gray-400 text-3xl"></i>
-                            <span class="absolute -top-2 -right-2 text-lg text-purple-400">✨</span>
+                            <div class="absolute inset-0 rounded-full bg-gradient-to-r from-purple-600/20 to-pink-600/20 animate-pulse"></div>
                         </div>
                         <h3 class="text-2xl font-bold mb-2">Got a gift?</h3>
                         <p class="text-gray-400 mb-4">Redeem your Nitro code below</p>
                     </div>
                     <div class="space-y-4">
-                        <div class="relative">
+                        <div class="relative transition-all duration-300" id="code-input-container">
                             <input 
                                 type="text" 
                                 id="nitro-code-input" 
                                 placeholder="XXXX-XXXX-XXXX-XXXX" 
-                                class="w-full bg-discord-dark border border-gray-600 rounded-md px-4 py-4 text-white placeholder-gray-500 focus:border-purple-500 focus:outline-none"
+                                class="w-full bg-discord-dark border border-gray-600 rounded-md px-4 py-4 pr-12 text-white placeholder-gray-500 focus:border-purple-500 focus:outline-none transition-all duration-300"
                                 maxlength="19"
                             >
-                            <div class="absolute right-3 top-3 text-gray-500">
+                            <div class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 transition-colors">
                                 <i class="fas fa-gift text-lg"></i>
                             </div>
                         </div>
@@ -134,24 +125,29 @@ document.addEventListener('DOMContentLoaded', function() {
                         <h4 class="text-lg font-medium mb-3 text-center">Recent Subscribers</h4>
                         <div class="flex justify-center">
                             <div class="flex -space-x-3">
-                                <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center border-2 border-discord-darker">MJ</div>
-                                <div class="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center border-2 border-discord-darker">AP</div>
-                                <div class="w-10 h-10 rounded-full bg-yellow-500 flex items-center justify-center border-2 border-discord-darker">TK</div>
-                                <div class="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center border-2 border-discord-darker">SL</div>
-                                <div class="w-10 h-10 rounded-full bg-discord-light flex items-center justify-center border-2 border-discord-darker">
-                                    <span class="text-xs">+24</span>
+                                <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center border-2 border-discord-darker text-xs font-bold recent-subscriber-avatar cursor-pointer">MJ</div>
+                                <div class="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center border-2 border-discord-darker text-xs font-bold recent-subscriber-avatar cursor-pointer">AP</div>
+                                <div class="w-10 h-10 rounded-full bg-yellow-500 flex items-center justify-center border-2 border-discord-darker text-xs font-bold recent-subscriber-avatar cursor-pointer">TK</div>
+                                <div class="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center border-2 border-discord-darker text-xs font-bold recent-subscriber-avatar cursor-pointer">SL</div>
+                                <div class="w-10 h-10 rounded-full bg-discord-light flex items-center justify-center border-2 border-discord-darker recent-subscriber-avatar cursor-pointer">
+                                    <span class="text-xs font-bold">+24</span>
                                 </div>
                             </div>
+                        </div>
+                        <div class="text-center mt-2">
+                            <span class="text-xs text-gray-500 animate-pulse">Live updates</span>
                         </div>
                     </div>
                 </div>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-16">
-                <div>
-                    <h2 class="text-3xl font-bold mb-8">Nitro Perks</h2>
+                <div class="scroll-reveal slide-left">
+                    <h2 class="text-3xl font-bold mb-8 relative">
+                        Nitro Perks
+                    </h2>
                     <div class="space-y-6">
-                        <div class="flex gap-4 group">
+                        <div class="flex gap-4 group cursor-pointer perk-item">
                             <div class="w-12 h-12 bg-purple-600/20 rounded-lg flex items-center justify-center flex-shrink-0 nitro-perk-icon">
                                 <i class="fas fa-upload text-purple-400 text-xl"></i>
                             </div>
@@ -160,7 +156,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <p class="text-gray-400">Share files up to 500MB with Nitro</p>
                             </div>
                         </div>
-                        <div class="flex gap-4 group">
+                        <div class="flex gap-4 group cursor-pointer perk-item">
                             <div class="w-12 h-12 bg-purple-600/20 rounded-lg flex items-center justify-center flex-shrink-0 nitro-perk-icon">
                                 <i class="fas fa-video text-purple-400 text-xl"></i>
                             </div>
@@ -169,7 +165,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <p class="text-gray-400">Stream in 1080p 60fps or 4K 60fps</p>
                             </div>
                         </div>
-                        <div class="flex gap-4 group">
+                        <div class="flex gap-4 group cursor-pointer perk-item">
                             <div class="w-12 h-12 bg-purple-600/20 rounded-lg flex items-center justify-center flex-shrink-0 nitro-perk-icon">
                                 <i class="fas fa-smile text-purple-400 text-xl"></i>
                             </div>
@@ -178,7 +174,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <p class="text-gray-400">Use custom emoji from any server</p>
                             </div>
                         </div>
-                        <div class="flex gap-4 group">
+                        <div class="flex gap-4 group cursor-pointer perk-item">
                             <div class="w-12 h-12 bg-purple-600/20 rounded-lg flex items-center justify-center flex-shrink-0 nitro-perk-icon">
                                 <i class="fas fa-palette text-purple-400 text-xl"></i>
                             </div>
@@ -190,12 +186,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 </div>
 
-                <div>
-                    <h2 class="text-3xl font-bold mb-8">Server Boosts Included</h2>
-                    <div class="bg-discord-light rounded-lg p-6 mb-6 hover:transform hover:scale-[1.02] transition-transform">
+                <div class="scroll-reveal slide-right">
+                    <h2 class="text-3xl font-bold mb-8 relative">
+                        Server Boosts Included
+                    </h2>
+                    <div class="bg-discord-light rounded-lg p-6 mb-6 hover:scale-[1.02] transition-transform cursor-pointer">
                         <div class="flex items-center gap-4 mb-4">
-                            <div class="w-16 h-16 bg-gradient-to-r from-pink-500 to-purple-500 rounded-full flex items-center justify-center">
+                            <div class="w-16 h-16 bg-gradient-to-r from-pink-500 to-purple-500 rounded-full flex items-center justify-center hover:scale-110 transition-transform relative">
                                 <i class="fas fa-rocket text-white text-2xl"></i>
+                                <div class="absolute inset-0 rounded-full bg-white/20 animate-ping"></div>
                             </div>
                             <div>
                                 <h4 class="text-xl font-semibold">2 Server Boosts</h4>
@@ -203,26 +202,27 @@ document.addEventListener('DOMContentLoaded', function() {
                             </div>
                         </div>
                         <div class="grid grid-cols-2 gap-4 text-sm">
-                            <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-2 hover:text-green-400 transition-colors cursor-pointer">
                                 <i class="fas fa-check text-green-500"></i>
                                 <span>Better audio quality</span>
                             </div>
-                            <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-2 hover:text-green-400 transition-colors cursor-pointer">
                                 <i class="fas fa-check text-green-500"></i>
                                 <span>More emoji slots</span>
                             </div>
-                            <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-2 hover:text-green-400 transition-colors cursor-pointer">
                                 <i class="fas fa-check text-green-500"></i>
                                 <span>Bigger upload limit</span>
                             </div>
-                            <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-2 hover:text-green-400 transition-colors cursor-pointer">
                                 <i class="fas fa-check text-green-500"></i>
                                 <span>HD streaming</span>
                             </div>
                         </div>
                     </div>
-                    <div class="bg-purple-600/10 border border-purple-600/30 rounded-lg p-4 text-center hover:bg-purple-600/20 transition-colors">
-                        <p class="text-purple-300">
+                    <div class="bg-purple-600/10 border border-purple-600/30 rounded-lg p-4 text-center hover:bg-purple-600/20 transition-colors cursor-pointer relative overflow-hidden">
+                        <div class="absolute inset-0 bg-gradient-to-r from-purple-600/10 via-pink-600/10 to-purple-600/10 animate-pulse"></div>
+                        <p class="text-purple-300 relative z-10">
                             <i class="fas fa-tag mr-2"></i>
                             Get 30% off additional Server Boosts
                         </p>
@@ -230,17 +230,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             </div>
 
-            <div class="text-center py-12 border-t border-gray-700">
+            <div class="text-center py-12 border-t border-gray-700 scroll-reveal">
                 <p class="text-gray-400 mb-4">Questions? Check out our support articles or contact us.</p>
-                <div class="flex gap-4 justify-center">
-                    <a href="#" class="text-purple-400 hover:text-purple-300 transition-colors hover:scale-110 transform">
-                        <i class="fas fa-book mr-2"></i>Support
+                <div class="flex gap-6 justify-center">
+                    <a href="#" class="text-purple-400 hover:text-purple-300 transition-all hover:scale-110 transform flex items-center gap-2 group">
+                        <i class="fas fa-book group-hover:animate-bounce"></i>Support
                     </a>
-                    <a href="#" class="text-purple-400 hover:text-purple-300 transition-colors hover:scale-110 transform">
-                        <i class="fas fa-shield-alt mr-2"></i>Terms
+                    <a href="#" class="text-purple-400 hover:text-purple-300 transition-all hover:scale-110 transform flex items-center gap-2 group">
+                        <i class="fas fa-shield-alt group-hover:animate-pulse"></i>Terms
                     </a>
-                    <a href="#" class="text-purple-400 hover:text-purple-300 transition-colors hover:scale-110 transform">
-                        <i class="fas fa-lock mr-2"></i>Privacy
+                    <a href="#" class="text-purple-400 hover:text-purple-300 transition-all hover:scale-110 transform flex items-center gap-2 group">
+                        <i class="fas fa-lock group-hover:animate-spin"></i>Privacy
                     </a>
                 </div>
             </div>
@@ -249,15 +249,22 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 <div id="nitro-success-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-    <div class="bg-discord-light rounded-lg p-8 max-w-md w-full mx-4 text-center">
-        <div class="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
-            <i class="fas fa-check text-white text-3xl"></i>
+    <div class="bg-discord-light rounded-lg p-8 max-w-md w-full mx-4 text-center animate-fade-in relative overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-br from-purple-600/20 via-pink-600/20 to-purple-600/20 animate-pulse"></div>
+        <div class="relative z-10">
+            <div class="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6 relative">
+                <i class="fas fa-check text-white text-3xl"></i>
+                <div class="absolute inset-0 rounded-full bg-green-400/30 animate-ping"></div>
+            </div>
+            <h3 class="text-2xl font-bold mb-4">Welcome to Nitro!</h3>
+            <p class="text-gray-300 mb-6">Your Nitro subscription has been activated. Enjoy all the perks!</p>
+            <button onclick="location.reload()" class="bg-purple-600 hover:bg-purple-700 text-white font-medium px-6 py-3 rounded-md transition-colors hover:scale-105 transform relative overflow-hidden">
+                <span class="relative z-10 flex items-center justify-center">
+                    <i class="fas fa-rocket mr-2"></i> Awesome!
+                </span>
+                <div class="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full transition-transform duration-700 group-hover:translate-x-full"></div>
+            </button>
         </div>
-        <h3 class="text-2xl font-bold mb-4">Welcome to Nitro!</h3>
-        <p class="text-gray-300 mb-6">Your Nitro subscription has been activated. Enjoy all the perks!</p>
-        <button onclick="location.reload()" class="bg-purple-600 hover:bg-purple-700 text-white font-medium px-6 py-3 rounded-md transition-colors">
-            <i class="fas fa-rocket mr-2"></i> Awesome!
-        </button>
     </div>
 </div>
 

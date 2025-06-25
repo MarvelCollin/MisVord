@@ -57,7 +57,7 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
 <body class="<?php echo $body_class ?? 'bg-gray-900'; ?> <?php echo isset($_SESSION['user_id']) && !empty($_SESSION['user_id']) ? 'authenticated' : ''; ?>" <?php echo isset($body_attributes) ? $body_attributes : ''; ?>>
     <?php echo $content ?? ''; ?>
     
-    <?php if (!isset($data_page) || $data_page !== 'auth'): ?>
+    <?php if (!isset($data_page) || ($data_page !== 'auth' && $data_page !== 'settings-user')): ?>
         <?php include_once dirname(__DIR__) . '/components/app-sections/create-server-modal.php'; ?>
         <?php include_once dirname(__DIR__) . '/components/app-sections/server-actions-modals.php'; ?>
         <?php include_once dirname(__DIR__) . '/components/common/user-detail.php'; ?>
@@ -65,7 +65,7 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
     
     <?php include_once __DIR__ . '/scripts.php'; ?>
     
-    <?php if (!isset($data_page) || $data_page !== 'auth'): ?>
+    <?php if (!isset($data_page) || ($data_page !== 'auth' && $data_page !== 'settings-user')): ?>
         <script type="module" src="<?php echo js('components/servers/server-manager'); ?>"></script>
         <script type="module" src="<?php echo js('components/videosdk/global-voice-connected'); ?>"></script>
         <script type="module" src="<?php echo js('components/common/wifi-strength'); ?>"></script>

@@ -5,7 +5,6 @@ import ImageCutter from '../common/image-cutter.js';
 
 document.addEventListener('DOMContentLoaded', function() {
     initUserSettingsPage();
-    removeServerModals();
     
     if (window.location.pathname.startsWith('/settings')) {
         const referrer = document.referrer;
@@ -27,15 +26,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-function removeServerModals() {
-    if (document.body.classList.contains('settings-user')) {
-        const leaveModal = document.getElementById('leave-server-modal');
-        const deleteModal = document.getElementById('delete-server-modal');
         
-        if (leaveModal) leaveModal.remove();
-        if (deleteModal) deleteModal.remove();
-    }
-}
 
 function initUserSettingsPage() {
     if (!document.querySelector('.settings-page, .flex.min-h-screen')) {
@@ -98,9 +89,9 @@ function initSidebarNavigation(activeSection) {
  * Initialize user avatar upload with image cropper
  */
 function initUserAvatarUpload() {
-    const iconContainer = document.getElementById('server-icon-container');
+    const iconContainer = document.getElementById('user-avatar-container');
     const iconInput = document.getElementById('avatar-input');
-    const iconPreview = document.getElementById('server-icon-preview');
+    const iconPreview = document.getElementById('user-avatar-preview');
     const removeIconBtn = document.getElementById('remove-avatar-btn');
     
     if (!iconContainer || !iconInput) return;
@@ -121,7 +112,7 @@ function initUserAvatarUpload() {
                     iconPreview.src = result.dataUrl;
                     iconPreview.classList.remove('hidden');
                     
-                    const placeholder = document.getElementById('server-icon-placeholder');
+                    const placeholder = document.getElementById('user-avatar-placeholder');
                     if (placeholder) placeholder.classList.add('hidden');
                 }
                 
@@ -167,7 +158,7 @@ function initUserAvatarUpload() {
                             iconPreview.src = e.target.result;
                             iconPreview.classList.remove('hidden');
                             
-                            const placeholder = document.getElementById('server-icon-placeholder');
+                            const placeholder = document.getElementById('user-avatar-placeholder');
                             if (placeholder) placeholder.classList.add('hidden');
                         }
                         
@@ -236,9 +227,9 @@ function initUserAvatarUpload() {
  * Initialize banner upload with image cropper
  */
 function initUserBannerUpload() {
-    const bannerContainer = document.getElementById('banner-container');
-    const bannerInput = document.getElementById('banner-input');
-    const bannerPreview = document.getElementById('banner-preview');
+    const bannerContainer = document.getElementById('user-banner-container');
+    const bannerInput = document.getElementById('user-banner-input');
+    const bannerPreview = document.getElementById('user-banner-preview');
     const removeBannerBtn = document.getElementById('remove-banner-btn');
     
     if (!bannerContainer || !bannerInput) return;
@@ -259,7 +250,7 @@ function initUserBannerUpload() {
                     bannerPreview.src = result.dataUrl;
                     bannerPreview.classList.remove('hidden');
                     
-                    const placeholder = document.getElementById('banner-placeholder');
+                    const placeholder = document.getElementById('user-banner-placeholder');
                     if (placeholder) placeholder.classList.add('hidden');
                 }
                 
@@ -305,7 +296,7 @@ function initUserBannerUpload() {
                             bannerPreview.src = e.target.result;
                             bannerPreview.classList.remove('hidden');
                             
-                            const placeholder = document.getElementById('banner-placeholder');
+                            const placeholder = document.getElementById('user-banner-placeholder');
                             if (placeholder) placeholder.classList.add('hidden');
                         }
                         
@@ -345,7 +336,7 @@ function initUserBannerUpload() {
                         bannerPreview.classList.add('hidden');
                     }
                     
-                    const placeholder = document.getElementById('banner-placeholder');
+                    const placeholder = document.getElementById('user-banner-placeholder');
                     if (placeholder) placeholder.classList.remove('hidden');
                     
                     if (bannerContainer) {
@@ -451,22 +442,20 @@ function uploadBanner(dataUrl) {
  * Update all avatar instances in the UI
  */
 function updateAllAvatars(url) {
-    const avatarElements = document.querySelectorAll('.user-avatar img, .user-avatar-preview img, .server-icon-preview img, #server-icon-preview');
+    const avatarElements = document.querySelectorAll('.user-avatar img, .user-avatar-preview img, #user-avatar-preview');
     
     avatarElements.forEach(avatar => {
         avatar.src = url;
     });
     
-    // Update the meta tag
     const avatarMeta = document.querySelector('meta[name="user-avatar"]');
     if (avatarMeta) {
         avatarMeta.content = url;
     }
     
-    // Update server preview card avatar
-    const serverPreviewAvatar = document.querySelector('.server-icon-preview img');
-    if (serverPreviewAvatar) {
-        serverPreviewAvatar.src = url;
+    const userPreviewAvatar = document.querySelector('.user-avatar-preview img');
+    if (userPreviewAvatar) {
+        userPreviewAvatar.src = url;
     }
 }
 
@@ -474,18 +463,17 @@ function updateAllAvatars(url) {
  * Update all banner instances in the UI
  */
 function updateAllBanners(url) {
-    // Update the server banner in the preview
-    const serverBanner = document.querySelector('.server-banner');
-    if (serverBanner) {
+    const userBanner = document.querySelector('.user-banner');
+    if (userBanner) {
         if (url) {
-            serverBanner.style.backgroundImage = `url('${url}')`;
-            serverBanner.style.backgroundSize = 'cover';
-            serverBanner.style.backgroundPosition = 'center';
+            userBanner.style.backgroundImage = `url('${url}')`;
+            userBanner.style.backgroundSize = 'cover';
+            userBanner.style.backgroundPosition = 'center';
         } else {
-            serverBanner.style.backgroundImage = `url('/public/assets/common/main-logo.png')`;
-            serverBanner.style.backgroundSize = 'contain';
-            serverBanner.style.backgroundRepeat = 'no-repeat';
-            serverBanner.style.backgroundPosition = 'center';
+            userBanner.style.backgroundImage = `url('/public/assets/common/main-logo.png')`;
+            userBanner.style.backgroundSize = 'contain';
+            userBanner.style.backgroundRepeat = 'no-repeat';
+            userBanner.style.backgroundPosition = 'center';
         }
     }
 }

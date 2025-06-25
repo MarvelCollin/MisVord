@@ -151,10 +151,10 @@ function handleChannelMessage(io, client, data) {
         return;
     }
     
-    const { channelId, content, messageType = 'text' } = data;
+    const { channelId, content, messageType = 'text', attachmentUrl } = data;
     
-    if (!channelId || !content) {
-        client.emit('error', { message: 'Channel ID and content are required' });
+    if (!channelId || (!content && !attachmentUrl)) {
+        client.emit('error', { message: 'Channel ID and content or attachment are required' });
         return;
     }
     
@@ -163,6 +163,7 @@ function handleChannelMessage(io, client, data) {
         id: Date.now().toString(),
         content,
         messageType,
+        attachment_url: attachmentUrl,
         userId: client.data.userId,
         username: client.data.username,
         timestamp: Date.now(),
@@ -408,10 +409,12 @@ function forwardEvent(io, client, eventName, data, specificRoom = null) {
     
     if (eventName === 'new-channel-message') {
         const channelId = cleanData.channelId || 'unknown';
-        console.log(`Message from ${username} (${userId}) in channel ${channelId}: "${cleanData.content}"`);
+        const attachmentInfo = cleanData.attachment_url ? ` [attachment: ${cleanData.attachment_url}]` : '';
+        console.log(`Message from ${username} (${userId}) in channel ${channelId}: "${cleanData.content}"${attachmentInfo}`);
     } else if (eventName === 'user-message-dm') {
         const roomId = cleanData.roomId || 'unknown';
-        console.log(`Message from ${username} (${userId}) in DM room ${roomId}: "${cleanData.content}"`);
+        const attachmentInfo = cleanData.attachment_url ? ` [attachment: ${cleanData.attachment_url}]` : '';
+        console.log(`Message from ${username} (${userId}) in DM room ${roomId}: "${cleanData.content}"${attachmentInfo}`);
     }
     
     if (specificRoom) {

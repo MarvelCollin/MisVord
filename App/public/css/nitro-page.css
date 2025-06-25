@@ -17,15 +17,61 @@
 }
 
 @keyframes glow {
-    0% {
-        box-shadow: 0 0 5px rgba(139, 92, 246, 0.5);
-    }
-    50% {
-        box-shadow: 0 0 20px rgba(139, 92, 246, 0.8);
-    }
-    100% {
-        box-shadow: 0 0 5px rgba(139, 92, 246, 0.5);
-    }
+    0% { box-shadow: 0 0 5px rgba(139, 92, 246, 0.5); }
+    50% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.8), 0 0 30px rgba(139, 92, 246, 0.4); }
+    100% { box-shadow: 0 0 5px rgba(139, 92, 246, 0.5); }
+}
+
+@keyframes floating-particles {
+    0% { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0; }
+    10% { opacity: 1; }
+    50% { transform: translateY(-200px) translateX(100px) rotate(180deg); opacity: 0.8; }
+    90% { opacity: 1; }
+    100% { transform: translateY(-400px) translateX(-50px) rotate(360deg); opacity: 0; }
+}
+
+@keyframes wave-animation {
+    0% { transform: translateX(-100%) translateY(0); }
+    50% { transform: translateX(0) translateY(-10px); }
+    100% { transform: translateX(100%) translateY(0); }
+}
+
+@keyframes neon-glow {
+    0% { text-shadow: 0 0 5px #8b5cf6, 0 0 10px #8b5cf6, 0 0 15px #8b5cf6; }
+    50% { text-shadow: 0 0 10px #8b5cf6, 0 0 20px #8b5cf6, 0 0 30px #8b5cf6, 0 0 40px #8b5cf6; }
+    100% { text-shadow: 0 0 5px #8b5cf6, 0 0 10px #8b5cf6, 0 0 15px #8b5cf6; }
+}
+
+@keyframes magical-sparkle {
+    0% { transform: scale(0) rotate(0deg); opacity: 0; }
+    20% { transform: scale(1) rotate(90deg); opacity: 1; }
+    80% { transform: scale(1) rotate(270deg); opacity: 1; }
+    100% { transform: scale(0) rotate(360deg); opacity: 0; }
+}
+
+@keyframes bounce-in {
+    0% { transform: scale(0.3) translateY(50px); opacity: 0; }
+    50% { transform: scale(1.05) translateY(-10px); opacity: 1; }
+    70% { transform: scale(0.95) translateY(5px); }
+    100% { transform: scale(1) translateY(0); }
+}
+
+@keyframes slide-in-left {
+    0% { transform: translateX(-100px); opacity: 0; }
+    100% { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slide-in-right {
+    0% { transform: translateX(100px); opacity: 0; }
+    100% { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes morphing-gradient {
+    0% { background: linear-gradient(45deg, #8b5cf6, #3b82f6, #8b5cf6, #3b82f6); }
+    25% { background: linear-gradient(45deg, #3b82f6, #8b5cf6, #3b82f6, #8b5cf6); }
+    50% { background: linear-gradient(45deg, #8b5cf6, #ec4899, #8b5cf6, #ec4899); }
+    75% { background: linear-gradient(45deg, #ec4899, #8b5cf6, #ec4899, #8b5cf6); }
+    100% { background: linear-gradient(45deg, #8b5cf6, #3b82f6, #8b5cf6, #3b82f6); }
 }
 
 .premium-glow {
@@ -43,14 +89,16 @@
     height: 24px;
     font-size: 0.75rem;
     font-weight: bold;
+    animation: magical-sparkle 3s infinite;
 }
 
 .nitro-benefit-icon {
-    transition: transform 0.2s ease;
+    transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
 .nitro-benefit-item:hover .nitro-benefit-icon {
-    transform: scale(1.2);
+    transform: scale(1.3) rotate(10deg);
+    filter: drop-shadow(0 0 10px rgba(139, 92, 246, 0.6));
 }
 
 .nitro-hero-section {
@@ -67,8 +115,8 @@
     left: -50%;
     width: 200%;
     height: 200%;
-    background: radial-gradient(circle, rgba(139, 92, 246, 0.3) 0%, transparent 70%);
-    animation: rotate 30s linear infinite;
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.4) 0%, rgba(59, 130, 246, 0.2) 50%, transparent 70%);
+    animation: rotate 20s linear infinite;
 }
 
 .nitro-hero-section::after {
@@ -78,251 +126,369 @@
     left: 0;
     right: 0;
     height: 150px;
-    background: linear-gradient(to bottom, transparent, rgba(35, 39, 42, 0.8) 80%);
+    background: linear-gradient(to bottom, transparent, rgba(35, 39, 42, 0.9) 80%);
     z-index: 1;
     pointer-events: none;
 }
 
 .nitro-hero-section .text-6xl {
-    background: linear-gradient(to right, #ffffff, #d4b5ff);
+    background: linear-gradient(90deg, #ffffff, #d4b5ff, #8b5cf6, #d4b5ff, #ffffff);
+    background-size: 400% 400%;
     -webkit-background-clip: text;
     background-clip: text;
-    color: transparent;
-    animation: shimmer 3s infinite;
+    -webkit-text-fill-color: transparent;
+    animation: shimmer 4s ease-in-out infinite, neon-glow 3s ease-in-out infinite;
+    position: relative;
+}
+
+.floating-particle {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.8), transparent);
+    border-radius: 50%;
+    animation: floating-particles 8s linear infinite;
+    pointer-events: none;
+}
+
+.floating-particle:nth-child(2n) {
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.8), transparent);
+    animation-delay: -2s;
+    animation-duration: 10s;
+}
+
+.floating-particle:nth-child(3n) {
+    background: radial-gradient(circle, rgba(236, 72, 153, 0.8), transparent);
+    animation-delay: -4s;
+    animation-duration: 12s;
+}
+
+.wave-effect {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 200%;
+    height: 100px;
+    background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.1), transparent);
+    animation: wave-animation 6s ease-in-out infinite;
 }
 
 @keyframes shimmer {
-    0% {
-        background-position: -200% center;
-    }
-    100% {
-        background-position: 200% center;
-    }
+    0% { background-position: -400% center; }
+    100% { background-position: 400% center; }
 }
 
 @keyframes rotate {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }
 
 @keyframes float {
-    0%, 100% {
-        transform: translateY(0);
-    }
-    50% {
-        transform: translateY(-10px);
-    }
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    25% { transform: translateY(-15px) rotate(2deg); }
+    50% { transform: translateY(-8px) rotate(-1deg); }
+    75% { transform: translateY(-12px) rotate(1deg); }
 }
 
-@keyframes pulse {
-    0% {
-        transform: scale(1);
-        box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4);
-    }
-    70% {
-        transform: scale(1.03);
-        box-shadow: 0 0 0 10px rgba(139, 92, 246, 0);
-    }
-    100% {
-        transform: scale(1);
-        box-shadow: 0 0 0 0 rgba(139, 92, 246, 0);
-    }
+@keyframes pulse-intense {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.6); }
+    50% { transform: scale(1.05); box-shadow: 0 0 0 20px rgba(139, 92, 246, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
 }
 
 @keyframes gradient-shift {
-    0% {
-        background-position: 0% 50%;
-    }
-    50% {
-        background-position: 100% 50%;
-    }
-    100% {
-        background-position: 0% 50%;
-    }
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
 }
 
 #nitro-code-input {
     font-family: 'Consolas', 'Monaco', monospace;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    transition: all 0.3s ease;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     border-width: 2px;
+    position: relative;
 }
 
 #nitro-code-input:focus {
-    box-shadow: 0 0 15px rgba(139, 92, 246, 0.6);
-    border-color: rgba(139, 92, 246, 0.8);
-    transform: translateY(-2px);
+    box-shadow: 0 0 25px rgba(139, 92, 246, 0.8), 0 0 50px rgba(139, 92, 246, 0.4);
+    border-color: rgba(139, 92, 246, 0.9);
+    transform: translateY(-3px) scale(1.02);
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(59, 130, 246, 0.05));
 }
 
 .nitro-perk-card {
     backdrop-filter: blur(10px);
     background: rgba(47, 49, 54, 0.8);
+    transition: all 0.4s ease;
 }
 
 .nitro-card-hover {
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     z-index: 10;
+    overflow: hidden;
 }
 
 .nitro-card-hover:hover {
-    transform: translateY(-8px) scale(1.02);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    transform: translateY(-12px) scale(1.03) rotateX(5deg);
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5), 0 0 30px rgba(139, 92, 246, 0.3);
 }
 
 .nitro-card-hover::before {
     content: '';
     position: absolute;
-    inset: -2px;
-    background: linear-gradient(45deg, #9333ea, #4f46e5, #9333ea);
-    background-size: 200% 200%;
-    animation: gradient-shift 5s ease infinite;
+    inset: -3px;
+    background: linear-gradient(45deg, #9333ea, #4f46e5, #ec4899, #9333ea);
+    background-size: 300% 300%;
+    animation: morphing-gradient 6s ease infinite;
     z-index: -1;
     border-radius: 0.5rem;
-    opacity: 0.7;
+    opacity: 0.8;
     transition: opacity 0.3s ease;
 }
 
 .nitro-card-hover:hover::before {
     opacity: 1;
+    animation-duration: 3s;
+}
+
+.nitro-card-hover::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.2), transparent 70%);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: all 0.5s ease;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.nitro-card-hover:hover::after {
+    width: 200px;
+    height: 200px;
 }
 
 .nitro-subscribe-btn {
     position: relative;
     overflow: hidden;
-    transition: all 0.3s ease;
-    background-size: 200% 200%;
-    animation: gradient-shift 5s ease infinite;
+    transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    background: linear-gradient(45deg, #8b5cf6, #3b82f6, #ec4899, #8b5cf6);
+    background-size: 400% 400%;
+    animation: morphing-gradient 8s ease infinite;
     z-index: 1;
 }
 
 .nitro-subscribe-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4), 0 0 25px rgba(139, 92, 246, 0.5);
+    animation-duration: 4s;
 }
 
 .nitro-subscribe-btn::after {
     content: '';
     position: absolute;
     top: 0;
-    left: 0;
+    left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(45deg, rgba(255,255,255,0), rgba(255,255,255,0.2), rgba(255,255,255,0));
-    transform: translateX(-100%);
-    transition: transform 0.6s ease;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    transition: left 0.8s ease;
     z-index: -1;
 }
 
 .nitro-subscribe-btn:hover::after {
-    transform: translateX(100%);
+    left: 100%;
 }
 
 #redeem-code-btn {
-    transition: all 0.3s ease;
+    transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
     position: relative;
     z-index: 1;
     overflow: hidden;
 }
 
 #redeem-code-btn:not(:disabled):hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4), 0 0 20px rgba(34, 197, 94, 0.5);
 }
 
 #redeem-code-btn::after {
     content: '';
     position: absolute;
     top: 0;
-    left: 0;
+    left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(45deg, rgba(255,255,255,0), rgba(255,255,255,0.2), rgba(255,255,255,0));
-    transform: translateX(-100%);
-    transition: transform 0.6s ease;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    transition: left 0.8s ease;
     z-index: -1;
 }
 
 #redeem-code-btn:not(:disabled):hover::after {
-    transform: translateX(100%);
+    left: 100%;
 }
 
 .nitro-perk-icon {
-    transition: all 0.3s ease;
+    transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    position: relative;
 }
 
-.flex:hover .nitro-perk-icon {
-    transform: scale(1.2) rotate(5deg);
+.group:hover .nitro-perk-icon {
+    transform: scale(1.3) rotate(10deg);
+    filter: drop-shadow(0 0 15px rgba(139, 92, 246, 0.8));
+}
+
+.nitro-perk-icon::after {
+    content: '';
+    position: absolute;
+    inset: -5px;
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.3), transparent 60%);
+    border-radius: 50%;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: -1;
+}
+
+.group:hover .nitro-perk-icon::after {
+    opacity: 1;
 }
 
 .w-16.h-16.bg-gradient-to-r {
-    transition: all 0.3s ease;
+    transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    position: relative;
 }
 
 .bg-discord-light:hover .w-16.h-16.bg-gradient-to-r {
-    transform: scale(1.1) rotate(10deg);
-    box-shadow: 0 0 20px rgba(139, 92, 246, 0.6);
+    transform: scale(1.15) rotate(15deg);
+    box-shadow: 0 0 25px rgba(139, 92, 246, 0.8), 0 0 50px rgba(236, 72, 153, 0.4);
 }
 
 .nitro-badge-container {
-    animation: float 3s ease-in-out infinite;
+    animation: float 4s ease-in-out infinite;
 }
 
 #nitro-success-modal {
-    transition: opacity 0.3s ease;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
 }
 
 #nitro-success-modal .bg-discord-light {
-    transform: scale(0.9);
+    transform: scale(0.8) rotateY(90deg);
     opacity: 0;
-    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 #nitro-success-modal:not(.hidden) .bg-discord-light {
-    transform: scale(1);
+    transform: scale(1) rotateY(0deg);
     opacity: 1;
 }
 
 #nitro-success-modal .w-20.h-20.bg-green-500 {
-    animation: pulse 2s infinite;
+    animation: pulse-intense 2s infinite;
 }
 
-.pricing-toggle-container {
-    background: rgba(79, 84, 92, 0.3);
-    padding: 4px;
-    border-radius: 9999px;
-    display: inline-flex;
-    position: relative;
-}
 
-.pricing-toggle-container button {
-    position: relative;
-    z-index: 10;
-}
-
-.pricing-toggle-highlight {
-    position: absolute;
-    height: calc(100% - 8px);
-    top: 4px;
-    left: 4px;
-    border-radius: 9999px;
-    transition: transform 0.3s ease;
-    z-index: 1;
-}
 
 .bg-discord-light, .bg-discord-darker {
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(15px);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+}
+
+.bg-discord-light:hover, .bg-discord-darker:hover {
+    border-color: rgba(139, 92, 246, 0.3);
+    box-shadow: 0 8px 32px rgba(139, 92, 246, 0.1);
 }
 
 .bg-purple-600\/20 {
-    box-shadow: 0 0 15px rgba(139, 92, 246, 0.2);
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+    transition: all 0.3s ease;
+}
+
+.bg-purple-600\/20:hover {
+    box-shadow: 0 0 30px rgba(139, 92, 246, 0.5);
+}
+
+.hover\:translate-x-1:hover {
+    transform: translateX(0.5rem) scale(1.02);
+}
+
+.animate-fade-in {
+    animation: bounce-in 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.8) rotateX(20deg); }
+    to { opacity: 1; transform: scale(1) rotateX(0deg); }
+}
+
+.animate-slide-up {
+    animation: slide-in-left 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(30px) scale(0.9); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.recent-subscriber-avatar {
+    transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    position: relative;
+}
+
+.recent-subscriber-avatar:hover {
+    transform: scale(1.2) translateY(-5px) rotate(5deg);
+    z-index: 10;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+.recent-subscriber-avatar::before {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    background: linear-gradient(45deg, transparent, rgba(139, 92, 246, 0.5), transparent);
+    border-radius: 50%;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: -1;
+}
+
+.recent-subscriber-avatar:hover::before {
+    opacity: 1;
+}
+
+.scroll-reveal {
+    opacity: 0;
+    transform: translateY(50px);
+    transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.scroll-reveal.revealed {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.scroll-reveal.slide-left {
+    transform: translateX(-50px);
+}
+
+.scroll-reveal.slide-left.revealed {
+    transform: translateX(0);
+}
+
+.scroll-reveal.slide-right {
+    transform: translateX(50px);
+}
+
+.scroll-reveal.slide-right.revealed {
+    transform: translateX(0);
 }
 
 @media (max-width: 768px) {
@@ -336,5 +502,9 @@
     
     .nitro-hero-section p {
         font-size: 1rem;
+    }
+    
+    .nitro-card-hover:hover {
+        transform: translateY(-8px) scale(1.02);
     }
 } 

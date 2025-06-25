@@ -558,64 +558,27 @@ class BaseController
         }
     }
 
-    protected function uploadImage($file, $folder = 'uploads')
+    protected function uploadImage($file, $folder = null)
     {
         if (!$file || !isset($file['tmp_name']) || empty($file['tmp_name'])) {
             throw new Exception('No file uploaded');
         }
 
-        $isDocker = getenv('IS_DOCKER') === 'true';
-        
-        if ($isDocker) {
-            $baseUploadDir = dirname(__DIR__) . "/storage/uploads/";
-            $targetDir = $baseUploadDir . $folder . '/';
-            
-            if (!is_dir($baseUploadDir)) {
-                if (!mkdir($baseUploadDir, 0755, true)) {
-                    throw new Exception('Failed to create upload base directory');
-                }
+        $targetDir = dirname(__DIR__) . "/public/storage/";
+        if (!is_dir($targetDir)) {
+            if (!mkdir($targetDir, 0755, true)) {
+                throw new Exception('Failed to create storage directory');
             }
-            
-            if (!is_dir($targetDir)) {
-                if (!mkdir($targetDir, 0755, true)) {
-                    throw new Exception('Failed to create upload target directory');
-                }
-            }
-
-            $filename = uniqid() . '_' . basename($file['name']);
-            $targetFile = $targetDir . $filename;
-            
-            if (!move_uploaded_file($file['tmp_name'], $targetFile)) {
-                throw new Exception('Failed to move uploaded file');
-            }
-
-            $publicUrl = "/storage/uploads/{$folder}/{$filename}";
-            
-            $publicDir = dirname(__DIR__) . "/public/storage/uploads/{$folder}";
-            if (!is_dir($publicDir)) {
-                if (!mkdir($publicDir, 0755, true)) {
-                    error_log("Warning: Unable to create public upload directory");
-                }
-            }
-            
-            return $publicUrl;
-        } else {
-            $targetDir = dirname(__DIR__) . "/public/storage/uploads/{$folder}/";
-            if (!is_dir($targetDir)) {
-                if (!mkdir($targetDir, 0755, true)) {
-                    throw new Exception('Failed to create directory');
-                }
-            }
-
-            $filename = uniqid() . '_' . basename($file['name']);
-            $targetFile = $targetDir . $filename;
-
-            if (!move_uploaded_file($file['tmp_name'], $targetFile)) {
-                throw new Exception('Failed to upload file');
-            }
-
-            return "/storage/uploads/{$folder}/{$filename}";
         }
+
+        $filename = uniqid() . '_' . basename($file['name']);
+        $targetFile = $targetDir . $filename;
+
+        if (!move_uploaded_file($file['tmp_name'], $targetFile)) {
+            throw new Exception('Failed to upload file');
+        }
+
+        return "/storage/{$filename}";
     }
     
     protected function notifyViaSocket($userId, $event, $data)

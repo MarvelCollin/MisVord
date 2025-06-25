@@ -7,30 +7,50 @@ class MediaController extends BaseController
     private $uploadPath;
     private $allowedImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
     private $allowedAudioTypes = ['audio/mp3', 'audio/wav', 'audio/ogg', 'audio/m4a', 'audio/mpeg'];
-    private $maxFileSize = 25 * 1024 * 1024; // 25MB
+    private $allowedFileTypes = [
+        'application/pdf', 'text/plain', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'application/zip', 'application/x-rar-compressed', 'video/mp4', 'video/avi', 'video/mov'
+    ];
+    private $maxFileSize = 100 * 1024 * 1024;
 
     public function __construct()
     {
         parent::__construct();
-        $this->uploadPath = __DIR__ . '/../public/uploads/';
+        
+        if (getenv('IS_DOCKER') === 'true') {
+            $this->uploadPath = '/tmp/storage/';
+        } else {
+            $this->uploadPath = __DIR__ . '/../public/storage/';
+        }
         
         $this->ensureUploadDirectories();
     }
 
     private function ensureUploadDirectories()
     {
-        $directories = [
-            $this->uploadPath,
-            $this->uploadPath . 'images/',
-            $this->uploadPath . 'audio/',
-            $this->uploadPath . 'files/'
-        ];
-
-        foreach ($directories as $dir) {
-            if (!is_dir($dir)) {
-                mkdir($dir, 0755, true);
+        error_log("Checking storage directory: $this->uploadPath");
+        
+        if (!is_dir($this->uploadPath)) {
+            error_log("Storage directory does not exist, creating: $this->uploadPath");
+            if (!mkdir($this->uploadPath, 0777, true)) {
+                error_log("Failed to create storage directory: $this->uploadPath");
+                throw new Exception("Failed to create storage directory");
             }
+            error_log("Successfully created storage directory: $this->uploadPath");
         }
+        
+        if (!is_writable($this->uploadPath)) {
+            error_log("Storage directory not writable, attempting to fix permissions: $this->uploadPath");
+            if (!chmod($this->uploadPath, 0777)) {
+                error_log("Failed to set permissions for storage directory: $this->uploadPath");
+                throw new Exception("Storage directory not writable and cannot fix permissions");
+            }
+            error_log("Successfully set permissions for storage directory: $this->uploadPath");
+        }
+        
+        error_log("Storage directory ready: $this->uploadPath (writable: " . (is_writable($this->uploadPath) ? 'yes' : 'no') . ")");
     }
 
     public function uploadMedia()
@@ -38,8 +58,22 @@ class MediaController extends BaseController
         $this->requireAuth();
         
         try {
+            header('Content-Type: application/json');
+            
+            error_log("Upload request received. POST data: " . print_r($_POST, true));
+            error_log("Files data: " . print_r($_FILES, true));
+            error_log("Content-Type header: " . ($_SERVER['CONTENT_TYPE'] ?? 'none'));
+            error_log("Request method: " . $_SERVER['REQUEST_METHOD']);
+            
+            if (empty($_FILES)) {
+                error_log("No files found in upload request");
+                return $this->validationError(['file' => 'No files detected in request']);
+            }
+            
             if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
-                return $this->validationError(['file' => 'No file uploaded or upload error']);
+                $errorCode = $_FILES['file']['error'] ?? 'no_file';
+                error_log("File upload error. Error code: $errorCode");
+                return $this->validationError(['file' => 'No file uploaded or upload error. Code: ' . $errorCode]);
             }
 
             $file = $_FILES['file'];
@@ -49,34 +83,42 @@ class MediaController extends BaseController
             $mimeType = mime_content_type($tempPath);
 
             if ($fileSize > $this->maxFileSize) {
-                return $this->validationError(['file' => 'File size exceeds 25MB limit']);
+                return $this->validationError(['file' => 'File size exceeds 100MB limit']);
             }
 
-            $category = $this->determineFileCategory($mimeType);
-            if (!$category) {
-                return $this->validationError(['file' => 'Unsupported file type']);
-            }
+
 
             $extension = pathinfo($originalName, PATHINFO_EXTENSION);
             $fileName = uniqid() . '_' . time() . '.' . $extension;
-            $relativePath = "uploads/{$category}/{$fileName}";
-            $absolutePath = $this->uploadPath . "{$category}/{$fileName}";
+            $absolutePath = $this->uploadPath . $fileName;
 
-            if (!move_uploaded_file($tempPath, $absolutePath)) {
-                return $this->serverError('Failed to save uploaded file');
+            $this->ensureUploadDirectories();
+            
+            if (!is_writable($this->uploadPath)) {
+                error_log("Storage directory still not writable after setup: $this->uploadPath");
+                return $this->serverError('Storage directory not writable');
             }
 
+            error_log("Attempting to move file from $tempPath to $absolutePath");
+            
+            if (!move_uploaded_file($tempPath, $absolutePath)) {
+                $uploadError = error_get_last();
+                error_log("Failed to move uploaded file: " . print_r($uploadError, true));
+                return $this->serverError('Failed to save uploaded file: ' . ($uploadError['message'] ?? 'Unknown error'));
+            }
+
+            $fileUrl = "/storage/{$fileName}";
+            
             return $this->success([
-                'file_url' => '/' . $relativePath,
+                'file_url' => $fileUrl,
                 'file_name' => $originalName,
                 'file_size' => $fileSize,
-                'mime_type' => $mimeType,
-                'category' => $category
+                'mime_type' => $mimeType
             ]);
 
         } catch (Exception $e) {
             error_log("Media upload error: " . $e->getMessage());
-            return $this->serverError('Upload failed');
+            return $this->serverError('Upload failed: ' . $e->getMessage());
         }
     }
 
@@ -106,20 +148,15 @@ class MediaController extends BaseController
                 $mimeType = mime_content_type($tempPath);
 
                 if ($fileSize > $this->maxFileSize) {
-                    $errors[] = "File '{$originalName}': Size exceeds 25MB limit";
+                    $errors[] = "File '{$originalName}': Size exceeds 100MB limit";
                     continue;
                 }
 
-                $category = $this->determineFileCategory($mimeType);
-                if (!$category) {
-                    $errors[] = "File '{$originalName}': Unsupported file type";
-                    continue;
-                }
+
 
                 $extension = pathinfo($originalName, PATHINFO_EXTENSION);
                 $fileName = uniqid() . '_' . time() . '.' . $extension;
-                $relativePath = "uploads/{$category}/{$fileName}";
-                $absolutePath = $this->uploadPath . "{$category}/{$fileName}";
+                $absolutePath = $this->uploadPath . $fileName;
 
                 if (!move_uploaded_file($tempPath, $absolutePath)) {
                     $errors[] = "File '{$originalName}': Failed to save";
@@ -127,11 +164,11 @@ class MediaController extends BaseController
                 }
 
                 $uploadedFiles[] = [
-                    'file_url' => '/' . $relativePath,
+                    'file_url' => "/storage/{$fileName}",
                     'file_name' => $originalName,
                     'file_size' => $fileSize,
                     'mime_type' => $mimeType,
-                    'category' => $category
+
                 ];
             }
 
@@ -148,16 +185,7 @@ class MediaController extends BaseController
         }
     }
 
-    private function determineFileCategory($mimeType)
-    {
-        if (in_array($mimeType, $this->allowedImageTypes)) {
-            return 'images';
-        } elseif (in_array($mimeType, $this->allowedAudioTypes)) {
-            return 'audio';
-        }
-        
-        return null;
-    }
+
 
     public function getGifs()
     {
