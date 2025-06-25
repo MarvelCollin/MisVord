@@ -6,7 +6,7 @@ function debugUserAuthentication() {
     const usernameMeta = document.querySelector('meta[name="username"]')?.getAttribute('content');
     const authMeta = document.querySelector('meta[name="user-authenticated"]')?.getAttribute('content');
     
-    console.log('📋 Meta Tags:');
+    console.log('Meta Tags:');
     console.log(`   User ID: ${userIdMeta || 'Not found'}`);
     console.log(`   Username: ${usernameMeta || 'Not found'}`);
     console.log(`   Authenticated: ${authMeta || 'Not found'}`);
@@ -14,20 +14,20 @@ function debugUserAuthentication() {
     const bodyUserId = document.body.getAttribute('data-user-id');
     const bodyUsername = document.body.getAttribute('data-username');
     
-    console.log('📋 Body Attributes:');
+    console.log('Body Attributes:');
     console.log(`   User ID: ${bodyUserId || 'Not found'}`);
     console.log(`   Username: ${bodyUsername || 'Not found'}`);
     
     let userData = null;
     try {
         userData = getUserDataFromPage();
-        console.log('📋 getUserDataFromPage() result:', userData);
+        console.log('getUserDataFromPage() result:', userData);
     } catch (error) {
-        console.log('❌ getUserDataFromPage() error:', error.message);
+        console.log('getUserDataFromPage() error:', error.message);
     }
     
     if (window.globalSocketManager) {
-        console.log('📋 Global Socket Manager:');
+        console.log('Global Socket Manager:');
         console.log(`   User ID: ${window.globalSocketManager.userId || 'Not set'}`);
         console.log(`   Username: ${window.globalSocketManager.username || 'Not set'}`);
         console.log(`   Is Guest: ${window.globalSocketManager.isGuest}`);
@@ -35,18 +35,18 @@ function debugUserAuthentication() {
         console.log(`   Connected: ${window.globalSocketManager.connected}`);
         console.log(`   Authenticated: ${window.globalSocketManager.authenticated}`);
     } else {
-        console.log('❌ Global Socket Manager: Not available');
+        console.log('Global Socket Manager: Not available');
     }
     
     const hasUserData = !!(userIdMeta || bodyUserId);
-    console.log('\n🎯 SUMMARY:');
+    console.log('\nSUMMARY:');
     console.log(`User Data Available: ${hasUserData ? 'YES' : 'NO'}`);
     
     if (!hasUserData) {
-        console.log('❌ No user data found - user may not be logged in');
-        console.log('💡 Make sure you are logged in to use socket features');
+        console.log('No user data found - user may not be logged in');
+        console.log('Make sure you are logged in to use socket features');
     } else {
-        console.log('✅ User data found - socket authentication should work');
+        console.log('User data found - socket authentication should work');
     }
     
     return {

@@ -1,5 +1,5 @@
         
-console.log('🧪 Starting Socket Connection Test...');
+console.log('Starting Socket Connection Test...');
 
 
 console.log('1. Environment Check:');
@@ -36,7 +36,7 @@ if (typeof io !== 'undefined') {
     });
     
     testSocket.on('connect', () => {
-        console.log('✅ Socket connection successful!');
+        console.log('Socket connection successful!');
         console.log('   - Socket ID:', testSocket.id);
         console.log('   - Transport:', testSocket.io.engine.transport.name);
         console.log('   - Ready state:', testSocket.io.engine.readyState);
@@ -58,7 +58,7 @@ if (typeof io !== 'undefined') {
     
     
     testSocket.on('upgrade', () => {
-        console.log('⬆️ Transport upgraded to:', testSocket.io.engine.transport.name);
+                    console.log('Transport upgraded to:', testSocket.io.engine.transport.name);
     });
     
     testSocket.on('upgradeError', (error) => {
@@ -103,7 +103,7 @@ setTimeout(() => {
 }, 3000);
 
 window.socketConnectionTest = {    testConnection: function() {
-        console.log('🔄 Running manual socket test (DOCKER WebSocket only)...');
+        console.log('Running manual socket test (DOCKER WebSocket only)...');
         const socketHost = document.querySelector('meta[name="socket-host"]')?.getAttribute('content') || window.location.hostname;
         const socketPort = document.querySelector('meta[name="socket-port"]')?.getAttribute('content') || '1002';
         
@@ -123,7 +123,7 @@ window.socketConnectionTest = {    testConnection: function() {
                 upgrade: false
             });            
             wsTestSocket.on('connect', () => {
-                console.log('✅ Docker WebSocket test: Connection successful!');
+                console.log('Docker WebSocket test: Connection successful!');
                 console.log('   - Socket ID:', wsTestSocket.id);
                 console.log('   - Transport:', wsTestSocket.io.engine.transport.name);
                 
@@ -161,7 +161,7 @@ window.socketConnectionTest = {    testConnection: function() {
         try {
             const response = await fetch(healthUrl);
             const data = await response.json();
-            console.log('✅ Health endpoint accessible:', data);
+            console.log('Health endpoint accessible:', data);
         } catch (error) {
             console.error('❌ Health endpoint failed:', error.message);
         }
@@ -179,9 +179,9 @@ window.socketConnectionTest = {    testConnection: function() {
     }
 };
 
-console.log('💡 Use socketConnectionTest.testConnection() to manually test connection');
-console.log('💡 Use socketConnectionTest.testHealthEndpoint() to test health endpoint');
-console.log('💡 Use socketConnectionTest.getStatus() to check current status');
+    console.log('Use socketConnectionTest.testConnection() to manually test connection');
+    console.log('Use socketConnectionTest.testHealthEndpoint() to test health endpoint');
+    console.log('Use socketConnectionTest.getStatus() to check current status');
 
 
 setTimeout(() => {

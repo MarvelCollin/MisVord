@@ -25,7 +25,7 @@ function testMinimalConnection() {
     }, 15000);
     
     socket.on('connect', () => {
-        console.log('✅ MINIMAL TEST SUCCESS!');
+        console.log('MINIMAL TEST SUCCESS!');
         console.log('   - Socket ID:', socket.id);
         console.log('   - Transport:', socket.io.engine.transport.name);
         console.log('   - URL:', socket.io.uri);
@@ -38,7 +38,7 @@ function testMinimalConnection() {
         });
         
         socket.on('authenticated', (data) => {
-            console.log('✅ Authentication successful:', data);
+            console.log('Authentication successful:', data);
             socket.disconnect();
         });
         

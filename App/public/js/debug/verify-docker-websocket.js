@@ -14,30 +14,30 @@ function verifyDockerWebSocketConfig() {
     
     if (typeof io !== 'undefined') {
         results.socketIO = true;
-        console.log('✅ Socket.IO library loaded');
+        console.log('Socket.IO library loaded');
     } else {
-        console.log('❌ Socket.IO library not loaded');
+        console.log('Socket.IO library not loaded');
         return results;
     }
 
     const socketHost = document.querySelector('meta[name="socket-host"]')?.getAttribute('content');
     const socketPort = document.querySelector('meta[name="socket-port"]')?.getAttribute('content');
     
-    console.log(`🔧 Socket Host: ${socketHost}`);
-    console.log(`🔧 Socket Port: ${socketPort}`);
+    console.log(`Socket Host: ${socketHost}`);
+    console.log(`Socket Port: ${socketPort}`);
     
     if (socketHost && (socketHost === 'socket' || socketHost.includes('localhost'))) {
         results.dockerHost = true;
-        console.log('✅ Docker host configuration detected');
+        console.log('Docker host configuration detected');
     } else {
-        console.log('❌ Non-Docker host configuration detected');
+        console.log('Non-Docker host configuration detected');
     }
     
     if (socketPort === '1002') {
         results.dockerPort = true;
-        console.log('✅ Docker port configuration correct');
+        console.log('Docker port configuration correct');
     } else {
-        console.log('❌ Non-Docker port configuration');
+        console.log('Non-Docker port configuration');
     }
     
     const testSocketUrl = `http://${socketHost || window.location.hostname}:${socketPort || '1002'}`;
@@ -53,7 +53,7 @@ function verifyDockerWebSocketConfig() {
     });
     
     testSocket.on('connect', () => {
-        console.log('✅ WebSocket-only connection successful');
+        console.log('WebSocket-only connection successful');
         console.log(`   - Socket ID: ${testSocket.id}`);
         console.log(`   - Transport: ${testSocket.io.engine.transport.name}`);
         
@@ -62,7 +62,7 @@ function verifyDockerWebSocketConfig() {
         
         if (testSocket.io.engine.transport.name === 'websocket') {
             results.noPolling = true;
-            console.log('✅ Confirmed WebSocket transport only');
+            console.log('Confirmed WebSocket transport only');
         }
         
         setTimeout(() => {
@@ -74,7 +74,7 @@ function verifyDockerWebSocketConfig() {
     });
     
     testSocket.on('connect_error', (error) => {
-        console.log('❌ WebSocket connection failed:', error.message);
+        console.log('WebSocket connection failed:', error.message);
         console.log('   - This might indicate Docker containers are not running');
         printVerificationResults(results);
     });
@@ -89,7 +89,7 @@ function verifyDockerWebSocketConfig() {
 }
 
 function printVerificationResults(results) {
-    console.log('\n📊 Docker WebSocket Configuration Results:');
+    console.log('\nDocker WebSocket Configuration Results:');
     console.log('==========================================');
     
     const checks = [
@@ -107,15 +107,15 @@ function printVerificationResults(results) {
     
     const allPassed = checks.every(check => check.status);
     
-    console.log('\n🎯 Overall Status:');
+    console.log('\nOverall Status:');
     if (allPassed) {
-        console.log('✅ DOCKER WEBSOCKET CONFIGURATION VERIFIED');
+        console.log('DOCKER WEBSOCKET CONFIGURATION VERIFIED');
         console.log('   - All containers running correctly');
         console.log('   - WebSocket-only transport confirmed');
         console.log('   - Single connection per client');
         console.log('   - No local processes interfering');
     } else {
-        console.log('❌ CONFIGURATION ISSUES DETECTED');
+        console.log('CONFIGURATION ISSUES DETECTED');
         console.log('   - Check Docker containers are running');
         console.log('   - Verify WebSocket transport configuration');
         console.log('   - Ensure no local processes are conflicting');

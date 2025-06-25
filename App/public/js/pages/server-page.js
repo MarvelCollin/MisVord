@@ -106,15 +106,15 @@ function getServerIdFromUrl() {
 }
 
 function initializeChannelClickHandlers() {
-  console.log("🔧 Initializing channel click handlers from server-page.js");
+  console.log("Initializing channel click handlers from server-page.js");
   
   window.channelHandlersInitialized = false;
   
   const channelItems = document.querySelectorAll('.channel-item');
-  console.log(`🎯 Found ${channelItems.length} channel items`);
+  console.log(`Found ${channelItems.length} channel items`);
 
   if (window.refreshChannelHandlers) {
-    console.log("✅ Channel handlers managed by channel-section.php");
+    console.log("Channel handlers managed by channel-section.php");
     return;
   }
 
@@ -344,7 +344,7 @@ function fetchChatSection(channelId) {
           }
         }
         
-        console.log(`✅ Chat section loaded successfully for channel ${channelId}`);
+        console.log(`Chat section loaded successfully for channel ${channelId}`);
         document.dispatchEvent(new CustomEvent('contentLoaded', {
           detail: { type: 'chat', channelId: channelId, skipChannelReload: true }
         }));
@@ -359,12 +359,12 @@ function fetchChatSection(channelId) {
 }
 
 function fetchVoiceSection(channelId) {
-  console.log(`🔊 fetchVoiceSection called with channelId: ${channelId}`);
+  console.log(`fetchVoiceSection called with channelId: ${channelId}`);
   
-  console.log('🔊 Setting auto-join flags for voice channel:', channelId);
+  console.log('Setting auto-join flags for voice channel:', channelId);
   localStorage.setItem('autoJoinVoiceChannel', channelId);
   sessionStorage.setItem('forceAutoJoin', 'true');
-  console.log('🔊 Auto-join flags set:', {
+  console.log('Auto-join flags set:', {
     autoJoinChannelId: localStorage.getItem('autoJoinVoiceChannel'),
     forceAutoJoin: sessionStorage.getItem('forceAutoJoin')
   });
@@ -466,7 +466,7 @@ function fetchVoiceSection(channelId) {
             console.log("All voice scripts loaded successfully");
             
             if (scriptContent) {
-              console.log("🔊 Executing voice section scripts");
+              console.log("Executing voice section scripts");
               try {
                 const scriptElement = document.createElement('script');
                 scriptElement.textContent = `
@@ -475,44 +475,44 @@ function fetchVoiceSection(channelId) {
                     ${scriptContent}
                     setTimeout(() => { window.voiceScriptExecuting = false; }, 1000);
                   } else {
-                    console.log('🔊 Voice script already executing, skipping duplicate');
+                    console.log('Voice script already executing, skipping duplicate');
                   }
                 `;
                 document.head.appendChild(scriptElement);
                 
                 setTimeout(() => {
-                  console.log("🔊 Manually checking auto-join after AJAX voice section load");
+                  console.log("Manually checking auto-join after AJAX voice section load");
                   
                   const autoJoinChannelId = localStorage.getItem('autoJoinVoiceChannel');
                   const currentChannelId = channelId;
                   const forceAutoJoin = sessionStorage.getItem('forceAutoJoin') === 'true';
                   
                   if (autoJoinChannelId && autoJoinChannelId === currentChannelId && forceAutoJoin) {
-                    console.log('🔊 ✅ Auto-join conditions met after AJAX load');
+                    console.log('Auto-join conditions met after AJAX load');
                     
                     sessionStorage.setItem('triggerAutoJoin', 'true');
                     
                     if (typeof window.handleAutoJoin === 'function') {
-                      console.log("🔊 Calling window.handleAutoJoin");
+                      console.log("Calling window.handleAutoJoin");
                       window.handleAutoJoin();
                     }
                     
                     if (window.voiceUIInitialized && typeof window.triggerVoiceAutoJoin === 'function') {
-                      console.log("🔊 Voice UI ready, triggering auto-join directly");
+                      console.log("Voice UI ready, triggering auto-join directly");
                       setTimeout(() => {
                         window.triggerVoiceAutoJoin();
                       }, 300);
                     }
                   } else {
-                    console.log('🔊 Auto-join conditions not met:', {autoJoinChannelId, currentChannelId, forceAutoJoin});
+                    console.log('Auto-join conditions not met:', {autoJoinChannelId, currentChannelId, forceAutoJoin});
                   }
                 }, 400);
                 
               } catch (error) {
-                console.error("🔊 Error executing voice section scripts:", error);
+                console.error("Error executing voice section scripts:", error);
               }
             } else {
-              console.log("🔊 No script content found in voice section");
+              console.log("No script content found in voice section");
             }
           }).catch(err => {
             console.error("Error in voice script loading chain:", err);
@@ -537,33 +537,33 @@ function fetchVoiceSection(channelId) {
             console.log("All voice scripts loaded successfully (fallback)");
             
             setTimeout(() => {
-              console.log("🔊 Checking auto-join in fallback mode");
+              console.log("Checking auto-join in fallback mode");
               const autoJoinChannelId = localStorage.getItem('autoJoinVoiceChannel');
               const currentChannelId = channelId;
               const forceAutoJoin = sessionStorage.getItem('forceAutoJoin') === 'true';
               
               if (autoJoinChannelId && autoJoinChannelId === currentChannelId && forceAutoJoin) {
-                console.log('🔊 ✅ Auto-join conditions met in fallback mode');
+                console.log('Auto-join conditions met in fallback mode');
                 
                 sessionStorage.setItem('triggerAutoJoin', 'true');
                 
                 if (typeof window.handleAutoJoin === 'function') {
-                  console.log("🔊 Calling window.handleAutoJoin (fallback)");
+                  console.log("Calling window.handleAutoJoin (fallback)");
                   window.handleAutoJoin();
                 }
                 
                 const waitForVoiceUI = (attempts = 0) => {
                   if (window.voiceUIInitialized && typeof window.triggerVoiceAutoJoin === 'function') {
-                    console.log("🔊 Voice UI ready, triggering auto-join (fallback)");
+                    console.log("Voice UI ready, triggering auto-join (fallback)");
                     window.triggerVoiceAutoJoin();
                   } else if (attempts < 25) {
                     setTimeout(() => waitForVoiceUI(attempts + 1), 200);
                   } else {
-                    console.log('🔊 ⚠️ Voice UI not ready after 5 seconds, trying join button fallback');
+                    console.log('Voice UI not ready after 5 seconds, trying join button fallback');
                     setTimeout(() => {
                       const joinBtn = document.getElementById('joinBtn');
                       if (joinBtn && !joinBtn.disabled) {
-                        console.log('🔊 Clicking join button as last resort');
+                        console.log('Clicking join button as last resort');
                         joinBtn.click();
                       }
                     }, 500);
@@ -571,7 +571,7 @@ function fetchVoiceSection(channelId) {
                 };
                 waitForVoiceUI();
               } else {
-                console.log('🔊 Auto-join conditions not met in fallback mode:', {autoJoinChannelId, currentChannelId, forceAutoJoin});
+                console.log('Auto-join conditions not met in fallback mode:', {autoJoinChannelId, currentChannelId, forceAutoJoin});
               }
             }, 500);
           }).catch(err => {
@@ -581,7 +581,7 @@ function fetchVoiceSection(channelId) {
         
         handleSkeletonLoading(false);
         
-        console.log(`✅ Voice section loaded successfully for channel ${channelId}`);
+        console.log(`Voice section loaded successfully for channel ${channelId}`);
         document.dispatchEvent(new CustomEvent('contentLoaded', {
           detail: { type: 'voice', channelId: channelId, skipChannelReload: true }
         }));
@@ -716,28 +716,22 @@ function setupPopStateListener() {
     if (event.state) {
       const { channelId, channelType } = event.state;
       
-      // Check current channel type versus new channel type
       const currentActiveChannel = document.querySelector('.channel-item.active-channel');
       const currentChannelType = currentActiveChannel ? currentActiveChannel.getAttribute('data-channel-type') : null;
       
       console.log(`Switching from channel type: ${currentChannelType} to: ${channelType}`);
       
-      // Handle switching between different channel types
       if (currentChannelType !== channelType) {
         console.log("Channel type is changing, cleaning up previous channel type");
         
-        // If switching from voice to text, cleanup voice stuff
         if (currentChannelType === 'voice') {
           console.log("Switching from voice to text channel, cleaning up voice components");
-          // Cleanup any voice components or references here
           if (window.voiceManager) {
             console.log("Cleaning up voice manager");
-            // Perform any needed cleanup
             window.voiceManager = null;
           }
         }
         
-        // If switching from text to voice, cleanup chat stuff
         if (currentChannelType === 'text') {
           console.log("Switching from text to voice channel, cleaning up chat components");
           if (window.chatSection) {
@@ -747,13 +741,10 @@ function setupPopStateListener() {
         }
       }
       
-      // Update meta tags immediately to ensure chat data loads correctly
-      // Only update for text channels
       if (channelType === 'text') {
         updateChatMetaTags(channelId);
       }
       
-      // Update active channel indicator
       document.querySelectorAll('.channel-item').forEach(ch => {
         ch.classList.remove('active-channel');
         if (ch.getAttribute('data-channel-id') === channelId) {
@@ -761,10 +752,8 @@ function setupPopStateListener() {
         }
       });
       
-      // Show skeleton loading
       handleSkeletonLoading(true);
       
-      // Fetch appropriate section based on channel type
       if (channelType === 'text') {
         fetchChatSection(channelId);
       } else if (channelType === 'voice') {
@@ -790,7 +779,6 @@ document.addEventListener('DOMContentLoaded', function() {
 function setupChannelListObserver() {
   console.log("Setting up channel list observer");
   
-  // Try to find the channel list container with different selectors
   let channelListContainer = document.querySelector('.channel-list-container');
   
   if (!channelListContainer) {
@@ -801,7 +789,6 @@ function setupChannelListObserver() {
   if (!channelListContainer) {
     console.log("Could not find channel list container with standard selectors");
     
-    // Try to find any element that might contain channels
     const possibleContainers = [
       document.querySelector('.channel-list'),
       document.querySelector('[data-server-id]'),
@@ -809,14 +796,12 @@ function setupChannelListObserver() {
       document.querySelector('div:has([data-channel-id])')
     ];
     
-    // Use the first container we find
     channelListContainer = possibleContainers.find(container => container !== null);
   }
   
   if (!channelListContainer) {
     console.log("Could not find any suitable channel list container, will retry later");
     
-    // Set up a retry mechanism
     setTimeout(() => {
       console.log("Retrying channel list observer setup");
       setupChannelListObserver();
@@ -827,16 +812,13 @@ function setupChannelListObserver() {
   
   console.log("Found channel list container:", channelListContainer);
   
-  // Check if observer is already set up
   if (window.channelListObserver) {
     console.log("Channel list observer already exists, disconnecting");
     window.channelListObserver.disconnect();
   }
   
-  // Create a flag to prevent recursive initialization
   window.channelListObserverProcessing = false;
   
-  // Create a new observer
   const observer = new MutationObserver(function(mutations) {
     if (window.channelListObserverProcessing) {
       console.log("Observer processing in progress, skipping");
@@ -848,7 +830,6 @@ function setupChannelListObserver() {
     try {
       console.log("Channel list mutation detected");
       
-      // Initialize channel click handlers when the channel list changes
       if (!window.channelHandlersInitialized) {
         console.log("Initializing channel click handlers due to channel list change");
         initializeChannelClickHandlers();
@@ -858,7 +839,6 @@ function setupChannelListObserver() {
     }
   });
   
-  // Configure and start the observer
   observer.observe(channelListContainer, {
     childList: true,
     subtree: true
@@ -871,7 +851,6 @@ function setupChannelListObserver() {
 function updateChatMetaTags(channelId) {
   console.log(`Updating chat meta tags for channel ID: ${channelId}`);
   
-  // Update chat-id meta tag
   let chatIdMeta = document.querySelector('meta[name="chat-id"]');
   if (chatIdMeta) {
     console.log(`Updating existing chat-id meta tag to: ${channelId}`);
@@ -884,7 +863,6 @@ function updateChatMetaTags(channelId) {
     document.head.appendChild(chatIdMeta);
   }
   
-  // Update channel-id meta tag
   let channelIdMeta = document.querySelector('meta[name="channel-id"]');
   if (channelIdMeta) {
     console.log(`Updating existing channel-id meta tag to: ${channelId}`);
@@ -897,20 +875,17 @@ function updateChatMetaTags(channelId) {
     document.head.appendChild(channelIdMeta);
   }
   
-  // Force chat section to reload with new channel ID if it exists
   if (window.chatSection) {
     console.log("Force-updating existing chat section with new channel ID");
     window.chatSection.targetId = channelId;
     
-    // Check if chatMessages exists before trying to clear it
     if (window.chatSection.chatMessages) {
       console.log("Clearing existing chat messages");
-      window.chatSection.chatMessages.innerHTML = ''; // Clear existing messages
-      window.chatSection.messagesLoaded = false; // Reset loaded state
-      window.chatSection.loadMessages(); // Reload messages with new channel ID
+      window.chatSection.chatMessages.innerHTML = '';
+      window.chatSection.messagesLoaded = false;
+      window.chatSection.loadMessages();
     } else {
       console.log("Chat messages element not found, cannot clear messages");
-      // The element will be initialized when the chat section is fully loaded
     }
   } else {
     console.log("No chat section instance found, meta tags updated for next initialization");
@@ -920,10 +895,6 @@ function updateChatMetaTags(channelId) {
 function initVoicePage() {
   console.log("Initializing voice page");
   
-  // Don't try to set up channel list observer for voice pages
-  // as the structure might be different
-  
-  // Still initialize channel click handlers if channels exist
   const channelItems = document.querySelectorAll('.channel-item');
   if (channelItems.length > 0) {
     console.log(`Found ${channelItems.length} channel items in voice page`);
@@ -932,7 +903,6 @@ function initVoicePage() {
     console.log("No channel items found in voice page");
   }
   
-  // Load voice manager script if not already loaded
   if (!window.voiceManager && !document.querySelector('script[src*="voice-manager.js"]')) {
     console.log("Loading voice manager script for voice page");
     const voiceScript = document.createElement('script');
@@ -940,7 +910,6 @@ function initVoicePage() {
     document.head.appendChild(voiceScript);
   }
   
-  // Load VideoSDK if not already loaded
   if (!window.VideoSDK && !document.querySelector('script[src*="videosdk.js"]')) {
     console.log("Loading VideoSDK script for voice page");
     const script = document.createElement('script');
@@ -949,13 +918,11 @@ function initVoicePage() {
   }
 }
 
-// Export functions globally for use by other components
 window.fetchVoiceSection = fetchVoiceSection;
 window.fetchChatSection = fetchChatSection;
 window.initializeChannelClickHandlers = initializeChannelClickHandlers;
 window.getServerIdFromUrl = getServerIdFromUrl;
 
-// Coordination helpers for channel switching
 window.isServerPageReady = function() {
   return typeof window.fetchVoiceSection === 'function' && 
          typeof window.fetchChatSection === 'function';

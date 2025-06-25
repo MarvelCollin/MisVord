@@ -1,12 +1,12 @@
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🔧 Socket Connection Test');
+    console.log('Socket Connection Test');
     
     if (typeof io === 'undefined') {
         console.error('❌ Socket.IO library not loaded');
         return;
     }
     
-    console.log('✅ Socket.IO library loaded');
+    console.log('Socket.IO library loaded');
     
     const socketHostMeta = document.querySelector('meta[name="socket-host"]');
     const socketPortMeta = document.querySelector('meta[name="socket-port"]');
@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const protocol = window.location.protocol;
     const url = `${protocol}//${actualHost}:${port}`;
     
-    console.log('🚀 Attempting to connect to:', url);
+    console.log('Attempting to connect to:', url);
     
     try {
         const testSocket = io(url, {
@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         testSocket.on('connect', () => {
-            console.log('✅ Socket connected successfully!', testSocket.id);
+            console.log('Socket connected successfully!', testSocket.id);
             
             const userIdMeta = document.querySelector('meta[name="user-id"]');
             const usernameMeta = document.querySelector('meta[name="username"]');
@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         testSocket.on('authenticated', (data) => {
-            console.log('✅ Socket authenticated:', data);
+            console.log('Socket authenticated:', data);
         });
         
         testSocket.on('authentication-failed', (data) => {

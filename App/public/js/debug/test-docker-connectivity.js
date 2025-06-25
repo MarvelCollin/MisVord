@@ -19,7 +19,7 @@ async function testDockerConnectivity() {
         }
     ];
     
-    console.log('📊 Running connectivity tests...');
+    console.log('Running connectivity tests...');
     
     for (const test of tests) {
         try {
@@ -30,13 +30,13 @@ async function testDockerConnectivity() {
             });
             
             if (response.status === test.expected) {
-                console.log(`✅ ${test.name}: PASS (HTTP ${response.status})`);
+                console.log(`${test.name}: PASS (HTTP ${response.status})`);
                 if (response.status === 200) {
                     const data = await response.json();
                     console.log(`   Data:`, data);
                 }
             } else {
-                console.log(`⚠️ ${test.name}: Unexpected status (HTTP ${response.status}, expected ${test.expected})`);
+                console.log(`${test.name}: Unexpected status (HTTP ${response.status}, expected ${test.expected})`);
             }
         } catch (error) {
             console.error(`❌ ${test.name}: FAILED - ${error.message}`);
@@ -51,7 +51,7 @@ async function testDockerConnectivity() {
     }
     
     const socketUrl = 'http://localhost:1002';
-    console.log(`📡 Connecting to ${socketUrl}...`);
+    console.log(`Connecting to ${socketUrl}...`);
     
     const testSocket = io(socketUrl, {
         transports: ['websocket'],
@@ -64,7 +64,7 @@ async function testDockerConnectivity() {
     
     testSocket.on('connect', () => {
         connected = true;
-        console.log('✅ Socket.IO connection successful!');
+        console.log('Socket.IO connection successful!');
         console.log(`   Socket ID: ${testSocket.id}`);
         console.log(`   Transport: ${testSocket.io.engine.transport.name}`);
         

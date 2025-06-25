@@ -99,7 +99,7 @@ if (typeof window !== 'undefined') {
 
 document.addEventListener('DOMContentLoaded', function() {
     if (typeof window !== 'undefined') {
-        window.showToast = showToast;
+window.showToast = showToast;
     }
 });
 

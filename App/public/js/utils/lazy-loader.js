@@ -259,7 +259,7 @@ const LazyLoader = {
     },
 
     triggerLoad(element, type) {
-        console.log(`🔄 Triggering lazy load for type: ${type}`);
+                    console.log(`Triggering lazy load for type: ${type}`);
         
         const event = new CustomEvent('LazyLoad', {
             detail: { 
@@ -279,7 +279,7 @@ const LazyLoader = {
     },
 
     triggerDataLoaded(type, isEmpty = false) {
-        console.log(`✅ Data loaded for type: ${type}, isEmpty: ${isEmpty}`);
+                    console.log(`Data loaded for type: ${type}, isEmpty: ${isEmpty}`);
         
         const event = new CustomEvent('LazyLoadComplete', {
             detail: { 

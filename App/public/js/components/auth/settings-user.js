@@ -787,7 +787,7 @@ function initPasswordChangeForms() {
     modal.classList.add('hidden');
     
     function openModal() {
-        console.log('🚀 PASSWORD MODAL OPENING - Starting debug process...');
+        console.log('PASSWORD MODAL OPENING - Starting debug process...');
         modal.classList.add('show');
         modal.classList.remove('hidden');
         showStep('security-question');
@@ -867,14 +867,14 @@ function initPasswordChangeForms() {
                 return;
             }
             
-            console.log('📡 Making API request to get security question...');
+            console.log('Making API request to get security question...');
             const response = await window.userAPI.getUserSecurityQuestion();
             
             console.log('📥 API Response:', response);
             
             if (response && response.success && response.data && response.data.security_question) {
                 userSecurityQuestion = response.data.security_question;
-                console.log('✅ Security question loaded:', userSecurityQuestion);
+                console.log('Security question loaded:', userSecurityQuestion);
                 securityQuestionText.textContent = userSecurityQuestion;
                 needsSecurityQuestion = false;
             } else if (response && !response.success) {

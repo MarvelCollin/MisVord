@@ -154,6 +154,15 @@ class GlobalSocketManager {
         this.io.on('error', (error) => {
             this.error('Socket error', error);
         });
+        
+        this.io.on('user-message-dm', (data) => {
+            this.log(`💬 GlobalSocketManager: Received DM message:`, data);
+            
+            const event = new CustomEvent('newDMMessage', {
+                detail: data
+            });
+            window.dispatchEvent(event);
+        });
     }
     
     authenticate() {

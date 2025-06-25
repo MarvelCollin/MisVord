@@ -21,13 +21,10 @@ class ImageCutter {
         this.image = new Image();
         this.isDragging = false;
         this.dragStart = { x: 0, y: 0 };
-        this.resizing = false;
-        this.resizeHandle = null;
         this.isActive = false;
         this.modal = null;
         this.scale = 1;
         this.imageOffset = { x: 0, y: 0 };
-        this.minSize = 60;
 
         this.init();
     }
@@ -86,20 +83,38 @@ class ImageCutter {
                 align-items: center;
                 justify-content: center;
                 z-index: 1000;
-                padding: 20px;
+                padding: 10px;
                 backdrop-filter: blur(5px);
+                box-sizing: border-box;
             `;
 
             const modalContent = document.createElement('div');
             modalContent.className = 'image-cutter-modal-content';
+            
+            const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+            const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
+            
+            let maxWidth = '90vw';
+            let padding = '16px';
+            if (vw > 768) {
+                maxWidth = '700px';
+                padding = '24px';
+            } else if (vw > 480) {
+                maxWidth = '95vw';
+                padding = '20px';
+            }
+            
             modalContent.style.cssText = `
                 background-color: #2f3136;
                 border-radius: 8px;
-                padding: 24px;
+                padding: ${padding};
                 width: 100%;
-                max-width: 700px;
+                max-width: ${maxWidth};
+                max-height: 95vh;
                 position: relative;
                 box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+                box-sizing: border-box;
+                overflow-y: auto;
             `;
 
             const modalHeader = document.createElement('div');
@@ -112,10 +127,16 @@ class ImageCutter {
 
             const modalTitle = document.createElement('h3');
             modalTitle.textContent = this.options.modalTitle || 'Crop Image';
+            
+            let titleFontSize = '18px';
+            if (vw > 768) {
+                titleFontSize = '20px';
+            }
+            
             modalTitle.style.cssText = `
                 color: #fff;
                 margin: 0;
-                font-size: 20px;
+                font-size: ${titleFontSize};
                 font-weight: 600;
             `;
 
@@ -147,10 +168,20 @@ class ImageCutter {
 
             this.cutterContainer = document.createElement('div');
             this.cutterContainer.className = 'image-cutter-container';
+            
+            let containerHeight = '400px';
+            if (vh > 800) {
+                containerHeight = '500px';
+            } else if (vh > 600) {
+                containerHeight = '350px';
+            } else {
+                containerHeight = '250px';
+            }
+            
             this.cutterContainer.style.cssText = `
                 position: relative;
                 width: 100%;
-                height: 500px;
+                height: ${containerHeight};
                 background-color: #18191c;
                 margin-bottom: 20px;
                 overflow: hidden;
@@ -187,24 +218,128 @@ class ImageCutter {
             `;
             this.cutterContainer.appendChild(this.overlay);
 
-            const infoSection = document.createElement('div');
-            infoSection.style.cssText = `
+            const controlsSection = document.createElement('div');
+            controlsSection.style.cssText = `
                 display: flex;
-                align-items: center;
-                justify-content: center;
+                flex-direction: column;
+                gap: 15px;
                 margin-bottom: 20px;
-                color: #b9bbbe;
-                font-size: 14px;
+                padding: 15px;
+                background-color: #36393f;
+                border-radius: 6px;
             `;
             
             const infoText = document.createElement('span');
+            infoText.style.cssText = `
+                color: #b9bbbe;
+                font-size: 14px;
+                text-align: center;
+            `;
             infoText.textContent = this.options.type === 'profile' 
-                ? 'Drag to move • Drag corners to resize • 1:1 aspect ratio' 
-                : 'Drag to move • Drag corners to resize • 2:1 aspect ratio';
-            infoSection.appendChild(infoText);
-            modalContent.appendChild(infoSection);
+                ? 'Drag to move • Use slider to resize • 1:1 aspect ratio' 
+                : 'Drag to move • Use slider to resize • 2:1 aspect ratio';
+            controlsSection.appendChild(infoText);
 
-            this.createResizeHandles();
+            const sliderContainer = document.createElement('div');
+            sliderContainer.style.cssText = `
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                color: #b9bbbe;
+                font-size: 14px;
+            `;
+
+            const sliderLabel = document.createElement('span');
+            sliderLabel.textContent = 'Size:';
+            sliderLabel.style.minWidth = '40px';
+            sliderContainer.appendChild(sliderLabel);
+
+            this.sizeSlider = document.createElement('input');
+            this.sizeSlider.type = 'range';
+            this.sizeSlider.min = '20';
+            this.sizeSlider.max = '100';
+            this.sizeSlider.value = '70';
+            this.sizeSlider.style.cssText = `
+                flex: 1;
+                height: 6px;
+                background: #40444b;
+                border-radius: 3px;
+                outline: none;
+                cursor: pointer;
+                -webkit-appearance: none;
+                appearance: none;
+            `;
+
+            const sliderStyle = document.createElement('style');
+            sliderStyle.textContent = `
+                input[type="range"]::-webkit-slider-thumb {
+                    -webkit-appearance: none;
+                    appearance: none;
+                    height: 20px;
+                    width: 20px;
+                    border-radius: 50%;
+                    background: #5865f2;
+                    cursor: pointer;
+                    border: 2px solid #fff;
+                    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+                }
+                input[type="range"]::-webkit-slider-thumb:hover {
+                    background: #4752c4;
+                    transform: scale(1.1);
+                }
+                input[type="range"]::-moz-range-thumb {
+                    height: 20px;
+                    width: 20px;
+                    border-radius: 50%;
+                    background: #5865f2;
+                    cursor: pointer;
+                    border: 2px solid #fff;
+                    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+                    border: none;
+                }
+                input[type="range"]::-moz-range-thumb:hover {
+                    background: #4752c4;
+                    transform: scale(1.1);
+                }
+                @media (max-width: 768px) {
+                    input[type="range"]::-webkit-slider-thumb {
+                        height: 24px;
+                        width: 24px;
+                    }
+                    input[type="range"]::-moz-range-thumb {
+                        height: 24px;
+                        width: 24px;
+                    }
+                    .image-cutter-overlay {
+                        touch-action: pan-x pan-y;
+                    }
+                }
+                @media (max-width: 480px) {
+                    .image-cutter-modal {
+                        padding: 5px !important;
+                    }
+                    .image-cutter-modal-content {
+                        border-radius: 6px !important;
+                    }
+                }
+            `;
+            document.head.appendChild(sliderStyle);
+
+            this.sizeSlider.addEventListener('input', (e) => {
+                this.updateCropSize(parseInt(e.target.value));
+            });
+
+            sliderContainer.appendChild(this.sizeSlider);
+
+            const sliderValue = document.createElement('span');
+            sliderValue.textContent = '70%';
+            sliderValue.style.minWidth = '40px';
+            sliderValue.style.textAlign = 'right';
+            this.sizeValueDisplay = sliderValue;
+            sliderContainer.appendChild(sliderValue);
+
+            controlsSection.appendChild(sliderContainer);
+            modalContent.appendChild(controlsSection);
 
             const buttonContainer = document.createElement('div');
             buttonContainer.style.cssText = `
@@ -215,14 +350,24 @@ class ImageCutter {
 
             this.cancelButton = document.createElement('button');
             this.cancelButton.textContent = 'Cancel';
+            
+            let buttonPadding = '10px 16px';
+            let buttonFontSize = '14px';
+            if (vw > 768) {
+                buttonPadding = '12px 20px';
+            } else if (vw <= 480) {
+                buttonPadding = '8px 12px';
+                buttonFontSize = '13px';
+            }
+            
             this.cancelButton.style.cssText = `
                 background-color: transparent;
                 color: #b9bbbe;
                 border: 1px solid #4f545c;
                 border-radius: 4px;
-                padding: 12px 20px;
+                padding: ${buttonPadding};
                 cursor: pointer;
-                font-size: 14px;
+                font-size: ${buttonFontSize};
                 font-weight: 500;
                 transition: all 0.2s ease;
             `;
@@ -244,9 +389,9 @@ class ImageCutter {
                 color: white;
                 border: none;
                 border-radius: 4px;
-                padding: 12px 20px;
+                padding: ${buttonPadding};
                 cursor: pointer;
-                font-size: 14px;
+                font-size: ${buttonFontSize};
                 font-weight: 500;
                 transition: background-color 0.2s ease;
             `;
@@ -273,77 +418,48 @@ class ImageCutter {
         }
     }
 
-    createResizeHandles() {
-        const positions = ['nw', 'ne', 'se', 'sw'];
-        this.handles = {};
+    updateCropSize(percentage) {
+        if (!this.image || !this.image.complete) return;
         
-        positions.forEach(pos => {
-            const handle = document.createElement('div');
-            handle.className = `resize-handle resize-handle-${pos}`;
-            handle.style.cssText = `
-                position: absolute;
-                width: 32px;
-                height: 32px;
-                background-color: #5865f2;
-                border: 3px solid #ffffff;
-                border-radius: 50%;
-                z-index: 20;
-                transition: all 0.2s ease;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-            `;
-            handle.dataset.position = pos;
-            
-            handle.addEventListener('mouseenter', () => {
-                handle.style.transform = 'scale(1.2)';
-                handle.style.backgroundColor = '#4752c4';
-            });
-            
-            handle.addEventListener('mouseleave', () => {
-                if (!this.resizing || this.resizeHandle !== pos) {
-                    handle.style.transform = 'scale(1)';
-                    handle.style.backgroundColor = '#5865f2';
-                }
-            });
-            
-            switch(pos) {
-                case 'nw': 
-                    handle.style.top = '-16px'; 
-                    handle.style.left = '-16px';
-                    handle.style.cursor = 'nw-resize';
-                    break;
-                case 'ne': 
-                    handle.style.top = '-16px'; 
-                    handle.style.right = '-16px';
-                    handle.style.cursor = 'ne-resize';
-                    break;
-                case 'se': 
-                    handle.style.bottom = '-16px'; 
-                    handle.style.right = '-16px';
-                    handle.style.cursor = 'se-resize';
-                    break;
-                case 'sw': 
-                    handle.style.bottom = '-16px'; 
-                    handle.style.left = '-16px';
-                    handle.style.cursor = 'sw-resize';
-                    break;
-            }
-            
-            this.overlay.appendChild(handle);
-            this.handles[pos] = handle;
-        });
+        const { width: imgWidth, height: imgHeight } = this.image;
+        const scale = percentage / 100;
+        
+        let newWidth, newHeight;
+        
+        if (this.options.type === 'profile') {
+            const maxSize = Math.min(imgWidth, imgHeight);
+            newWidth = newHeight = maxSize * scale;
+        } else {
+            const maxSize = Math.min(imgWidth, imgHeight * 2);
+            newWidth = maxSize * scale;
+            newHeight = newWidth / 2;
+        }
+        
+        const centerX = this.cropArea.x + this.cropArea.width / 2;
+        const centerY = this.cropArea.y + this.cropArea.height / 2;
+        
+        this.cropArea = {
+            x: Math.max(0, Math.min(imgWidth - newWidth, centerX - newWidth / 2)),
+            y: Math.max(0, Math.min(imgHeight - newHeight, centerY - newHeight / 2)),
+            width: newWidth,
+            height: newHeight
+        };
+        
+        this.updateCropOverlay();
+        
+        if (this.sizeValueDisplay) {
+            this.sizeValueDisplay.textContent = percentage + '%';
+        }
     }
 
     attachEventListeners() {
         this.overlay.addEventListener('mousedown', this.startDrag.bind(this));
         document.addEventListener('mousemove', this.onDrag.bind(this));
         document.addEventListener('mouseup', this.endDrag.bind(this));
-        
-        Object.values(this.handles).forEach(handle => {
-            handle.addEventListener('mousedown', (e) => {
-                e.stopPropagation();
-                this.startResize(e, handle.dataset.position);
-            });
-        });
+
+        this.overlay.addEventListener('touchstart', this.startDrag.bind(this));
+        document.addEventListener('touchmove', this.onDrag.bind(this));
+        document.addEventListener('touchend', this.endDrag.bind(this));
 
         window.addEventListener('resize', this.handleResize.bind(this));
     }
@@ -351,6 +467,42 @@ class ImageCutter {
     handleResize() {
         if (this.isActive && this.image.src) {
             this.updateImageDisplay();
+            this.updateModalResponsiveness();
+        }
+    }
+
+    updateModalResponsiveness() {
+        if (!this.modal || !this.isActive) return;
+        
+        const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+        const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
+        
+        const modalContent = this.modal.querySelector('.image-cutter-modal-content');
+        if (modalContent) {
+            let maxWidth = '90vw';
+            let padding = '16px';
+            if (vw > 768) {
+                maxWidth = '700px';
+                padding = '24px';
+            } else if (vw > 480) {
+                maxWidth = '95vw';
+                padding = '20px';
+            }
+            
+            modalContent.style.maxWidth = maxWidth;
+            modalContent.style.padding = padding;
+        }
+        
+        if (this.cutterContainer) {
+            let containerHeight = '400px';
+            if (vh > 800) {
+                containerHeight = '500px';
+            } else if (vh > 600) {
+                containerHeight = '350px';
+            } else {
+                containerHeight = '250px';
+            }
+            this.cutterContainer.style.height = containerHeight;
         }
     }
 
@@ -435,6 +587,18 @@ class ImageCutter {
             
             this.updateImageDisplay();
             this.attachEventListeners();
+            
+            if (this.sizeSlider && this.image) {
+                const { width: imgWidth, height: imgHeight } = this.image;
+                const maxSize = this.options.type === 'profile' ? Math.min(imgWidth, imgHeight) : Math.min(imgWidth, imgHeight * 2);
+                const currentSize = this.options.type === 'profile' ? this.cropArea.width : this.cropArea.width;
+                const percentage = Math.round((currentSize / maxSize) * 100);
+                this.sizeSlider.value = percentage;
+                if (this.sizeValueDisplay) {
+                    this.sizeValueDisplay.textContent = percentage + '%';
+                }
+            }
+            
             document.body.style.overflow = 'hidden';
         } catch (error) {
             console.error('Error showing modal:', error);
@@ -552,12 +716,14 @@ class ImageCutter {
     }
 
     startDrag(e) {
-        if (this.resizing) return;
-        
         this.isDragging = true;
+        
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        
         this.dragStart = {
-            x: e.clientX,
-            y: e.clientY,
+            x: clientX,
+            y: clientY,
             cropX: this.cropArea.x,
             cropY: this.cropArea.y
         };
@@ -567,15 +733,13 @@ class ImageCutter {
     }
 
     onDrag(e) {
-        if (this.resizing) {
-            this.onResize(e);
-            return;
-        }
-
         if (!this.isDragging) return;
         
-        const deltaX = (e.clientX - this.dragStart.x) / this.scale;
-        const deltaY = (e.clientY - this.dragStart.y) / this.scale;
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        
+        const deltaX = (clientX - this.dragStart.x) / this.scale;
+        const deltaY = (clientY - this.dragStart.y) / this.scale;
         
         const { width: imgWidth, height: imgHeight } = this.image;
         
@@ -594,118 +758,10 @@ class ImageCutter {
 
     endDrag() {
         this.overlay.style.borderColor = '#5865f2';
-        
-        if (this.handles && this.resizeHandle) {
-            this.handles[this.resizeHandle].style.transform = 'scale(1)';
-            this.handles[this.resizeHandle].style.backgroundColor = '#5865f2';
-        }
-        
         this.isDragging = false;
-        this.resizing = false;
-        this.resizeHandle = null;
     }
 
-    startResize(e, position) {
-        this.resizing = true;
-        this.resizeHandle = position;
-        this.dragStart = {
-            x: e.clientX,
-            y: e.clientY,
-            ...this.cropArea
-        };
-        
-        this.overlay.style.borderColor = '#00d4aa';
-        
-        if (this.handles[position]) {
-            this.handles[position].style.transform = 'scale(1.3)';
-            this.handles[position].style.backgroundColor = '#00d4aa';
-        }
-        
-        e.stopPropagation();
-        e.preventDefault();
-    }
 
-    onResize(e) {
-        if (!this.resizing) return;
-
-        const deltaX = (e.clientX - this.dragStart.x) / this.scale;
-        const deltaY = (e.clientY - this.dragStart.y) / this.scale;
-        
-        const { width: imgWidth, height: imgHeight } = this.image;
-        let crop = { ...this.cropArea };
-        
-        if (this.options.type === 'profile') {
-            let delta = 0;
-            
-            switch (this.resizeHandle) {
-                case 'nw': 
-                    delta = Math.min(deltaX, deltaY);
-                    crop.x = this.dragStart.x + delta;
-                    crop.y = this.dragStart.y + delta;
-                    crop.width = this.dragStart.width - delta;
-                    crop.height = crop.width;
-                    break;
-                    
-                case 'ne': 
-                    delta = Math.max(-deltaX, deltaY);
-                    crop.y = this.dragStart.y + delta;
-                    crop.width = this.dragStart.width - delta;
-                    crop.height = crop.width;
-                    break;
-                    
-                case 'sw': 
-                    delta = Math.max(deltaX, -deltaY);
-                    crop.x = this.dragStart.x + delta;
-                    crop.width = this.dragStart.width - delta;
-                    crop.height = crop.width;
-                    break;
-                    
-                case 'se': 
-                    delta = Math.min(deltaX, deltaY);
-                    crop.width = this.dragStart.width + delta;
-                    crop.height = crop.width;
-                    break;
-            }
-        } else {
-            switch (this.resizeHandle) {
-                case 'nw':
-                    crop.x = this.dragStart.x + deltaX;
-                    crop.y = this.dragStart.y + deltaY;
-                    crop.width = this.dragStart.width - deltaX;
-                    crop.height = crop.width / 2;
-                    break;
-                    
-                case 'ne':
-                    crop.y = this.dragStart.y + deltaY;
-                    crop.width = this.dragStart.width + deltaX;
-                    crop.height = crop.width / 2;
-                    break;
-                    
-                case 'sw':
-                    crop.x = this.dragStart.x + deltaX;
-                    crop.width = this.dragStart.width - deltaX;
-                    crop.height = crop.width / 2;
-                    break;
-                    
-                case 'se':
-                    crop.width = this.dragStart.width + deltaX;
-                    crop.height = crop.width / 2;
-                    break;
-            }
-        }
-        
-        if (crop.width >= this.minSize && crop.height >= this.minSize) {
-            crop.x = Math.max(0, Math.min(imgWidth - crop.width, crop.x));
-            crop.y = Math.max(0, Math.min(imgHeight - crop.height, crop.y));
-            
-            if (crop.x + crop.width <= imgWidth && crop.y + crop.height <= imgHeight) {
-                this.cropArea = crop;
-                this.updateCropOverlay();
-            }
-        }
-        
-        e.preventDefault();
-    }
 
     getCroppedImage() {
         const canvas = document.createElement('canvas');
@@ -890,8 +946,6 @@ class ImageCutter {
                 box-sizing: border-box;
             `;
             this.cutterContainer.appendChild(this.overlay);
-            
-            this.createResizeHandles();
         } catch (error) {
             console.error('Error recreating modal content:', error);
         }

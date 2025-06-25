@@ -1,16 +1,16 @@
-console.log('🚀 Starting Rich Media Messaging System Debug...');
+console.log('Starting Rich Media Messaging System Debug...');
 
 
 console.log('1. Testing RichMessageComposer availability...');
 if (typeof RichMessageComposer !== 'undefined') {
-    console.log('✅ RichMessageComposer is available');
+    console.log('RichMessageComposer is available');
 } else {
     console.error('❌ RichMessageComposer is not available');
 }
 
 console.log('2. Testing Socket.IO availability...');
 if (typeof io !== 'undefined') {
-    console.log('✅ Socket.IO is available');
+    console.log('Socket.IO is available');
 } else {
     console.error('❌ Socket.IO is not available');
 }
@@ -30,7 +30,7 @@ async function testAPIEndpoints() {
             const response = await fetch(endpoint.url);
             if (response.ok) {
                 const data = await response.json();
-                console.log(`✅ ${endpoint.name}: OK`, data);
+                console.log(`${endpoint.name}: OK`, data);
             } else {
                 console.error(`❌ ${endpoint.name}: HTTP ${response.status}`);
             }
@@ -60,7 +60,7 @@ async function testSocketConnection() {
 
             socket.on('connect', () => {
                 clearTimeout(timeout);
-                console.log('✅ Socket connection successful');
+                console.log('Socket connection successful');
                 console.log('Socket ID:', socket.id);
                 socket.disconnect();
                 resolve(true);
@@ -94,7 +94,7 @@ async function testFileUpload() {
 
             if (response.ok) {
                 const data = await response.json();
-                console.log('✅ File upload successful:', data);
+                console.log('File upload successful:', data);
                 return true;
             } else {
                 console.error('❌ File upload failed: HTTP', response.status);
@@ -128,7 +128,7 @@ async function testFileUpload() {
 
             const composer = new RichMessageComposer(testContainer, {
                 onSend: (data) => {
-                    console.log('✅ Rich message composed:', data);
+                    console.log('Rich message composed:', data);
                     setTimeout(() => {
                         testContainer.remove();
                     }, 3000);
@@ -138,7 +138,7 @@ async function testFileUpload() {
                 }
             });
 
-            console.log('✅ Rich Message Composer initialized successfully');
+            console.log('Rich Message Composer initialized successfully');
             console.log('Test composer created (will auto-remove in 10 seconds)');
             
             setTimeout(() => {
@@ -156,7 +156,7 @@ async function testFileUpload() {
 
 
     async function runAllTests() {
-        console.log('🧪 Running comprehensive rich media messaging tests...\n');
+        console.log('Running comprehensive rich media messaging tests...\n');
         
         const results = {
             composer: typeof RichMessageComposer !== 'undefined',
@@ -204,12 +204,12 @@ async function testFileUpload() {
         console.log(`${icon} ${test.toUpperCase()}: ${status}`);
     });
     
-    console.log(`\n📊 Overall: ${passed}/${total} tests passed (${Math.round(passed/total*100)}%)`);
+    console.log(`\nOverall: ${passed}/${total} tests passed (${Math.round(passed/total*100)}%)`);
     
     if (passed === total) {
-        console.log('🎉 All tests passed! Rich media messaging system is fully functional!');
+        console.log('All tests passed! Rich media messaging system is fully functional!');
     } else {
-        console.log('⚠️  Some tests failed. Please check the errors above.');
+        console.log('Some tests failed. Please check the errors above.');
     }
 
     return results;
@@ -231,7 +231,7 @@ window.debugRichMedia = {
     testRichMessageComposer
 };
 
-console.log('💡 You can manually run tests using:');
+    console.log('You can manually run tests using:');
 console.log('- debugRichMedia.runAllTests() - Run all tests');
 console.log('- debugRichMedia.testSocketConnection() - Test socket only');
 console.log('- debugRichMedia.testFileUpload() - Test file upload only');

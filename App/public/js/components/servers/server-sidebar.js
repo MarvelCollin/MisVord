@@ -373,7 +373,6 @@ function setupDropZones() {
                 e.stopPropagation();
                 folder.classList.remove('drag-over');
                 
-                // Reset visual feedback immediately
                 folder.style.transform = 'scale(1)';
                 folder.style.boxShadow = '';
                 folder.style.transition = '';
@@ -403,12 +402,11 @@ function setupDropZones() {
                 folder.style.boxShadow = '0 4px 12px rgba(88, 101, 242, 0.3)';
             });
             
-            serverIcon.addEventListener('drop', e => {
+                            serverIcon.addEventListener('drop', e => {
                 e.preventDefault();
                 e.stopPropagation();
                 folder.classList.remove('drag-over');
                 
-                // Reset visual feedback immediately
                 folder.style.transform = 'scale(1)';
                 folder.style.boxShadow = '';
                 folder.style.transition = '';

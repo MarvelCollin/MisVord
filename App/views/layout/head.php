@@ -113,7 +113,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (event.detail?.manager?.io) {
                 event.detail.manager.io.on('debug-test-response', function(response) {
                     if (response.success) {
-                        console.log('✅ Debug test acknowledged by server:', response);
+                        console.log('Debug test acknowledged by server:', response);
                     } else {
                         console.error('❌ Debug test failed on server:', response);
                     }
@@ -130,7 +130,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const username = document.querySelector('meta[name="username"]')?.content || 'unknown';
                 
                 window.globalSocketManager.io.emit('debug-test', username);
-                console.log('🧪 Debug ping sent:', username);
+                console.log('Debug ping sent:', username);
                 
                 if (window.showToast) {
                     window.showToast(`Ping sent from ${username}`, 'success');
@@ -146,7 +146,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.ctrlKey && e.key === '2') {
             e.preventDefault();
             
-            console.log('🤖 Bot Development Modal triggered...');
+            console.log('Bot Development Modal triggered...');
             
             if (window.openBotDevModal) {
                 window.openBotDevModal();
@@ -158,7 +158,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.ctrlKey && e.key === '3') {
             e.preventDefault();
             
-            console.log('🔧 Manual MisVordMessaging initialization triggered...');
+            console.log('Manual MisVordMessaging initialization triggered...');
             
             if (!window.MisVordMessaging) {
                 console.error('❌ MisVordMessaging not available');
@@ -169,7 +169,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             try {
-                console.log('📊 Current MisVordMessaging state:', {
+                console.log('Current MisVordMessaging state:', {
                     initialized: window.MisVordMessaging.initialized,
                     connected: window.MisVordMessaging.connected,
                     socketManager: !!window.MisVordMessaging.socketManager,
@@ -177,19 +177,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
 
                 if (!window.MisVordMessaging.initialized) {
-                    console.log('🔄 Forcing initialization...');
+                    console.log('Forcing initialization...');
                     window.MisVordMessaging.init();
                 }
                 
                 if (window.MisVordMessaging.socketManager && window.globalSocketManager) {
-                    console.log('🔄 Forcing connection to global socket manager...');
+                    console.log('Forcing connection to global socket manager...');
                     window.MisVordMessaging.socketManager.connectToGlobalSocketManager();
                 }
                 
                 const urlParams = new URLSearchParams(window.location.search);
                 const dmParam = urlParams.get('dm');
                 if (dmParam) {
-                    console.log('🔄 Re-setting DM context:', dmParam);
+                    console.log('Re-setting DM context:', dmParam);
                     window.MisVordMessaging.activeChatRoom = dmParam;
                     window.MisVordMessaging.chatType = 'direct';
                     if (window.MisVordMessaging.joinDMRoom) {
@@ -197,7 +197,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
                 
-                console.log('✅ Manual initialization completed');
+                console.log('Manual initialization completed');
                 if (window.showToast) {
                     window.showToast('✅ MisVordMessaging manual initialization completed', 'success');
                 }
@@ -213,20 +213,20 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.ctrlKey && e.key === '4') {
             e.preventDefault();
             
-            console.log('🔧 Manual DM room check and join triggered...');
+            console.log('Manual DM room check and join triggered...');
             
             const urlParams = new URLSearchParams(window.location.search);
             const dmParam = urlParams.get('dm');
             
             if (!dmParam) {
-                console.log('❌ No DM parameter in URL');
+                console.log('No DM parameter in URL');
                 if (window.showToast) {
                     window.showToast('❌ Not on a DM page', 'error');
                 }
                 return;
             }
             
-            console.log('📊 DM Context Check:', {
+            console.log('DM Context Check:', {
                 dmParam: dmParam,
                 MisVordMessaging: !!window.MisVordMessaging,
                 activeChatRoom: window.MisVordMessaging?.activeChatRoom,
@@ -239,16 +239,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 try {
                     window.MisVordMessaging.activeChatRoom = dmParam;
                     window.MisVordMessaging.chatType = 'direct';
-                    console.log('✅ DM context set');
+                    console.log('DM context set');
                     
                     if (window.globalSocketManager && window.globalSocketManager.io) {
-                        console.log('📡 Emitting join-dm-room event:', { roomId: dmParam });
+                        console.log('Emitting join-dm-room event:', { roomId: dmParam });
                         window.globalSocketManager.io.emit('join-dm-room', { roomId: dmParam });
-                        console.log('✅ Join DM room event sent');
+                        console.log('Join DM room event sent');
                     }
                     
                     if (window.MisVordMessaging.joinDMRoom) {
-                        console.log('📡 Calling MisVordMessaging.joinDMRoom');
+                        console.log('Calling MisVordMessaging.joinDMRoom');
                         window.MisVordMessaging.joinDMRoom(dmParam);
                     }
                     
@@ -273,13 +273,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.ctrlKey && e.key === '5') {
             e.preventDefault();
             
-            console.log('🔧 Room status debug triggered...');
+            console.log('Room status debug triggered...');
             
             if (window.globalSocketManager && window.globalSocketManager.io) {
-                console.log('📡 Requesting room debug info...');
+                console.log('Requesting room debug info...');
                 window.globalSocketManager.io.emit('debug-rooms');
                 
-                console.log('📊 Socket room membership check:', {
+                console.log('Socket room membership check:', {
                     socketId: window.globalSocketManager.io?.id,
                     rooms: Array.from(window.globalSocketManager.io?.rooms || [])
                 });
@@ -366,13 +366,13 @@ document.addEventListener('DOMContentLoaded', function() {
         return status;
     }
     
-    console.log('🧪 Debug mode active: Ctrl+1 (test message), Ctrl+2 (bot modal), Ctrl+3 (force messaging init), Ctrl+4 (join DM room), Ctrl+5 (debug room status)');
+    console.log('Debug mode active: Ctrl+1 (test message), Ctrl+2 (bot modal), Ctrl+3 (force messaging init), Ctrl+4 (join DM room), Ctrl+5 (debug room status)');
     
     if (window.MisVordMessaging && !window.MisVordMessaging.initialized) {
-        console.log('🔧 MisVordMessaging exists but not initialized, attempting manual initialization...');
+        console.log('MisVordMessaging exists but not initialized, attempting manual initialization...');
         try {
             window.MisVordMessaging.init();
-            console.log('✅ Manual MisVordMessaging initialization successful');
+            console.log('Manual MisVordMessaging initialization successful');
         } catch (error) {
             console.error('❌ Manual MisVordMessaging initialization failed:', error);
         }
@@ -380,11 +380,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 
     if (window.MisVordMessaging && window.globalSocketManager && 
         !window.MisVordMessaging.connected && window.globalSocketManager.isReady()) {
-        console.log('🔧 Forcing MisVordMessaging connection to global socket manager...');
+        console.log('Forcing MisVordMessaging connection to global socket manager...');
         try {
             if (window.MisVordMessaging.socketManager && window.MisVordMessaging.socketManager.connectToGlobalSocketManager) {
                 window.MisVordMessaging.socketManager.connectToGlobalSocketManager();
-                console.log('✅ Forced connection attempt completed');
+                console.log('Forced connection attempt completed');
             }
         } catch (error) {
             console.error('❌ Forced connection failed:', error);

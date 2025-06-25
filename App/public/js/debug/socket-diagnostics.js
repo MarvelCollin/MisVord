@@ -1,10 +1,10 @@
-console.log('🔧 Starting comprehensive socket connection test...');
+console.log('Starting comprehensive socket connection test...');
 
 window.socketDiagnostics = {
     results: {},
     
     async runFullDiagnostics() {
-        console.log('🧪 Running full socket diagnostics...');
+        console.log('Running full socket diagnostics...');
         
         this.results.socketIOLoaded = this.testSocketIOLoaded();
 
@@ -30,7 +30,7 @@ window.socketDiagnostics = {
             version: typeof io !== 'undefined' ? io.version : 'N/A'
         };
         
-        console.log(`${result.available ? '✅' : '❌'} Socket.IO Library: ${result.available ? 'Loaded' : 'Not loaded'}`);
+        console.log(`${result.available ? 'PASS' : 'FAIL'} Socket.IO Library: ${result.available ? 'Loaded' : 'Not loaded'}`);
         if (result.available) {
             console.log(`   Version: ${result.version}`);
         }
@@ -48,7 +48,7 @@ window.socketDiagnostics = {
             valid: !!socketHost && !!socketPort
         };
         
-        console.log(`${result.valid ? '✅' : '❌'} Meta Tags: ${result.valid ? 'Present' : 'Missing'}`);
+        console.log(`${result.valid ? 'PASS' : 'FAIL'} Meta Tags: ${result.valid ? 'Present' : 'Missing'}`);
         console.log(`   Host: ${result.host}`);
         console.log(`   Port: ${result.port}`);
         
@@ -76,7 +76,7 @@ window.socketDiagnostics = {
                     data: response.ok ? await response.json() : null
                 };
                 
-                console.log(`${response.ok ? '✅' : '❌'} ${endpoint.name}: ${response.ok ? 'Healthy' : 'Unhealthy'} (${response.status})`);
+                console.log(`${response.ok ? 'PASS' : 'FAIL'} ${endpoint.name}: ${response.ok ? 'Healthy' : 'Unhealthy'} (${response.status})`);
                 
             } catch (error) {
                 results[endpoint.name] = {
@@ -85,7 +85,7 @@ window.socketDiagnostics = {
                     error: error.message
                 };
                 
-                console.log(`❌ ${endpoint.name}: Error - ${error.message}`);
+                console.log(`FAIL ${endpoint.name}: Error - ${error.message}`);
             }
         }
         
@@ -94,7 +94,7 @@ window.socketDiagnostics = {
     
     async testSocketConnection() {
         if (typeof io === 'undefined') {
-            console.log('❌ Socket Connection: Cannot test - Socket.IO not loaded');
+            console.log('FAIL Socket Connection: Cannot test - Socket.IO not loaded');
             return { connected: false, error: 'Socket.IO not loaded' };
         }
         
@@ -123,7 +123,7 @@ window.socketDiagnostics = {
             };
             
             testSocket.on('connect', () => {
-                console.log('✅ Socket Connection: Successful');
+                console.log('PASS Socket Connection: Successful');
                 console.log(`   Socket ID: ${testSocket.id}`);
                 console.log(`   Transport: ${testSocket.io.engine.transport.name}`);
                 
@@ -135,7 +135,7 @@ window.socketDiagnostics = {
             });
             
             testSocket.on('connect_error', (error) => {
-                console.log('❌ Socket Connection: Failed');
+                console.log('FAIL Socket Connection: Failed');
                 console.log(`   Error: ${error.message}`);
                 
                 resolveOnce({
@@ -164,7 +164,7 @@ window.socketDiagnostics = {
             isReady: hasManager && window.globalSocketManager.isReady ? window.globalSocketManager.isReady() : false
         };
         
-        console.log(`${hasManager ? '✅' : '❌'} Global Socket Manager: ${hasManager ? 'Available' : 'Not available'}`);
+        console.log(`${hasManager ? 'PASS' : 'FAIL'} Global Socket Manager: ${hasManager ? 'Available' : 'Not available'}`);
         if (hasManager) {
             console.log(`   Initialized: ${result.initialized}`);
             console.log(`   Connected: ${result.connected}`);
@@ -184,7 +184,7 @@ window.socketDiagnostics = {
             waitingForGlobalSocket: hasMessaging ? window.MisVordMessaging.waitingForGlobalSocket : false
         };
         
-        console.log(`${hasMessaging ? '✅' : '❌'} Messaging System: ${hasMessaging ? 'Available' : 'Not available'}`);
+        console.log(`${hasMessaging ? 'PASS' : 'FAIL'} Messaging System: ${hasMessaging ? 'Available' : 'Not available'}`);
         if (hasMessaging) {
             console.log(`   Connected: ${result.connected}`);
             console.log(`   Authenticated: ${result.authenticated}`);
@@ -215,7 +215,7 @@ window.socketDiagnostics = {
             hasUserData: !!(userIdMeta || bodyUserId)
         };
         
-        console.log(`${result.hasUserData ? '✅' : '❌'} User Authentication: ${result.hasUserData ? 'User data available' : 'No user data'}`);
+        console.log(`${result.hasUserData ? 'PASS' : 'FAIL'} User Authentication: ${result.hasUserData ? 'User data available' : 'No user data'}`);
         if (result.hasUserData) {
             console.log(`   User ID: ${userIdMeta || bodyUserId}`);
             console.log(`   Username: ${usernameMeta || bodyUsername}`);
@@ -226,7 +226,7 @@ window.socketDiagnostics = {
     },
     
     printResults() {
-        console.log('\n📊 SOCKET DIAGNOSTICS SUMMARY');
+        console.log('\nSOCKET DIAGNOSTICS SUMMARY');
         console.log('================================');
         
         const allTests = [
@@ -243,14 +243,14 @@ window.socketDiagnostics = {
         allTests.forEach(test => {
             const passed = test.result && test.result[test.key];
             if (!passed) allPassed = false;
-            console.log(`${passed ? '✅' : '❌'} ${test.name}: ${passed ? 'PASS' : 'FAIL'}`);
+            console.log(`${passed ? 'PASS' : 'FAIL'} ${test.name}: ${passed ? 'PASS' : 'FAIL'}`);
         });
         
-        console.log('\n🎯 OVERALL STATUS:');
+        console.log('\nOVERALL STATUS:');
         if (allPassed) {
-            console.log('✅ ALL SYSTEMS OPERATIONAL');
+            console.log('ALL SYSTEMS OPERATIONAL');
         } else {
-            console.log('❌ ISSUES DETECTED - Check individual test results above');
+            console.log('ISSUES DETECTED - Check individual test results above');
         }
         
         return allPassed;
@@ -265,4 +265,4 @@ if (document.readyState === 'loading') {
     setTimeout(() => window.socketDiagnostics.runFullDiagnostics(), 2000);
 }
 
-console.log('💡 Use window.socketDiagnostics.runFullDiagnostics() to run diagnostics manually');
+console.log('Use window.socketDiagnostics.runFullDiagnostics() to run diagnostics manually');

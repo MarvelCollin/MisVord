@@ -6,7 +6,6 @@ import serverAPI from '../../api/server-api.js';
 import { ServerSidebar } from './server-sidebar.js';
 
 document.addEventListener('DOMContentLoaded', function () {
-    // Initialize the serverAPI global for legacy code
     window.serverAPI = serverAPI;
     
     initServerIconUpload();
@@ -397,9 +396,7 @@ function handleServerCreation(form) {
                     try {
                         addServerToSidebar(server);
                         
-                        // Set a small delay to ensure the DOM has been updated
                         setTimeout(() => {
-                            // Update the active server in the sidebar
                             ServerSidebar.updateActiveServer();
                         }, 100);
                     } catch (error) {
@@ -411,7 +408,6 @@ function handleServerCreation(form) {
                     resetForm(form);
                     showToast(`Server "${server.name}" created successfully!`, 'success');
                     
-                    // Redirect to the new server after a short delay to allow toast to be visible
                     setTimeout(() => {
                         window.location.href = `/server/${server.id}`;
                     }, 800);
@@ -496,7 +492,6 @@ function createServerItem(server) {
 }
 
 function setActiveServer(serverItem) {
-    // Remove active state from all servers
     document.querySelectorAll('.server-icon').forEach(item => {
         item.classList.remove('active');
         const serverDiv = item.querySelector('.w-12.h-12');
@@ -510,27 +505,23 @@ function setActiveServer(serverItem) {
             indicator.classList.remove('h-10');
             indicator.classList.add('h-0');
         }
-    });
-
-    // Set active state to new server
+        });
+    
     const newServerIcon = serverItem.querySelector('.server-icon');
     if (newServerIcon) {
         newServerIcon.classList.add('active');
         
-        // Make sure the server icon has the active styling
         const serverDiv = newServerIcon.querySelector('.w-12.h-12');
         if (serverDiv) {
             serverDiv.classList.remove('rounded-full', 'bg-discord-dark');
             serverDiv.classList.add('rounded-2xl', 'bg-discord-primary');
         }
         
-        // Make sure the indicator is visible
         const indicator = newServerIcon.querySelector('.w-1');
         if (indicator) {
             indicator.classList.remove('h-0');
             indicator.classList.add('h-10');
         } else {
-            // If no indicator exists, create one
             const indicatorDiv = document.createElement('div');
             indicatorDiv.className = 'absolute left-0 top-1/2 -translate-y-1/2 w-1 h-10 bg-white rounded-r-md';
             newServerIcon.appendChild(indicatorDiv);

@@ -316,13 +316,35 @@ class ChatAPI {
         const url = `/api/messages/${messageId}`;
         
         try {
+            console.log('🗑️ API: Deleting message', messageId);
+            
             const response = await this.makeRequest(url, {
                 method: 'DELETE'
             });
             
+            console.log('🗑️ API: Delete response received:', response);
+            console.log('🗑️ API: Response.data exists?', !!response.data);
+            console.log('🗑️ API: Response.socket_data exists?', !!response.socket_data);
+            
+            if (response.data) {
+                console.log('🗑️ API: response.data contents:', response.data);
+            }
+            if (response.socket_data) {
+                console.log('🗑️ API: response.socket_data contents:', response.socket_data);
+            }
+            
             if (response && response.data) {
                 const messageData = response.data;
+                console.log('🗑️ API: Sending socket delete with data:', messageData);
                 this.sendDirectSocketDelete(messageId, messageData.target_type, messageData.target_id);
+            } else {
+                console.warn('🗑️ API: No data field in response, checking response structure:', response);
+                if (response && response.socket_data) {
+                    console.log('🗑️ API: Using socket_data instead:', response.socket_data);
+                    this.sendDirectSocketDelete(messageId, response.socket_data.target_type, response.socket_data.target_id);
+                } else {
+                    console.error('🗑️ API: NO TARGET INFO FOUND! Cannot send socket event');
+                }
             }
             
             return response;
@@ -333,6 +355,8 @@ class ChatAPI {
     }
     
     sendDirectSocketDelete(messageId, targetType, targetId) {
+        console.log('🗑️ SOCKET: sendDirectSocketDelete called with:', { messageId, targetType, targetId });
+        
         if (!window.globalSocketManager || !window.globalSocketManager.isReady() || !window.globalSocketManager.io) {
             console.warn('⚠️ Socket not ready, cannot send direct socket delete');
             return false;
@@ -341,8 +365,7 @@ class ChatAPI {
         const userId = window.globalSocketManager.userId;
         const username = window.globalSocketManager.username;
         
-        try {
-            window.globalSocketManager.io.emit('message-deleted', {
+        const socketData = {
                 message_id: messageId,
                 target_type: targetType,
                 target_id: targetId,
@@ -355,8 +378,13 @@ class ChatAPI {
                     emittedBy: username || 'Unknown',
                     type: 'direct-socket-path'
                 }
-            });
-            console.log(`🔌 Direct socket message deletion for ${messageId}`);
+        };
+        
+        console.log('🗑️ SOCKET: Emitting message-deleted event with data:', socketData);
+        
+        try {
+            window.globalSocketManager.io.emit('message-deleted', socketData);
+            console.log(`🔌 Direct socket message deletion for ${messageId} SENT SUCCESSFULLY`);
             return true;
         } catch (e) {
             console.error('Failed to send direct socket delete:', e);
@@ -510,6 +538,15 @@ class ChatAPI {
         
         console.log('🔍 Socket & Chat Debug Info:', status);
         
+        if (status.socketReady && window.globalSocketManager?.io) {
+            console.log('🔍 Testing room debug...');
+            window.globalSocketManager.io.emit('debug-rooms');
+            
+            window.globalSocketManager.io.once('debug-rooms-info', (roomInfo) => {
+                console.log('🔍 Room debug response:', roomInfo);
+            });
+        }
+        
         if (status.socketReady) {
             const testContent = `Socket test message at ${new Date().toISOString()}`;
             this.sendDirectSocketMessage(targetId, testContent, chatType);
@@ -659,5 +696,84 @@ window.debugMessageSend = function() {
         console.log('🧪 Testing actual message send...');
         window.ChatAPI.testMessageSend('Debug test message from console');
     }, 1000);
+};
+
+window.debugMessageDeletion = function() {
+    console.log('🔧 Running COMPREHENSIVE message deletion diagnostics...');
+    
+    if (!window.ChatAPI) {
+        console.error('❌ ChatAPI not available');
+        return;
+    }
+    
+    const targetId = document.querySelector('meta[name="chat-id"]')?.content;
+    const chatType = document.querySelector('meta[name="chat-type"]')?.content;
+    const userId = document.querySelector('meta[name="user-id"]')?.content;
+    
+    console.log('🔍 Current context:', { targetId, chatType, userId });
+    
+    console.log('🔍 1. Checking socket connection...');
+    const socketStatus = window.globalSocketManager?.getStatus();
+    console.log('Socket status:', socketStatus);
+    
+    console.log('🔍 2. Checking joined rooms...');
+    if (window.globalSocketManager?.io) {
+        window.globalSocketManager.io.emit('debug-rooms');
+        
+        window.globalSocketManager.io.once('debug-rooms-info', (roomInfo) => {
+            console.log('Room membership:', roomInfo);
+        });
+    }
+    
+    console.log('🔍 3. Testing message-deleted event emission...');
+    if (window.globalSocketManager?.isReady()) {
+        const testData = {
+            message_id: 'test-123',
+            target_type: chatType,
+            target_id: targetId,
+            user_id: userId,
+            username: window.globalSocketManager.username,
+            timestamp: Date.now(),
+            _test: true
+        };
+        
+        console.log('🧪 Emitting test message-deleted event:', testData);
+        window.globalSocketManager.io.emit('message-deleted', testData);
+    }
+    
+    console.log('🔍 4. Checking for real messages to test with...');
+    const messages = document.querySelectorAll('.message-content[data-message-id]');
+    console.log(`Found ${messages.length} messages on page`);
+    
+    if (messages.length > 0) {
+        const lastMessage = messages[messages.length - 1];
+        const messageId = lastMessage.getAttribute('data-message-id');
+        const messageUserId = lastMessage.getAttribute('data-user-id');
+        
+        console.log('Last message info:', {
+            messageId,
+            messageUserId,
+            currentUserId: userId,
+            isOwnMessage: messageUserId === userId
+        });
+        
+        if (messageUserId === userId) {
+            console.log('✅ You can test deletion of this message');
+        } else {
+            console.log('⚠️ This message belongs to another user - real-time deletion should work when they delete it');
+        }
+    }
+    
+    console.log('🔍 5. Testing event listeners...');
+    console.log('ChatSection exists:', !!window.chatSection);
+    console.log('ChatSection handleMessageDeleted exists:', typeof window.chatSection?.handleMessageDeleted);
+    console.log('ChatSection handleMessageUpdated exists:', typeof window.chatSection?.handleMessageUpdated);
+    
+    return {
+        socketReady: window.globalSocketManager?.isReady(),
+        roomsJoined: socketStatus?.joinedChannels?.length + socketStatus?.joinedDMRooms?.length,
+        messagesOnPage: messages.length,
+        canTestDeletion: true
+    };
 };
 
