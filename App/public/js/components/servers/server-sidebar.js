@@ -92,7 +92,7 @@ async function renderFolders() {
     document.querySelectorAll('.server-icon[data-server-id]').forEach(icon => {
         icon.removeAttribute('data-setup');
         const serverId = icon.getAttribute('data-server-id');
-        serverElements.set(serverId, icon);
+        serverElements.set(serverId, icon.cloneNode(true));
         
         const existingImg = icon.querySelector('.server-button img');
         const existingText = icon.querySelector('.server-button span');
@@ -145,7 +145,7 @@ async function renderFolders() {
         const serversContainer = folderElement.querySelector('.group-servers');
         
         group.servers.forEach(serverId => {
-            const serverElement = serverElements.get(serverId);
+            const serverElement = document.querySelector(`.server-icon[data-server-id="${serverId}"]`);
             if (serverElement && serversContainer) {
                 if (serverElement.parentNode) {
                     serverElement.parentNode.removeChild(serverElement);
@@ -207,12 +207,24 @@ function createFolderPreview(group, folderElement, serverImageData) {
                 const img = document.createElement('img');
                 img.src = serverInfo.src;
                 img.alt = serverInfo.alt;
+                img.style.width = '100%';
+                img.style.height = '100%';
+                img.style.objectFit = 'cover';
+                img.style.borderRadius = '3px';
                 previewItem.appendChild(img);
             } else {
                 previewItem.textContent = serverInfo.text;
+                previewItem.style.backgroundColor = '#36393f';
+                previewItem.style.color = 'white';
+                previewItem.style.fontSize = '8px';
+                previewItem.style.fontWeight = '700';
             }
         } else {
             previewItem.textContent = serverId.toString().charAt(0).toUpperCase();
+            previewItem.style.backgroundColor = '#36393f';
+            previewItem.style.color = 'white';
+            previewItem.style.fontSize = '8px';
+            previewItem.style.fontWeight = '700';
         }
         
         gridContainer.appendChild(previewItem);

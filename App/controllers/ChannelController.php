@@ -627,4 +627,71 @@ class ChannelController extends BaseController
             ];
         }
     }
+
+    public function getChannelContent()
+    {
+        $this->requireAuth();
+        
+        $serverId = $_GET['server_id'] ?? null;
+        $channelId = $_GET['channel_id'] ?? null;
+        $type = $_GET['type'] ?? 'text';
+        
+        if (!$serverId || !$channelId) {
+            return $this->validationError(['server_id' => 'Server ID required', 'channel_id' => 'Channel ID required']);
+        }
+        
+        try {
+            $currentUserId = $this->getCurrentUserId();
+            
+            if (!$this->membershipRepository->isMember($currentUserId, $serverId)) {
+                return $this->forbidden('Access denied to server');
+            }
+            
+            $channel = $this->channelRepository->find($channelId);
+            if (!$channel) {
+                return $this->notFound('Channel not found');
+            }
+            
+            if ($channel->server_id != $serverId) {
+                return $this->forbidden('Channel not in specified server');
+            }
+            
+            $responseData = [
+                'channel' => [
+                    'id' => $channel->id,
+                    'name' => $channel->name,
+                    'type' => $channel->type,
+                    'description' => $channel->description,
+                    'server_id' => $channel->server_id
+                ],
+                'server_id' => $serverId,
+                'channel_type' => $type
+            ];
+            
+            if ($type === 'voice') {
+                $responseData['meeting_id'] = 'voice_channel_' . $channelId;
+                $responseData['username'] = $_SESSION['username'] ?? 'Anonymous';
+                $responseData['participants'] = [];
+            } else {
+                $messages = $this->messageRepository->getChannelMessages($channelId, 50);
+                $responseData['messages'] = $messages;
+            }
+            
+            $this->logActivity('channel_content_api_accessed', [
+                'channel_id' => $channelId,
+                'server_id' => $serverId,
+                'type' => $type
+            ]);
+            
+            return $this->success($responseData);
+            
+        } catch (Exception $e) {
+            $this->logActivity('channel_content_api_error', [
+                'channel_id' => $channelId,
+                'server_id' => $serverId,
+                'error' => $e->getMessage()
+            ]);
+            return $this->serverError('Failed to load channel content');
+        }
+    }
 }

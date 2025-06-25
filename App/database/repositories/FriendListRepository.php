@@ -118,7 +118,7 @@ class FriendListRepository extends Repository {
         return $query->raw("SELECT u.id, u.username, u.discriminator, u.avatar_url, u.status, u.created_at
                   FROM users u
                   JOIN friend_list f ON u.id = f.user_id2
-                  WHERE f.user_id = ? AND f.status = 'blocked'
+                  WHERE f.user_id = ? AND f.status = 'blocked' AND u.status != 'bot'
                   ORDER BY u.username ASC", [$userId]);
     }
     

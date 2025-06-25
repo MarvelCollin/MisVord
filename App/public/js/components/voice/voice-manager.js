@@ -69,11 +69,11 @@ class VoiceManager {
             
             console.log('VoiceManager: Voice connection successful');
             return Promise.resolve();
-        } catch (error) {
+    } catch (error) {
             console.error('Failed to join voice:', error);
             this.showToast('Failed to connect to voice', 'error');
-            if (joinBtn) {
-                joinBtn.disabled = false;
+    if (joinBtn) {
+        joinBtn.disabled = false;
                 joinBtn.textContent = 'Join Voice';
             }
             return Promise.reject(error);
@@ -190,7 +190,7 @@ class VoiceManager {
     setupAudioContext() {
         try {
             this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        } catch (error) {
+    } catch (error) {
             console.warn('AudioContext not supported');
         }
     }
@@ -263,7 +263,7 @@ class VoiceManager {
     showToast(message, type = 'info') {
         if (window.showToast) {
             window.showToast(message, type, 3000);
-        } else {
+                } else {
             console.log(`[${type.toUpperCase()}] ${message}`);
         }
     }

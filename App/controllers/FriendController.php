@@ -301,6 +301,13 @@ class FriendController extends BaseController
                     $this->error('User not found', 404);
                     return;
                 }
+                
+                // Prevent sending friend requests to bots
+                if ($targetUser->status === 'bot') {
+                    $this->error('Cannot send friend request to bot users', 400);
+                    return;
+                }
+                
                 $targetUsername = $targetUser->username;            } else {
                 $username = $input['username'];
                 
@@ -319,6 +326,11 @@ class FriendController extends BaseController
                 
                 if (!$targetUser) {
                     return $this->error('User not found', 404);
+                }
+                
+                // Prevent sending friend requests to bots
+                if ($targetUser->status === 'bot') {
+                    return $this->error('Cannot send friend request to bot users', 400);
                 }
                 
                 $targetUserId = $targetUser->id;

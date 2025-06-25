@@ -153,9 +153,10 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
-  gap: 2px;
-  padding: 5px;
+  gap: 1px;
+  padding: 4px;
   box-sizing: border-box;
+  background-color: var(--discord-folder-color);
 }
 
 .server-preview {
@@ -168,18 +169,20 @@
   width: 100%;
   height: 100%;
   background-color: #36393f;
-  border-radius: 4px;
+  border-radius: 3px;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-size: 8px;
   color: white;
   font-weight: 700;
+  position: relative;
 }
 
 .server-preview-item.empty {
   background-color: #2d2f33;
+  opacity: 0.4;
 }
 
 .server-preview-item img {
@@ -187,7 +190,7 @@
   height: 100%;
   object-fit: cover;
   display: block;
-  border-radius: 4px;
+  border-radius: 3px;
 }
 
 /* Container for servers in group */
