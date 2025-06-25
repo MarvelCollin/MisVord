@@ -16,17 +16,24 @@ if (!$activeChannel) {
 $meetingId = 'voice_channel_' . $activeChannelId;
 $userName = $_SESSION['username'] ?? 'Anonymous';
 
-$additional_js[] = 'components/videosdk/videosdk';
 $additional_js[] = 'components/voice/voice-manager';
-$additional_js[] = 'components/voice/voice-section';
 $additional_js[] = 'core/ui/toast';
 ?>
 
 <link rel="stylesheet" href="/public/css/voice-section.css">
 
 <script>
+// Global flags to prevent race conditions
+window.voiceAutoJoinInProgress = false;
+window.voiceUIInitialized = false;
+
 // Function to handle auto-join logic - can be called immediately or on DOM ready
 window.handleAutoJoin = function() {
+    if (window.voiceAutoJoinInProgress) {
+        console.log('🔊 Auto-join already in progress, skipping');
+        return;
+    }
+    
     localStorage.setItem('onVoiceChannelPage', 'true');
     
     // Check for auto-join flag
@@ -39,28 +46,20 @@ window.handleAutoJoin = function() {
     if (autoJoinChannelId && autoJoinChannelId === currentChannelId && forceAutoJoin) {
         // Auto-join this voice channel
         console.log('🔊 ✅ Auto-join conditions met! Joining voice channel immediately');
+        window.voiceAutoJoinInProgress = true;
         
         // Clear the flags
         localStorage.removeItem('autoJoinVoiceChannel');
         sessionStorage.removeItem('forceAutoJoin');
         
-        // Auto-click join button after a short delay
-        setTimeout(function() {
-            const joinBtn = document.getElementById('joinBtn');
-            if (joinBtn && !joinBtn.disabled) {
-                console.log('🔊 ✅ Auto-clicking join button');
-                joinBtn.click();
-            } else {
-                console.log('🔊 ⚠️ Join button not ready, retrying in 500ms');
-                setTimeout(function() {
-                    const retryJoinBtn = document.getElementById('joinBtn');
-                    if (retryJoinBtn && !retryJoinBtn.disabled) {
-                        console.log('🔊 ✅ Auto-clicking join button (retry)');
-                        retryJoinBtn.click();
-                    }
-                }, 500);
-            }
-        }, 800);
+        // Set a flag for initVoiceUI to know auto-join should happen
+        sessionStorage.setItem('triggerAutoJoin', 'true');
+        
+        // If voice UI is already initialized, trigger auto-join immediately
+        if (window.voiceUIInitialized && window.triggerVoiceAutoJoin) {
+            console.log('🔊 Voice UI already initialized, triggering auto-join now');
+            window.triggerVoiceAutoJoin();
+        }
     }
 }
 
@@ -380,50 +379,76 @@ if (document.readyState === 'loading') {
     </div>
 </template>
 
-<!-- Add scripts only if not already loaded -->
 <script>
 if (!document.querySelector('script[src*="voice-manager.js"]')) {
     const voiceScript = document.createElement('script');
     voiceScript.src = '/public/js/components/voice/voice-manager.js?v=' + Date.now();
     voiceScript.onload = function() {
-        console.log('Voice manager script loaded');
+        console.log('🔊 Voice manager script loaded dynamically');
+        
+        setTimeout(() => {
+            const shouldAutoJoin = sessionStorage.getItem('triggerAutoJoin') === 'true';
+            if (shouldAutoJoin && window.voiceUIInitialized && typeof window.triggerVoiceAutoJoin === 'function' && !window.voiceAutoJoinInProgress) {
+                console.log('🔊 Voice manager now available, triggering pending auto-join');
+                window.triggerVoiceAutoJoin();
+            }
+        }, 300);
     };
     document.head.appendChild(voiceScript);
 }
 
-let isConnected = false;
-
 // Function to initialize voice UI - can be called immediately or on DOM ready
 window.initVoiceUI = function() {
+    if (window.voiceUIInitialized) {
+        console.log('🔊 Voice UI already initialized, skipping');
+        return;
+    }
+    
+    console.log('🔊 Initializing voice UI');
+    
     const joinBtn = document.getElementById('joinBtn');
     const joinView = document.getElementById('joinView');
     const connectingView = document.getElementById('connectingView');
     const connectedView = document.getElementById('connectedView');
     const voiceControls = document.getElementById('voiceControls');
     
+    if (!joinBtn || !joinView || !connectingView || !connectedView) {
+        console.log('🔊 ⚠️ Voice UI elements not found, retrying in 200ms');
+        setTimeout(window.initVoiceUI, 200);
+        return;
+    }
+    
+    let isConnected = false;
+    
     function autoJoinVoice() {
-        if (isConnected) return;
+        if (isConnected) {
+            console.log('🔊 Already connected to voice, skipping auto-join');
+            return;
+        }
         
-        console.log('Auto-joining voice channel...');
+        console.log('🔊 Starting auto-join process...');
         
         joinView.classList.add('hidden');
         connectingView.classList.remove('hidden');
         
-        if (window.voiceManager) {
-            console.log('Using VoiceManager for auto-join');
+        if (window.voiceManager && typeof window.voiceManager.joinVoice === 'function') {
+            console.log('🔊 Using VoiceManager for auto-join');
             window.voiceManager.joinVoice().then(() => {
                 setTimeout(() => {
                     connectingView.classList.add('hidden');
                     connectedView.classList.remove('hidden');
                     voiceControls.classList.remove('hidden');
                     isConnected = true;
+                    console.log('🔊 ✅ Voice connection successful');
                 }, 300);
             }).catch((error) => {
-                console.error('Auto-join failed:', error);
+                console.error('🔊 ❌ Auto-join failed:', error);
                 connectingView.classList.add('hidden');
                 joinView.classList.remove('hidden');
+                window.voiceAutoJoinInProgress = false;
             });
         } else {
+            console.log('🔊 Using fallback auto-join (no VoiceManager)');
             setTimeout(() => {
                 connectingView.classList.add('hidden');
                 connectedView.classList.remove('hidden');
@@ -435,43 +460,37 @@ window.initVoiceUI = function() {
                 if (window.showToast) {
                     window.showToast('Connected to <?php echo htmlspecialchars($activeChannel->name ?? 'voice channel'); ?>', 'success', 3000);
                 }
+                console.log('🔊 ✅ Voice connection successful (fallback)');
             }, 1500);
         }
-    }
-    
-    function waitForVoiceManager(attempts = 0) {
-        if (window.voiceManager && typeof window.voiceManager.joinVoice === 'function') {
-            console.log('Voice manager ready, starting auto-join');
-            autoJoinVoice();
-        } else if (attempts < 50) {
-            setTimeout(() => waitForVoiceManager(attempts + 1), 200);
-        } else {
-            console.warn('Voice manager not available after 10 seconds, falling back to UI-only mode');
-            autoJoinVoice();
-        }
-    }
-    
-    setTimeout(() => {
-        waitForVoiceManager();
-    }, 1000);
-    
-    joinBtn.addEventListener('click', function() {
-        if (isConnected) return;
         
+        // Reset the auto-join flag
+        setTimeout(() => {
+            window.voiceAutoJoinInProgress = false;
+            sessionStorage.removeItem('triggerAutoJoin');
+        }, 2000);
+    }
+    
+    // Make auto-join function globally available
+    window.triggerVoiceAutoJoin = autoJoinVoice;
+    
+    // Set up join button click handler
+    joinBtn.addEventListener('click', function() {
+        if (isConnected) {
+            console.log('🔊 Already connected, ignoring click');
+            return;
+        }
+        
+        console.log('🔊 Manual join button clicked');
         joinBtn.disabled = true;
         joinBtn.textContent = 'Connecting...';
         
-        if (window.voiceManager && typeof window.voiceManager.joinVoice === 'function') {
-            console.log('Manual join using VoiceManager');
-            autoJoinVoice();
-        } else {
-            console.log('Manual join using fallback mode');
-            autoJoinVoice();
-        }
+        autoJoinVoice();
     });
-
     
+    // Set up disconnect handler
     window.addEventListener('voiceDisconnect', function() {
+        console.log('🔊 Voice disconnect event received');
         isConnected = false;
         
         connectedView.classList.add('hidden');
@@ -480,8 +499,23 @@ window.initVoiceUI = function() {
         
         joinBtn.disabled = false;
         joinBtn.textContent = 'Join Voice';
+        window.voiceAutoJoinInProgress = false;
     });
     
+    // Mark as initialized
+    window.voiceUIInitialized = true;
+    console.log('🔊 ✅ Voice UI initialization complete');
+    
+    // Check if auto-join was requested before UI was ready
+    const shouldAutoJoin = sessionStorage.getItem('triggerAutoJoin') === 'true';
+    if (shouldAutoJoin && !window.voiceAutoJoinInProgress) {
+        console.log('🔊 Auto-join was requested, triggering now that UI is ready');
+        setTimeout(() => {
+            autoJoinVoice();
+        }, 500);
+    }
+    
+    // Dispatch custom event
     document.dispatchEvent(new CustomEvent('channelContentLoaded', {
         detail: {
             type: 'voice',

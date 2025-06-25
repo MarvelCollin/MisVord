@@ -85,7 +85,8 @@ class UserRepository extends Repository {
     public function searchByUsername($query, $excludeUserId = null, $limit = 20) {
         $queryBuilder = new Query();
         $sql = $queryBuilder->table('users')
-            ->where('username', 'LIKE', "%{$query}%");
+            ->where('username', 'LIKE', "%{$query}%")
+            ->where('status', '!=', 'bot');
             
         if ($excludeUserId) {
             $sql->where('id', '!=', $excludeUserId);
@@ -160,6 +161,7 @@ class UserRepository extends Repository {
         
         $result = $query->table(User::getTable())
             ->where('created_at', '>=', $date)
+            ->where('status', '!=', 'bot')
             ->count();
             
         return $result;
@@ -177,6 +179,7 @@ class UserRepository extends Repository {
         
         $query = new Query();
         $results = $query->table(User::getTable())
+            ->where('status', '!=', 'bot')
             ->orderBy('created_at', 'DESC')
             ->limit($limit)
             ->offset($offset)
@@ -207,6 +210,7 @@ class UserRepository extends Repository {
                 $q->whereLike('username', "%$query%")
                   ->orWhereLike('email', "%$query%");
             })
+            ->where('status', '!=', 'bot')
             ->orderBy('created_at', 'DESC')
             ->limit($limit)
             ->offset($offset)
@@ -233,6 +237,7 @@ class UserRepository extends Repository {
                 $q->whereLike('username', "%$query%")
                   ->orWhereLike('email', "%$query%");
             })
+            ->where('status', '!=', 'bot')
             ->count();
     }
     
@@ -328,11 +333,68 @@ class UserRepository extends Repository {
         $query = new Query();
         $date = date('Y-m-d H:i:s', strtotime("-$hours hours"));
         
-        
+        // Exclude bots from activity statistics
         $result = $query->table(User::getTable())
             ->where('updated_at', '>=', $date)
+            ->where('status', '!=', 'bot')
             ->count();
             
         return $result;
+    }
+    
+    /**
+     * Get all bots
+     *
+     * @param int $limit Maximum number of bots to return
+     * @return array List of bot users
+     */
+    public function getBots($limit = 50) {
+        $query = new Query();
+        $results = $query->table(User::getTable())
+            ->where('status', 'bot')
+            ->orderBy('created_at', 'DESC')
+            ->limit($limit)
+            ->get();
+            
+        $bots = [];
+        foreach ($results as $result) {
+            $bots[] = new User($result);
+        }
+        
+        return $bots;
+    }
+    
+    /**
+     * Count total number of bots
+     *
+     * @return int Number of bots
+     */
+    public function countBots() {
+        $query = new Query();
+        return $query->table(User::getTable())
+            ->where('status', 'bot')
+            ->count();
+    }
+    
+    /**
+     * Count total regular users (excluding bots)
+     *
+     * @return int Number of regular users
+     */
+    public function countRegularUsers() {
+        $query = new Query();
+        return $query->table(User::getTable())
+            ->where('status', '!=', 'bot')
+            ->count();
+    }
+    
+    /**
+     * Create a new bot user
+     *
+     * @param array $data Bot user data (username, email, etc.)
+     * @return User|null Created bot user or null on failure
+     */
+    public function createBot($data) {
+        return User::createBot($data);
     }
 }

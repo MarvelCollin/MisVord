@@ -1,6 +1,8 @@
 import { LocalStorageManager } from '../../utils/local-storage-manager.js';
 
 let isRendering = false;
+let serverDataCache = null;
+let cacheExpiry = 0;
 
 document.addEventListener('DOMContentLoaded', function() {
     initServerSidebar();
@@ -24,10 +26,10 @@ function setupServerIcons() {
         
         icon.addEventListener('dragend', () => {
             icon.style.opacity = '1';
+            document.querySelectorAll('.drop-target').forEach(el => el.classList.remove('drop-target'));
         });
         
         icon.addEventListener('dragover', e => {
-            if (icon.closest('.server-group')) return;
             e.preventDefault();
             icon.classList.add('drop-target');
         });
@@ -37,8 +39,6 @@ function setupServerIcons() {
         });
         
         icon.addEventListener('drop', e => {
-            if (icon.closest('.server-group')) return;
-            
             e.preventDefault();
             icon.classList.remove('drop-target');
             
@@ -46,18 +46,30 @@ function setupServerIcons() {
             const targetId = icon.getAttribute('data-server-id');
             
             if (draggedId && targetId && draggedId !== targetId) {
-                createFolder(draggedId, targetId);
+                const draggedInGroup = LocalStorageManager.getServerGroup(draggedId);
+                const targetInGroup = LocalStorageManager.getServerGroup(targetId);
+                
+                if (draggedInGroup && targetInGroup && draggedInGroup.id === targetInGroup.id) {
+                    return;
+                }
+                
+                if (draggedInGroup) {
+                    LocalStorageManager.removeServerFromAllGroups(draggedId);
+                }
+                if (targetInGroup) {
+                    LocalStorageManager.addServerToGroup(targetInGroup.id, draggedId);
+                    renderFolders();
+                    return;
+                }
+                
+                const groupId = LocalStorageManager.addServerGroup('Folder');
+                LocalStorageManager.addServerToGroup(groupId, draggedId);
+                LocalStorageManager.addServerToGroup(groupId, targetId);
+                LocalStorageManager.setGroupCollapsed(groupId, false);
+                renderFolders();
             }
         });
     });
-}
-
-function createFolder(serverId1, serverId2) {
-    const groupId = LocalStorageManager.addServerGroup('Folder');
-    LocalStorageManager.addServerToGroup(groupId, serverId1);
-    LocalStorageManager.addServerToGroup(groupId, serverId2);
-    LocalStorageManager.setGroupCollapsed(groupId, false);
-    renderFolders();
 }
 
 async function renderFolders() {
@@ -65,6 +77,11 @@ async function renderFolders() {
     isRendering = true;
     
     const serverList = document.getElementById('server-list');
+    if (!serverList) {
+        isRendering = false;
+        return;
+    }
+    
     const groups = LocalStorageManager.getServerGroups();
     
     document.querySelectorAll('.server-group').forEach(el => el.remove());
@@ -241,7 +258,8 @@ function setupFolderEvents(group, folderElement) {
     header.addEventListener('click', e => {
         e.preventDefault();
         e.stopPropagation();
-        toggleFolder(group.id);
+        LocalStorageManager.toggleGroupCollapsed(group.id);
+        renderFolders();
     });
     
     header.addEventListener('contextmenu', e => {
@@ -259,23 +277,9 @@ function setupFolderEvents(group, folderElement) {
     });
 }
 
-function toggleFolder(groupId) {
-    const groups = LocalStorageManager.getServerGroups();
-    const group = groups.find(g => g.id === groupId);
-    
-    if (group) {
-        group.collapsed = !group.collapsed;
-        LocalStorageManager.saveServerGroups(groups);
-        
-        const folderElement = document.querySelector(`[data-group-id="${groupId}"]`);
-        if (folderElement) {
-            updateFolderState(group, folderElement);
-        }
-    }
-}
-
 function setupDropZones() {
-    document.querySelectorAll('.server-group').forEach(folder => {
+    document.querySelectorAll('.server-group:not([data-drop-setup])').forEach(folder => {
+        folder.setAttribute('data-drop-setup', 'true');
         const header = folder.querySelector('.group-header');
         const serversContainer = folder.querySelector('.group-servers');
         
@@ -305,10 +309,13 @@ function setupDropZones() {
                 const groupId = folder.getAttribute('data-group-id');
                 
                 if (serverId && groupId) {
+                    const currentGroup = LocalStorageManager.getServerGroup(serverId);
+                    if (currentGroup && currentGroup.id === groupId) {
+                        return;
+                    }
+                    
                     LocalStorageManager.addServerToGroup(groupId, serverId);
-                    setTimeout(() => {
-                        renderFolders();
-                    }, 50);
+                    renderFolders();
                 }
             });
         });
@@ -329,44 +336,49 @@ function setupDropZones() {
                 const groupId = folder.getAttribute('data-group-id');
                 
                 if (serverId && groupId) {
+                    const currentGroup = LocalStorageManager.getServerGroup(serverId);
+                    if (currentGroup && currentGroup.id === groupId) {
+                        return;
+                    }
+                    
                     LocalStorageManager.addServerToGroup(groupId, serverId);
-                    setTimeout(() => {
-                        renderFolders();
-                    }, 50);
+                    renderFolders();
                 }
             });
         });
     });
     
     const serverList = document.getElementById('server-list');
-    serverList.addEventListener('dragover', e => {
-        if (e.target.closest('.server-group') || e.target.closest('.server-icon')) return;
-        e.preventDefault();
-        serverList.classList.add('drop-target');
-    });
-    
-    serverList.addEventListener('dragleave', e => {
-        const rect = serverList.getBoundingClientRect();
-        if (e.clientX < rect.left || e.clientX > rect.right || 
-            e.clientY < rect.top || e.clientY > rect.bottom) {
+    if (!serverList.hasAttribute('data-drop-setup')) {
+        serverList.setAttribute('data-drop-setup', 'true');
+        
+        serverList.addEventListener('dragover', e => {
+            if (e.target.closest('.server-group') || e.target.closest('.server-icon')) return;
+            e.preventDefault();
+            serverList.classList.add('drop-target');
+        });
+        
+        serverList.addEventListener('dragleave', e => {
+            const rect = serverList.getBoundingClientRect();
+            if (e.clientX < rect.left || e.clientX > rect.right || 
+                e.clientY < rect.top || e.clientY > rect.bottom) {
+                serverList.classList.remove('drop-target');
+            }
+        });
+        
+        serverList.addEventListener('drop', e => {
+            if (e.target.closest('.server-group') || e.target.closest('.server-icon')) return;
+            
+            e.preventDefault();
             serverList.classList.remove('drop-target');
-        }
-    });
-    
-    serverList.addEventListener('drop', e => {
-        if (e.target.closest('.server-group') || e.target.closest('.server-icon')) return;
-        
-        e.preventDefault();
-        serverList.classList.remove('drop-target');
-        
-        const serverId = e.dataTransfer.getData('text/plain');
-        if (serverId) {
-            LocalStorageManager.removeServerFromAllGroups(serverId);
-            setTimeout(() => {
+            
+            const serverId = e.dataTransfer.getData('text/plain');
+            if (serverId) {
+                LocalStorageManager.removeServerFromAllGroups(serverId);
                 renderFolders();
-            }, 50);
-        }
-    });
+            }
+        });
+    }
 }
 
 function showContextMenu(event, groupId, groupName) {
@@ -426,6 +438,11 @@ function showContextMenu(event, groupId, groupName) {
 }
 
 async function getServerData() {
+    const now = Date.now();
+    if (serverDataCache && now < cacheExpiry) {
+        return serverDataCache;
+    }
+    
     try {
         const response = await fetch('/api/user/servers', {
             method: 'GET',
@@ -440,6 +457,8 @@ async function getServerData() {
                 data.data.servers.forEach(server => {
                     serverMap[server.id] = server;
                 });
+                serverDataCache = serverMap;
+                cacheExpiry = now + 300000;
                 return serverMap;
             }
         }
@@ -447,7 +466,7 @@ async function getServerData() {
         console.error('Failed to fetch server data:', error);
     }
     
-    return {};
+    return serverDataCache || {};
 }
 
 export function updateActiveServer() {

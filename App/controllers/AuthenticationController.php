@@ -15,66 +15,18 @@ class AuthenticationController extends BaseController
     }
     public function showLogin()
     {
-        if (function_exists('logger')) {
-            logger()->debug("showLogin called", [
-                'session_status' => session_status(),
-                'is_authenticated' => $this->isAuthenticated(),
-                'user_id' => $_SESSION['user_id'] ?? 'not_set',
-                'request_uri' => $_SERVER['REQUEST_URI'] ?? ''
-            ]);
-        }
-
-        if (isset($_GET['fresh']) && $_GET['fresh'] == '1') {
-            $redirectUrl = $_GET['redirect'] ?? null;
-            
-            $this->clearAuthSession();
-            session_start();
-            session_regenerate_id(true);
-            
-            if ($redirectUrl) {
-                $_SESSION['login_redirect'] = $redirectUrl;
-            }
-            
-            if (function_exists('logger')) {
-                logger()->debug("Session cleared for login page", [
-                    'session_id' => session_id(),
-                    'redirect_saved' => $redirectUrl ? 'yes' : 'no'
-                ]);
-            }
-        }
-        else if (!$this->isAuthenticated()) {
-            $redirectUrl = $_GET['redirect'] ?? null;
-            
-            $this->clearAuthSession();
-            session_start();
-            session_regenerate_id(true);
-            
-            if ($redirectUrl) {
-                $_SESSION['login_redirect'] = $redirectUrl;
-            }
-        }
-
+        $this->clearAllAuthData();
+        
         if ($this->isAuthenticated()) {
             $redirect = $_GET['redirect'] ?? '/home';
-
-            if (function_exists('logger')) {
-                logger()->debug("User already authenticated, redirecting", [
-                    'redirect_to' => $redirect,
-                    'user_id' => $_SESSION['user_id'] ?? 'not_set'
-                ]);
-            }
-
-            if ($this->isApiRoute() || $this->isAjaxRequest()) {
-                return $this->success(['redirect' => $redirect], 'Already authenticated');
-            }
-
             $this->setSecurityHeaders();
             header('Location: ' . $redirect);
             exit;
         }
 
-        if (isset($_GET['redirect'])) {
-            $_SESSION['login_redirect'] = $_GET['redirect'];
+        $redirectUrl = $_GET['redirect'] ?? null;
+        if ($redirectUrl) {
+            $_SESSION['login_redirect'] = $redirectUrl;
         }
 
         if ($this->isApiRoute() || $this->isAjaxRequest()) {
@@ -88,46 +40,26 @@ class AuthenticationController extends BaseController
     }
     public function login()
     {
-        $this->clearAuthSession();
-        session_start();
-        session_regenerate_id(true);
-        
-        $_SESSION['errors'] = [];
-        $_SESSION['old_input'] = [];
-        
-        $redirectUrl = $_GET['redirect'] ?? null;
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
         
         if ($this->isAuthenticated()) {
+            $redirectUrl = $_GET['redirect'] ?? null;
             $redirect = $redirectUrl ?? $_SESSION['login_redirect'] ?? '/home';
             unset($_SESSION['login_redirect']);
-            
-            if (function_exists('logger')) {
-                logger()->debug("User already authenticated, redirecting", [
-                    'user_id' => $_SESSION['user_id'],
-                    'redirect_to' => $redirect
-                ]);
-            }
             
             $this->setSecurityHeaders();
             header('Location: ' . $redirect);
             exit;
         }
         
+        $redirectUrl = $_GET['redirect'] ?? null;
         if ($redirectUrl) {
             $_SESSION['login_redirect'] = $redirectUrl;
         }
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            if (isset($_GET['redirect'])) {
-                $_SESSION['login_redirect'] = $_GET['redirect'];
-                
-                if (function_exists('logger')) {
-                    logger()->debug("Stored redirect URL in session", [
-                        'redirect' => $_GET['redirect']
-                    ]);
-                }
-            }
-            
             $this->setSecurityHeaders();
             header('Location: /login');
             exit;
@@ -138,27 +70,17 @@ class AuthenticationController extends BaseController
         $password = isset($input['password']) ? $input['password'] : '';
 
         if (empty($email)) {
-            $this->logFailedLogin($email, 'empty_email');
-            
-            $this->clearAuthSession();
-            session_start();
-            
+            $this->logFailedLogin($email);
             $_SESSION['errors'] = ['auth' => 'Email is required'];
-            
             $this->setSecurityHeaders();
             header('Location: /login');
             exit;
         }
         
         if (empty($password)) {
-            $this->logFailedLogin($email, 'empty_password');
-                                    
-            $this->clearAuthSession();
-            session_start();
-            
+            $this->logFailedLogin($email);
             $_SESSION['errors'] = ['auth' => 'Password is required'];
             $_SESSION['old_input'] = ['email' => $email];
-            
             $this->setSecurityHeaders();
             header('Location: /login');
             exit;
@@ -182,29 +104,19 @@ class AuthenticationController extends BaseController
         $user = $this->userRepository->findByEmail($email);
 
         if (!$user) {
-            $this->logFailedLogin($email, 'user_not_found');
+            $this->logFailedLogin($email);
             $_SESSION['errors'] = ['auth' => 'No account found with this email address.'];
             $_SESSION['old_input'] = ['email' => $email];
-            
             $this->setSecurityHeaders();
             header('Location: /login');
             exit;
         }
         
         if ($user->status === 'banned') {
-            $this->logFailedLogin($email, 'user_banned');
+            $this->logFailedLogin($email);
             $_SESSION['errors'] = ['auth' => 'This account has been banned. Please contact an administrator.'];
             $_SESSION['old_input'] = ['email' => $email];
-            
-            if (function_exists('logger')) {
-                logger()->warning("Banned user login attempt", [
-                    'email' => $email,
-                    'user_id' => $user->id
-                ]);
-            }
-            
             $this->setSecurityHeaders();
-            session_write_close();
             header('Location: /login');
             exit;
         }
@@ -212,28 +124,14 @@ class AuthenticationController extends BaseController
         $passwordVerified = $user->verifyPassword($password);
         
         if (!$passwordVerified) {
-            $this->logFailedLogin($email, 'password_verification_failed');
+            $this->logFailedLogin($email);
             $_SESSION['errors'] = ['auth' => 'Login failed. Incorrect password provided.'];
             $_SESSION['old_input'] = ['email' => $email];
-            
-            error_log('Password verification failed for user: ' . $email);
-            
-            if (function_exists('logger')) {
-                logger()->warning("Failed login attempt", [
-                    'email' => $email,
-                    'reason' => 'password_verification_failed',
-                    'user_id' => $user->id
-                ]);
-            }
-            
             $this->setSecurityHeaders();
-            session_write_close();
             header('Location: /login');
             exit;
         }
 
-        $this->clearAuthSession();
-        session_start();
         session_regenerate_id(true);
         
         $_SESSION['user_id'] = $user->id;
@@ -246,14 +144,6 @@ class AuthenticationController extends BaseController
         $redirect = isset($_SESSION['login_redirect']) ? $_SESSION['login_redirect'] : '/app';
         unset($_SESSION['login_redirect']);
         
-        if (function_exists('logger')) {
-            logger()->info("User logged in successfully", [
-                'user_id' => $user->id,
-                'username' => $user->username,
-                'redirect_to' => $redirect
-            ]);
-        }
-
         $this->setSecurityHeaders();
         header('Location: ' . $redirect);
         exit;
@@ -261,29 +151,17 @@ class AuthenticationController extends BaseController
 
     public function showRegister()
     {
-        if ((isset($_GET['fresh']) && $_GET['fresh'] == '1') || !$this->isAuthenticated()) {
-            $redirectUrl = $_GET['redirect'] ?? null;
-            
-            $this->clearAuthSession();
-            session_start();
-
-            if ($redirectUrl) {
-                $_SESSION['login_redirect'] = $redirectUrl;
-            }
-        }
+        $this->clearAllAuthData();
         
         if ($this->isAuthenticated()) {
-            if ($this->isApiRoute() || $this->isAjaxRequest()) {
-                return $this->redirectResponse('/home');
-            }
-
             $this->setSecurityHeaders();
-            header('Location: /');
+            header('Location: /home');
             exit;
         }
 
-        if (isset($_GET['redirect'])) {
-            $_SESSION['login_redirect'] = $_GET['redirect'];
+        $redirectUrl = $_GET['redirect'] ?? null;
+        if ($redirectUrl) {
+            $_SESSION['login_redirect'] = $redirectUrl;
         }
 
         if ($this->isApiRoute() || $this->isAjaxRequest()) {
@@ -507,43 +385,25 @@ class AuthenticationController extends BaseController
         $userId = $this->getCurrentUserId();
         $this->logActivity('logout', ['user_id' => $userId]);
 
-        // Completely destroy the session
-        $this->clearAuthSession();
-        
-        // Start a completely new session
-        session_start();
-        session_regenerate_id(true);
-        
-        // Set cache control headers to prevent caching
-        $this->setSecurityHeaders();
-        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0, private');
-        header('Pragma: no-cache');
-        header('Expires: 0');
+        $this->clearAllAuthData();
         
         if ($this->isApiRoute() || $this->isAjaxRequest()) {
-            return $this->success(['redirect' => '/login?fresh=1'], 'Logged out successfully');
+            return $this->success(['redirect' => '/login'], 'Logged out successfully');
         }
 
-        header('Location: /login?fresh=1');
+        header('Location: /login');
         exit;
     }
 
     public function showForgotPassword()
     {
-        if ((isset($_GET['fresh']) && $_GET['fresh'] == '1') || !$this->isAuthenticated()) {
-            $this->clearAuthSession();
-            session_start();
-        }
+        $this->clearAllAuthData();
         
         if ($this->isAuthenticated()) {
-            return $this->redirectResponse('/home');
+            $this->setSecurityHeaders();
+            header('Location: /home');
+            exit;
         }
-
-        unset($_SESSION['security_question']);
-        unset($_SESSION['reset_email']);
-        unset($_SESSION['old_input']);
-        unset($_SESSION['reset_token']);
-        unset($_SESSION['reset_user_id']);
 
         if ($this->isApiRoute() || $this->isAjaxRequest()) {
             return $this->success([
@@ -732,7 +592,6 @@ class AuthenticationController extends BaseController
 
                 $this->logActivity('google_registration', ['user_id' => $user->id, 'email' => $email]);
             } else {
-                // Check if user is banned
                 if ($user->status === 'banned') {
                     $this->logActivity('banned_user_google_login_attempt', ['user_id' => $user->id, 'email' => $email]);
                     
@@ -1049,16 +908,16 @@ class AuthenticationController extends BaseController
     
     public function showResetPassword()
     {
-        // Don't clear session on reset password page as we need the tokens
         if (isset($_GET['fresh']) && $_GET['fresh'] == '1') {
-            // In case of fresh=1, redirect to forgot password instead
             $this->setSecurityHeaders();
             header('Location: /forgot-password');
             exit;
         }
         
         if ($this->isAuthenticated()) {
-            return $this->redirectResponse('/home');
+            $this->setSecurityHeaders();
+            header('Location: /home');
+            exit;
         }
         
         if (!isset($_SESSION['reset_token']) || !isset($_SESSION['reset_user_id'])) {
@@ -1130,7 +989,6 @@ class AuthenticationController extends BaseController
             exit;
         }
         
-        // Password strength validation
         if (strlen($password) < 8) {
             if ($this->isApiRoute() || $this->isAjaxRequest()) {
                 return $this->validationError([
@@ -1154,7 +1012,6 @@ class AuthenticationController extends BaseController
             exit;
         }
         
-        // Clear reset token and user ID
         unset($_SESSION['reset_token']);
         unset($_SESSION['reset_user_id']);
         unset($_SESSION['reset_email']);
@@ -1201,17 +1058,71 @@ class AuthenticationController extends BaseController
         header('Expires: 0');
     }
 
-    private function logFailedLogin($email)
+    public function showSecurityQuestion()
     {
-        if (function_exists('logger')) {
-            logger()->warning("Failed login attempt", [
-                'email' => $email,
-                'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
-                'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown',
-                'timestamp' => date('Y-m-d H:i:s')
+        $this->clearAllAuthData();
+        
+        if ($this->isAuthenticated() && !isset($_SESSION['google_auth_completed'])) {
+            $this->setSecurityHeaders();
+            header('Location: /home');
+            exit;
+        }
+
+        if ($this->isApiRoute() || $this->isAjaxRequest()) {
+            return $this->success([
+                'view' => 'security_question',
+                'csrf_token' => $_SESSION['csrf_token'] ?? ''
             ]);
         }
+
+        require_once __DIR__ . '/../views/pages/authentication-page.php';
+    }
+
+    private function clearAllAuthData()
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
         
+        $preserveKeys = [
+            'login_redirect',
+            'csrf_token'
+        ];
+        
+        $preservedData = [];
+        foreach ($preserveKeys as $key) {
+            if (isset($_SESSION[$key])) {
+                $preservedData[$key] = $_SESSION[$key];
+            }
+        }
+        
+        $authDataKeys = [
+            'user_id', 'username', 'discriminator', 'avatar_url', 'banner_url', 
+            'last_activity', 'errors', 'old_input', 'success', 'security_question',
+            'reset_email', 'reset_token', 'reset_user_id', 'google_auth_completed',
+            'security_question_set', 'password_reset_token', 'password_reset_user_id',
+            'password_reset_expires'
+        ];
+        
+        foreach ($authDataKeys as $key) {
+            unset($_SESSION[$key]);
+        }
+        
+        session_regenerate_id(true);
+        
+        foreach ($preservedData as $key => $value) {
+            $_SESSION[$key] = $value;
+        }
+        
+        $this->setSecurityHeaders();
+        
+        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0, private');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+    }
+
+    private function logFailedLogin($email)
+    {
         $this->logActivity('failed_login_attempt', [
             'email' => $email,
             'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown'

@@ -22,7 +22,7 @@ function renderChannel($channel, $activeChannelId) {
     $type = $channel['type'] ?? 'text';
     $icon = getChannelIcon($type);
     $isActive = $activeChannelId == $channel['id'];
-    $activeClass = $isActive ? 'bg-discord-lighten text-white' : '';
+    $activeClass = $isActive ? 'bg-discord-lighten text-white active-channel' : '';
     
     echo '<div class="channel-item flex items-center py-2 px-3 rounded cursor-pointer text-gray-400 hover:text-gray-300 hover:bg-discord-lighten ' . $activeClass . '" 
               data-channel-id="' . $channel['id'] . '" 
@@ -146,6 +146,9 @@ function renderCategorySkeleton($count = 1) {
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('🏗️ Initializing channel section');
+    
+    // Show channel list after skeleton
     setTimeout(function() {
         const skeleton = document.querySelector('.channel-skeleton');
         const channelList = document.querySelector('.channel-list');
@@ -156,36 +159,17 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }, 800);
     
-    // Add a global function to handle voice channel clicks
-    window.handleVoiceChannelClick = function(channelId) {
-        console.log('Voice channel clicked:', channelId);
-        
-        if (typeof window.fetchVoiceSection === 'function') {
-            console.log('Using existing fetchVoiceSection function');
-            window.fetchVoiceSection(channelId);
-        } else {
-            console.log('fetchVoiceSection not available, loading server-page.js');
-            const script = document.createElement('script');
-            script.src = '/public/js/pages/server-page.js';
-            script.onload = function() {
-                if (typeof window.fetchVoiceSection === 'function') {
-                    window.fetchVoiceSection(channelId);
-                } else {
-                    console.error('fetchVoiceSection still not available after loading script');
-                    const currentServerId = document.getElementById('current-server-id')?.value;
-                    if (currentServerId) {
-                        const voiceChannelUrl = `/public/router.php?page=server&server_id=${currentServerId}&channel_id=${channelId}`;
-                        window.location.href = voiceChannelUrl;
-                    }
-                }
-            };
-            document.head.appendChild(script);
-        }
-    };
+    // Initialize channel click handlers
+    initializeChannelHandlers();
+});
+
+function initializeChannelHandlers() {
+    console.log('🎯 Setting up channel click handlers');
     
     const channelItems = document.querySelectorAll('.channel-item');
     
     channelItems.forEach(item => {
+        // Remove any existing listeners by cloning
         const clone = item.cloneNode(true);
         item.parentNode.replaceChild(clone, item);
         
@@ -195,109 +179,138 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const channelId = clone.getAttribute('data-channel-id');
             const channelType = clone.getAttribute('data-channel-type');
-            const currentServerId = document.getElementById('current-server-id')?.value;
+            const serverId = document.getElementById('current-server-id')?.value;
             
-            console.log('Channel clicked:', {channelId, channelType, currentServerId});
-            
-            document.querySelectorAll('.channel-item').forEach(ch => {
-                ch.classList.remove('bg-discord-lighten', 'text-white');
-            });
-            
-            clone.classList.add('bg-discord-lighten', 'text-white');
-            
-            const serverId = currentServerId;
-            
-            if (channelType === 'voice') {
-                const newUrl = `/server/${serverId}?channel=${channelId}&type=voice`;
-                history.pushState({ channelId, channelType: 'voice', serverId }, '', newUrl);
-                window.handleVoiceChannelClick(channelId);
-            } else {
-                const newUrl = `/server/${serverId}?channel=${channelId}&type=text`;
-                history.pushState({ channelId, channelType: 'text', serverId }, '', newUrl);
-                
-                if (typeof window.fetchChatSection === 'function') {
-                    console.log('Using existing fetchChatSection function');
-                    window.fetchChatSection(channelId);
-                } else {
-                    console.log('fetchChatSection not available, loading server-page.js');
-                    const script = document.createElement('script');
-                    script.src = '/public/js/pages/server-page.js';
-                    script.onload = function() {
-                        if (typeof window.fetchChatSection === 'function') {
-                            window.fetchChatSection(channelId);
-                        } else {
-                            console.error('fetchChatSection still not available after loading script');
-                            if (currentServerId && channelId) {
-                                const channelUrl = `/public/router.php?page=server&server_id=${currentServerId}&channel_id=${channelId}`;
-                                window.location.href = channelUrl;
-                            }
-                        }
-                    };
-                    document.head.appendChild(script);
-                }
+            if (!channelId || !serverId) {
+                console.error('❌ Missing channel ID or server ID');
+                return;
             }
-        });
-        
-        clone.addEventListener('click', function() {
-            document.querySelectorAll('.channel-item').forEach(ch => {
-                ch.classList.remove('bg-discord-lighten', 'text-white');
-            });
             
-            clone.classList.add('bg-discord-lighten', 'text-white');
+            console.log('📡 Channel clicked:', {channelId, channelType, serverId});
+            
+            // Update active state immediately for better UX
+            document.querySelectorAll('.channel-item').forEach(ch => {
+                ch.classList.remove('bg-discord-lighten', 'text-white', 'active-channel');
+            });
+            clone.classList.add('bg-discord-lighten', 'text-white', 'active-channel');
+            
+            // Add loading indicator
+            const originalContent = clone.innerHTML;
+            clone.innerHTML = `
+                <div class="flex items-center">
+                    <div class="animate-spin rounded-full h-3 w-3 border border-white border-t-transparent mr-2"></div>
+                    <span class="text-sm">Loading...</span>
+                </div>
+            `;
+            
+            // Use the proper AJAX system from server-page.js
+            const switchPromise = channelType === 'voice' 
+                ? handleVoiceChannelSwitch(channelId, serverId)
+                : handleTextChannelSwitch(channelId, serverId);
+            
+            // Restore content after a minimum time or on completion
+            Promise.race([
+                switchPromise,
+                new Promise(resolve => setTimeout(resolve, 2000)) // 2 second timeout
+            ]).finally(() => {
+                clone.innerHTML = originalContent;
+            });
         });
     });
-});
+}
 
-// Create a global helper function to attempt auto-joining voice
-window.attemptAutoJoinVoice = function() {
-    const autoJoinChannelId = localStorage.getItem('autoJoinVoiceChannel');
-    const currentChannelId = document.querySelector('[data-channel-id]')?.getAttribute('data-channel-id');
+async function handleVoiceChannelSwitch(channelId, serverId) {
+    console.log('🔊 Switching to voice channel:', channelId);
     
-    if (autoJoinChannelId && autoJoinChannelId === currentChannelId) {
-        console.log('Attempting to auto-join voice channel:', autoJoinChannelId);
-        const joinBtn = document.getElementById('joinBtn');
+    // Update meta tags immediately
+    updateChannelMetaTags(channelId, 'voice');
+    
+    // Update URL
+    const newUrl = `/server/${serverId}?channel=${channelId}&type=voice`;
+    history.pushState({ channelId, channelType: 'voice', serverId }, '', newUrl);
+    
+    try {
+        // Ensure server-page.js is loaded
+        if (typeof window.ensureServerPageLoaded === 'function') {
+            await window.ensureServerPageLoaded();
+        }
         
-        if (joinBtn) {
-            joinBtn.click();
-            localStorage.removeItem('autoJoinVoiceChannel'); // Clear the flag after joining
+        // Use server-page.js AJAX system
+        if (typeof window.fetchVoiceSection === 'function') {
+            console.log('✅ Using fetchVoiceSection');
+            window.fetchVoiceSection(channelId);
         } else {
-            // If join button is not found, try again after a short delay
-            setTimeout(() => {
-                const retryJoinBtn = document.getElementById('joinBtn');
-                if (retryJoinBtn) {
-                    retryJoinBtn.click();
-                }
-                localStorage.removeItem('autoJoinVoiceChannel');
-            }, 800);
+            throw new Error('fetchVoiceSection not available');
+        }
+    } catch (error) {
+        console.error('❌ Voice channel switch failed:', error);
+        // Fallback to page reload
+        window.location.href = newUrl;
+    }
+}
+
+async function handleTextChannelSwitch(channelId, serverId) {
+    console.log('💬 Switching to text channel:', channelId);
+    
+    // Update meta tags immediately
+    updateChannelMetaTags(channelId, 'text');
+    
+    // Update URL
+    const newUrl = `/server/${serverId}?channel=${channelId}&type=text`;
+    history.pushState({ channelId, channelType: 'text', serverId }, '', newUrl);
+    
+    try {
+        // Ensure server-page.js is loaded
+        if (typeof window.ensureServerPageLoaded === 'function') {
+            await window.ensureServerPageLoaded();
+        }
+        
+        // Use server-page.js AJAX system
+        if (typeof window.fetchChatSection === 'function') {
+            console.log('✅ Using fetchChatSection');
+            window.fetchChatSection(channelId);
+        } else {
+            throw new Error('fetchChatSection not available');
+        }
+    } catch (error) {
+        console.error('❌ Text channel switch failed:', error);
+        // Fallback to page reload
+        window.location.href = newUrl;
+    }
+}
+
+// Helper function to update meta tags
+function updateChannelMetaTags(channelId, channelType) {
+    console.log('🏷️ Updating meta tags for channel:', channelId, channelType);
+    
+    // Update channel-id meta tag
+    let channelIdMeta = document.querySelector('meta[name="channel-id"]');
+    if (channelIdMeta) {
+        channelIdMeta.setAttribute('content', channelId);
+    } else {
+        channelIdMeta = document.createElement('meta');
+        channelIdMeta.setAttribute('name', 'channel-id');
+        channelIdMeta.setAttribute('content', channelId);
+        document.head.appendChild(channelIdMeta);
+    }
+    
+    // For text channels, also update chat-id
+    if (channelType === 'text') {
+        let chatIdMeta = document.querySelector('meta[name="chat-id"]');
+        if (chatIdMeta) {
+            chatIdMeta.setAttribute('content', channelId);
+        } else {
+            chatIdMeta = document.createElement('meta');
+            chatIdMeta.setAttribute('name', 'chat-id');
+            chatIdMeta.setAttribute('content', channelId);
+            document.head.appendChild(chatIdMeta);
         }
     }
+}
+
+// Global function for external use
+window.refreshChannelHandlers = function() {
+    console.log('🔄 Refreshing channel handlers');
+    initializeChannelHandlers();
 };
-
-// Listen for channel content loaded events
-document.addEventListener('channelContentLoaded', function(e) {
-    // When a channel is loaded, check if we need to auto-join voice
-    window.attemptAutoJoinVoice();
-});
-
-function openCreateChannelModal(type = 'text') {
-    console.log('Create channel modal:', type);
-}
-
-function toggleChannelLoading(loading = true) {
-    const channelWrapper = document.querySelector('.channel-wrapper');
-    if (!channelWrapper) return;
-    
-    const skeleton = channelWrapper.querySelector('.channel-skeleton');
-    const channelList = channelWrapper.querySelector('.channel-list');
-    
-    if (loading) {
-        if (skeleton) skeleton.classList.remove('hidden');
-        if (channelList) channelList.classList.add('hidden');
-    } else {
-        if (skeleton) skeleton.classList.add('hidden');
-        if (channelList) channelList.classList.remove('hidden');
-    }
-}
-
-window.toggleChannelLoading = toggleChannelLoading;
 </script>

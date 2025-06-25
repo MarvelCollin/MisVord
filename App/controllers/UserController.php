@@ -242,7 +242,6 @@ class UserController extends BaseController
                 return $this->error('User not found', 404);
             }
             
-            // If the user has an avatar, remove the file
             if (!empty($user->avatar_url)) {
                 $avatarPath = dirname(__DIR__) . $user->avatar_url;
                 if (file_exists($avatarPath) && is_file($avatarPath)) {
@@ -250,7 +249,6 @@ class UserController extends BaseController
                 }
             }
             
-            // Update the user record
             $result = $this->userRepository->update($userId, [
                 'avatar_url' => null
             ]);
@@ -259,7 +257,6 @@ class UserController extends BaseController
                 return $this->serverError('Failed to update user record');
             }
             
-            // Update session
             $_SESSION['avatar_url'] = null;
             
             $this->logActivity('user_avatar_removed', [
@@ -371,6 +368,12 @@ class UserController extends BaseController
         $input = $this->getInput();
         
         try {
+            // Check if the user is a bot - bots should not be able to update their status via this method
+            $user = $this->userRepository->find($userId);
+            if ($user && $user->status === 'bot') {
+                return $this->error('Bot users cannot update their status through this endpoint', 403);
+            }
+            
             if (!isset($input['status'])) {
                 return $this->error('Status is required', 400);
             }
@@ -525,6 +528,10 @@ class UserController extends BaseController
                 return $this->error('User not found', 404);
             }
             
+            // Prevent viewing bot profiles (except for self)
+            if ($user->status === 'bot' && $userId != $currentUserId) {
+                return $this->error('User not found', 404);
+            }
             
             $userData = $user->toArray();
             
@@ -840,6 +847,10 @@ class UserController extends BaseController
                 
                 foreach ($otherUserFriends as $friend) {
                     if (isset($friend['id']) && in_array($friend['id'], $currentUserFriendIds)) {
+                        // Skip bots from mutual friends
+                        if (isset($friend['status']) && $friend['status'] === 'bot') {
+                            continue;
+                        }
                         
                         $mutualFriends[] = [
                             'id' => $friend['id'],

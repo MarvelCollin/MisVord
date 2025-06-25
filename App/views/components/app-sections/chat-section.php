@@ -197,28 +197,7 @@ $additional_css[] = 'chat-section';
         <!-- Messages will be loaded here -->
     </div>
 
-    <!-- Example Message Structure - This is hidden and only for reference
-    <div class="message-group flex p-1 px-4 py-1 relative hover:bg-[rgba(4,4,5,0.07)]">
-        <div class="message-avatar flex-shrink-0 mr-3 mt-0.5">
-            <img src="/assets/default-avatar.svg" class="w-10 h-10 rounded-full" alt="Username's avatar">
-        </div>
-        <div class="flex-grow relative">
-            <div class="message-header flex items-center mb-0.5">
-                <span class="message-username font-medium text-[#f2f3f5] hover:underline cursor-pointer">Username</span>
-                <span class="message-timestamp text-xs text-[#a3a6aa]">14:52</span>
-            </div>
-            <div class="message-contents">
-                <div class="message-content py-0.5 hover:bg-[rgba(4,4,5,0.07)] rounded px-1 -ml-1 relative">
-                    <div class="message-bubble text-[#dcddde]">
-                        <div class="message-main-text text-[#dbdee1] whitespace-pre-wrap break-words">
-                            Message content goes here
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    -->
+
 
     <!-- Typing Indicator -->
     <div id="typing-indicator" class="text-xs text-[#b5bac1] pb-1 pl-5 flex items-center hidden">
@@ -310,5 +289,3 @@ $additional_css[] = 'chat-section';
         </div>
     </div>
 </div>
-
-</script>

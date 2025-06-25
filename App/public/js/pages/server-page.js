@@ -30,10 +30,7 @@ async function loadVoiceScripts() {
     await loadScript('/public/js/components/voice/voice-manager.js?v=' + Date.now());
     console.log("Voice manager loaded successfully");
     
-    // Finally load voice section for UI
-    console.log("Loading voice section UI");
-    await loadScript('/public/js/components/voice/voice-section.js?v=' + Date.now());
-    console.log("Voice section UI loaded successfully");
+    // Note: Voice UI is now handled directly in voice-section.php, no separate JS file needed
     
     return true;
   } catch (error) {
@@ -117,17 +114,19 @@ function getServerIdFromUrl() {
 }
 
 function initializeChannelClickHandlers() {
-  const isHandlersInitialized = window.channelHandlersInitialized || false;
+  console.log("🔧 Initializing channel click handlers from server-page.js");
   
-  if (isHandlersInitialized) {
-    console.log("Channel click handlers are already initialized, skipping");
-    return;
-  }
-  
-  console.log("Initializing channel click handlers");
+  // Reset the flag to allow re-initialization
+  window.channelHandlersInitialized = false;
   
   const channelItems = document.querySelectorAll('.channel-item');
-  console.log(`Found ${channelItems.length} channel items`);
+  console.log(`🎯 Found ${channelItems.length} channel items`);
+
+  // If channel-section.php has already set up handlers, don't interfere
+  if (window.refreshChannelHandlers) {
+    console.log("✅ Channel handlers managed by channel-section.php");
+    return;
+  }
 
   channelItems.forEach(item => {
     // Remove any existing listeners to prevent duplicates
@@ -215,7 +214,7 @@ function initializeChannelClickHandlers() {
 }
 
 function fetchChatSection(channelId) {
-  console.log(`fetchChatSection called with channelId: ${channelId}`);
+  console.log(`💬 fetchChatSection called with channelId: ${channelId}`);
   const apiUrl = `/api/chat/render/channel/${channelId}`;
   console.log(`Fetching from URL: ${apiUrl}`);
   
@@ -381,7 +380,8 @@ function fetchChatSection(channelId) {
           }
         }
         
-        // Custom event without triggering channel reload
+        // Dispatch completion event
+        console.log(`✅ Chat section loaded successfully for channel ${channelId}`);
         document.dispatchEvent(new CustomEvent('contentLoaded', {
           detail: { type: 'chat', channelId: channelId, skipChannelReload: true }
         }));
@@ -505,47 +505,70 @@ function fetchVoiceSection(channelId) {
             window.chatSection = null;
           }
           
+          // Reset voice UI flags to allow re-initialization
+          window.voiceUIInitialized = false;
+          window.voiceAutoJoinInProgress = false;
+          
           // Load all required voice scripts in the correct order
           loadVoiceScripts().then(() => {
             console.log("All voice scripts loaded successfully");
             
             // Execute the extracted scripts after voice scripts are loaded
             if (scriptContent) {
-              console.log("Executing voice section scripts");
+              console.log("🔊 Executing voice section scripts");
               try {
+                // Create a safe execution environment to prevent conflicts
                 const scriptElement = document.createElement('script');
-                scriptElement.textContent = scriptContent;
+                scriptElement.textContent = `
+                  // Prevent duplicate execution if already running
+                  if (!window.voiceScriptExecuting) {
+                    window.voiceScriptExecuting = true;
+                    ${scriptContent}
+                    setTimeout(() => { window.voiceScriptExecuting = false; }, 1000);
+                  } else {
+                    console.log('🔊 Voice script already executing, skipping duplicate');
+                  }
+                `;
                 document.head.appendChild(scriptElement);
                 
-                // Also trigger the auto-join logic manually to ensure it runs
+                // Wait a moment for scripts to initialize, then trigger manual auto-join check
                 setTimeout(() => {
-                  console.log("🔊 Manually triggering auto-join check after AJAX load");
-                  if (typeof window.handleAutoJoin === 'function') {
-                    console.log("🔊 Found window.handleAutoJoin, calling it");
-                    window.handleAutoJoin();
-                  } else {
-                    // Fallback auto-join logic
-                    const autoJoinChannelId = localStorage.getItem('autoJoinVoiceChannel');
-                    const currentChannelId = channelId;
-                    const forceAutoJoin = sessionStorage.getItem('forceAutoJoin') === 'true';
+                  console.log("🔊 Manually checking auto-join after AJAX voice section load");
+                  
+                  // Check if auto-join conditions are met
+                  const autoJoinChannelId = localStorage.getItem('autoJoinVoiceChannel');
+                  const currentChannelId = channelId;
+                  const forceAutoJoin = sessionStorage.getItem('forceAutoJoin') === 'true';
+                  
+                  if (autoJoinChannelId && autoJoinChannelId === currentChannelId && forceAutoJoin) {
+                    console.log('🔊 ✅ Auto-join conditions met after AJAX load');
                     
-                    if (autoJoinChannelId && autoJoinChannelId === currentChannelId && forceAutoJoin) {
-                      console.log('🔊 Fallback auto-join triggered');
-                      localStorage.removeItem('autoJoinVoiceChannel');
-                      sessionStorage.removeItem('forceAutoJoin');
-                      
-                      setTimeout(() => {
-                        const joinBtn = document.getElementById('joinBtn');
-                        if (joinBtn && !joinBtn.disabled) {
-                          joinBtn.click();
-                        }
-                      }, 1000);
+                    // Set the trigger flag for initVoiceUI
+                    sessionStorage.setItem('triggerAutoJoin', 'true');
+                    
+                    // If handleAutoJoin exists, call it
+                    if (typeof window.handleAutoJoin === 'function') {
+                      console.log("🔊 Calling window.handleAutoJoin");
+                      window.handleAutoJoin();
                     }
+                    
+                    // If voice UI is ready, trigger auto-join directly
+                    if (window.voiceUIInitialized && typeof window.triggerVoiceAutoJoin === 'function') {
+                      console.log("🔊 Voice UI ready, triggering auto-join directly");
+                      setTimeout(() => {
+                        window.triggerVoiceAutoJoin();
+                      }, 300);
+                    }
+                  } else {
+                    console.log('🔊 Auto-join conditions not met:', {autoJoinChannelId, currentChannelId, forceAutoJoin});
                   }
-                }, 200);
+                }, 400);
+                
               } catch (error) {
-                console.error("Error executing voice section scripts:", error);
+                console.error("🔊 Error executing voice section scripts:", error);
               }
+            } else {
+              console.log("🔊 No script content found in voice section");
             }
           }).catch(err => {
             console.error("Error in voice script loading chain:", err);
@@ -564,30 +587,56 @@ function fetchVoiceSection(channelId) {
           console.log("HTML content:", html.substring(0, 500) + "...");
           centralContentArea.innerHTML = html;
           
+          // Reset voice UI flags to allow re-initialization
+          window.voiceUIInitialized = false;
+          window.voiceAutoJoinInProgress = false;
+          
           // Even if we couldn't find the specific section, still load the voice scripts
           loadVoiceScripts().then(() => {
             console.log("All voice scripts loaded successfully (fallback)");
             
             // Trigger auto-join even in fallback mode
             setTimeout(() => {
-              console.log("Triggering auto-join check in fallback mode");
+              console.log("🔊 Checking auto-join in fallback mode");
               const autoJoinChannelId = localStorage.getItem('autoJoinVoiceChannel');
               const currentChannelId = channelId;
               const forceAutoJoin = sessionStorage.getItem('forceAutoJoin') === 'true';
               
               if (autoJoinChannelId && autoJoinChannelId === currentChannelId && forceAutoJoin) {
-                console.log('Fallback auto-join triggered');
-                localStorage.removeItem('autoJoinVoiceChannel');
-                sessionStorage.removeItem('forceAutoJoin');
+                console.log('🔊 ✅ Auto-join conditions met in fallback mode');
                 
-                setTimeout(() => {
-                  const joinBtn = document.getElementById('joinBtn');
-                  if (joinBtn && !joinBtn.disabled) {
-                    joinBtn.click();
+                // Set the trigger flag for initVoiceUI
+                sessionStorage.setItem('triggerAutoJoin', 'true');
+                
+                // If handleAutoJoin exists, call it
+                if (typeof window.handleAutoJoin === 'function') {
+                  console.log("🔊 Calling window.handleAutoJoin (fallback)");
+                  window.handleAutoJoin();
+                }
+                
+                // Wait for voice UI to initialize and trigger auto-join
+                const waitForVoiceUI = (attempts = 0) => {
+                  if (window.voiceUIInitialized && typeof window.triggerVoiceAutoJoin === 'function') {
+                    console.log("🔊 Voice UI ready, triggering auto-join (fallback)");
+                    window.triggerVoiceAutoJoin();
+                  } else if (attempts < 25) {
+                    setTimeout(() => waitForVoiceUI(attempts + 1), 200);
+                  } else {
+                    console.log('🔊 ⚠️ Voice UI not ready after 5 seconds, trying join button fallback');
+                    setTimeout(() => {
+                      const joinBtn = document.getElementById('joinBtn');
+                      if (joinBtn && !joinBtn.disabled) {
+                        console.log('🔊 Clicking join button as last resort');
+                        joinBtn.click();
+                      }
+                    }, 500);
                   }
-                }, 1000);
+                };
+                waitForVoiceUI();
+              } else {
+                console.log('🔊 Auto-join conditions not met in fallback mode:', {autoJoinChannelId, currentChannelId, forceAutoJoin});
               }
-            }, 200);
+            }, 500);
           }).catch(err => {
             console.error("Error in voice script loading chain (fallback):", err);
           });
@@ -595,7 +644,8 @@ function fetchVoiceSection(channelId) {
         
         handleSkeletonLoading(false);
         
-        // Custom event without triggering channel reload
+        // Dispatch completion event
+        console.log(`✅ Voice section loaded successfully for channel ${channelId}`);
         document.dispatchEvent(new CustomEvent('contentLoaded', {
           detail: { type: 'voice', channelId: channelId, skipChannelReload: true }
         }));
@@ -968,3 +1018,25 @@ window.fetchVoiceSection = fetchVoiceSection;
 window.fetchChatSection = fetchChatSection;
 window.initializeChannelClickHandlers = initializeChannelClickHandlers;
 window.getServerIdFromUrl = getServerIdFromUrl;
+
+// Coordination helpers for channel switching
+window.isServerPageReady = function() {
+  return typeof window.fetchVoiceSection === 'function' && 
+         typeof window.fetchChatSection === 'function';
+};
+
+window.ensureServerPageLoaded = function() {
+  return new Promise((resolve) => {
+    if (window.isServerPageReady()) {
+      resolve();
+    } else {
+      console.log('⏳ Waiting for server-page.js to be ready...');
+      const checkInterval = setInterval(() => {
+        if (window.isServerPageReady()) {
+          clearInterval(checkInterval);
+          resolve();
+        }
+      }, 100);
+    }
+  });
+};

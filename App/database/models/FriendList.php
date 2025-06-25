@@ -28,6 +28,7 @@ class FriendList extends Model {
             ->join('users u', 'fl.user_id2', '=', 'u.id')
             ->where('fl.user_id', $userId)
             ->where('fl.status', 'accepted')
+            ->where('u.status', '!=', 'bot')
             ->select('u.*, fl.id as friendship_id')
             ->get();
             
@@ -36,6 +37,7 @@ class FriendList extends Model {
             ->join('users u', 'fl.user_id', '=', 'u.id')
             ->where('fl.user_id2', $userId)
             ->where('fl.status', 'accepted')
+            ->where('u.status', '!=', 'bot')
             ->select('u.*, fl.id as friendship_id')
             ->get();
             
@@ -48,6 +50,7 @@ class FriendList extends Model {
             ->join('users u', 'fl.user_id', '=', 'u.id')
             ->where('fl.user_id2', $userId)
             ->where('fl.status', 'pending')
+            ->where('u.status', '!=', 'bot')
             ->select('u.*, fl.id as friendship_id, fl.created_at as requested_at')
             ->get();
             
@@ -60,6 +63,7 @@ class FriendList extends Model {
             ->join('users u', 'fl.user_id2', '=', 'u.id')
             ->where('fl.user_id', $userId)
             ->where('fl.status', 'pending')
+            ->where('u.status', '!=', 'bot')
             ->select('u.*, fl.id as friendship_id, fl.created_at as requested_at')
             ->get();
             

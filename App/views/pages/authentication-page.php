@@ -40,18 +40,10 @@ $securityQuestion = $_SESSION['security_question'] ?? null;
 $email = $_SESSION['reset_email'] ?? '';
 $token = $_SESSION['reset_token'] ?? '';
 
-// We need to preserve the errors and old input for display,
-// but clear them for the next request
 $_SESSION['errors'] = [];
 $_SESSION['old_input'] = [];
 $_SESSION['success'] = null;
 
-// Set cache control headers on all authentication pages to prevent caching
-header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-header('Pragma: no-cache');
-header('Expires: 0');
-
-// Set stronger cache control headers to prevent cached authentication pages
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0, private');
 header('Pragma: no-cache');
 header('Expires: 0');
@@ -538,62 +530,40 @@ try {
         if (window.authInitialized) return;
         window.authInitialized = true;
 
-        // Check if we have an error message from the server
         const hasServerError = document.querySelector('#form-error-message');
         
-        // If there's no server error, clear form fields
         if (!hasServerError) {
             clearAllFormFields();
         }
         
-        // Clear any localStorage or sessionStorage data related to authentication
         clearStoredAuthData();
-
-        if (document.querySelector('#register-form-container') && document.body.classList.contains('register-page')) {
-            document.getElementById('register-link').click();
-        } else if (document.querySelector('#forgot-form-container') && document.body.classList.contains('forgot-page')) {
-            document.getElementById('forgot-link').click();
-        } else if (document.querySelector('#reset-password-form-container') && document.body.classList.contains('reset-page')) {
-            // Reset password form is already visible
-        } else if (document.querySelector('#security-question-form-container') && document.body.classList.contains('security-page')) {
-            // Security question form is already visible
-        }
     }
     
-    // Function to clear all form input fields
     function clearAllFormFields() {
-        // Reset all forms
         document.querySelectorAll('form').forEach(form => {
             form.reset();
         });
         
-        // Clear all input fields, except submit buttons
         document.querySelectorAll('input:not([type="button"]):not([type="submit"])').forEach(input => {
             input.value = '';
-            
-            // Remove any classes/attributes that might be related to validation or state
             input.classList.remove('border-red-500', 'is-invalid', 'is-valid', 'error-shake');
             input.removeAttribute('data-validated');
             input.removeAttribute('data-touched');
         });
         
-        // Reset all select elements
         document.querySelectorAll('select').forEach(select => {
             select.selectedIndex = 0;
             select.classList.remove('border-red-500', 'is-invalid', 'is-valid');
         });
         
-        // Remove validation error messages
         document.querySelectorAll('.validation-error:not(#form-error-message), .text-red-500').forEach(element => {
             element.remove();
         });
         
-        // Remove validation classes
         document.querySelectorAll('.border-red-500, .is-invalid, .is-valid, .error-shake').forEach(element => {
             element.classList.remove('border-red-500', 'is-invalid', 'is-valid', 'error-shake');
         });
         
-        // Reset any strength indicators or validation indicators
         document.querySelectorAll('#passwordStrength, #resetPasswordStrength').forEach(element => {
             if (element) {
                 element.classList.add('hidden');
@@ -609,7 +579,6 @@ try {
     
     function clearStoredAuthData() {
         try {
-            // Clear all known auth-related keys
             const authKeys = [
                 'authToken', 'rememberMe', 'userAuth', 'lastEmail', 
                 'user_id', 'username', 'discriminator', 'avatar_url', 
@@ -618,13 +587,11 @@ try {
                 'user_status', 'fresh_login', 'csrf_token'
             ];
             
-            // Clear all items from storage
             authKeys.forEach(key => {
                 localStorage.removeItem(key);
                 sessionStorage.removeItem(key);
             });
             
-            // Clear cookies related to authentication
             document.cookie.split(';').forEach(cookie => {
                 const [name] = cookie.trim().split('=');
                 document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;

@@ -117,6 +117,7 @@ class User extends Model {
             ->join('friend_list fl', 'u.id', '=', 'fl.user_id2')
             ->where('fl.user_id', $this->id)
             ->where('fl.status', 'accepted')
+            ->where('u.status', '!=', 'bot')
             ->select('u.*')
             ->get();
 
@@ -125,6 +126,7 @@ class User extends Model {
             ->join('friend_list fl', 'u.id', '=', 'fl.user_id')
             ->where('fl.user_id2', $this->id)
             ->where('fl.status', 'accepted')
+            ->where('u.status', '!=', 'bot')
             ->select('u.*')
             ->get();
 
@@ -137,6 +139,37 @@ class User extends Model {
     
     public static function generateDiscriminator() {
         return str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Check if this user is a bot
+     *
+     * @return bool
+     */
+    public function isBot() {
+        return $this->status === 'bot';
+    }
+    
+    /**
+     * Create a new bot user
+     *
+     * @param array $data Bot user data
+     * @return User|null
+     */
+    public static function createBot($data) {
+        $data['status'] = 'bot';
+        
+        // Ensure required fields have defaults
+        if (!isset($data['discriminator'])) {
+            $data['discriminator'] = self::generateDiscriminator();
+        }
+        
+        if (!isset($data['display_name']) && isset($data['username'])) {
+            $data['display_name'] = $data['username'];
+        }
+        
+        $bot = new self($data);
+        return $bot->save() ? $bot : null;
     }
 
     public static function createTable() {

@@ -58,8 +58,14 @@ Route::get('/app/channels/dm/([0-9]+)', function($dmId) {
     $_SESSION['active_dm'] = $dmId;
     require_once __DIR__ . '/../views/pages/home.php';
 });
-Route::get('/login', 'pages/authentication-page.php');
-Route::get('/register', 'pages/authentication-page.php');
+Route::get('/login', function() {
+    $controller = new AuthenticationController();
+    $controller->showLogin();
+});
+Route::get('/register', function() {
+    $controller = new AuthenticationController();
+    $controller->showRegister();
+});
 Route::get('/explore', function() {
     header('Location: /explore-servers');
     exit;
@@ -73,7 +79,10 @@ Route::get('/settings/user', function() {
 Route::get('/settings-server', 'pages/settings-server.php');
 Route::get('/call', 'pages/call.php');
 Route::get('/dev', 'pages/dev.php');
-Route::get('/forgot-password', 'pages/authentication-page.php');
+Route::get('/forgot-password', function() {
+    $controller = new AuthenticationController();
+    $controller->showForgotPassword();
+});
 Route::get('/security-verify', function() {
     if (!headers_sent()) {
         header('Location: /forgot-password');
@@ -84,7 +93,10 @@ Route::get('/reset-password', function() {
     $controller = new AuthenticationController();
     $controller->showResetPassword();
 });
-Route::get('/set-security-question', 'pages/authentication-page.php');
+Route::get('/set-security-question', function() {
+    $controller = new AuthenticationController();
+    $controller->showSecurityQuestion();
+});
 Route::get('/nitro', function() {
     $controller = new NitroController();
     $controller->index();
