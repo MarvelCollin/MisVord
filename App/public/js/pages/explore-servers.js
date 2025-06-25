@@ -82,7 +82,6 @@ function initCategoryFilter() {
 }
 
 function filterServersByCategory(category) {
-    // Only filter non-featured servers
     const serverCards = document.querySelectorAll('.server-card:not(#featured-servers .server-card)');
 
     serverCards.forEach(card => {

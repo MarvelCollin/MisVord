@@ -257,7 +257,6 @@ window.socketDiagnostics = {
     }
 };
 
-// Auto-run diagnostics after page load
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => window.socketDiagnostics.runFullDiagnostics(), 2000);

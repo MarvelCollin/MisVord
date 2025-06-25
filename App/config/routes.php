@@ -629,13 +629,11 @@ Route::get('/api/debug/user-security', function() {
         
         $debugInfo['trying_to_find_user_id'] = $userId;
         
-        // Try to find user
         $user = $userRepository->find($userId);
         
         $debugInfo['user_found'] = $user ? true : false;
         
         if (!$user) {
-            // Let's check if user exists with direct query
             $query = new Query();
             $directResult = $query->table('users')->where('id', $userId)->first();
             
@@ -650,7 +648,6 @@ Route::get('/api/debug/user-security', function() {
             exit;
         }
         
-        // Get all user attributes
         $userAttributes = $user->toArray();
         
         echo json_encode([
@@ -947,7 +944,6 @@ Route::get('/api/debug/controller-security', function() {
         require_once __DIR__ . '/../controllers/UserController.php';
         $controller = new UserController();
         
-        // This will call the actual method that the API uses
         $response = $controller->getCurrentUserSecurityQuestion();
         
         echo json_encode([
@@ -984,7 +980,6 @@ Route::get('/api/debug/direct-repo', function() {
         $userRepository = new UserRepository();
         $userId = $_SESSION['user_id'];
         
-        // Direct repository call
         $user = $userRepository->find($userId);
         
         if (!$user) {
@@ -996,7 +991,6 @@ Route::get('/api/debug/direct-repo', function() {
             exit;
         }
         
-        // Test accessing the security question
         $securityQuestion = $user->security_question;
         
         echo json_encode([

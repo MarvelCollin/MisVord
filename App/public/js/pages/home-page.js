@@ -526,30 +526,23 @@ function escapeHtml(text) {
 }
 
 function initTabFromUrl() {
-    // Only run on the friends page
     if (window.location.pathname !== '/app/friends') {
         return;
     }
     
-    // Get the tab from URL
     const urlParams = new URLSearchParams(window.location.search);
     const tab = urlParams.get('tab') || 'online';
     
-    // Find the tab elements
     const tabButton = document.querySelector(`[data-tab="${tab}"]`);
     const tabContent = document.getElementById(`${tab}-tab`);
     
-    // Activate the tab if it exists
     if (tabButton && tabContent) {
-        // First, hide all tab contents
         document.querySelectorAll('.tab-content').forEach(content => {
             content.classList.add('hidden');
         });
         
-        // Show the selected tab content
         tabContent.classList.remove('hidden');
         
-        // Update tab button styles
         document.querySelectorAll('[data-tab]').forEach(button => {
             button.classList.add('text-gray-300');
             button.classList.remove('text-white', 'bg-discord-primary', 'bg-discord-green');
@@ -575,7 +568,6 @@ function initTabFromUrl() {
             tabButton.classList.remove('hover:bg-discord-light');
         }
         
-        // Load the tab data if needed
         if (tab === 'all') {
             loadAllFriends();
         } else if (tab === 'pending') {

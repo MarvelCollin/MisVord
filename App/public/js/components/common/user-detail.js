@@ -85,7 +85,6 @@ class UserDetailModal {
         
         this.modal.classList.add('active');
         
-        // Position the modal relative to the trigger element if provided
         if (options.triggerElement && typeof options.triggerElement.getBoundingClientRect === 'function') {
             const rect = options.triggerElement.getBoundingClientRect();
             const modalWidth = 340;
@@ -124,10 +123,8 @@ class UserDetailModal {
         const startTime = Date.now();
         const minLoadingTime = 800;
 
-        // Apply skeleton loading state immediately
         this.showLoadingState();
         
-        // Fetch data with a minimum display time for the skeleton
         this.fetchUserData()
             .then(userData => {
                 const elapsedTime = Date.now() - startTime;

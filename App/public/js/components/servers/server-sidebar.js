@@ -114,12 +114,10 @@ async function renderFolders() {
         return;
     }
     
-    // Force clear server data cache for fresh data
     serverDataCache = null;
     
     const groups = LocalStorageManager.getServerGroups();
     
-    // Completely remove all existing groups
     document.querySelectorAll('.server-group').forEach(el => el.remove());
     
     const serverImageData = await buildServerImageData();
@@ -155,7 +153,6 @@ async function renderFolders() {
         setupFolderEvents(group, folderElement);
     }
     
-    // Complete fresh setup every time
     setupServerIcons();
     setupDropZones();
     isRendering = false;
@@ -166,7 +163,6 @@ async function buildServerImageData() {
     
     const serverData = await getServerData();
     
-    // Force reset all server icons to clean state
     document.querySelectorAll('.server-icon[data-server-id]').forEach(icon => {
         icon.removeAttribute('data-setup');
         const serverId = icon.getAttribute('data-server-id');
@@ -314,15 +310,12 @@ function setupFolderEvents(group, folderElement) {
         e.preventDefault();
         e.stopPropagation();
         
-        // Fast toggle without complete rebuild for better UX
         LocalStorageManager.toggleGroupCollapsed(group.id);
         
-        // Get updated group state
         const updatedGroups = LocalStorageManager.getServerGroups();
         const updatedGroup = updatedGroups.find(g => g.id === group.id);
         
         if (updatedGroup) {
-            // Just update this folder's state immediately without full rebuild
             updateFolderState(updatedGroup, folderElement);
         }
     });
@@ -356,7 +349,6 @@ function setupDropZones() {
                 e.stopPropagation();
                 folder.classList.add('drag-over');
                 
-                // Add smooth visual feedback
                 folder.style.transition = 'all 0.2s ease';
                 folder.style.transform = 'scale(1.02)';
                 folder.style.boxShadow = '0 4px 12px rgba(88, 101, 242, 0.3)';
@@ -368,7 +360,6 @@ function setupDropZones() {
                     e.clientY < rect.top || e.clientY > rect.bottom) {
                     folder.classList.remove('drag-over');
                     
-                    // Reset visual feedback smoothly
                     folder.style.transform = 'scale(1)';
                     folder.style.boxShadow = '';
                     setTimeout(() => {
@@ -396,7 +387,6 @@ function setupDropZones() {
                         return;
                     }
                     
-                    // Optimized render for adding to existing group
                     handleServerAddToGroup(serverId, groupId, folder);
                 }
             });
@@ -408,7 +398,6 @@ function setupDropZones() {
                 e.stopPropagation();
                 folder.classList.add('drag-over');
                 
-                // Add smooth visual feedback
                 folder.style.transition = 'all 0.2s ease';
                 folder.style.transform = 'scale(1.02)';
                 folder.style.boxShadow = '0 4px 12px rgba(88, 101, 242, 0.3)';
@@ -433,7 +422,6 @@ function setupDropZones() {
                         return;
                     }
                     
-                    // Optimized render for adding to existing group
                     handleServerAddToGroup(serverId, groupId, folder);
                 }
             });
@@ -473,37 +461,29 @@ function setupDropZones() {
     }
 }
 
-// Optimized function for adding server to existing group
 async function handleServerAddToGroup(serverId, groupId, folderElement) {
-    // Add to localStorage first
     LocalStorageManager.addServerToGroup(groupId, serverId);
     
-    // Get the server element
     const serverElement = document.querySelector(`.server-icon[data-server-id="${serverId}"]`);
     if (!serverElement) {
         performCompleteRender();
         return;
     }
     
-    // Smooth animation for moving server
     const originalParent = serverElement.parentNode;
     const originalRect = serverElement.getBoundingClientRect();
     
-    // Move server to group container
     const serversContainer = folderElement.querySelector('.group-servers');
     if (serversContainer) {
         serversContainer.appendChild(serverElement);
         
-        // Calculate new position for animation
         const newRect = serverElement.getBoundingClientRect();
         const deltaX = originalRect.left - newRect.left;
         const deltaY = originalRect.top - newRect.top;
         
-        // Animate the move
         serverElement.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
         serverElement.style.transition = 'transform 0.3s ease';
         
-        // Animate to final position
         requestAnimationFrame(() => {
             serverElement.style.transform = 'translate(0, 0)';
             
@@ -511,31 +491,25 @@ async function handleServerAddToGroup(serverId, groupId, folderElement) {
                 serverElement.style.transition = '';
                 serverElement.style.transform = '';
                 
-                // Update group preview after animation
                 updateGroupPreview(groupId, folderElement);
             }, 300);
         });
     } else {
-        // Fallback to complete render if container not found
         performCompleteRender();
     }
 }
 
-// Update just the group preview without full rebuild
 async function updateGroupPreview(groupId, folderElement) {
     const groups = LocalStorageManager.getServerGroups();
     const group = groups.find(g => g.id === groupId);
     
     if (!group) return;
     
-    // Get fresh server image data for this group
     const serverImageData = await buildServerImageData();
     
-    // Update only this group's preview
     createFolderPreview(group, folderElement, serverImageData);
     updateFolderState(group, folderElement);
     
-    // Ensure event listeners are maintained
     setupFolderEvents(group, folderElement);
 }
 
@@ -596,7 +570,6 @@ function showContextMenu(event, groupId, groupName) {
 }
 
 async function getServerData() {
-    // Always fetch fresh data for complete render
     try {
         const response = await fetch('/api/user/servers', {
             method: 'GET',
@@ -643,7 +616,6 @@ export function handleServerClick(serverId) {
     window.location.href = `/server/${serverId}`;
 }
 
-// Export function for external calls to trigger complete refresh
 export function refreshServerGroups() {
     performCompleteRender();
 }

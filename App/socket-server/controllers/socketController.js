@@ -3,7 +3,7 @@ const eventController = require('./eventController');
 const userSockets = new Map();
 const userStatus = new Map();
 const recentMessages = new Map();
-const voiceMeetings = new Map(); // Map of channelId -> { meetingId, participants: Set() }
+const voiceMeetings = new Map();
 
 function setup(io) {
     eventController.setIO(io);
@@ -38,7 +38,6 @@ function setup(io) {
         client.on('reaction-removed', (data) => forwardEvent(io, client, 'reaction-removed', data, null));
         client.on('message-pinned', (data) => forwardEvent(io, client, 'message-pinned', data, null));
         
-        // Voice meeting coordination events
         client.on('check-voice-meeting', (data) => handleCheckVoiceMeeting(io, client, data));
         client.on('register-voice-meeting', (data) => handleRegisterVoiceMeeting(io, client, data));
         client.on('unregister-voice-meeting', (data) => handleUnregisterVoiceMeeting(io, client, data));
@@ -259,18 +258,15 @@ function handleDisconnect(io, client) {
     
     console.log(`Client disconnected: ${client.id}, User: ${userId}`);
     
-    // Clean up voice meetings
     for (const [channelId, meetingInfo] of voiceMeetings.entries()) {
         if (meetingInfo.participants.has(client.id)) {
             console.log(`Removing disconnected user from voice meeting in channel ${channelId}`);
             meetingInfo.participants.delete(client.id);
             
-            // If no participants left, remove the meeting
             if (meetingInfo.participants.size === 0) {
                 console.log(`No participants left in meeting for channel ${channelId}, removing meeting`);
                 voiceMeetings.delete(channelId);
             } else {
-                // Notify others that the user left
                 const room = `channel-${channelId}`;
                 io.to(room).emit('voice-participant-left', {
                     channelId,
@@ -449,7 +445,6 @@ function getTargetRoom(data) {
     return null;
 }
 
-// Handle checking if a voice meeting exists for a channel
 function handleCheckVoiceMeeting(io, client, data) {
     if (!client.data?.authenticated) {
         client.emit('error', { message: 'Authentication required' });
@@ -484,7 +479,6 @@ function handleCheckVoiceMeeting(io, client, data) {
     }
 }
 
-// Handle registering a voice meeting for a channel
 function handleRegisterVoiceMeeting(io, client, data) {
     if (!client.data?.authenticated) {
         client.emit('error', { message: 'Authentication required' });
@@ -500,19 +494,16 @@ function handleRegisterVoiceMeeting(io, client, data) {
     
     console.log(`Registering voice meeting ${meetingId} for channel ${channelId} by ${username || client.data.username}`);
     
-    // Add the meeting if it doesn't exist
     if (!voiceMeetings.has(channelId)) {
         voiceMeetings.set(channelId, {
             meetingId,
             participants: new Set([client.id])
         });
     } else {
-        // Update the meeting if it exists
         const meetingInfo = voiceMeetings.get(channelId);
         meetingInfo.participants.add(client.id);
     }
     
-    // Broadcast to the channel that someone joined the voice meeting
     const room = `channel-${channelId}`;
     io.to(room).emit('voice-participant-joined', {
         channelId,
@@ -523,7 +514,6 @@ function handleRegisterVoiceMeeting(io, client, data) {
     });
 }
 
-// Handle unregistering from a voice meeting
 function handleUnregisterVoiceMeeting(io, client, data) {
     if (!client.data?.authenticated) {
         client.emit('error', { message: 'Authentication required' });
@@ -543,13 +533,11 @@ function handleUnregisterVoiceMeeting(io, client, data) {
         const meetingInfo = voiceMeetings.get(channelId);
         meetingInfo.participants.delete(client.id);
         
-        // If no participants left, remove the meeting
         if (meetingInfo.participants.size === 0) {
             console.log(`No participants left in meeting ${meetingId} for channel ${channelId}, removing meeting`);
             voiceMeetings.delete(channelId);
         }
         
-        // Broadcast to the channel that someone left the voice meeting
         const room = `channel-${channelId}`;
         io.to(room).emit('voice-participant-left', {
             channelId,
@@ -561,14 +549,12 @@ function handleUnregisterVoiceMeeting(io, client, data) {
     }
 }
 
-// Get voice meetings information for API
 function getVoiceMeetingsInfo() {
     const meetings = [];
     
     for (const [channelId, meetingInfo] of voiceMeetings.entries()) {
         const participants = [];
         
-        // Get participant information for each socket in the meeting
         for (const socketId of meetingInfo.participants) {
             const socket = io.sockets.sockets.get(socketId);
             if (socket && socket.data) {

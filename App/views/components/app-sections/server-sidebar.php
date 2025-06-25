@@ -27,9 +27,8 @@ if (file_exists($tooltipPath)) {
 <link rel="stylesheet" href="/public/css/server-sidebar.css">
 
 <?php if ($isExplorePage): ?>
-<style>
-/* Critical styles for server icons in explore page to prevent collapse */
-.sidebar-server-icon {
+    <style>
+        .sidebar-server-icon {
     display: block !important;
     position: relative !important;
     margin-bottom: 8px !important;

@@ -15,7 +15,6 @@ class WiFiStrength {
 
   async getUserNetworkInfo() {
     try {
-      // Try to get Connection API info
       const connection = navigator.connection || 
                         navigator.mozConnection || 
                         navigator.webkitConnection;
@@ -24,7 +23,6 @@ class WiFiStrength {
         this.effectiveType = connection.effectiveType || 'unknown';
         this.downlink = connection.downlink || 0;
         
-        // On some devices, this might include the network type (wifi, cellular, etc)
         if (connection.type) {
           this.networkName = connection.type.toUpperCase();
         }
@@ -43,7 +41,6 @@ class WiFiStrength {
       
       if (navigator.onLine) {
         try {
-          // Get public IP and network info
           const response = await fetch('https://api.ipify.org?format=json', {
             method: 'GET',
             cache: 'no-cache'
@@ -53,7 +50,6 @@ class WiFiStrength {
             const data = await response.json();
             this.clientInfo.ip = data.ip;
             
-            // Try to get more details about this IP
             this.getIPDetails(data.ip);
           }
         } catch (error) {
@@ -83,9 +79,7 @@ class WiFiStrength {
           isp: data.org
         };
         
-        // Set network name to ISP if available
         if (data.org && this.networkName === 'Unknown') {
-          // Extract just the ISP name without AS number
           const ispMatch = data.org.match(/^AS\d+\s+(.+)$/);
           this.networkName = ispMatch ? ispMatch[1] : data.org;
         }

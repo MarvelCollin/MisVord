@@ -1274,7 +1274,7 @@ class ChatSection {
     createMessageGroup(message, isOwnMessage = false) {
         const messageGroup = document.createElement('div');
         messageGroup.className = 'message-group';
-        messageGroup.setAttribute('data-user-id', message.user_id);
+        messageGroup.setAttribute('data-user-id', message.user_id || message.userId);
         
         const avatarContainer = document.createElement('div');
         avatarContainer.className = 'message-avatar';
@@ -1604,6 +1604,8 @@ class ChatSection {
             io.removeAllListeners('new-channel-message');
             io.removeAllListeners('user-message-dm');
             io.removeAllListeners('message-sent');
+            io.removeAllListeners('message-updated');
+            io.removeAllListeners('message-deleted');
             io.removeAllListeners('user-typing');
             io.removeAllListeners('user-typing-dm');
             io.removeAllListeners('user-stop-typing');
@@ -1649,6 +1651,68 @@ class ChatSection {
                                 console.log('✅ Updated temp message with socket ID:', messageId);
                             }
                         }
+                    }
+                }
+            });
+            
+            io.on('message-updated', function(data) {
+                console.log('Received message update:', data);
+                
+                const messageId = data.message_id;
+                const targetType = data.target_type;
+                const targetId = data.target_id;
+                
+                const isRelevantTarget = (
+                    (self.chatType === 'channel' && targetType === 'channel' && targetId == self.targetId) ||
+                    ((self.chatType === 'direct' || self.chatType === 'dm') && (targetType === 'dm' || targetType === 'direct') && targetId == self.targetId)
+                );
+                
+                if (isRelevantTarget && messageId) {
+                    const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+                    if (messageElement) {
+                        const messageTextElement = messageElement.querySelector('.message-main-text');
+                        if (messageTextElement && data.message) {
+                            messageTextElement.innerHTML = self.formatMessageContent(data.message.content);
+                            
+                            let editedBadge = messageElement.querySelector('.edited-badge');
+                            if (!editedBadge) {
+                                editedBadge = document.createElement('span');
+                                editedBadge.className = 'edited-badge text-xs text-[#a3a6aa] ml-1';
+                                editedBadge.textContent = '(edited)';
+                                messageTextElement.appendChild(editedBadge);
+                            }
+                            
+                            console.log('✅ Updated message in real-time:', messageId);
+                        }
+                    }
+                }
+            });
+            
+            io.on('message-deleted', function(data) {
+                console.log('Received message deletion:', data);
+                
+                const messageId = data.message_id;
+                const targetType = data.target_type;
+                const targetId = data.target_id;
+                
+                const isRelevantTarget = (
+                    (self.chatType === 'channel' && targetType === 'channel' && targetId == self.targetId) ||
+                    ((self.chatType === 'direct' || self.chatType === 'dm') && (targetType === 'dm' || targetType === 'direct') && targetId == self.targetId)
+                );
+                
+                if (isRelevantTarget && messageId) {
+                    const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+                    if (messageElement) {
+                        const messageGroup = messageElement.closest('.message-group');
+                        
+                        if (messageGroup && messageGroup.querySelectorAll('.message-content').length === 1) {
+                            messageGroup.remove();
+                        } else {
+                            messageElement.remove();
+                        }
+                        
+                        self.processedMessageIds.delete(messageId);
+                        console.log('✅ Deleted message in real-time:', messageId);
                     }
                 }
             });

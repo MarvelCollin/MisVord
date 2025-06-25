@@ -12,19 +12,16 @@ const handleApiRequest = (req, res) => {
     const path = parsedUrl.pathname;
     const query = parsedUrl.query;
     
-    // Set CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     
-    // Handle OPTIONS request for CORS preflight
     if (req.method === 'OPTIONS') {
         res.statusCode = 204;
         res.end();
         return;
     }
     
-    // Handle API endpoints
     if (path === '/api/socket/status') {
         handleSocketStatus(req, res);
     } else if (path === '/api/socket/broadcast') {
@@ -108,10 +105,8 @@ function handleVoiceMeetings(req, res, query) {
         return;
     }
     
-    // Get voice meetings from socketController
     const voiceMeetings = getVoiceMeetingsInfo();
     
-    // Filter by channel ID if provided
     const channelId = query.channelId;
     if (channelId) {
         const meetingInfo = voiceMeetings.find(m => m.channelId === channelId);
@@ -130,7 +125,6 @@ function handleVoiceMeetings(req, res, query) {
 }
 
 function getVoiceMeetingsInfo() {
-    // Use the function from socketController
     return socketController.getVoiceMeetingsInfo();
 }
 

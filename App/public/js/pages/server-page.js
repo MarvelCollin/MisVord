@@ -108,20 +108,17 @@ function getServerIdFromUrl() {
 function initializeChannelClickHandlers() {
   console.log("🔧 Initializing channel click handlers from server-page.js");
   
-  // Reset the flag to allow re-initialization
   window.channelHandlersInitialized = false;
   
   const channelItems = document.querySelectorAll('.channel-item');
   console.log(`🎯 Found ${channelItems.length} channel items`);
 
-  // If channel-section.php has already set up handlers, don't interfere
   if (window.refreshChannelHandlers) {
     console.log("✅ Channel handlers managed by channel-section.php");
     return;
   }
 
   channelItems.forEach(item => {
-    // Remove any existing listeners to prevent duplicates
     const newItem = item.cloneNode(true);
     item.parentNode.replaceChild(newItem, item);
     
@@ -129,7 +126,6 @@ function initializeChannelClickHandlers() {
       e.preventDefault();
       console.log("Channel item clicked");
       
-      // Don't do anything if it's already active
       if (newItem.classList.contains('active-channel')) {
         console.log("Channel already active, skipping");
         return;
@@ -141,28 +137,22 @@ function initializeChannelClickHandlers() {
       
       console.log(`Channel clicked: ID=${channelId}, Type=${channelType}, Server=${serverId}`);
       
-      // Check current channel type versus new channel type
       const currentActiveChannel = document.querySelector('.channel-item.active-channel');
       const currentChannelType = currentActiveChannel ? currentActiveChannel.getAttribute('data-channel-type') : null;
       
       console.log(`Switching from channel type: ${currentChannelType} to: ${channelType}`);
       
-      // Handle switching between different channel types
       if (currentChannelType !== channelType) {
         console.log("Channel type is changing, cleaning up previous channel type");
         
-        // If switching from voice to text, cleanup voice stuff
         if (currentChannelType === 'voice') {
           console.log("Switching from voice to text channel, cleaning up voice components");
-          // Cleanup any voice components or references here
           if (window.voiceManager) {
             console.log("Cleaning up voice manager");
-            // Perform any needed cleanup
             window.voiceManager = null;
           }
         }
         
-        // If switching from text to voice, cleanup chat stuff
         if (currentChannelType === 'text') {
           console.log("Switching from text to voice channel, cleaning up chat components");
           if (window.chatSection) {
@@ -172,28 +162,21 @@ function initializeChannelClickHandlers() {
         }
       }
       
-      // Show skeleton loading
       handleSkeletonLoading(true);
       
-      // Update meta tags immediately to ensure chat data loads correctly
-      // Only update meta tags for text channels
       if (channelType === 'text') {
         updateChatMetaTags(channelId);
       }
       
-      // Remove active class from all channels
       document.querySelectorAll('.channel-item').forEach(ch => {
         ch.classList.remove('active-channel');
       });
       
-      // Add active class to clicked channel
       newItem.classList.add('active-channel');
       
-      // Update URL without page reload
       const newUrl = `/server/${serverId}?channel=${channelId}&type=${channelType}`;
       history.pushState({ channelId, channelType, serverId }, '', newUrl);
       
-      // Fetch appropriate section based on channel type
       if (channelType === 'text') {
         fetchChatSection(channelId);
       } else if (channelType === 'voice') {
@@ -229,13 +212,11 @@ function fetchChatSection(channelId) {
         const tempContainer = document.createElement('div');
         tempContainer.innerHTML = html;
         
-        // Extract and update meta tags before replacing content
         const chatIdMeta = tempContainer.querySelector('meta[name="chat-id"]');
         const channelIdMeta = tempContainer.querySelector('meta[name="channel-id"]');
         
         if (chatIdMeta) {
           console.log(`Found chat-id meta tag with value: ${chatIdMeta.getAttribute('content')}`);
-          // Update or create the chat-id meta tag in the document
           let docChatIdMeta = document.querySelector('meta[name="chat-id"]');
           if (docChatIdMeta) {
             console.log(`Updating existing chat-id meta tag to: ${channelId}`);
@@ -251,7 +232,6 @@ function fetchChatSection(channelId) {
         
         if (channelIdMeta) {
           console.log(`Found channel-id meta tag with value: ${channelIdMeta.getAttribute('content')}`);
-          // Update or create the channel-id meta tag in the document
           let docChannelIdMeta = document.querySelector('meta[name="channel-id"]');
           if (docChannelIdMeta) {
             console.log(`Updating existing channel-id meta tag to: ${channelId}`);
@@ -277,16 +257,13 @@ function fetchChatSection(channelId) {
         
         handleSkeletonLoading(false);
         
-        // Clear any existing chat section
         if (window.chatSection) {
           console.log("Destroying existing chat section before creating a new one");
           window.chatSection = null;
         }
         
-        // Create new chat section for the new channel
         console.log("Creating new ChatSection instance for channel: " + channelId);
         
-        // Check if ChatSection class already exists in the page
         if (typeof ChatSection !== 'undefined') {
           console.log("ChatSection class already exists, creating new instance");
           const chatSection = new ChatSection();
@@ -295,7 +272,6 @@ function fetchChatSection(channelId) {
         } else {
           console.log("ChatSection class not found, checking for script in response");
           
-          // Look for script tags in the response that might contain the ChatSection class
           const scriptTags = tempContainer.querySelectorAll('script');
           let chatSectionScriptFound = false;
           
@@ -304,7 +280,6 @@ function fetchChatSection(channelId) {
               console.log("Found chat-section.js script in response, using it");
               chatSectionScriptFound = true;
               
-              // Create a new script element
               const newScript = document.createElement('script');
               newScript.src = script.src;
               newScript.onload = () => {
@@ -319,11 +294,9 @@ function fetchChatSection(channelId) {
             }
           });
           
-          // If no script found in response, try to create ChatSection manually
           if (!chatSectionScriptFound) {
             console.log("No chat-section.js script found in response, creating ChatSection manually");
             
-            // Define a basic ChatSection class if it doesn't exist
             window.ChatSection = window.ChatSection || class ChatSection {
               constructor() {
                 this.chatType = null;
@@ -336,7 +309,6 @@ function fetchChatSection(channelId) {
                 this.loadElements();
                 this.loadChatParams();
                 
-                // Try to load messages if possible
                 if (this.chatMessages && this.targetId) {
                   this.loadMessages();
                 }
@@ -372,7 +344,6 @@ function fetchChatSection(channelId) {
           }
         }
         
-        // Dispatch completion event
         console.log(`✅ Chat section loaded successfully for channel ${channelId}`);
         document.dispatchEvent(new CustomEvent('contentLoaded', {
           detail: { type: 'chat', channelId: channelId, skipChannelReload: true }
@@ -390,7 +361,6 @@ function fetchChatSection(channelId) {
 function fetchVoiceSection(channelId) {
   console.log(`🔊 fetchVoiceSection called with channelId: ${channelId}`);
   
-  // Always set auto-join flag when fetching a voice channel
   console.log('🔊 Setting auto-join flags for voice channel:', channelId);
   localStorage.setItem('autoJoinVoiceChannel', channelId);
   sessionStorage.setItem('forceAutoJoin', 'true');
@@ -421,13 +391,11 @@ function fetchVoiceSection(channelId) {
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = html;
         
-        // Extract and update meta tags before replacing content
         const chatIdMeta = tempDiv.querySelector('meta[name="chat-id"]');
         const channelIdMeta = tempDiv.querySelector('meta[name="channel-id"]');
         
         if (chatIdMeta) {
           console.log(`Found chat-id meta tag with value: ${chatIdMeta.getAttribute('content')}`);
-          // Update or create the chat-id meta tag in the document
           let docChatIdMeta = document.querySelector('meta[name="chat-id"]');
           if (docChatIdMeta) {
             console.log(`Updating existing chat-id meta tag to: ${channelId}`);
@@ -443,7 +411,6 @@ function fetchVoiceSection(channelId) {
         
         if (channelIdMeta) {
           console.log(`Found channel-id meta tag with value: ${channelIdMeta.getAttribute('content')}`);
-          // Update or create the channel-id meta tag in the document
           let docChannelIdMeta = document.querySelector('meta[name="channel-id"]');
           if (docChannelIdMeta) {
             console.log(`Updating existing channel-id meta tag to: ${channelId}`);
@@ -457,10 +424,8 @@ function fetchVoiceSection(channelId) {
           }
         }
         
-        // Try multiple selectors to find the voice section
         let voiceSection = tempDiv.querySelector('.flex.flex-col.h-screen.bg-\\[\\#313338\\].text-white');
         
-        // If not found with the first selector, try alternative selectors
         if (!voiceSection) {
           console.log("Voice section not found with primary selector, trying alternatives");
           voiceSection = tempDiv.querySelector('.flex.flex-col.h-screen.bg-\\[\\#313338\\]');
@@ -472,7 +437,6 @@ function fetchVoiceSection(channelId) {
         }
         
         if (!voiceSection) {
-          // Last resort: look for the main voice container
           console.log("Voice section not found with class selectors, trying to find main voice container");
           voiceSection = tempDiv.querySelector('div[class*="flex"][class*="flex-col"][class*="h-screen"]');
         }
@@ -480,7 +444,6 @@ function fetchVoiceSection(channelId) {
         if (voiceSection) {
           console.log("Found voice section in response, updating center content only");
           
-          // Extract and execute scripts from the voice section before replacing content
           const scripts = voiceSection.querySelectorAll('script');
           let scriptContent = '';
           scripts.forEach(script => {
@@ -491,28 +454,22 @@ function fetchVoiceSection(channelId) {
           
           centralContentArea.replaceWith(voiceSection);
           
-          // Clear any existing chat or voice section
           if (window.chatSection) {
             console.log("Destroying existing chat section before creating voice section");
             window.chatSection = null;
           }
           
-          // Reset voice UI flags to allow re-initialization
           window.voiceUIInitialized = false;
           window.voiceAutoJoinInProgress = false;
           
-          // Load all required voice scripts in the correct order
           loadVoiceScripts().then(() => {
             console.log("All voice scripts loaded successfully");
             
-            // Execute the extracted scripts after voice scripts are loaded
             if (scriptContent) {
               console.log("🔊 Executing voice section scripts");
               try {
-                // Create a safe execution environment to prevent conflicts
                 const scriptElement = document.createElement('script');
                 scriptElement.textContent = `
-                  // Prevent duplicate execution if already running
                   if (!window.voiceScriptExecuting) {
                     window.voiceScriptExecuting = true;
                     ${scriptContent}
@@ -523,11 +480,9 @@ function fetchVoiceSection(channelId) {
                 `;
                 document.head.appendChild(scriptElement);
                 
-                // Wait a moment for scripts to initialize, then trigger manual auto-join check
                 setTimeout(() => {
                   console.log("🔊 Manually checking auto-join after AJAX voice section load");
                   
-                  // Check if auto-join conditions are met
                   const autoJoinChannelId = localStorage.getItem('autoJoinVoiceChannel');
                   const currentChannelId = channelId;
                   const forceAutoJoin = sessionStorage.getItem('forceAutoJoin') === 'true';
@@ -535,16 +490,13 @@ function fetchVoiceSection(channelId) {
                   if (autoJoinChannelId && autoJoinChannelId === currentChannelId && forceAutoJoin) {
                     console.log('🔊 ✅ Auto-join conditions met after AJAX load');
                     
-                    // Set the trigger flag for initVoiceUI
                     sessionStorage.setItem('triggerAutoJoin', 'true');
                     
-                    // If handleAutoJoin exists, call it
                     if (typeof window.handleAutoJoin === 'function') {
                       console.log("🔊 Calling window.handleAutoJoin");
                       window.handleAutoJoin();
                     }
                     
-                    // If voice UI is ready, trigger auto-join directly
                     if (window.voiceUIInitialized && typeof window.triggerVoiceAutoJoin === 'function') {
                       console.log("🔊 Voice UI ready, triggering auto-join directly");
                       setTimeout(() => {
@@ -566,7 +518,6 @@ function fetchVoiceSection(channelId) {
             console.error("Error in voice script loading chain:", err);
           });
           
-          // Load voice section CSS
           if (!document.querySelector('link[href*="voice-section.css"]')) {
             console.log("Loading voice section CSS");
             const voiceCSS = document.createElement('link');
@@ -579,15 +530,12 @@ function fetchVoiceSection(channelId) {
           console.log("HTML content:", html.substring(0, 500) + "...");
           centralContentArea.innerHTML = html;
           
-          // Reset voice UI flags to allow re-initialization
           window.voiceUIInitialized = false;
           window.voiceAutoJoinInProgress = false;
           
-          // Even if we couldn't find the specific section, still load the voice scripts
           loadVoiceScripts().then(() => {
             console.log("All voice scripts loaded successfully (fallback)");
             
-            // Trigger auto-join even in fallback mode
             setTimeout(() => {
               console.log("🔊 Checking auto-join in fallback mode");
               const autoJoinChannelId = localStorage.getItem('autoJoinVoiceChannel');
@@ -597,16 +545,13 @@ function fetchVoiceSection(channelId) {
               if (autoJoinChannelId && autoJoinChannelId === currentChannelId && forceAutoJoin) {
                 console.log('🔊 ✅ Auto-join conditions met in fallback mode');
                 
-                // Set the trigger flag for initVoiceUI
                 sessionStorage.setItem('triggerAutoJoin', 'true');
                 
-                // If handleAutoJoin exists, call it
                 if (typeof window.handleAutoJoin === 'function') {
                   console.log("🔊 Calling window.handleAutoJoin (fallback)");
                   window.handleAutoJoin();
                 }
                 
-                // Wait for voice UI to initialize and trigger auto-join
                 const waitForVoiceUI = (attempts = 0) => {
                   if (window.voiceUIInitialized && typeof window.triggerVoiceAutoJoin === 'function') {
                     console.log("🔊 Voice UI ready, triggering auto-join (fallback)");
@@ -636,7 +581,6 @@ function fetchVoiceSection(channelId) {
         
         handleSkeletonLoading(false);
         
-        // Dispatch completion event
         console.log(`✅ Voice section loaded successfully for channel ${channelId}`);
         document.dispatchEvent(new CustomEvent('contentLoaded', {
           detail: { type: 'voice', channelId: channelId, skipChannelReload: true }

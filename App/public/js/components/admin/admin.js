@@ -82,14 +82,12 @@ class AdminManager {
     const mockDataSettings = document.getElementById('mock-data-settings');
     
     if (mockDataToggle) {
-      // Store a reference to chartConfig for this instance
       this.chartConfig = window.overviewManager?.chartConfig || {
-        useMockData: false, // Ensure we default to real data (not mock data)
+        useMockData: false,
         mockDataRange: 'medium',
         mockDataTrend: 'random'
       };
       
-      // Initial state
       const toggleSwitch = mockDataToggle.closest('.toggle-switch');
       if (toggleSwitch) {
         const dot = toggleSwitch.querySelector('.dot');
@@ -99,13 +97,11 @@ class AdminManager {
         }
       }
       
-      // Handle changes
       mockDataToggle.addEventListener('change', () => {
         if (mockDataSettings) {
           if (mockDataToggle.checked) {
             mockDataSettings.classList.remove('hidden');
             
-            // Update toggle visually
             const toggleSwitch = mockDataToggle.closest('.toggle-switch');
             if (toggleSwitch) {
               const dot = toggleSwitch.querySelector('.dot');
@@ -117,7 +113,6 @@ class AdminManager {
           } else {
             mockDataSettings.classList.add('hidden');
             
-            // Update toggle visually
             const toggleSwitch = mockDataToggle.closest('.toggle-switch');
             if (toggleSwitch) {
               const dot = toggleSwitch.querySelector('.dot');

@@ -1,9 +1,6 @@
-// Debug script to test the admin API endpoints
-
 document.addEventListener('DOMContentLoaded', function() {
     console.log('API Debug Tool started');
     
-    // Add a button to the page to run the tests
     const debugDiv = document.createElement('div');
     debugDiv.style.position = 'fixed';
     debugDiv.style.bottom = '20px';
@@ -28,7 +25,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     button.addEventListener('click', runAllTests);
     
-    // Test all endpoints
     async function runAllTests() {
         console.log('===== TESTING ADMIN API ENDPOINTS =====');
         
@@ -44,7 +40,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Test specific endpoints
     async function testSystemStats() {
         console.log('Testing: GET /api/admin/stats');
         try {
