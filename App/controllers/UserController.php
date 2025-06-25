@@ -922,25 +922,72 @@ class UserController extends BaseController
         $this->requireAuth();
         $userId = $this->getCurrentUserId();
         
+        error_log("🔐 Getting security question for user ID: " . $userId);
+        error_log("🔍 Session data: " . json_encode($_SESSION));
+        
+        if (!$userId) {
+            error_log("❌ No user ID found in session");
+            return $this->error('No user ID in session', 401);
+        }
+        
         try {
             $user = $this->userRepository->find($userId);
             
             if (!$user) {
+                error_log("❌ User not found for ID: " . $userId);
+                
+                // Try direct query to see if user exists at all
+                require_once __DIR__ . '/../database/query.php';
+                $query = new Query();
+                $directResult = $query->table('users')->where('id', $userId)->first();
+                
+                if ($directResult) {
+                    error_log("⚠️ User exists in database but repository->find failed");
+                    error_log("🔍 Direct query result: " . json_encode($directResult));
+                } else {
+                    error_log("❌ User does not exist in database");
+                }
+                
                 return $this->error('User not found', 404);
             }
             
+            error_log("👤 User found: " . $user->username . " (ID: " . $user->id . ")");
+            error_log("🔍 User attributes: " . json_encode($user->toArray()));
+            error_log("🔍 Security question value: " . ($user->security_question ?? 'NULL'));
+            error_log("🔍 Security question isset: " . (isset($user->security_question) ? 'YES' : 'NO'));
+            error_log("🔍 Security question empty check: " . (empty($user->security_question) ? 'YES' : 'NO'));
+            
             if (!isset($user->security_question) || empty($user->security_question)) {
-                return $this->error('No security question set for this account', 400);
+                error_log("⚠️ No security question set for user: " . $userId);
+                
+                // Check if the field exists in the database at all
+                require_once __DIR__ . '/../database/query.php';
+                $query = new Query();
+                $directResult = $query->table('users')->where('id', $userId)->first();
+                
+                if ($directResult && isset($directResult['security_question'])) {
+                    error_log("🔍 Direct query shows security_question: " . ($directResult['security_question'] ?? 'NULL'));
+                }
+                
+                return $this->error('No security question set for this account. Please set one first in your account registration or contact support.', 400);
             }
             
             $this->logActivity('security_question_requested_current_user', [
                 'user_id' => $userId
             ]);
             
-            return $this->success([
+            error_log("✅ Returning security question: " . $user->security_question);
+            
+            $response = $this->success([
                 'security_question' => $user->security_question
             ]);
+            
+            error_log("📤 Final response: " . json_encode($response));
+            return $response;
+            
         } catch (Exception $e) {
+            error_log("💥 Exception in getCurrentUserSecurityQuestion: " . $e->getMessage());
+            error_log("💥 Exception trace: " . $e->getTraceAsString());
             return $this->serverError('An error occurred while retrieving security question: ' . $e->getMessage());
         }
     }

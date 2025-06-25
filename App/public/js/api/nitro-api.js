@@ -92,9 +92,15 @@ class NitroAPI {
     }
 
     async redeemCode(code) {
-        return await this.makeRequest(`${this.baseURL}/redeem`, {
+        return await this.makeRequest('/api/nitro/redeem', {
             method: 'POST',
             body: JSON.stringify({ code })
+        });
+    }
+
+    async getUserNitroStatus() {
+        return await this.makeRequest('/api/nitro/status', {
+            method: 'GET'
         });
     }
 }

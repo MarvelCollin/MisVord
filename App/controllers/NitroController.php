@@ -64,39 +64,97 @@ class NitroController extends BaseController {
         exit;
     }
     
-    public function redeem() {
-        $this->requireAuth();
-        
-        $input = $this->getInput();
-        $code = isset($input['code']) ? trim($input['code']) : '';
-        
-        if (empty($code)) {
-            return $this->error('Nitro code is required');
-        }
-        
-        $nitro = $this->nitroRepository->findUnusedByCode($code);
-        
-        if (!$nitro) {
-            return $this->error('Invalid or already used nitro code');
-        }
-        
-        $userId = $this->getCurrentUserId();
-        
-        
-        $nitro->user_id = $userId;
-        
-        if ($nitro->save()) {
+    public function createTestCodes() {
+        try {
+            error_log("NitroController::createTestCodes - Creating test codes");
             
-            $user = $this->userRepository->find($userId);
-            $user->has_nitro = 1;
-            $user->save();
+            $sampleCodes = [
+                'NITRO2024SAMPLE01',
+                'NITRO2024SAMPLE02', 
+                'NITRO2024SAMPLE03',
+                'DISCORD-NITRO-001',
+                'DISCORD-NITRO-002'
+            ];
+            
+            $createdCodes = [];
+            
+            foreach ($sampleCodes as $code) {
+                try {
+                    $existingNitro = $this->nitroRepository->findByCode($code);
+                    if (!$existingNitro) {
+                        $nitro = new Nitro();
+                        $nitro->code = $code;
+                        $nitro->user_id = null; 
+                        if ($nitro->save()) {
+                            $createdCodes[] = $code;
+                            error_log("NitroController::createTestCodes - Created code: $code");
+                        }
+                    } else {
+                        error_log("NitroController::createTestCodes - Code already exists: $code");
+                    }
+                } catch (Exception $e) {
+                    error_log("NitroController::createTestCodes - Failed to create $code: " . $e->getMessage());
+                }
+            }
             
             return $this->success([
-                'message' => 'Nitro code redeemed successfully'
+                'message' => 'Test codes created successfully',
+                'created_codes' => $createdCodes,
+                'total_created' => count($createdCodes)
             ]);
+            
+        } catch (Exception $e) {
+            error_log("NitroController::createTestCodes - Exception: " . $e->getMessage());
+            return $this->error('Failed to create test codes: ' . $e->getMessage());
         }
-        
-        return $this->error('Failed to redeem nitro code');
+    }
+    
+    public function redeem() {
+        try {
+            error_log("NitroController::redeem - Starting redeem process");
+            
+            $this->requireAuth();
+            
+            $input = $this->getInput();
+            error_log("NitroController::redeem - Input received: " . json_encode($input));
+            
+            $code = isset($input['code']) ? trim($input['code']) : '';
+            
+            if (empty($code)) {
+                error_log("NitroController::redeem - Empty code provided");
+                return $this->error('Nitro code is required');
+            }
+            
+            error_log("NitroController::redeem - Looking for code: " . $code);
+            
+            $nitro = $this->nitroRepository->findUnusedByCode($code);
+            error_log("NitroController::redeem - Found nitro: " . ($nitro ? 'yes' : 'no'));
+            
+            if (!$nitro) {
+                return $this->error('Invalid or already used nitro code');
+            }
+            
+            $userId = $this->getCurrentUserId();
+            error_log("NitroController::redeem - User ID: " . $userId);
+            
+            $nitro->user_id = $userId;
+            
+            if ($nitro->save()) {
+                error_log("NitroController::redeem - Nitro saved successfully");
+                
+                return $this->success([
+                    'message' => 'Nitro code redeemed successfully'
+                ]);
+            }
+            
+            error_log("NitroController::redeem - Failed to save nitro");
+            return $this->error('Failed to redeem nitro code');
+            
+        } catch (Exception $e) {
+            error_log("NitroController::redeem - Exception: " . $e->getMessage());
+            error_log("NitroController::redeem - Stack trace: " . $e->getTraceAsString());
+            return $this->error('An error occurred while redeeming the code: ' . $e->getMessage());
+        }
     }
     
     public function getUserNitroStatus() {
@@ -109,10 +167,11 @@ class NitroController extends BaseController {
             return $this->error('User not found');
         }
         
+        $hasNitro = $this->nitroRepository->getUserNitroStatus($userId);
         $nitroCodes = $this->nitroRepository->findByUserId($userId);
         
         return $this->success([
-            'has_nitro' => (bool)$user->has_nitro,
+            'has_nitro' => $hasNitro,
             'codes_redeemed' => count($nitroCodes),
             'codes' => array_map(function($nitro) {
                 return [
@@ -121,6 +180,27 @@ class NitroController extends BaseController {
                 ];
             }, $nitroCodes)
         ]);
+    }
+    
+    public function test() {
+        try {
+            error_log("NitroController::test - Starting test");
+            
+            $query = new Query();
+            $nitroCodes = $query->table('nitro')->whereNull('user_id')->get();
+            
+            return $this->success([
+                'message' => 'Nitro system test successful',
+                'database_connection' => 'OK',
+                'nitro_table_exists' => true,
+                'available_codes' => count($nitroCodes),
+                'sample_codes' => array_slice(array_column($nitroCodes, 'code'), 0, 3)
+            ]);
+            
+        } catch (Exception $e) {
+            error_log("NitroController::test - Exception: " . $e->getMessage());
+            return $this->error('Test failed: ' . $e->getMessage());
+        }
     }
     
     public function listCodes() {
@@ -196,6 +276,8 @@ class NitroController extends BaseController {
         
         return $this->error('Failed to delete nitro code');
     }
+    
+
     
     protected function requireAdmin() {
         $this->requireAuth();

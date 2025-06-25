@@ -884,5 +884,50 @@ button:active {
   }
 }
 
+/* Color and background styles */
+#change-password-modal .bg-discord-primary {
+  background-color: var(--discord-primary);
+}
+
+#change-password-modal .bg-discord-primary:hover:not(:disabled) {
+  background-color: #4752c4;
+}
+
+#change-password-modal .text-yellow-500 {
+  color: #f59e0b;
+}
+
+#change-password-modal .text-green-500 {
+  color: #10b981;
+}
+
+#change-password-modal .text-red-500 {
+  color: #ef4444;
+}
+
+#change-password-modal .text-gray-400 {
+  color: var(--discord-text-muted);
+}
+
+#change-password-modal .text-gray-300 {
+  color: var(--discord-text-normal);
+}
+
+#change-password-modal .bg-gray-600 {
+  background-color: #4b5563;
+}
+
+#change-password-modal .bg-gray-600:hover:not(:disabled) {
+  background-color: #374151;
+}
+
+#change-password-modal .border-gray-700 {
+  border-color: rgba(79, 84, 92, 0.6);
+}
+
+#change-password-modal .bg-discord-dark {
+  background-color: var(--discord-background-tertiary);
+}
+
 
 

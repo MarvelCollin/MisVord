@@ -330,7 +330,7 @@ function initCodeInput() {
         const container = document.getElementById('code-input-container');
         
         if (redeemBtn) {
-            const isValidCode = value.length === 16;
+            const isValidCode = value.length >= 10;
             redeemBtn.disabled = !isValidCode;
             
             if (isValidCode) {
@@ -399,10 +399,18 @@ function initRedeemButton() {
     redeemBtn.addEventListener('click', async function() {
         if (redeemBtn.disabled) return;
         
-        const code = codeInput.value.replace(/-/g, '');
+        const rawCode = codeInput.value.trim();
+        const code = rawCode.replace(/-/g, '');
         
-        if (code.length !== 16) {
-            showToast('Please enter a valid 16-character code', 'error');
+        console.log('Redeem attempt:', {
+            rawCode: rawCode,
+            cleanCode: code,
+            codeLength: code.length,
+            userId: window.currentUserId
+        });
+        
+        if (code.length < 10) {
+            showToast('Please enter a valid code (at least 10 characters)', 'error');
             createBurstEffect({ target: redeemBtn });
             return;
         }
@@ -413,22 +421,40 @@ function initRedeemButton() {
         createLoadingEffect(redeemBtn);
 
         try {
+            console.log('Sending request to /api/nitro/redeem with code:', code);
+            
             const response = await fetch('/api/nitro/redeem', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
                 },
                 credentials: 'same-origin',
-                body: JSON.stringify({ code })
+                body: JSON.stringify({ code: code })
             });
 
-            const data = await response.json();
+            console.log('Response status:', response.status);
+            console.log('Response headers:', response.headers);
 
-            if (data.success) {
+            let data;
+            const contentType = response.headers.get('content-type');
+            
+            if (contentType && contentType.includes('application/json')) {
+                data = await response.json();
+            } else {
+                const textResponse = await response.text();
+                console.error('Non-JSON response:', textResponse);
+                throw new Error('Server returned invalid response format');
+            }
+
+            console.log('Response data:', data);
+
+            if (response.ok && data.success) {
                 showSuccessModal();
                 codeInput.value = '';
                 createCelebrationEffect();
+                showToast('Nitro code redeemed successfully!', 'success');
                 
                 if (window.globalSocketManager) {
                     window.globalSocketManager.emit('nitro_activated', {
@@ -436,13 +462,15 @@ function initRedeemButton() {
                     });
                 }
             } else {
-                showToast(data.message || 'Invalid or already used code', 'error');
+                const errorMessage = data.error?.message || data.message || 'Invalid or already used code';
+                console.error('Redeem failed:', errorMessage);
+                showToast(errorMessage, 'error');
                 redeemBtn.disabled = false;
                 createBurstEffect({ target: redeemBtn });
             }
         } catch (error) {
             console.error('Redeem error:', error);
-            showToast('Failed to redeem code. Please try again.', 'error');
+            showToast('Failed to redeem code: ' + error.message, 'error');
             redeemBtn.disabled = false;
             createBurstEffect({ target: redeemBtn });
         } finally {
@@ -829,4 +857,6 @@ if (!Element.prototype.closest) {
         } while (el !== null && el.nodeType === 1);
         return null;
     };
-} 
+}
+
+ 

@@ -126,7 +126,10 @@ class UserAPI {
     }
 
     async getUserSecurityQuestion() {
-        return await this.makeRequest('/api/user/security-question');
+        console.log('🔗 UserAPI: Making request to /api/user/security-question');
+        const result = await this.makeRequest('/api/user/security-question');
+        console.log('🔗 UserAPI: Security question response:', result);
+        return result;
     }
 
     async verifySecurityAnswerForPasswordChange(securityAnswer) {

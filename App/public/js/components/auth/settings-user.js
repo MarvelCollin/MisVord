@@ -457,8 +457,6 @@ function updateAllAvatars(url) {
  * Update all banner instances in the UI
  */
 function updateAllBanners(url) {
-    // Banner updates can be handled here if needed in the future
-    // Currently no preview panel exists
 }
 
 /**
@@ -656,11 +654,11 @@ function initPasswordChangeForms() {
     
     if (!changePasswordBtn) return;
     
-    // Ensure modal is hidden on page load
     modal.classList.remove('show');
     modal.classList.add('hidden');
     
     function openModal() {
+        console.log('🚀 PASSWORD MODAL OPENING - Starting debug process...');
         modal.classList.add('show');
         modal.classList.remove('hidden');
         securityQuestionStep.classList.remove('hidden');
@@ -699,22 +697,29 @@ function initPasswordChangeForms() {
     
     async function loadSecurityQuestion() {
         try {
-            const userId = document.querySelector('meta[name="user-id"]')?.content;
-            if (!userId) {
-                throw new Error('User ID not found');
+            console.log('🔐 Loading security question...');
+            
+            if (!window.userAPI) {
+                console.error('❌ User API not loaded');
+                throw new Error('User API not loaded');
             }
             
+            console.log('📡 Making API request to get security question...');
             const response = await window.userAPI.getUserSecurityQuestion();
+            
+            console.log('📥 API Response:', response);
             
             if (response && response.success) {
                 userSecurityQuestion = response.security_question;
+                console.log('✅ Security question loaded:', userSecurityQuestion);
                 securityQuestionText.textContent = userSecurityQuestion;
             } else {
-                throw new Error(response.message || 'Failed to load security question');
+                console.error('❌ API Response failed:', response);
+                throw new Error(response.message || response.error || 'Failed to load security question');
             }
         } catch (error) {
-            console.error('Error loading security question:', error);
-            showSecurityError('Failed to load security question. Please try again.');
+            console.error('💥 Error loading security question:', error);
+            showSecurityError('Failed to load security question: ' + error.message);
         }
     }
     
@@ -727,15 +732,23 @@ function initPasswordChangeForms() {
             return;
         }
         
+        if (!window.userAPI) {
+            showSecurityError('User API not loaded. Please refresh the page.');
+            return;
+        }
+        
         try {
             verifyBtn.disabled = true;
+            verifyBtn.classList.add('loading');
             verifyBtn.textContent = 'Verifying...';
             
             const response = await window.userAPI.verifySecurityAnswerForPasswordChange(answer);
             
             if (response && response.success) {
-                securityQuestionStep.classList.add('hidden');
-                newPasswordStep.classList.remove('hidden');
+                setTimeout(() => {
+                    securityQuestionStep.classList.add('hidden');
+                    newPasswordStep.classList.remove('hidden');
+                }, 200);
             } else {
                 throw new Error(response.message || 'Incorrect security answer');
             }
@@ -743,8 +756,11 @@ function initPasswordChangeForms() {
             console.error('Error verifying security answer:', error);
             showSecurityError(error.message || 'Incorrect security answer');
         } finally {
-            verifyBtn.disabled = false;
-            verifyBtn.textContent = 'Verify';
+            setTimeout(() => {
+                verifyBtn.disabled = false;
+                verifyBtn.classList.remove('loading');
+                verifyBtn.textContent = 'Verify';
+            }, 300);
         }
     }
     
@@ -778,8 +794,14 @@ function initPasswordChangeForms() {
             return;
         }
         
+        if (!window.userAPI) {
+            showPasswordError('User API not loaded. Please refresh the page.');
+            return;
+        }
+        
         try {
             confirmBtn.disabled = true;
+            confirmBtn.classList.add('loading');
             confirmBtn.textContent = 'Changing...';
             
             const response = await window.userAPI.changePasswordWithSecurity(
@@ -790,7 +812,9 @@ function initPasswordChangeForms() {
             
             if (response && response.success) {
                 showToast('Password changed successfully', 'success');
-                closeModal();
+                setTimeout(() => {
+                    closeModal();
+                }, 500);
             } else {
                 throw new Error(response.message || 'Failed to change password');
             }
@@ -798,12 +822,14 @@ function initPasswordChangeForms() {
             console.error('Error changing password:', error);
             showPasswordError(error.message || 'Failed to change password');
         } finally {
-            confirmBtn.disabled = false;
-            confirmBtn.textContent = 'Change Password';
+            setTimeout(() => {
+                confirmBtn.disabled = false;
+                confirmBtn.classList.remove('loading');
+                confirmBtn.textContent = 'Change Password';
+            }, 300);
         }
     }
     
-    // Event listeners
     changePasswordBtn.addEventListener('click', openModal);
     closeModalBtn.addEventListener('click', closeModal);
     cancelBtn.addEventListener('click', closeModal);
@@ -811,14 +837,15 @@ function initPasswordChangeForms() {
     verifyBtn.addEventListener('click', verifySecurityAnswer);
     
     backBtn.addEventListener('click', () => {
-        newPasswordStep.classList.add('hidden');
-        securityQuestionStep.classList.remove('hidden');
         hideErrors();
+        setTimeout(() => {
+            newPasswordStep.classList.add('hidden');
+            securityQuestionStep.classList.remove('hidden');
+        }, 100);
     });
     
     confirmBtn.addEventListener('click', changePassword);
     
-    // Enter key handlers
     securityAnswerInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             verifySecurityAnswer();
@@ -831,14 +858,12 @@ function initPasswordChangeForms() {
         }
     });
     
-    // Close modal on outside click
     modal.addEventListener('click', (e) => {
         if (e.target === modal) {
             closeModal();
         }
     });
     
-    // Close modal on escape key
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && modal.classList.contains('show')) {
             closeModal();

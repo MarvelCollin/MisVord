@@ -89,4 +89,13 @@ class NitroRepository extends Repository {
     public function initialize() {
         return Nitro::initialize();
     }
+    
+    public function getUserNitroStatus($userId) {
+        $query = new Query();
+        $count = $query->table(Nitro::getTable())
+            ->where('user_id', $userId)
+            ->count();
+            
+        return $count > 0;
+    }
 }

@@ -644,6 +644,95 @@ Route::get('/api/user/security-question', function() {
     $controller->getCurrentUserSecurityQuestion();
 });
 
+Route::get('/api/debug/user-security', function() {
+    header('Content-Type: application/json');
+    
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    
+    $debugInfo = [
+        'session_status' => session_status(),
+        'session_id' => session_id(),
+        'session_data' => $_SESSION ?? [],
+        'user_id_from_session' => $_SESSION['user_id'] ?? 'NOT_SET',
+        'authenticated' => isset($_SESSION['user_id']),
+    ];
+    
+    if (!isset($_SESSION['user_id'])) {
+        echo json_encode([
+            'success' => false,
+            'error' => 'Not authenticated', 
+            'debug' => $debugInfo
+        ], JSON_PRETTY_PRINT);
+        exit;
+    }
+    
+    try {
+        require_once __DIR__ . '/../database/repositories/UserRepository.php';
+        require_once __DIR__ . '/../database/models/User.php';
+        require_once __DIR__ . '/../database/query.php';
+        
+        $userRepository = new UserRepository();
+        $userId = $_SESSION['user_id'];
+        
+        $debugInfo['trying_to_find_user_id'] = $userId;
+        
+        // Try to find user
+        $user = $userRepository->find($userId);
+        
+        $debugInfo['user_found'] = $user ? true : false;
+        
+        if (!$user) {
+            // Let's check if user exists with direct query
+            $query = new Query();
+            $directResult = $query->table('users')->where('id', $userId)->first();
+            
+            $debugInfo['direct_query_result'] = $directResult ? 'FOUND' : 'NOT_FOUND';
+            $debugInfo['direct_query_data'] = $directResult;
+            
+            echo json_encode([
+                'success' => false,
+                'error' => 'User not found in repository',
+                'debug' => $debugInfo
+            ], JSON_PRETTY_PRINT);
+            exit;
+        }
+        
+        // Get all user attributes
+        $userAttributes = $user->toArray();
+        
+        echo json_encode([
+            'success' => true,
+            'user_data' => [
+                'id' => $user->id ?? 'NULL',
+                'username' => $user->username ?? 'NULL',
+                'email' => $user->email ?? 'NULL',
+                'security_question' => $user->security_question ?? 'NULL',
+                'security_answer_set' => !empty($user->security_answer),
+                'created_at' => $user->created_at ?? 'NULL'
+            ],
+            'raw_attributes' => $userAttributes,
+            'security_question_status' => [
+                'exists' => isset($user->security_question),
+                'not_empty' => !empty($user->security_question),
+                'value' => $user->security_question ?? 'NULL',
+                'length' => isset($user->security_question) ? strlen($user->security_question) : 0
+            ],
+            'debug' => $debugInfo
+        ], JSON_PRETTY_PRINT);
+        
+    } catch (Exception $e) {
+        echo json_encode([
+            'success' => false,
+            'error' => 'Exception: ' . $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+            'debug' => $debugInfo
+        ], JSON_PRETTY_PRINT);
+    }
+    exit;
+});
+
 Route::post('/api/user/verify-security-answer', function() {
     $controller = new UserController();
     $controller->verifyCurrentUserSecurityAnswer();
@@ -770,6 +859,31 @@ Route::get('/api/nitro/status', function() {
     $controller->getUserNitroStatus();
 });
 
+Route::get('/api/nitro/test', function() {
+    $controller = new NitroController();
+    $controller->test();
+});
+
+Route::get('/api/nitro/debug', function() {
+    header('Content-Type: application/json');
+    echo json_encode([
+        'success' => true,
+        'message' => 'Nitro API endpoint is working',
+        'session' => [
+            'authenticated' => isset($_SESSION['user_id']),
+            'user_id' => $_SESSION['user_id'] ?? null,
+            'session_id' => session_id()
+        ],
+        'timestamp' => date('Y-m-d H:i:s')
+    ]);
+    exit;
+});
+
+Route::post('/api/nitro/create-test-codes', function() {
+    $controller = new NitroController();
+    $controller->createTestCodes();
+});
+
 Route::get('/api/admin/stats/users/growth', function() {
     $controller = new AdminController();
     $controller->getUserGrowthStats();
@@ -867,6 +981,178 @@ Route::get('/storage/(.+)', function($filename) {
     }
     http_response_code(404);
     echo "File not found";
+    exit;
+});
+
+Route::get('/api/debug/controller-security', function() {
+    header('Content-Type: application/json');
+    
+    try {
+        require_once __DIR__ . '/../controllers/UserController.php';
+        $controller = new UserController();
+        
+        // This will call the actual method that the API uses
+        $response = $controller->getCurrentUserSecurityQuestion();
+        
+        echo json_encode([
+            'success' => true,
+            'controller_response' => $response,
+            'controller_method_called' => 'getCurrentUserSecurityQuestion'
+        ], JSON_PRETTY_PRINT);
+        
+    } catch (Exception $e) {
+        echo json_encode([
+            'success' => false,
+            'error' => 'Exception in controller: ' . $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], JSON_PRETTY_PRINT);
+    }
+    exit;
+});
+
+Route::get('/api/debug/direct-repo', function() {
+    header('Content-Type: application/json');
+    
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    
+    if (!isset($_SESSION['user_id'])) {
+        echo json_encode(['error' => 'Not authenticated']);
+        exit;
+    }
+    
+    try {
+        require_once __DIR__ . '/../database/repositories/UserRepository.php';
+        
+        $userRepository = new UserRepository();
+        $userId = $_SESSION['user_id'];
+        
+        // Direct repository call
+        $user = $userRepository->find($userId);
+        
+        if (!$user) {
+            echo json_encode([
+                'success' => false,
+                'error' => 'User not found in direct repo test',
+                'user_id' => $userId
+            ]);
+            exit;
+        }
+        
+        // Test accessing the security question
+        $securityQuestion = $user->security_question;
+        
+        echo json_encode([
+            'success' => true,
+            'method' => 'Direct repository test',
+            'user_id' => $userId,
+            'user_exists' => true,
+            'security_question_raw' => $securityQuestion,
+            'security_question_empty' => empty($securityQuestion),
+            'security_question_null' => is_null($securityQuestion),
+            'user_attributes_keys' => array_keys($user->toArray()),
+            'has_security_question_key' => array_key_exists('security_question', $user->toArray())
+        ], JSON_PRETTY_PRINT);
+        
+    } catch (Exception $e) {
+        echo json_encode([
+            'success' => false,
+            'error' => 'Exception in direct repo: ' . $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], JSON_PRETTY_PRINT);
+    }
+    exit;
+});
+
+Route::get('/api/debug/simple-security', function() {
+    header('Content-Type: application/json');
+    
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    
+    $userId = $_SESSION['user_id'] ?? null;
+    
+    if (!$userId) {
+        echo json_encode(['error' => 'Not authenticated', 'session' => $_SESSION]);
+        exit;
+    }
+    
+    try {
+        require_once __DIR__ . '/../database/query.php';
+        
+        $query = new Query();
+        $result = $query->table('users')->where('id', $userId)->first();
+        
+        if (!$result) {
+            echo json_encode(['error' => 'User not found', 'user_id' => $userId]);
+            exit;
+        }
+        
+        echo json_encode([
+            'success' => true,
+            'method' => 'Simple direct query',
+            'user_id' => $userId,
+            'security_question' => $result['security_question'] ?? 'NULL',
+            'security_question_empty' => empty($result['security_question']),
+            'all_fields' => array_keys($result)
+        ], JSON_PRETTY_PRINT);
+        
+    } catch (Exception $e) {
+        echo json_encode([
+            'error' => 'Exception: ' . $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], JSON_PRETTY_PRINT);
+    }
+    
+    exit;
+});
+
+Route::post('/api/debug/set-security', function() {
+    header('Content-Type: application/json');
+    
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    
+    $userId = $_SESSION['user_id'] ?? null;
+    
+    if (!$userId) {
+        echo json_encode(['error' => 'Not authenticated']);
+        exit;
+    }
+    
+    try {
+        require_once __DIR__ . '/../database/query.php';
+        
+        $question = "What is your favorite color?";
+        $answer = password_hash("blue", PASSWORD_DEFAULT);
+        
+        $query = new Query();
+        $updated = $query->table('users')
+            ->where('id', $userId)
+            ->update([
+                'security_question' => $question,
+                'security_answer' => $answer,
+                'updated_at' => date('Y-m-d H:i:s')
+            ]);
+        
+        echo json_encode([
+            'success' => true,
+            'message' => 'Security question set for testing',
+            'user_id' => $userId,
+            'question' => $question,
+            'updated_rows' => $updated
+        ], JSON_PRETTY_PRINT);
+        
+    } catch (Exception $e) {
+        echo json_encode([
+            'error' => 'Exception: ' . $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], JSON_PRETTY_PRINT);
+    }
+    
     exit;
 });
 
