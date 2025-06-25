@@ -56,6 +56,8 @@
 .nitro-hero-section {
     position: relative;
     overflow: hidden;
+    min-height: 500px;
+    padding-bottom: 5rem;
 }
 
 .nitro-hero-section::before {
@@ -65,64 +67,28 @@
     left: -50%;
     width: 200%;
     height: 200%;
-    background: radial-gradient(circle, rgba(139, 92, 246, 0.1) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.3) 0%, transparent 70%);
     animation: rotate 30s linear infinite;
 }
 
-@keyframes rotate {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+.nitro-hero-section::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 150px;
+    background: linear-gradient(to bottom, transparent, rgba(35, 39, 42, 0.8) 80%);
+    z-index: 1;
+    pointer-events: none;
 }
 
-#nitro-code-input {
-    font-family: 'Consolas', 'Monaco', monospace;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-}
-
-#nitro-code-input:focus {
-    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.3);
-}
-
-.nitro-perk-card {
-    backdrop-filter: blur(10px);
-    background: rgba(47, 49, 54, 0.8);
-}
-
-@keyframes float {
-    0%, 100% {
-        transform: translateY(0);
-    }
-    50% {
-        transform: translateY(-10px);
-    }
-}
-
-.nitro-badge-animation {
-    animation: float 3s ease-in-out infinite;
-}
-
-@keyframes pulse {
-    0% {
-        transform: scale(1);
-        opacity: 1;
-    }
-    50% {
-        transform: scale(1.05);
-        opacity: 0.9;
-    }
-    100% {
-        transform: scale(1);
-        opacity: 1;
-    }
-}
-
-.nitro-subscribe-btn:hover {
-    animation: pulse 1s ease-in-out infinite;
+.nitro-hero-section .text-6xl {
+    background: linear-gradient(to right, #ffffff, #d4b5ff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: shimmer 3s infinite;
 }
 
 @keyframes shimmer {
@@ -134,24 +100,37 @@
     }
 }
 
-.nitro-shimmer {
-    background: linear-gradient(
-        90deg,
-        transparent 0%,
-        rgba(255, 255, 255, 0.1) 50%,
-        transparent 100%
-    );
-    background-size: 200% 100%;
-    animation: shimmer 2s linear infinite;
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
-.nitro-card-hover {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
 }
 
-.nitro-card-hover:hover {
-    transform: translateY(-4px) scale(1.02);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4);
+    }
+    70% {
+        transform: scale(1.03);
+        box-shadow: 0 0 0 10px rgba(139, 92, 246, 0);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(139, 92, 246, 0);
+    }
 }
 
 @keyframes gradient-shift {
@@ -166,20 +145,191 @@
     }
 }
 
-.nitro-gradient-animate {
+#nitro-code-input {
+    font-family: 'Consolas', 'Monaco', monospace;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    transition: all 0.3s ease;
+    border-width: 2px;
+}
+
+#nitro-code-input:focus {
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.6);
+    border-color: rgba(139, 92, 246, 0.8);
+    transform: translateY(-2px);
+}
+
+.nitro-perk-card {
+    backdrop-filter: blur(10px);
+    background: rgba(47, 49, 54, 0.8);
+}
+
+.nitro-card-hover {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    z-index: 10;
+}
+
+.nitro-card-hover:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+.nitro-card-hover::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    background: linear-gradient(45deg, #9333ea, #4f46e5, #9333ea);
     background-size: 200% 200%;
-    animation: gradient-shift 3s ease infinite;
+    animation: gradient-shift 5s ease infinite;
+    z-index: -1;
+    border-radius: 0.5rem;
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
 }
 
-.nitro-glow {
-    box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+.nitro-card-hover:hover::before {
+    opacity: 1;
 }
 
-.nitro-glow:hover {
-    box-shadow: 0 0 30px rgba(139, 92, 246, 0.7);
+.nitro-subscribe-btn {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    background-size: 200% 200%;
+    animation: gradient-shift 5s ease infinite;
+    z-index: 1;
+}
+
+.nitro-subscribe-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+.nitro-subscribe-btn::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(45deg, rgba(255,255,255,0), rgba(255,255,255,0.2), rgba(255,255,255,0));
+    transform: translateX(-100%);
+    transition: transform 0.6s ease;
+    z-index: -1;
+}
+
+.nitro-subscribe-btn:hover::after {
+    transform: translateX(100%);
+}
+
+#redeem-code-btn {
+    transition: all 0.3s ease;
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+}
+
+#redeem-code-btn:not(:disabled):hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+#redeem-code-btn::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(45deg, rgba(255,255,255,0), rgba(255,255,255,0.2), rgba(255,255,255,0));
+    transform: translateX(-100%);
+    transition: transform 0.6s ease;
+    z-index: -1;
+}
+
+#redeem-code-btn:not(:disabled):hover::after {
+    transform: translateX(100%);
+}
+
+.nitro-perk-icon {
+    transition: all 0.3s ease;
+}
+
+.flex:hover .nitro-perk-icon {
+    transform: scale(1.2) rotate(5deg);
+}
+
+.w-16.h-16.bg-gradient-to-r {
+    transition: all 0.3s ease;
+}
+
+.bg-discord-light:hover .w-16.h-16.bg-gradient-to-r {
+    transform: scale(1.1) rotate(10deg);
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.6);
+}
+
+.nitro-badge-container {
+    animation: float 3s ease-in-out infinite;
+}
+
+#nitro-success-modal {
+    transition: opacity 0.3s ease;
+}
+
+#nitro-success-modal .bg-discord-light {
+    transform: scale(0.9);
+    opacity: 0;
+    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+#nitro-success-modal:not(.hidden) .bg-discord-light {
+    transform: scale(1);
+    opacity: 1;
+}
+
+#nitro-success-modal .w-20.h-20.bg-green-500 {
+    animation: pulse 2s infinite;
+}
+
+.pricing-toggle-container {
+    background: rgba(79, 84, 92, 0.3);
+    padding: 4px;
+    border-radius: 9999px;
+    display: inline-flex;
+    position: relative;
+}
+
+.pricing-toggle-container button {
+    position: relative;
+    z-index: 10;
+}
+
+.pricing-toggle-highlight {
+    position: absolute;
+    height: calc(100% - 8px);
+    top: 4px;
+    left: 4px;
+    border-radius: 9999px;
+    transition: transform 0.3s ease;
+    z-index: 1;
+}
+
+.bg-discord-light, .bg-discord-darker {
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+}
+
+.bg-purple-600\/20 {
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.2);
 }
 
 @media (max-width: 768px) {
+    .nitro-hero-section {
+        min-height: 400px;
+    }
+    
     .nitro-hero-section h1 {
         font-size: 3rem;
     }

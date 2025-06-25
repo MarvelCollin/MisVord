@@ -824,6 +824,21 @@ Route::delete('/api/bots/([0-9]+)', function($botId) {
     $controller->delete($botId);
 });
 
+Route::post('/api/media/upload', function() {
+    $controller = new MediaController();
+    $controller->uploadMedia();
+});
+
+Route::post('/api/media/upload-multiple', function() {
+    $controller = new MediaController();
+    $controller->uploadMultipleMedia();
+});
+
+Route::get('/api/media/gifs', function() {
+    $controller = new MediaController();
+    $controller->getGifs();
+});
+
 return array_merge(Route::getRoutes(), [
     '404' => 'pages/404.php'
 ]);

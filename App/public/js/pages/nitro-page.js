@@ -8,6 +8,7 @@ function initNitroPage() {
     initSubscriptionButtons();
     initBillingToggle();
     checkUserNitroStatus();
+    initHoverEffects();
 }
 
 function initCodeInput() {
@@ -29,7 +30,15 @@ function initCodeInput() {
         
         const redeemBtn = document.getElementById('redeem-code-btn');
         if (redeemBtn) {
-            redeemBtn.disabled = value.length !== 16;
+            const isValidCode = value.length === 16;
+            redeemBtn.disabled = !isValidCode;
+            
+            if (isValidCode) {
+                redeemBtn.classList.add('animate-pulse');
+                setTimeout(() => {
+                    redeemBtn.classList.remove('animate-pulse');
+                }, 1000);
+            }
         }
     });
 
@@ -42,6 +51,14 @@ function initCodeInput() {
         codeInput.value = cleanedText;
         codeInput.dispatchEvent(event);
     });
+    
+    codeInput.addEventListener('focus', function() {
+        codeInput.parentElement.classList.add('transform', 'scale-[1.02]', 'shadow-lg');
+    });
+    
+    codeInput.addEventListener('blur', function() {
+        codeInput.parentElement.classList.remove('transform', 'scale-[1.02]', 'shadow-lg');
+    });
 }
 
 function initRedeemButton() {
@@ -51,6 +68,8 @@ function initRedeemButton() {
     if (!redeemBtn || !codeInput) return;
 
     redeemBtn.addEventListener('click', async function() {
+        if (redeemBtn.disabled) return;
+        
         const code = codeInput.value.replace(/-/g, '');
         
         if (code.length !== 16) {
@@ -85,13 +104,14 @@ function initRedeemButton() {
                 }
             } else {
                 showToast(data.message || 'Invalid or already used code', 'error');
+                redeemBtn.disabled = false;
             }
         } catch (error) {
             console.error('Redeem error:', error);
             showToast('Failed to redeem code. Please try again.', 'error');
-        } finally {
             redeemBtn.disabled = false;
-            redeemBtn.innerHTML = 'Redeem Code';
+        } finally {
+            redeemBtn.innerHTML = '<i class="fas fa-check-circle mr-2"></i>Redeem Code';
         }
     });
 }
@@ -101,11 +121,13 @@ function showSuccessModal() {
     if (modal) {
         modal.classList.remove('hidden');
         
-        confetti({
-            particleCount: 100,
-            spread: 70,
-            origin: { y: 0.6 }
-        });
+        if (typeof confetti !== 'undefined') {
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 }
+            });
+        }
     }
 }
 
@@ -116,8 +138,13 @@ function initSubscriptionButtons() {
         if (button.textContent.includes('Subscribe')) {
             button.addEventListener('click', function() {
                 const tier = 'premium';
-                const price = 9.99;
+                const price = document.querySelector('.pricing-toggle-highlight').style.transform.includes('36') ? 99.99 : 9.99;
                 handleSubscription(tier, price);
+                
+                button.classList.add('animate-pulse');
+                setTimeout(() => {
+                    button.classList.remove('animate-pulse');
+                }, 1000);
             });
         }
     });
@@ -128,6 +155,9 @@ function handleSubscription(tier, price) {
 }
 
 function showPaymentModal(tier, price) {
+    const isPricingYearly = price > 20;
+    const displayPrice = isPricingYearly ? `$${price}/year` : `$${price}/month`;
+    
     const modalHtml = `
         <div class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4" id="payment-modal">
             <div class="bg-discord-light rounded-lg max-w-md w-full p-6 animate-fade-in">
@@ -145,8 +175,9 @@ function showPaymentModal(tier, price) {
                     </div>
                     <div class="flex justify-between items-center">
                         <span class="text-gray-300">Price</span>
-                        <span class="font-semibold">$${price}/month</span>
+                        <span class="font-semibold">${displayPrice}</span>
                     </div>
+                    ${isPricingYearly ? '<div class="mt-2 bg-green-900/30 p-2 rounded text-xs text-green-400 font-semibold">You save 16% with yearly billing!</div>' : ''}
                 </div>
                 
                 <div class="space-y-3">
@@ -178,23 +209,26 @@ function closePaymentModal() {
 }
 
 function initBillingToggle() {
-    const monthlyBtn = document.querySelector('button:contains("Monthly Billing")');
-    const yearlyBtn = document.querySelector('button:contains("Yearly Billing")');
+    const monthlyBtn = document.getElementById('monthly-btn');
+    const yearlyBtn = document.getElementById('yearly-btn');
+    const toggleHighlight = document.querySelector('.pricing-toggle-highlight');
     
-    if (monthlyBtn && yearlyBtn) {
+    if (monthlyBtn && yearlyBtn && toggleHighlight) {
         monthlyBtn.addEventListener('click', function() {
-            monthlyBtn.classList.add('bg-white', 'text-gray-900');
-            monthlyBtn.classList.remove('bg-purple-800/50', 'text-white');
-            yearlyBtn.classList.add('bg-purple-800/50', 'text-white');
-            yearlyBtn.classList.remove('bg-white', 'text-gray-900');
+            toggleHighlight.style.transform = 'translateX(0)';
+            monthlyBtn.classList.add('text-gray-900');
+            monthlyBtn.classList.remove('text-white');
+            yearlyBtn.classList.add('text-white');
+            yearlyBtn.classList.remove('text-gray-900');
             updatePrices('monthly');
         });
         
         yearlyBtn.addEventListener('click', function() {
-            yearlyBtn.classList.add('bg-white', 'text-gray-900');
-            yearlyBtn.classList.remove('bg-purple-800/50', 'text-white');
-            monthlyBtn.classList.add('bg-purple-800/50', 'text-white');
-            monthlyBtn.classList.remove('bg-white', 'text-gray-900');
+            toggleHighlight.style.transform = 'translateX(136px)';
+            yearlyBtn.classList.add('text-gray-900');
+            yearlyBtn.classList.remove('text-white');
+            monthlyBtn.classList.add('text-white');
+            monthlyBtn.classList.remove('text-gray-900');
             updatePrices('yearly');
         });
     }
@@ -206,6 +240,36 @@ function updatePrices(billing) {
         if (element.textContent.includes('$9.99')) {
             element.textContent = billing === 'yearly' ? '$99.99/year' : '$9.99/month';
         }
+    });
+}
+
+function initHoverEffects() {
+    const perkCards = document.querySelectorAll('.flex.gap-4.group');
+    perkCards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            const icon = card.querySelector('.nitro-perk-icon');
+            if (icon) {
+                icon.style.transform = 'scale(1.2) rotate(5deg)';
+            }
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            const icon = card.querySelector('.nitro-perk-icon');
+            if (icon) {
+                icon.style.transform = '';
+            }
+        });
+    });
+    
+    const nitroCards = document.querySelectorAll('.nitro-card-hover');
+    nitroCards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            card.style.transform = 'translateY(-8px) scale(1.02)';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            card.style.transform = '';
+        });
     });
 }
 

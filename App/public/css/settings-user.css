@@ -845,5 +845,17 @@ body.settings-page [class*="overlay"] {
   pointer-events: none !important;
 }
 
+body.settings-user #leave-server-modal,
+body.settings-user #delete-server-modal {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+body.settings-user {
+  overflow: auto !important;
+}
+
 /* Add this at the end of the file to ensure it has priority */
 

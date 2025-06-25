@@ -1,7 +1,9 @@
 import ImageCutter from '../common/image-cutter.js';
 
 document.addEventListener('DOMContentLoaded', function() {
-    initServerSettingsPage();
+    if (document.body.classList.contains('settings-page') && document.querySelector('meta[name="server-id"]')) {
+        initServerSettingsPage();
+    }
 });
 
 function initServerSettingsPage() {

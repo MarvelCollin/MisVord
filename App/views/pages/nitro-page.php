@@ -22,19 +22,23 @@ document.addEventListener('DOMContentLoaded', function() {
     <div class="flex-1">
         <div class="nitro-hero-section bg-gradient-to-b from-purple-600 via-purple-700 to-discord-dark">
             <div class="max-w-7xl mx-auto px-6 py-16">
-                <div class="text-center">
-                    <h1 class="text-6xl font-bold mb-6 text-white">
+                <div class="text-center relative z-10">
+                    <div class="absolute -top-10 -left-10 w-32 h-32 bg-purple-500/20 rounded-full blur-3xl"></div>
+                    <div class="absolute -top-5 -right-5 w-24 h-24 bg-blue-500/20 rounded-full blur-3xl"></div>
+                    <h1 class="text-6xl font-bold mb-6 text-white relative inline-block">
                         Get more with Nitro
+                        <span class="absolute -top-3 -right-8 text-xl text-yellow-400">✨</span>
                     </h1>
                     <p class="text-xl text-purple-100 mb-8 max-w-2xl mx-auto">
                         Unlock perks to make your Discord experience even better - bigger file uploads, HD video, custom profiles, and more!
                     </p>
-                    <div class="flex gap-4 justify-center mb-12">
-                        <button class="bg-white text-gray-900 px-8 py-3 rounded-full font-semibold hover:bg-gray-100 transition-colors">
-                            Monthly Billing
+                    <div class="pricing-toggle-container inline-flex mb-12">
+                        <div class="pricing-toggle-highlight bg-white w-36"></div>
+                        <button id="monthly-btn" class="text-gray-900 px-8 py-3 rounded-full font-semibold transition-colors">
+                            Monthly
                         </button>
-                        <button class="bg-purple-800/50 text-white px-8 py-3 rounded-full font-semibold hover:bg-purple-800/70 transition-colors">
-                            Yearly Billing
+                        <button id="yearly-btn" class="text-white px-8 py-3 rounded-full font-semibold transition-colors">
+                            Yearly <span class="bg-green-500 text-white text-xs py-0.5 px-2 rounded-full ml-1">SAVE 16%</span>
                         </button>
                     </div>
                 </div>
@@ -58,31 +62,31 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                     </div>
                     <ul class="space-y-4 mb-8">
-                        <li class="flex items-start gap-3">
+                        <li class="flex items-start gap-3 hover:translate-x-1 transition-transform">
                             <i class="fas fa-check text-green-500 mt-1"></i>
-                            <span>500MB uploads (up from 8MB)</span>
+                            <span>500MB uploads <span class="text-green-400">(up from 8MB)</span></span>
                         </li>
-                        <li class="flex items-start gap-3">
+                        <li class="flex items-start gap-3 hover:translate-x-1 transition-transform">
                             <i class="fas fa-check text-green-500 mt-1"></i>
-                            <span>HD video streaming</span>
+                            <span>4K 60fps HD video streaming</span>
                         </li>
-                        <li class="flex items-start gap-3">
+                        <li class="flex items-start gap-3 hover:translate-x-1 transition-transform">
                             <i class="fas fa-check text-green-500 mt-1"></i>
                             <span>Custom profiles and animated banners</span>
                         </li>
-                        <li class="flex items-start gap-3">
+                        <li class="flex items-start gap-3 hover:translate-x-1 transition-transform">
                             <i class="fas fa-check text-green-500 mt-1"></i>
                             <span>2 Server Boosts + 30% off extra Boosts</span>
                         </li>
-                        <li class="flex items-start gap-3">
+                        <li class="flex items-start gap-3 hover:translate-x-1 transition-transform">
                             <i class="fas fa-check text-green-500 mt-1"></i>
                             <span>Longer messages (up to 4,000 characters)</span>
                         </li>
-                        <li class="flex items-start gap-3">
+                        <li class="flex items-start gap-3 hover:translate-x-1 transition-transform">
                             <i class="fas fa-check text-green-500 mt-1"></i>
                             <span>Custom emoji anywhere</span>
                         </li>
-                        <li class="flex items-start gap-3">
+                        <li class="flex items-start gap-3 hover:translate-x-1 transition-transform">
                             <i class="fas fa-check text-green-500 mt-1"></i>
                             <span>Custom server profiles</span>
                         </li>
@@ -94,26 +98,51 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 <div class="bg-discord-darker rounded-lg p-8 border border-gray-700">
                     <div class="text-center mb-6">
-                        <div class="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <i class="fas fa-gift text-gray-400 text-2xl"></i>
+                        <div class="w-20 h-20 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4 relative">
+                            <i class="fas fa-gift text-gray-400 text-3xl"></i>
+                            <span class="absolute -top-2 -right-2 text-lg text-purple-400">✨</span>
                         </div>
-                        <h3 class="text-xl font-bold mb-2">Got a gift?</h3>
-                        <p class="text-gray-400">Redeem your Nitro code</p>
+                        <h3 class="text-2xl font-bold mb-2">Got a gift?</h3>
+                        <p class="text-gray-400 mb-4">Redeem your Nitro code below</p>
                     </div>
                     <div class="space-y-4">
-                        <input 
-                            type="text" 
-                            id="nitro-code-input" 
-                            placeholder="XXXX-XXXX-XXXX-XXXX" 
-                            class="w-full bg-discord-dark border border-gray-600 rounded-md px-4 py-3 text-white placeholder-gray-500 focus:border-purple-500 focus:outline-none"
-                            maxlength="19"
-                        >
+                        <div class="relative">
+                            <input 
+                                type="text" 
+                                id="nitro-code-input" 
+                                placeholder="XXXX-XXXX-XXXX-XXXX" 
+                                class="w-full bg-discord-dark border border-gray-600 rounded-md px-4 py-4 text-white placeholder-gray-500 focus:border-purple-500 focus:outline-none"
+                                maxlength="19"
+                            >
+                            <div class="absolute right-3 top-3 text-gray-500">
+                                <i class="fas fa-gift text-lg"></i>
+                            </div>
+                        </div>
                         <button 
                             id="redeem-code-btn" 
                             class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 rounded-md transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed"
+                            disabled
                         >
+                            <i class="fas fa-check-circle mr-2"></i>
                             Redeem Code
                         </button>
+                        <p class="text-xs text-center text-gray-400 mt-2">
+                            Enter a valid code to unlock all Nitro benefits
+                        </p>
+                    </div>
+                    <div class="mt-8">
+                        <h4 class="text-lg font-medium mb-3 text-center">Recent Subscribers</h4>
+                        <div class="flex justify-center">
+                            <div class="flex -space-x-3">
+                                <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center border-2 border-discord-darker">MJ</div>
+                                <div class="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center border-2 border-discord-darker">AP</div>
+                                <div class="w-10 h-10 rounded-full bg-yellow-500 flex items-center justify-center border-2 border-discord-darker">TK</div>
+                                <div class="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center border-2 border-discord-darker">SL</div>
+                                <div class="w-10 h-10 rounded-full bg-discord-light flex items-center justify-center border-2 border-discord-darker">
+                                    <span class="text-xs">+24</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -122,39 +151,39 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div>
                     <h2 class="text-3xl font-bold mb-8">Nitro Perks</h2>
                     <div class="space-y-6">
-                        <div class="flex gap-4">
-                            <div class="w-12 h-12 bg-purple-600/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <div class="flex gap-4 group">
+                            <div class="w-12 h-12 bg-purple-600/20 rounded-lg flex items-center justify-center flex-shrink-0 nitro-perk-icon">
                                 <i class="fas fa-upload text-purple-400 text-xl"></i>
                             </div>
                             <div>
-                                <h4 class="font-semibold text-lg mb-1">Bigger uploads</h4>
+                                <h4 class="font-semibold text-lg mb-1 group-hover:text-purple-400 transition-colors">Bigger uploads</h4>
                                 <p class="text-gray-400">Share files up to 500MB with Nitro</p>
                             </div>
                         </div>
-                        <div class="flex gap-4">
-                            <div class="w-12 h-12 bg-purple-600/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <div class="flex gap-4 group">
+                            <div class="w-12 h-12 bg-purple-600/20 rounded-lg flex items-center justify-center flex-shrink-0 nitro-perk-icon">
                                 <i class="fas fa-video text-purple-400 text-xl"></i>
                             </div>
                             <div>
-                                <h4 class="font-semibold text-lg mb-1">HD video streaming</h4>
+                                <h4 class="font-semibold text-lg mb-1 group-hover:text-purple-400 transition-colors">HD video streaming</h4>
                                 <p class="text-gray-400">Stream in 1080p 60fps or 4K 60fps</p>
                             </div>
                         </div>
-                        <div class="flex gap-4">
-                            <div class="w-12 h-12 bg-purple-600/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <div class="flex gap-4 group">
+                            <div class="w-12 h-12 bg-purple-600/20 rounded-lg flex items-center justify-center flex-shrink-0 nitro-perk-icon">
                                 <i class="fas fa-smile text-purple-400 text-xl"></i>
                             </div>
                             <div>
-                                <h4 class="font-semibold text-lg mb-1">Custom emoji anywhere</h4>
+                                <h4 class="font-semibold text-lg mb-1 group-hover:text-purple-400 transition-colors">Custom emoji anywhere</h4>
                                 <p class="text-gray-400">Use custom emoji from any server</p>
                             </div>
                         </div>
-                        <div class="flex gap-4">
-                            <div class="w-12 h-12 bg-purple-600/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <div class="flex gap-4 group">
+                            <div class="w-12 h-12 bg-purple-600/20 rounded-lg flex items-center justify-center flex-shrink-0 nitro-perk-icon">
                                 <i class="fas fa-palette text-purple-400 text-xl"></i>
                             </div>
                             <div>
-                                <h4 class="font-semibold text-lg mb-1">Personalize your profile</h4>
+                                <h4 class="font-semibold text-lg mb-1 group-hover:text-purple-400 transition-colors">Personalize your profile</h4>
                                 <p class="text-gray-400">Use an animated avatar and profile banner</p>
                             </div>
                         </div>
@@ -163,7 +192,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 <div>
                     <h2 class="text-3xl font-bold mb-8">Server Boosts Included</h2>
-                    <div class="bg-discord-light rounded-lg p-6 mb-6">
+                    <div class="bg-discord-light rounded-lg p-6 mb-6 hover:transform hover:scale-[1.02] transition-transform">
                         <div class="flex items-center gap-4 mb-4">
                             <div class="w-16 h-16 bg-gradient-to-r from-pink-500 to-purple-500 rounded-full flex items-center justify-center">
                                 <i class="fas fa-rocket text-white text-2xl"></i>
@@ -192,7 +221,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             </div>
                         </div>
                     </div>
-                    <div class="bg-purple-600/10 border border-purple-600/30 rounded-lg p-4 text-center">
+                    <div class="bg-purple-600/10 border border-purple-600/30 rounded-lg p-4 text-center hover:bg-purple-600/20 transition-colors">
                         <p class="text-purple-300">
                             <i class="fas fa-tag mr-2"></i>
                             Get 30% off additional Server Boosts
@@ -204,13 +233,13 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="text-center py-12 border-t border-gray-700">
                 <p class="text-gray-400 mb-4">Questions? Check out our support articles or contact us.</p>
                 <div class="flex gap-4 justify-center">
-                    <a href="#" class="text-purple-400 hover:text-purple-300 transition-colors">
+                    <a href="#" class="text-purple-400 hover:text-purple-300 transition-colors hover:scale-110 transform">
                         <i class="fas fa-book mr-2"></i>Support
                     </a>
-                    <a href="#" class="text-purple-400 hover:text-purple-300 transition-colors">
+                    <a href="#" class="text-purple-400 hover:text-purple-300 transition-colors hover:scale-110 transform">
                         <i class="fas fa-shield-alt mr-2"></i>Terms
                     </a>
-                    <a href="#" class="text-purple-400 hover:text-purple-300 transition-colors">
+                    <a href="#" class="text-purple-400 hover:text-purple-300 transition-colors hover:scale-110 transform">
                         <i class="fas fa-lock mr-2"></i>Privacy
                     </a>
                 </div>
@@ -227,7 +256,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <h3 class="text-2xl font-bold mb-4">Welcome to Nitro!</h3>
         <p class="text-gray-300 mb-6">Your Nitro subscription has been activated. Enjoy all the perks!</p>
         <button onclick="location.reload()" class="bg-purple-600 hover:bg-purple-700 text-white font-medium px-6 py-3 rounded-md transition-colors">
-            Awesome!
+            <i class="fas fa-rocket mr-2"></i> Awesome!
         </button>
     </div>
 </div>

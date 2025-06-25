@@ -354,7 +354,6 @@ if ($chatType === 'channel') {
                             style="min-height: 24px; padding: 0; margin: 0; vertical-align: middle;"></textarea>
                     </div>
 
-                    <!-- File preview container -->
                     <div id="file-preview" class="hidden absolute bottom-full left-4 mb-2 p-3 bg-[#2b2d31] rounded-md shadow-lg z-10 max-w-md">
                         <div class="flex items-start">
                             <div class="flex-grow mr-2 max-w-64 overflow-hidden">

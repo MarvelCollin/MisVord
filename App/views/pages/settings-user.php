@@ -409,41 +409,10 @@ include dirname(dirname(__DIR__)) . '/views/layout/main-app.php';
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    function removeLeaveServerModals() {
-        const modalTexts = ['Leave Server', 'Are you sure', 'rejoin', 'Cancel'];
-        
-        const allOverlays = document.querySelectorAll('.backdrop, .overlay, .modal-overlay, .modal-backdrop');
-        allOverlays.forEach(overlay => {
-            overlay.style.display = 'none';
-            overlay.style.visibility = 'hidden';
-            overlay.style.opacity = '0';
-            overlay.style.pointerEvents = 'none';
-        });
-        
-        const allModals = document.querySelectorAll('div[role="dialog"], .modal, [class*="modal"], .modal-content');
-        allModals.forEach(modal => {
-            if (!modal || !modal.textContent) return;
-            
-            let foundKeywords = 0;
-            modalTexts.forEach(text => {
-                if (modal.textContent.indexOf(text) >= 0) {
-                    foundKeywords++;
-                }
-            });
-            
-            if (foundKeywords >= 2) {
-                modal.remove();
-            }
-        });
-        
-        document.body.style.overflow = '';
-        document.body.classList.remove('modal-open');
-    }
+    const leaveServerModal = document.getElementById('leave-server-modal');
+    const deleteServerModal = document.getElementById('delete-server-modal');
     
-    removeLeaveServerModals();
-    setTimeout(removeLeaveServerModals, 100);
-    setTimeout(removeLeaveServerModals, 500);
-    setTimeout(removeLeaveServerModals, 1000);
-    setTimeout(removeLeaveServerModals, 2000);
+    if (leaveServerModal) leaveServerModal.remove();
+    if (deleteServerModal) deleteServerModal.remove();
 });
 </script>

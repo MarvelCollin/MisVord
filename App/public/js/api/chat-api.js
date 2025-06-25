@@ -600,16 +600,22 @@ class ChatAPI {
 
     async uploadFile(formData) {
         try {
-            const response = await fetch(`${this.baseURL}/upload`, {
-                method: 'POST',
-                body: formData, // FormData handles content-type automatically
-            });
-            
-            if (!response.ok) {
-                throw new Error(`Failed to upload file: ${response.status}`);
+            if (!window.MediaAPI) {
+                throw new Error('MediaAPI not available');
             }
             
-            return await response.json();
+            const response = await window.MediaAPI.uploadFile(formData);
+            
+            if (!response || !response.success) {
+                throw new Error(response?.message || 'Upload failed');
+            }
+            
+            return {
+                url: response.file_url,
+                name: response.file_name,
+                size: response.file_size,
+                type: response.mime_type
+            };
         } catch (error) {
             console.error('Error uploading file:', error);
             throw error;

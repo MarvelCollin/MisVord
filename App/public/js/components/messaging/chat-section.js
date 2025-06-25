@@ -160,7 +160,6 @@ class ChatSection {
             });
         }
         
-        // Setup file upload related event listeners
         const attachmentButton = document.getElementById('attachment-button');
         const attachmentDropdown = document.getElementById('attachment-dropdown');
         const fileUpload = document.getElementById('file-upload');
@@ -859,16 +858,13 @@ class ChatSection {
             let attachmentUrl = null;
             let messageType = 'text';
             
-            // Handle file upload if present
             if (this.currentFileUpload) {
                 try {
                     const formData = new FormData();
                     formData.append('file', this.currentFileUpload);
                     
-                    // Show upload progress
                     this.showNotification('Uploading file...', 'info');
                     
-                    // Use ChatAPI to upload file
                     const uploadResponse = await window.ChatAPI.uploadFile(formData);
                     
                     if (uploadResponse && uploadResponse.url) {

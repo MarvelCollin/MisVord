@@ -5,9 +5,7 @@ import ImageCutter from '../common/image-cutter.js';
 
 document.addEventListener('DOMContentLoaded', function() {
     initUserSettingsPage();
-    
-    // Close any unwanted modals that may appear
-    closeUnwantedModals();
+    removeServerModals();
     
     if (window.location.pathname.startsWith('/settings')) {
         const referrer = document.referrer;
@@ -29,45 +27,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-function closeUnwantedModals() {
-    setTimeout(() => {
-        const closeButton = document.querySelector('#close-leave-server-modal');
-        if (closeButton) {
-            closeButton.click();
-            return;
-        }
+function removeServerModals() {
+    if (document.body.classList.contains('settings-user')) {
+        const leaveModal = document.getElementById('leave-server-modal');
+        const deleteModal = document.getElementById('delete-server-modal');
         
-        const cancelButton = document.querySelector('#cancel-leave-server');
-        if (cancelButton) {
-            cancelButton.click();
-            return;
-        }
-        
-        const leaveServerModal = document.querySelector('div:has(h2:contains("Leave Server"))');
-        if (leaveServerModal) {
-            const modalParent = leaveServerModal.parentElement;
-            if (modalParent) {
-                modalParent.style.display = 'none';
-                modalParent.style.visibility = 'hidden';
-                modalParent.style.opacity = '0';
-            }
-        }
-        
-        document.querySelectorAll('[class*="modal"], [role="dialog"]').forEach(modal => {
-            if (modal && modal.textContent && 
-                (modal.textContent.includes('Leave Server') || 
-                 modal.textContent.includes('leave this server'))) {
-                modal.style.display = 'none';
-                modal.style.visibility = 'hidden';
-                modal.style.opacity = '0';
-                modal.style.pointerEvents = 'none';
-            }
-        });
-        
-        document.body.style.overflow = '';
-    }, 10);
-    
-    preventLeaveServerModalDisplaying();
+        if (leaveModal) leaveModal.remove();
+        if (deleteModal) deleteModal.remove();
+    }
 }
 
 function initUserSettingsPage() {
@@ -96,9 +63,6 @@ function initUserSettingsPage() {
     
     initCloseButton();
     initPasswordFieldMasking();
-    
-    // Try again to close modals after a delay
-    setTimeout(closeUnwantedModals, 1000);
 }
 
 /**
@@ -873,58 +837,4 @@ function getStatusDisplayName(status) {
         'offline': 'Invisible'
     };
     return statusMap[status] || 'Online';
-}
-
-function preventLeaveServerModalDisplaying() {
-    const originalShowModal = window.showModal;
-    if (originalShowModal && !window.modalOverrideInstalled) {
-        window.modalOverrideInstalled = true;
-        window.showModal = function(modalContent, options = {}) {
-            if (typeof modalContent === 'string' && 
-                (modalContent.includes('Leave Server') || 
-                modalContent.includes('leave this server'))) {
-                return;
-            }
-            return originalShowModal.call(this, modalContent, options);
-        };
-    }
-    
-    const originalCreateElement = document.createElement;
-    if (originalCreateElement && !window.createElementOverrideInstalled) {
-        window.createElementOverrideInstalled = true;
-        document.createElement = function(tagName) {
-            const element = originalCreateElement.call(document, tagName);
-            
-            if (tagName.toLowerCase() === 'div') {
-                const originalAppendChild = element.appendChild;
-                element.appendChild = function(child) {
-                    if (child && child.textContent && 
-                        (child.textContent.includes('Leave Server') || 
-                         child.textContent.includes('leave this server'))) {
-                        return child;
-                    }
-                    return originalAppendChild.call(this, child);
-                };
-            }
-            
-            return element;
-        };
-    }
-    
-    setInterval(() => {
-        document.querySelectorAll('[id*="leave-server"], [id*="server-leave"]').forEach(el => {
-            if (el) el.style.display = 'none';
-        });
-        
-        const modalElements = document.querySelectorAll('div.modal, [role="dialog"], [aria-modal="true"]');
-        modalElements.forEach(modal => {
-            if (!modal) return;
-            
-            if (modal.textContent && 
-                (modal.textContent.includes('Leave Server') || 
-                 modal.textContent.includes('leave this server'))) {
-                modal.remove();
-            }
-        });
-    }, 500);
 }
