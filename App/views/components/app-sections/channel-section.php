@@ -158,12 +158,19 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Add a global function to handle voice channel clicks
     window.handleVoiceChannelClick = function(channelId) {
+        console.log('Voice channel clicked:', channelId);
+        
         // Set a flag to indicate we want to auto-join this voice channel
         localStorage.setItem('autoJoinVoiceChannel', channelId);
-        console.log('Voice channel selected, auto-join set:', channelId);
-        
-        // Force auto-join flag to persist
         sessionStorage.setItem('forceAutoJoin', 'true');
+        
+        // Navigate to the voice channel page
+        const currentServerId = document.getElementById('current-server-id')?.value;
+        if (currentServerId) {
+            const voiceChannelUrl = `/public/router.php?page=server&server_id=${currentServerId}&channel_id=${channelId}`;
+            console.log('Navigating to voice channel:', voiceChannelUrl);
+            window.location.href = voiceChannelUrl;
+        }
     };
     
     const channelItems = document.querySelectorAll('.channel-item');
@@ -173,17 +180,41 @@ document.addEventListener('DOMContentLoaded', function() {
         const clone = item.cloneNode(true);
         item.parentNode.replaceChild(clone, item);
         
-        // Add click event handlers directly here for voice channels
-        if (clone.getAttribute('data-channel-type') === 'voice') {
-            clone.addEventListener('click', function(e) {
-                const channelId = clone.getAttribute('data-channel-id');
+        // Add click event handlers for ALL channels
+        clone.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const channelId = clone.getAttribute('data-channel-id');
+            const channelType = clone.getAttribute('data-channel-type');
+            const currentServerId = document.getElementById('current-server-id')?.value;
+            
+            console.log('Channel clicked:', {channelId, channelType, currentServerId});
+            
+            if (channelType === 'voice') {
+                // Handle voice channel clicks
                 window.handleVoiceChannelClick(channelId);
+            } else {
+                // Handle text channel clicks
+                if (currentServerId && channelId) {
+                    const channelUrl = `/public/router.php?page=server&server_id=${currentServerId}&channel_id=${channelId}`;
+                    console.log('Navigating to text channel:', channelUrl);
+                    window.location.href = channelUrl;
+                }
+            }
+        });
+        
+        // Update active state immediately
+        clone.addEventListener('click', function() {
+            // Remove active class from all channel items
+            document.querySelectorAll('.channel-item').forEach(ch => {
+                ch.classList.remove('bg-discord-lighten', 'text-white');
             });
-        }
+            
+            // Add active class to clicked item
+            clone.classList.add('bg-discord-lighten', 'text-white');
+        });
     });
-    
-    // Let the server-page.js handle the other channel click events
-    // The event listeners are set up in initializeChannelClickHandlers()
 });
 
 // Create a global helper function to attempt auto-joining voice

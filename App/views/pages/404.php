@@ -1,9 +1,6 @@
 <?php
-// 404 Page
 $page_title = 'MisVord - Page Not Found';
 $body_class = 'bg-discord-dark text-white flex flex-col h-screen';
-
-// Set up content for layout
 ob_start();
 ?>
 <div class="flex-1 flex items-center justify-center flex-col px-4">
@@ -21,8 +18,6 @@ ob_start();
 </div>
 <?php
 $content = ob_get_clean();
-
-// Include the main layout
 include dirname(__DIR__) . '/layout/main-app.php';
 ?>
 

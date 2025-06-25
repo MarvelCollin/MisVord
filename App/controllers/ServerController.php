@@ -595,6 +595,34 @@ class ServerController extends BaseController
         return $this->getUserServers();
     }
 
+    public function getUserServersData()
+    {
+        $this->requireAuth();
+        
+        try {
+            $userServers = $this->serverRepository->getForUser($this->getCurrentUserId());
+            
+            $formattedServers = [];
+            foreach ($userServers as $server) {
+                $formattedServers[] = [
+                    'id' => $server['id'] ?? $server->id,
+                    'name' => $server['name'] ?? $server->name,
+                    'image_url' => $server['image_url'] ?? $server->image_url ?? null,
+                    'banner_url' => $server['banner_url'] ?? $server->banner_url ?? null,
+                    'description' => $server['description'] ?? $server->description ?? '',
+                    'is_public' => $server['is_public'] ?? $server->is_public ?? false,
+                    'category' => $server['category'] ?? $server->category ?? null
+                ];
+            }
+            
+            return $this->success([
+                'servers' => $formattedServers
+            ]);
+        } catch (Exception $e) {
+            return $this->serverError('Failed to load user servers: ' . $e->getMessage());
+        }
+    }
+
     public function showInvite($code = null)
     {
         if (!$code) {

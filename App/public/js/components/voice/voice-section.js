@@ -21,7 +21,6 @@ class VoiceSectionManager {
         this.leaveBtn = null;
         this.headerElement = null;
         this.channelName = '';
-        this.connectionToast = null;
         this.isConnecting = false;
         
         // Initialize when DOM is ready
@@ -70,7 +69,6 @@ class VoiceSectionManager {
         this.mainContent = document.getElementById('main-content');
         this.joinBtn = document.getElementById('joinBtn');
         this.leaveBtn = document.getElementById('leaveBtn');
-        this.connectionToast = document.getElementById('connectionToast');
         
         if (!this.voiceContainer) {
             console.error('Voice container not found');
@@ -153,18 +151,29 @@ class VoiceSectionManager {
     }
     
     showConnectionToast() {
-        if (!this.connectionToast) {
-            this.connectionToast = document.getElementById('connectionToast');
-            if (!this.connectionToast) return;
-        }
+        if (!window.showToast) return;
         
-        // Show toast
-        this.connectionToast.classList.remove('translate-x-full');
+        const channelElement = document.querySelector('meta[name="channel-id"]');
+        const channelName = this.channelName || 'voice channel';
         
-        // Hide after 5 seconds
-        setTimeout(() => {
-            this.connectionToast.classList.add('translate-x-full');
-        }, 5000);
+        window.showToast(`Connected to ${channelName}`, 'success', 5000);
+    }
+    
+    checkIfContentIsReady() {
+        return new Promise(resolve => {
+            const discordView = document.getElementById('discordVoiceView');
+            const checkInterval = setInterval(() => {
+                if (discordView && getComputedStyle(discordView).display !== 'none' && discordView.offsetHeight > 0) {
+                    clearInterval(checkInterval);
+                    resolve(true);
+                }
+            }, 100);
+            
+            setTimeout(() => {
+                clearInterval(checkInterval);
+                resolve(true);
+            }, 2000);
+        });
     }
     
     attachEventListeners() {
@@ -175,10 +184,12 @@ class VoiceSectionManager {
                 this.isConnecting = true;
                 
                 // Wait for the voice connection to establish
-                setTimeout(() => {
+                setTimeout(async () => {
                     if (!this.isConnecting) return; // If we already connected, don't do it again
                     
                     this.enterFullscreenMode();
+                    
+                    await this.checkIfContentIsReady();
                     this.showConnectionToast();
                     
                     // Reset connecting state
@@ -200,6 +211,12 @@ class VoiceSectionManager {
                 
                 // Dispatch voice disconnect event for other components
                 window.dispatchEvent(new Event('voiceDisconnect'));
+                
+                // Make sure the gradient background is applied
+                const mainContent = document.querySelector('.flex-1.flex.flex-col');
+                if (mainContent) {
+                    mainContent.style.background = 'linear-gradient(180deg, #1e1f3a 0%, #2b2272 50%, #1e203a 100%)';
+                }
             });
         }
         
@@ -288,6 +305,10 @@ class VoiceSectionManager {
         if (this.voiceContainer) {
             this.voiceContainer.classList.remove('voice-active-animate');
             
+            // Ensure voice container has proper height
+            this.voiceContainer.style.height = '100vh';
+            this.voiceContainer.style.minHeight = '100vh';
+            
             // Allow time for animation to play
             setTimeout(() => {
                 this.voiceContainer.classList.remove('voice-active-mode');
@@ -314,6 +335,9 @@ class VoiceSectionManager {
         
         // Set flag
         this.fullscreenMode = false;
+        
+        // Explicitly dispatch the voiceDisconnect event to ensure it triggers
+        window.dispatchEvent(new Event('voiceDisconnect'));
     }
     
     loadCSS() {

@@ -51,6 +51,13 @@ header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
 header('Expires: 0');
 
+// Set stronger cache control headers to prevent cached authentication pages
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0, private');
+header('Pragma: no-cache');
+header('Expires: 0');
+header('X-Frame-Options: DENY');
+header('X-Content-Type-Options: nosniff');
+
 $page_title = 'misvord - Login or Register';
 $body_class = 'bg-discord-dark text-white';
 $page_css = 'authentication-page';
@@ -555,39 +562,77 @@ try {
     
     // Function to clear all form input fields
     function clearAllFormFields() {
+        // Reset all forms
         document.querySelectorAll('form').forEach(form => {
             form.reset();
         });
         
+        // Clear all input fields, except submit buttons
         document.querySelectorAll('input:not([type="button"]):not([type="submit"])').forEach(input => {
-            if (input.name !== 'email' || !input.value) {
-                input.value = '';
-            }
+            input.value = '';
+            
+            // Remove any classes/attributes that might be related to validation or state
+            input.classList.remove('border-red-500', 'is-invalid', 'is-valid', 'error-shake');
+            input.removeAttribute('data-validated');
+            input.removeAttribute('data-touched');
         });
         
+        // Reset all select elements
         document.querySelectorAll('select').forEach(select => {
             select.selectedIndex = 0;
+            select.classList.remove('border-red-500', 'is-invalid', 'is-valid');
         });
         
-        document.querySelectorAll('.validation-error:not(#form-error-message)').forEach(element => {
+        // Remove validation error messages
+        document.querySelectorAll('.validation-error:not(#form-error-message), .text-red-500').forEach(element => {
             element.remove();
         });
         
-        document.querySelectorAll('.border-red-500').forEach(element => {
-            element.classList.remove('border-red-500');
+        // Remove validation classes
+        document.querySelectorAll('.border-red-500, .is-invalid, .is-valid, .error-shake').forEach(element => {
+            element.classList.remove('border-red-500', 'is-invalid', 'is-valid', 'error-shake');
+        });
+        
+        // Reset any strength indicators or validation indicators
+        document.querySelectorAll('#passwordStrength, #resetPasswordStrength').forEach(element => {
+            if (element) {
+                element.classList.add('hidden');
+                const fill = element.querySelector('div');
+                if (fill) fill.style.width = '0%';
+            }
+        });
+        
+        document.querySelectorAll('#passwordsMatch, #resetPasswordsMatch').forEach(element => {
+            if (element) element.classList.add('hidden');
         });
     }
     
     function clearStoredAuthData() {
-        const authKeys = ['authToken', 'rememberMe', 'userAuth', 'lastEmail'];
-        authKeys.forEach(key => {
-            try {
+        try {
+            // Clear all known auth-related keys
+            const authKeys = [
+                'authToken', 'rememberMe', 'userAuth', 'lastEmail', 
+                'user_id', 'username', 'discriminator', 'avatar_url', 
+                'banner_url', 'auth_data', 'session_id', 'login_state',
+                'user_data', 'admin_access', 'login_history', 'user_settings',
+                'user_status', 'fresh_login', 'csrf_token'
+            ];
+            
+            // Clear all items from storage
+            authKeys.forEach(key => {
                 localStorage.removeItem(key);
                 sessionStorage.removeItem(key);
-            } catch (e) {
-                console.error('Error clearing stored auth data:', e);
-            }
-        });
+            });
+            
+            // Clear cookies related to authentication
+            document.cookie.split(';').forEach(cookie => {
+                const [name] = cookie.trim().split('=');
+                document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+            });
+            
+        } catch (e) {
+            console.error('Error clearing stored auth data:', e);
+        }
     }
 </script>
 </body>

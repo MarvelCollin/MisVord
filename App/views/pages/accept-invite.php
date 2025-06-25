@@ -5,7 +5,7 @@ $page_css = ['app', 'accept-invite'];
 $page_js = 'pages/accept-invite';
 $additional_js = [];
 
-// Ensure session is started
+
 if (session_status() === PHP_SESSION_NONE) {
     require_once dirname(dirname(__DIR__)) . '/config/session.php';
     session_start();

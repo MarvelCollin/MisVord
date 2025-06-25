@@ -23,12 +23,13 @@ class AuthenticationController extends BaseController
                 'request_uri' => $_SERVER['REQUEST_URI'] ?? ''
             ]);
         }
-        
-        if ((isset($_GET['fresh']) && $_GET['fresh'] == '1') || !$this->isAuthenticated()) {
+
+        if (isset($_GET['fresh']) && $_GET['fresh'] == '1') {
             $redirectUrl = $_GET['redirect'] ?? null;
             
             $this->clearAuthSession();
             session_start();
+            session_regenerate_id(true);
             
             if ($redirectUrl) {
                 $_SESSION['login_redirect'] = $redirectUrl;
@@ -39,6 +40,17 @@ class AuthenticationController extends BaseController
                     'session_id' => session_id(),
                     'redirect_saved' => $redirectUrl ? 'yes' : 'no'
                 ]);
+            }
+        }
+        else if (!$this->isAuthenticated()) {
+            $redirectUrl = $_GET['redirect'] ?? null;
+            
+            $this->clearAuthSession();
+            session_start();
+            session_regenerate_id(true);
+            
+            if ($redirectUrl) {
+                $_SESSION['login_redirect'] = $redirectUrl;
             }
         }
 
@@ -76,15 +88,17 @@ class AuthenticationController extends BaseController
     }
     public function login()
     {
+        $this->clearAuthSession();
+        session_start();
+        session_regenerate_id(true);
+        
         $_SESSION['errors'] = [];
         $_SESSION['old_input'] = [];
         
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
+        $redirectUrl = $_GET['redirect'] ?? null;
         
         if ($this->isAuthenticated()) {
-            $redirect = $_SESSION['login_redirect'] ?? $_GET['redirect'] ?? '/home';
+            $redirect = $redirectUrl ?? $_SESSION['login_redirect'] ?? '/home';
             unset($_SESSION['login_redirect']);
             
             if (function_exists('logger')) {
@@ -97,6 +111,10 @@ class AuthenticationController extends BaseController
             $this->setSecurityHeaders();
             header('Location: ' . $redirect);
             exit;
+        }
+        
+        if ($redirectUrl) {
+            $_SESSION['login_redirect'] = $redirectUrl;
         }
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -121,6 +139,10 @@ class AuthenticationController extends BaseController
 
         if (empty($email)) {
             $this->logFailedLogin($email, 'empty_email');
+            
+            $this->clearAuthSession();
+            session_start();
+            
             $_SESSION['errors'] = ['auth' => 'Email is required'];
             
             $this->setSecurityHeaders();
@@ -130,6 +152,10 @@ class AuthenticationController extends BaseController
         
         if (empty($password)) {
             $this->logFailedLogin($email, 'empty_password');
+                                    
+            $this->clearAuthSession();
+            session_start();
+            
             $_SESSION['errors'] = ['auth' => 'Password is required'];
             $_SESSION['old_input'] = ['email' => $email];
             
@@ -481,17 +507,23 @@ class AuthenticationController extends BaseController
         $userId = $this->getCurrentUserId();
         $this->logActivity('logout', ['user_id' => $userId]);
 
+        // Completely destroy the session
         $this->clearAuthSession();
         
+        // Start a completely new session
         session_start();
-        $_SESSION['fresh_login'] = true;
+        session_regenerate_id(true);
+        
+        // Set cache control headers to prevent caching
+        $this->setSecurityHeaders();
+        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0, private');
+        header('Pragma: no-cache');
+        header('Expires: 0');
         
         if ($this->isApiRoute() || $this->isAjaxRequest()) {
-            $this->setSecurityHeaders();
             return $this->success(['redirect' => '/login?fresh=1'], 'Logged out successfully');
         }
 
-        $this->setSecurityHeaders();
         header('Location: /login?fresh=1');
         exit;
     }

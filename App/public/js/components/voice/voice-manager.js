@@ -1,28 +1,8 @@
 document.addEventListener("DOMContentLoaded", () => {    
     if (document.getElementById('videoContainer')) {
         window.waitForVideoSDK(() => {
-            window.logger.info('voice', "VideoSDK ready. Checking if we should auto-join voice channel...");
-            
-            // Check if we should auto-join this channel
-            const autoJoinChannelId = localStorage.getItem('autoJoinVoiceChannel');
-            const currentChannelId = document.querySelector('meta[name="channel-id"]')?.getAttribute('content');
-            
-            if (autoJoinChannelId && autoJoinChannelId === currentChannelId) {
-                window.logger.info('voice', `Auto-joining voice channel: ${autoJoinChannelId}`);
-                
-                // Add a small delay to ensure VideoSDK is fully initialized
-                setTimeout(() => {
-                    try {
-                        const joinBtn = document.getElementById("joinBtn");
-                        if (joinBtn) {
-                            joinBtn.click();
-                            localStorage.removeItem('autoJoinVoiceChannel'); // Clear the flag after joining
-                        }
-                    } catch (error) {
-                        console.error("Error auto-joining voice channel:", error);
-                    }
-                }, 1000);
-            }
+            window.logger.info('voice', "VideoSDK ready for voice channel.");
+            // Removed auto-join logic to prevent conflicts with manual flow
         });
     }
 });
@@ -452,34 +432,11 @@ async function initializeMeeting() {
         window.logger.debug('voice', "Meeting initialized:", meeting);
 
         meeting.on("meeting-joined", () => {
-            window.logger.info('voice', "Meeting Joined");
+            window.logger.info('voice', "Meeting Joined - Dispatching voiceConnect event");
             
+            // Don't manipulate UI here - let voice-section.php handle it
+            // Just dispatch the event and add participants
             
-            const joinBtn = document.getElementById("joinBtn");
-            const leaveBtn = document.getElementById("leaveBtn");
-            const micBtn = document.getElementById("micBtn");
-            const screenBtn = document.getElementById("screenBtn");
-            const joinVideoBtn = document.getElementById("joinVideoBtn");
-            
-            
-            if (joinBtn) joinBtn.classList.add("hidden");
-            if (leaveBtn) {
-                leaveBtn.classList.remove("hidden");
-                leaveBtn.disabled = false;
-            }
-            
-            
-            if (micBtn) micBtn.disabled = false;
-            if (screenBtn) screenBtn.disabled = false;
-            
-            
-            if (joinVideoBtn) {
-                joinVideoBtn.classList.remove("hidden");
-                joinVideoBtn.disabled = false;
-            }
-            
-            
-            showToast("Connected to voice", "success");
             addParticipant(meeting.localParticipant);
 
             // Add all other participants already in the meeting
@@ -491,7 +448,7 @@ async function initializeMeeting() {
                 updateParticipantsPanel();
             }, 500);
 
-            
+            // Dispatch the voiceConnect event
             const channelNameElement = document.querySelector('.text-white.font-medium');
             const channelName = channelNameElement ? channelNameElement.textContent : 'Voice Channel';
             const config = window.videoSDKManager.getMetaConfig();
@@ -510,51 +467,22 @@ async function initializeMeeting() {
         });
 
         meeting.on("meeting-left", () => {
-            window.logger.info('voice', "Meeting Left");
+            window.logger.info('voice', "Meeting Left - Dispatching voiceDisconnect event");
             
-            
-            const joinBtn = document.getElementById("joinBtn");
-            const leaveBtn = document.getElementById("leaveBtn");
-            const micBtn = document.getElementById("micBtn");
-            const screenBtn = document.getElementById("screenBtn");
-            const joinVideoBtn = document.getElementById("joinVideoBtn");
+            // Clean up participants data
             const participants = document.getElementById("participants");
             const videosContainer = document.getElementById("videosContainer");
             const participantsPanel = document.getElementById("participantsPanel");
             const videoContainer = document.getElementById("videoContainer");
             
-            if (joinBtn) joinBtn.classList.remove("hidden");
-            if (leaveBtn) leaveBtn.classList.add("hidden");
-            
-            
-            if (micBtn) micBtn.disabled = true;
-            if (screenBtn) screenBtn.disabled = true;
-            if (joinVideoBtn) joinVideoBtn.classList.add("hidden");
-            
-            
-            if (micBtn) {
-                micBtn.innerHTML = '<i class="fas fa-microphone text-sm"></i>';
-                micBtn.classList.remove("bg-[#ED4245]");
-            }
-            
-            if (screenBtn) {
-                screenBtn.innerHTML = '<i class="fas fa-desktop text-sm"></i>';
-                screenBtn.classList.remove("bg-[#5865F2]");
-            }
-            
-            
             if (participants) participants.innerHTML = "";
             if (videosContainer) videosContainer.innerHTML = "";
             participantCount = 0;
             
-            
             if (participantsPanel) participantsPanel.classList.add("hidden");
             if (videoContainer) videoContainer.classList.add("hidden");
-            
-            
-            showToast("Disconnected from voice", "error");
 
-            
+            // Dispatch the voiceDisconnect event - let voice-section.php handle UI
             const voiceDisconnectEvent = new CustomEvent('voiceDisconnect');
             window.dispatchEvent(voiceDisconnectEvent);
             window.videosdkMeeting = null;
@@ -1042,29 +970,11 @@ async function initVoiceInterface() {
 function setupEventHandlers() {
     // Register custom event handlers with the SDK manager
     window.videoSDKManager.on("meeting-joined", () => {
-        window.logger.info('voice', "Meeting Joined");
+        window.logger.info('voice', "Meeting Joined - Dispatching voiceConnect event");
         
-        const joinBtn = document.getElementById("joinBtn");
-    const leaveBtn = document.getElementById("leaveBtn");
-        const micBtn = document.getElementById("micBtn");
-        const screenBtn = document.getElementById("screenBtn");
-        const joinVideoBtn = document.getElementById("joinVideoBtn");
+        // Don't manipulate UI here - let voice-section.php handle it
+        // Just dispatch the event and add participants
         
-        if (joinBtn) joinBtn.classList.add("hidden");
-    if (leaveBtn) {
-            leaveBtn.classList.remove("hidden");
-            leaveBtn.disabled = false;
-        }
-        
-        if (micBtn) micBtn.disabled = false;
-        if (screenBtn) screenBtn.disabled = false;
-        
-        if (joinVideoBtn) {
-            joinVideoBtn.classList.remove("hidden");
-            joinVideoBtn.disabled = false;
-        }
-        
-        showToast("Connected to voice", "success");
         addParticipant(window.videoSDKManager.meeting.localParticipant);
 
         // Add all other participants already in the meeting
@@ -1076,6 +986,7 @@ function setupEventHandlers() {
             updateParticipantsPanel();
         }, 500);
 
+        // Dispatch the voiceConnect event
         const channelNameElement = document.querySelector('.text-white.font-medium');
         const channelName = channelNameElement ? channelNameElement.textContent : 'Voice Channel';
         const voiceConnectEvent = new CustomEvent('voiceConnect', { 
@@ -1090,34 +1001,13 @@ function setupEventHandlers() {
     });
     
     window.videoSDKManager.on("meeting-left", () => {
-        window.logger.info('voice', "Meeting Left");
+        window.logger.info('voice', "Meeting Left - Dispatching voiceDisconnect event");
         
-        const joinBtn = document.getElementById("joinBtn");
-        const leaveBtn = document.getElementById("leaveBtn");
-    const micBtn = document.getElementById("micBtn");
-        const screenBtn = document.getElementById("screenBtn");
-        const joinVideoBtn = document.getElementById("joinVideoBtn");
+        // Clean up participants data
         const participants = document.getElementById("participants");
         const videosContainer = document.getElementById("videosContainer");
         const participantsPanel = document.getElementById("participantsPanel");
         const videoContainer = document.getElementById("videoContainer");
-        
-        if (joinBtn) joinBtn.classList.remove("hidden");
-        if (leaveBtn) leaveBtn.classList.add("hidden");
-        
-        if (micBtn) micBtn.disabled = true;
-        if (screenBtn) screenBtn.disabled = true;
-        if (joinVideoBtn) joinVideoBtn.classList.add("hidden");
-        
-    if (micBtn) {
-                    micBtn.innerHTML = '<i class="fas fa-microphone text-sm"></i>';
-            micBtn.classList.remove("bg-[#ED4245]");
-        }
-        
-        if (screenBtn) {
-            screenBtn.innerHTML = '<i class="fas fa-desktop text-sm"></i>';
-            screenBtn.classList.remove("bg-[#5865F2]");
-        }
         
         if (participants) participants.innerHTML = "";
         if (videosContainer) videosContainer.innerHTML = "";
@@ -1126,8 +1016,7 @@ function setupEventHandlers() {
         if (participantsPanel) participantsPanel.classList.add("hidden");
         if (videoContainer) videoContainer.classList.add("hidden");
         
-        showToast("Disconnected from voice", "error");
-        
+        // Dispatch the voiceDisconnect event - let voice-section.php handle UI
         const voiceDisconnectEvent = new CustomEvent('voiceDisconnect');
         window.dispatchEvent(voiceDisconnectEvent);
         window.videosdkMeeting = null;
