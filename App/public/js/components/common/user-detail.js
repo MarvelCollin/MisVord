@@ -108,8 +108,7 @@ class UserDetailModal {
                 container.style.top = `${top}px`;
                 container.style.transform = 'none';
             }
-        }
-        // If position is provided directly, use that
+        }   
         else if (options.position) {
             const { left, top } = options.position;
             
@@ -122,7 +121,6 @@ class UserDetailModal {
             }
         }
 
-        // Minimum loading time to prevent flickering
         const startTime = Date.now();
         const minLoadingTime = 800;
 

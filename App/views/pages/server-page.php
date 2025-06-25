@@ -51,6 +51,28 @@ if ($isAjaxRequest) {
     $activeChannelId = $_GET['channel'] ?? null;
     $channelType = isset($_GET['type']) && $_GET['type'] === 'voice' ? 'voice' : 'text';
     
+    $activeChannel = null;
+    if ($activeChannelId && isset($GLOBALS['serverChannels'])) {
+        foreach ($GLOBALS['serverChannels'] as $channel) {
+            if ($channel['id'] == $activeChannelId) {
+                $activeChannel = (object) $channel;
+                break;
+            }
+        }
+    }
+    
+    if ($activeChannelId && !$activeChannel) {
+        require_once dirname(dirname(__DIR__)) . '/database/repositories/ChannelRepository.php';
+        $channelRepo = new ChannelRepository();
+        $channelData = $channelRepo->find($activeChannelId);
+        if ($channelData) {
+            $activeChannel = $channelData;
+        }
+    }
+    
+    $GLOBALS['activeChannelId'] = $activeChannelId;
+    $GLOBALS['activeChannel'] = $activeChannel;
+    
     if ($channelType === 'voice') {
         include dirname(dirname(__DIR__)) . '/views/components/app-sections/voice-section.php';
     } else {

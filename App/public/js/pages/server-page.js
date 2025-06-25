@@ -21,21 +21,18 @@ async function loadVoiceScripts() {
       console.log("VideoSDK loaded successfully");
     }
     
-    // Then load our VideoSDK manager
-    if (!window.videoSDKManager) {
-      console.log("Loading VideoSDK manager");
-      await loadScript('/js/components/videosdk/videosdk.js');
-      console.log("VideoSDK manager loaded successfully");
-    }
+    // Skip VideoSDK manager for now due to ES6 module compatibility issues
+    // The basic voice functionality should work with just the CDN VideoSDK
+    console.log("Skipping VideoSDK manager (ES6 module compatibility issues)");
     
     // Then load voice manager
     console.log("Loading voice manager");
-    await loadScript('/js/components/voice/voice-manager.js?v=' + Date.now());
+    await loadScript('/public/js/components/voice/voice-manager.js?v=' + Date.now());
     console.log("Voice manager loaded successfully");
     
     // Finally load voice section for UI
     console.log("Loading voice section UI");
-    await loadScript('/js/components/voice/voice-section.js?v=' + Date.now());
+    await loadScript('/public/js/components/voice/voice-section.js?v=' + Date.now());
     console.log("Voice section UI loaded successfully");
     
     return true;
@@ -506,7 +503,7 @@ function fetchVoiceSection(channelId) {
             console.log("Loading voice section CSS");
             const voiceCSS = document.createElement('link');
             voiceCSS.rel = 'stylesheet';
-            voiceCSS.href = '/css/voice-section.css?v=' + Date.now();
+            voiceCSS.href = '/public/css/voice-section.css?v=' + Date.now();
             document.head.appendChild(voiceCSS);
           }
         } else {
@@ -879,7 +876,7 @@ function initVoicePage() {
   if (!window.voiceManager && !document.querySelector('script[src*="voice-manager.js"]')) {
     console.log("Loading voice manager script for voice page");
     const voiceScript = document.createElement('script');
-    voiceScript.src = '/js/components/voice/voice-manager.js?v=' + Date.now();
+    voiceScript.src = '/public/js/components/voice/voice-manager.js?v=' + Date.now();
     document.head.appendChild(voiceScript);
   }
   
@@ -891,3 +888,9 @@ function initVoicePage() {
     document.head.appendChild(script);
   }
 }
+
+// Export functions globally for use by other components
+window.fetchVoiceSection = fetchVoiceSection;
+window.fetchChatSection = fetchChatSection;
+window.initializeChannelClickHandlers = initializeChannelClickHandlers;
+window.getServerIdFromUrl = getServerIdFromUrl;

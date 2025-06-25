@@ -160,27 +160,35 @@ document.addEventListener('DOMContentLoaded', function() {
     window.handleVoiceChannelClick = function(channelId) {
         console.log('Voice channel clicked:', channelId);
         
-        // Set a flag to indicate we want to auto-join this voice channel
-        localStorage.setItem('autoJoinVoiceChannel', channelId);
-        sessionStorage.setItem('forceAutoJoin', 'true');
-        
-        // Navigate to the voice channel page
-        const currentServerId = document.getElementById('current-server-id')?.value;
-        if (currentServerId) {
-            const voiceChannelUrl = `/public/router.php?page=server&server_id=${currentServerId}&channel_id=${channelId}`;
-            console.log('Navigating to voice channel:', voiceChannelUrl);
-            window.location.href = voiceChannelUrl;
+        if (typeof window.fetchVoiceSection === 'function') {
+            console.log('Using existing fetchVoiceSection function');
+            window.fetchVoiceSection(channelId);
+        } else {
+            console.log('fetchVoiceSection not available, loading server-page.js');
+            const script = document.createElement('script');
+            script.src = '/public/js/pages/server-page.js';
+            script.onload = function() {
+                if (typeof window.fetchVoiceSection === 'function') {
+                    window.fetchVoiceSection(channelId);
+                } else {
+                    console.error('fetchVoiceSection still not available after loading script');
+                    const currentServerId = document.getElementById('current-server-id')?.value;
+                    if (currentServerId) {
+                        const voiceChannelUrl = `/public/router.php?page=server&server_id=${currentServerId}&channel_id=${channelId}`;
+                        window.location.href = voiceChannelUrl;
+                    }
+                }
+            };
+            document.head.appendChild(script);
         }
     };
     
     const channelItems = document.querySelectorAll('.channel-item');
     
     channelItems.forEach(item => {
-        // Remove existing click event listeners if any
         const clone = item.cloneNode(true);
         item.parentNode.replaceChild(clone, item);
         
-        // Add click event handlers for ALL channels
         clone.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
@@ -191,27 +199,50 @@ document.addEventListener('DOMContentLoaded', function() {
             
             console.log('Channel clicked:', {channelId, channelType, currentServerId});
             
-            if (channelType === 'voice') {
-                // Handle voice channel clicks
-                window.handleVoiceChannelClick(channelId);
-            } else {
-                // Handle text channel clicks
-                if (currentServerId && channelId) {
-                    const channelUrl = `/public/router.php?page=server&server_id=${currentServerId}&channel_id=${channelId}`;
-                    console.log('Navigating to text channel:', channelUrl);
-                    window.location.href = channelUrl;
-                }
-            }
-        });
-        
-        // Update active state immediately
-        clone.addEventListener('click', function() {
-            // Remove active class from all channel items
             document.querySelectorAll('.channel-item').forEach(ch => {
                 ch.classList.remove('bg-discord-lighten', 'text-white');
             });
             
-            // Add active class to clicked item
+            clone.classList.add('bg-discord-lighten', 'text-white');
+            
+            const serverId = currentServerId;
+            
+            if (channelType === 'voice') {
+                const newUrl = `/server/${serverId}?channel=${channelId}&type=voice`;
+                history.pushState({ channelId, channelType: 'voice', serverId }, '', newUrl);
+                window.handleVoiceChannelClick(channelId);
+            } else {
+                const newUrl = `/server/${serverId}?channel=${channelId}&type=text`;
+                history.pushState({ channelId, channelType: 'text', serverId }, '', newUrl);
+                
+                if (typeof window.fetchChatSection === 'function') {
+                    console.log('Using existing fetchChatSection function');
+                    window.fetchChatSection(channelId);
+                } else {
+                    console.log('fetchChatSection not available, loading server-page.js');
+                    const script = document.createElement('script');
+                    script.src = '/public/js/pages/server-page.js';
+                    script.onload = function() {
+                        if (typeof window.fetchChatSection === 'function') {
+                            window.fetchChatSection(channelId);
+                        } else {
+                            console.error('fetchChatSection still not available after loading script');
+                            if (currentServerId && channelId) {
+                                const channelUrl = `/public/router.php?page=server&server_id=${currentServerId}&channel_id=${channelId}`;
+                                window.location.href = channelUrl;
+                            }
+                        }
+                    };
+                    document.head.appendChild(script);
+                }
+            }
+        });
+        
+        clone.addEventListener('click', function() {
+            document.querySelectorAll('.channel-item').forEach(ch => {
+                ch.classList.remove('bg-discord-lighten', 'text-white');
+            });
+            
             clone.classList.add('bg-discord-lighten', 'text-white');
         });
     });
