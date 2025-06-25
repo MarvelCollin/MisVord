@@ -165,7 +165,6 @@ const FormValidator = {
         const password = form.querySelector('#password');
         const captcha = form.querySelector('#login_captcha');
 
-        // Email validation
         if (!email || !email.value) {
             this.showFieldError(email, 'Email is required');
             isValid = false;
@@ -174,13 +173,11 @@ const FormValidator = {
             isValid = false;
         }
 
-        // Password validation - for login we only check if it's not empty
         if (!password || !password.value || password.value.trim() === '') {
             this.showFieldError(password, 'Password is required');
             isValid = false;
         }
 
-        // Captcha validation (if present)
         if (captcha && !captcha.value) {
             this.showFieldError(captcha, 'Please complete the captcha');
             isValid = false;

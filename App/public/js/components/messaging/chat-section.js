@@ -74,6 +74,8 @@ class ChatSection {
             return;
         }
         
+        this.showLoadingSkeletons();
+        
         this.setupEventListeners();
         this.loadMessages();
         this.setupIoListeners();
@@ -929,29 +931,31 @@ class ChatSection {
         
         if (!messages || messages.length === 0) {
             const emptyState = document.createElement('div');
-            emptyState.className = 'flex flex-col items-center justify-center p-8 text-[#b5bac1] h-full';
+            emptyState.className = 'flex items-center justify-center h-full text-gray-400';
             emptyState.innerHTML = `
-                <svg class="w-16 h-16 mb-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" d="M18 10c0 4.418-3.582 8-8 8s-8-3.582-8-8 3.582-8 8-8 8 3.582 8 8zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-                </svg>
-                <p class="text-lg font-medium">No messages yet</p>
-                <p class="text-sm mt-2">Start the conversation by sending a message!</p>
+                <div class="text-center">
+                    <i class="fas fa-comments text-6xl mb-4 opacity-50"></i>
+                    <h3 class="text-lg font-semibold mb-2">No messages yet</h3>
+                    <p class="text-sm">Start the conversation by sending a message!</p>
+                </div>
             `;
             this.chatMessages.appendChild(emptyState);
             return;
         }
         
         let lastSenderId = null;
-        let messageGroup = null;
+        let currentMessageGroup = null;
         
         messages.forEach(message => {
-            if (message.user_id !== lastSenderId) {
-                messageGroup = this.createMessageGroup(message);
-                this.chatMessages.appendChild(messageGroup);
+            const isNewGroup = message.user_id !== lastSenderId;
+            
+            if (isNewGroup) {
+                currentMessageGroup = this.createMessageGroup(message);
+                this.chatMessages.appendChild(currentMessageGroup);
                 lastSenderId = message.user_id;
             } else {
                 const messageContent = this.createMessageContent(message);
-                const contents = messageGroup.querySelector('.message-contents');
+                const contents = currentMessageGroup.querySelector('.message-contents');
                 if (contents) {
                     contents.appendChild(messageContent);
                 }
@@ -971,7 +975,10 @@ class ChatSection {
             username: message.username || message.message?.username || 'Unknown User',
             avatar_url: message.avatar_url || message.message?.avatar_url || '/assets/main-logo.png',
             sent_at: message.timestamp || message.sent_at || Date.now(),
-            isLocalOnly: message.isLocalOnly || false
+            isLocalOnly: message.isLocalOnly || false,
+            reply_message_id: message.reply_message_id || null,
+            reply_data: message.reply_data || null,
+            edited_at: message.edited_at || null
         };
         
         const existingMessageElement = document.querySelector(`[data-message-id="${msg.id}"]`);
@@ -984,15 +991,17 @@ class ChatSection {
         const lastMessageGroup = this.chatMessages.lastElementChild;
         const lastSenderId = lastMessageGroup?.getAttribute('data-user-id');
         
-        if (lastSenderId === msg.user_id && lastMessageGroup?.classList.contains('message-group')) {
+        const isNewGroup = lastSenderId !== msg.user_id || !lastMessageGroup?.classList.contains('message-group');
+        
+        if (isNewGroup) {
+            const messageGroup = this.createMessageGroup(msg, isOwnMessage);
+            this.chatMessages.appendChild(messageGroup);
+        } else {
             const messageContent = this.createMessageContent(msg, isOwnMessage);
             const contents = lastMessageGroup.querySelector('.message-contents');
             if (contents) {
                 contents.appendChild(messageContent);
             }
-        } else {
-            const messageGroup = this.createMessageGroup(msg, isOwnMessage);
-            this.chatMessages.appendChild(messageGroup);
         }
         
         this.scrollToBottom();
@@ -1107,19 +1116,15 @@ class ChatSection {
             messageElement.insertBefore(replyContainer, messageElement.firstChild);
         }
         
-        const messageBubble = document.createElement('div');
-        messageBubble.className = 'message-bubble';
-        
         const contentElement = document.createElement('div');
-        contentElement.className = 'message-main-text';
+        contentElement.className = 'message-main-text text-[#dcddde]';
         contentElement.innerHTML = this.formatMessageContent(message.content);
         
-        messageBubble.appendChild(contentElement);
-        messageElement.appendChild(messageBubble);
+        messageElement.appendChild(contentElement);
         
         if (message.edited_at) {
             const editedBadge = document.createElement('span');
-            editedBadge.className = 'text-xs text-[#a3a6aa] ml-1';
+            editedBadge.className = 'edited-badge text-xs text-[#a3a6aa] ml-1';
             editedBadge.textContent = '(edited)';
             contentElement.appendChild(editedBadge);
         }
@@ -1347,18 +1352,18 @@ class ChatSection {
     async loadMessages(offset = 0, limit = 20) {
         if (!this.targetId || !this.chatType) {
             console.error('Cannot load messages: missing chat target ID or type');
+            this.hideLoadingIndicator();
             return;
         }
         
         try {
             if (!window.ChatAPI) {
                 console.error('ChatAPI not available');
+                this.hideLoadingIndicator();
                 return;
             }
             
-            if (offset === 0) {
-                this.showLoadingSkeletons();
-            } else {
+            if (offset > 0) {
                 this.showLoadMoreIndicator();
             }
             
@@ -1441,8 +1446,8 @@ class ChatSection {
         
         this.chatMessages.innerHTML = '';
         
-        for (let i = 0; i < 5; i++) {
-            const skeleton = this.createMessageSkeleton(i % 2 === 0);
+        for (let i = 0; i < 6; i++) {
+            const skeleton = this.createMessageSkeleton(i % 3 === 0);
             this.chatMessages.appendChild(skeleton);
         }
     }

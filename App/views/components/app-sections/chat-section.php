@@ -60,7 +60,7 @@ if ($chatType === 'channel') {
                 <p class="text-[#b5bac1] mb-4">Select a channel from the sidebar to start chatting with other members.</p>';
         if (!empty($serverChannels)) {
             echo '<button class="bg-[#5865f2] hover:bg-[#4752c4] text-white px-4 py-2 rounded transition-colors" 
-                        onclick="document.querySelector(\'.channel-item\')?.click()">
+                                onclick="document.querySelector(\'.channel-item\')?.click()">
                     Go to first channel
                 </button>';
         }
@@ -75,71 +75,195 @@ if ($chatType === 'channel') {
 <link rel="stylesheet" href="<?php echo css('chat-section'); ?>?v=<?php echo time(); ?>">
 
 <style>
-.message-group {
-    position: relative;
-    margin: 0 0 2px 0;
-    padding: 5px 16px;
-    display: flex;
-    align-items: flex-start;
+.discord-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.discord-scrollbar::-webkit-scrollbar-track {
     background-color: transparent;
 }
 
-.message-avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    overflow: hidden;
-    margin-right: 10px;
-    flex-shrink: 0;
+.discord-scrollbar::-webkit-scrollbar-thumb {
+    background-color: #1e1f22;
+    border-radius: 4px;
 }
 
-.message-content-wrapper {
+.discord-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: #2b2d31;
+}
+
+.message-group-item {
+    position: relative;
+    padding: 2px 16px;
+    transition: background-color 0.1s ease;
+}
+
+.message-group-item:hover {
+    background-color: rgba(6, 6, 7, 0.02);
+}
+
+.message-group-wrapper {
+    display: flex;
+    align-items: flex-start;
+    margin-top: 4px;
+}
+
+.message-avatar-wrapper {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    border-radius: 50%;
+    overflow: hidden;
+    margin-right: 16px;
+    flex-shrink: 0;
+    margin-top: 4px;
+}
+
+.message-avatar-wrapper img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.message-content-area {
     flex-grow: 1;
+    min-width: 0;
     padding-top: 2px;
 }
 
-.message-header {
+.message-header-info {
     display: flex;
-    align-items: center;
-    margin-bottom: 2px;
+    align-items: baseline;
+    margin-bottom: 4px;
 }
 
-.message-username {
+.message-username-text {
     font-weight: 600;
     color: #f2f3f5;
     margin-right: 8px;
-    font-size: 14px;
+    font-size: 15px;
+    cursor: pointer;
 }
 
-.message-timestamp {
-    font-size: 0.7rem;
+.message-username-text:hover {
+    text-decoration: underline;
+}
+
+.message-timestamp-text {
+    font-size: 12px;
     color: #a3a6aa;
+    font-weight: 500;
+    margin-left: 4px;
 }
 
-.message-bubble {
-    background-color: #383a40;
-    border-radius: 4px;
-    padding: 7px 10px;
-    margin-top: 0;
-    display: inline-block;
-    max-width: 90%;
-    color: #dcddde;
-}
-
-.message-main-text {
+.message-body-text {
     color: #dcddde;
     white-space: pre-wrap;
     word-wrap: break-word;
-    font-size: 14px;
-    line-height: 1.3;
+    font-size: 16px;
+    line-height: 1.375;
+    margin: 0;
+    padding: 0;
 }
 
-.message-contents {
+.message-consecutive {
     margin-top: 0;
 }
 
-.message-content {
-    margin-bottom: 2px;
+.message-consecutive .message-body-text {
+    padding-left: 0;
+}
+
+.edited-badge {
+    font-size: 10px;
+    color: #a3a6aa;
+    margin-left: 4px;
+    font-style: italic;
+}
+
+.reply-container {
+    margin-bottom: 4px;
+    border-left: 4px solid #4f545c;
+    padding-left: 12px;
+    margin-left: 0;
+}
+
+.reply-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #b9bbbe;
+}
+
+.reply-avatar {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+}
+
+.reply-username {
+    font-weight: 500;
+    color: #dcddde;
+}
+
+.reply-message-text {
+    color: #b9bbbe;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.highlight-message {
+    background-color: rgba(88, 101, 242, 0.1) !important;
+    border-left: 4px solid #5865f2;
+    padding-left: 12px !important;
+    animation: highlight-fade 2s ease-out;
+}
+
+@keyframes highlight-fade {
+    0% { background-color: rgba(88, 101, 242, 0.3); }
+    100% { background-color: rgba(88, 101, 242, 0.1); }
+}
+
+#chat-messages .message-bubble {
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: block !important;
+    max-width: none !important;
+    box-shadow: none !important;
+}
+
+#chat-messages .message-bubble::before {
+    display: none !important;
+}
+
+#chat-messages .message-group:first-child {
+    margin-top: 0;
+}
+
+#chat-messages .message-group:last-child {
+    margin-bottom: 16px;
+}
+
+@media (max-width: 768px) {
+    .message-avatar-wrapper {
+        width: 32px;
+        height: 32px;
+        margin-right: 12px;
+    }
+    
+    .message-username-text {
+        font-size: 14px;
+    }
+    
+    .message-body-text {
+        font-size: 15px;
+    }
 }
 </style>
 
@@ -151,7 +275,7 @@ if ($chatType === 'channel') {
 <meta name="chat-title" content="<?php echo htmlspecialchars($chatTitle ?? ''); ?>">
 <meta name="chat-placeholder" content="<?php echo htmlspecialchars($placeholder ?? ''); ?>">
 
-<div class="flex flex-col flex-1 h-screen chat-container bg-[#313338]">
+<div class="flex flex-col flex-1 h-screen bg-[#313338]">
     <div class="h-12 border-b border-[#1e1f22] flex items-center px-4 shadow-sm bg-[#313338]">
         <div class="flex items-center">
             <i class="<?php echo $chatIcon; ?> text-[#b5bac1] mr-2"></i>
@@ -186,28 +310,55 @@ if ($chatType === 'channel') {
         </div>
     </div>
 
-    <div class="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-[#1e1f22] scrollbar-track-transparent bg-[#313338]" id="chat-messages">
+    <div class="flex-1 overflow-y-auto discord-scrollbar bg-[#313338]" id="chat-messages">
         <?php if (!empty($messages)): ?>
-            <?php foreach ($messages as $message): ?>
-                <div class="flex items-start p-4 hover:bg-[#36393f]">
-                    <div class="w-10 h-10 bg-[#5865f2] rounded-full flex items-center justify-center mr-3">
-                        <span class="text-white text-sm font-bold"><?php echo substr($message['username'] ?? 'U', 0, 1); ?></span>
-                    </div>
-                    <div class="flex-1">
-                        <div class="flex items-center mb-1">
-                            <span class="font-semibold text-white mr-2"><?php echo htmlspecialchars($message['username'] ?? 'Unknown'); ?></span>
-                            <span class="text-xs text-gray-400"><?php echo date('H:i', strtotime($message['created_at'] ?? 'now')); ?></span>
+            <?php 
+            $lastUserId = null;
+            foreach ($messages as $message): 
+                $isNewGroup = $lastUserId !== ($message['user_id'] ?? null);
+                $lastUserId = $message['user_id'] ?? null;
+            ?>
+                <?php if ($isNewGroup): ?>
+                <div class="message-group-item group" data-user-id="<?php echo htmlspecialchars($message['user_id'] ?? ''); ?>">
+                    <div class="message-group-wrapper">
+                        <div class="message-avatar-wrapper">
+                            <?php if (!empty($message['avatar_url'])): ?>
+                                <img src="<?php echo htmlspecialchars($message['avatar_url']); ?>" alt="<?php echo htmlspecialchars($message['username'] ?? 'User'); ?>'s avatar" onerror="this.src='/assets/main-logo.png'">
+                            <?php else: ?>
+                                <img src="/assets/main-logo.png" alt="<?php echo htmlspecialchars($message['username'] ?? 'User'); ?>'s avatar">
+                            <?php endif; ?>
                         </div>
-                        <div class="text-[#dcddde]"><?php echo htmlspecialchars($message['content'] ?? ''); ?></div>
+                        <div class="message-content-area">
+                            <div class="message-header-info">
+                                <span class="message-username-text"><?php echo htmlspecialchars($message['username'] ?? 'Unknown'); ?></span>
+                                <span class="message-timestamp-text"><?php echo date('H:i', strtotime($message['sent_at'] ?? $message['created_at'] ?? 'now')); ?></span>
+                            </div>
+                            <div class="message-body-text" data-message-id="<?php echo htmlspecialchars($message['id'] ?? ''); ?>" data-user-id="<?php echo htmlspecialchars($message['user_id'] ?? ''); ?>">
+                                <?php echo nl2br(htmlspecialchars($message['content'] ?? '')); ?>
+                                <?php if (!empty($message['edited_at'])): ?>
+                                    <span class="edited-badge text-xs text-[#a3a6aa] ml-1">(edited)</span>
+                                <?php endif; ?>
+                            </div>
+                        </div>
                     </div>
                 </div>
+                <?php else: ?>
+                <div class="message-group-item pl-20 pr-4 py-0.5" data-message-id="<?php echo htmlspecialchars($message['id'] ?? ''); ?>" data-user-id="<?php echo htmlspecialchars($message['user_id'] ?? ''); ?>">
+                    <div class="message-body-text text-[#dcddde]">
+                        <?php echo nl2br(htmlspecialchars($message['content'] ?? '')); ?>
+                        <?php if (!empty($message['edited_at'])): ?>
+                            <span class="edited-badge text-xs text-[#a3a6aa] ml-1">(edited)</span>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <?php endif; ?>
             <?php endforeach; ?>
         <?php else: ?>
             <div class="flex items-center justify-center h-full text-gray-400">
                 <div class="text-center">
                     <i class="fas fa-comments text-6xl mb-4 opacity-50"></i>
                     <h3 class="text-lg font-semibold mb-2">No messages yet</h3>
-                    <p class="text-sm">Be the first to send a message in #{<?php echo htmlspecialchars($chatTitle); ?>}</p>
+                    <p class="text-sm">Be the first to send a message in #<?php echo htmlspecialchars($chatTitle); ?></p>
                 </div>
             </div>
         <?php endif; ?>
@@ -225,50 +376,48 @@ if ($chatType === 'channel') {
     <div class="px-4 pb-6 bg-[#313338]">
         <div class="relative">
             <form id="message-form" class="relative" onsubmit="return false;">
-                <div class="bg-[#383a40] rounded-lg overflow-hidden focus-within:ring-1 focus-within:ring-[#5865f2] transition-colors">
-                    <div class="flex items-center px-4 py-2">
-                        <button type="button" class="text-[#b5bac1] hover:text-[#dcddde] flex-shrink-0" title="Upload File">
-                            <i class="fas fa-circle-plus"></i>
-                        </button>
-                        <div class="flex-1 relative mx-3">
+                <div class="bg-[#383a40] rounded-lg focus-within:ring-1 focus-within:ring-[#5865f2] transition-colors flex items-center px-4 py-2">
+                    <button type="button" class="text-[#b5bac1] hover:text-[#dcddde] text-xl mr-3" title="Add File">
+                        <i class="fas fa-plus-circle"></i>
+                    </button>
+                                         <div class="flex-1 relative flex items-center">
                             <textarea 
                                 id="message-input" 
                                 name="content"
-                                class="w-full bg-transparent text-[#dcddde] placeholder-[#95999e] resize-none border-none outline-none text-base leading-6 max-h-40 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-[#1e1f22]"
+                                class="w-full bg-transparent text-[#dcddde] placeholder-[#95999e] resize-none border-none outline-none text-base leading-6 max-h-40 overflow-y-auto discord-scrollbar"
                                 placeholder="<?php echo htmlspecialchars($placeholder); ?>"
                                 rows="1"
                                 maxlength="2000"
                                 autocomplete="off"
                                 spellcheck="true"
-                                style="min-height: 24px;"></textarea>
+                                style="min-height: 24px; padding: 0; margin: 0; vertical-align: middle;"></textarea>
                         </div>
 
-                        <div class="flex items-center space-x-3 flex-shrink-0">
-                            <button type="button" class="text-[#b5bac1] hover:text-[#dcddde]" title="Gift">
-                                <i class="fas fa-gift"></i>
-                            </button>
-                            
-                            <button type="button" class="text-[#b5bac1] hover:text-[#dcddde] font-bold" title="GIF">
-                                GIF
-                            </button>
-                            
-                            <button type="button" class="text-[#b5bac1] hover:text-[#dcddde]" title="Sticker">
-                                <i class="far fa-note-sticky"></i>
-                            </button>
-                            
-                            <button type="button" class="text-[#b5bac1] hover:text-[#dcddde]" title="Emoji">
-                                <i class="far fa-face-smile"></i>
-                            </button>
-                            
-                            <button 
-                                type="button" 
-                                id="send-button" 
-                                class="text-[#b5bac1] hover:text-white transition-colors"
-                                title="Send Message"
-                                disabled>
-                                <i class="fas fa-paper-plane"></i>
-                            </button>
-                        </div>
+                    <div class="flex items-center space-x-3 ml-3">
+                        <button type="button" class="text-[#b5bac1] hover:text-[#dcddde]" title="Gift">
+                            <i class="fas fa-gift"></i>
+                        </button>
+                        
+                        <button type="button" class="text-[#b5bac1] hover:text-[#dcddde] font-bold text-sm" title="GIF">
+                            GIF
+                        </button>
+                        
+                        <button type="button" class="text-[#b5bac1] hover:text-[#dcddde]" title="Sticker">
+                            <i class="far fa-note-sticky"></i>
+                        </button>
+                        
+                        <button type="button" class="text-[#b5bac1] hover:text-[#dcddde]" title="Emoji">
+                            <i class="far fa-face-smile"></i>
+                        </button>
+                        
+                        <button 
+                            type="submit" 
+                            id="send-button" 
+                            class="text-[#b5bac1] hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Send Message"
+                            disabled>
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
                     </div>
                 </div>
             </form>
@@ -323,10 +472,14 @@ function initializeChatUI() {
     function updateSendButton() {
         const hasContent = messageInput.value.trim().length > 0;
         sendButton.disabled = !hasContent;
-        sendButton.style.opacity = hasContent ? '1' : '0.5';
+        sendButton.classList.toggle('opacity-50', !hasContent);
+        sendButton.classList.toggle('cursor-not-allowed', !hasContent);
     }
     
     function sendMessage() {
+        if (messageInput.value.trim().length === 0) {
+            return;
+        }
         if (window.chatSection && window.chatSection.sendMessage) {
             window.chatSection.sendMessage();
         } else {
@@ -343,7 +496,15 @@ function initializeChatUI() {
         }
     });
     
-    sendButton.addEventListener('click', sendMessage);
+    messageForm.addEventListener('submit', function(e) {
+        e.preventDefault(); 
+        sendMessage();
+    });
+
+    messageInput.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = (this.scrollHeight) + 'px';
+    });
     
     updateSendButton();
     

@@ -425,7 +425,7 @@ function initAuth() {
                     }
                     
                 } else if (this.id === 'registerForm') {
-                    isValid = FormValidator.validateRegisterForm(this);
+                    return true;
                 } else if (this.id === 'forgotForm') {
                     isValid = FormValidator.validateForgotForm(this);
                 } else if (this.id === 'securityQuestionForm') {
@@ -436,9 +436,19 @@ function initAuth() {
                 
                 if (!isValid) {
                     const formErrorContainer = document.createElement('div');
-                    formErrorContainer.className = 'bg-red-500 text-white p-3 rounded-md mb-4 text-center animate-pulse';
+                    formErrorContainer.className = 'bg-red-500 text-white p-3 rounded-md mb-4 text-center animate-pulse form-error-container';
                     formErrorContainer.textContent = 'Please correct the errors below.';
+                    
+                    const existingError = form.querySelector('.form-error-container');
+                    if (existingError) {
+                        existingError.remove();
+                    }
+                    
                     form.prepend(formErrorContainer);
+                    
+                    setTimeout(() => {
+                        formErrorContainer.remove();
+                    }, 5000);
                 }
 
                 if (!isValid) {
@@ -603,12 +613,15 @@ function initAuth() {
         const stepLine = document.getElementById('step-line');
         const step1Indicator = document.getElementById('step-1-indicator');
         const step2Indicator = document.getElementById('step-2-indicator');
+        const registerForm = document.getElementById('registerForm');
         
-        if (!nextStepBtn || !prevStepBtn || !step1 || !step2) return;
+        if (!nextStepBtn || !prevStepBtn || !step1 || !step2 || !registerForm) return;
         
         let currentStep = 1;
         
-        nextStepBtn.addEventListener('click', function() {
+        nextStepBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            
             const isValid = validateRegistrationStep1();
             
             if (!isValid) {
@@ -647,7 +660,9 @@ function initAuth() {
             }, 300);
         });
         
-        prevStepBtn.addEventListener('click', function() {
+        prevStepBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            
             step2.classList.remove('active');
             step2.classList.add('next');
             
@@ -681,7 +696,7 @@ function initAuth() {
             const password = document.getElementById('reg_password');
             const confirmPassword = document.getElementById('password_confirm');
             
-            FormValidator.clearErrors(document.getElementById('registerForm'));
+            FormValidator.clearErrors(registerForm);
             
             let isValid = true;
             
@@ -742,7 +757,7 @@ function initAuth() {
             return isValid;
         }
         
-        document.getElementById('registerForm').addEventListener('submit', function(e) {
+        registerForm.addEventListener('submit', function(e) {
             if (currentStep === 1) {
                 e.preventDefault();
                 nextStepBtn.click();
@@ -751,9 +766,10 @@ function initAuth() {
             
             const securityQuestion = document.getElementById('security_question');
             const securityAnswer = document.getElementById('security_answer');
-            const captcha = document.getElementById('register_captcha');
             
             let isValid = true;
+            
+            FormValidator.clearErrors(registerForm);
             
             if (!securityQuestion.value) {
                 FormValidator.showFieldError(securityQuestion, 'Please select a security question');
@@ -768,7 +784,8 @@ function initAuth() {
                 isValid = false;
             }
             
-            if (!captcha.value.trim()) {
+            const captcha = document.getElementById('register_captcha');
+            if (captcha && !captcha.value.trim()) {
                 FormValidator.showFieldError(captcha, 'Verification code is required');
                 isValid = false;
             }
@@ -778,10 +795,8 @@ function initAuth() {
                 
                 const firstInvalidField = document.querySelector('.border-red-500');
                 if (firstInvalidField) {
-                    if (firstInvalidField.id !== 'password_confirm') {
-                        firstInvalidField.classList.add('error-shake');
-                        setTimeout(() => firstInvalidField.classList.remove('error-shake'), 500);
-                    }
+                    firstInvalidField.classList.add('error-shake');
+                    setTimeout(() => firstInvalidField.classList.remove('error-shake'), 500);
                     firstInvalidField.focus();
                 }
                 

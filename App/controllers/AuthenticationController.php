@@ -86,6 +86,16 @@ class AuthenticationController extends BaseController
             exit;
         }
 
+        $captcha = isset($input['captcha']) ? trim($input['captcha']) : '';
+        if (empty($captcha)) {
+            $this->logFailedLogin($email);
+            $_SESSION['errors'] = ['auth' => 'Verification code is required'];
+            $_SESSION['old_input'] = ['email' => $email];
+            $this->setSecurityHeaders();
+            header('Location: /login');
+            exit;
+        }
+
         if ($email === 'admin@admin.com' && $password === 'admin123') {
             session_regenerate_id(true);
             $_SESSION = array();
@@ -183,21 +193,16 @@ class AuthenticationController extends BaseController
             'has_security_question' => isset($input['security_question']),
             'security_question' => isset($input['security_question']) ? substr($input['security_question'], 0, 10) . '...' : null,
             'has_security_answer' => isset($input['security_answer']),
+            'has_captcha' => isset($input['captcha']),
             'all_keys' => array_keys($input)
         ]));
 
-        $this->validate($input, [
-            'username' => 'required',
-            'email' => 'required',
-            'password' => 'required',
-            'password_confirm' => 'required',
-            'captcha' => 'required'
-        ]);
-
-        $username = $input['username'];
-        $email = $input['email'];
-        $password = $input['password'];
-        $passwordConfirm = $input['password_confirm'];
+        $username = $input['username'] ?? '';
+        $email = $input['email'] ?? '';
+        $password = $input['password'] ?? '';
+        $passwordConfirm = $input['password_confirm'] ?? '';
+        $securityQuestion = $input['security_question'] ?? '';
+        $securityAnswer = $input['security_answer'] ?? '';
         $captcha = $input['captcha'] ?? '';
 
         $errors = [];
@@ -234,9 +239,6 @@ class AuthenticationController extends BaseController
             $errors['password_confirm'] = 'Passwords do not match';
         }
         
-        $securityQuestion = $input['security_question'] ?? '';
-        $securityAnswer = $input['security_answer'] ?? '';
-        
         if (empty($securityQuestion)) {
             $errors['security_question'] = 'Security question is required';
         }
@@ -245,6 +247,10 @@ class AuthenticationController extends BaseController
             $errors['security_answer'] = 'Security answer is required';
         } elseif (strlen($securityAnswer) < 3) {
             $errors['security_answer'] = 'Security answer must be at least 3 characters';
+        }
+
+        if (empty($captcha)) {
+            $errors['captcha'] = 'Verification code is required';
         }
 
         if (!empty($errors)) {
@@ -327,6 +333,7 @@ class AuthenticationController extends BaseController
             $this->logActivity('registration_attempt', ['username' => $username, 'email' => $email]);
 
             if ($user->save()) {
+                session_regenerate_id(true);
                 $_SESSION['user_id'] = $user->id;
                 $_SESSION['username'] = $user->username;
                 $_SESSION['discriminator'] = $user->discriminator;

@@ -25,6 +25,8 @@ class ImageCutter {
         this.resizeHandle = null;
         this.isActive = false;
         this.modal = null;
+        this.scale = 1;
+        this.imageOffset = { x: 0, y: 0 };
 
         this.init();
     }
@@ -41,16 +43,13 @@ class ImageCutter {
                 return;
             }
             
-            // Add special class to container for identification
             this.options.container.classList.add('image-cutter-enabled');
             
-            // Create modal only when needed to avoid unnecessary DOM creation
             if (this.options.imageUrl) {
                 this.createModal();
                 this.loadImage(this.options.imageUrl);
             }
             
-            // Set up container click event
             this.options.container.addEventListener('click', (e) => {
                 try {
                     if (e.target.tagName === 'INPUT' && e.target.type === 'file') {
@@ -65,7 +64,6 @@ class ImageCutter {
                 }
             });
             
-            // Add global error handler for the component
             window.addEventListener('error', (event) => {
                 if (event.error && 
                     event.error.stack && 
@@ -165,25 +163,27 @@ class ImageCutter {
             this.cutterContainer.style.boxShadow = 'inset 0 0 20px rgba(0, 0, 0, 0.4)';
             modalContent.appendChild(this.cutterContainer);
 
-            this.canvas = document.createElement('canvas');
-            this.canvas.width = 500;
-            this.canvas.height = 400;
-            this.canvas.style.position = 'absolute';
-            this.canvas.style.top = '0';
-            this.canvas.style.left = '0';
-            this.canvas.style.width = '100%';
-            this.canvas.style.height = '100%';
-            this.ctx = this.canvas.getContext('2d');
-            this.cutterContainer.appendChild(this.canvas);
+            this.imageElement = document.createElement('img');
+            this.imageElement.style.position = 'absolute';
+            this.imageElement.style.top = '0';
+            this.imageElement.style.left = '0';
+            this.imageElement.style.maxWidth = 'none';
+            this.imageElement.style.maxHeight = 'none';
+            this.imageElement.style.userSelect = 'none';
+            this.imageElement.style.pointerEvents = 'none';
+            this.cutterContainer.appendChild(this.imageElement);
 
             this.overlay = document.createElement('div');
             this.overlay.className = 'image-cutter-overlay';
             this.overlay.style.position = 'absolute';
             this.overlay.style.top = '0';
             this.overlay.style.left = '0';
-            this.overlay.style.width = '100%';
-            this.overlay.style.height = '100%';
+            this.overlay.style.width = '100px';
+            this.overlay.style.height = '100px';
             this.overlay.style.cursor = 'move';
+            this.overlay.style.border = '2px solid #5865F2';
+            this.overlay.style.boxShadow = '0 0 0 9999px rgba(0, 0, 0, 0.5)';
+            this.overlay.style.boxSizing = 'border-box';
             this.cutterContainer.appendChild(this.overlay);
 
             const infoSection = document.createElement('div');
@@ -192,7 +192,6 @@ class ImageCutter {
             infoSection.style.justifyContent = 'center';
             infoSection.style.marginBottom = '20px';
             
-            // Icon for instructions
             const infoIcon = document.createElement('div');
             infoIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>';
             infoIcon.style.marginRight = '8px';
@@ -263,7 +262,6 @@ class ImageCutter {
             this.modal.appendChild(modalContent);
             document.body.appendChild(this.modal);
 
-            // Add animation effect when opening
             setTimeout(() => {
                 modalContent.style.transform = 'scale(1)';
                 modalContent.style.opacity = '1';
@@ -298,7 +296,6 @@ class ImageCutter {
             handle.style.boxShadow = '0 0 0 1px rgba(0, 0, 0, 0.3)';
             handle.dataset.position = pos;
             
-            // Add hover effect
             handle.addEventListener('mouseenter', () => {
                 handle.style.transform = 'scale(1.2)';
                 handle.style.opacity = '1';
@@ -356,11 +353,7 @@ class ImageCutter {
 
     handleResize() {
         if (this.isActive && this.image.src) {
-            if (this.cutterContainer && this.cutterContainer.offsetWidth) {
-                this.canvas.width = this.cutterContainer.offsetWidth;
-                this.canvas.height = this.cutterContainer.offsetHeight;
-            }
-            this.draw();
+            this.updateImageDisplay();
         }
     }
 
@@ -371,13 +364,12 @@ class ImageCutter {
                 return;
             }
             
-            // Clean up any previous failed state
             if (!this.modal) {
                 this.createModal();
             }
             
             this.image = new Image();
-            this.image.crossOrigin = "Anonymous";  // Handle cross-origin images
+            this.image.crossOrigin = "Anonymous";
             
             this.image.onload = () => {
                 try {
@@ -421,12 +413,10 @@ class ImageCutter {
         if (!this.image.src) return;
         
         try {
-            // Make sure the modal exists
             if (!this.modal) {
                 this.createModal();
             }
             
-            // Double check if modal was created successfully
             if (!this.modal) {
                 console.error('Failed to create modal');
                 return;
@@ -435,7 +425,6 @@ class ImageCutter {
             this.isActive = true;
             this.modal.style.display = 'flex';
             
-            // Animate modal appearance
             const modalContent = this.modal.querySelector('.image-cutter-modal-content');
             if (modalContent) {
                 setTimeout(() => {
@@ -444,41 +433,18 @@ class ImageCutter {
                 }, 50);
             }
             
-            // If cutterContainer is missing, try to recover by recreating the inner modal content
             if (!this.cutterContainer) {
                 console.warn('Cutter container is missing, attempting to recreate modal content');
                 this.recreateModalContent();
             }
             
-            // If still no cutterContainer after recovery attempt, give up
             if (!this.cutterContainer) {
                 console.error('Could not create cutter container');
                 this.hideModal();
                 return;
             }
             
-            // If canvas is missing or invalid, create a new one
-            if (!this.canvas || !this.ctx) {
-                this.canvas = document.createElement('canvas');
-                this.ctx = this.canvas.getContext('2d');
-                this.canvas.style.position = 'absolute';
-                this.canvas.style.top = '0';
-                this.canvas.style.left = '0';
-                this.canvas.style.width = '100%';
-                this.canvas.style.height = '100%';
-                this.cutterContainer.appendChild(this.canvas);
-            }
-            
-            // Set canvas dimensions
-            if (this.cutterContainer && this.cutterContainer.offsetWidth) {
-                this.canvas.width = this.cutterContainer.offsetWidth;
-                this.canvas.height = this.cutterContainer.offsetHeight || 450;
-            } else {
-                this.canvas.width = 500;
-                this.canvas.height = 450;
-            }
-            
-            this.draw();
+            this.updateImageDisplay();
             this.attachEventListeners();
             document.body.style.overflow = 'hidden';
         } catch (error) {
@@ -493,11 +459,9 @@ class ImageCutter {
         try {
             const modalContent = this.modal?.querySelector('.image-cutter-modal-content');
             if (modalContent) {
-                // Animate closing
                 modalContent.style.transform = 'scale(0.95)';
                 modalContent.style.opacity = '0';
                 
-                // Wait for animation to finish
                 setTimeout(() => {
                     this.isActive = false;
                     if (this.modal) {
@@ -514,7 +478,6 @@ class ImageCutter {
             }
         } catch (error) {
             console.error('Error hiding modal:', error);
-            // Force hide in case of error
             this.isActive = false;
             if (this.modal) {
                 this.modal.style.display = 'none';
@@ -543,10 +506,8 @@ class ImageCutter {
         let cropWidth, cropHeight;
         
         if (this.options.type === 'profile') {
-            // For profile, always enforce 1:1 ratio (square)
             cropWidth = cropHeight = Math.min(imgWidth, imgHeight);
         } else {
-            // For banner, maintain 2:1 ratio
             if (imgWidth / imgHeight > 2) {
                 cropHeight = imgHeight;
                 cropWidth = imgHeight * 2;
@@ -563,22 +524,21 @@ class ImageCutter {
             height: cropHeight
         };
         
-        // Double check ratio enforcement for profile type
         if (this.options.type === 'profile') {
             this.cropArea.height = this.cropArea.width;
         }
     }
 
-    draw() {
-        if (!this.isActive || !this.canvas || !this.ctx || !this.image.complete) return;
+    updateImageDisplay() {
+        if (!this.isActive || !this.imageElement || !this.image.complete) return;
         
         try {
-            const { width: containerWidth, height: containerHeight } = this.canvas;
+            const containerWidth = this.cutterContainer.offsetWidth;
+            const containerHeight = this.cutterContainer.offsetHeight;
             const { width: imgWidth, height: imgHeight } = this.image;
             
             if (!containerWidth || !containerHeight || !imgWidth || !imgHeight) return;
             
-            // Final check to ensure aspect ratio is enforced
             if (this.options.type === 'profile') {
                 const size = Math.min(this.cropArea.width, this.cropArea.height);
                 this.cropArea.width = size;
@@ -587,31 +547,32 @@ class ImageCutter {
                 this.cropArea.height = this.cropArea.width / 2;
             }
             
-            this.ctx.clearRect(0, 0, containerWidth, containerHeight);
-            
             const scaleX = containerWidth / imgWidth;
             const scaleY = containerHeight / imgHeight;
-            const scale = Math.min(scaleX, scaleY);
+            this.scale = Math.min(scaleX, scaleY);
             
-            const scaledWidth = imgWidth * scale;
-            const scaledHeight = imgHeight * scale;
+            const scaledWidth = imgWidth * this.scale;
+            const scaledHeight = imgHeight * this.scale;
             
-            const offsetX = (containerWidth - scaledWidth) / 2;
-            const offsetY = (containerHeight - scaledHeight) / 2;
+            this.imageOffset.x = (containerWidth - scaledWidth) / 2;
+            this.imageOffset.y = (containerHeight - scaledHeight) / 2;
             
-            this.ctx.drawImage(this.image, 0, 0, imgWidth, imgHeight, offsetX, offsetY, scaledWidth, scaledHeight);
+            this.imageElement.src = this.image.src;
+            this.imageElement.style.width = scaledWidth + 'px';
+            this.imageElement.style.height = scaledHeight + 'px';
+            this.imageElement.style.left = this.imageOffset.x + 'px';
+            this.imageElement.style.top = this.imageOffset.y + 'px';
             
-            this.updateCropOverlay(offsetX, offsetY, scale);
+            this.updateCropOverlay();
         } catch (error) {
-            console.error('Error drawing image:', error);
+            console.error('Error updating image display:', error);
         }
     }
 
-    updateCropOverlay(offsetX, offsetY, scale) {
+    updateCropOverlay() {
         if (!this.overlay) return;
         
         try {
-            // Ensure aspect ratio one final time
             if (this.options.type === 'profile') {
                 const size = Math.min(this.cropArea.width, this.cropArea.height);
                 this.cropArea.width = size;
@@ -619,10 +580,10 @@ class ImageCutter {
             }
             
             const crop = {
-                x: this.cropArea.x * scale + offsetX,
-                y: this.cropArea.y * scale + offsetY,
-                width: Math.max(this.cropArea.width * scale, 10),
-                height: Math.max(this.cropArea.height * scale, 10)
+                x: this.cropArea.x * this.scale + this.imageOffset.x,
+                y: this.cropArea.y * this.scale + this.imageOffset.y,
+                width: Math.max(this.cropArea.width * this.scale, 10),
+                height: Math.max(this.cropArea.height * this.scale, 10)
             };
     
             this.overlay.style.left = `${crop.x}px`;
@@ -634,10 +595,8 @@ class ImageCutter {
             this.overlay.style.boxSizing = 'border-box';
             this.overlay.style.borderRadius = this.options.type === 'profile' ? '50%' : '0';
             
-            // Add a subtle animation to the overlay for better visibility
             this.overlay.style.transition = 'border-color 0.2s ease';
             
-            // Add size hint
             if (!this.statusText) {
                 this.statusText = document.createElement('div');
                 this.statusText.style.position = 'absolute';
@@ -659,7 +618,6 @@ class ImageCutter {
                 this.statusText.textContent = `Size: ${Math.round(this.cropArea.width)}×${Math.round(this.cropArea.height)}px (2:1)`;
             }
             
-            // Add instructions if not already present
             if (!this.instructionText && this.cutterContainer) {
                 this.instructionText = document.createElement('div');
                 this.instructionText.style.position = 'absolute';
@@ -677,7 +635,6 @@ class ImageCutter {
                     : 'Drag corners to resize (2:1 ratio) • Drag center to move';
                 this.cutterContainer.appendChild(this.instructionText);
                 
-                // Fade out after a few seconds
                 setTimeout(() => {
                     if (this.instructionText) {
                         this.instructionText.style.transition = 'opacity 1s ease';
@@ -715,15 +672,10 @@ class ImageCutter {
         const deltaX = e.clientX - this.dragStart.x;
         const deltaY = e.clientY - this.dragStart.y;
         
-        const { width: containerWidth, height: containerHeight } = this.canvas;
         const { width: imgWidth, height: imgHeight } = this.image;
         
-        const scaleX = containerWidth / imgWidth;
-        const scaleY = containerHeight / imgHeight;
-        const scale = Math.min(scaleX, scaleY);
-        
-        let newX = this.dragStart.cropX + deltaX / scale;
-        let newY = this.dragStart.cropY + deltaY / scale;
+        let newX = this.dragStart.cropX + deltaX / this.scale;
+        let newY = this.dragStart.cropY + deltaY / this.scale;
         
         newX = Math.max(0, Math.min(imgWidth - this.cropArea.width, newX));
         newY = Math.max(0, Math.min(imgHeight - this.cropArea.height, newY));
@@ -731,16 +683,14 @@ class ImageCutter {
         this.cropArea.x = newX;
         this.cropArea.y = newY;
         
-        this.draw();
+        this.updateCropOverlay();
         e.preventDefault();
     }
 
     endDrag() {
-        // Reset visual changes
         this.overlay.style.borderColor = '#5865F2';
         this.overlay.style.borderWidth = '2px';
         
-        // Reset all handles
         if (this.handles) {
             Object.values(this.handles).forEach(handle => {
                 handle.style.transform = 'scale(1)';
@@ -762,11 +712,9 @@ class ImageCutter {
             ...this.cropArea
         };
         
-        // Add visual feedback when resizing starts
         this.overlay.style.borderColor = '#5865F2';
         this.overlay.style.borderWidth = '3px';
         
-        // Highlight active handle
         if (this.handles[position]) {
             this.handles[position].style.transform = 'scale(1.3)';
             this.handles[position].style.opacity = '1';
@@ -783,23 +731,15 @@ class ImageCutter {
         const deltaX = e.clientX - this.dragStart.x;
         const deltaY = e.clientY - this.dragStart.y;
         
-        const { width: containerWidth, height: containerHeight } = this.canvas;
         const { width: imgWidth, height: imgHeight } = this.image;
         
-        const scaleX = containerWidth / imgWidth;
-        const scaleY = containerHeight / imgHeight;
-        const scale = Math.min(scaleX, scaleY);
-        
-        // Use larger deltas to make the resize more responsive
-        const responsiveness = 1.2;  // Increase this to make resize feel more responsive
-        const scaledDeltaX = deltaX / scale * responsiveness;
-        const scaledDeltaY = deltaY / scale * responsiveness;
+        const responsiveness = 1.2;
+        const scaledDeltaX = deltaX / this.scale * responsiveness;
+        const scaledDeltaY = deltaY / this.scale * responsiveness;
         
         const crop = { ...this.cropArea };
         
         if (this.options.type === 'profile') {
-            // For profile type, always maintain perfect square (1:1 ratio)
-            // Use the maximum delta to ensure consistent movement
             let delta;
             
             switch (this.resizeHandle) {
@@ -808,73 +748,66 @@ class ImageCutter {
                     crop.x = this.dragStart.x + delta;
                     crop.y = this.dragStart.y + delta;
                     crop.width = this.dragStart.width - delta;
-                    crop.height = crop.width; // Enforce 1:1 ratio
+                    crop.height = crop.width;
                     break;
                     
                 case 'ne': 
                     delta = Math.max(-scaledDeltaX, scaledDeltaY);
                     crop.y = this.dragStart.y + delta;
                     crop.width = this.dragStart.width + delta;
-                    crop.height = crop.width; // Enforce 1:1 ratio
+                    crop.height = crop.width;
                     break;
                     
                 case 'sw': 
                     delta = Math.max(scaledDeltaX, -scaledDeltaY);
                     crop.x = this.dragStart.x + delta;
                     crop.width = this.dragStart.width - delta;
-                    crop.height = crop.width; // Enforce 1:1 ratio
+                    crop.height = crop.width;
                     break;
                     
                 case 'se': 
-                    // For SE corner, use the smaller of the two deltas to ensure the crop stays within bounds
                     delta = Math.min(scaledDeltaX, scaledDeltaY);
                     crop.width = this.dragStart.width + delta;
-                    crop.height = crop.width; // Enforce 1:1 ratio
+                    crop.height = crop.width;
                     break;
             }
         } else {
-            // For banner type, maintain 2:1 ratio
             switch (this.resizeHandle) {
                 case 'nw':
                     crop.x = this.dragStart.x + scaledDeltaX;
                     crop.width = this.dragStart.width - scaledDeltaX;
-                    crop.height = crop.width / 2; // Enforce 2:1 ratio
+                    crop.height = crop.width / 2;
                     crop.y = this.dragStart.y + this.dragStart.height - crop.height;
                     break;
                     
                 case 'ne':
                     crop.width = this.dragStart.width + scaledDeltaX;
-                    crop.height = crop.width / 2; // Enforce 2:1 ratio
+                    crop.height = crop.width / 2;
                     crop.y = this.dragStart.y + this.dragStart.height - crop.height;
                     break;
                     
                 case 'sw':
                     crop.x = this.dragStart.x + scaledDeltaX;
                     crop.width = this.dragStart.width - scaledDeltaX;
-                    crop.height = crop.width / 2; // Enforce 2:1 ratio
+                    crop.height = crop.width / 2;
                     break;
                     
                 case 'se':
                     crop.width = this.dragStart.width + scaledDeltaX;
-                    crop.height = crop.width / 2; // Enforce 2:1 ratio
+                    crop.height = crop.width / 2;
                     break;
             }
         }
         
-        // Define minimum sizes based on type
         const minSize = this.options.type === 'profile' ? 50 : 100;
         
-        // Apply bounds checking and constraint enforcement
         if (crop.width >= minSize && crop.height >= (this.options.type === 'profile' ? minSize : minSize / 2)) {
-            // Ensure crop area stays within image bounds
             if (crop.x < 0) crop.x = 0;
             if (crop.y < 0) crop.y = 0;
             if (crop.x + crop.width > imgWidth) crop.width = imgWidth - crop.x;
             if (crop.y + crop.height > imgHeight) crop.height = imgHeight - crop.y;
             
-            // Final ratio enforcement before applying
             if (this.options.type === 'profile') {
-                // Ensure the size is the smaller of width/height to stay in bounds
                 const finalSize = Math.min(crop.width, crop.height, 
                                          imgWidth - crop.x, 
                                          imgHeight - crop.y);
@@ -885,9 +818,8 @@ class ImageCutter {
             }
             
             this.cropArea = crop;
-            this.draw();
+            this.updateCropOverlay();
             
-            // Update status text if we have it
             if (this.statusText) {
                 if (this.options.type === 'profile') {
                     this.statusText.textContent = `Size: ${Math.round(crop.width)}×${Math.round(crop.width)}px (1:1)`;
@@ -943,13 +875,12 @@ class ImageCutter {
         
         if (this.image.src) {
             this.calculateInitialCrop();
-            this.draw();
+            this.updateImageDisplay();
         }
     }
 
     recreateModalContent() {
         try {
-            // Clean up the existing modal content
             if (this.modal) {
                 while (this.modal.firstChild) {
                     this.modal.removeChild(this.modal.firstChild);
@@ -958,7 +889,6 @@ class ImageCutter {
                 return;
             }
             
-            // Create new modal content container
             const modalContent = document.createElement('div');
             modalContent.className = 'image-cutter-modal-content';
             modalContent.style.backgroundColor = '#36393f';
@@ -969,7 +899,6 @@ class ImageCutter {
             modalContent.style.position = 'relative';
             modalContent.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.5)';
             
-            // Create header
             const modalHeader = document.createElement('div');
             modalHeader.style.display = 'flex';
             modalHeader.style.justifyContent = 'space-between';
@@ -998,7 +927,6 @@ class ImageCutter {
             modalHeader.appendChild(closeButton);
             modalContent.appendChild(modalHeader);
             
-            // Create cutter container
             this.cutterContainer = document.createElement('div');
             this.cutterContainer.className = 'image-cutter-container';
             this.cutterContainer.style.position = 'relative';
@@ -1010,7 +938,6 @@ class ImageCutter {
             this.cutterContainer.style.borderRadius = '4px';
             modalContent.appendChild(this.cutterContainer);
             
-            // Create info text
             const infoText = document.createElement('p');
             infoText.textContent = this.options.type === 'profile' 
                 ? 'Drag to position and resize the crop area. Profile images use a 1:1 ratio.' 
@@ -1021,7 +948,6 @@ class ImageCutter {
             infoText.style.textAlign = 'center';
             modalContent.appendChild(infoText);
             
-            // Create buttons
             const buttonContainer = document.createElement('div');
             buttonContainer.style.display = 'flex';
             buttonContainer.style.justifyContent = 'flex-end';
@@ -1054,26 +980,27 @@ class ImageCutter {
             modalContent.appendChild(buttonContainer);
             this.modal.appendChild(modalContent);
             
-            // Create canvas and overlay
-            this.canvas = document.createElement('canvas');
-            this.canvas.width = 500;
-            this.canvas.height = 400;
-            this.canvas.style.position = 'absolute';
-            this.canvas.style.top = '0';
-            this.canvas.style.left = '0';
-            this.canvas.style.width = '100%';
-            this.canvas.style.height = '100%';
-            this.ctx = this.canvas.getContext('2d');
-            this.cutterContainer.appendChild(this.canvas);
+            this.imageElement = document.createElement('img');
+            this.imageElement.style.position = 'absolute';
+            this.imageElement.style.top = '0';
+            this.imageElement.style.left = '0';
+            this.imageElement.style.maxWidth = 'none';
+            this.imageElement.style.maxHeight = 'none';
+            this.imageElement.style.userSelect = 'none';
+            this.imageElement.style.pointerEvents = 'none';
+            this.cutterContainer.appendChild(this.imageElement);
             
             this.overlay = document.createElement('div');
             this.overlay.className = 'image-cutter-overlay';
             this.overlay.style.position = 'absolute';
             this.overlay.style.top = '0';
             this.overlay.style.left = '0';
-            this.overlay.style.width = '100%';
-            this.overlay.style.height = '100%';
+            this.overlay.style.width = '100px';
+            this.overlay.style.height = '100px';
             this.overlay.style.cursor = 'move';
+            this.overlay.style.border = '2px solid #5865F2';
+            this.overlay.style.boxShadow = '0 0 0 9999px rgba(0, 0, 0, 0.5)';
+            this.overlay.style.boxSizing = 'border-box';
             this.cutterContainer.appendChild(this.overlay);
             
             this.createResizeHandles();
@@ -1084,27 +1011,22 @@ class ImageCutter {
     
     cleanupFailedModal() {
         try {
-            // Reset all component properties
             this.isActive = false;
             if (this.modal) {
                 this.modal.style.display = 'none';
                 
-                // Try to remove from DOM if it exists
                 if (this.modal.parentNode) {
                     this.modal.parentNode.removeChild(this.modal);
                 }
             }
             
-            // Reset references to DOM elements
             this.modal = null;
             this.cutterContainer = null;
-            this.canvas = null;
-            this.ctx = null;
+            this.imageElement = null;
             this.overlay = null;
             
             document.body.style.overflow = '';
             
-            // Try to notify user of error through the onCrop callback
             if (typeof this.options.onCrop === 'function') {
                 this.options.onCrop({ 
                     error: true, 

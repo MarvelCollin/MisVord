@@ -112,7 +112,7 @@ function handleLeaveChannel(io, client, data) {
         return;
     }
     
-    const room = `channel-${data.channelId}`;
+    const room = `channel-${data.channelId}`;   
     client.leave(room);
     
     client.emit('channel-left', { 
