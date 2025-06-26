@@ -166,8 +166,6 @@ function renderCategorySkeleton($count = 1) {
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Initializing channel section with API-driven approach');
-    
     setTimeout(function() {
         const skeleton = document.querySelector('.channel-skeleton');
         const channelList = document.querySelector('.channel-list');
@@ -182,8 +180,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function initializeChannelHandlers() {
-    console.log('Setting up API-driven channel handlers');
-    
     const channelItems = document.querySelectorAll('.channel-item');
     
     channelItems.forEach(item => {
@@ -199,11 +195,8 @@ function initializeChannelHandlers() {
             const serverId = document.getElementById('current-server-id')?.value;
             
             if (!channelId || !serverId) {
-                console.error('Missing channel ID or server ID');
                 return;
             }
-            
-            console.log('Channel clicked:', {channelId, channelType, serverId});
             
             handleChannelSwitch(serverId, channelId, channelType, clone);
         });
@@ -218,7 +211,6 @@ async function handleChannelSwitch(serverId, channelId, channelType, clickedElem
         if (window.channelRenderer) {
             await window.channelRenderer.switchToChannel(serverId, channelId, channelType);
         } else {
-            console.warn('Channel renderer not available, loading...');
             await loadChannelRenderer();
             if (window.channelRenderer) {
                 await window.channelRenderer.switchToChannel(serverId, channelId, channelType);
@@ -230,13 +222,18 @@ async function handleChannelSwitch(serverId, channelId, channelType, clickedElem
 
         
         if (channelType === 'voice') {
-            setTimeout(() => {
-                autoConnectToVoice(channelId);
-            }, 2000);
+            const tryAutoJoin = () => {
+                const joinBtn = document.getElementById('joinBtn');
+                if (joinBtn && !joinBtn.disabled) {
+                    joinBtn.click();
+                } else {
+                    setTimeout(tryAutoJoin, 300);
+                }
+            };
+            setTimeout(tryAutoJoin, 500);
         }
         
     } catch (error) {
-        console.error('Channel switch failed:', error);
         showChannelSwitchError(error.message);
         resetChannelUI();
     } finally {
@@ -307,7 +304,6 @@ async function loadChannelRenderer() {
         const script = document.createElement('script');
         script.src = '/public/js/api/channel-api.js?v=' + Date.now();
         script.onload = () => {
-            console.log('Channel API loaded');
             setTimeout(() => {
                 if (window.channelRenderer) {
                     resolve();
@@ -321,19 +317,9 @@ async function loadChannelRenderer() {
     });
 }
 
-async function autoConnectToVoice(channelId) {
-    const joinBtn = document.getElementById('joinBtn');
-    if (joinBtn && !joinBtn.disabled) {
-        joinBtn.click();
-    }
-}
+
 
 window.refreshChannelHandlers = function() {
-    console.log('Refreshing channel handlers');
     initializeChannelHandlers();
 };
-
-document.addEventListener('channelSwitched', function(e) {
-    console.log('Channel switched successfully:', e.detail);
-});
 </script>

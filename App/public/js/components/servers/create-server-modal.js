@@ -5,6 +5,8 @@ import FormValidator from '../common/validation.js';
 import serverAPI from '../../api/server-api.js';
 import { ServerSidebar } from './server-sidebar.js';
 
+console.log("create-server-modal.js loaded");
+
 document.addEventListener('DOMContentLoaded', function () {
     window.serverAPI = serverAPI;
     
@@ -14,6 +16,7 @@ document.addEventListener('DOMContentLoaded', function () {
     initToggleAnimation();
     initTooltips();
     initCategorySelection();
+    initCreateServerButton();
 
     initStepNavigation();
 });
@@ -771,7 +774,7 @@ window.navigateToServer = function (serverId) {
     navigateToNewServer(serverId);
 };
 
-window.openCreateServerModal = function () {
+export function openCreateServerModal() {
     const modal = document.getElementById('create-server-modal');
     if (modal) {
         const form = document.getElementById('create-server-form');
@@ -796,8 +799,12 @@ window.openCreateServerModal = function () {
         if (nameInput) {
             setTimeout(() => nameInput.focus(), 300);
         }
+    } else {
+        console.error('Create server modal not found in the DOM');
     }
-};
+}
+
+window.openCreateServerModal = openCreateServerModal;
 
 document.addEventListener('click', function (e) {
     const modal = document.getElementById('create-server-modal');
@@ -875,4 +882,14 @@ function initCategorySelection() {
             }
         });
     }
+}
+
+function initCreateServerButton() {
+    const createServerButtons = document.querySelectorAll('[data-action="create-server"]');
+    createServerButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            window.openCreateServerModal();
+        });
+    });
 }

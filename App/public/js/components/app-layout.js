@@ -15,6 +15,35 @@ document.addEventListener('DOMContentLoaded', function () {
         
         activateTab(tab);
     }
+
+    const createServerButtons = document.querySelectorAll('[data-action="create-server"]');
+    if (createServerButtons.length > 0) {
+        console.log('Found create server buttons in app-layout.js:', createServerButtons.length);
+        
+        createServerButtons.forEach(button => {
+            const newButton = button.cloneNode(true);
+            button.parentNode.replaceChild(newButton, button);
+            
+            newButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Create server button clicked from app-layout.js');
+                
+                const modal = document.getElementById('create-server-modal');
+                if (modal) {
+                    console.log('Modal found, opening directly');
+                    modal.classList.remove('hidden');
+                    modal.style.display = 'flex';
+                    
+                    requestAnimationFrame(() => {
+                        modal.classList.remove('opacity-0');
+                    });
+                } else {
+                    console.error('Modal not found in the DOM from app-layout.js');
+                }
+            });
+        });
+    }
 });
 
 function initServerModal() {

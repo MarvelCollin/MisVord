@@ -6,6 +6,7 @@ let cacheExpiry = 0;
 
 document.addEventListener('DOMContentLoaded', function() {
     initServerSidebar();
+    bindCreateServerButton();
 });
 
 function initServerSidebar() {
@@ -402,7 +403,7 @@ function setupDropZones() {
                 folder.style.boxShadow = '0 4px 12px rgba(88, 101, 242, 0.3)';
             });
             
-                            serverIcon.addEventListener('drop', e => {
+            serverIcon.addEventListener('drop', e => {
                 e.preventDefault();
                 e.stopPropagation();
                 folder.classList.remove('drag-over');
@@ -624,3 +625,50 @@ export const ServerSidebar = {
     renderFolders: () => performCompleteRender(),
     refresh: () => performCompleteRender()
 };
+
+function bindCreateServerButton() {
+    const createServerButton = document.querySelector('[data-action="create-server"]');
+    if (createServerButton) {
+        console.log('Found create server button, attaching listener');
+        
+        if (typeof window.openCreateServerModal !== 'function') {
+            console.log('Loading create-server-modal.js script');
+            
+            const script = document.createElement('script');
+            script.src = '/public/js/components/servers/create-server-modal.js';
+            script.type = 'module';
+            document.body.appendChild(script);
+            
+            window.openCreateServerModal = function() {
+                console.log('Modal function called before script loaded');
+                const modal = document.getElementById('create-server-modal');
+                if (modal) {
+                    modal.classList.remove('hidden');
+                    modal.style.display = 'flex';
+                    setTimeout(() => {
+                        modal.classList.remove('opacity-0');
+                    }, 10);
+                } else {
+                    console.error('Modal element not found');
+                }
+            };
+        }
+        
+        const newButton = createServerButton.cloneNode(true);
+        createServerButton.parentNode.replaceChild(newButton, createServerButton);
+        
+        newButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Create server button clicked');
+            
+            if (typeof window.openCreateServerModal === 'function') {
+                window.openCreateServerModal();
+            } else {
+                console.error('openCreateServerModal function not found');
+            }
+        });
+    } else {
+        console.error('Create server button not found');
+    }
+}

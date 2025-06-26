@@ -72,9 +72,8 @@ class ChatController extends BaseController
             $formattedMessages = array_map([$this, 'formatMessage'], $messages);
 
             error_log("Returning " . count($formattedMessages) . " messages for channel $channelId");
-
-            header('Content-Type: application/json');
-            echo json_encode([
+            
+            $this->sendJsonResponse([
                 'success' => true,
                 'timestamp' => date('Y-m-d H:i:s'),
                 'message' => 'Success',
@@ -84,11 +83,40 @@ class ChatController extends BaseController
                 'messages' => $formattedMessages,
                 'has_more' => count($messages) >= $limit
             ]);
-            exit;
         } catch (Exception $e) {
             error_log("Error getting channel messages: " . $e->getMessage());
-            return $this->serverError('Failed to load channel messages: ' . $e->getMessage());
+            $this->sendJsonError('Failed to load channel messages: ' . $e->getMessage(), 500);
         }
+    }
+    
+    private function sendJsonResponse($data)
+    {
+        if (headers_sent()) {
+            error_log("Headers already sent when trying to send JSON response");
+        } else {
+            header('Content-Type: application/json');
+            header('X-Content-Type-Options: nosniff');
+        }
+        echo json_encode($data);
+        exit;
+    }
+    
+    private function sendJsonError($message, $code = 400)
+    {
+        if (headers_sent()) {
+            error_log("Headers already sent when trying to send JSON error");
+        } else {
+            http_response_code($code);
+            header('Content-Type: application/json');
+            header('X-Content-Type-Options: nosniff');
+        }
+        echo json_encode([
+            'success' => false,
+            'message' => $message,
+            'status' => 'error',
+            'timestamp' => date('Y-m-d H:i:s')
+        ]);
+        exit;
     }
 
     private function getDirectMessages($chatRoomId, $userId)
@@ -111,8 +139,7 @@ class ChatController extends BaseController
 
             error_log("Returning " . count($formattedMessages) . " messages for DM room $chatRoomId");
 
-            header('Content-Type: application/json');
-            echo json_encode([
+            $this->sendJsonResponse([
                 'success' => true,
                 'timestamp' => date('Y-m-d H:i:s'),
                 'message' => 'Success',
@@ -122,10 +149,9 @@ class ChatController extends BaseController
                 'messages' => $formattedMessages,
                 'has_more' => count($messages) >= $limit
             ]);
-            exit;
         } catch (Exception $e) {
             error_log("Error getting DM messages: " . $e->getMessage());
-            return $this->serverError('Failed to load direct messages: ' . $e->getMessage());
+            $this->sendJsonError('Failed to load direct messages: ' . $e->getMessage(), 500);
         }
     }
 
@@ -639,6 +665,30 @@ class ChatController extends BaseController
             }
         }
         
+        // Include reactions for the message
+        try {
+            require_once __DIR__ . '/../database/models/MessageReaction.php';
+            
+            $messageId = is_array($message) ? $message['id'] : $message->id;
+            $reactions = MessageReaction::getForMessage($messageId);
+            
+            if (!empty($reactions)) {
+                $formatted['reactions'] = [];
+                
+                foreach ($reactions as $reaction) {
+                    $reactionUser = $this->userRepository->find($reaction->user_id);
+                    $formatted['reactions'][] = [
+                        'emoji' => $reaction->emoji,
+                        'user_id' => $reaction->user_id,
+                        'username' => $reactionUser ? $reactionUser->username : 'Unknown User'
+                    ];
+                }
+            }
+        } catch (Exception $e) {
+            // Silently fail if reactions can't be loaded
+            error_log('Error loading reactions for message: ' . $e->getMessage());
+        }
+        
         return $formatted;
     }
 
@@ -725,14 +775,6 @@ class ChatController extends BaseController
                 } catch (Exception $e) {
                     $messages = [];
                 }
-
-
-                $channelData = [
-                    'id' => $channel->id,
-                    'name' => $channel->name,
-                    'topic' => $channel->topic ?? '',
-                    'server_id' => $channel->server_id
-                ];
 
 
                 $channelData = [
@@ -982,6 +1024,184 @@ class ChatController extends BaseController
             ]);
         } catch (Exception $e) {
             return $this->serverError('Failed to search messages');
+        }
+    }
+
+    public function getMessageReactions($messageId) {
+        $this->requireAuth();
+        $userId = $this->getCurrentUserId();
+        
+        $message = $this->messageRepository->find($messageId);
+        if (!$message) {
+            return $this->notFound('Message not found');
+        }
+        
+        try {
+            require_once __DIR__ . '/../database/models/MessageReaction.php';
+            
+            $reactions = MessageReaction::getForMessage($messageId);
+            $formattedReactions = [];
+            
+            foreach ($reactions as $reaction) {
+                $user = $this->userRepository->find($reaction->user_id);
+                $formattedReactions[] = [
+                    'id' => $reaction->id,
+                    'message_id' => $reaction->message_id,
+                    'user_id' => $reaction->user_id,
+                    'emoji' => $reaction->emoji,
+                    'username' => $user ? $user->username : 'Unknown User',
+                    'created_at' => $reaction->created_at
+                ];
+            }
+            
+            return $this->success(['reactions' => $formattedReactions]);
+        } catch (Exception $e) {
+            return $this->serverError('Failed to get message reactions: ' . $e->getMessage());
+        }
+    }
+    
+    public function addReaction($messageId) {
+        $this->requireAuth();
+        $userId = $this->getCurrentUserId();
+        $username = $_SESSION['username'] ?? 'Unknown User';
+        
+        $message = $this->messageRepository->find($messageId);
+        if (!$message) {
+            return $this->notFound('Message not found');
+        }
+        
+        $input = $this->getInput();
+        $input = $this->sanitize($input);
+        
+        $this->validate($input, ['emoji' => 'required']);
+        $emoji = $input['emoji'];
+        
+        try {
+            require_once __DIR__ . '/../database/models/MessageReaction.php';
+            
+            $existingReaction = MessageReaction::findByMessageAndUser($messageId, $userId, $emoji);
+            if ($existingReaction) {
+                return $this->success(['reaction' => 'Already exists']);
+            }
+            
+            $reaction = new MessageReaction([
+                'message_id' => $messageId,
+                'user_id' => $userId,
+                'emoji' => $emoji
+            ]);
+            
+            if ($reaction->save()) {
+                require_once __DIR__ . '/../database/models/ChannelMessage.php';
+                
+                $targetId = null;
+                $targetType = 'channel';
+                
+                $channelMessage = ChannelMessage::findByMessageId($messageId);
+                if ($channelMessage) {
+                    $targetId = $channelMessage->channel_id;
+                    $targetType = 'channel';
+                } else {
+                    $query = new Query();
+                    $chatRoomMessage = $query->table('chat_room_messages')
+                        ->where('message_id', $messageId)
+                        ->first();
+                    if ($chatRoomMessage) {
+                        $targetId = $chatRoomMessage['room_id'];
+                        $targetType = 'dm';
+                    }
+                }
+                
+                return $this->success([
+                    'reaction' => [
+                        'id' => $reaction->id,
+                        'message_id' => $reaction->message_id,
+                        'user_id' => $reaction->user_id,
+                        'emoji' => $reaction->emoji
+                    ],
+                    'socket_event' => 'reaction-added',
+                    'socket_data' => [
+                        'message_id' => $messageId,
+                        'emoji' => $emoji,
+                        'user_id' => $userId,
+                        'username' => $username,
+                        'target_type' => $targetType,
+                        'target_id' => $targetId
+                    ],
+                    'client_should_emit_socket' => true
+                ]);
+            } else {
+                throw new Exception('Failed to save reaction');
+            }
+        } catch (Exception $e) {
+            return $this->serverError('Failed to add reaction: ' . $e->getMessage());
+        }
+    }
+    
+    public function removeReaction($messageId) {
+        $this->requireAuth();
+        $userId = $this->getCurrentUserId();
+        $username = $_SESSION['username'] ?? 'Unknown User';
+        
+        $message = $this->messageRepository->find($messageId);
+        if (!$message) {
+            return $this->notFound('Message not found');
+        }
+        
+        $input = $this->getInput();
+        $input = $this->sanitize($input);
+        
+        $this->validate($input, ['emoji' => 'required']);
+        $emoji = $input['emoji'];
+        
+        try {
+            require_once __DIR__ . '/../database/models/MessageReaction.php';
+            
+            $reaction = MessageReaction::findByMessageAndUser($messageId, $userId, $emoji);
+            if (!$reaction) {
+                return $this->notFound('Reaction not found');
+            }
+            
+            require_once __DIR__ . '/../database/models/ChannelMessage.php';
+            
+            $targetId = null;
+            $targetType = 'channel';
+            
+            $channelMessage = ChannelMessage::findByMessageId($messageId);
+            if ($channelMessage) {
+                $targetId = $channelMessage->channel_id;
+                $targetType = 'channel';
+            } else {
+                $query = new Query();
+                $chatRoomMessage = $query->table('chat_room_messages')
+                    ->where('message_id', $messageId)
+                    ->first();
+                if ($chatRoomMessage) {
+                    $targetId = $chatRoomMessage['room_id'];
+                    $targetType = 'dm';
+                }
+            }
+            
+            if ($reaction->delete()) {
+                return $this->success([
+                    'message_id' => $messageId,
+                    'user_id' => $userId,
+                    'emoji' => $emoji,
+                    'socket_event' => 'reaction-removed',
+                    'socket_data' => [
+                        'message_id' => $messageId,
+                        'emoji' => $emoji,
+                        'user_id' => $userId,
+                        'username' => $username,
+                        'target_type' => $targetType,
+                        'target_id' => $targetId
+                    ],
+                    'client_should_emit_socket' => true
+                ]);
+            } else {
+                throw new Exception('Failed to remove reaction');
+            }
+        } catch (Exception $e) {
+            return $this->serverError('Failed to remove reaction: ' . $e->getMessage());
         }
     }
 }

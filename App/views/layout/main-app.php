@@ -74,6 +74,31 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
     <script type="module" src="<?= asset('/js/components/index.js') ?>"></script>
     <script type="module" src="<?= asset('/js/pages/app.js') ?>"></script>
     
+    <!-- Debug create server modal -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() {
+                const modal = document.getElementById('create-server-modal');
+                console.log('Create server modal status:', modal ? 'found' : 'not found');
+                
+                if (modal) {
+                    console.log('Modal display:', window.getComputedStyle(modal).display);
+                    console.log('Modal opacity:', window.getComputedStyle(modal).opacity);
+                    console.log('Modal classes:', modal.className);
+                }
+                
+                const createButton = document.querySelector('[data-action="create-server"]');
+                console.log('Create server button status:', createButton ? 'found' : 'not found');
+                
+                if (typeof window.openCreateServerModal === 'function') {
+                    console.log('openCreateServerModal function is available');
+                } else {
+                    console.log('openCreateServerModal function is NOT available');
+                }
+            }, 1000);
+        });
+    </script>
+    
     <meta name="csrf-token" content="<?php echo isset($_SESSION['csrf_token']) ? $_SESSION['csrf_token'] : ''; ?>">
 </body>
 </html>

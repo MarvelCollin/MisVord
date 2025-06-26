@@ -9,14 +9,17 @@ class ChatAPI {
 
     async parseResponse(response) {
         if (!response) {
-            console.error('Empty response received');
             throw new Error('Empty response received from server');
         }
         
-        const text = await response.text();
+        let text;
+        try {
+            text = await response.text();
+        } catch (error) {
+            throw new Error('Failed to extract text from server response');
+        }
         
         if (!text || text.trim() === '') {
-            console.error('Empty text content in response');
             throw new Error('Empty response content');
         }
         
@@ -24,16 +27,26 @@ class ChatAPI {
             text.includes('<br />') || 
             text.includes('</html>') || 
             text.includes('<!DOCTYPE')) {
-            console.error('Server returned HTML instead of JSON:', text.substring(0, 200));
-            throw new Error('Server returned HTML instead of JSON. Please check server configuration.');
+            
+            let errorMessage = 'Invalid response format';
+            
+            if (text.includes('Not Found') || response.status === 404) {
+                errorMessage = 'Endpoint not found (404)';
+            } else if (text.includes('Internal Server Error') || response.status === 500) {
+                errorMessage = 'Server error (500)';
+            } else if (response.status === 401 || response.status === 403) {
+                errorMessage = 'Authentication error';
+                window.location.href = '/login';
+            }
+            
+            throw new Error(errorMessage);
         }
         
         try {
-            return JSON.parse(text);
+            const cleanedText = text.trim().replace(/^\uFEFF/, '');
+            return JSON.parse(cleanedText);
         } catch (e) {
-            console.error('Failed to parse JSON response:', text.substring(0, 500));
-            console.error('Parse error:', e);
-            throw new Error('Invalid JSON response from server');
+            throw new Error('JSON parsing failed');
         }
     }    async makeRequest(url, options = {}) {
         try {
@@ -73,42 +86,39 @@ class ChatAPI {
         }
     }    async getMessages(chatType, targetId, limit = 20, offset = 0) {
         if (!targetId) {
-            console.error('Missing targetId in getMessages call');
             throw new Error('Target ID is required');
         }
 
         const apiChatType = chatType === 'direct' ? 'dm' : chatType;
         const url = `${this.baseURL}/${apiChatType}/${targetId}/messages?limit=${limit}&offset=${offset}`;
         
-        console.log(`🔍 Fetching messages for ${apiChatType} ${targetId} from ${url}`);
-        
         try {
             const response = await this.makeRequest(url);
             
             if (!response) {
-                console.error('Empty response received from server');
-                throw new Error('Server returned an empty response');
-            }
-            
-            console.log('🔍 API response for getMessages:', response);
-            
-            if (Array.isArray(response.messages)) {
-                console.log(`🔍 Found ${response.messages.length} messages in response.messages`);
-            } else if (response.data && Array.isArray(response.data.messages)) {
-                console.log(`🔍 Found ${response.data.messages.length} messages in response.data.messages`);
-            } else {
-                console.warn('Response has unexpected structure, no messages array found');
-                console.log('Response structure:', {
-                    hasMessages: Array.isArray(response.messages),
-                    hasData: !!response.data,
-                    hasDataMessages: response.data ? Array.isArray(response.data.messages) : false
-                });
+                throw new Error('Empty response');
             }
             
             return response;
         } catch (error) {
-            console.error(`❌ Failed to fetch messages for ${apiChatType} ${targetId}:`, error);
             throw error;
+        }
+    }
+    
+    async checkAuthentication() {
+        try {
+            const response = await fetch('/api/auth/check');
+            const data = await response.json();
+            
+            if (!data.authenticated) {
+                console.error('User is not authenticated');
+                throw new Error('Authentication required. Please refresh the page and log in.');
+            }
+            
+            return true;
+        } catch (error) {
+            console.error('Failed to check authentication status:', error);
+            return false;
         }
     }    async sendMessage(targetId, content, chatType = 'channel', options = {}) {
         const url = `${this.baseURL}/send`;
@@ -354,51 +364,8 @@ class ChatAPI {
         }
     }
 
-    async addReaction(messageId, emoji) {
-        const url = `/api/messages/${messageId}/reactions`;
-        
-        try {
-            const response = await this.makeRequest(url, {
-                method: 'POST',
-                body: JSON.stringify({
-                    emoji: emoji
-                })
-            });
-            
-            const userId = window.globalSocketManager?.userId;
-            this.sendDirectSocketReaction(messageId, emoji, 'add', userId);
-            
-            return response;
-        } catch (error) {
-            console.error('Error adding reaction in database:', error);
-            throw error;
-        }
-    }
-    
-    async removeReaction(messageId, emoji) {
-        const url = `/api/messages/${messageId}/reactions`;
-        
-        try {
-            const response = await this.makeRequest(url, {
-                method: 'DELETE',
-                body: JSON.stringify({
-                    emoji: emoji
-                })
-            });
-            
-            const userId = window.globalSocketManager?.userId;
-            this.sendDirectSocketReaction(messageId, emoji, 'remove', userId);
-            
-            return response;
-        } catch (error) {
-            console.error('Error removing reaction from database:', error);
-            throw error;
-        }
-    }
-    
     sendDirectSocketReaction(messageId, emoji, action, userId) {
         if (!window.globalSocketManager || !window.globalSocketManager.isReady() || !window.globalSocketManager.io) {
-            console.warn('⚠️ Socket not ready, cannot send direct socket reaction');
             return false;
         }
         
@@ -411,21 +378,15 @@ class ChatAPI {
                 emoji: emoji,
                 user_id: userId,
                 username: username,
-                timestamp: Date.now(),
-                _debug: {
-                    timestamp: new Date().toISOString(),
-                    clientId: window.globalSocketManager.io.id,
-                    emittedBy: username || 'Unknown',
-                    type: 'direct-socket-path'
-                }
+                timestamp: Date.now()
             });
-            console.log(`🔌 Direct socket ${action} reaction ${emoji} for message ${messageId}`);
             return true;
         } catch (e) {
-            console.error(`Failed to send direct socket ${action} reaction:`, e);
             return false;
         }
     }
+    
+
 
     emitSocketEvent(eventName, data) {
         console.warn('⚠️ DEPRECATED: emitSocketEvent is deprecated. Use direct socket emission instead.');
@@ -628,6 +589,69 @@ class ChatAPI {
             };
         } catch (error) {
             console.error('Error uploading file:', error);
+            throw error;
+        }
+    }
+    
+    async getMessageReactions(messageId) {
+        if (!messageId) {
+            throw new Error('Message ID is required');
+        }
+        
+        const url = `/api/messages/${messageId}/reactions`;
+        
+        try {
+            const response = await this.makeRequest(url);
+            return response.reactions || [];
+        } catch (error) {
+            throw error;
+        }
+    }
+    
+    async addReaction(messageId, emoji) {
+        if (!messageId || !emoji) {
+            throw new Error('Message ID and emoji are required');
+        }
+        
+        const url = `/api/messages/${messageId}/reactions`;
+        
+        try {
+            const response = await this.makeRequest(url, {
+                method: 'POST',
+                body: JSON.stringify({ emoji })
+            });
+            
+            if (response && response.socket_event) {
+                const userId = window.globalSocketManager?.userId;
+                this.sendDirectSocketReaction(messageId, emoji, 'add', userId);
+            }
+            
+            return response;
+        } catch (error) {
+            throw error;
+        }
+    }
+    
+    async removeReaction(messageId, emoji) {
+        if (!messageId || !emoji) {
+            throw new Error('Message ID and emoji are required');
+        }
+        
+        const url = `/api/messages/${messageId}/reactions`;
+        
+        try {
+            const response = await this.makeRequest(url, {
+                method: 'DELETE',
+                body: JSON.stringify({ emoji })
+            });
+            
+            if (response && response.socket_event) {
+                const userId = window.globalSocketManager?.userId;
+                this.sendDirectSocketReaction(messageId, emoji, 'remove', userId);
+            }
+            
+            return response;
+        } catch (error) {
             throw error;
         }
     }

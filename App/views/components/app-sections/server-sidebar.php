@@ -96,7 +96,7 @@ if (file_exists($tooltipPath)) {
             
             <!-- Add Server Button -->
             <div class="server-icon mt-2">
-                <button data-action="create-server" class="server-button bg-discord-dark rounded-full hover:rounded-2xl hover:bg-discord-green border-none cursor-pointer outline-none">
+                <button onclick="javascript:openServerModal(); return false;" data-action="create-server" class="server-button bg-discord-dark rounded-full hover:rounded-2xl hover:bg-discord-green border-none cursor-pointer outline-none">
                     <i class="fas fa-plus text-green-500 hover:text-white text-xl transition-colors duration-200"></i>
                 </button>
                 <div class="tooltip hidden absolute left-16 bg-black text-white py-1 px-2 rounded text-sm whitespace-nowrap z-50">
@@ -220,3 +220,39 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <!-- Include server sidebar JS -->
 <script src="/public/js/components/servers/server-sidebar.js" type="module"></script>
+
+<!-- Make sure create server modal functionality is available -->
+<script src="/public/js/components/servers/create-server-modal.js" type="module"></script>
+
+<script>
+function openServerModal() {
+    console.log('Inline openServerModal called');
+    const modal = document.getElementById('create-server-modal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.style.display = 'flex';
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            const modalContent = modal.querySelector('.bg-discord-background');
+            if (modalContent) {
+                modalContent.classList.remove('scale-95');
+            }
+        }, 10);
+    } else {
+        console.error('Modal element not found');
+    }
+    return false;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const createServerButton = document.querySelector('[data-action="create-server"]');
+    if (createServerButton) {
+        createServerButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Create server button clicked directly');
+            openServerModal();
+        });
+    }
+});
+</script>

@@ -1,6 +1,9 @@
 <?php
 
 require_once __DIR__ . '/../database/repositories/MessageRepository.php';
+require_once __DIR__ . '/../database/models/MessageReaction.php';
+require_once __DIR__ . '/../database/models/Message.php';
+require_once __DIR__ . '/../database/query.php';
 require_once __DIR__ . '/BaseController.php';
 
 class MessageController extends BaseController
@@ -17,6 +20,7 @@ class MessageController extends BaseController
     {
         $this->requireAuth();
         $userId = $this->getCurrentUserId();
+        $username = $_SESSION['username'] ?? 'Unknown User';
 
         $input = $this->getInput();
         $input = $this->sanitize($input);
@@ -30,20 +34,59 @@ class MessageController extends BaseController
         }
 
         try {
-            return $this->success([
+            $existingReaction = MessageReaction::findByMessageAndUser($messageId, $userId, $emoji);
+            if ($existingReaction) {
+                return $this->success(['message' => 'Reaction already exists']);
+            }
+
+            $reaction = new MessageReaction([
                 'message_id' => $messageId,
-                'emoji' => $emoji,
                 'user_id' => $userId,
-                'socket_event' => 'reaction-added',
-                'socket_data' => [
+                'emoji' => $emoji
+            ]);
+
+            if ($reaction->save()) {
+                require_once __DIR__ . '/../database/models/ChannelMessage.php';
+                
+                $targetId = null;
+                $targetType = 'channel';
+                
+                $channelMessage = ChannelMessage::findByMessageId($messageId);
+                if ($channelMessage) {
+                    $targetId = $channelMessage->channel_id;
+                    $targetType = 'channel';
+                } else {
+                    $query = new Query();
+                    $chatRoomMessage = $query->table('chat_room_messages')
+                        ->where('message_id', $messageId)
+                        ->first();
+                    if ($chatRoomMessage) {
+                        $targetId = $chatRoomMessage['room_id'];
+                        $targetType = 'dm';
+                    }
+                }
+
+                return $this->success([
                     'message_id' => $messageId,
+                    'emoji' => $emoji,
                     'user_id' => $userId,
-                    'emoji' => $emoji
-                ],
-                'client_should_emit_socket' => true
-            ], 'Reaction added successfully');
+                    'username' => $username,
+                    'socket_event' => 'reaction-added',
+                    'socket_data' => [
+                        'message_id' => $messageId,
+                        'user_id' => $userId,
+                        'username' => $username,
+                        'emoji' => $emoji,
+                        'target_type' => $targetType,
+                        'target_id' => $targetId
+                    ],
+                    'client_should_emit_socket' => true
+                ], 'Reaction added successfully');
+            } else {
+                throw new Exception('Failed to save reaction');
+            }
         } catch (Exception $e) {
-            return $this->serverError('Failed to add reaction');
+            return $this->serverError('Failed to add reaction: ' . $e->getMessage());
         }
     }
 
@@ -51,6 +94,7 @@ class MessageController extends BaseController
     {
         $this->requireAuth();
         $userId = $this->getCurrentUserId();
+        $username = $_SESSION['username'] ?? 'Unknown User';
 
         $input = $this->getInput();
         $input = $this->sanitize($input);
@@ -65,20 +109,54 @@ class MessageController extends BaseController
         }
 
         try {
-            return $this->success([
-                'message_id' => $messageId,
-                'emoji' => $emoji,
-                'user_id' => $userId,
-                'socket_event' => 'reaction-removed',
-                'socket_data' => [
+            $reaction = MessageReaction::findByMessageAndUser($messageId, $userId, $emoji);
+            
+            if (!$reaction) {
+                return $this->notFound('Reaction not found');
+            }
+
+            require_once __DIR__ . '/../database/models/ChannelMessage.php';
+            
+            $targetId = null;
+            $targetType = 'channel';
+            
+            $channelMessage = ChannelMessage::findByMessageId($messageId);
+            if ($channelMessage) {
+                $targetId = $channelMessage->channel_id;
+                $targetType = 'channel';
+            } else {
+                $query = new Query();
+                $chatRoomMessage = $query->table('chat_room_messages')
+                    ->where('message_id', $messageId)
+                    ->first();
+                if ($chatRoomMessage) {
+                    $targetId = $chatRoomMessage['room_id'];
+                    $targetType = 'dm';
+                }
+            }
+
+            if ($reaction->delete()) {
+                return $this->success([
                     'message_id' => $messageId,
+                    'emoji' => $emoji,
                     'user_id' => $userId,
-                    'emoji' => $emoji
-                ],
-                'client_should_emit_socket' => true
-            ], 'Reaction removed successfully');
+                    'username' => $username,
+                    'socket_event' => 'reaction-removed',
+                    'socket_data' => [
+                        'message_id' => $messageId,
+                        'user_id' => $userId,
+                        'username' => $username,
+                        'emoji' => $emoji,
+                        'target_type' => $targetType,
+                        'target_id' => $targetId
+                    ],
+                    'client_should_emit_socket' => true
+                ], 'Reaction removed successfully');
+            } else {
+                throw new Exception('Failed to remove reaction');
+            }
         } catch (Exception $e) {
-            return $this->serverError('Failed to remove reaction');
+            return $this->serverError('Failed to remove reaction: ' . $e->getMessage());
         }
     }
 
@@ -92,12 +170,24 @@ class MessageController extends BaseController
         }
 
         try {
+            $reactions = MessageReaction::getForMessage($messageId);
+            
+            $formattedReactions = [];
+            foreach ($reactions as $reaction) {
+                $user = $this->getUserRepository()->find($reaction->user_id);
+                $formattedReactions[] = [
+                    'emoji' => $reaction->emoji,
+                    'user_id' => $reaction->user_id,
+                    'username' => $user ? $user->username : 'Unknown User'
+                ];
+            }
+            
             return $this->success([
                 'message_id' => $messageId,
-                'reactions' => []
+                'reactions' => $formattedReactions
             ]);
         } catch (Exception $e) {
-            return $this->serverError('Failed to get reactions');
+            return $this->serverError('Failed to get reactions: ' . $e->getMessage());
         }
     }
 
@@ -116,8 +206,8 @@ class MessageController extends BaseController
                 'message_id' => $messageId,
                 'socket_event' => 'message-pinned',
                 'socket_data' => [
-                'message_id' => $messageId,
-                'user_id' => $userId
+                    'message_id' => $messageId,
+                    'user_id' => $userId
                 ],
                 'client_should_emit_socket' => true
             ], 'Message pinned successfully');
@@ -149,5 +239,10 @@ class MessageController extends BaseController
         } catch (Exception $e) {
             return $this->serverError('Failed to retrieve debug information');
         }
+    }
+
+    private function getUserRepository() {
+        require_once __DIR__ . '/../database/repositories/UserRepository.php';
+        return new UserRepository();
     }
 }

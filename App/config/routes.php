@@ -453,6 +453,24 @@ Route::get('/api/messages/([0-9]+)', function($messageId) {
     $controller->getMessage($messageId);
 });
 
+Route::get('/api/messages/([0-9]+)/reactions', function($messageId) {
+    require_once __DIR__ . '/../controllers/MessageController.php';
+    $controller = new MessageController();
+    $controller->getReactions($messageId);
+});
+
+Route::post('/api/messages/([0-9]+)/reactions', function($messageId) {
+    require_once __DIR__ . '/../controllers/MessageController.php';
+    $controller = new MessageController();
+    $controller->addReaction($messageId);
+});
+
+Route::delete('/api/messages/([0-9]+)/reactions', function($messageId) {
+    require_once __DIR__ . '/../controllers/MessageController.php';
+    $controller = new MessageController();
+    $controller->removeReaction($messageId);
+});
+
 Route::get('/api/channels/([0-9]+)/search', function($channelId) {
     $controller = new ChatController();
     $controller->searchMessages($channelId);
@@ -834,6 +852,34 @@ Route::get('/api/nitro/debug', function() {
         ],
         'timestamp' => date('Y-m-d H:i:s')
     ]);
+    exit;
+});
+
+Route::get('/api/debug/reactions', function() {
+    header('Content-Type: application/json');
+    
+    try {
+        require_once __DIR__ . '/../database/models/MessageReaction.php';
+        
+        $connectionTest = MessageReaction::testConnection();
+        $schemaInfo = MessageReaction::getTableSchema();
+        
+        echo json_encode([
+            'success' => true,
+            'test_results' => [
+                'connection' => $connectionTest,
+                'schema' => $schemaInfo
+            ],
+            'timestamp' => date('Y-m-d H:i:s')
+        ], JSON_PRETTY_PRINT);
+    } catch (Exception $e) {
+        echo json_encode([
+            'success' => false,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], JSON_PRETTY_PRINT);
+    }
+    
     exit;
 });
 

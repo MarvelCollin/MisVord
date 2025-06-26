@@ -101,326 +101,90 @@ $userName = $_SESSION['username'] ?? 'Anonymous';
     </div>
 </div>
 
-<style>
-:root {
-    --discord-primary: #5865F2;
-    --discord-primary-hover: #4752c4;
-    --discord-green: #3BA55D;
-    --discord-red: #ED4245;
-    --discord-background: #313338;
-    --discord-dark: #1e1f22;
-    --discord-channel-hover: rgba(79, 84, 92, 0.16);
-}
 
-.voice-ui-element {
-    transition: opacity 0.3s ease, transform 0.3s ease;
-    opacity: 0;
-    transform: translateY(5px);
-}
 
-.voice-ui-element.visible {
-    opacity: 1;
-    transform: translateY(0);
-}
 
-.btn-voice {
-    position: relative;
-    overflow: hidden;
-}
-
-.btn-voice:after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 5px;
-    height: 5px;
-    background: rgba(255, 255, 255, 0.3);
-    opacity: 0;
-    border-radius: 100%;
-    transform: scale(1, 1) translate(-50%);
-    transform-origin: 50% 50%;
-}
-
-.btn-voice:focus:not(:active)::after {
-    animation: ripple 1s ease-out;
-}
-
-@keyframes ripple {
-    0% {
-        transform: scale(0, 0);
-        opacity: 0.5;
-    }
-    20% {
-        transform: scale(25, 25);
-        opacity: 0.3;
-    }
-    100% {
-        opacity: 0;
-        transform: scale(40, 40);
-    }
-}
-                        
-@keyframes pulse {
-    0% {
-        box-shadow: 0 0 0 0 rgba(88, 101, 242, 0.4);
-    }
-    70% {
-        box-shadow: 0 0 0 3px rgba(88, 101, 242, 0);
-    }
-    100% {
-        box-shadow: 0 0 0 0 rgba(88, 101, 242, 0);
-    }
-}
-
-.speaking {
-    animation: pulse 2s infinite;
-}
-
-.user-voice-item {
-    transition: background-color 0.2s ease;
-}
-
-.user-voice-item:hover {
-    background-color: #36393f;
-}
-
-.user-voice-item.speaking {
-    background-color: #3c3f45;
-}
-
-.fade-in {
-    animation: fadeIn 0.3s ease forwards;
-}
-
-.fade-out {
-    animation: fadeOut 0.3s ease forwards;
-}
-
-.slide-up {
-    animation: slideUp 0.3s ease forwards;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-@keyframes fadeOut {
-    from { opacity: 1; }
-    to { opacity: 0; }
-}
-
-@keyframes slideUp {
-    from { transform: translateY(20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-}
-
-#voice-container {
-    min-height: 100vh;
-    height: 100vh;
-}
-
-.flex-1 {
-    flex: 1 1 0% !important;
-    min-height: 0 !important;
-}
-
-.h-screen {
-    height: 100vh !important;
-    min-height: 100vh !important;
-}
-
-.skeleton-circle,
-.skeleton-text,
-.skeleton-icon {
-    position: relative;
-    overflow: hidden;
-}
-
-.skeleton-circle::after,
-.skeleton-text::after,
-.skeleton-icon::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    transform: translateX(-100%);
-    background-image: linear-gradient(
-        90deg,
-        rgba(59, 61, 68, 0) 0,
-        rgba(59, 61, 68, 0.2) 20%,
-        rgba(59, 61, 68, 0.5) 60%,
-        rgba(59, 61, 68, 0)
-    );
-    animation: shimmer 2s infinite;
-}
-
-@keyframes shimmer {
-    100% {
-        transform: translateX(100%);
-    }
-}
-</style>
-
-<template id="participantTemplate">
-    <div class="user-voice-item w-full bg-[#313338] rounded-md overflow-hidden mb-2">
-        <div class="px-3 py-2 flex items-center justify-between">
-            <div class="flex items-center">
-                <div class="participant-avatar relative w-8 h-8 rounded-full bg-[#3ba55c] flex items-center justify-center overflow-hidden mr-2">
-                    <span class="text-white text-sm font-semibold">U</span>
-                </div>
-                <div class="flex flex-col">
-                    <div class="flex items-center">
-                        <span class="participant-name text-white text-sm font-medium">User</span>
-                    </div>
-                    <div class="text-xs text-gray-400 participant-status"></div>
-                </div>
-            </div>
-            <div class="text-gray-400 participant-icons">
-                <div class="flex items-center space-x-1">
-                    <div class="w-4 h-4 flex items-center justify-center">
-                        <i class="fas fa-microphone-slash text-xs"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</template>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Voice section template loaded');
     initializeVoiceUI();
 });
 
 function initializeVoiceUI() {
-    console.log('Initializing voice UI');
+    const elements = {
+        joinBtn: document.getElementById('joinBtn'),
+        joinView: document.getElementById('joinView'),
+        connectingView: document.getElementById('connectingView'),
+        connectedView: document.getElementById('connectedView'),
+        voiceControls: document.getElementById('voiceControls')
+    };
     
-    const joinBtn = document.getElementById('joinBtn');
-    const joinView = document.getElementById('joinView');
-    const connectingView = document.getElementById('connectingView');
-    const connectedView = document.getElementById('connectedView');
-    const voiceControls = document.getElementById('voiceControls');
-    
-    if (!joinBtn || !joinView || !connectingView || !connectedView) {
-        console.log('Voice UI elements not found, retrying...');
+    if (!elements.joinBtn) {
         setTimeout(initializeVoiceUI, 200);
         return;
     }
     
-    let isConnected = false;
+    window.voiceState = { isConnected: false };
     
-    async function joinVoice() {
-        if (isConnected) {
-            console.log('Already connected to voice');
-            return;
-        }
+    async function connectToVoice() {
+        if (window.voiceState.isConnected) return;
         
-        console.log('Starting voice connection...');
-        
-        joinView.classList.add('hidden');
-        connectingView.classList.remove('hidden');
+        elements.joinView.classList.add('hidden');
+        elements.connectingView.classList.remove('hidden');
         
         try {
-            const meetingId = document.querySelector('meta[name="meeting-id"]')?.content;
-            const username = document.querySelector('meta[name="username"]')?.content || 'Anonymous';
-            const channelId = document.querySelector('meta[name="channel-id"]')?.content;
+            const config = {
+                meetingId: document.querySelector('meta[name="meeting-id"]')?.content,
+                name: document.querySelector('meta[name="username"]')?.content || 'Anonymous',
+                micEnabled: true,
+                webcamEnabled: false
+            };
             
-            if (!meetingId || !window.videoSDKManager) {
-                throw new Error('Missing requirements for voice connection');
+            if (!config.meetingId || !window.videoSDKManager) {
+                throw new Error();
             }
             
             const authToken = await window.videoSDKManager.getAuthToken();
             window.videoSDKManager.init(authToken);
-            
-            const meeting = window.videoSDKManager.initMeeting({
-                meetingId: meetingId,
-                name: username,
-                micEnabled: true,
-                webcamEnabled: false
-            });
-            
-            window.videosdkMeeting = meeting;
+            window.videosdkMeeting = window.videoSDKManager.initMeeting(config);
             await window.videoSDKManager.joinMeeting();
             
             window.dispatchEvent(new CustomEvent('voiceConnect', {
-                detail: {
-                    channelName: 'Voice Channel',
-                    meetingId: meetingId,
-                    channelId: channelId
-                }
+                detail: { meetingId: config.meetingId }
             }));
             
-            setTimeout(() => {
-                connectingView.classList.add('hidden');
-                connectedView.classList.remove('hidden');
-                if (voiceControls) {
-                    voiceControls.classList.remove('hidden');
-                }
-                isConnected = true;
-                console.log('Voice connection successful');
-            }, 800);
+            elements.connectingView.classList.add('hidden');
+            elements.connectedView.classList.remove('hidden');
+            elements.voiceControls.classList.remove('hidden');
+            window.voiceState.isConnected = true;
             
-        } catch (error) {
-            console.error('Voice connection failed:', error);
-            
-            connectingView.classList.add('hidden');
-            joinView.classList.remove('hidden');
-            
-            if (window.showToast) {
-                window.showToast('Failed to connect to voice channel', 'error', 3000);
-            }
+        } catch {
+            elements.connectingView.classList.add('hidden');
+            elements.joinView.classList.remove('hidden');
+            elements.joinBtn.disabled = false;
+            elements.joinBtn.textContent = 'Join Voice';
         }
     }
     
-    joinBtn.addEventListener('click', async function() {
-        if (isConnected) {
-            console.log('Already connected, ignoring click');
-            return;
-        }
-        
-        console.log('Join button clicked');
-        joinBtn.disabled = true;
-        joinBtn.textContent = 'Connecting...';
-        
-        try {
-            await joinVoice();
-        } catch (error) {
-            console.error('Join voice failed:', error);
-            joinBtn.disabled = false;
-            joinBtn.textContent = 'Join Voice';
-        }
-    });
+    elements.joinBtn.onclick = async () => {
+        elements.joinBtn.disabled = true;
+        elements.joinBtn.textContent = 'Connecting...';
+        await connectToVoice();
+    };
     
-    window.addEventListener('voiceDisconnect', function() {
-        isConnected = false;
-        
-        if (window.videosdkMeeting && window.videoSDKManager) {
-            window.videoSDKManager.leaveMeeting();
+    window.addEventListener('voiceDisconnect', () => {
+        window.voiceState.isConnected = false;
+        if (window.videosdkMeeting) {
+            window.videoSDKManager?.leaveMeeting();
             window.videosdkMeeting = null;
         }
         
-        connectedView.classList.add('hidden');
-        connectingView.classList.add('hidden');
-        if (voiceControls) {
-            voiceControls.classList.add('hidden');
-        }
-        joinView.classList.remove('hidden');
-        
-        if (joinBtn) {
-            joinBtn.disabled = false;
-            joinBtn.textContent = 'Join Voice';
-        }
+        elements.connectedView.classList.add('hidden');
+        elements.connectingView.classList.add('hidden');
+        elements.voiceControls.classList.add('hidden');
+        elements.joinView.classList.remove('hidden');
+        elements.joinBtn.disabled = false;
+        elements.joinBtn.textContent = 'Join Voice';
     });
-    
-    document.dispatchEvent(new CustomEvent('channelContentLoaded', {
-        detail: {
-            type: 'voice',
-            channelId: '<?php echo htmlspecialchars($activeChannelId); ?>'
-        }
-    }));
 }
 </script>

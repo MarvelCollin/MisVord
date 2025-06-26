@@ -12,7 +12,6 @@ class VoiceManager {
     
     init() {
         this.attachEventListeners();
-        this.setupAudioContext();
     }
     
     attachEventListeners() {
@@ -58,43 +57,29 @@ class VoiceManager {
         }
         
         try {
-            console.log('VoiceManager: Starting voice connection...');
             await this.requestPermissions();
             
             const meetingId = document.querySelector('meta[name="meeting-id"]')?.content;
             const username = document.querySelector('meta[name="username"]')?.content || 'Anonymous';
             const channelId = document.querySelector('meta[name="channel-id"]')?.content;
             
-            if (!meetingId || !window.videoSDKManager) {
-                throw new Error('Missing requirements for voice connection');
-            }
+            if (!meetingId || !window.videoSDKManager) throw new Error();
             
             const authToken = await window.videoSDKManager.getAuthToken();
             window.videoSDKManager.init(authToken);
             
-            const meeting = window.videoSDKManager.initMeeting({
-                meetingId: meetingId,
-                name: username,
-                micEnabled: true,
-                webcamEnabled: false
+            window.videosdkMeeting = window.videoSDKManager.initMeeting({
+                meetingId, name: username, micEnabled: true, webcamEnabled: false
             });
             
-            window.videosdkMeeting = meeting;
             await window.videoSDKManager.joinMeeting();
-            
-            this.dispatchEvent('voiceConnect', {
-                channelName: 'Voice Channel',
-                meetingId: meetingId,
-                channelId: channelId
-            });
+            this.dispatchEvent('voiceConnect', { meetingId, channelId });
             
             this.isConnected = true;
             this.showToast('Connected to voice channel', 'success');
             
-            console.log('VoiceManager: Voice connection successful');
             return Promise.resolve();
         } catch (error) {
-            console.error('Failed to join voice:', error);
             this.showToast('Failed to connect to voice', 'error');
             if (joinBtn) {
                 joinBtn.disabled = false;
@@ -202,99 +187,32 @@ class VoiceManager {
     
     async requestPermissions() {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ 
-                audio: true, 
-                video: false 
-            });
-            
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-                return true;
-            }
-        } catch (error) {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            stream.getTracks().forEach(track => track.stop());
+            return true;
+        } catch {
             throw new Error('Microphone permission denied');
         }
     }
     
-    setupAudioContext() {
-        try {
-            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    } catch (error) {
-            console.warn('AudioContext not supported');
-        }
-    }
+
     
     addParticipant(participant) {
         this.participants.set(participant.id, participant);
-        this.renderParticipant(participant);
-        this.updateEmptyState();
     }
     
     removeParticipant(participantId) {
         this.participants.delete(participantId);
-        const element = document.getElementById(`participant-${participantId}`);
-        if (element) {
-            element.remove();
-        }
-        this.updateEmptyState();
     }
     
-    renderParticipant(participant) {
-        const participantsContainer = document.getElementById('participants');
-        if (!participantsContainer) return;
-        
-        const participantDiv = document.createElement('div');
-        participantDiv.id = `participant-${participant.id}`;
-        participantDiv.className = 'user-voice-item w-full bg-[#313338] rounded-md overflow-hidden mb-2';
-        participantDiv.innerHTML = `
-            <div class="px-3 py-2 flex items-center justify-between">
-                <div class="flex items-center">
-                    <div class="relative w-8 h-8 rounded-full bg-[#3ba55c] flex items-center justify-center overflow-hidden mr-2">
-                        <span class="text-white text-sm font-semibold">${participant.name.charAt(0).toUpperCase()}</span>
-                    </div>
-                    <div class="flex flex-col">
-                        <div class="flex items-center">
-                            <span class="text-white text-sm font-medium">${participant.name}</span>
-                        </div>
-                        <div class="text-xs text-gray-400">
-                            <span class="text-[#3ba55c]">Connected</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="text-gray-400">
-                    <div class="flex items-center space-x-1">
-                        <div class="w-4 h-4 flex items-center justify-center">
-                            <i class="fas fa-microphone text-xs"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        participantsContainer.appendChild(participantDiv);
-    }
-    
-    updateEmptyState() {
-        const emptyMessage = document.getElementById('emptyMessage');
-        if (!emptyMessage) return;
-        
-        if (this.participants.size === 0) {
-            emptyMessage.style.display = 'flex';
-        } else {
-            emptyMessage.style.display = 'none';
-        }
-    }
+
     
     dispatchEvent(eventName, detail = {}) {
         window.dispatchEvent(new CustomEvent(eventName, { detail }));
     }
     
     showToast(message, type = 'info') {
-        if (window.showToast) {
-            window.showToast(message, type, 3000);
-                } else {
-            console.log(`[${type.toUpperCase()}] ${message}`);
-        }
+        window.showToast?.(message, type, 3000);
     }
 }
 

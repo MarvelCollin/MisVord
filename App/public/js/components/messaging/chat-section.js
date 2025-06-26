@@ -676,12 +676,15 @@ class ChatSection {
         
         if (!actions) {
             actions = this.createMessageActions(messageContent);
+            messageContent.style.position = 'relative';
             messageContent.appendChild(actions);
         }
         
         if (actions) {
             actions.classList.remove('hidden');
             actions.classList.add('visible');
+            actions.style.opacity = '1';
+            actions.style.visibility = 'visible';
             this.activeMessageActions = actions;
         }
     }
@@ -691,6 +694,8 @@ class ChatSection {
         if (actions) {
             actions.classList.add('hidden');
             actions.classList.remove('visible');
+            actions.style.opacity = '0';
+            actions.style.visibility = 'hidden';
         }
     }
     
@@ -698,12 +703,16 @@ class ChatSection {
         if (this.activeMessageActions) {
             this.activeMessageActions.classList.add('hidden');
             this.activeMessageActions.classList.remove('visible');
+            this.activeMessageActions.style.opacity = '0';
+            this.activeMessageActions.style.visibility = 'hidden';
             this.activeMessageActions = null;
         }
         
         document.querySelectorAll('.message-actions.visible').forEach(element => {
             element.classList.add('hidden');
             element.classList.remove('visible');
+            element.style.opacity = '0';
+            element.style.visibility = 'hidden';
         });
     }
     
@@ -711,7 +720,9 @@ class ChatSection {
         const isOwnMessage = messageContent.dataset.userId === this.userId;
         
         const actions = document.createElement('div');
-        actions.className = 'message-actions absolute -top-4 right-4 bg-[#2b2d31] rounded-md shadow-lg flex items-center p-1 space-x-1 z-10';
+        actions.className = 'message-actions absolute -top-4 right-4 bg-[#2b2d31] rounded-md shadow-lg flex items-center p-1 space-x-1 z-10 hidden';
+        actions.style.opacity = '0';
+        actions.style.visibility = 'hidden';
         
         const createButton = (icon, title, actionClass) => {
             const button = document.createElement('button');
@@ -740,6 +751,43 @@ class ChatSection {
     
     showEmojiPicker(messageId, targetElement) {
         console.log('Show emoji picker for message:', messageId);
+        
+        if (!window.emojiSelector) {
+            console.error('Emoji selector not available');
+            this.showNotification('Emoji picker not loaded', 'error');
+            return;
+        }
+        
+        if (!targetElement) {
+            console.error('Target element not provided');
+            return;
+        }
+        
+        const rect = targetElement.getBoundingClientRect();
+        const x = rect.left + window.scrollX;
+        const y = rect.bottom + window.scrollY + 5;
+        
+        const menuWidth = 280;
+        const menuHeight = 200;
+        
+        const viewportWidth = window.innerWidth;
+        let adjustedX = x;
+        if (x + menuWidth > viewportWidth) {
+            adjustedX = viewportWidth - menuWidth - 10;
+        }
+        
+        const viewportHeight = window.innerHeight;
+        let adjustedY = y;
+        if (y + menuHeight > viewportHeight) {
+            adjustedY = rect.top + window.scrollY - menuHeight - 5;
+        }
+        
+        window.emojiSelector.showMenu(messageId, adjustedX, adjustedY);
+        
+        const event = new CustomEvent('emoji-menu-requested', {
+            detail: { messageId, x: adjustedX, y: adjustedY }
+        });
+        document.dispatchEvent(event);
     }
     
     replyToMessage(messageId) {
@@ -956,7 +1004,7 @@ class ChatSection {
                 return;
             }
             
-                            console.log('ChatAPI available, proceeding with message send...');
+            console.log('ChatAPI available, proceeding with message send...');
             
             let attachmentUrl = null;
             let messageType = 'text';
@@ -1025,10 +1073,10 @@ class ChatSection {
             this.removeFileUpload();
             this.updateSendButton();
             
-            console.log('🌐 Calling ChatAPI.sendMessage...');
+            console.log('Calling ChatAPI.sendMessage...');
             const response = await window.ChatAPI.sendMessage(this.targetId, content, this.chatType, options);
             
-            console.log('📨 Message send response:', response);
+            console.log('Message send response:', response);
             
             if (response && response.data && response.data.message) {
                 const serverMessage = response.data.message;
@@ -1036,7 +1084,7 @@ class ChatSection {
                 const tempMessageElement = document.querySelector(`[data-message-id="${messageId}"]`);
                 if (tempMessageElement) {
                     tempMessageElement.setAttribute('data-message-id', serverMessage.id);
-                    console.log('✅ Updated temp message with server ID:', serverMessage.id);
+                    console.log('Updated temp message with server ID:', serverMessage.id);
                 }
             } else {
                 console.warn('⚠️ Unexpected response format:', response);
@@ -1626,7 +1674,7 @@ class ChatSection {
                             const tempMessage = document.querySelector(`[data-message-id^="temp_"]`);
                             if (tempMessage) {
                                 tempMessage.setAttribute('data-message-id', messageId);
-                                console.log('✅ Updated temp message with socket ID:', messageId);
+                                console.log('Updated temp message with socket ID:', messageId);
                             }
                         }
                     }
@@ -1648,7 +1696,7 @@ class ChatSection {
                             const tempMessage = document.querySelector(`[data-message-id^="temp_"]`);
                             if (tempMessage) {
                                 tempMessage.setAttribute('data-message-id', messageId);
-                                console.log('✅ Updated temp message with socket ID:', messageId);
+                                console.log('Updated temp message with socket ID:', messageId);
                             }
                         }
                     }
@@ -1773,57 +1821,29 @@ class ChatSection {
     }
     
     async loadMessages(offset = 0, limit = 20) {
-        if (!this.targetId || !this.chatType) {
-            console.error('Cannot load messages: missing chat target ID or type');
-            this.hideLoadingIndicator();
-            return;
-        }
-        
         try {
-            if (!window.ChatAPI) {
-                console.error('ChatAPI not available');
-                this.hideLoadingIndicator();
-                return;
-            }
+            this.showLoadingSkeletons();
             
-            if (offset > 0) {
-                this.showLoadMoreIndicator();
-            }
+            console.log(`Loading messages for ${this.chatType} ${this.targetId}, offset: ${offset}, limit: ${limit}`);
             
-            console.log(`⏳ Loading messages for ${this.chatType} ${this.targetId}, offset: ${offset}, limit: ${limit}`);
-            
-            const response = await window.ChatAPI.getMessages(
-                this.chatType === 'direct' ? 'dm' : this.chatType, 
-                this.targetId,
-                limit,
-                offset
+            const params = new URLSearchParams({ offset, limit });
+            const apiChatType = this.chatType === 'direct' ? 'dm' : this.chatType;
+            const response = await fetch(
+                `/api/chat/${apiChatType}/${this.targetId}/messages?${params.toString()}`
             );
             
-            console.log('📥 Response received:', response);
+            console.log('Response received:', response);
             
-            if (offset === 0) {
-                this.hideLoadingIndicator();
-            } else {
-                this.hideLoadMoreIndicator();
-            }
+            const data = await response.json();
             
             let messages = [];
-            let hasMore = false;
             
-            if (response && Array.isArray(response.messages)) {
-                messages = response.messages;
-                hasMore = response.has_more;
-                console.log(`✅ Found ${messages.length} messages in response.messages`);
-            } else if (response && response.data && Array.isArray(response.data.messages)) {
-                messages = response.data.messages;
-                hasMore = response.data.has_more;
-                console.log(`✅ Found ${messages.length} messages in response.data.messages`);
-            } else {
-                console.error('Could not find messages array in response:', response);
-                if (offset === 0) {
-                    this.showEmptyState();
-                }
-                return;
+            if (data.messages) {
+                messages = data.messages;
+                console.log(`Found ${messages.length} messages in response.messages`);
+            } else if (data.data && data.data.messages) {
+                messages = data.data.messages;
+                console.log(`Found ${messages.length} messages in response.data.messages`);
             }
             
             if (messages && messages.length > 0) {
@@ -1831,34 +1851,17 @@ class ChatSection {
                     this.processedMessageIds.add(msg.id);
                 });
                 
-                if (offset === 0) {
-                    this.renderMessages(messages);
-                    
-                    if (messages.length >= limit) {
-                        this.addLoadMoreButton();
-                    }
-                } else {
-                    this.prependMessages(messages);
-                    
-                    if (messages.length < limit) {
-                        this.removeLoadMoreButton();
-                    }
-                }
+                this.renderMessages(messages);
                 
-                if (offset === 0) {
-                    this.scrollToBottom();
-                }
+                this.scrollToBottom();
             } else {
-                if (offset === 0) {
-                    this.showEmptyState();
-                }
+                this.showEmptyState();
             }
             
             this.messagesLoaded = true;
             
         } catch (error) {
             this.hideLoadingIndicator();
-            this.hideLoadMoreIndicator();
             console.error('Failed to load messages:', error);
             this.showErrorMessage(`Failed to load messages: ${error.message}`);
         }
@@ -1928,125 +1931,12 @@ class ChatSection {
         return skeletonGroup;
     }
     
-    addLoadMoreButton() {
-        if (!this.chatMessages) return;
-        
-        const loadMoreDiv = document.createElement('div');
-        loadMoreDiv.id = 'load-more-messages';
-        loadMoreDiv.className = 'flex justify-center items-center p-3 mb-2';
-        
-        const loadMoreBtn = document.createElement('button');
-        loadMoreBtn.className = 'text-[#b5bac1] hover:text-white bg-[#3c3f45] hover:bg-[#4d5158] px-4 py-1 rounded text-sm transition-colors';
-        loadMoreBtn.textContent = 'Load older messages';
-        loadMoreBtn.addEventListener('click', () => this.loadOlderMessages());
-        
-        loadMoreDiv.appendChild(loadMoreBtn);
-        
-        this.chatMessages.insertBefore(loadMoreDiv, this.chatMessages.firstChild);
-        
-        this.setupScrollListener();
-    }
-    
-    setupScrollListener() {
-        if (!this.chatMessages) return;
-        
-        this.scrollListenerActive = true;
-        
-        this.chatMessages.addEventListener('scroll', () => {
-            if (!this.scrollListenerActive) return;
-            
-            const { scrollTop } = this.chatMessages;
-            if (scrollTop < 100) {
-                this.scrollListenerActive = false;
-                this.loadOlderMessages();
-            }
-        });
-    }
-    
-    loadOlderMessages() {
-        if (this.loadingOlderMessages) return;
-        
-        this.loadingOlderMessages = true;
-        
-        const messageCount = this.chatMessages.querySelectorAll('.message-group:not(#load-more-messages):not(.loading-indicator)').length;
-        this.loadMessages(messageCount, 20);
-        
-        setTimeout(() => {
-            this.loadingOlderMessages = false;
-            this.scrollListenerActive = true;
-        }, 1000);
-    }
-    
-    removeLoadMoreButton() {
-        const loadMoreElem = document.getElementById('load-more-messages');
-        if (loadMoreElem) {
-            loadMoreElem.remove();
-        }
-    }
-    
-    showLoadMoreIndicator() {
-        const loadMoreElem = document.getElementById('load-more-messages');
-        if (loadMoreElem) {
-            loadMoreElem.innerHTML = `
-                <div class="flex items-center">
-                    <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-[#5865f2] mr-2"></div>
-                    <span class="text-[#b5bac1]">Loading older messages...</span>
-                </div>
-            `;
-        }
-    }
-    
-    hideLoadMoreIndicator() {
-        const loadMoreElem = document.getElementById('load-more-messages');
-        if (loadMoreElem) {
-            const loadMoreBtn = document.createElement('button');
-            loadMoreBtn.className = 'text-[#b5bac1] hover:text-white bg-[#3c3f45] hover:bg-[#4d5158] px-4 py-1 rounded text-sm transition-colors';
-            loadMoreBtn.textContent = 'Load older messages';
-            loadMoreBtn.addEventListener('click', () => this.loadOlderMessages());
-            
-            loadMoreElem.innerHTML = '';
-            loadMoreElem.appendChild(loadMoreBtn);
-        }
-    }
-    
-    prependMessages(messages) {
-        if (!this.chatMessages) return;
-        
-        let insertionPoint = this.chatMessages.firstChild;
-        if (insertionPoint && insertionPoint.id === 'load-more-messages') {
-            insertionPoint = insertionPoint.nextSibling;
-        }
-        
-        let lastSenderId = null;
-        let messageGroup = null;
-        
-        [...messages].reverse().forEach(message => {
-            if (message.user_id !== lastSenderId) {
-                messageGroup = this.createMessageGroup(message);
-                if (insertionPoint) {
-                    this.chatMessages.insertBefore(messageGroup, insertionPoint);
-                } else {
-                    this.chatMessages.appendChild(messageGroup);
-                }
-                lastSenderId = message.user_id;
-            } else {
-                const messageContent = this.createMessageContent(message);
-                const contents = messageGroup.querySelector('.message-contents');
-                if (contents) {
-                    contents.prepend(messageContent);
-                }
-            }
-        });
-    }
-    
     showEmptyState() {
         if (!this.chatMessages) return;
         
         this.chatMessages.innerHTML = `
             <div class="flex flex-col items-center justify-center p-8 text-[#b5bac1] h-full">
-                <svg class="w-16 h-16 mb-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http:
-                    <path fill-rule="evenodd" d="M18 10c0 4.418-3.582 8-8 8s-8-3.582-8-8 3.582-8 8-8 8 3.582 8 8zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-                </svg>
+                <i class="fas fa-comments text-6xl mb-4 opacity-50"></i>
                 <p class="text-lg font-medium">No messages yet</p>
                 <p class="text-sm mt-2">Start the conversation by sending a message!</p>
             </div>
