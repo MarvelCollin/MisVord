@@ -207,6 +207,7 @@ class UserRepository extends Repository {
         
         $queryBuilder = new Query();
         $results = $queryBuilder->table(User::getTable())
+            ->select('id, username, discriminator, email, display_name, avatar_url, status, created_at')
             ->where(function($q) use ($query) {
                 $q->whereLike('username', "%$query%")
                   ->orWhereLike('email', "%$query%")
@@ -214,7 +215,7 @@ class UserRepository extends Repository {
             })
             ->where('status', '!=', 'bot')
             ->where('email', '!=', 'admin@admin.com')
-            ->orderBy('created_at', 'DESC')
+            ->orderBy('username', 'ASC')
             ->limit($limit)
             ->offset($offset)
             ->get();

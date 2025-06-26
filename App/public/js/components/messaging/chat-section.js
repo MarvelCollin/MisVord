@@ -55,8 +55,6 @@ class ChatSection {
         this.userId = null;
         this.currentServerId = null;
         this.processedMessageIds = new Set();
-        
-        this.init();
     }
     
     init() {
@@ -93,19 +91,22 @@ class ChatSection {
     ensureChatContainerStructure() {
         if (!this.chatMessages) return;
         
-        this.chatMessages.innerHTML = '';
-        this.chatMessages.style.position = 'relative';
-        this.chatMessages.style.display = 'flex';
-        this.chatMessages.style.flexDirection = 'column';
+        let messagesContainer = this.chatMessages.querySelector('.messages-container');
         
-        const messagesContainer = document.createElement('div');
-        messagesContainer.className = 'messages-container flex-1';
-        messagesContainer.style.position = 'relative';
-        messagesContainer.style.zIndex = '10';
+        if (!messagesContainer) {
+            this.chatMessages.style.position = 'relative';
+            this.chatMessages.style.display = 'flex';
+            this.chatMessages.style.flexDirection = 'column';
+            
+            messagesContainer = document.createElement('div');
+            messagesContainer.className = 'messages-container flex-1';
+            messagesContainer.style.position = 'relative';
+            messagesContainer.style.zIndex = '10';
+            
+            this.chatMessages.appendChild(messagesContainer);
+        }
         
-        this.chatMessages.appendChild(messagesContainer);
         this.messagesContainer = messagesContainer;
-        
         this.initializeSkeletonLoader();
     }
     
@@ -872,7 +873,7 @@ class ChatSection {
             replyContainer.style.animation = 'replyInputSlideOut 0.2s ease-in forwards';
             setTimeout(() => {
                 if (replyContainer.parentNode) {
-                    replyContainer.remove();
+            replyContainer.remove();
                 }
             }, 200);
         }
@@ -992,11 +993,20 @@ class ChatSection {
         
         this.prepareChatContainer();
         
+        const containerCheck = this.validateAndGetContainer();
+        if (!containerCheck) {
+            console.error('❌ Container validation failed before sending message - aborting');
+            this.messageInput.value = content;
+            return;
+        }
+        
+        console.log('✅ Container validated before message send - proceeding...');
+        
         console.log('📤 Attempting to send message:', { 
             content, 
             chatType: this.chatType, 
-            targetId: this.targetId, 
-            hasFile: !!this.currentFileUpload 
+            targetId: this.targetId,
+            hasFile: !!this.currentFileUpload
         });
         
         const timestamp = Date.now();
@@ -1077,8 +1087,9 @@ class ChatSection {
                 this.cancelReply();
             }
             
-            this.processedMessageIds.add(messageId);
             this.addMessage(tempMessage);
+            // Now mark the temporary message ID as processed so it's not added twice
+            this.processedMessageIds.add(messageId);
             this.removeFileUpload();
             this.updateSendButton();
             
@@ -1121,7 +1132,12 @@ class ChatSection {
     }
     
     prepareChatContainer() {
-        if (!this.chatMessages) return;
+        if (!this.chatMessages) {
+            console.error('❌ prepareChatContainer: chatMessages element not found');
+            return;
+        }
+        
+        console.log('🔧 Preparing chat container for message...');
         
         this.hideEmptyState();
         
@@ -1129,7 +1145,11 @@ class ChatSection {
             this.skeletonLoader.clear();
         }
         
-        this.ensureMessagesContainer();
+        const containerResult = this.ensureMessagesContainer();
+        if (!containerResult) {
+            console.error('❌ Failed to ensure messages container in prepareChatContainer');
+            return;
+        }
         
         const nonMessageElements = this.chatMessages.querySelectorAll(':not(.messages-container)');
         nonMessageElements.forEach(element => {
@@ -1140,6 +1160,7 @@ class ChatSection {
                 if (element.textContent.includes('No messages yet') || 
                     element.textContent.includes('Start the conversation') ||
                     element.querySelector('i.fa-comments')) {
+                    console.log('🗑️ Removing interfering element:', element);
                     element.remove();
                 }
             }
@@ -1147,7 +1168,20 @@ class ChatSection {
         
         this.chatMessages.style.position = 'relative';
         
-        console.log('Chat container prepared - messages-container ready for first message');
+        const finalState = {
+            chatMessagesExists: !!this.chatMessages,
+            messagesContainerExists: !!this.messagesContainer,
+            containerInDOM: this.messagesContainer ? document.contains(this.messagesContainer) : false,
+            containerChildren: this.messagesContainer?.children.length || 0,
+            chatMessagesChildren: this.chatMessages.children.length
+        };
+        
+        console.log('📊 Chat container preparation complete:', finalState);
+        console.log('✅ Messages-container ready for first message');
+        
+        if (!finalState.messagesContainerExists || !finalState.containerInDOM) {
+            console.error('❌ Chat container preparation failed - container not ready');
+        }
     }
     
     handleTyping() {
@@ -1278,6 +1312,13 @@ class ChatSection {
         
         const targetContainer = this.getMessagesContainer();
         const existingMessages = targetContainer.querySelectorAll('.message-group');
+        // If messages array is empty AND there are already message bubbles in DOM (e.g., user just sent first message)
+        if ((!messages || messages.length === 0) && existingMessages.length > 0) {
+            console.log('📭 renderMessages received 0 messages but DOM already has messages; skipping clear to preserve local messages');
+            return;
+        }
+
+        // Otherwise, clear previous render and replace with new set
         existingMessages.forEach(group => group.remove());
         
         if (this.skeletonLoader) {
@@ -1312,9 +1353,19 @@ class ChatSection {
     }
     
     addMessage(message) {
+        console.log('🚨 ADDMESSAGE CALLED - IMMEDIATE CHECK:', {
+            timestamp: Date.now(),
+            messageExists: !!message,
+            chatMessagesExists: !!this.chatMessages,
+            messageContent: message?.content || 'NO CONTENT'
+        });
+        
         if (!this.chatMessages || !message) {
+            console.error('❌ addMessage failed: missing chatMessages or message');
             return;
         }
+        
+        console.log('🚀 Starting addMessage process...');
         
         this.hideEmptyState();
         
@@ -1325,7 +1376,19 @@ class ChatSection {
         const existingEmptyStates = this.chatMessages.querySelectorAll('#chat-empty-state');
         existingEmptyStates.forEach(state => state.remove());
         
-        this.ensureMessagesContainer();
+        this.ensureChatContainerStructure();
+        
+        const targetContainer = this.validateAndGetContainer();
+        if (!targetContainer) {
+            console.error('❌ Failed to get valid messages container');
+            return;
+        }
+        
+        console.log('🎯 Target container confirmed:', {
+            className: targetContainer.className,
+            children: targetContainer.children.length,
+            parent: targetContainer.parentNode?.id
+        });
         
         const msg = {
             id: message.id || message.messageId || Date.now().toString(),
@@ -1362,21 +1425,45 @@ class ChatSection {
         
         const isOwnMessage = msg.user_id == this.userId;
         
-        const targetContainer = this.getMessagesContainer();
         const messageGroups = targetContainer.querySelectorAll('.message-group');
         const lastMessageGroup = messageGroups.length > 0 ? messageGroups[messageGroups.length - 1] : null;
         const lastSenderId = lastMessageGroup?.getAttribute('data-user-id');
         
         const isNewGroup = !lastMessageGroup || lastSenderId !== msg.user_id;
         
+        console.log('📋 Message details:', {
+            id: msg.id,
+            content: msg.content.substring(0, 50),
+            isNewGroup,
+            existingGroups: messageGroups.length,
+            targetContainer: targetContainer.className
+        });
+        
         if (isNewGroup) {
             const messageGroup = this.createMessageGroup(msg, isOwnMessage);
             messageGroup.classList.add('message-fade-in');
-            targetContainer.appendChild(messageGroup);
             
-            console.log('Added new message group to messages-container:', msg.id, 'Content:', msg.content);
+            console.log('📦 Created message group:', messageGroup);
+            console.log('📍 Target container before append:', targetContainer);
+            console.log('🔍 Container children before append:', targetContainer.children.length);
+            
+            const appendResult = this.safeAppendToContainer(targetContainer, messageGroup);
+            if (!appendResult) {
+                console.error('❌ Failed to append message group');
+                return;
+            }
+            
+            console.log('✅ Message group appended successfully');
+            console.log('🔍 Container children after append:', targetContainer.children.length);
+            console.log('🎯 Last child in container:', targetContainer.lastElementChild);
             
             setTimeout(() => {
+                const finalCheck = this.verifyMessageInDOM(msg.id, targetContainer);
+                if (finalCheck) {
+                    console.log('🎉 Message bubble confirmed visible in DOM');
+                } else {
+                    console.error('❌ Message bubble NOT found in DOM after append');
+                }
                 messageGroup.classList.add('message-appear');
             }, 10);
         } else {
@@ -1403,18 +1490,129 @@ class ChatSection {
         this.scrollToBottom();
     }
     
+    validateAndGetContainer() {
+        console.log('🔍 Validating messages container...');
+        
+        if (!this.chatMessages) {
+            console.error('❌ Main chat messages element not found');
+            return null;
+        }
+        
+        this.ensureMessagesContainer();
+        
+        const container = this.messagesContainer;
+        if (!container) {
+            console.error('❌ Messages container not found after ensuring');
+            return null;
+        }
+        
+        if (!container.parentNode) {
+            console.error('❌ Messages container not attached to DOM');
+            return null;
+        }
+        
+        if (!container.classList.contains('messages-container')) {
+            console.error('❌ Container missing required class');
+            return null;
+        }
+        
+        console.log('✅ Container validation passed:', {
+            className: container.className,
+            parentNode: container.parentNode.id,
+            childrenCount: container.children.length,
+            isInDOM: document.contains(container)
+        });
+        
+        return container;
+    }
+    
+    safeAppendToContainer(container, element) {
+        try {
+            console.log('🔧 Attempting to append element to container...');
+            
+            if (!container || !element) {
+                console.error('❌ Missing container or element for append');
+                return false;
+            }
+            
+            const beforeCount = container.children.length;
+            container.appendChild(element);
+            const afterCount = container.children.length;
+            
+            const success = afterCount > beforeCount && container.contains(element);
+            
+            console.log('📊 Append result:', {
+                beforeCount,
+                afterCount,
+                elementInContainer: container.contains(element),
+                success
+            });
+            
+            if (success) {
+                console.log('✅ Element successfully appended to messages-container');
+            } else {
+                console.error('❌ Append failed - element not in container');
+            }
+            
+            return success;
+        } catch (error) {
+            console.error('❌ Exception during append:', error);
+            return false;
+        }
+    }
+    
     ensureMessagesContainer() {
+        console.log('🔧 Ensuring messages container exists...');
+        
+        if (!this.chatMessages) {
+            console.error('❌ Cannot ensure container: chatMessages element not found');
+            return null;
+        }
+        
+        console.log('📍 Chat messages element found:', this.chatMessages.id);
+        
         if (!this.messagesContainer) {
+            console.log('🔍 No messagesContainer reference, searching for existing...');
             let container = this.chatMessages.querySelector('.messages-container');
+            
             if (!container) {
+                console.log('🔨 Creating new messages-container element...');
                 container = document.createElement('div');
                 container.className = 'messages-container flex-1';
                 container.style.position = 'relative';
                 container.style.zIndex = '10';
+                
+                console.log('📦 Created container element:', container);
+                console.log('🔍 Chat messages children before append:', this.chatMessages.children.length);
+                
                 this.chatMessages.appendChild(container);
+                
+                console.log('🔍 Chat messages children after append:', this.chatMessages.children.length);
+                console.log('✅ Container appended to chat messages');
+            } else {
+                console.log('✅ Found existing messages-container in DOM');
             }
+            
             this.messagesContainer = container;
         }
+        
+        const finalValidation = {
+            exists: !!this.messagesContainer,
+            className: this.messagesContainer?.className,
+            hasParent: !!this.messagesContainer?.parentNode,
+            parentId: this.messagesContainer?.parentNode?.id,
+            inDOM: this.messagesContainer ? document.contains(this.messagesContainer) : false,
+            childrenCount: this.messagesContainer?.children.length || 0
+        };
+        
+        console.log('📊 Final container validation:', finalValidation);
+        
+        if (!finalValidation.exists || !finalValidation.inDOM) {
+            console.error('❌ Container validation failed');
+            return null;
+        }
+        
+        console.log('✅ Messages container ready:', this.messagesContainer);
         return this.messagesContainer;
     }
     
@@ -1530,9 +1728,9 @@ class ChatSection {
                         
                         repliedMessage.classList.remove('highlight-message');
                         setTimeout(() => {
-                            repliedMessage.classList.add('highlight-message');
-                            setTimeout(() => {
-                                repliedMessage.classList.remove('highlight-message');
+                        repliedMessage.classList.add('highlight-message');
+                        setTimeout(() => {
+                            repliedMessage.classList.remove('highlight-message');
                             }, 3000);
                         }, 100);
                     } else {
@@ -2140,6 +2338,168 @@ class ChatSection {
         if (text.length <= maxLength) return text;
         return text.substring(0, maxLength) + '...';
     }
+    
+    debugContainerState() {
+        console.log('🔍 === DEBUG: Current Container State ===');
+        
+        const state = {
+            chatMessages: {
+                exists: !!this.chatMessages,
+                id: this.chatMessages?.id,
+                children: this.chatMessages?.children.length || 0,
+                innerHTML: this.chatMessages?.innerHTML.substring(0, 200) + '...'
+            },
+            messagesContainer: {
+                exists: !!this.messagesContainer,
+                className: this.messagesContainer?.className,
+                children: this.messagesContainer?.children.length || 0,
+                inDOM: this.messagesContainer ? document.contains(this.messagesContainer) : false,
+                hasParent: !!this.messagesContainer?.parentNode,
+                parentId: this.messagesContainer?.parentNode?.id
+            },
+            domQuery: {
+                messagesContainerInDOM: !!document.querySelector('#chat-messages .messages-container'),
+                chatMessagesInDOM: !!document.getElementById('chat-messages'),
+                messageGroups: document.querySelectorAll('.message-group').length
+            }
+        };
+        
+        console.table(state.chatMessages);
+        console.table(state.messagesContainer);
+        console.table(state.domQuery);
+        
+        if (this.messagesContainer) {
+            console.log('📦 Messages Container Element:', this.messagesContainer);
+        } else {
+            console.warn('⚠️ No messages container reference');
+        }
+        
+        return state;
+    }
 
-
+    verifyMessageInDOM(messageId, expectedContainer) {
+        console.log('🔍 Verifying message in DOM:', messageId);
+        
+        const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+        if (!messageElement) {
+            console.error('❌ Message element not found in DOM');
+            return false;
+        }
+        
+        const messageGroup = messageElement.closest('.message-group');
+        if (!messageGroup) {
+            console.error('❌ Message group not found');
+            return false;
+        }
+        
+        const actualContainer = messageGroup.parentNode;
+        if (actualContainer !== expectedContainer) {
+            console.error('❌ Message in wrong container:', {
+                expected: expectedContainer.className,
+                actual: actualContainer ? actualContainer.className : 'null'
+            });
+            return false;
+        }
+        
+        const isVisible = messageGroup.offsetParent !== null;
+        const hasContent = messageElement.textContent.trim().length > 0;
+        
+        const verification = {
+            elementExists: !!messageElement,
+            groupExists: !!messageGroup,
+            correctContainer: actualContainer === expectedContainer,
+            isVisible,
+            hasContent,
+            containerClass: actualContainer.className,
+            messageText: messageElement.textContent.substring(0, 50)
+        };
+        
+        console.log('📊 Message verification result:', verification);
+        
+        const success = verification.elementExists && 
+                       verification.groupExists && 
+                       verification.correctContainer && 
+                       verification.isVisible;
+        
+        if (success) {
+            console.log('✅ Message successfully verified in messages-container');
+        } else {
+            console.error('❌ Message verification failed');
+        }
+        
+        return success;
+    }
+    
+    forceTestContainerAppend() {
+        console.log('🧪 FORCE TESTING CONTAINER APPEND...');
+        
+        const container = this.validateAndGetContainer();
+        if (!container) {
+            console.error('❌ Cannot test - no valid container');
+            return false;
+        }
+        
+        const testElement = document.createElement('div');
+        testElement.style.background = 'red';
+        testElement.style.height = '50px';
+        testElement.style.width = '100%';
+        testElement.textContent = 'TEST ELEMENT - FORCE APPEND';
+        testElement.id = 'force-test-element';
+        
+        console.log('🧪 Attempting to append test element...');
+        
+        try {
+            container.appendChild(testElement);
+            
+            const testSuccess = container.contains(testElement);
+            console.log('🧪 Force test result:', {
+                elementAppended: testSuccess,
+                containerChildren: container.children.length,
+                testElementInDOM: document.getElementById('force-test-element') !== null
+            });
+            
+            if (testSuccess) {
+                console.log('✅ FORCE TEST PASSED - Container can accept elements!');
+                setTimeout(() => testElement.remove(), 2000);
+                return true;
+            } else {
+                console.error('❌ FORCE TEST FAILED - Container cannot accept elements!');
+                return false;
+            }
+        } catch (error) {
+            console.error('❌ FORCE TEST ERROR:', error);
+            return false;
+        }
+    }
+    
+    quickMessageTest() {
+        console.log('🧪 QUICK MESSAGE TEST...');
+        
+        const testMessage = {
+            id: 'test_' + Date.now(),
+            content: 'TEST MESSAGE - If you see this, the system works!',
+            user_id: this.userId,
+            username: 'TEST USER',
+            avatar_url: '/assets/main-logo.png',
+            sent_at: Date.now()
+        };
+        
+        console.log('🧪 Adding test message...');
+        this.addMessage(testMessage);
+        
+        setTimeout(() => {
+            const testElement = document.querySelector(`[data-message-id="${testMessage.id}"]`);
+            if (testElement) {
+                console.log('✅ QUICK TEST PASSED - Test message visible!');
+                setTimeout(() => {
+                    const messageGroup = testElement.closest('.message-group');
+                    if (messageGroup) messageGroup.remove();
+                }, 3000);
+                return true;
+            } else {
+                console.error('❌ QUICK TEST FAILED - Test message not found!');
+                return false;
+            }
+        }, 100);
+    }
 }

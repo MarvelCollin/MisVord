@@ -50,42 +50,19 @@ class VoiceManager {
     async joinVoice() {
         if (this.isConnected) return Promise.resolve();
         
-        const joinBtn = document.getElementById('joinBtn');
-        if (joinBtn) {
-            joinBtn.disabled = true;
-            joinBtn.textContent = 'Connecting...';
-        }
-        
-        try {
-            await this.requestPermissions();
-            
-            const meetingId = document.querySelector('meta[name="meeting-id"]')?.content;
-            const username = document.querySelector('meta[name="username"]')?.content || 'Anonymous';
-            const channelId = document.querySelector('meta[name="channel-id"]')?.content;
-            
-            if (!meetingId || !window.videoSDKManager) throw new Error();
-            
-            const authToken = await window.videoSDKManager.getAuthToken();
-            window.videoSDKManager.init(authToken);
-            
-            window.videosdkMeeting = window.videoSDKManager.initMeeting({
-                meetingId, name: username, micEnabled: true, webcamEnabled: false
-            });
-            
-            await window.videoSDKManager.joinMeeting();
-            this.dispatchEvent('voiceConnect', { meetingId, channelId });
-            
-            this.isConnected = true;
-            this.showToast('Connected to voice channel', 'success');
-            
-            return Promise.resolve();
-        } catch (error) {
-            this.showToast('Failed to connect to voice', 'error');
-            if (joinBtn) {
-                joinBtn.disabled = false;
-                joinBtn.textContent = 'Join Voice';
+        const channelId = document.querySelector('meta[name="channel-id"]')?.content;
+        if (channelId && window.autoJoinVoiceChannel) {
+            try {
+                await window.autoJoinVoiceChannel(channelId);
+                this.isConnected = true;
+                return Promise.resolve();
+            } catch (error) {
+                this.showToast('Failed to connect to voice', 'error');
+                return Promise.reject(error);
             }
-            return Promise.reject(error);
+        } else {
+            this.showToast('Channel not available', 'error');
+            return Promise.reject(new Error('Channel not available'));
         }
     }
     
@@ -185,18 +162,6 @@ class VoiceManager {
         this.showToast(this.isScreenSharing ? 'Screen sharing started' : 'Screen sharing stopped', 'info');
     }
     
-    async requestPermissions() {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            stream.getTracks().forEach(track => track.stop());
-            return true;
-        } catch {
-            throw new Error('Microphone permission denied');
-        }
-    }
-    
-
-    
     addParticipant(participant) {
         this.participants.set(participant.id, participant);
     }
@@ -204,8 +169,6 @@ class VoiceManager {
     removeParticipant(participantId) {
         this.participants.delete(participantId);
     }
-    
-
     
     dispatchEvent(eventName, detail = {}) {
         window.dispatchEvent(new CustomEvent(eventName, { detail }));

@@ -242,18 +242,6 @@ if ($chatType === 'channel') {
 }
 
 /* Proper message group and content styling */
-#chat-messages .message-group {
-    display: flex !important;
-    align-items: flex-start !important;
-    padding: 4px 16px !important;
-    margin: 0 0 4px 0 !important;
-    background-color: transparent !important;
-    transition: background-color 0.15s ease !important;
-    min-height: 40px !important;
-    position: relative !important;
-    z-index: 10 !important;
-}
-
 #chat-messages .message-group:hover {
     background-color: rgba(79, 84, 92, 0.16) !important;
 }

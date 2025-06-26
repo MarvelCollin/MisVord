@@ -8,6 +8,13 @@ class ChatSkeletonLoader {
         if (!this.container) return;
         
         this.hideEmptyState();
+        
+        const existingMessages = this.container.querySelectorAll('.message-group');
+        if (existingMessages.length > 0) {
+            console.log('⚠️ Real messages exist, skipping skeleton loading');
+            return;
+        }
+        
         this.clear();
         
         for (let i = 0; i < this.skeletonCount; i++) {

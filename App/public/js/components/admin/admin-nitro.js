@@ -6,6 +6,9 @@ export class NitroManager {
     this.currentNitroPage = 1;
     this.nitroPerPage = 10;
     this.userSearchTimeout = null;
+    this.searchController = null;
+    this.searchCache = new Map();
+    this.maxCacheSize = 50;
     
     this.init();
   }
@@ -114,16 +117,16 @@ export class NitroManager {
     if (userSearchInput && userSearchResults && userIdInput) {
       const clearButton = document.createElement('button');
       clearButton.type = 'button';
-      clearButton.className = 'absolute right-2 top-1/2 transform -translate-y-1/2 text-discord-lighter hover:text-white';
+      clearButton.className = 'absolute right-3 top-1/2 transform -translate-y-1/2 text-discord-lighter hover:text-white transition-all duration-200 hover:scale-110 flex items-center justify-center w-5 h-5';
       clearButton.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
           <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
         </svg>
       `;
       clearButton.addEventListener('click', () => {
         userSearchInput.value = '';
         userIdInput.value = '';
-        userSearchResults.classList.add('hidden');
+        this.hideDropdownWithAnimation(userSearchResults);
       });
       
       const parent = userSearchInput.parentElement;
@@ -134,7 +137,7 @@ export class NitroManager {
       
       userSearchInput.addEventListener('click', () => {
         if (userSearchInput.value.trim().length >= 2) {
-          userSearchResults.classList.remove('hidden');
+          this.showDropdownWithAnimation(userSearchResults);
         }
       });
       
@@ -143,28 +146,53 @@ export class NitroManager {
         
         if (query.length === 0) {
           userIdInput.value = '';
-          userSearchResults.innerHTML = '<div class="p-2 text-sm text-gray-400">Type to search users...</div>';
-          userSearchResults.classList.add('hidden');
+          userSearchResults.innerHTML = '<div class="p-2 text-sm text-gray-400 animate-fade-in">Type to search users...</div>';
+          this.hideDropdownWithAnimation(userSearchResults);
           return;
         }
         
         if (query.length >= 2) {
           this.searchUsers(query);
+        } else {
+          userSearchResults.innerHTML = '<div class="p-2 text-sm text-gray-400 animate-fade-in">Type at least 2 characters...</div>';
+          this.showDropdownWithAnimation(userSearchResults);
         }
-      }, 300));
+      }, 200));
       
       document.addEventListener('click', (e) => {
         if (!userSearchInput.contains(e.target) && !userSearchResults.contains(e.target)) {
-          userSearchResults.classList.add('hidden');
+          this.hideDropdownWithAnimation(userSearchResults);
         }
       });
       
       document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
-          userSearchResults.classList.add('hidden');
+          this.hideDropdownWithAnimation(userSearchResults);
         }
       });
     }
+  }
+  
+  showDropdownWithAnimation(dropdown) {
+    dropdown.classList.remove('hidden');
+    dropdown.style.opacity = '0';
+    dropdown.style.transform = 'translateY(-10px)';
+    dropdown.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+    
+    requestAnimationFrame(() => {
+      dropdown.style.opacity = '1';
+      dropdown.style.transform = 'translateY(0)';
+    });
+  }
+  
+  hideDropdownWithAnimation(dropdown) {
+    dropdown.style.transition = 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)';
+    dropdown.style.opacity = '0';
+    dropdown.style.transform = 'translateY(-10px)';
+    
+    setTimeout(() => {
+      dropdown.classList.add('hidden');
+    }, 200);
   }
   
   searchUsers(query) {
@@ -172,8 +200,20 @@ export class NitroManager {
     
     if (!userSearchResults) return;
     
-    userSearchResults.innerHTML = '<div class="p-2 text-sm text-discord-lighter">Searching...</div>';
-    userSearchResults.classList.remove('hidden');
+    if (this.searchController) {
+      this.searchController.abort();
+    }
+    
+    if (this.searchCache.has(query)) {
+      this.renderSearchResults(this.searchCache.get(query), userSearchResults);
+      this.showDropdownWithAnimation(userSearchResults);
+      return;
+    }
+    
+    userSearchResults.innerHTML = '<div class="p-2 text-sm text-discord-lighter animate-pulse">Searching...</div>';
+    this.showDropdownWithAnimation(userSearchResults);
+    
+    this.searchController = new AbortController();
     
     const ajaxConfig = {
       method: 'GET',
@@ -182,10 +222,11 @@ export class NitroManager {
         'Content-Type': 'application/json',
         'X-Requested-With': 'XMLHttpRequest'
       },
-      credentials: 'same-origin'
+      credentials: 'same-origin',
+      signal: this.searchController.signal
     };
     
-    fetch(`/api/admin/users/search?q=${encodeURIComponent(query)}`, ajaxConfig)
+    fetch(`/api/admin/users/search?q=${encodeURIComponent(query)}&limit=8`, ajaxConfig)
       .then(response => {
         if (!response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`);
@@ -194,47 +235,84 @@ export class NitroManager {
       })
       .then(data => {
         if (data.success && data.data && data.data.users && Array.isArray(data.data.users)) {
-          if (data.data.users.length === 0) {
-            userSearchResults.innerHTML = '<div class="p-2 text-sm text-discord-lighter">No users found</div>';
-            return;
-          }
-          
-          userSearchResults.innerHTML = '';
-          
-          data.data.users.forEach(user => {
-            const resultItem = document.createElement('div');
-            resultItem.className = 'p-2 hover:bg-discord-dark cursor-pointer flex items-center';
-            resultItem.dataset.userId = user.id;
-
-            const username = user.username || 'Unknown';
-            const discriminator = user.discriminator || '0000';
-            const displayName = `${username}#${discriminator}`;
-            
-            resultItem.innerHTML = `
-              <div class="w-8 h-8 rounded-full overflow-hidden bg-discord-dark mr-2">
-                <img src="${user.avatar_url || '/public/assets/common/main-logo.png'}" alt="Avatar" class="w-full h-full object-cover" onerror="this.src='/public/assets/common/main-logo.png'">
-              </div>
-              <div>
-                <div class="text-sm font-medium text-white">${displayName}</div>
-                <div class="text-xs text-discord-lighter">${user.email || 'No email'}</div>
-              </div>
-            `;
-            
-            resultItem.addEventListener('click', () => this.selectUser(user));
-            userSearchResults.appendChild(resultItem);
-          });
+          this.cacheSearchResult(query, data.data.users);
+          this.renderSearchResults(data.data.users, userSearchResults);
         } else {
-          userSearchResults.innerHTML = '<div class="p-2 text-sm text-discord-lighter">Error: Invalid response format</div>';
-          console.error('Invalid response format:', data);
+          userSearchResults.innerHTML = '<div class="p-2 text-sm text-discord-lighter animate-shake">Invalid response format</div>';
         }
       })
       .catch(error => {
+        if (error.name === 'AbortError') {
+          return;
+        }
         console.error('Error searching users:', error);
-        userSearchResults.innerHTML = `<div class="p-2 text-sm text-discord-lighter">Error: ${error.message}</div>`;
+        userSearchResults.innerHTML = `<div class="p-2 text-sm text-discord-lighter animate-shake">Search failed</div>`;
+      })
+      .finally(() => {
+        this.searchController = null;
       });
   }
   
-  selectUser(user) {
+  cacheSearchResult(query, users) {
+    if (this.searchCache.size >= this.maxCacheSize) {
+      const firstKey = this.searchCache.keys().next().value;
+      this.searchCache.delete(firstKey);
+    }
+    this.searchCache.set(query, users);
+  }
+  
+  renderSearchResults(users, userSearchResults) {
+    if (users.length === 0) {
+      userSearchResults.innerHTML = '<div class="p-2 text-sm text-discord-lighter animate-fade-in">No users found</div>';
+      return;
+    }
+    
+    const fragment = document.createDocumentFragment();
+    
+    users.forEach((user, index) => {
+      const resultItem = document.createElement('div');
+      resultItem.className = 'p-2 hover:bg-discord-dark cursor-pointer flex items-center transition-all duration-200 hover:scale-[1.02] transform opacity-0';
+      resultItem.dataset.userId = user.id;
+      
+      const username = user.username || 'Unknown';
+      const discriminator = user.discriminator || '0000';
+      const displayName = `${username}#${discriminator}`;
+      
+      resultItem.innerHTML = `
+        <div class="w-8 h-8 rounded-full overflow-hidden bg-discord-dark mr-2 flex-shrink-0">
+          <img src="${user.avatar_url || '/public/assets/common/main-logo.png'}" alt="" class="w-full h-full object-cover" loading="lazy" onerror="this.src='/public/assets/common/main-logo.png'">
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-medium text-white truncate">${displayName}</div>
+          <div class="text-xs text-discord-lighter truncate">${user.email || 'No email'}</div>
+        </div>
+      `;
+      
+      resultItem.addEventListener('click', () => this.selectUserWithAnimation(user, resultItem));
+      fragment.appendChild(resultItem);
+    });
+    
+    userSearchResults.innerHTML = '';
+    userSearchResults.appendChild(fragment);
+    
+    const items = userSearchResults.querySelectorAll('.opacity-0');
+    items.forEach((item, index) => {
+      setTimeout(() => {
+        item.classList.remove('opacity-0');
+        item.classList.add('opacity-100');
+      }, index * 30);
+    });
+  }
+  
+  selectUserWithAnimation(user, element) {
+    element.style.transform = 'scale(0.95)';
+    element.style.backgroundColor = '#5865f2';
+    
+    setTimeout(() => {
+      element.style.transform = 'scale(1)';
+      element.style.backgroundColor = '';
+    }, 150);
+    
     const userIdInput = document.getElementById('user_id');
     const userSearchInput = document.getElementById('user_search');
     const userSearchResults = document.getElementById('user-search-results');
@@ -242,8 +320,22 @@ export class NitroManager {
     if (userIdInput && userSearchInput && userSearchResults) {
       userIdInput.value = user.id;
       userSearchInput.value = `${user.username}#${user.discriminator}`;
-      userSearchResults.classList.add('hidden');
+      
+      userSearchInput.style.transition = 'all 0.3s ease';
+      userSearchInput.style.borderColor = '#5865f2';
+      userSearchInput.style.boxShadow = '0 0 0 2px rgba(88, 101, 242, 0.2)';
+      
+      setTimeout(() => {
+        userSearchInput.style.borderColor = '';
+        userSearchInput.style.boxShadow = '';
+      }, 1000);
+      
+      this.hideDropdownWithAnimation(userSearchResults);
     }
+  }
+  
+  selectUser(user) {
+    this.selectUserWithAnimation(user, null);
   }
   
   handleNitroGenerate(e) {

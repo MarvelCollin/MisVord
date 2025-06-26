@@ -162,11 +162,22 @@ class AdminController extends BaseController
         
         $query = isset($_GET['q']) ? trim($_GET['q']) : '';
         $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
-        $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 10;
+        $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 8;
+        
+        if (empty($query) || strlen($query) < 2) {
+            return $this->success([
+                'users' => [],
+                'pagination' => [
+                    'total' => 0,
+                    'page' => $page,
+                    'limit' => $limit,
+                    'pages' => 0
+                ]
+            ]);
+        }
         
         try {
             $users = $this->userRepository->search($query, $page, $limit);
-            $total = $this->userRepository->countSearch($query);
             
             $normalizedUsers = [];
             foreach ($users as $user) {
@@ -174,26 +185,21 @@ class AdminController extends BaseController
                 
                 $normalizedUsers[] = [
                     'id' => $userData['id'] ?? null,
-                    'username' => $userData['username'] ?? 'Unknown User',
+                    'username' => $userData['username'] ?? 'Unknown',
                     'discriminator' => $userData['discriminator'] ?? '0000',
                     'email' => $userData['email'] ?? '',
-                    'status' => $userData['status'] ?? 'active',
-                    'display_name' => $userData['display_name'] ?? $userData['username'] ?? 'Unknown User',
-                    'avatar_url' => $userData['avatar_url'] ?? null,
-                    'banner_url' => $userData['banner_url'] ?? null,
-                    'bio' => $userData['bio'] ?? '',
-                    'created_at' => $userData['created_at'] ?? null,
-                    'updated_at' => $userData['updated_at'] ?? null
+                    'display_name' => $userData['display_name'] ?? $userData['username'] ?? 'Unknown',
+                    'avatar_url' => $userData['avatar_url'] ?? null
                 ];
             }
             
             return $this->success([
                 'users' => $normalizedUsers,
                 'pagination' => [
-                    'total' => $total,
+                    'total' => count($normalizedUsers),
                     'page' => $page,
                     'limit' => $limit,
-                    'pages' => ceil($total / $limit)
+                    'pages' => 1
                 ]
             ]);
         } catch (Exception $e) {

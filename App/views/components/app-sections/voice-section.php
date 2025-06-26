@@ -127,42 +127,9 @@ function initializeVoiceUI() {
     window.voiceState = { isConnected: false };
     
     async function connectToVoice() {
-        if (window.voiceState.isConnected) return;
-        
-        elements.joinView.classList.add('hidden');
-        elements.connectingView.classList.remove('hidden');
-        
-        try {
-            const config = {
-                meetingId: document.querySelector('meta[name="meeting-id"]')?.content,
-                name: document.querySelector('meta[name="username"]')?.content || 'Anonymous',
-                micEnabled: true,
-                webcamEnabled: false
-            };
-            
-            if (!config.meetingId || !window.videoSDKManager) {
-                throw new Error();
-            }
-            
-            const authToken = await window.videoSDKManager.getAuthToken();
-            window.videoSDKManager.init(authToken);
-            window.videosdkMeeting = window.videoSDKManager.initMeeting(config);
-            await window.videoSDKManager.joinMeeting();
-            
-            window.dispatchEvent(new CustomEvent('voiceConnect', {
-                detail: { meetingId: config.meetingId }
-            }));
-            
-            elements.connectingView.classList.add('hidden');
-            elements.connectedView.classList.remove('hidden');
-            elements.voiceControls.classList.remove('hidden');
-            window.voiceState.isConnected = true;
-            
-        } catch {
-            elements.connectingView.classList.add('hidden');
-            elements.joinView.classList.remove('hidden');
-            elements.joinBtn.disabled = false;
-            elements.joinBtn.textContent = 'Join Voice';
+        const activeChannelId = document.querySelector('meta[name="channel-id"]')?.content;
+        if (activeChannelId && window.autoJoinVoiceChannel) {
+            await window.autoJoinVoiceChannel(activeChannelId);
         }
     }
     
