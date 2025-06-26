@@ -1,6 +1,8 @@
 body[data-page="nitro"] {
     background: linear-gradient(180deg, #8b5cf6 0%, #6d28d9 35%, #4c1d95 65%, #23272a 100%);
     min-height: 100vh;
+    cursor: none;
+    overflow-x: hidden;
 }
 
 body[data-page="nitro"]::before {
@@ -10,6 +12,60 @@ body[data-page="nitro"]::before {
     background: linear-gradient(180deg, #8b5cf6 0%, #6d28d9 35%, #4c1d95 65%, #23272a 100%);
     z-index: -1;
     pointer-events: none;
+}
+
+.custom-cursor {
+    position: fixed;
+    width: 20px;
+    height: 20px;
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.8), rgba(139, 92, 246, 0.3));
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    transition: transform 0.1s ease-out;
+    mix-blend-mode: difference;
+}
+
+.custom-cursor::before {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: -10px;
+    width: 40px;
+    height: 40px;
+    border: 2px solid rgba(139, 92, 246, 0.4);
+    border-radius: 50%;
+    transition: all 0.2s ease-out;
+}
+
+.cursor-trail {
+    position: fixed;
+    width: 6px;
+    height: 6px;
+    background: rgba(139, 92, 246, 0.6);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9998;
+    transition: all 0.3s ease-out;
+}
+
+.custom-cursor.hover {
+    transform: scale(1.5);
+    background: radial-gradient(circle, rgba(236, 72, 153, 0.8), rgba(236, 72, 153, 0.3));
+}
+
+.custom-cursor.hover::before {
+    transform: scale(1.2);
+    border-color: rgba(236, 72, 153, 0.6);
+}
+
+.custom-cursor.click {
+    transform: scale(0.8);
+    background: radial-gradient(circle, rgba(16, 185, 129, 0.8), rgba(16, 185, 129, 0.3));
+}
+
+.magnetic-element {
+    transition: transform 0.3s cubic-bezier(0.23, 1, 0.320, 1);
 }
 
 body[data-page="nitro"] .bg-discord-light {
@@ -305,21 +361,6 @@ body[data-page="nitro"] .bg-discord-darker:hover {
     box-shadow: 0 0 25px rgba(139, 92, 246, 0.6);
 }
 
-.premium-badge {
-    animation: badge-glow 3s ease-in-out infinite;
-}
-
-@keyframes badge-glow {
-    0%, 100% {
-        box-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
-        transform: scale(1);
-    }
-    50% {
-        box-shadow: 0 0 20px rgba(139, 92, 246, 0.8), 0 0 30px rgba(139, 92, 246, 0.4);
-        transform: scale(1.05);
-    }
-}
-
 @media (max-width: 768px) {
     .nitro-hero-section {
         min-height: 300px;
@@ -332,5 +373,14 @@ body[data-page="nitro"] .bg-discord-darker:hover {
     .nitro-card-hover:hover {
         transform: translateY(-5px);
         box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    }
+    
+    body[data-page="nitro"] {
+        cursor: auto;
+    }
+    
+    .custom-cursor,
+    .cursor-trail {
+        display: none;
     }
 }

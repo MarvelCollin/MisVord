@@ -45,7 +45,7 @@ $activeChannel = $GLOBALS['activeChannel'] ?? null;
     </div>
 </div>
 
-<div id="voiceControls">
+<div id="voiceControls" class="hidden">
     <?php include __DIR__ . '/voice-tool.php'; ?>
 </div>
 

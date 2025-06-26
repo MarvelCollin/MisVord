@@ -29,11 +29,20 @@ class MessageHandler {
             return;
         }
         
+        console.log(`📡 [REACTION] Handling ${eventName}:`, {
+            messageId: data.message_id,
+            emoji: data.emoji,
+            userId: data.user_id,
+            targetType: data.target_type,
+            targetId: data.target_id
+        });
+        
         const targetRoom = roomManager.getTargetRoom(data);
         if (targetRoom) {
+            console.log(`📡 [REACTION] Broadcasting ${eventName} to room: ${targetRoom}`);
             roomManager.broadcastToRoom(io, targetRoom, eventName, data);
         } else {
-            console.warn(`No target room found for reaction event: ${eventName}`);
+            console.warn(`⚠️ [REACTION] No target room found for ${eventName}:`, data);
         }
     }
 

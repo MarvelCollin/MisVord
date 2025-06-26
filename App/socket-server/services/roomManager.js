@@ -50,30 +50,54 @@ class RoomManager {
     }
 
     getTargetRoom(data) {
+        if (!data) {
+            console.warn('⚠️ [ROOM] No data provided to getTargetRoom');
+            return null;
+        }
+        
         if (data.target_type === 'channel' && data.target_id) {
-            return this.getChannelRoom(data.target_id);
+            const room = this.getChannelRoom(data.target_id);
+            console.log(`🎯 [ROOM] Target room for channel ${data.target_id}: ${room}`);
+            return room;
         }
         if ((data.target_type === 'dm' || data.target_type === 'direct') && data.target_id) {
-            return this.getDMRoom(data.target_id);
+            const room = this.getDMRoom(data.target_id);
+            console.log(`🎯 [ROOM] Target room for DM ${data.target_id}: ${room}`);
+            return room;
         }
         if (data.roomId) {
-            return this.getDMRoom(data.roomId);
+            const room = this.getDMRoom(data.roomId);
+            console.log(`🎯 [ROOM] Target room for roomId ${data.roomId}: ${room}`);
+            return room;
         }
         if (data.channelId) {
-            return this.getChannelRoom(data.channelId);
+            const room = this.getChannelRoom(data.channelId);
+            console.log(`🎯 [ROOM] Target room for channelId ${data.channelId}: ${room}`);
+            return room;
         }
         if (data.chatRoomId) {
-            return this.getDMRoom(data.chatRoomId);
+            const room = this.getDMRoom(data.chatRoomId);
+            console.log(`🎯 [ROOM] Target room for chatRoomId ${data.chatRoomId}: ${room}`);
+            return room;
         }
         if (data.channel_id) {
-            return this.getChannelRoom(data.channel_id);
+            const room = this.getChannelRoom(data.channel_id);
+            console.log(`🎯 [ROOM] Target room for channel_id ${data.channel_id}: ${room}`);
+            return room;
         }
+        
+        console.warn('⚠️ [ROOM] Could not determine target room from data:', data);
         return null;
     }
 
     broadcastToRoom(io, roomName, eventName, data) {
+        if (!roomName) {
+            console.warn('⚠️ [BROADCAST] No room name provided');
+            return;
+        }
+        
         io.to(roomName).emit(eventName, data);
-        console.log(`Broadcasted ${eventName} to room: ${roomName}`);
+        console.log(`📡 [BROADCAST] ${eventName} to room: ${roomName}`);
     }
 
     addVoiceMeeting(channelId, meetingId, socketId) {

@@ -337,15 +337,12 @@ class EmojiReactions {
         const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
         if (!messageElement) {
             if (retryCount < 5) {
-                // Try again shortly – message bubble might not be in the DOM yet
                 setTimeout(() => {
                     this.updateReactionsDisplay(messageId, reactions, retryCount + 1);
                 }, 300);
             }
             return;
         }
-
-        // Always re-render to ensure UI sync (simpler and avoids stale checks)
 
         let reactionsContainer = messageElement.querySelector('.message-reactions-container');
         
@@ -373,12 +370,10 @@ class EmojiReactions {
         }
 
         reactionsContainer.innerHTML = '';
-        console.log(`🧹 Cleared reactions container for message ID ${messageId}`);
 
         const emojiCounts = {};
         const userReactions = new Set();
         const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
-        console.log(`👤 Current user ID: ${currentUserId}`);
 
         reactions.forEach(reaction => {
             const emoji = reaction.emoji;
@@ -386,15 +381,10 @@ class EmojiReactions {
             
             if (String(reaction.user_id) === String(currentUserId)) {
                 userReactions.add(emoji);
-                console.log(`🔍 Detected user's reaction: ${emoji} for message ID ${messageId}`);
             }
         });
 
-        console.log(`📊 Emoji counts for message ID ${messageId}:`, emojiCounts);
-        console.log(`👤 User reactions for message ID ${messageId}:`, Array.from(userReactions));
-
         Object.entries(emojiCounts).forEach(([emoji, count]) => {
-            console.log(`🔧 Creating reaction pill for emoji: ${emoji} with count: ${count}`);
             const reactionPill = document.createElement('div');
             reactionPill.className = 'message-reaction-pill';
             reactionPill.dataset.emoji = emoji;
@@ -403,7 +393,6 @@ class EmojiReactions {
 
             if (userReactions.has(emoji)) {
                 reactionPill.classList.add('user-reacted');
-                console.log(`👤 Marked reaction pill as user-reacted for emoji: ${emoji}`);
             }
 
             reactionPill.innerHTML = `
@@ -422,32 +411,25 @@ class EmojiReactions {
             });
 
             reactionsContainer.appendChild(reactionPill);
-            console.log(`✅ Added reaction pill for emoji: ${emoji} to container`);
         });
 
         this.currentReactions[messageId] = reactions;
-        console.log(`✅ Updated currentReactions for message ID ${messageId}`);
-        
-        console.log(`🔍 Final reaction container styles:`, {
-            display: window.getComputedStyle(reactionsContainer).display,
-            visibility: window.getComputedStyle(reactionsContainer).visibility,
-            opacity: window.getComputedStyle(reactionsContainer).opacity,
-            height: window.getComputedStyle(reactionsContainer).height,
-            width: window.getComputedStyle(reactionsContainer).width,
-            childCount: reactionsContainer.childElementCount
-        });
     }
 
     setupSocketListeners() {
         const setupListeners = () => {
             if (window.globalSocketManager?.io) {
                 window.globalSocketManager.io.on('reaction-added', (data) => {
+                    console.log('📥 Received reaction-added:', data);
                     this.handleReactionAdded(data);
                 });
                 
                 window.globalSocketManager.io.on('reaction-removed', (data) => {
+                    console.log('📥 Received reaction-removed:', data);
                     this.handleReactionRemoved(data);
                 });
+                
+                console.log('✅ Emoji reaction socket listeners set up');
             } else {
                 setTimeout(setupListeners, 200);
             }

@@ -406,32 +406,6 @@ class ChatAPI {
         }
     }
 
-    emitReaction(socketData) {
-        if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
-            return false;
-        }
-        
-        const eventName = socketData.action === 'added' ? 'reaction-added' : 'reaction-removed';
-        let targetRoom = null;
-        
-        if (socketData.target_type === 'channel') {
-            targetRoom = `channel-${socketData.target_id}`;
-        } else if (socketData.target_type === 'dm' || socketData.target_type === 'direct') {
-            targetRoom = `dm-room-${socketData.target_id}`;
-        }
-        
-        try {
-            if (targetRoom) {
-                window.globalSocketManager.io.to(targetRoom).emit(eventName, socketData);
-            } else {
-                window.globalSocketManager.io.emit(eventName, socketData);
-            }
-            return true;
-        } catch (e) {
-            return false;
-        }
-    }
-    
     async addReaction(messageId, emoji) {
         if (!messageId || !emoji) {
             throw new Error('Message ID and emoji are required');
