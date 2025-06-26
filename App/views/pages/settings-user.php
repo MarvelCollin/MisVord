@@ -315,7 +315,27 @@ ob_start();
                             </div>
                         </div>
 
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <div class="bg-discord-darker rounded-lg p-6">
+                                <h3 class="text-lg font-medium mb-4">Input Volume</h3>
+                                <div class="volume-control">
+                                    <input type="range" id="input-volume" class="volume-slider" min="0" max="100" value="50">
+                                    <div class="volume-indicator">
+                                        <div id="input-level" class="volume-level"></div>
+                                    </div>
+                                </div>
+                            </div>
 
+                            <div class="bg-discord-darker rounded-lg p-6">
+                                <h3 class="text-lg font-medium mb-4">Output Volume</h3>
+                                <div class="volume-control">
+                                    <input type="range" id="output-volume" class="volume-slider" min="0" max="100" value="75">
+                                    <div class="volume-indicator">
+                                        <div id="output-level" class="volume-level"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
                         <div class="bg-discord-darker rounded-lg p-6">
                             <h3 class="text-lg font-medium mb-4">Mic Test</h3>

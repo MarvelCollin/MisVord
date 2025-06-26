@@ -6,7 +6,8 @@ class VoiceVideoSettings {
         this.micTest = {
             isActive: false,
             testStream: null,
-            gainNode: null
+            inputGainNode: null,
+            outputGainNode: null
         };
         this.devices = {
             input: [],
@@ -28,11 +29,15 @@ class VoiceVideoSettings {
         try {
             const saved = localStorage.getItem('misvord_audio_settings');
             return saved ? JSON.parse(saved) : {
+                inputVolume: 50,
+                outputVolume: 75,
                 inputDevice: 'default',
                 outputDevice: 'default'
             };
         } catch {
             return {
+                inputVolume: 50,
+                outputVolume: 75,
                 inputDevice: 'default',
                 outputDevice: 'default'
             };
@@ -136,15 +141,42 @@ class VoiceVideoSettings {
             tab.addEventListener('click', () => this.switchTab(tab.dataset.tab));
         });
 
+        const inputVolumeSlider = document.getElementById('input-volume');
+        const outputVolumeSlider = document.getElementById('output-volume');
         const inputDeviceSelect = document.getElementById('input-device-select');
         const outputDeviceSelect = document.getElementById('output-device-select');
         const micTestBtn = document.getElementById('mic-test-btn');
+
+        if (inputVolumeSlider) {
+            inputVolumeSlider.addEventListener('input', (e) => {
+                this.settings.inputVolume = parseInt(e.target.value);
+                this.updateVolumeIndicator('input', this.settings.inputVolume);
+                this.updateInputGain();
+                this.saveSettings();
+                this.addDebugInfo(`Input volume changed to ${this.settings.inputVolume}%`);
+            });
+        }
+
+        if (outputVolumeSlider) {
+            outputVolumeSlider.addEventListener('input', (e) => {
+                this.settings.outputVolume = parseInt(e.target.value);
+                this.updateVolumeIndicator('output', this.settings.outputVolume);
+                this.updateOutputGain();
+                this.saveSettings();
+                this.addDebugInfo(`Output volume changed to ${this.settings.outputVolume}%`);
+            });
+        }
 
         if (inputDeviceSelect) {
             inputDeviceSelect.addEventListener('change', (e) => {
                 this.settings.inputDevice = e.target.value;
                 this.saveSettings();
                 this.checkBluetoothWarning();
+                // Restart monitoring if active to use new device
+                if (this.micTest.isActive) {
+                    this.stopRealTimeMonitoring();
+                    setTimeout(() => this.startRealTimeMonitoring(), 100);
+                }
             });
         }
 
@@ -178,7 +210,52 @@ class VoiceVideoSettings {
     }
 
         updateUI() {
-        // UI update for device selects handled in populateDeviceSelects
+        const inputVolumeSlider = document.getElementById('input-volume');
+        const outputVolumeSlider = document.getElementById('output-volume');
+        
+        if (inputVolumeSlider) {
+            inputVolumeSlider.value = this.settings.inputVolume;
+            this.updateVolumeIndicator('input', this.settings.inputVolume);
+        }
+        
+        if (outputVolumeSlider) {
+            outputVolumeSlider.value = this.settings.outputVolume;
+            this.updateVolumeIndicator('output', this.settings.outputVolume);
+        }
+    }
+
+    updateVolumeIndicator(type, value) {
+        const indicator = document.getElementById(`${type}-level`);
+        if (indicator) {
+            indicator.style.width = `${value}%`;
+            
+            // Update color based on volume level
+            if (value > 80) {
+                indicator.style.background = 'linear-gradient(to right, #43b581, #faa61a, #f04747)';
+            } else if (value > 50) {
+                indicator.style.background = 'linear-gradient(to right, #43b581, #faa61a)';
+            } else {
+                indicator.style.background = '#43b581';
+            }
+        }
+    }
+
+    updateInputGain() {
+        if (this.micTest.inputGainNode) {
+            // Convert percentage to gain (0-100% = 0-2 gain)
+            const gain = (this.settings.inputVolume / 100) * 2;
+            this.micTest.inputGainNode.gain.value = gain;
+            this.addDebugInfo(`Input gain updated to ${gain.toFixed(2)} (${this.settings.inputVolume}%)`);
+        }
+    }
+
+    updateOutputGain() {
+        if (this.micTest.outputGainNode) {
+            // Convert percentage to gain (0-100% = 0-1 gain)
+            const gain = this.settings.outputVolume / 100;
+            this.micTest.outputGainNode.gain.value = gain;
+            this.addDebugInfo(`Output gain updated to ${gain.toFixed(2)} (${this.settings.outputVolume}%)`);
+        }
     }
 
     async startVolumeMonitoring() {
@@ -330,17 +407,27 @@ class VoiceVideoSettings {
             this.analyser.fftSize = 256;
             this.analyser.smoothingTimeConstant = 0.3;
             
-            // Create gain node for volume control
-            this.micTest.gainNode = this.audioContext.createGain();
-            this.micTest.gainNode.gain.value = 0.7; // Fixed monitoring volume
+            // Create separate gain nodes for input and output control
+            this.micTest.inputGainNode = this.audioContext.createGain();
+            this.micTest.outputGainNode = this.audioContext.createGain();
             
-            // Connect: Input -> Analyser -> Gain -> Output
-            source.connect(this.analyser);
-            source.connect(this.micTest.gainNode);
-            this.micTest.gainNode.connect(this.audioContext.destination);
+            // Set initial volumes from settings
+            const inputGain = (this.settings.inputVolume / 100) * 2; // 0-200% range for input boost
+            const outputGain = this.settings.outputVolume / 100; // 0-100% range for output
+            
+            this.micTest.inputGainNode.gain.value = inputGain;
+            this.micTest.outputGainNode.gain.value = outputGain;
+            
+            // Connect: Input -> InputGain -> Analyser -> OutputGain -> Output
+            source.connect(this.micTest.inputGainNode);
+            this.micTest.inputGainNode.connect(this.analyser);
+            this.micTest.inputGainNode.connect(this.micTest.outputGainNode);
+            this.micTest.outputGainNode.connect(this.audioContext.destination);
 
             this.micTest.isActive = true;
             this.addDebugInfo('REAL-TIME audio monitoring active - you should hear yourself immediately!');
+            this.addDebugInfo(`Input gain: ${inputGain.toFixed(2)} (${this.settings.inputVolume}%)`);
+            this.addDebugInfo(`Output gain: ${outputGain.toFixed(2)} (${this.settings.outputVolume}%)`);
             
             // Start visualizer
             this.startVisualizer();
@@ -356,9 +443,14 @@ class VoiceVideoSettings {
             this.micTest.isActive = false;
             
             // Disconnect audio nodes
-            if (this.micTest.gainNode) {
-                this.micTest.gainNode.disconnect();
-                this.micTest.gainNode = null;
+            if (this.micTest.inputGainNode) {
+                this.micTest.inputGainNode.disconnect();
+                this.micTest.inputGainNode = null;
+            }
+            
+            if (this.micTest.outputGainNode) {
+                this.micTest.outputGainNode.disconnect();
+                this.micTest.outputGainNode = null;
             }
             
             // Stop media stream
@@ -410,7 +502,10 @@ class VoiceVideoSettings {
             `Real-Time Monitoring: ${this.micTest.isActive ? 'ACTIVE - You should hear yourself!' : 'Idle'}`,
             `Test Stream Active: ${this.micTest.testStream?.active || false}`,
             `Real Audio Tracks: ${this.micTest.testStream?.getAudioTracks().length || 0}`,
-            `Gain Node Connected: ${this.micTest.gainNode ? 'YES' : 'NO'}`,
+            `Input Volume: ${this.settings.inputVolume}% (Gain: ${this.micTest.inputGainNode?.gain.value.toFixed(2) || 'N/A'})`,
+            `Output Volume: ${this.settings.outputVolume}% (Gain: ${this.micTest.outputGainNode?.gain.value.toFixed(2) || 'N/A'})`,
+            `Input Gain Node: ${this.micTest.inputGainNode ? 'Connected' : 'Disconnected'}`,
+            `Output Gain Node: ${this.micTest.outputGainNode ? 'Connected' : 'Disconnected'}`,
             `=== BROWSER CAPABILITIES ===`,
             `Browser: ${navigator.userAgent.split(' ')[0]}`,
             `Platform: ${navigator.platform}`,

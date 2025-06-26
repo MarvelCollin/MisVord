@@ -1688,6 +1688,13 @@ class ChatSection {
                     const messageId = data.id || `${data.userId}-${data.timestamp}`;
                     data.id = messageId;
                     
+                    // Check if message already exists in DOM (loaded from database)
+                    const existingMessage = document.querySelector(`[data-message-id="${messageId}"]`);
+                    if (existingMessage) {
+                        console.log('Message already exists in DOM, skipping socket update:', messageId);
+                        return;
+                    }
+                    
                     if (!self.processedMessageIds.has(messageId)) {
                         self.processedMessageIds.add(messageId);
                         
@@ -1718,6 +1725,13 @@ class ChatSection {
                 if ((self.chatType === 'direct' || self.chatType === 'dm') && data.roomId == self.targetId) {
                     const messageId = data.id || `${data.userId}-${data.timestamp}`;
                     data.id = messageId;
+                    
+                    // Check if message already exists in DOM (loaded from database)
+                    const existingMessage = document.querySelector(`[data-message-id="${messageId}"]`);
+                    if (existingMessage) {
+                        console.log('Message already exists in DOM, skipping socket update:', messageId);
+                        return;
+                    }
                     
                     if (!self.processedMessageIds.has(messageId)) {
                         self.processedMessageIds.add(messageId);
