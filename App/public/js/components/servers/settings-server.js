@@ -19,16 +19,13 @@ function initServerSettingsPage() {
     const urlParams = new URLSearchParams(window.location.search);
     const activeSection = urlParams.get('section') || 'profile';
     
-    // Add hover animation for sidebar items
     tabs.forEach(tab => {
-        // Set initial active state
         if (tab.dataset.tab === activeSection) {
             tab.classList.add('active');
         } else {
             tab.classList.remove('active');
         }
         
-        // Add ripple effect on hover
         tab.addEventListener('mouseenter', () => {
             if (!tab.classList.contains('active')) {
                 tab.style.transition = 'background-color 0.15s ease';
@@ -43,30 +40,25 @@ function initServerSettingsPage() {
             }
         });
         
-        // Add click animations and tab switching
         tab.addEventListener('click', () => {
             const tabId = tab.dataset.tab;
             
-            // Update URL without page reload
             const url = new URL(window.location);
             url.searchParams.set('section', tabId);
             window.history.pushState({}, '', url);
             
-            // Update active tab
             tabs.forEach(t => {
                 t.classList.remove('active');
                 t.style.backgroundColor = '';
             });
             tab.classList.add('active');
             
-            // Animate tab transition
             tabContents.forEach(content => {
                 if (content.id === `${tabId}-tab`) {
                     content.classList.remove('hidden');
                     content.style.opacity = '0';
                     content.style.transform = 'translateY(5px)';
                     
-                    // Trigger animation
                     setTimeout(() => {
                         content.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
                         content.style.opacity = '1';
@@ -79,7 +71,6 @@ function initServerSettingsPage() {
         });
     });
     
-    // Set initial visible tab
     tabContents.forEach(content => {
         if (content.id === `${activeSection}-tab`) {
             content.classList.remove('hidden');
@@ -101,9 +92,6 @@ function initServerSettingsPage() {
     initCloseButton();
 }
 
-/**
- * Initialize server icon upload with image cropper
- */
 function initServerIconUpload() {
     const iconContainer = document.getElementById('server-icon-container');
     const iconInput = document.getElementById('server-icon-input');
@@ -190,9 +178,6 @@ function initServerIconUpload() {
     }
 }
 
-/**
- * Initialize the members tab functionality
- */
 function initMembersTab() {
     const membersList = document.getElementById('members-list');
     const memberSearch = document.getElementById('member-search');
@@ -435,9 +420,6 @@ function initMembersTab() {
     loadMembers();
 }
 
-/**
- * Update the server icon in the preview panel
- */
 function updateServerPreviewIcon(imageUrl) {
     const previewIcon = document.querySelector('.server-icon-preview img');
     const previewPlaceholder = document.querySelector('.server-icon-preview div');
@@ -460,9 +442,6 @@ function updateServerPreviewIcon(imageUrl) {
     }
 }
 
-/**
- * Reset the server icon in the preview panel
- */
 function resetServerPreviewIcon() {
     const previewIcon = document.querySelector('.server-icon-preview img');
     const previewPlaceholder = document.querySelector('.server-icon-preview div');
@@ -475,10 +454,7 @@ function resetServerPreviewIcon() {
         previewPlaceholder.classList.remove('hidden');
     }
 }
-
-/**
- * Initialize server profile form submission
- */
+                
 function initServerProfileForm() {
     const form = document.getElementById('server-profile-form');
     const serverNameInput = document.getElementById('server-name');
@@ -542,7 +518,6 @@ function initServerProfileForm() {
             if (!serverNameInput || !serverNameInput.value.trim()) {
                 showToast('Server name is required', 'error');
                 
-                // Animate input error
                 serverNameInput.classList.add('border-red-500');
                 serverNameInput.style.animation = 'shake 0.3s';
                 
@@ -555,7 +530,6 @@ function initServerProfileForm() {
                 return;
             }
             
-            // Disable button with animation
             saveButton.style.transition = 'all 0.2s ease';
             saveButton.style.backgroundColor = 'var(--discord-blurple-darkest)';
             saveButton.style.transform = 'scale(0.98)';
@@ -624,9 +598,6 @@ function initServerProfileForm() {
     });
 }
 
-/**
- * Initialize close button
- */
 function initCloseButton() {
     const closeButton = document.querySelector('.close-button');
     if (!closeButton) return;
@@ -856,35 +827,26 @@ function initRolesTab() {
     }
     
     function renderRoles(roles) {
-        if (!roles.length) {
-            rolesList.innerHTML = `
-                <div class="flex items-center justify-center p-8 text-discord-lighter">
-                    <span>No roles found</span>
-                </div>
-            `;
-            return;
-        }
-        
         rolesList.innerHTML = '';
         
         const everyoneRole = document.createElement('div');
-        everyoneRole.className = 'role-item p-4 border-b border-discord-dark flex items-center hover:bg-discord-dark';
+        everyoneRole.className = 'role-item everyone-role';
         everyoneRole.innerHTML = `
-            <div class="w-10 flex items-center justify-center">
-                <div class="role-color w-3 h-3 rounded-full bg-gray-500"></div>
+            <div class="table-col table-col-icon">
+                <div class="role-color" style="background-color: #99aab5;"></div>
             </div>
-            <div class="flex-1">
-                <div class="role-name font-medium">@everyone</div>
-                <div class="text-xs text-discord-lighter flex items-center mt-1">
-                    <span>Default role for all members</span>
+            <div class="table-col table-col-name">
+                <div class="role-info">
+                    <div class="role-name">@everyone</div>
+                    <div class="role-permissions">Default role for all members</div>
                 </div>
             </div>
-            <div class="w-32 text-xs text-discord-lighter">
-                All Members
+            <div class="table-col table-col-members">
+                <div class="role-member-count">All Members</div>
             </div>
-            <div class="w-40">
-                <div class="role-actions flex space-x-2">
-                    <button class="edit-role-btn p-2 rounded hover:bg-discord-light" title="Edit Role">
+            <div class="table-col table-col-actions">
+                <div class="role-actions">
+                    <button class="edit-role-btn" title="Edit @everyone permissions">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
@@ -896,11 +858,25 @@ function initRolesTab() {
         const defaultRoleEditBtn = everyoneRole.querySelector('.edit-role-btn');
         if (defaultRoleEditBtn) {
             defaultRoleEditBtn.addEventListener('click', () => {
-                alert('Edit @everyone role permissions');
+                showToast('Edit @everyone role permissions functionality coming soon', 'info');
             });
         }
         
         rolesList.appendChild(everyoneRole);
+        
+        if (!roles.length) {
+            const emptyState = document.createElement('div');
+            emptyState.className = 'roles-empty-state mt-4';
+            emptyState.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                </svg>
+                <div class="text-lg font-semibold mb-2">No custom roles yet</div>
+                <p class="text-sm opacity-75">Create your first role to organize your server members and assign permissions.</p>
+            `;
+            rolesList.appendChild(emptyState);
+            return;
+        }
         
         roles.forEach(role => {
             const roleElement = document.importNode(roleTemplate.content, true).firstElementChild;
@@ -913,20 +889,24 @@ function initRolesTab() {
             const nameElement = roleElement.querySelector('.role-name');
             if (nameElement) {
                 nameElement.textContent = role.name;
-                nameElement.style.color = role.color || '#ffffff';
+                if (role.color && role.color !== '#95a5a6') {
+                    nameElement.style.color = role.color;
+                }
             }
             
             const memberCountElement = roleElement.querySelector('.role-member-count');
             if (memberCountElement) {
-                memberCountElement.textContent = `${role.member_count || 0} members`;
+                const count = role.member_count || 0;
+                memberCountElement.textContent = `${count} member${count !== 1 ? 's' : ''}`;
             }
             
             const permissionsElement = roleElement.querySelector('.role-permissions');
             if (permissionsElement) {
                 const permissions = [];
                 if (role.permissions) {
-                    if (role.permissions.administrator) permissions.push('Administrator');
-                    else {
+                    if (role.permissions.administrator) {
+                        permissions.push('Administrator');
+                    } else {
                         if (role.permissions.manage_server) permissions.push('Manage Server');
                         if (role.permissions.manage_channels) permissions.push('Manage Channels');
                         if (role.permissions.manage_roles) permissions.push('Manage Roles');
@@ -935,7 +915,12 @@ function initRolesTab() {
                     }
                 }
                 
-                permissionsElement.textContent = permissions.length ? permissions.join(', ') : 'No special permissions';
+                if (permissions.length > 0) {
+                    permissionsElement.innerHTML = permissions.slice(0, 2).join(', ') + 
+                        (permissions.length > 2 ? ` +${permissions.length - 2} more` : '');
+                } else {
+                    permissionsElement.textContent = 'No special permissions';
+                }
             }
             
             roleElement.dataset.roleId = role.id;
@@ -945,14 +930,14 @@ function initRolesTab() {
             
             if (editRoleBtn) {
                 editRoleBtn.addEventListener('click', () => {
-                    alert(`Edit role: ${role.name} (ID: ${role.id})`);
+                    showToast(`Edit role: ${role.name} functionality coming soon`, 'info');
                 });
             }
             
             if (deleteRoleBtn) {
                 deleteRoleBtn.addEventListener('click', () => {
-                    if (confirm(`Are you sure you want to delete the role ${role.name}?`)) {
-                        alert(`Deleted role: ${role.name} (ID: ${role.id})`);
+                    if (confirm(`Are you sure you want to delete the role "${role.name}"?\n\nThis action cannot be undone and will remove this role from all members.`)) {
+                        showToast(`Delete role: ${role.name} functionality coming soon`, 'info');
                     }
                 });
             }

@@ -389,50 +389,29 @@ ob_start();
         </div>
         
         <div id="servers-section" class="admin-section hidden p-10">
-            <div class="mb-8">
-                <h1 class="text-2xl font-bold mb-2">Server Management</h1>
-                <p class="text-discord-lighter">View and manage all servers</p>
+            <div class="discord-header">
+                <div>
+                    <h1 class="discord-header-title">Server Management</h1>
+                    <p class="text-discord-lighter">View and manage all servers</p>
+                </div>
             </div>
             
             <div class="bg-discord-darker rounded-lg p-6">
                 <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-lg font-medium">Servers</h3>
-                    <input type="text" id="server-search" placeholder="Search servers..." class="bg-discord-dark border-none rounded px-4 py-2 text-sm">
+                    <div class="flex items-center">
+                        <h3 class="text-lg font-medium">Servers</h3>
+                    </div>
+                    <div class="server-search-container">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="server-search" placeholder="Search servers..." class="server-search-input">
+                    </div>
                 </div>
                 
-                <div class="overflow-x-auto">
-                    <table class="w-full">
-                        <thead>
-                            <tr class="text-left text-discord-lighter border-b border-discord-dark">
-                                <th class="pb-3 font-medium">ID</th>
-                                <th class="pb-3 font-medium">Name</th>
-                                <th class="pb-3 font-medium">Owner</th>
-                                <th class="pb-3 font-medium">Members</th>
-                                <th class="pb-3 font-medium">Created</th>
-                                <th class="pb-3 font-medium">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="servers-table-body">
-                            <?php foreach ($servers as $server): ?>
-                            <tr class="border-b border-discord-dark hover:bg-discord-dark/50">
-                                <td class="py-3"><?php echo htmlspecialchars((string)($server['id'] ?? '')); ?></td>
-                                <td class="py-3"><?php echo htmlspecialchars((string)($server['name'] ?? 'Unknown Server')); ?></td>
-                                <td class="py-3"><?php echo htmlspecialchars((string)($server['owner_id'] ?? '')); ?></td>
-                                <td class="py-3"><?php echo htmlspecialchars((string)($server['member_count'] ?? '0')); ?></td>
-                                <td class="py-3"><?php echo htmlspecialchars($server['created_at'] ? date('Y-m-d', strtotime($server['created_at'])) : 'Unknown'); ?></td>
-                                <td class="py-3">
-                                    <button class="text-blue-400 hover:text-blue-300 mr-2 view-server" data-id="<?php echo $server['id']; ?>">View</button>
-                                    <button class="text-red-400 hover:text-red-300 delete-server" data-id="<?php echo $server['id']; ?>">Delete</button>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
+                <div id="servers-table-body"></div>
                 
-                <div class="flex justify-between items-center mt-4">
+                <div class="flex justify-between items-center mt-6">
                     <div>
-                        <span class="text-sm text-discord-lighter">Showing <span id="server-showing-count"><?php echo count($servers); ?></span> of <span id="server-total-count"><?php echo $stats['servers']['total']; ?></span> servers</span>
+                        <span class="text-sm text-discord-lighter">Showing <span id="server-showing-count">0</span> of <span id="server-total-count">0</span> servers</span>
                     </div>
                     <div class="flex space-x-2">
                         <button id="server-prev-page" class="discord-button bg-discord-dark disabled:opacity-50">

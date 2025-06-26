@@ -4,30 +4,28 @@ export class ServerManager {
   constructor() {
     this.currentServerPage = 1;
     this.serversPerPage = 10;
+    this.initialized = false;
+    this.isLoading = false;
     this.init();
   }
 
   init() {
     this.initServerManagement();
-    this.showInitialSkeletons();
+    this.showSkeletons();
     
-    setTimeout(() => {
-      if (window.serverAPI) {
-        this.loadServerStats();
+    if (window.serverAPI) {
+      this.loadServerStats().then(() => {
         this.loadServers();
-      } else {
-        setTimeout(() => {
-          this.loadServerStats();
+        this.initialized = true;
+      });
+    } else {
+      setTimeout(() => {
+        this.loadServerStats().then(() => {
           this.loadServers();
-        }, 500);
-      }
-    }, 10);
-  }
-  
-  showInitialSkeletons() {
-    this.showSkeleton("active-server-count");
-    this.showSkeleton("total-server-count");
-    this.showSkeleton("server-table-body");
+          this.initialized = true;
+        });
+      }, 500);
+    }
   }
   
   showSkeleton(elementId) {
@@ -43,7 +41,7 @@ export class ServerManager {
       case "active-server-count":
       case "total-server-count":
         return '<div class="skeleton" style="height: 1.5rem; width: 3rem;"></div>';
-      case "server-table-body":
+      case "servers-table-body":
         return this.getServerTableSkeleton();
       default:
         return '';
@@ -51,24 +49,44 @@ export class ServerManager {
   }
   
   getServerTableSkeleton() {
-    let skeleton = '';
-    for (let i = 0; i < this.serversPerPage; i++) {
-      skeleton += `
-        <tr class="border-b border-discord-dark">
-          <td class="py-4"><div class="skeleton" style="height: 1.5rem; width: 2rem;"></div></td>
-          <td class="py-4"><div class="skeleton" style="height: 1.5rem; width: 8rem;"></div></td>
-          <td class="py-4"><div class="skeleton" style="height: 1rem; width: 5rem;"></div></td>
-          <td class="py-4"><div class="skeleton" style="height: 1rem; width: 6rem;"></div></td>
-          <td class="py-4">
-            <div class="flex space-x-2">
-              <div class="skeleton" style="height: 1.5rem; width: 1.5rem;"></div>
-              <div class="skeleton" style="height: 1.5rem; width: 1.5rem;"></div>
-            </div>
-          </td>
-        </tr>
-      `;
-    }
-    return skeleton;
+    return `
+      <div class="server-table-container">
+        <table class="server-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Server</th>
+              <th>Owner</th>
+              <th>Members</th>
+              <th>Created</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${Array(this.serversPerPage).fill().map(() => `
+              <tr>
+                <td><div class="skeleton" style="width: 40px; height: 20px;"></div></td>
+                <td>
+                  <div class="flex items-center">
+                    <div class="skeleton rounded-full mr-3" style="width: 32px; height: 32px;"></div>
+                    <div class="skeleton" style="width: 120px; height: 20px;"></div>
+                  </div>
+                </td>
+                <td><div class="skeleton" style="width: 60px; height: 20px;"></div></td>
+                <td><div class="skeleton" style="width: 40px; height: 20px;"></div></td>
+                <td><div class="skeleton" style="width: 100px; height: 20px;"></div></td>
+                <td>
+                  <div class="flex space-x-2">
+                    <div class="skeleton" style="width: 60px; height: 30px;"></div>
+                    <div class="skeleton" style="width: 60px; height: 30px;"></div>
+                  </div>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
   }
 
   initServerManagement() {
@@ -79,7 +97,10 @@ export class ServerManager {
       serverPrevBtn.addEventListener('click', () => {
         if (this.currentServerPage > 1) {
           this.currentServerPage--;
-          this.loadServers();
+          if (!this.isLoading) {
+            this.showSkeleton("servers-table-body");
+            this.loadServers();
+          }
         }
       });
     }
@@ -87,7 +108,10 @@ export class ServerManager {
     if (serverNextBtn) {
       serverNextBtn.addEventListener('click', () => {
         this.currentServerPage++;
-        this.loadServers();
+        if (!this.isLoading) {
+          this.showSkeleton("servers-table-body");
+          this.loadServers();
+        }
       });
     }
     
@@ -95,25 +119,59 @@ export class ServerManager {
     if (searchInput) {
       searchInput.addEventListener('input', this.debounce(() => {
         this.currentServerPage = 1;
-        this.loadServers();
+        if (!this.isLoading) {
+          this.showSkeleton("servers-table-body");
+          this.loadServers();
+        }
       }, 300));
     }
+
+    document.addEventListener('click', (e) => {
+      const viewButton = e.target.closest('.view-server');
+      const deleteButton = e.target.closest('.delete-server');
+      
+      if (viewButton) {
+        e.preventDefault();
+        const serverId = viewButton.getAttribute('data-id');
+        this.viewServer(serverId);
+      }
+      
+      if (deleteButton) {
+        e.preventDefault();
+        const serverId = deleteButton.getAttribute('data-id');
+        const serverName = deleteButton.getAttribute('data-name') || 'this server';
+        this.deleteServer(serverId, serverName);
+      }
+    });
+  }
+  
+  showSkeletons() {
+    if (this.isLoading || (this.initialized && document.getElementById('servers-table-body')?.children.length > 0)) {
+      return;
+    }
+
+    this.showSkeleton("servers-table-body");
+    this.showSkeleton("active-server-count");
+    this.showSkeleton("total-server-count");
   }
   
   loadServers() {
+    if (this.isLoading) return;
+    
     if (!window.serverAPI) {
       console.warn('serverAPI not available yet, retrying in 500ms');
       setTimeout(() => this.loadServers(), 500);
       return;
     }
     
+    this.isLoading = true;
     const searchQuery = document.getElementById('server-search')?.value || "";
     
     window.serverAPI.listServers(this.currentServerPage, this.serversPerPage, searchQuery)
       .then(response => {
         if (response.success) {
-          const servers = response.data.servers || response.servers;
-          const total = response.data.total || response.total;
+          const servers = response.data?.servers || response.servers || [];
+          const total = response.data?.total || response.total || 0;
           const showing = servers.length;
           
           this.renderServers(servers, total, showing);
@@ -122,15 +180,22 @@ export class ServerManager {
         }
       })
       .catch(error => {
+        console.error("Error loading servers:", error);
         showToast("An error occurred while loading servers", "error");
+      })
+      .finally(() => {
+        this.isLoading = false;
       });
   }
   
   loadServerStats() {
     if (!window.serverAPI) {
       console.warn('serverAPI not available yet, retrying in 500ms');
-      setTimeout(() => this.loadServerStats(), 500);
-      return;
+      return new Promise(resolve => {
+        setTimeout(() => {
+          this.loadServerStats().then(resolve);
+        }, 500);
+      });
     }
     
     if (typeof window.serverAPI.getStats !== 'function') {
@@ -139,13 +204,11 @@ export class ServerManager {
         active: 0,
         total: 0
       });
-      return;
+      return Promise.resolve({});
     }
     
-    window.serverAPI.getStats()
+    return window.serverAPI.getStats()
       .then(response => {
-        console.log('Server stats response:', response);
-        
         let stats;
         if (response.success && response.data && response.data.stats) {
           stats = response.data.stats;
@@ -158,6 +221,7 @@ export class ServerManager {
         }
         
         this.updateStatsUI(stats);
+        return stats;
       })
       .catch(error => {
         console.error('Error loading server stats:', error);
@@ -165,6 +229,7 @@ export class ServerManager {
           active: 0,
           total: 0
         });
+        return {};
       });
   }
   
@@ -180,50 +245,77 @@ export class ServerManager {
   }
   
   renderServers(servers, total, showing) {
-    const tableBody = document.getElementById('server-table-body');
-    if (!tableBody) return;
+    const tableBodyContainer = document.getElementById('servers-table-body');
+    if (!tableBodyContainer) return;
     
-    tableBody.innerHTML = '';
+    tableBodyContainer.innerHTML = '';
     
     if (!servers || servers.length === 0) {
-      const row = document.createElement('tr');
-      row.innerHTML = `
-        <td colspan="5" class="py-4 text-center text-discord-lighter">No servers found</td>
+      tableBodyContainer.innerHTML = `
+        <div class="p-6 text-center text-discord-lighter">
+          <i class="fas fa-server fa-3x mb-4"></i>
+          <p>No servers found</p>
+        </div>
       `;
-      tableBody.appendChild(row);
       return;
     }
     
+    const tableContainer = document.createElement('div');
+    tableContainer.className = 'server-table-container';
+    
+    const table = document.createElement('table');
+    table.className = 'server-table';
+    
+    const tableHeader = document.createElement('thead');
+    tableHeader.innerHTML = `
+      <tr>
+        <th>ID</th>
+        <th>Server</th>
+        <th>Owner</th>
+        <th>Members</th>
+        <th>Created</th>
+        <th>Actions</th>
+      </tr>
+    `;
+    table.appendChild(tableHeader);
+    
+    const tableBody = document.createElement('tbody');
+    
     servers.forEach(server => {
+      const serverId = server.id || 'N/A';
+      const serverName = server.name || 'Unknown Server';
+      const ownerId = server.owner_id || 'N/A';
+      const memberCount = server.member_count !== undefined && server.member_count !== null ? server.member_count : 0;
+      const createdAt = server.created_at ? this.formatDate(server.created_at) : 'Unknown';
+      
+      let iconContent = server.icon 
+        ? `<img src="${server.icon}" alt="${serverName}" class="server-icon">`
+        : `<div class="server-icon-placeholder">${serverName.charAt(0).toUpperCase()}</div>`;
+      
       const row = document.createElement('tr');
-      row.className = 'border-b border-discord-dark';
       
       row.innerHTML = `
-        <td class="py-4">${server.id}</td>
-        <td class="py-4">
-          <div class="flex items-center space-x-2">
-            ${server.icon ? 
-              `<img src="${server.icon}" alt="Server icon" class="h-6 w-6 rounded-full">` : 
-              '<div class="h-6 w-6 bg-discord-dark rounded-full"></div>'
-            }
-            <span>${server.name}</span>
+        <td>${serverId}</td>
+        <td>
+          <div class="flex items-center space-x-3">
+            <div class="server-avatar-sm">${iconContent}</div>
+            <span class="font-medium">${serverName}</span>
           </div>
         </td>
-        <td class="py-4">${server.owner_id}</td>
-        <td class="py-4">${server.member_count !== undefined && server.member_count !== null ? server.member_count : 0}</td>
-        <td class="py-4">${this.formatDate(server.created_at)}</td>
-        <td class="py-4">
+        <td>${ownerId}</td>
+        <td>
+          <span class="text-discord-lighter">${memberCount}</span>
+        </td>
+        <td>${createdAt}</td>
+        <td>
           <div class="flex space-x-2">
-            <button class="text-blue-400 hover:text-blue-300" onclick="window.serverManager.viewServer(${server.id})">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
+            <button class="discord-button primary view-server" data-id="${serverId}">
+              <i class="fas fa-eye mr-2"></i>
+              View
             </button>
-            <button class="text-red-400 hover:text-red-300" onclick="window.serverManager.deleteServer(${server.id})">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
+            <button class="discord-button danger delete-server" data-id="${serverId}" data-name="${serverName}">
+              <i class="fas fa-trash mr-2"></i>
+              Delete
             </button>
           </div>
         </td>
@@ -231,6 +323,10 @@ export class ServerManager {
       
       tableBody.appendChild(row);
     });
+    
+    table.appendChild(tableBody);
+    tableContainer.appendChild(table);
+    tableBodyContainer.appendChild(tableContainer);
     
     const showingCount = document.getElementById('server-showing-count');
     if (showingCount) showingCount.textContent = showing;
@@ -256,62 +352,74 @@ export class ServerManager {
     window.location.href = `/app/server/${serverId}`;
   }
   
-  deleteServer(id) {
-    this.showDeleteConfirmation('Delete Server', 'Are you sure you want to delete this server? This action cannot be undone and will delete all associated channels, messages, and data.', () => {
+  deleteServer(serverId, serverName) {
+    const title = 'Delete Server';
+    const message = `Are you sure you want to delete <span class="text-white font-semibold">${serverName}</span>? This action cannot be undone and will delete all associated channels, messages, and data.`;
+    
+    this.showDiscordConfirmation(title, message, () => {
       if (!window.serverAPI) {
         showToast("Server API is not available", "error");
         return;
       }
       
-      window.serverAPI.deleteServer(id)
-        .then(data => {
-          if (data.success) {
+      showToast("Deleting server...", "info");
+      
+      window.serverAPI.deleteServer(serverId)
+        .then(response => {
+          if (response.success) {
             showToast("Server deleted successfully", "success");
             this.loadServers();
             this.loadServerStats();
           } else {
-            showToast(data.message || "Failed to delete server", "error");
+            showToast(response.message || "Failed to delete server", "error");
           }
         })
         .catch(error => {
+          console.error("Error deleting server:", error);
           showToast("An error occurred while deleting the server", "error");
         });
     });
   }
   
-  showDeleteConfirmation(title, message, confirmCallback) {
-    const modal = document.getElementById('confirm-modal');
-    const confirmTitle = document.getElementById('confirm-title');
-    const confirmMessage = document.getElementById('confirm-message');
-    const confirmBtn = document.getElementById('confirm-action');
-    const cancelBtn = document.getElementById('cancel-confirm');
-    
-    confirmTitle.textContent = title;
-    confirmMessage.textContent = message;
-    
-    const handleConfirm = () => {
-      modal.classList.add('hidden');
-      confirmBtn.removeEventListener('click', handleConfirm);
-      cancelBtn.removeEventListener('click', handleCancel);
-      confirmCallback();
-    };
-    
-    const handleCancel = () => {
-      modal.classList.add('hidden');
-      confirmBtn.removeEventListener('click', handleConfirm);
-      cancelBtn.removeEventListener('click', handleCancel);
-    };
-    
-    confirmBtn.addEventListener('click', handleConfirm);
-    cancelBtn.addEventListener('click', handleCancel);
-    
-    modal.classList.remove('hidden');
+  showDiscordConfirmation(title, message, confirmCallback) {
+    const confirmModal = document.getElementById('confirm-modal');
+    if (confirmModal) {
+      const confirmTitle = document.getElementById('confirm-title');
+      const confirmMessage = document.getElementById('confirm-message');
+      const confirmBtn = document.getElementById('confirm-action');
+      const cancelBtn = document.getElementById('cancel-confirm');
+      const closeBtn = document.getElementById('close-confirm-modal');
+      
+      confirmTitle.textContent = title;
+      confirmMessage.innerHTML = message;
+      
+      const handleConfirm = () => {
+        confirmModal.classList.add('hidden');
+        confirmBtn.removeEventListener('click', handleConfirm);
+        cancelBtn.removeEventListener('click', handleCancel);
+        if (closeBtn) closeBtn.removeEventListener('click', handleCancel);
+        confirmCallback();
+      };
+      
+      const handleCancel = () => {
+        confirmModal.classList.add('hidden');
+        confirmBtn.removeEventListener('click', handleConfirm);
+        cancelBtn.removeEventListener('click', handleCancel);
+        if (closeBtn) closeBtn.removeEventListener('click', handleCancel);
+      };
+      
+      confirmBtn.addEventListener('click', handleConfirm);
+      cancelBtn.addEventListener('click', handleCancel);
+      if (closeBtn) closeBtn.addEventListener('click', handleCancel);
+      
+      confirmModal.classList.remove('hidden');
+    }
   }
   
   formatDate(dateString) {
     if (!dateString) return '';
     const date = new Date(dateString);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }
   
   debounce(func, wait) {

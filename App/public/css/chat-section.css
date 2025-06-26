@@ -89,26 +89,28 @@
   color: var(--message-timestamp-color) !important;
 }
 
-#chat-messages .message-bubble {
-  background-color: var(--message-bubble-bg) !important;
+#chat-messages .message-content {
+  background-color: transparent !important;
   border-radius: 4px !important;
-  padding: 7px 10px !important;
-  margin-top: 0 !important;
-  display: inline-block !important;
-  max-width: 90% !important;
+  padding: 2px 0 !important;
+  margin: 2px 0 !important;
+  display: block !important;
+  width: 100% !important;
   color: var(--message-text-color) !important;
 }
 
 #chat-messages .message-main-text {
-  color: var(--message-text-color) !important;
+  color: #dcddde !important;
   white-space: pre-wrap !important;
   word-wrap: break-word !important;
   font-size: 14px !important;
-  line-height: 1.3 !important;
-  padding: 4px 6px !important;
+  line-height: 1.4 !important;
+  padding: 4px 8px !important;
   border-radius: 4px !important;
   transition: background-color 0.15s ease !important;
-  margin: -4px -6px !important;
+  margin: 0 !important;
+  display: block !important;
+  min-height: 20px !important;
 }
 
 #chat-messages .message-main-text:hover {

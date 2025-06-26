@@ -31,8 +31,23 @@ class RoleController extends BaseController {
                 return $this->forbidden('You are not a member of this server');
             }
             
-            $roles = $this->roleRepository->getForServer($serverId);
-            return $this->success($roles, 'Server roles retrieved successfully');
+                    $roles = $this->roleRepository->getForServer($serverId);
+        
+        $formattedRoles = [];
+        foreach ($roles as $role) {
+            $formattedRoles[] = [
+                'id' => $role['id'] ?? $role->id,
+                'name' => $role['name'] ?? $role->role_name,
+                'color' => $role['color'] ?? $role->role_color ?? '#99aab5',
+                'permissions' => $role['permissions'] ?? [],
+                'member_count' => $role['member_count'] ?? 0,
+                'server_id' => $serverId
+            ];
+        }
+        
+        return $this->success([
+            'roles' => $formattedRoles
+        ], 'Server roles retrieved successfully');
         } catch (Exception $e) {
             return $this->serverError('An error occurred while retrieving server roles: ' . $e->getMessage());
         }

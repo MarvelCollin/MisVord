@@ -241,19 +241,19 @@ if ($chatType === 'channel') {
     100% { background-position: 200% 0; }
 }
 
-#chat-messages .message-bubble {
-    background: transparent !important;
-    border: none !important;
-    border-radius: 0 !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    display: block !important;
-    max-width: none !important;
-    box-shadow: none !important;
+/* Proper message group and content styling */
+#chat-messages .message-group {
+    display: flex !important;
+    align-items: flex-start !important;
+    padding: 4px 16px !important;
+    margin: 0 0 4px 0 !important;
+    background-color: transparent !important;
+    transition: background-color 0.15s ease !important;
+    min-height: 40px !important;
 }
 
-#chat-messages .message-bubble::before {
-    display: none !important;
+#chat-messages .message-group:hover {
+    background-color: rgba(79, 84, 92, 0.16) !important;
 }
 
 #chat-messages .message-group:first-child {
@@ -262,6 +262,47 @@ if ($chatType === 'channel') {
 
 #chat-messages .message-group:last-child {
     margin-bottom: 16px;
+}
+
+#chat-messages .message-avatar {
+    width: 40px !important;
+    height: 40px !important;
+    margin-right: 16px !important;
+    flex-shrink: 0 !important;
+}
+
+#chat-messages .message-avatar img {
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 50% !important;
+    object-fit: cover !important;
+}
+
+#chat-messages .message-content-wrapper {
+    flex: 1 !important;
+    min-width: 0 !important;
+}
+
+#chat-messages .message-header {
+    display: flex !important;
+    align-items: center !important;
+    margin-bottom: 2px !important;
+}
+
+#chat-messages .message-username {
+    font-weight: 600 !important;
+    color: #f2f3f5 !important;
+    margin-right: 8px !important;
+    font-size: 16px !important;
+}
+
+#chat-messages .message-timestamp {
+    font-size: 12px !important;
+    color: #a3a6aa !important;
+}
+
+#chat-messages .message-contents {
+    margin-top: 0 !important;
 }
 
 @media (max-width: 768px) {

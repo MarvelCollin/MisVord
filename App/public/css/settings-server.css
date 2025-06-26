@@ -1086,35 +1086,388 @@ input[type="radio"] {
   accent-color: var(--discord-primary);
 }
 
-/* Role Tab Styles */
-.role-item {
-  padding: 12px 16px;
+/* Roles Header Section */
+.roles-header-section {
+  margin-bottom: 24px;
+}
+
+.roles-controls {
   display: flex;
   align-items: center;
-  transition: background-color 0.2s ease;
+  gap: 16px;
+  padding: 20px;
+  background: linear-gradient(135deg, var(--discord-bg-secondary) 0%, var(--discord-bg-tertiary) 100%);
+  border-radius: 12px;
+  border: 1px solid rgba(88, 101, 242, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.search-container {
+  flex: 1;
+  max-width: 400px;
+}
+
+.search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  width: 18px;
+  height: 18px;
+  color: var(--discord-interactive-normal);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.search-input {
+  width: 100%;
+  background-color: var(--discord-bg-primary);
+  border: 2px solid transparent;
+  border-radius: 8px;
+  padding: 12px 16px 12px 42px;
+  color: var(--discord-text-normal);
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--discord-blurple);
+  box-shadow: 0 0 0 3px rgba(88, 101, 242, 0.1), inset 0 1px 3px rgba(0, 0, 0, 0.2);
+  background-color: var(--discord-bg-primary);
+}
+
+.search-input::placeholder {
+  color: var(--discord-interactive-muted);
+  font-weight: 400;
+}
+
+.controls-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.filter-dropdown-container {
   position: relative;
 }
 
-.role-item:hover {
-  background-color: var(--discord-dark-hover);
+.filter-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background-color: var(--discord-bg-primary);
+  border: 2px solid transparent;
+  border-radius: 8px;
+  color: var(--discord-text-normal);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 180px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.role-color {
+.filter-button:hover {
+  border-color: rgba(88, 101, 242, 0.3);
+  background-color: var(--discord-background-modifier-hover);
+}
+
+.filter-button:focus {
+  outline: none;
+  border-color: var(--discord-blurple);
+  box-shadow: 0 0 0 3px rgba(88, 101, 242, 0.1);
+}
+
+.filter-selected-text {
+  color: var(--discord-text-normal);
+  font-weight: 500;
+}
+
+.filter-arrow {
+  width: 16px;
+  height: 16px;
+  color: var(--discord-interactive-normal);
+  margin-left: 8px;
+  transition: transform 0.2s ease;
+}
+
+.filter-dropdown-container.open .filter-arrow {
+  transform: rotate(180deg);
+}
+
+.filter-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background-color: var(--discord-bg-primary);
+  border: 1px solid rgba(4, 4, 5, 0.2);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  z-index: 100;
+  overflow: hidden;
+  animation: dropdownSlideIn 0.15s ease-out;
+}
+
+@keyframes dropdownSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.filter-option {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  gap: 12px;
+}
+
+.filter-option:hover {
+  background-color: var(--discord-blurple);
+  color: white;
+}
+
+.filter-option:hover .radio-dot {
+  border-color: white;
+}
+
+.filter-option:hover input[type="radio"]:checked + .radio-dot:after {
+  background-color: white;
+}
+
+.radio-input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+.radio-dot {
   width: 16px;
   height: 16px;
   border-radius: 50%;
+  border: 2px solid var(--discord-interactive-normal);
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+input[type="radio"]:checked + .radio-dot {
+  border-color: var(--discord-blurple);
+}
+
+input[type="radio"]:checked + .radio-dot:after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--discord-blurple);
+}
+
+/* Create Role Button Enhanced */
+.create-role-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, var(--discord-blurple) 0%, var(--discord-blurple-dark) 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(88, 101, 242, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.create-role-btn:hover {
+  background: linear-gradient(135deg, var(--discord-blurple-dark) 0%, var(--discord-blurple-darker) 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(88, 101, 242, 0.4);
+}
+
+.create-role-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(88, 101, 242, 0.3);
+}
+
+.create-role-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.create-role-btn:hover::before {
+  left: 100%;
+}
+
+.create-icon {
+  width: 18px;
+  height: 18px;
+  transition: transform 0.2s ease;
+}
+
+.create-role-btn:hover .create-icon {
+  transform: rotate(90deg);
+}
+
+/* Roles Table Container */
+.roles-table-container {
+  background-color: var(--discord-bg-secondary);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(4, 4, 5, 0.2);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+.roles-table-header {
+  display: flex;
+  align-items: center;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, var(--discord-bg-tertiary) 0%, var(--discord-bg-secondary) 100%);
+  border-bottom: 1px solid rgba(4, 4, 5, 0.2);
+}
+
+.table-col {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--discord-interactive-normal);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.table-col-icon {
+  width: 40px;
+  text-align: center;
+}
+
+.table-col-name {
+  flex: 1;
+  padding-left: 12px;
+}
+
+.table-col-members {
+  width: 120px;
+  text-align: center;
+}
+
+.table-col-actions {
+  width: 140px;
+  text-align: center;
+}
+
+/* Role Tab Styles */
+.role-item {
+  display: flex;
+  align-items: center;
+  padding: 16px 20px;
+  transition: all 0.2s ease;
+  position: relative;
+  background-color: var(--discord-bg-primary);
+  border-bottom: 1px solid rgba(4, 4, 5, 0.1);
+  margin: 0;
+}
+
+.role-item:last-child {
+  border-bottom: none;
+  border-radius: 0 0 12px 12px;
+}
+
+.role-item:first-child:not(.everyone-role) {
+  border-radius: 12px 12px 0 0;
+}
+
+.role-item:only-child {
+  border-radius: 12px;
+}
+
+.role-item:hover {
+  background-color: var(--discord-background-modifier-hover);
+  transform: translateX(2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.role-item.everyone-role {
+  background: linear-gradient(135deg, rgba(88, 101, 242, 0.1) 0%, rgba(88, 101, 242, 0.05) 100%);
+  border-bottom: 1px solid rgba(88, 101, 242, 0.2);
+  border-radius: 12px 12px 0 0;
+}
+
+.role-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.role-color {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
   display: inline-block;
-  margin-right: 8px;
+  margin-right: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  transition: transform 0.2s ease;
+}
+
+.role-item:hover .role-color {
+  transform: scale(1.1);
 }
 
 .role-name {
+  font-weight: 600;
+  color: var(--discord-text-normal);
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.role-permissions {
+  font-size: 12px;
+  color: var(--discord-interactive-normal);
+  font-weight: 400;
+  line-height: 1.3;
+  opacity: 0.8;
+}
+
+.role-member-count {
+  color: var(--discord-interactive-normal);
+  font-size: 13px;
   font-weight: 500;
-  color: var(--discord-white);
+  text-align: center;
 }
 
 .role-actions {
   opacity: 0;
   transition: opacity 0.2s ease;
+  display: flex;
+  gap: 4px;
 }
 
 .role-item:hover .role-actions {
@@ -1123,36 +1476,107 @@ input[type="radio"] {
 
 .edit-role-btn,
 .delete-role-btn {
-  padding: 6px;
-  border-radius: 4px;
+  padding: 8px;
+  border-radius: 6px;
   background-color: transparent;
-  color: var(--discord-lighter);
-  transition: background-color 0.2s ease, color 0.2s ease;
+  color: var(--discord-interactive-normal);
+  transition: all 0.2s ease;
   cursor: pointer;
+  border: 1px solid transparent;
 }
 
-.edit-role-btn:hover,
+.edit-role-btn:hover {
+  background-color: var(--discord-blurple);
+  color: white;
+  transform: translateY(-1px);
+}
+
 .delete-role-btn:hover {
-  background-color: var(--discord-light);
-  color: var(--discord-white);
+  background-color: var(--discord-red);
+  color: white;
+  transform: translateY(-1px);
 }
 
 /* Create Role Button */
 .create-role-btn {
-  background-color: #5865f2;
+  background: linear-gradient(135deg, var(--discord-blurple) 0%, var(--discord-blurple-dark) 100%);
   color: white;
-  border-radius: 4px;
-  padding: 8px 16px;
+  border-radius: 6px;
+  padding: 10px 18px;
   font-size: 14px;
-  font-weight: 500;
-  transition: background-color 0.2s ease;
+  font-weight: 600;
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
+  border: none;
+  box-shadow: 0 2px 8px rgba(88, 101, 242, 0.3);
 }
 
 .create-role-btn:hover {
-  background-color: #4752c4;
+  background: linear-gradient(135deg, var(--discord-blurple-dark) 0%, var(--discord-blurple-darker) 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(88, 101, 242, 0.4);
+}
+
+.create-role-btn:active {
+  transform: translateY(0);
+}
+
+/* Roles List Container */
+#roles-list {
+  background-color: var(--discord-bg-primary);
+  border-radius: 8px;
+  padding: 8px;
+  border: 1px solid rgba(4, 4, 5, 0.2);
+}
+
+/* Empty State Styling */
+.roles-empty-state {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--discord-interactive-normal);
+  background: linear-gradient(135deg, var(--discord-bg-secondary) 0%, var(--discord-bg-tertiary) 100%);
+  border-radius: 8px;
+  border: 2px dashed rgba(88, 101, 242, 0.3);
+}
+
+.roles-empty-state svg {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+/* Role Badge Styling */
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-left: 8px;
+}
+
+.role-badge.admin {
+  background-color: rgba(237, 66, 69, 0.2);
+  color: var(--discord-red);
+  border: 1px solid rgba(237, 66, 69, 0.3);
+}
+
+.role-badge.moderator {
+  background-color: rgba(255, 163, 26, 0.2);
+  color: #ffa31a;
+  border: 1px solid rgba(255, 163, 26, 0.3);
+}
+
+.role-badge.member {
+  background-color: rgba(88, 101, 242, 0.2);
+  color: var(--discord-blurple);
+  border: 1px solid rgba(88, 101, 242, 0.3);
 }
 
 /* Form input focus states */

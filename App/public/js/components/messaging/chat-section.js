@@ -1071,9 +1071,26 @@ class ChatSection {
             }
             
             this.processedMessageIds.add(messageId);
+            
+            console.log('📤 Sending message to UI:', {
+                messageId,
+                content,
+                tempMessage,
+                chatMessagesExists: !!this.chatMessages,
+                chatMessagesId: this.chatMessages?.id
+            });
+            
+            // Ensure empty state is cleared before adding the message
+            this.clearEmptyState();
+            
             this.addMessage(tempMessage);
             this.removeFileUpload();
             this.updateSendButton();
+            
+            console.log('📋 After adding message - container state:', {
+                containerChildren: this.chatMessages?.children.length,
+                hasMessages: this.chatMessages?.children.length > 0
+            });
             
             console.log('Calling ChatAPI.sendMessage...');
             const response = await window.ChatAPI.sendMessage(this.targetId, content, this.chatType, options);
@@ -1239,19 +1256,12 @@ class ChatSection {
             return;
         }
         
+        // Clear any existing content including stuck empty states
+        this.clearEmptyState();
         this.chatMessages.innerHTML = '';
         
         if (!messages || messages.length === 0) {
-            const emptyState = document.createElement('div');
-            emptyState.className = 'flex items-center justify-center h-full text-gray-400';
-            emptyState.innerHTML = `
-                <div class="text-center">
-                    <i class="fas fa-comments text-6xl mb-4 opacity-50"></i>
-                    <h3 class="text-lg font-semibold mb-2">No messages yet</h3>
-                    <p class="text-sm">Start the conversation by sending a message!</p>
-                </div>
-            `;
-            this.chatMessages.appendChild(emptyState);
+            this.showEmptyState();
             return;
         }
         
@@ -1277,8 +1287,20 @@ class ChatSection {
     
     addMessage(message) {
         if (!this.chatMessages || !message) {
+            console.error('❌ Cannot add message - missing chatMessages container or message data');
             return;
         }
+        
+        console.log('🔄 Adding message to chat:', message);
+        console.log('📊 Chat container state:', {
+            hasContainer: !!this.chatMessages,
+            containerChildren: this.chatMessages.children.length,
+            containerHTML: this.chatMessages.innerHTML.substring(0, 100)
+        });
+        
+        // Clear empty state if it exists
+        const clearedEmpty = this.clearEmptyState();
+        console.log('🧹 Empty state cleared:', clearedEmpty);
         
         const msg = {
             id: message.id || message.messageId || Date.now().toString(),
@@ -1321,23 +1343,54 @@ class ChatSection {
         const isNewGroup = lastSenderId !== msg.user_id || !lastMessageGroup?.classList.contains('message-group');
         
         if (isNewGroup) {
+            console.log('🆕 Creating new message group for:', msg.id);
             const messageGroup = this.createMessageGroup(msg, isOwnMessage);
+            
+            if (!messageGroup) {
+                console.error('❌ Failed to create message group!');
+                return;
+            }
+            
             messageGroup.classList.add('message-fade-in');
             this.chatMessages.appendChild(messageGroup);
+            
+            console.log('✅ Added new message group to chat:', {
+                messageId: msg.id,
+                content: msg.content.substring(0, 50),
+                groupExists: !!messageGroup,
+                addedToContainer: this.chatMessages.contains(messageGroup),
+                containerChildren: this.chatMessages.children.length
+            });
             
             setTimeout(() => {
                 messageGroup.classList.add('message-appear');
             }, 10);
         } else {
+            console.log('📎 Adding to existing message group for:', msg.id);
             const messageContent = this.createMessageContent(msg, isOwnMessage);
+            
+            if (!messageContent) {
+                console.error('❌ Failed to create message content!');
+                return;
+            }
+            
             messageContent.classList.add('message-fade-in');
             const contents = lastMessageGroup.querySelector('.message-contents');
             if (contents) {
                 contents.appendChild(messageContent);
                 
+                console.log('✅ Added message content to existing group:', {
+                    messageId: msg.id,
+                    content: msg.content.substring(0, 50),
+                    contentExists: !!messageContent,
+                    addedToGroup: contents.contains(messageContent)
+                });
+                
                 setTimeout(() => {
                     messageContent.classList.add('message-appear');
                 }, 10);
+            } else {
+                console.error('❌ Could not find message-contents container in last message group');
             }
         }
         
@@ -1360,6 +1413,13 @@ class ChatSection {
     }
     
     createMessageGroup(message, isOwnMessage = false) {
+        console.log('🏗️ Creating message group for:', {
+            messageId: message.id,
+            username: message.username,
+            content: message.content?.substring(0, 30),
+            isOwnMessage
+        });
+        
         const messageGroup = document.createElement('div');
         messageGroup.className = 'message-group';
         messageGroup.setAttribute('data-user-id', message.user_id || message.userId);
@@ -1405,6 +1465,14 @@ class ChatSection {
         
         messageGroup.appendChild(avatarContainer);
         messageGroup.appendChild(contentWrapper);
+        
+        console.log('✅ Message group created successfully:', {
+            messageId: message.id,
+            hasAvatar: !!avatarContainer,
+            hasContent: !!contentWrapper,
+            hasMessageContents: !!messageContents,
+            groupHTML: messageGroup.outerHTML.substring(0, 200)
+        });
         
         return messageGroup;
     }
@@ -1993,6 +2061,9 @@ class ChatSection {
                     await new Promise(resolve => setTimeout(resolve, minimumSkeletonTime - elapsedTime));
                 }
                 
+                // Ensure empty state is cleared before rendering
+                this.clearEmptyState();
+                
                 // Now render messages with reactions already loaded
                 this.renderMessages(messages);
                 
@@ -2081,6 +2152,41 @@ class ChatSection {
         skeletonGroup.appendChild(groupWrapper);
         
         return skeletonGroup;
+    }
+    
+    clearEmptyState() {
+        if (!this.chatMessages) {
+            console.log('❌ No chatMessages container for empty state clearing');
+            return false;
+        }
+        
+        const emptyState = this.chatMessages.querySelector('.flex.flex-col.items-center.justify-center');
+        if (emptyState) {
+            console.log('🧹 Clearing empty state from chat container');
+            this.chatMessages.innerHTML = '';
+            return true;
+        }
+        
+        // Also check for any other empty state patterns
+        if (this.chatMessages.children.length === 1) {
+            const singleChild = this.chatMessages.children[0];
+            if (singleChild.textContent.includes('No messages yet') || 
+                singleChild.querySelector('i.fa-comments')) {
+                console.log('🧹 Clearing alternative empty state pattern');
+                this.chatMessages.innerHTML = '';
+                return true;
+            }
+        }
+        
+        // Check if container is completely empty but should have messages
+        if (this.chatMessages.children.length === 0 && this.chatMessages.innerHTML.trim() !== '') {
+            console.log('🧹 Clearing residual content from empty container');
+            this.chatMessages.innerHTML = '';
+            return true;
+        }
+        
+        console.log('ℹ️ No empty state found to clear');
+        return false;
     }
     
     showEmptyState() {

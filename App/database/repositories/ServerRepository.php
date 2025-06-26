@@ -141,15 +141,19 @@ class ServerRepository extends Repository {
         $offset = ($page - 1) * $limit;
         
         $query = new Query();
-        $results = $query->table('servers s')
-            ->select('s.*, COUNT(usm.id) as member_count')
-            ->leftJoin('user_server_memberships usm', 's.id', '=', 'usm.server_id')
-            ->groupBy('s.id')
-            ->orderBy('s.created_at', 'DESC')
-            ->limit($limit)
-            ->offset($offset)
-            ->get();
-            
+        $sql = "
+            SELECT s.*, 
+                   COUNT(usm.id) as member_count,
+                   (SELECT user_id FROM user_server_memberships WHERE server_id = s.id AND role = 'owner' LIMIT 1) as owner_id
+            FROM servers s
+            LEFT JOIN user_server_memberships usm ON s.id = usm.server_id
+            GROUP BY s.id
+            ORDER BY s.created_at DESC
+            LIMIT ? OFFSET ?
+        ";
+        
+        $results = $query->query($sql, [$limit, $offset]);
+        
         $servers = [];
         foreach ($results as $result) {
             $servers[] = new Server($result);
@@ -159,23 +163,25 @@ class ServerRepository extends Repository {
     }
     
     
-    public function search($query, $page = 1, $limit = 10) {
+    public function search($searchQuery, $page = 1, $limit = 10) {
         $offset = ($page - 1) * $limit;
         
-        $queryBuilder = new Query();
-        $results = $queryBuilder->table('servers s')
-            ->select('s.*, COUNT(usm.id) as member_count')
-            ->leftJoin('user_server_memberships usm', 's.id', '=', 'usm.server_id')
-            ->where(function($q) use ($query) {
-                $q->whereLike('s.name', "%$query%")
-                  ->orWhereLike('s.description', "%$query%");
-            })
-            ->groupBy('s.id')
-            ->orderBy('s.created_at', 'DESC')
-            ->limit($limit)
-            ->offset($offset)
-            ->get();
-            
+        $query = new Query();
+        $sql = "
+            SELECT s.*, 
+                   COUNT(usm.id) as member_count,
+                   (SELECT user_id FROM user_server_memberships WHERE server_id = s.id AND role = 'owner' LIMIT 1) as owner_id
+            FROM servers s
+            LEFT JOIN user_server_memberships usm ON s.id = usm.server_id
+            WHERE s.name LIKE ? OR s.description LIKE ?
+            GROUP BY s.id
+            ORDER BY s.created_at DESC
+            LIMIT ? OFFSET ?
+        ";
+        
+        $searchTerm = "%{$searchQuery}%";
+        $results = $query->query($sql, [$searchTerm, $searchTerm, $limit, $offset]);
+        
         $servers = [];
         foreach ($results as $result) {
             $servers[] = new Server($result);
@@ -185,14 +191,18 @@ class ServerRepository extends Repository {
     }
     
     
-    public function countSearch($query) {
-        $queryBuilder = new Query();
-        return $queryBuilder->table('servers s')
-            ->where(function($q) use ($query) {
-                $q->whereLike('s.name', "%$query%")
-                  ->orWhereLike('s.description', "%$query%");
-            })
-            ->count();
+    public function countSearch($searchQuery) {
+        $query = new Query();
+        $sql = "
+            SELECT COUNT(DISTINCT s.id) as count 
+            FROM servers s 
+            WHERE s.name LIKE ? OR s.description LIKE ?
+        ";
+        
+        $searchTerm = "%{$searchQuery}%";
+        $result = $query->query($sql, [$searchTerm, $searchTerm]);
+        
+        return isset($result[0]['count']) ? (int)$result[0]['count'] : 0;
     }
     
 
