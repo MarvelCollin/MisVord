@@ -32,16 +32,26 @@ class GlobalVoiceIndicator {
   checkIfOnVoiceChannelPage() {
     this.onVoiceChannelPage = false;
     
+    // Check for voice-specific elements that indicate we're on a voice channel page
+    const voiceContainer = document.getElementById('voice-container');
+    const joinView = document.getElementById('joinView');
+    const connectingView = document.getElementById('connectingView');
+    const connectedView = document.getElementById('connectedView');
+    const joinBtn = document.getElementById('joinBtn');
     
-    
-    
-    const videoContainer = document.getElementById('videoContainer');
-    if (videoContainer) {
+    if (voiceContainer || joinView || connectingView || connectedView || joinBtn) {
       this.onVoiceChannelPage = true;
       return true;
     }
     
+    // Check for meeting-id meta tag which indicates voice channel page
+    const meetingIdMeta = document.querySelector('meta[name="meeting-id"]');
+    if (meetingIdMeta) {
+      this.onVoiceChannelPage = true;
+      return true;
+    }
     
+    // Check URL patterns for voice channels
     const currentPath = window.location.pathname;
     if (currentPath.includes('/voice/') || 
         (currentPath.includes('/channels/') && currentPath.includes('/voice'))) {
@@ -49,18 +59,9 @@ class GlobalVoiceIndicator {
       return true;
     }
     
-    
-    const voiceControls = document.querySelector('.voice-controls');
-    const joinVoiceBtn = document.getElementById('joinBtn');
-    if ((voiceControls || joinVoiceBtn) && document.querySelector('[data-channel-id="' + this.currentChannelId + '"]')) {
-      this.onVoiceChannelPage = true;
-      return true;
-    }
-    
-    
-    const meetingIdMeta = document.querySelector('meta[name="meeting-id"]');
-    const currentMeetingId = meetingIdMeta ? meetingIdMeta.getAttribute('content') : null;
-    if (currentMeetingId && this.meetingId && currentMeetingId === this.meetingId) {
+    // Check for voice-tools class which indicates voice channel page
+    const voiceTools = document.querySelector('.voice-tools');
+    if (voiceTools) {
       this.onVoiceChannelPage = true;
       return true;
     }
