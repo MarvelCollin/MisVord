@@ -454,20 +454,20 @@ Route::get('/api/messages/([0-9]+)', function($messageId) {
 });
 
 Route::get('/api/messages/([0-9]+)/reactions', function($messageId) {
-    require_once __DIR__ . '/../controllers/MessageController.php';
-    $controller = new MessageController();
-    $controller->getReactions($messageId);
+    require_once __DIR__ . '/../controllers/ChatController.php';
+    $controller = new ChatController();
+    $controller->getMessageReactions($messageId);
 });
 
 Route::post('/api/messages/([0-9]+)/reactions', function($messageId) {
-    require_once __DIR__ . '/../controllers/MessageController.php';
-    $controller = new MessageController();
+    require_once __DIR__ . '/../controllers/ChatController.php';
+    $controller = new ChatController();
     $controller->addReaction($messageId);
 });
 
 Route::delete('/api/messages/([0-9]+)/reactions', function($messageId) {
-    require_once __DIR__ . '/../controllers/MessageController.php';
-    $controller = new MessageController();
+    require_once __DIR__ . '/../controllers/ChatController.php';
+    $controller = new ChatController();
     $controller->removeReaction($messageId);
 });
 

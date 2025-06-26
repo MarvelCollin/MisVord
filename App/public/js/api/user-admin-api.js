@@ -21,11 +21,59 @@ class UserAdminAPI {
         }
 
         try {
-            return JSON.parse(text);
+            const data = JSON.parse(text);
+            return this.normalizeResponse(data);
         } catch (e) {
             console.error('Failed to parse JSON response:', text);
             throw new Error('Invalid response from server');
         }
+    }
+    
+    normalizeResponse(data) {
+        // Ensure consistent response format
+        if (!data) return { success: false, message: "Empty response from server" };
+        
+        // If data is already properly formatted with success property
+        if (typeof data.success !== 'undefined') {
+            return data;
+        }
+        
+        // If data is in a different format, try to normalize it
+        if (data.error) {
+            return { 
+                success: false, 
+                message: data.error || "An error occurred",
+                data: data
+            };
+        }
+        
+        // For any other format, assume it's successful data and wrap it
+        return {
+            success: true,
+            message: "Operation successful",
+            data: data
+        };
+    }
+    
+    normalizeUser(user) {
+        if (!user) return null;
+        
+        // Ensure all user properties have at least a default value
+        return {
+            id: user.id || 'N/A',
+            username: user.username || 'Unknown User',
+            discriminator: user.discriminator || '0000',
+            email: user.email || 'No Email',
+            status: user.status || 'offline',
+            display_name: user.display_name || user.username || 'Unknown User',
+            bio: user.bio || '',
+            avatar_url: user.avatar_url || null,
+            banner_url: user.banner_url || null,
+            created_at: user.created_at || null,
+            updated_at: user.updated_at || null,
+            google_id: user.google_id || null,
+            ...user // Keep other properties intact
+        };
     }
 
     async makeRequest(url, options = {}) {
@@ -86,14 +134,20 @@ class UserAdminAPI {
     }
 
     async listUsers(page = 1, limit = 10, query = '') {
-        let url = `${this.baseURL}/users?page=${page}&limit=${limit}`;
-        
-        if (query) {
-            url += `&q=${encodeURIComponent(query)}`;
-        }
-        
         try {
-            const response = await fetch(url);
+            let url = `${this.baseURL}/users?page=${page}&limit=${limit}`;
+            
+            if (query && query.trim() !== '') {
+                url += `&q=${encodeURIComponent(query.trim())}`;
+            }
+            
+            const response = await fetch(url, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            });
+            
             const data = await this.parseResponse(response);
             
             if (!response.ok) {

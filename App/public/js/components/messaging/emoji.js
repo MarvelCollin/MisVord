@@ -12,6 +12,7 @@ class EmojiReactions {
         this.activeMessageId = null;
         this.loadingReactions = new Set();
         this.debounceTimers = new Map();
+        this.loadedMessageIds = new Set();
     }
 
     init() {
@@ -311,9 +312,13 @@ class EmojiReactions {
     }
 
     async loadMessageReactions(messageId) {
+        // Only load reactions once per message ID
+        if (this.loadedMessageIds.has(messageId)) {
+            return;
+        }
+        
         // Prevent duplicate API calls for the same message
         if (this.loadingReactions.has(messageId)) {
-            console.log(`🚫 Skipping duplicate reaction load for message ${messageId}`);
             return;
         }
 
@@ -325,12 +330,11 @@ class EmojiReactions {
         // Debounce the loading to prevent rapid successive calls
         const timer = setTimeout(async () => {
             this.loadingReactions.add(messageId);
-            console.log(`🔄 Loading reactions for message ${messageId}`);
             
             try {
                 const reactions = await window.ChatAPI.getMessageReactions(messageId);
-                console.log(`✅ Loaded ${reactions?.length || 0} reactions for message ${messageId}`);
                 this.updateReactionsDisplay(messageId, reactions || []);
+                this.loadedMessageIds.add(messageId);
             } catch (error) {
                 console.error('Error loading reactions:', error);
             } finally {
@@ -345,7 +349,7 @@ class EmojiReactions {
     updateReactionsDisplay(messageId, reactions) {
         const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
         if (!messageElement) {
-            console.log('❌ Message element not found for ID:', messageId);
+            console.log('Message element not found for ID:', messageId);
             return;
         }
 
@@ -354,11 +358,8 @@ class EmojiReactions {
         const reactionsChanged = JSON.stringify(existingReactions) !== JSON.stringify(reactions);
         
         if (!reactionsChanged) {
-            console.log(`⏭️ Skipping update for message ${messageId} - reactions unchanged`);
             return; // No need to update if reactions haven't changed
         }
-
-        console.log(`🎨 Updating reaction display for message ${messageId} with ${reactions?.length || 0} reactions`);
 
         let reactionsContainer = messageElement.querySelector('.message-reactions-container');
         

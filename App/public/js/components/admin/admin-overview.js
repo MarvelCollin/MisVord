@@ -262,8 +262,6 @@ export class OverviewManager {
     }
   }
 
-
-
   loadChartData() {
     fetch("/api/admin/stats/users/growth", {
       method: 'GET',
@@ -286,17 +284,12 @@ export class OverviewManager {
           chartData = data.data.data || [];
         } else if (data.error) {
           console.error("API error:", data.error);
-          chartData = [
-            { label: 'Categories', value: 3 },
-            { label: 'Text Channels', value: 15 },
-            { label: 'Voice Channels', value: 5 }
-          ];
+          showToast("Failed to load channel statistics: " + (data.message || data.error || "Unknown error"), "error");
+          chartData = [];
         } else {
-          chartData = [
-            { label: 'Categories', value: 3 },
-            { label: 'Text Channels', value: 15 },
-            { label: 'Voice Channels', value: 5 }
-          ];
+          console.error("Unexpected API response format:", data);
+          showToast("Failed to load channel statistics: Unexpected response format", "error");
+          chartData = [];
         }
         
         this.chartData.users = chartData;
@@ -305,12 +298,8 @@ export class OverviewManager {
       })
       .catch(error => {
         console.error("User statistics error:", error);
-        
-        this.chartData.users = [
-          { label: 'Categories', value: 3 },
-          { label: 'Text Channels', value: 15 },
-          { label: 'Voice Channels', value: 5 }
-        ];
+        showToast("Failed to load channel statistics: " + (error.message || "Network error"), "error");
+        this.chartData.users = [];
         this.renderUserChart();
         this.hideChartLoading('users-chart');
       });
@@ -336,17 +325,12 @@ export class OverviewManager {
           chartData = data.data.data || [];
         } else if (data.error) {
           console.error("API error:", data.error);
-          chartData = [
-            { label: 'Total Messages', value: 150 },
-            { label: 'Today', value: 25 },
-            { label: 'Remaining', value: 125 }
-          ];
+          showToast("Failed to load message statistics: " + (data.message || data.error || "Unknown error"), "error");
+          chartData = [];
         } else {
-          chartData = [
-            { label: 'Total Messages', value: 150 },
-            { label: 'Today', value: 25 },
-            { label: 'Remaining', value: 125 }
-          ];
+          console.error("Unexpected API response format:", data);
+          showToast("Failed to load message statistics: Unexpected response format", "error");
+          chartData = [];
         }
         
         this.chartData.messages = chartData;
@@ -355,12 +339,8 @@ export class OverviewManager {
       })
       .catch(error => {
         console.error("Message statistics error:", error);
-        
-        this.chartData.messages = [
-          { label: 'Total Messages', value: 150 },
-          { label: 'Today', value: 25 },
-          { label: 'Remaining', value: 125 }
-        ];
+        showToast("Failed to load message statistics: " + (error.message || "Network error"), "error");
+        this.chartData.messages = [];
         this.renderMessageChart();
         this.hideChartLoading('messages-chart');
       });
@@ -386,15 +366,12 @@ export class OverviewManager {
           chartData = data.data.data || [];
         } else if (data.error) {
           console.error("API error:", data.error);
-          chartData = [
-            { label: 'Public Servers', value: 8 },
-            { label: 'Private Servers', value: 4 }
-          ];
+          showToast("Failed to load server statistics: " + (data.message || data.error || "Unknown error"), "error");
+          chartData = [];
         } else {
-          chartData = [
-            { label: 'Public Servers', value: 8 },
-            { label: 'Private Servers', value: 4 }
-          ];
+          console.error("Unexpected API response format:", data);
+          showToast("Failed to load server statistics: Unexpected response format", "error");
+          chartData = [];
         }
         
         this.chartData.servers = chartData;
@@ -403,11 +380,8 @@ export class OverviewManager {
       })
       .catch(error => {
         console.error("Server statistics error:", error);
-        
-        this.chartData.servers = [
-          { label: 'Public Servers', value: 8 },
-          { label: 'Private Servers', value: 4 }
-        ];
+        showToast("Failed to load server statistics: " + (error.message || "Network error"), "error");
+        this.chartData.servers = [];
         this.renderServerChart();
         this.hideChartLoading('servers-chart');
       });

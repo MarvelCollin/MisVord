@@ -58,9 +58,11 @@ ob_start();
                 <span>USER SETTINGS</span>
             </div>
             <a href="?section=my-account" class="sidebar-item <?php echo $section === 'my-account' ? 'active' : ''; ?>">
+                <i class="fas fa-user-circle"></i>
                 My Account
             </a>
             <a href="?section=connections" class="sidebar-item <?php echo $section === 'connections' ? 'active' : ''; ?>">
+                <i class="fas fa-link"></i>
                 Connections
             </a>
             
@@ -68,17 +70,20 @@ ob_start();
                 <span>APP SETTINGS</span>
             </div>
             <a href="/nitro" class="sidebar-item">
-                <i class="fas fa-crown text-purple-400 mr-2"></i>
+                <i class="fas fa-crown text-purple-400"></i>
                 Nitro
+                <span class="sidebar-item-badge">Premium</span>
             </a>
             <a href="?section=voice" class="sidebar-item <?php echo $section === 'voice' ? 'active' : ''; ?>">
+                <i class="fas fa-headset"></i>
                 Voice & Video
             </a>
             
+            <div class="sidebar-category">
+                <span>USER ACTIONS</span>
+            </div>
             <button id="logout-btn" class="sidebar-item text-red-500 hover:text-red-400">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
+                <i class="fas fa-sign-out-alt"></i>
                 Log Out
             </button>
         </nav>

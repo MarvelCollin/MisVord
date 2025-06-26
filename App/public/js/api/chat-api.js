@@ -67,7 +67,6 @@ class ChatAPI {
                 
                 try {
                     const errorData = await this.parseResponse(response);
-                    console.error('Error response data:', errorData);
                     throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
                 } catch (parseError) {
                     throw new Error(`Request failed with status ${response.status}: ${response.statusText}`);
@@ -120,14 +119,6 @@ class ChatAPI {
         const url = `${this.baseURL}/send`;
         const apiChatType = chatType === 'direct' ? 'dm' : chatType;
         
-        console.log('📡 ChatAPI.sendMessage called:', {
-            targetId,
-            content: content.substring(0, 50) + '...',
-            chatType,
-            apiChatType,
-            url
-        });
-        
         try {
             const requestData = {
                 target_type: apiChatType,
@@ -147,53 +138,41 @@ class ChatAPI {
                 requestData.reply_message_id = options.replyToMessageId;
             }
             
-            console.log('📤 Request data:', requestData);
-            
             const response = await this.makeRequest(url, {
                 method: 'POST',
                 body: JSON.stringify(requestData)
             });
             
-            console.log('📥 API Response:', response);
-            
             if (response && response.success !== false) {
-                console.log('✅ API success, sending socket message...');
-                
                 // Use the server message data without reactions (reactions only from database)
                 if (response.socket_data && response.socket_data.message) {
-                    console.log('✅ Using server message data (without reactions)');
                     this.sendDirectSocketMessageWithServerData(targetId, chatType, response.socket_data);
                 } else {
-                    console.log('⚠️ No server message data, using fallback method');
                     // Fallback to old method if no server data
                     this.sendDirectSocketMessage(targetId, content, chatType, options);
                 }
-            } else {
-                console.warn('⚠️ API response indicates failure:', response);
             }
             
             return response;
         } catch (error) {
-            console.error('❌ Error sending message to database:', error);
+            console.error('Error sending message to database:', error);
             throw error;
         }
     }
 
     sendDirectSocketMessageWithServerData(targetId, chatType, socketData) {
-        console.log('🔌 sendDirectSocketMessageWithServerData called:', { targetId, chatType, socketData });
-        
         if (!window.globalSocketManager) {
-            console.error('❌ globalSocketManager not available');
+            console.error('globalSocketManager not available');
             return false;
         }
         
         if (!window.globalSocketManager.isReady()) {
-            console.error('❌ Socket not ready');
+            console.error('Socket not ready');
             return false;
         }
         
         if (!window.globalSocketManager.io) {
-            console.error('❌ Socket IO not available');
+            console.error('Socket IO not available');
             return false;
         }
         
@@ -219,7 +198,6 @@ class ChatAPI {
                     // Deliberately excluding reactions - only get from database
                 };
                 
-                console.log(`🚀 Emitting ${eventName} WITHOUT reactions:`, messageData);
                 io.emit(eventName, messageData);
             } 
             else if (chatType === 'direct' || chatType === 'dm') {
@@ -239,36 +217,29 @@ class ChatAPI {
                     // Deliberately excluding reactions - only get from database
                 };
                 
-                console.log(`🚀 Emitting ${eventName} WITHOUT reactions:`, messageData);
                 io.emit(eventName, messageData);
             }
             
             return true;
         } catch (e) {
-            console.error('❌ Failed to send socket message with server data:', e);
+            console.error('Failed to send socket message with server data:', e);
             return false;
         }
     }
 
     sendDirectSocketMessage(targetId, content, chatType = 'channel', options = {}) {
-        console.log('🔌 sendDirectSocketMessage called:', { targetId, chatType });
-        
         if (!window.globalSocketManager) {
-            console.error('❌ globalSocketManager not available');
+            console.error('globalSocketManager not available');
             return false;
         }
         
         if (!window.globalSocketManager.isReady()) {
-            console.error('❌ Socket not ready:', {
-                connected: window.globalSocketManager.connected,
-                authenticated: window.globalSocketManager.authenticated,
-                hasIO: !!window.globalSocketManager.io
-            });
+            console.error('Socket not ready');
             return false;
         }
         
         if (!window.globalSocketManager.io) {
-            console.error('❌ Socket IO not available');
+            console.error('Socket IO not available');
             return false;
         }
         
@@ -277,8 +248,6 @@ class ChatAPI {
         const timestamp = Date.now();
         const messageId = `msg_${timestamp}_${Math.random().toString(36).substring(2, 9)}`;
         const io = window.globalSocketManager.io;
-        
-        console.log('✅ Socket ready, preparing message:', { userId, username, messageId });
         
         try {
             let eventName, messageData;
@@ -327,17 +296,14 @@ class ChatAPI {
             }
             
             if (eventName && messageData) {
-                console.log(`🚀 Emitting ${eventName}:`, messageData);
                 io.emit(eventName, messageData);
-                console.log(`✅ Socket message emitted: ${eventName} with ID ${messageId}`);
+                return true;
             } else {
-                console.error('❌ Could not determine event name or message data');
+                console.error('Could not determine event name or message data');
                 return false;
             }
-            
-            return true;
         } catch (e) {
-            console.error('❌ Failed to send direct socket message:', e);
+            console.error('Failed to send direct socket message:', e);
             return false;
         }
     }

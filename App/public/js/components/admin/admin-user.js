@@ -58,48 +58,76 @@ export class UserManager {
   }
   
   getUserCardsSkeleton() {
-    let skeleton = '';
-    for (let i = 0; i < this.usersPerPage; i++) {
-      skeleton += `
-        <div class="user-card">
-          <div class="skeleton" style="width: 40px; height: 40px; border-radius: 50%;"></div>
-          <div style="flex: 1; margin-left: 12px;">
-            <div class="skeleton" style="height: 1.25rem; width: 40%; margin-bottom: 8px;"></div>
-            <div class="skeleton" style="height: 0.875rem; width: 80%;"></div>
-          </div>
-          <div>
-            <div class="skeleton" style="height: 2rem; width: 5rem; border-radius: 4px;"></div>
-          </div>
-        </div>
-      `;
-    }
-    return skeleton;
+    return `
+      <div class="user-table-container">
+        <table class="user-table">
+          <thead>
+            <tr>
+              <th>Avatar</th>
+              <th>Username</th>
+              <th>ID</th>
+              <th>Email</th>
+              <th>Status</th>
+              <th>Joined</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${Array(this.usersPerPage).fill().map(() => `
+              <tr>
+                <td><div class="skeleton rounded-full" style="width: 32px; height: 32px;"></div></td>
+                <td><div class="skeleton" style="width: 120px; height: 20px;"></div></td>
+                <td><div class="skeleton" style="width: 40px; height: 20px;"></div></td>
+                <td><div class="skeleton" style="width: 150px; height: 20px;"></div></td>
+                <td><div class="skeleton" style="width: 80px; height: 20px;"></div></td>
+                <td><div class="skeleton" style="width: 100px; height: 20px;"></div></td>
+                <td><div class="skeleton" style="width: 80px; height: 30px;"></div></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
   }
   
   getUserGridSkeleton() {
-    let skeleton = '';
-    for (let i = 0; i < this.usersPerPage; i++) {
-      skeleton += `
-        <div class="user-card-grid">
-          <div style="display: flex; align-items: center; margin-bottom: 12px;">
-            <div class="skeleton" style="width: 40px; height: 40px; border-radius: 50%;"></div>
-            <div style="margin-left: 12px;">
-              <div class="skeleton" style="height: 1.25rem; width: 80px; margin-bottom: 4px;"></div>
-              <div class="skeleton" style="height: 0.75rem; width: 40px;"></div>
-            </div>
-          </div>
-          <div style="padding: 8px 0; border-top: 1px solid #2f3136; border-bottom: 1px solid #2f3136;">
-            <div class="skeleton" style="height: 0.875rem; width: 90%; margin-bottom: 8px;"></div>
-            <div class="skeleton" style="height: 0.875rem; width: 80%; margin-bottom: 8px;"></div>
-            <div class="skeleton" style="height: 0.875rem; width: 70%;"></div>
-          </div>
-          <div style="display: flex; justify-content: flex-end; margin-top: 12px;">
-            <div class="skeleton" style="height: 2rem; width: 5rem; border-radius: 4px;"></div>
-          </div>
-        </div>
-      `;
-    }
-    return `<div class="user-grid">${skeleton}</div>`;
+    return `
+      <div class="user-table-container">
+        <table class="user-table">
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Details</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${Array(this.usersPerPage).fill().map(() => `
+              <tr>
+                <td>
+                  <div class="flex items-center">
+                    <div class="mr-3"><div class="skeleton rounded-full" style="width: 40px; height: 40px;"></div></div>
+                    <div>
+                      <div class="skeleton mb-2" style="width: 100px; height: 20px;"></div>
+                      <div class="skeleton" style="width: 60px; height: 16px;"></div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div class="grid grid-cols-2 gap-2">
+                    <div class="skeleton" style="width: 90%; height: 16px;"></div>
+                    <div class="skeleton" style="width: 90%; height: 16px;"></div>
+                    <div class="skeleton" style="width: 90%; height: 16px;"></div>
+                    <div class="skeleton" style="width: 90%; height: 16px;"></div>
+                  </div>
+                </td>
+                <td><div class="skeleton" style="width: 80px; height: 30px;"></div></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
   }
 
   initUserManagement() {
@@ -291,9 +319,22 @@ export class UserManager {
     window.userAdminAPI.listUsers(this.currentUserPage, this.usersPerPage, searchQuery)
       .then(response => {
         if (response.success) {
-          const users = response.data.users;
+          // Get users and normalize them
+          let users = response.data.users || [];
+          if (Array.isArray(users)) {
+            users = users.map(user => window.userAdminAPI.normalizeUser(user));
+          } else {
+            console.error("Unexpected users data structure:", users);
+            users = [];
+          }
+          
           const total = response.data.pagination?.total || 0;
           const showing = users.length;
+          
+          // Log the first user to help debugging
+          if (users.length > 0) {
+            console.log("Sample user object:", users[0]);
+          }
           
           this.renderUsers(users, total, showing);
         } else {
@@ -366,23 +407,45 @@ export class UserManager {
       `;
       return;
     }
+
+    // Create container for table overflow
+    const tableContainer = document.createElement('div');
+    tableContainer.className = 'user-table-container';
     
+    // Create a table element
+    const table = document.createElement('table');
+    table.className = 'user-table';
+    
+    // Create the table header
+    const tableHeader = document.createElement('thead');
+    tableHeader.innerHTML = `
+      <tr>
+        <th>Avatar</th>
+        <th>Username</th>
+        <th>ID</th>
+        <th>Email</th>
+        <th>Status</th>
+        <th>Joined</th>
+        <th>Actions</th>
+      </tr>
+    `;
+    table.appendChild(tableHeader);
+    
+    // Create the table body
+    const tableBody = document.createElement('tbody');
+    
+    // Add user rows
     users.forEach(user => {
-      const userCard = document.createElement('div');
-      userCard.className = 'user-card';
-      
-      const isBanned = user.status === 'banned';
-      const isAdmin = user.email === 'admin@admin.com';
+      // Extract user properties with fallbacks
+      const userId = user.id || 'N/A';
       const username = user.username || 'Unknown User';
       const discriminator = user.discriminator || '0000';
       const email = user.email || 'No Email';
-      const displayName = user.display_name || username;
-      const bio = user.bio || 'No bio available';
+      const createdAt = user.created_at ? this.formatDate(user.created_at) : 'Unknown';
+      const isBanned = user.status === 'banned';
+      const isAdmin = user.email === 'admin@admin.com';
       
-      let avatarContent = user.avatar_url 
-        ? `<img src="${user.avatar_url}" alt="${username}">`
-        : username.charAt(0).toUpperCase();
-      
+      // Create status badge with correct styling
       let statusClass = 'offline';
       if (user.status === 'online' || user.status === 'appear') statusClass = 'online';
       if (user.status === 'idle') statusClass = 'idle';
@@ -408,44 +471,56 @@ export class UserManager {
           statusStyle = 'background-color: rgba(116, 127, 141, 0.1); color: #747f8d;';
       }
       
-      userCard.innerHTML = `
-        <div class="user-avatar">
-          ${avatarContent}
-        </div>
-        <div class="user-info">
-          <div class="user-name">
-            <span class="font-semibold">${username}#${discriminator}</span>
-            ${isAdmin ? '<span class="user-badge badge-admin ml-2">Admin</span>' : ''}
-            <span class="user-badge ml-2" style="${statusStyle}">
-              <span class="badge-status ${statusClass}"></span>
-              ${user.status || 'offline'}
-            </span>
-          </div>
-          <div class="user-meta text-sm text-discord-lighter mt-1">
-            <div><strong>ID:</strong> ${user.id || 'N/A'}</div>
-            <div><strong>Email:</strong> ${email}</div>
-            <div><strong>Display Name:</strong> ${displayName}</div>
-            <div><strong>Bio:</strong> ${bio.length > 50 ? bio.substring(0, 50) + '...' : bio}</div>
-            <div><strong>Joined:</strong> ${this.formatDate(user.created_at)}</div>
-            ${user.google_id ? '<div><strong>Google ID:</strong> ' + user.google_id + '</div>' : ''}
-          </div>
-        </div>
-        <div class="user-actions">
+      // Create the user avatar
+      let avatarContent = user.avatar_url 
+        ? `<img src="${user.avatar_url}" alt="${username}">`
+        : `${username.charAt(0).toUpperCase()}`;
+      
+      // Create the row element
+      const row = document.createElement('tr');
+      
+      // Populate the row with user data
+      row.innerHTML = `
+        <td>
+          <div class="user-avatar-sm">${avatarContent}</div>
+        </td>
+        <td>
+          <div class="font-medium">${username}#${discriminator}</div>
+          ${isAdmin ? '<span class="user-badge badge-admin text-xs ml-1">Admin</span>' : ''}
+        </td>
+        <td>${userId}</td>
+        <td>${email}</td>
+        <td>
+          <span class="user-badge inline-flex items-center px-2 py-1 rounded-md text-xs" style="${statusStyle}">
+            <span class="badge-status ${statusClass}"></span>
+            ${user.status || 'offline'}
+          </span>
+        </td>
+        <td>${createdAt}</td>
+        <td>
           ${isBanned 
-            ? `<button class="discord-button success unban-user" data-id="${user.id}" data-username="${username}">
+            ? `<button class="discord-button success unban-user" data-id="${userId}" data-username="${username}">
                 <i class="fas fa-user-check mr-2"></i>
                 Unban
               </button>` 
-            : `<button class="discord-button danger ban-user" data-id="${user.id}" data-username="${username}">
+            : `<button class="discord-button danger ban-user" data-id="${userId}" data-username="${username}">
                 <i class="fas fa-ban mr-2"></i>
                 Ban
               </button>`
           }
-        </div>
+        </td>
       `;
       
-      container.appendChild(userCard);
+      // Add the row to the table body
+      tableBody.appendChild(row);
     });
+    
+    // Add the table body to the table
+    table.appendChild(tableBody);
+    
+    // Add the table to the container
+    tableContainer.appendChild(table);
+    container.appendChild(tableContainer);
   }
   
   renderGridView(users) {
@@ -462,94 +537,102 @@ export class UserManager {
       return;
     }
     
-    const grid = document.createElement('div');
-    grid.className = 'user-grid';
+    // Create container for table overflow
+    const tableContainer = document.createElement('div');
+    tableContainer.className = 'user-table-container';
     
+    // Create a table with different columns for the grid view
+    const table = document.createElement('table');
+    table.className = 'user-table';
+    
+    // Create the table header
+    const tableHeader = document.createElement('thead');
+    tableHeader.innerHTML = `
+      <tr>
+        <th>User</th>
+        <th>Details</th>
+        <th>Actions</th>
+      </tr>
+    `;
+    table.appendChild(tableHeader);
+    
+    // Create the table body
+    const tableBody = document.createElement('tbody');
+    
+    // Add user rows
     users.forEach(user => {
-      const userCard = document.createElement('div');
-      userCard.className = 'user-card-grid';
-      
-      const isBanned = user.status === 'banned';
-      const isAdmin = user.email === 'admin@admin.com';
+      // Extract user properties with fallbacks
+      const userId = user.id || 'N/A';
       const username = user.username || 'Unknown User';
       const discriminator = user.discriminator || '0000';
       const email = user.email || 'No Email';
       const displayName = user.display_name || username;
       const bio = user.bio || 'No bio available';
+      const createdAt = user.created_at ? this.formatDate(user.created_at) : 'Unknown';
+      const isBanned = user.status === 'banned';
       
-      let avatarContent = user.avatar_url 
-        ? `<img src="${user.avatar_url}" alt="${username}">`
-        : username.charAt(0).toUpperCase();
-      
+      // Create status class
       let statusClass = 'offline';
       if (user.status === 'online' || user.status === 'appear') statusClass = 'online';
       if (user.status === 'idle') statusClass = 'idle';
       if (user.status === 'do_not_disturb') statusClass = 'dnd';
       if (user.status === 'banned') statusClass = 'banned';
       
-      userCard.innerHTML = `
-        <div class="user-card-header">
-          <div class="user-avatar">
-            ${avatarContent}
-          </div>
-          <div class="ml-3">
-            <div class="user-name flex items-center">
-              <span class="font-semibold">${username}</span>
-              <span class="badge-status ${statusClass} ml-2"></span>
-              ${isAdmin ? '<span class="user-badge badge-admin ml-2">Admin</span>' : ''}
-            </div>
-            <div class="text-discord-lighter text-xs">#${discriminator}</div>
-          </div>
-        </div>
-        
-        <div class="user-meta px-2 py-3 border-t border-b border-discord-dark">
-          <div class="flex items-center mb-1">
-            <i class="fas fa-envelope mr-2 text-discord-lighter" style="width: 14px;"></i>
-            <span class="text-sm">${email}</span>
-          </div>
-          <div class="flex items-center mb-1">
-            <i class="fas fa-id-card mr-2 text-discord-lighter" style="width: 14px;"></i>
-            <span class="text-sm">ID: ${user.id || 'N/A'}</span>
-          </div>
-          <div class="flex items-center mb-1">
-            <i class="fas fa-user mr-2 text-discord-lighter" style="width: 14px;"></i>
-            <span class="text-sm">Display: ${displayName}</span>
-          </div>
-          <div class="flex items-center mb-1">
-            <i class="fas fa-info-circle mr-2 text-discord-lighter" style="width: 14px;"></i>
-            <span class="text-sm">Bio: ${bio.length > 30 ? bio.substring(0, 30) + '...' : bio}</span>
-          </div>
-          <div class="flex items-center mb-1">
-            <i class="fas fa-calendar-alt mr-2 text-discord-lighter" style="width: 14px;"></i>
-            <span class="text-sm">Joined: ${this.formatDate(user.created_at)}</span>
-          </div>
-          ${user.google_id ? `
+      // Create the user avatar
+      let avatarContent = user.avatar_url 
+        ? `<img src="${user.avatar_url}" alt="${username}">`
+        : `${username.charAt(0).toUpperCase()}`;
+      
+      // Create the row element
+      const row = document.createElement('tr');
+      
+      // Populate the row with user data
+      row.innerHTML = `
+        <td>
           <div class="flex items-center">
-            <i class="fab fa-google mr-2 text-discord-lighter" style="width: 14px;"></i>
-            <span class="text-sm">Google ID: ${user.google_id}</span>
+            <div class="user-avatar-sm mr-3">${avatarContent}</div>
+            <div>
+              <div class="font-medium flex items-center">
+                ${username}
+                <span class="badge-status ${statusClass} ml-2"></span>
+              </div>
+              <div class="text-discord-lighter text-xs">#${discriminator}</div>
+            </div>
           </div>
-          ` : ''}
-        </div>
-        
-        <div class="user-card-footer">
+        </td>
+        <td>
+          <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+            <div><i class="fas fa-id-card mr-2 text-discord-lighter"></i>ID: ${userId}</div>
+            <div><i class="fas fa-envelope mr-2 text-discord-lighter"></i>${email}</div>
+            <div><i class="fas fa-user mr-2 text-discord-lighter"></i>${displayName}</div>
+            <div><i class="fas fa-calendar-alt mr-2 text-discord-lighter"></i>${createdAt}</div>
+          </div>
+        </td>
+        <td>
           ${isBanned 
-            ? `<button class="discord-button success unban-user" data-id="${user.id}" data-username="${username}">
+            ? `<button class="discord-button success unban-user" data-id="${userId}" data-username="${username}">
                 <i class="fas fa-user-check mr-2"></i>
                 Unban
               </button>` 
-            : `<button class="discord-button danger ban-user" data-id="${user.id}" data-username="${username}">
+            : `<button class="discord-button danger ban-user" data-id="${userId}" data-username="${username}">
                 <i class="fas fa-ban mr-2"></i>
                 Ban
               </button>`
           }
-        </div>
+        </td>
       `;
       
-      grid.appendChild(userCard);
+      // Add the row to the table body
+      tableBody.appendChild(row);
     });
     
+    // Add the table body to the table
+    table.appendChild(tableBody);
+    
+    // Add the table to the container
+    tableContainer.appendChild(table);
     container.innerHTML = '';
-    container.appendChild(grid);
+    container.appendChild(tableContainer);
   }
   
   toggleUserBan(userId, currentStatus, username) {

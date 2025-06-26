@@ -208,7 +208,8 @@ class UserRepository extends Repository {
         $results = $queryBuilder->table(User::getTable())
             ->where(function($q) use ($query) {
                 $q->whereLike('username', "%$query%")
-                  ->orWhereLike('email', "%$query%");
+                  ->orWhereLike('email', "%$query%")
+                  ->orWhereLike('display_name', "%$query%");
             })
             ->where('status', '!=', 'bot')
             ->orderBy('created_at', 'DESC')
@@ -235,7 +236,8 @@ class UserRepository extends Repository {
         return $queryBuilder->table(User::getTable())
             ->where(function($q) use ($query) {
                 $q->whereLike('username', "%$query%")
-                  ->orWhereLike('email', "%$query%");
+                  ->orWhereLike('email', "%$query%")
+                  ->orWhereLike('display_name', "%$query%");
             })
             ->where('status', '!=', 'bot')
             ->count();

@@ -395,66 +395,6 @@ class AdminController extends BaseController
         ]);
     }
     
-    public function createSampleData()
-    {
-        $this->requireAdmin();
-        
-        try {
-            // Create sample users with different creation dates
-            for ($i = 0; $i < 5; $i++) {
-                $date = date('Y-m-d H:i:s', strtotime("-$i days"));
-                for ($j = 0; $j < rand(1, 5); $j++) {
-                    $userData = [
-                        'username' => 'SampleUser' . time() . rand(1000, 9999),
-                        'email' => 'sample' . time() . rand(1000, 9999) . '@test.com',
-                        'password' => password_hash('password123', PASSWORD_DEFAULT),
-                        'discriminator' => str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT),
-                        'status' => 'offline',
-                        'created_at' => $date,
-                        'updated_at' => $date
-                    ];
-                    $this->userRepository->create($userData);
-                }
-            }
-            
-            // Create sample servers
-            for ($i = 0; $i < 3; $i++) {
-                $date = date('Y-m-d H:i:s', strtotime("-$i days"));
-                $serverData = [
-                    'name' => 'Sample Server ' . time() . rand(100, 999),
-                    'description' => 'A sample server for testing',
-                    'owner_id' => 1, // Assuming admin user ID is 1
-                    'is_public' => 1,
-                    'category' => 'General',
-                    'created_at' => $date,
-                    'updated_at' => $date
-                ];
-                $this->serverRepository->create($serverData);
-            }
-            
-            // Create sample messages
-            for ($i = 0; $i < 7; $i++) {
-                $date = date('Y-m-d H:i:s', strtotime("-$i days"));
-                for ($j = 0; $j < rand(1, 10); $j++) {
-                    $messageData = [
-                        'user_id' => 1,
-                        'content' => 'Sample message content ' . rand(1000, 9999),
-                        'message_type' => 'text',
-                        'sent_at' => $date,
-                        'created_at' => $date,
-                        'updated_at' => $date
-                    ];
-                    $this->messageRepository->create($messageData);
-                }
-            }
-            
-            return $this->success([], 'Sample data created successfully');
-            
-        } catch (Exception $e) {
-            return $this->serverError('Error creating sample data: ' . $e->getMessage());
-        }
-    }
-
     public function debugChartData()
     {
         $this->requireAdmin();
