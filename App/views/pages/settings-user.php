@@ -175,17 +175,23 @@ ob_start();
                             <div class="form-group">
                                 <label for="username" class="block text-sm font-medium text-white mb-2">Username</label>
                                 <div class="flex">
-                                    <input type="text" id="username" name="username" class="form-input flex-grow" value="<?php echo htmlspecialchars($user->username ?? ''); ?>">
+                                    <input type="text" id="username" name="username" class="form-input flex-grow" value="<?php echo htmlspecialchars($user->username ?? ''); ?>" data-original-value="<?php echo htmlspecialchars($user->username ?? ''); ?>">
                                     <span class="bg-discord-darker flex items-center px-3 rounded-r-md border-l border-gray-700">
                                         #<?php echo htmlspecialchars($user->discriminator ?? '0000'); ?>
                                     </span>
+                                    <button type="button" id="approve-username" class="ml-2 bg-blue-600 hover:bg-blue-700 text-white px-3 rounded-md hidden">
+                                        <i class="fas fa-check"></i>
+                                    </button>
                                 </div>
                             </div>
                             
                             <div class="form-group">
                                 <label for="display_name" class="block text-sm font-medium text-white mb-2">Display Name</label>
                                 <div class="flex">
-                                    <input type="text" id="display_name" name="display_name" class="form-input flex-grow" value="<?php echo htmlspecialchars($user->display_name ?? $user->username ?? ''); ?>" placeholder="Enter display name (optional)">
+                                    <input type="text" id="display_name" name="display_name" class="form-input flex-grow" value="<?php echo htmlspecialchars($user->display_name ?? $user->username ?? ''); ?>" placeholder="Enter display name (optional)" data-original-value="<?php echo htmlspecialchars($user->display_name ?? $user->username ?? ''); ?>">
+                                    <button type="button" id="approve-display-name" class="ml-2 bg-green-600 hover:bg-green-700 text-white px-3 rounded-md hidden">
+                                        <i class="fas fa-check"></i>
+                                    </button>
                                 </div>
                                 <p class="text-discord-lighter text-xs mt-1">This is how others see you. You can use any name you'd like.</p>
                             </div>

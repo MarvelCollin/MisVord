@@ -12,12 +12,10 @@ export class ServerManager {
     this.showInitialSkeletons();
     
     setTimeout(() => {
-      // Check if serverAPI is already available
       if (window.serverAPI) {
         this.loadServerStats();
         this.loadServers();
       } else {
-        // Add a small delay to wait for serverAPI to be loaded
         setTimeout(() => {
           this.loadServerStats();
           this.loadServers();
@@ -129,14 +127,12 @@ export class ServerManager {
   }
   
   loadServerStats() {
-    // Check if serverAPI exists
     if (!window.serverAPI) {
       console.warn('serverAPI not available yet, retrying in 500ms');
       setTimeout(() => this.loadServerStats(), 500);
       return;
     }
     
-    // Check if getStats method exists
     if (typeof window.serverAPI.getStats !== 'function') {
       console.warn('serverAPI.getStats is not available, using fallback stats');
       this.updateStatsUI({
@@ -150,7 +146,6 @@ export class ServerManager {
       .then(response => {
         console.log('Server stats response:', response);
         
-        // Handle different response formats
         let stats;
         if (response.success && response.data && response.data.stats) {
           stats = response.data.stats;
@@ -174,7 +169,6 @@ export class ServerManager {
   }
   
   updateStatsUI(stats) {
-    // Set defaults if values don't exist
     const active = stats.active || 0;
     const totalServers = stats.total_servers || stats.total || 0;
     

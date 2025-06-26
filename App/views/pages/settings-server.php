@@ -418,7 +418,7 @@ ob_start();
                         <div class="w-32">PERMISSIONS</div>
                         <div class="w-40">ACTIONS</div>
                     </div>
-                                    
+
                     <div id="roles-list" class="max-h-[500px] overflow-y-auto">
                         <div class="flex items-center justify-center p-8 text-discord-lighter">
                             <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -434,8 +434,7 @@ ob_start();
                     <p>Members use the color of the highest role they have on the list. Drag roles to reorder them.</p>
                     <a href="#" class="text-blue-400 hover:underline">Need help with permissions?</a>
                 </div>
-                
-                <!-- Role Template (for JavaScript) -->
+                                        
                 <template id="role-template">
                     <div class="role-item p-4 border-b border-discord-dark flex items-center hover:bg-discord-dark">
                         <div class="w-10 flex items-center justify-center">
@@ -473,16 +472,13 @@ ob_start();
         <?php endif; ?>
     </div>
     
-    <!-- Server Preview -->
     <div class="w-80 bg-discord-dark border-l">
         <div class="sticky top-6">
             <h3 class="text-sm font-semibold text-discord-lighter uppercase mb-4">Preview</h3>
             
             <div class="server-preview-card bg-[#1e1f22] rounded-lg overflow-hidden">
-                <!-- Server Banner Preview -->
                 <div class="server-banner h-40 <?php echo $server->banner_url ? '' : 'bg-gradient-to-b from-[#7a8087] to-[#36393f]'; ?>" 
                      <?php echo $server->banner_url ? 'style="background-image: url(\'' . htmlspecialchars($server->banner_url) . '\'); background-size: cover; background-position: center;"' : ''; ?>>
-                    <!-- Server Icon Preview -->
                     <div class="server-icon-preview absolute -bottom-8 left-4 w-16 h-16 bg-discord-dark rounded-full border-4 border-[#1e1f22] overflow-hidden">
                         <?php if ($server->image_url): ?>
                             <img src="<?php echo htmlspecialchars($server->image_url); ?>" alt="Server Icon" class="w-full h-full object-cover">
@@ -494,7 +490,6 @@ ob_start();
                     </div>
                 </div>
                 
-                <!-- Server Info Preview -->
                 <div class="server-info pt-10 px-4 pb-4">
                     <h3 class="server-name text-white font-bold"><?php echo htmlspecialchars($server->name); ?></h3>
                     <div class="server-meta flex items-center text-xs text-discord-lighter mt-1">
@@ -516,7 +511,6 @@ ob_start();
         </div>
     </div>
     
-    <!-- Close button to return to server page -->
     <a href="/server/<?php echo $serverId; ?>" class="close-button">
         <div class="close-button-icon">
             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

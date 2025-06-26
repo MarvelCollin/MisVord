@@ -76,18 +76,14 @@ class AdminController extends BaseController
                 $total = $this->userRepository->countRegularUsers();
             }
             
-            // Ensure consistent user structure
             $normalizedUsers = [];
             foreach ($users as $user) {
-                // Convert to array if it's an object
                 $userData = is_object($user) && method_exists($user, 'toArray') ? $user->toArray() : (array)$user;
                 
-                // Skip admin user
                 if (isset($userData['email']) && $userData['email'] === 'admin@admin.com') {
                     continue;
                 }
                 
-                // Ensure all critical fields exist
                 $normalizedUsers[] = [
                     'id' => $userData['id'] ?? null,
                     'username' => $userData['username'] ?? 'Unknown User',
@@ -103,11 +99,10 @@ class AdminController extends BaseController
                 ];
             }
             
-            // Adjust total count to exclude admin
             if (!empty($query) && $query !== 'admin' && $total > 0) {
                 $total = count($normalizedUsers);
             } else {
-                $total--; // Subtract admin from total count
+                $total--;
                 if ($total < 0) $total = 0;
             }
             
@@ -141,15 +136,12 @@ class AdminController extends BaseController
                 return $this->notFound('User not found');
             }
             
-            // Convert to array if it's an object
             $userData = is_object($user) && method_exists($user, 'toArray') ? $user->toArray() : (array)$user;
             
-            // Prevent accessing admin user details
             if (isset($userData['email']) && $userData['email'] === 'admin@admin.com') {
                 return $this->forbidden('Access to admin user details is restricted');
             }
             
-            // Ensure all critical fields exist
             $normalizedUser = [
                 'id' => $userData['id'] ?? null,
                 'username' => $userData['username'] ?? 'Unknown User',
@@ -398,8 +390,7 @@ class AdminController extends BaseController
     public function getUserGrowthStats()
     {
         $this->requireAdmin();
-        
-        // Get channel and category statistics instead of user status
+
         require_once __DIR__ . '/../database/repositories/CategoryRepository.php';
         require_once __DIR__ . '/../database/repositories/ChannelRepository.php';
         
@@ -426,10 +417,9 @@ class AdminController extends BaseController
     {
         $this->requireAdmin();
         
-        // Get simple message statistics by type or recent activity
         $totalMessages = $this->messageRepository->count();
         $todayMessages = $this->messageRepository->countToday();
-        $thisWeekMessages = $totalMessages; // You can implement countThisWeek if needed
+        $thisWeekMessages = $totalMessages;
         
         $data = [
             ['label' => 'Total Messages', 'value' => $totalMessages],
@@ -447,7 +437,6 @@ class AdminController extends BaseController
     {
         $this->requireAdmin();
         
-        // Get simple server statistics
         $totalServers = $this->serverRepository->count();
         $publicServers = $this->serverRepository->countPublicServers();
         $privateServers = $totalServers - $publicServers;
@@ -469,28 +458,62 @@ class AdminController extends BaseController
         $this->requireAdmin();
         
         try {
+            if (function_exists('logger')) {
+                logger()->debug("AdminController: toggleUserBan called", [
+                    'user_id' => $userId,
+                    'request_method' => $_SERVER['REQUEST_METHOD'],
+                    'request_uri' => $_SERVER['REQUEST_URI'],
+                    'is_ajax' => $this->isAjaxRequest() ? 'yes' : 'no',
+                    'is_api' => $this->isApiRoute() ? 'yes' : 'no'
+                ]);
+            }
+            
             require_once __DIR__ . '/../database/repositories/UserRepository.php';
             $userRepository = new UserRepository();
             
             $user = $userRepository->find($userId);
             
             if (!$user) {
-                return $this->error("User not found", 404);
+                if (function_exists('logger')) {
+                    logger()->warning("AdminController: User not found in toggleUserBan", [
+                        'user_id' => $userId
+                    ]);
+                }
+                return $this->notFound("User not found");
             }
             
-            // Prevent banning admin user
             if (isset($user->email) && $user->email === 'admin@admin.com') {
+                if (function_exists('logger')) {
+                    logger()->warning("AdminController: Attempt to modify admin user", [
+                        'user_id' => $userId
+                    ]);
+                }
                 return $this->forbidden("Cannot modify admin user status");
             }
             
             $currentStatus = $user->status;
             $newStatus = $currentStatus === 'banned' ? 'active' : 'banned';
             
+            if (function_exists('logger')) {
+                logger()->info("AdminController: Toggling user status", [
+                    'user_id' => $userId,
+                    'current_status' => $currentStatus,
+                    'new_status' => $newStatus
+                ]);
+            }
+            
             $updated = $userRepository->update($userId, [
                 'status' => $newStatus
             ]);
             
             if (!$updated) {
+                if (function_exists('logger')) {
+                    logger()->error("AdminController: Failed to update user status", [
+                        'user_id' => $userId,
+                        'current_status' => $currentStatus,
+                        'new_status' => $newStatus
+                    ]);
+                }
                 return $this->serverError("Failed to update user status");
             }
             
@@ -500,12 +523,33 @@ class AdminController extends BaseController
                 'admin_id' => $this->getCurrentUserId(),
                 'user_id' => $userId
             ]);
+                    
+            if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                header('Content-Type: application/json');
+            }
             
-            return $this->success([
+            $response = [
                 'user_id' => $userId,
                 'status' => $newStatus
-            ], "User has been {$actionType} successfully");
+            ];
+            
+            if (function_exists('logger')) {
+                logger()->debug("AdminController: User status updated successfully", [
+                    'user_id' => $userId,
+                    'new_status' => $newStatus,
+                    'response' => $response
+                ]);
+            }
+            
+            return $this->success($response, "User has been {$actionType} successfully");
         } catch (Exception $e) {
+            if (function_exists('logger')) {
+                logger()->error("AdminController: Error in toggleUserBan", [
+                    'user_id' => $userId,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+            }
             return $this->serverError("Error toggling user ban: " . $e->getMessage());
         }
     }
@@ -516,7 +560,7 @@ class AdminController extends BaseController
         
         $userId = $this->getCurrentUserId();
         
-        
+        // Check if user is admin by session
         if (isset($_SESSION['username']) && $_SESSION['username'] === 'Admin' && 
             isset($_SESSION['discriminator']) && $_SESSION['discriminator'] === '0000') {
             return true;
@@ -526,12 +570,25 @@ class AdminController extends BaseController
         
         if (!$user || $user->email !== 'admin@admin.com') {
             if ($this->isApiRoute() || $this->isAjaxRequest()) {
-                return $this->forbidden('Access denied: Admin privileges required');
+                // Return the forbidden response instead of calling it (which exits)
+                header('Content-Type: application/json');
+                http_response_code(403);
+                echo json_encode([
+                    'success' => false,
+                    'timestamp' => date('Y-m-d H:i:s'),
+                    'error' => [
+                        'code' => 403,
+                        'message' => 'Access denied: Admin privileges required'
+                    ]
+                ]);
+                exit;
             }
             
             header('Location: /home');
             exit;
         }
+        
+        return true;
     }
 
 

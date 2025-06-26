@@ -109,8 +109,7 @@ class VoiceVideoSettings {
 
     displayCurrentInputDevice() {
         const inputDisplay = document.getElementById('current-input-device');
-        if (inputDisplay) {
-            // Show default microphone device
+        if (inputDisplay) {         
             const defaultInputDevice = this.devices.input[0];
             if (defaultInputDevice) {
                 inputDisplay.innerHTML = `
@@ -198,7 +197,6 @@ class VoiceVideoSettings {
 
         const inputVolumeSlider = document.getElementById('input-volume');
         const outputVolumeSlider = document.getElementById('output-volume');
-        // Device selectors removed - now using display-only elements
         const micTestBtn = document.getElementById('mic-test-btn');
         const videoTestBtn = document.getElementById('video-test-btn');
 
@@ -221,8 +219,6 @@ class VoiceVideoSettings {
                 this.addDebugInfo(`Output volume changed to ${this.settings.outputVolume}%`);
             });
         }
-
-        // Device displays are now read-only - no change events needed
 
         if (micTestBtn) {
             micTestBtn.addEventListener('click', () => this.toggleMicTest());
@@ -282,7 +278,6 @@ class VoiceVideoSettings {
         if (indicator) {
             indicator.style.width = `${value}%`;
             
-            // Update color based on volume level
             if (value > 80) {
                 indicator.style.background = 'linear-gradient(to right, #43b581, #faa61a, #f04747)';
             } else if (value > 50) {
@@ -295,7 +290,6 @@ class VoiceVideoSettings {
 
     updateInputGain() {
         if (this.micTest.inputGainNode) {
-            // Convert percentage to gain (0-100% = 0-2 gain)
             const gain = (this.settings.inputVolume / 100) * 2;
             this.micTest.inputGainNode.gain.value = gain;
             this.addDebugInfo(`Input gain updated to ${gain.toFixed(2)} (${this.settings.inputVolume}%)`);
@@ -304,7 +298,6 @@ class VoiceVideoSettings {
 
     updateOutputGain() {
         if (this.micTest.outputGainNode) {
-            // Convert percentage to gain (0-100% = 0-1 gain)
             const gain = this.settings.outputVolume / 100;
             this.micTest.outputGainNode.gain.value = gain;
             this.addDebugInfo(`Output gain updated to ${gain.toFixed(2)} (${this.settings.outputVolume}%)`);
@@ -325,9 +318,9 @@ class VoiceVideoSettings {
                 audio: {
                     deviceId: this.settings.inputDevice !== 'default' ? 
                         { exact: this.settings.inputDevice } : undefined,
-                    echoCancellation: true,  // ENABLE echo cancellation
-                    noiseSuppression: true,  // ENABLE noise suppression  
-                    autoGainControl: true    // ENABLE auto gain control
+                    echoCancellation: true,  
+                    noiseSuppression: true,  
+                    autoGainControl: true    
                 }
             };
 
@@ -425,15 +418,13 @@ class VoiceVideoSettings {
 
     async startRealTimeMonitoring() {
         try {
-            // Real-time monitoring like Discord
             const constraints = {
                 audio: {
-                    // Always use default device since selection is removed
                     sampleRate: 44100,
                     channelCount: 1,
-                    echoCancellation: false,  // DISABLE for real-time monitoring
-                    noiseSuppression: false,  // Keep natural sound
-                    autoGainControl: false    // Keep natural volume
+                    echoCancellation: false,  
+                    noiseSuppression: false,  
+                    autoGainControl: false    
                 }
             };
 
@@ -453,31 +444,26 @@ class VoiceVideoSettings {
                 this.addDebugInfo(`Auto Gain Control: ${track.getSettings().autoGainControl}`);
             }
 
-            // Create AudioContext for real-time processing
             if (this.audioContext) {
                 this.audioContext.close();
             }
             
             this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
             
-            // Create audio nodes for real-time monitoring
             const source = this.audioContext.createMediaStreamSource(this.micTest.testStream);
             this.analyser = this.audioContext.createAnalyser();
             this.analyser.fftSize = 256;
             this.analyser.smoothingTimeConstant = 0.3;
             
-            // Create separate gain nodes for input and output control
             this.micTest.inputGainNode = this.audioContext.createGain();
             this.micTest.outputGainNode = this.audioContext.createGain();
             
-            // Set initial volumes from settings
-            const inputGain = (this.settings.inputVolume / 100) * 2; // 0-200% range for input boost
-            const outputGain = this.settings.outputVolume / 100; // 0-100% range for output
+            const inputGain = (this.settings.inputVolume / 100) * 2; 
+            const outputGain = this.settings.outputVolume / 100;        
             
             this.micTest.inputGainNode.gain.value = inputGain;
             this.micTest.outputGainNode.gain.value = outputGain;
             
-            // Connect: Input -> InputGain -> Analyser -> OutputGain -> Output
             source.connect(this.micTest.inputGainNode);
             this.micTest.inputGainNode.connect(this.analyser);
             this.micTest.inputGainNode.connect(this.micTest.outputGainNode);
@@ -489,7 +475,6 @@ class VoiceVideoSettings {
             this.addDebugInfo(`Output gain: ${outputGain.toFixed(2)} (${this.settings.outputVolume}%)`);
             this.addDebugInfo('Using system default output device');
             
-            // Start visualizer
             this.startVisualizer();
 
         } catch (error) {
@@ -502,7 +487,6 @@ class VoiceVideoSettings {
         if (this.micTest.isActive) {
             this.micTest.isActive = false;
             
-            // Disconnect audio nodes
             if (this.micTest.inputGainNode) {
                 this.micTest.inputGainNode.disconnect();
                 this.micTest.inputGainNode = null;
@@ -513,24 +497,20 @@ class VoiceVideoSettings {
                 this.micTest.outputGainNode = null;
             }
             
-            // Stop media stream
             if (this.micTest.testStream) {
                 this.micTest.testStream.getTracks().forEach(track => track.stop());
                 this.micTest.testStream = null;
             }
             
-            // Close audio context
             if (this.audioContext) {
                 this.audioContext.close();
                 this.audioContext = null;
             }
             
-            // Clear analyser
             if (this.analyser) {
                 this.analyser = null;
             }
             
-            // Clear visualizer bars
             const bars = document.querySelectorAll('.visualizer-bars .bar');
             bars.forEach(bar => {
                 bar.classList.remove('active', 'medium', 'high');

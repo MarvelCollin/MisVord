@@ -17,8 +17,7 @@ export class UserManager {
     this.initFilters();
     
     this.showSkeletons();
-    
-    // Check if userAdminAPI is already available
+      
     if (window.userAdminAPI) {
       this.loadUserStats().then(() => {
         this.loadUsers();
@@ -174,7 +173,7 @@ export class UserManager {
       if (banButton) {
         const userId = banButton.getAttribute('data-id');
         const username = banButton.getAttribute('data-username');
-        this.toggleUserBan(userId, 'offline', username);
+        this.toggleUserBan(userId, 'active', username);
       }
       
       if (unbanButton) {
@@ -671,18 +670,24 @@ export class UserManager {
       `Are you sure you want to ban <span class="text-white font-semibold">${username}</span>? This will prevent them from using the app.`;
     
     this.showDiscordConfirmation(title, message, () => {
+      // Show loading indicator
+      showToast(`Processing ${action} request...`, "info");
+      
       window.userAdminAPI.toggleUserBan(userId)
-        .then(data => {
-          if (data.success) {
+        .then(response => {
+          if (response.success) {
             showToast(`User ${isBanned ? 'unbanned' : 'banned'} successfully`, "success");
+            
+            // Reload the data to reflect the changes
             this.loadUsers();
             this.loadUserStats();
           } else {
-            showToast(data.message || `Failed to ${action} user`, "error");
+            showToast(response.message || `Failed to ${action} user: ${response.error || 'Unknown error'}`, "error");
+            console.error(`Error ${action}ing user:`, response);
           }
         })
         .catch(error => {
-          showToast(`An error occurred while trying to ${action} the user`, "error");
+          showToast(`An error occurred while trying to ${action} the user: ${error.message || 'Unknown error'}`, "error");
           console.error(`Error ${action}ing user:`, error);
         });
     });

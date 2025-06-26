@@ -30,7 +30,6 @@ class UserAdminAPI {
     }
     
     normalizeResponse(data) {
-        // Ensure consistent response format
         if (!data) return { success: false, message: "Empty response from server" };
         
         // If data is already properly formatted with success property
@@ -250,10 +249,19 @@ class UserAdminAPI {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ action: 'toggle_ban' })
             });
-            return await response.json();
+            
+            const data = await this.parseResponse(response);
+            
+            if (!response.ok) {
+                throw new Error(data.message || data.error || `HTTP error! status: ${response.status}`);
+            }
+            
+            return data;
         } catch (error) {
             console.error('Error toggling user ban status:', error);
             throw error;
@@ -269,6 +277,20 @@ class UserAdminAPI {
 
     async deleteUser(userId) {
         return await this.makeRequest(`${this.baseURL}/users/${userId}`, {
+            method: 'DELETE'
+        });
+    }
+
+    async listServers(page = 1, limit = 10, search = '') {
+        let url = `${this.baseURL}/servers?page=${page}&limit=${limit}`;
+        if (search) {
+            url += `&q=${encodeURIComponent(search)}`;
+        }
+        return await this.makeRequest(url);
+    }
+
+    async deleteServer(serverId) {
+        return await this.makeRequest(`${this.baseURL}/servers/${serverId}`, {
             method: 'DELETE'
         });
     }

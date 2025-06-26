@@ -1043,37 +1043,26 @@ class ChatController extends BaseController
         $this->requireAuth();
         $userId = $this->getCurrentUserId();
         
+        $message = $this->messageRepository->find($messageId);
+        if (!$message) {
+            return $this->notFound('Message not found');
+        }
+        
         try {
             require_once __DIR__ . '/../database/models/MessageReaction.php';
             
-            // First check if there are any reactions (fast query)
-            $reactionsCount = MessageReaction::countForMessage($messageId);
-            
-            if ($reactionsCount === 0) {
-                // Return immediately if there are no reactions
-                return $this->success(['reactions' => []]);
-            }
-            
-            // Optimized fetching with full user info in a single query
-            $query = new Query();
-            $reactions = $query->rawQuery(
-                "SELECT mr.id, mr.message_id, mr.emoji, mr.user_id, mr.created_at, u.username 
-                 FROM message_reactions mr
-                 JOIN users u ON mr.user_id = u.id
-                 WHERE mr.message_id = ?
-                 ORDER BY mr.created_at ASC",
-                [$messageId]
-            );
-            
+            $reactions = MessageReaction::getForMessage($messageId);
             $formattedReactions = [];
+            
             foreach ($reactions as $reaction) {
+                $user = $this->userRepository->find($reaction->user_id);
                 $formattedReactions[] = [
-                    'id' => $reaction['id'],
-                    'message_id' => $reaction['message_id'],
-                    'user_id' => $reaction['user_id'],
-                    'emoji' => $reaction['emoji'],
-                    'username' => $reaction['username'] ?? 'Unknown User',
-                    'created_at' => $reaction['created_at']
+                    'id' => $reaction->id,
+                    'message_id' => $reaction->message_id,
+                    'user_id' => $reaction->user_id,
+                    'emoji' => $reaction->emoji,
+                    'username' => $user ? $user->username : 'Unknown User',
+                    'created_at' => $reaction->created_at
                 ];
             }
             

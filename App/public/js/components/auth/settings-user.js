@@ -1364,14 +1364,61 @@ function initConnectionToggles() {
 function initProfileFormSubmit() {
     const profileForm = document.getElementById('user-profile-form');
     const saveBtn = document.getElementById('save-changes-btn');
+    const approveUsernameBtn = document.getElementById('approve-username');
+    const approveDisplayNameBtn = document.getElementById('approve-display-name');
+    const usernameInput = document.getElementById('username');
+    const displayNameInput = document.getElementById('display_name');
+    
+    if (usernameInput && approveUsernameBtn) {
+        usernameInput.addEventListener('input', function() {
+            checkForChanges(this, approveUsernameBtn);
+        });
+        
+        usernameInput.addEventListener('keyup', function() {
+            checkForChanges(this, approveUsernameBtn);
+        });
+        
+        usernameInput.addEventListener('paste', function() {
+            setTimeout(() => checkForChanges(this, approveUsernameBtn), 10);
+        });
+    }
+    
+    if (displayNameInput && approveDisplayNameBtn) {
+        displayNameInput.addEventListener('input', function() {
+            checkForChanges(this, approveDisplayNameBtn);
+        });
+        
+        displayNameInput.addEventListener('keyup', function() {
+            checkForChanges(this, approveDisplayNameBtn);
+        });
+        
+        displayNameInput.addEventListener('paste', function() {
+            setTimeout(() => checkForChanges(this, approveDisplayNameBtn), 10);
+        });
+    }
+    
+    if (approveUsernameBtn) {
+        approveUsernameBtn.addEventListener('click', function() {
+            if (!usernameInput) return;
+            
+            const username = usernameInput.value.trim();
+            updateUsername(username);
+        });
+    }
+    
+    if (approveDisplayNameBtn) {
+        approveDisplayNameBtn.addEventListener('click', function() {
+            if (!displayNameInput) return;
+            
+            const displayName = displayNameInput.value.trim();
+            updateDisplayName(displayName);
+        });
+    }
     
     if (!profileForm || !saveBtn) return;
     
     profileForm.addEventListener('submit', function(e) {
         e.preventDefault();
-        
-        const usernameInput = document.getElementById('username');
-        const displayNameInput = document.getElementById('display_name');
         
         if (!usernameInput) return;
         
@@ -1395,69 +1442,277 @@ function initProfileFormSubmit() {
             profileData.display_name = displayName;
         }
         
-        fetch('/api/users/profile', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: JSON.stringify(profileData),
-            credentials: 'same-origin'
-        })
-        .then(async response => {
-            if (!response.ok) {
-                let errorMessage = `HTTP error! status: ${response.status}`;
-                try {
-                    const errorData = await response.json();
-                    errorMessage = errorData.message || errorData.error?.message || errorMessage;
-                } catch (parseError) {
-                    console.warn('Could not parse error response as JSON:', parseError);
-                }
-                throw new Error(errorMessage);
+        updateProfile(profileData, saveBtn);
+    });
+}
+
+/**
+ * Check for changes and show/hide approve button
+ */
+function checkForChanges(input, approveBtn) {
+    if (!input || !approveBtn) return;
+    
+    const currentValue = input.value.trim();
+    const originalValue = (input.dataset.originalValue || '').trim();
+    
+    console.log('Checking changes:', {
+        field: input.id,
+        currentValue: currentValue,
+        originalValue: originalValue,
+        areEqual: currentValue === originalValue,
+        isEmpty: currentValue === ''
+    });
+    
+    if (currentValue !== originalValue && currentValue !== '') {
+        approveBtn.classList.remove('hidden');
+    } else {
+        approveBtn.classList.add('hidden');
+    }
+}
+
+/**
+ * Update username
+ */
+function updateUsername(username) {
+    const approveBtn = document.getElementById('approve-username');
+    const usernameInput = document.getElementById('username');
+    
+    if (!username) {
+        showToast('Username cannot be empty', 'error');
+        return;
+    }
+    
+    if (username.length < 3 || username.length > 32) {
+        showToast('Username must be between 3 and 32 characters', 'error');
+        return;
+    }
+    
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+        showToast('Username can only contain letters, numbers, and underscores', 'error');
+        return;
+    }
+    
+    approveBtn.disabled = true;
+    const originalIcon = approveBtn.innerHTML;
+    approveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    
+    const profileData = {
+        username: username
+    };
+    
+    fetch('/api/users/profile', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify(profileData),
+        credentials: 'same-origin'
+    })
+    .then(async response => {
+        if (!response.ok) {
+            let errorMessage = `HTTP error! status: ${response.status}`;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.message || errorData.error?.message || errorMessage;
+            } catch (parseError) {
+                console.warn('Could not parse error response as JSON:', parseError);
+            }
+            throw new Error(errorMessage);
+        }
+        
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Server returned non-JSON response');
+        }
+        
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            showToast('Username updated successfully', 'success');
+            
+            if (usernameInput) {
+                usernameInput.dataset.originalValue = username;
+                usernameInput.value = username;
             }
             
-            const contentType = response.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) {
-                throw new Error('Server returned non-JSON response');
+            const usernameMeta = document.querySelector('meta[name="username"]');
+            if (usernameMeta) {
+                usernameMeta.content = username;
             }
             
-            return response.json();
-        })
-        .then(data => {
-            if (data.success) {
-                showToast('Profile updated successfully', 'success');
-                
-                const usernameMeta = document.querySelector('meta[name="username"]');
-                if (usernameMeta) {
-                    usernameMeta.content = username;
-                }
-                
-                const displayNameMeta = document.querySelector('meta[name="display-name"]');
-                if (displayNameMeta) {
-                    displayNameMeta.content = displayName || username;
-                }
-                
-                const usernameElements = document.querySelectorAll('.current-user-username');
-                usernameElements.forEach(el => {
-                    el.textContent = username;
-                });
-                
-                const displayNameElements = document.querySelectorAll('.current-user-display-name');
-                displayNameElements.forEach(el => {
-                    el.textContent = displayName || username;
-                });
-            } else {
-                throw new Error(data.message || data.error?.message || 'Failed to update profile');
+            const usernameElements = document.querySelectorAll('.current-user-username');
+            usernameElements.forEach(el => {
+                el.textContent = username;
+            });
+            
+            approveBtn.classList.add('hidden');
+        } else {
+            throw new Error(data.message || data.error?.message || 'Failed to update username');
+        }
+    })
+    .catch(error => {
+        console.error('Error updating username:', error);
+        showToast(error.message || 'Error updating username', 'error');
+    })
+    .finally(() => {
+        approveBtn.disabled = false;
+        approveBtn.innerHTML = originalIcon;
+    });
+}
+
+/**
+ * Update display name
+ */
+function updateDisplayName(displayName) {
+    const approveBtn = document.getElementById('approve-display-name');
+    const displayNameInput = document.getElementById('display_name');
+    
+    if (!displayName) {
+        showToast('Display name cannot be empty', 'error');
+        return;
+    }
+    
+    approveBtn.disabled = true;
+    const originalIcon = approveBtn.innerHTML;
+    approveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    
+    const profileData = {
+        display_name: displayName
+    };
+    
+    fetch('/api/users/profile', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify(profileData),
+        credentials: 'same-origin'
+    })
+    .then(async response => {
+        if (!response.ok) {
+            let errorMessage = `HTTP error! status: ${response.status}`;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.message || errorData.error?.message || errorMessage;
+            } catch (parseError) {
+                console.warn('Could not parse error response as JSON:', parseError);
             }
-        })
-        .catch(error => {
-            console.error('Error updating profile:', error);
-            showToast(error.message || 'Error updating profile', 'error');
-        })
-        .finally(() => {
-            saveBtn.disabled = false;
-            saveBtn.textContent = 'Save Changes';
-        });
+            throw new Error(errorMessage);
+        }
+        
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Server returned non-JSON response');
+        }
+        
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            showToast('Display name updated successfully', 'success');
+            
+            if (displayNameInput) {
+                displayNameInput.dataset.originalValue = displayName;
+                displayNameInput.value = displayName;
+            }
+            
+            const displayNameMeta = document.querySelector('meta[name="display-name"]');
+            if (displayNameMeta) {
+                displayNameMeta.content = displayName;
+            }
+            
+            const displayNameElements = document.querySelectorAll('.current-user-display-name');
+            displayNameElements.forEach(el => {
+                el.textContent = displayName;
+            });
+            
+            approveBtn.classList.add('hidden');
+        } else {
+            throw new Error(data.message || data.error?.message || 'Failed to update display name');
+        }
+    })
+    .catch(error => {
+        console.error('Error updating display name:', error);
+        showToast(error.message || 'Error updating display name', 'error');
+    })
+    .finally(() => {
+        approveBtn.disabled = false;
+        approveBtn.innerHTML = originalIcon;
+    });
+}
+
+/**
+ * Update profile
+ */
+function updateProfile(profileData, saveBtn) {
+    fetch('/api/users/profile', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify(profileData),
+        credentials: 'same-origin'
+    })
+    .then(async response => {
+        if (!response.ok) {
+            let errorMessage = `HTTP error! status: ${response.status}`;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.message || errorData.error?.message || errorMessage;
+            } catch (parseError) {
+                console.warn('Could not parse error response as JSON:', parseError);
+            }
+            throw new Error(errorMessage);
+        }
+        
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Server returned non-JSON response');
+        }
+        
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            showToast('Profile updated successfully', 'success');
+            
+            const username = profileData.username;
+            const displayName = profileData.display_name || username;
+            
+            const usernameMeta = document.querySelector('meta[name="username"]');
+            if (usernameMeta) {
+                usernameMeta.content = username;
+            }
+            
+            const displayNameMeta = document.querySelector('meta[name="display-name"]');
+            if (displayNameMeta) {
+                displayNameMeta.content = displayName;
+            }
+            
+            const usernameElements = document.querySelectorAll('.current-user-username');
+            usernameElements.forEach(el => {
+                el.textContent = username;
+            });
+            
+            const displayNameElements = document.querySelectorAll('.current-user-display-name');
+            displayNameElements.forEach(el => {
+                el.textContent = displayName;
+            });
+        } else {
+            throw new Error(data.message || data.error?.message || 'Failed to update profile');
+        }
+    })
+    .catch(error => {
+        console.error('Error updating profile:', error);
+        showToast(error.message || 'Error updating profile', 'error');
+    })
+    .finally(() => {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save Changes';
     });
 }
 

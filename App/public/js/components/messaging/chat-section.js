@@ -1877,13 +1877,12 @@ class ChatSection {
             const params = new URLSearchParams({ offset, limit });
             const apiChatType = this.chatType === 'direct' ? 'dm' : this.chatType;
             
-            // Start fetching messages
+            // Start fetching messages immediately
             const messagesPromise = fetch(`/api/chat/${apiChatType}/${this.targetId}/messages?${params.toString()}`)
                 .then(response => response.json());
-                
-            // Prepare for batch fetching of reactions
-            const reactionPromises = [];
-            const messagesToProcess = [];
+            
+            // Wait a bit to ensure skeletons are visible, then start processing
+            await new Promise(resolve => setTimeout(resolve, 100));
             
             // Get the message data
             const data = await messagesPromise;
@@ -1899,65 +1898,53 @@ class ChatSection {
             }
             
             if (messages && messages.length > 0) {
-                // Only fetch reactions for messages that have them
+                // Immediately start fetching reactions while skeletons are still showing
+                const reactionPromises = [];
+                const messagesToProcess = [];
                 const messagesWithReactions = [];
-                const messagesWithoutReactions = [];
-
-                // Process all messages first to see which ones have reactions
+                
+                // Process messages and immediately start fetching reactions
                 messages.forEach(msg => {
                     this.processedMessageIds.add(msg.id);
                     
-                    // Check if the message already has reactions from server
                     const hasReactions = msg.has_reactions === true || 
                                         (Array.isArray(msg.reactions) && msg.reactions.length > 0) ||
                                         msg.reaction_count > 0;
                                         
                     if (hasReactions) {
                         messagesWithReactions.push(msg.id);
+                        // Start fetching reactions immediately
+                        if (window.ChatAPI) {
+                            const promise = window.ChatAPI.getMessageReactions(msg.id)
+                                .then(reactions => {
+                                    if (reactions && reactions.length > 0) {
+                                        messagesToProcess.push({
+                                            messageId: msg.id,
+                                            reactions
+                                        });
+                                    }
+                                })
+                                .catch(err => console.error(`Error fetching reactions for message ${msg.id}:`, err));
+                            reactionPromises.push(promise);
+                        }
                     } else {
-                        // Don't need to fetch if it's already confirmed empty
-                        messagesWithoutReactions.push(msg.id);
                         msg.reactions = [];
                     }
                 });
                 
-                console.log(`📊 Messages with reactions: ${messagesWithReactions.length}, without: ${messagesWithoutReactions.length}`);
+                console.log(`📊 Starting to fetch reactions for ${messagesWithReactions.length} messages while skeletons are showing`);
                 
-                // Only fetch reactions for messages that likely have them
-                if (messagesWithReactions.length > 0) {
-                    const batchSize = 5;
-                    for (let i = 0; i < messagesWithReactions.length; i += batchSize) {
-                        const batch = messagesWithReactions.slice(i, i + batchSize);
-                        for (const messageId of batch) {
-                            if (window.ChatAPI) {
-                                reactionPromises.push(
-                                    window.ChatAPI.getMessageReactions(messageId)
-                                    .then(reactions => {
-                                        if (reactions && reactions.length > 0) {
-                                            messagesToProcess.push({
-                                                messageId,
-                                                reactions
-                                            });
-                                        }
-                                    })
-                                    .catch(err => console.error(`Error fetching reactions for message ${messageId}:`, err))
-                                );
-                            }
-                        }
-                        // Add a small delay between batches to prevent overloading the server
-                        if (i + batchSize < messagesWithReactions.length) {
-                            await new Promise(resolve => setTimeout(resolve, 50));
-                        }
-                    }
-                }
+                // Keep skeletons showing for a minimum time to ensure reactions are fetched
+                const minimumSkeletonTime = 800; // Show skeletons for at least 800ms
+                const skeletonStartTime = Date.now();
                 
-                // Reduced timeout to 300ms for faster appearance
+                // Wait for reactions to load (or timeout)
                 await Promise.race([
                     Promise.all(reactionPromises),
-                    new Promise(resolve => setTimeout(resolve, 300))
+                    new Promise(resolve => setTimeout(resolve, 600)) // Give reactions 600ms to load
                 ]);
                 
-                // Process all fetched reactions
+                // Process fetched reactions into messages
                 messagesToProcess.forEach(item => {
                     const message = messages.find(m => m.id === item.messageId);
                     if (message) {
@@ -1965,14 +1952,22 @@ class ChatSection {
                     }
                 });
                 
+                // Ensure minimum skeleton time has passed
+                const elapsedTime = Date.now() - skeletonStartTime;
+                if (elapsedTime < minimumSkeletonTime) {
+                    await new Promise(resolve => setTimeout(resolve, minimumSkeletonTime - elapsedTime));
+                }
+                
                 // Now render messages with reactions already loaded
                 this.renderMessages(messages);
                 
-                // Update any messages that finished loading after rendering
-                messagesToProcess.forEach(item => {
-                    if (window.emojiReactions && item.reactions?.length > 0) {
-                        window.emojiReactions.updateReactionsDisplay(item.messageId, item.reactions);
-                    }
+                // Handle any late-arriving reactions
+                Promise.all(reactionPromises).then(() => {
+                    messagesToProcess.forEach(item => {
+                        if (window.emojiReactions && item.reactions?.length > 0) {
+                            window.emojiReactions.updateReactionsDisplay(item.messageId, item.reactions);
+                        }
+                    });
                 });
                 
                 this.scrollToBottom();
@@ -1993,6 +1988,12 @@ class ChatSection {
         if (!this.chatMessages) return;
         
         this.chatMessages.innerHTML = '';
+        
+        // Add a loading header to indicate reactions are being fetched
+        const loadingHeader = document.createElement('div');
+        loadingHeader.className = 'text-center text-[#b5bac1] text-sm mb-4 animate-pulse';
+        loadingHeader.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i>Loading messages and reactions...';
+        this.chatMessages.appendChild(loadingHeader);
         
         for (let i = 0; i < 6; i++) {
             const skeleton = this.createMessageSkeleton(i % 3 === 0);

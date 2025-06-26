@@ -402,4 +402,49 @@ class UserRepository extends Repository {
     public function createBot($data) {
         return User::createBot($data);
     }
+
+    /**
+     * Update a user record
+     *
+     * @param int $id User ID
+     * @param array $data Data to update
+     * @return bool Success status
+     */
+    public function update($id, $data) {
+        try {
+            // Add debug logging
+            if (function_exists('logger')) {
+                logger()->debug("UserRepository: Updating user", [
+                    'user_id' => $id,
+                    'data' => $data
+                ]);
+            }
+            
+            $query = new Query();
+            $result = $query->table(User::getTable())
+                ->where('id', $id)
+                ->update($data);
+            
+            // Log the result
+            if (function_exists('logger')) {
+                logger()->debug("UserRepository: Update result", [
+                    'user_id' => $id,
+                    'result' => $result,
+                    'affected_rows' => $result
+                ]);
+            }
+            
+            return $result > 0;
+        } catch (Exception $e) {
+            // Log any errors
+            if (function_exists('logger')) {
+                logger()->error("UserRepository: Error updating user", [
+                    'user_id' => $id,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+            }
+            return false;
+        }
+    }
 }
