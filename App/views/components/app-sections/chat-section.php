@@ -480,6 +480,8 @@ if ($chatType === 'channel') {
 </div>
 
 <script src="<?php echo js('components/messaging/chat-skeleton-loading'); ?>?v=<?php echo time(); ?>"></script>
+<script src="<?php echo js('components/messaging/chat-section'); ?>?v=<?php echo time(); ?>" type="module"></script>
+<script src="<?php echo js('components/messaging/emoji'); ?>?v=<?php echo time(); ?>" type="module"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Chat section template loaded');
@@ -518,7 +520,14 @@ function initializeChatUI() {
         if (window.chatSection && window.chatSection.sendMessage) {
             window.chatSection.sendMessage();
         } else {
-            console.error('ChatSection not initialized');
+            console.warn('ChatSection not initialized yet, will retry shortly');
+            setTimeout(() => {
+                if (window.chatSection && window.chatSection.sendMessage) {
+                    window.chatSection.sendMessage();
+                } else {
+                    console.error('ChatSection still not ready; message not sent');
+                }
+            }, 300);
         }
     }
     

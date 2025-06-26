@@ -1995,25 +1995,22 @@ class ChatSection {
                     const messageId = data.id || `${data.userId || data.user_id}-${data.timestamp}`;
                     data.id = messageId;
                     
-                    // Check if message already exists in DOM (loaded from database)
-                    const existingMessage = document.querySelector(`[data-message-id="${messageId}"]`);
-                    if (existingMessage) {
-                        console.log('Channel message already exists in DOM, skipping socket update (reactions only from DB):', messageId);
-                        return;
-                    }
-                    
+                    // Avoid duplicate processing only AFTER we have successfully appended
                     if (!self.processedMessageIds.has(messageId)) {
-                        self.processedMessageIds.add(messageId);
-                        
                         if ((data.userId || data.user_id) != self.userId) {
                             // Ensure no reactions are processed from socket messages
                             data.reactions = [];
                             self.addMessage(data);
+                            // Confirm element exists before marking as processed
+                            if (document.querySelector(`[data-message-id="${messageId}"]`)) {
+                                self.processedMessageIds.add(messageId);
+                            }
                         } else {
                             const tempMessage = document.querySelector(`[data-message-id^="temp_"]`);
                             if (tempMessage) {
                                 tempMessage.setAttribute('data-message-id', messageId);
                             }
+                            self.processedMessageIds.add(messageId);
                         }
                     }
                 }
@@ -2024,25 +2021,19 @@ class ChatSection {
                     const messageId = data.id || `${data.userId || data.user_id}-${data.timestamp}`;
                     data.id = messageId;
                     
-                    // Check if message already exists in DOM (loaded from database)
-                    const existingMessage = document.querySelector(`[data-message-id="${messageId}"]`);
-                    if (existingMessage) {
-                        console.log('DM message already exists in DOM, skipping socket update (reactions only from DB):', messageId);
-                        return;
-                    }
-                    
                     if (!self.processedMessageIds.has(messageId)) {
-                        self.processedMessageIds.add(messageId);
-                        
                         if ((data.userId || data.user_id) != self.userId) {
-                            // Ensure no reactions are processed from socket messages
                             data.reactions = [];
                             self.addMessage(data);
+                            if (document.querySelector(`[data-message-id="${messageId}"]`)) {
+                                self.processedMessageIds.add(messageId);
+                            }
                         } else {
                             const tempMessage = document.querySelector(`[data-message-id^="temp_"]`);
                             if (tempMessage) {
                                 tempMessage.setAttribute('data-message-id', messageId);
                             }
+                            self.processedMessageIds.add(messageId);
                         }
                     }
                 }

@@ -124,7 +124,20 @@ function initializeVoiceUI() {
         return;
     }
     
-    window.voiceState = { isConnected: false };
+    if (!window.voiceState) {
+        window.voiceState = { isConnected: false };
+    }
+
+    const voiceIndicatorEl = document.getElementById('voice-indicator');
+
+    function toggleVoiceIndicator(show) {
+        if (!voiceIndicatorEl) return;
+        if (show) {
+            voiceIndicatorEl.classList.remove('scale-0', 'opacity-0');
+        } else {
+            voiceIndicatorEl.classList.add('scale-0', 'opacity-0');
+        }
+    }
     
     async function connectToVoice() {
         const activeChannelId = document.querySelector('meta[name="channel-id"]')?.content;
@@ -136,8 +149,21 @@ function initializeVoiceUI() {
     elements.joinBtn.onclick = async () => {
         elements.joinBtn.disabled = true;
         elements.joinBtn.textContent = 'Connecting...';
+        elements.joinView.classList.add('hidden');
+        elements.connectingView.classList.remove('hidden');
         await connectToVoice();
     };
+    
+    window.addEventListener('voiceConnect', () => {
+        elements.connectingView.classList.add('hidden');
+        elements.joinView.classList.add('hidden');
+        elements.connectedView.classList.remove('hidden');
+        elements.voiceControls.classList.remove('hidden');
+        window.voiceState.isConnected = true;
+        toggleVoiceIndicator(false);
+        elements.joinBtn.disabled = false;
+        elements.joinBtn.textContent = 'Connected';
+    });
     
     window.addEventListener('voiceDisconnect', () => {
         window.voiceState.isConnected = false;
@@ -152,6 +178,17 @@ function initializeVoiceUI() {
         elements.joinView.classList.remove('hidden');
         elements.joinBtn.disabled = false;
         elements.joinBtn.textContent = 'Join Voice';
+        toggleVoiceIndicator(true);
     });
+
+    if (window.voiceState?.isConnected || window.voiceManager?.isConnected) {
+        elements.joinView.classList.add('hidden');
+        elements.connectingView.classList.add('hidden');
+        elements.connectedView.classList.remove('hidden');
+        elements.voiceControls.classList.remove('hidden');
+        elements.joinBtn.disabled = false;
+        elements.joinBtn.textContent = 'Connected';
+        toggleVoiceIndicator(false);
+    }
 }
 </script>

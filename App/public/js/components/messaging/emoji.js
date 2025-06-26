@@ -316,18 +316,18 @@ class EmojiReactions {
     async loadMessageReactions(messageId) {
         if (!window.ChatAPI) return;
         
-        // Only load reactions once per message ID
+        if (!/^\d+$/.test(String(messageId))) {
+            return;
+        }
+        
         if (this.loadedMessageIds.has(messageId)) return;
         
-        // Prevent duplicate API calls for the same message
         if (this.loadingReactions.has(messageId)) return;
         
-        // Clear any existing debounce timer
         if (this.debounceTimers.has(messageId)) {
             clearTimeout(this.debounceTimers.get(messageId));
         }
 
-        // Execute reaction loading immediately
         this.loadingReactions.add(messageId);
         
         try {
@@ -346,11 +346,10 @@ class EmojiReactions {
         const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
         if (!messageElement) return;
 
-        // Check if reactions actually changed to avoid unnecessary DOM operations
         const existingReactions = this.currentReactions[messageId] || [];
         const reactionsChanged = JSON.stringify(existingReactions) !== JSON.stringify(reactions);
         
-        if (!reactionsChanged) return; // No need to update if reactions haven't changed
+        if (!reactionsChanged) return;
 
         let reactionsContainer = messageElement.querySelector('.message-reactions-container');
         
@@ -362,7 +361,6 @@ class EmojiReactions {
             return;
         }
 
-        // Create container if it doesn't exist
         if (!reactionsContainer) {
             reactionsContainer = document.createElement('div');
             reactionsContainer.className = 'message-reactions-container';
@@ -417,7 +415,6 @@ class EmojiReactions {
                 <span class="reaction-count">${count}</span>
             `;
             
-            // Add animation class
             reactionPill.classList.add('reaction-fade-in');
             setTimeout(() => {
                 reactionPill.classList.add('reaction-appear');
@@ -435,7 +432,6 @@ class EmojiReactions {
         this.currentReactions[messageId] = reactions;
         console.log(`✅ Updated currentReactions for message ID ${messageId}`);
         
-        // Add visibility check
         console.log(`🔍 Final reaction container styles:`, {
             display: window.getComputedStyle(reactionsContainer).display,
             visibility: window.getComputedStyle(reactionsContainer).visibility,
@@ -483,7 +479,6 @@ class EmojiReactions {
             
             this.updateReactionsDisplay(message_id, this.currentReactions[message_id]);
             
-            // Add a popup animation for the newly added reaction
             setTimeout(() => {
                 const reactionElement = document.querySelector(`[data-message-id="${message_id}"] .message-reaction-pill[data-emoji="${emoji}"]`);
                 if (reactionElement) {
@@ -523,15 +518,13 @@ if (document.readyState === 'loading') {
 
 window.emojiReactions = emojiReactions; 
 
-// Add a debug function for the console
 window.debugEmojis = function() {
     console.log('🔬 EmojiReactions Debug Info:');
     console.log('✅ Initialized:', emojiReactions.initialized);
     console.log('📊 Current reactions by message ID:', emojiReactions.currentReactions);
     console.log('🧠 Loaded message IDs:', Array.from(emojiReactions.loadedMessageIds));
     console.log('⏳ Loading reactions for:', Array.from(emojiReactions.loadingReactions));
-    
-    // Check for messages on the page
+                
     const messages = document.querySelectorAll('.message-content[data-message-id]');
     console.log(`📝 Found ${messages.length} messages on page`);
     
