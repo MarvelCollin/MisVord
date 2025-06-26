@@ -629,18 +629,13 @@ export const ServerSidebar = {
 function bindCreateServerButton() {
     const createServerButton = document.querySelector('[data-action="create-server"]');
     if (createServerButton) {
-        console.log('Found create server button, attaching listener');
-        
         if (typeof window.openCreateServerModal !== 'function') {
-            console.log('Loading create-server-modal.js script');
-            
             const script = document.createElement('script');
             script.src = '/public/js/components/servers/create-server-modal.js';
             script.type = 'module';
             document.body.appendChild(script);
             
             window.openCreateServerModal = function() {
-                console.log('Modal function called before script loaded');
                 const modal = document.getElementById('create-server-modal');
                 if (modal) {
                     modal.classList.remove('hidden');
@@ -648,8 +643,6 @@ function bindCreateServerButton() {
                     setTimeout(() => {
                         modal.classList.remove('opacity-0');
                     }, 10);
-                } else {
-                    console.error('Modal element not found');
                 }
             };
         }
@@ -660,15 +653,10 @@ function bindCreateServerButton() {
         newButton.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            console.log('Create server button clicked');
             
             if (typeof window.openCreateServerModal === 'function') {
                 window.openCreateServerModal();
-            } else {
-                console.error('openCreateServerModal function not found');
             }
         });
-    } else {
-        console.error('Create server button not found');
     }
 }

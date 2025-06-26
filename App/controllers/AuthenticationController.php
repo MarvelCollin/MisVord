@@ -15,8 +15,6 @@ class AuthenticationController extends BaseController
     }
     public function showLogin()
     {
-        $this->clearAllAuthData();
-        
         if ($this->isAuthenticated()) {
             $redirect = $_GET['redirect'] ?? '/home';
             $this->setSecurityHeaders();
@@ -95,10 +93,12 @@ class AuthenticationController extends BaseController
             header('Location: /login');
             exit;
         }
+        
+        error_log("Login attempt: Email='{$email}', Captcha='{$captcha}', Session ID='" . session_id() . "'");
 
         if (!$this->verifyCaptcha($captcha)) {
             $this->logFailedLogin($email);
-            $_SESSION['errors'] = ['auth' => 'Invalid verification code'];
+            $_SESSION['errors'] = ['auth' => 'Invalid verification code. Please try again.'];
             $_SESSION['old_input'] = ['email' => $email];
             $this->setSecurityHeaders();
             header('Location: /login');
@@ -151,7 +151,19 @@ class AuthenticationController extends BaseController
             exit;
         }
 
+        $captchaData = [];
+        if (isset($_SESSION['captcha_code'])) {
+            $captchaData['captcha_code'] = $_SESSION['captcha_code'];
+        }
+        if (isset($_SESSION['captcha_generated'])) {
+            $captchaData['captcha_generated'] = $_SESSION['captcha_generated'];
+        }
+        
         session_regenerate_id(true);
+        
+        foreach ($captchaData as $key => $value) {
+            $_SESSION[$key] = $value;
+        }
         
         $_SESSION['user_id'] = $user->id;
         $_SESSION['username'] = $user->username;
@@ -170,8 +182,6 @@ class AuthenticationController extends BaseController
 
     public function showRegister()
     {
-        $this->clearAllAuthData();
-        
         if ($this->isAuthenticated()) {
             $this->setSecurityHeaders();
             header('Location: /home');
@@ -415,8 +425,6 @@ class AuthenticationController extends BaseController
 
     public function showForgotPassword()
     {
-        $this->clearAllAuthData();
-        
         if ($this->isAuthenticated()) {
             $this->setSecurityHeaders();
             header('Location: /home');
@@ -1078,8 +1086,6 @@ class AuthenticationController extends BaseController
 
     public function showSecurityQuestion()
     {
-        $this->clearAllAuthData();
-        
         if ($this->isAuthenticated() && !isset($_SESSION['google_auth_completed'])) {
             $this->setSecurityHeaders();
             header('Location: /home');
@@ -1096,7 +1102,7 @@ class AuthenticationController extends BaseController
         require_once __DIR__ . '/../views/pages/authentication-page.php';
     }
 
-    private function clearAllAuthData()
+    private function clearAllAuthData($preserveErrors = false)
     {
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
@@ -1104,8 +1110,16 @@ class AuthenticationController extends BaseController
         
         $preserveKeys = [
             'login_redirect',
-            'csrf_token'
+            'csrf_token',
+            'captcha_code',
+            'captcha_generated'
         ];
+        
+        if ($preserveErrors) {
+            $preserveKeys[] = 'errors';
+            $preserveKeys[] = 'old_input';
+            $preserveKeys[] = 'success';
+        }
         
         $preservedData = [];
         foreach ($preserveKeys as $key) {
@@ -1163,12 +1177,10 @@ class AuthenticationController extends BaseController
         $_SESSION['captcha_code'] = strtolower($code);
         $_SESSION['captcha_generated'] = time();
         
-        if ($this->isApiRoute() || $this->isAjaxRequest()) {
-            return $this->success(['captcha_code' => $code]);
-        }
+        error_log("Captcha generated: Code='{$code}', Stored='{$_SESSION['captcha_code']}', Session ID='" . session_id() . "'");
         
         header('Content-Type: application/json');
-        echo json_encode(['captcha_code' => $code]);
+        echo json_encode(['success' => true, 'captcha_code' => $code]);
         exit;
     }
 
@@ -1179,19 +1191,28 @@ class AuthenticationController extends BaseController
         }
         
         if (!isset($_SESSION['captcha_code'])) {
+            error_log("Captcha verification failed: No captcha_code in session");
             return false;
         }
         
         if (!isset($_SESSION['captcha_generated']) || (time() - $_SESSION['captcha_generated']) > 300) {
+            error_log("Captcha verification failed: Captcha expired");
             unset($_SESSION['captcha_code']);
             unset($_SESSION['captcha_generated']);
             return false;
         }
         
-        $isValid = strtolower(trim($userInput)) === $_SESSION['captcha_code'];
+        $userInputLower = strtolower(trim($userInput));
+        $storedCode = $_SESSION['captcha_code'];
         
-        unset($_SESSION['captcha_code']);
-        unset($_SESSION['captcha_generated']);
+        error_log("Captcha verification: User input='{$userInputLower}', Stored='{$storedCode}'");
+        
+        $isValid = $userInputLower === $storedCode;
+        
+        if ($isValid) {
+            unset($_SESSION['captcha_code']);
+            unset($_SESSION['captcha_generated']);
+        }
         
         return $isValid;
     }

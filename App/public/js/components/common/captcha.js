@@ -105,17 +105,20 @@ export class TextCaptcha {
 
     async generateCode() {
         try {
-            const response = await fetch('/api/captcha/generate');
+            const timestamp = new Date().getTime();
+            const response = await fetch(`/api/captcha/generate?_t=${timestamp}`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
             const data = await response.json();
             
-            if (data.success && data.data && data.data.captcha_code) {
-                this.code = data.data.captcha_code;
-                this.displayCode();
-            } else if (data.captcha_code) {
+            if (data.captcha_code) {
                 this.code = data.captcha_code;
                 this.displayCode();
             } else {
-                throw new Error('Failed to generate captcha');
+                throw new Error('No captcha code in response');
             }
         } catch (error) {
             console.error('Error generating captcha:', error);

@@ -70,9 +70,9 @@ ob_start();
             <div class="sidebar-category">
                 <span>APP SETTINGS</span>
             </div>
-            <a href="?section=nitro" class="sidebar-item <?php echo $section === 'nitro' ? 'active' : ''; ?>">
+            <a href="/nitro" class="sidebar-item">
+                <i class="fas fa-crown text-purple-400 mr-2"></i>
                 Nitro
-                <span class="sidebar-item-badge">NEW</span>
             </a>
             <a href="?section=voice" class="sidebar-item <?php echo $section === 'voice' ? 'active' : ''; ?>">
                 Voice & Video

@@ -11,6 +11,14 @@ function initAuth() {
         window.logger.info('auth', 'Authentication page initialized');
     }
 
+    const hasServerError = document.querySelector('#form-error-message') || 
+                          document.querySelector('.bg-red-500') ||
+                          document.querySelector('.text-red-500');
+    
+    if (!hasServerError) {
+        clearStoredAuthData();
+    }
+
     const elements = {
         logo: document.getElementById('logo'),
         logoUnderline: document.getElementById('logoUnderline'),
@@ -422,6 +430,8 @@ function initAuth() {
                     if (captcha && !captcha.value.trim()) {
                         FormValidator.showFieldError(captcha, 'Verification code is required');
                         isValid = false;
+                    } else if (captcha) {
+                        console.log('Login captcha value:', captcha.value);
                     }
                     
                 } else if (this.id === 'registerForm') {
@@ -575,6 +585,31 @@ function initAuth() {
                 refreshCaptcha();
             }
         });
+    }
+
+    function clearStoredAuthData() {
+        try {
+            const authKeys = [
+                'authToken', 'rememberMe', 'userAuth', 'lastEmail', 
+                'user_id', 'username', 'discriminator', 'avatar_url', 
+                'banner_url', 'auth_data', 'session_id', 'login_state',
+                'user_data', 'admin_access', 'login_history', 'user_settings',
+                'user_status', 'fresh_login', 'csrf_token'
+            ];
+            
+            authKeys.forEach(key => {
+                localStorage.removeItem(key);
+                sessionStorage.removeItem(key);
+            });
+            
+            document.cookie.split(';').forEach(cookie => {
+                const [name] = cookie.trim().split('=');
+                document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+            });
+            
+        } catch (e) {
+            console.error('Error clearing stored auth data:', e);
+        }
     }
 
     function initPasswordFieldMasking() {
@@ -814,6 +849,8 @@ function initAuth() {
             if (captcha && !captcha.value.trim()) {
                 FormValidator.showFieldError(captcha, 'Verification code is required');
                 isValid = false;
+            } else if (captcha) {
+                console.log('Register captcha value:', captcha.value);
             }
             
             if (!isValid) {

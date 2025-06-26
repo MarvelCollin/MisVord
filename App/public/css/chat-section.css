@@ -37,6 +37,7 @@
   display: flex !important;
   align-items: flex-start !important;
   background-color: transparent !important;
+  border-radius: 4px !important;
 }
 
 /* Message content */
@@ -104,6 +105,14 @@
   word-wrap: break-word !important;
   font-size: 14px !important;
   line-height: 1.3 !important;
+  padding: 4px 6px !important;
+  border-radius: 4px !important;
+  transition: background-color 0.15s ease !important;
+  margin: -4px -6px !important;
+}
+
+#chat-messages .message-main-text:hover {
+  background-color: rgba(255, 255, 255, 0.06) !important;
 }
 
 #chat-messages .message-contents {

@@ -64,7 +64,12 @@ function initSidebarNavigation(activeSection) {
     sidebarItems.forEach(item => {
         item.addEventListener('click', function(e) {
             const href = this.getAttribute('href');
+            
             if (href && href.includes('section=')) {
+                return;
+            }
+            
+            if (href && href.startsWith('/') && !href.includes('?section=')) {
                 return;
             }
             
