@@ -65,9 +65,15 @@ class AdminController extends BaseController
         
         $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
         $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 10;
+        $query = isset($_GET['q']) ? trim($_GET['q']) : '';
         
-        $users = $this->userRepository->paginate($page, $limit);
-        $total = $this->userRepository->count();
+        if (!empty($query)) {
+            $users = $this->userRepository->search($query, $page, $limit);
+            $total = $this->userRepository->countSearch($query);
+        } else {
+            $users = $this->userRepository->paginate($page, $limit);
+            $total = $this->userRepository->countRegularUsers();
+        }
         
         if ($this->isApiRoute() || $this->isAjaxRequest()) {
             return $this->success([

@@ -251,11 +251,6 @@ ob_start();
                             <option value="offline">Offline</option>
                             <option value="banned">Banned</option>
                         </select>
-                        <select class="user-filter-dropdown" id="user-role-filter">
-                            <option value="all">All Roles</option>
-                            <option value="admin">Admin</option>
-                            <option value="user">User</option>
-                        </select>
                     </div>
                     <div class="user-search-container">
                         <i class="fas fa-search"></i>

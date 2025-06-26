@@ -6,7 +6,6 @@ export class UserManager {
     this.usersPerPage = 10;
     this.currentView = 'list';
     this.statusFilter = 'all';
-    this.roleFilter = 'all';
     this.initialized = false;
     this.isLoading = false;
     this.init();
@@ -202,22 +201,10 @@ export class UserManager {
   
   initFilters() {
     const statusFilter = document.getElementById('user-status-filter');
-    const roleFilter = document.getElementById('user-role-filter');
     
     if (statusFilter) {
       statusFilter.addEventListener('change', () => {
         this.statusFilter = statusFilter.value;
-        this.currentUserPage = 1;
-        if (!this.isLoading) {
-          this.showSkeletons();
-          this.loadUsers();
-        }
-      });
-    }
-    
-    if (roleFilter) {
-      roleFilter.addEventListener('change', () => {
-        this.roleFilter = roleFilter.value;
         this.currentUserPage = 1;
         if (!this.isLoading) {
           this.showSkeletons();
@@ -333,16 +320,6 @@ export class UserManager {
       filteredUsers = filteredUsers.filter(user => user.status === this.statusFilter);
     }
     
-    if (this.roleFilter !== 'all') {
-      filteredUsers = filteredUsers.filter(user => {
-        if (this.roleFilter === 'admin') {
-          return user.email === 'admin@admin.com';
-        } else {
-          return user.email !== 'admin@admin.com';
-        }
-      });
-    }
-    
     const filteredShowing = filteredUsers.length;
     
     const listContainer = document.getElementById('users-container');
@@ -368,7 +345,7 @@ export class UserManager {
     
     const nextBtn = document.getElementById('user-next-page');
     if (nextBtn) {
-      const noMorePages = showing >= total && this.statusFilter === 'all' && this.roleFilter === 'all';
+      const noMorePages = showing >= total && this.statusFilter === 'all';
       nextBtn.disabled = noMorePages;
       nextBtn.classList.toggle('opacity-50', noMorePages);
     }
@@ -398,6 +375,9 @@ export class UserManager {
       const isAdmin = user.email === 'admin@admin.com';
       const username = user.username || 'Unknown User';
       const discriminator = user.discriminator || '0000';
+      const email = user.email || 'No Email';
+      const displayName = user.display_name || username;
+      const bio = user.bio || 'No bio available';
       
       let avatarContent = user.avatar_url 
         ? `<img src="${user.avatar_url}" alt="${username}">`
@@ -422,7 +402,7 @@ export class UserManager {
           statusStyle = 'background-color: rgba(237, 66, 69, 0.1); color: #ed4245;';
           break;
         case 'banned':
-          statusStyle = 'background-color: rgba(0, 0, 0, 0.1); color: #ffffff;';
+          statusStyle = 'background-color: rgba(237, 66, 69, 0.1); color: #ed4245;';
           break;
         default:
           statusStyle = 'background-color: rgba(116, 127, 141, 0.1); color: #747f8d;';
@@ -434,17 +414,20 @@ export class UserManager {
         </div>
         <div class="user-info">
           <div class="user-name">
-            ${username}#${discriminator}
-            ${isAdmin ? '<span class="user-badge badge-admin">Admin</span>' : ''}
-            <span class="user-badge" style="${statusStyle}">
+            <span class="font-semibold">${username}#${discriminator}</span>
+            ${isAdmin ? '<span class="user-badge badge-admin ml-2">Admin</span>' : ''}
+            <span class="user-badge ml-2" style="${statusStyle}">
               <span class="badge-status ${statusClass}"></span>
               ${user.status || 'offline'}
             </span>
           </div>
-          <div class="user-meta">
-            <span>ID: ${user.id || 'N/A'}</span> • 
-            <span>${user.email || 'No Email'}</span> • 
-            <span>Joined: ${this.formatDate(user.created_at)}</span>
+          <div class="user-meta text-sm text-discord-lighter mt-1">
+            <div><strong>ID:</strong> ${user.id || 'N/A'}</div>
+            <div><strong>Email:</strong> ${email}</div>
+            <div><strong>Display Name:</strong> ${displayName}</div>
+            <div><strong>Bio:</strong> ${bio.length > 50 ? bio.substring(0, 50) + '...' : bio}</div>
+            <div><strong>Joined:</strong> ${this.formatDate(user.created_at)}</div>
+            ${user.google_id ? '<div><strong>Google ID:</strong> ' + user.google_id + '</div>' : ''}
           </div>
         </div>
         <div class="user-actions">
@@ -487,8 +470,12 @@ export class UserManager {
       userCard.className = 'user-card-grid';
       
       const isBanned = user.status === 'banned';
+      const isAdmin = user.email === 'admin@admin.com';
       const username = user.username || 'Unknown User';
       const discriminator = user.discriminator || '0000';
+      const email = user.email || 'No Email';
+      const displayName = user.display_name || username;
+      const bio = user.bio || 'No bio available';
       
       let avatarContent = user.avatar_url 
         ? `<img src="${user.avatar_url}" alt="${username}">`
@@ -506,9 +493,10 @@ export class UserManager {
             ${avatarContent}
           </div>
           <div class="ml-3">
-            <div class="user-name">
-              ${username}
-              <span class="badge-status ${statusClass}"></span>
+            <div class="user-name flex items-center">
+              <span class="font-semibold">${username}</span>
+              <span class="badge-status ${statusClass} ml-2"></span>
+              ${isAdmin ? '<span class="user-badge badge-admin ml-2">Admin</span>' : ''}
             </div>
             <div class="text-discord-lighter text-xs">#${discriminator}</div>
           </div>
@@ -517,16 +505,30 @@ export class UserManager {
         <div class="user-meta px-2 py-3 border-t border-b border-discord-dark">
           <div class="flex items-center mb-1">
             <i class="fas fa-envelope mr-2 text-discord-lighter" style="width: 14px;"></i>
-            <span class="text-sm">${user.email || 'No Email'}</span>
+            <span class="text-sm">${email}</span>
           </div>
           <div class="flex items-center mb-1">
             <i class="fas fa-id-card mr-2 text-discord-lighter" style="width: 14px;"></i>
             <span class="text-sm">ID: ${user.id || 'N/A'}</span>
           </div>
-          <div class="flex items-center">
+          <div class="flex items-center mb-1">
+            <i class="fas fa-user mr-2 text-discord-lighter" style="width: 14px;"></i>
+            <span class="text-sm">Display: ${displayName}</span>
+          </div>
+          <div class="flex items-center mb-1">
+            <i class="fas fa-info-circle mr-2 text-discord-lighter" style="width: 14px;"></i>
+            <span class="text-sm">Bio: ${bio.length > 30 ? bio.substring(0, 30) + '...' : bio}</span>
+          </div>
+          <div class="flex items-center mb-1">
             <i class="fas fa-calendar-alt mr-2 text-discord-lighter" style="width: 14px;"></i>
             <span class="text-sm">Joined: ${this.formatDate(user.created_at)}</span>
           </div>
+          ${user.google_id ? `
+          <div class="flex items-center">
+            <i class="fab fa-google mr-2 text-discord-lighter" style="width: 14px;"></i>
+            <span class="text-sm">Google ID: ${user.google_id}</span>
+          </div>
+          ` : ''}
         </div>
         
         <div class="user-card-footer">

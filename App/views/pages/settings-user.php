@@ -74,12 +74,6 @@ ob_start();
             <a href="?section=voice" class="sidebar-item <?php echo $section === 'voice' ? 'active' : ''; ?>">
                 Voice & Video
             </a>
-            <a href="?section=text" class="sidebar-item <?php echo $section === 'text' ? 'active' : ''; ?>">
-                Text & Images
-            </a>
-            <a href="?section=notifications" class="sidebar-item <?php echo $section === 'notifications' ? 'active' : ''; ?>">
-                Notifications
-            </a>
             
             <button id="logout-btn" class="sidebar-item text-red-500 hover:text-red-400">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
