@@ -1,13 +1,4 @@
-/**
- * Server API module for handling server-related API calls
- */
-
 const serverAPI = {
-    /**
-     * Create a new server
-     * @param {FormData} formData - Server form data
-     * @returns {Promise} - Promise with server creation response
-     */
     createServer: function(formData) {
         return fetch('/api/servers/create', {
             method: 'POST',
@@ -22,11 +13,6 @@ const serverAPI = {
         });
     },
 
-    /**
-     * Get server page HTML
-     * @param {number} serverId - Server ID
-     * @returns {Promise} - Promise with server page HTML
-     */
     getServerPageHTML: function(serverId) {
         return fetch(`/server/${serverId}?render_html=1`, {
             method: 'GET',
@@ -43,10 +29,6 @@ const serverAPI = {
         });
     },
     
-    /**
-     * Get server statistics
-     * @returns {Promise} - Promise with server statistics
-     */
     getStats: function() {
         return fetch('/api/admin/servers/stats', {
             method: 'GET',
@@ -63,13 +45,6 @@ const serverAPI = {
         });
     },
     
-    /**
-     * List servers with pagination
-     * @param {number} page - Page number
-     * @param {number} limit - Number of servers per page
-     * @param {string} search - Search query
-     * @returns {Promise} - Promise with servers list
-     */
     listServers: function(page = 1, limit = 10, search = '') {
         const params = new URLSearchParams({
             page,
@@ -92,11 +67,6 @@ const serverAPI = {
         });
     },
     
-    /**
-     * Delete a server (admin API)
-     * @param {number} serverId - Server ID
-     * @returns {Promise} - Promise with deletion response
-     */
     deleteServer: function(serverId) {
         return fetch(`/api/admin/servers/${serverId}`, {
             method: 'DELETE',
@@ -113,11 +83,6 @@ const serverAPI = {
         });
     },
     
-    /**
-     * Delete a server (user API)
-     * @param {number} serverId - Server ID
-     * @returns {Promise} - Promise with deletion response
-     */
     deleteUserServer: function(serverId) {
         return fetch(`/api/servers`, {
             method: 'DELETE',

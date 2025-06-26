@@ -1148,4 +1148,223 @@ class ServerController extends BaseController
         $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
         return $protocol . $host;
     }
+
+    private function acceptInvite() {
+        $inviteCode = trim($_GET['code'] ?? '');
+        
+        if (empty($inviteCode)) {
+            $this->redirect('/explore-servers?error=' . urlencode('Invite code is required.'));
+            return;
+        }
+        
+        $inviteRepo = new ServerInviteRepository();
+        $invite = $inviteRepo->getByCode($inviteCode);
+        
+        if (!$invite) {
+            $this->redirect('/accept-invite/' . urlencode($inviteCode) . '?error=' . urlencode('Invite not found or expired.'));
+            return;
+        }
+        
+        $now = date('Y-m-d H:i:s');
+        if ($invite['expires_at'] && $invite['expires_at'] <= $now) {
+            $this->redirect('/accept-invite/' . urlencode($inviteCode) . '?error=' . urlencode('This invite has expired.'));
+            return;
+        }
+        
+        $serverId = $invite['server_id'];
+        $membershipRepo = new UserServerMembershipRepository();
+        
+        if ($this->session->isLoggedIn()) {
+            $userId = $this->session->getUserId();
+            $existingMembership = $membershipRepo->getUserServerMembership($userId, $serverId);
+            
+            if ($existingMembership) {
+                $this->redirect('/server/' . $serverId . '?message=' . urlencode('You are already a member of this server.'));
+                return;
+            }
+            
+            $this->db->beginTransaction();
+            try {
+                $membershipRepo->createMembership($userId, $serverId);
+                $this->db->commit();
+                
+                $this->redirect('/server/' . $serverId . '?message=' . urlencode('Welcome to the server!'));
+                return;
+            } catch (Exception $e) {
+                $this->db->rollback();
+                error_log("Error joining server: " . $e->getMessage());
+                $this->redirect('/accept-invite/' . urlencode($inviteCode) . '?error=' . urlencode('Failed to join server. Please try again.'));
+                return;
+            }
+        } else {
+            $this->redirect('/auth?redirect=' . urlencode('/accept-invite/' . $inviteCode));
+        }
+    }
+
+    public function generateInvite() {
+        header('Content-Type: application/json');
+        
+        if (!$this->isAjax()) {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+            return;
+        }
+        
+        try {
+            $serverId = $_POST['server_id'] ?? null;
+            $expiresIn = $_POST['expires_in'] ?? null;
+            $expiresAt = $_POST['expires_at'] ?? null;
+            
+            if (!$serverId) {
+                throw new ValidationException('Server ID is required');
+            }
+            
+            if (!$this->session->isLoggedIn()) {
+                throw new AuthenticationException('Please log in to create invites');
+            }
+            
+            $userId = $this->session->getUserId();
+            $membershipRepo = new UserServerMembershipRepository();
+            $membership = $membershipRepo->getUserServerMembership($userId, $serverId);
+            
+            if (!$membership) {
+                throw new AuthenticationException('You are not a member of this server');
+            }
+            
+            $expirationDate = null;
+            if ($expiresIn) {
+                $hours = (int)$expiresIn;
+                $expirationDate = date('Y-m-d H:i:s', strtotime("+{$hours} hours"));
+            } elseif ($expiresAt) {
+                $expirationDate = $expiresAt;
+            }
+            
+            $inviteRepo = new ServerInviteRepository();
+            $inviteCode = $inviteRepo->generateUniqueCode();
+            
+            $result = $inviteRepo->createInvite([
+                'code' => $inviteCode,
+                'server_id' => $serverId,
+                'created_by' => $userId,
+                'expires_at' => $expirationDate,
+                'max_uses' => null,
+                'uses' => 0
+            ]);
+            
+            AppLogger::info("Invite created", [
+                'code' => $inviteCode,
+                'server_id' => $serverId,
+                'created_by' => $userId,
+                'expires_at' => $expirationDate
+            ]);
+            
+            echo json_encode([
+                'success' => true,
+                'invite' => [
+                    'code' => $inviteCode,
+                    'url' => $this->getBaseUrl() . '/accept-invite/' . $inviteCode,
+                    'expires_at' => $expirationDate
+                ]
+            ]);
+            
+        } catch (Exception $e) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
+    public function acceptInviteAction() {
+        $inviteCode = $_GET['code'] ?? null;
+        
+        if (!$inviteCode) {
+            $this->redirect('/explore-servers');
+            return;
+        }
+        
+        if ($this->isAjax()) {
+            $this->handleAjaxInviteAccept($inviteCode);
+            return;
+        }
+        
+        $inviteRepo = new ServerInviteRepository();
+        $invite = $inviteRepo->getByCode($inviteCode);
+        
+        if (!$invite) {
+            $error = 'Invite not found or expired.';
+            include 'views/pages/accept-invite.php';
+            return;
+        }
+        
+        $now = date('Y-m-d H:i:s');
+        if ($invite['expires_at'] && $invite['expires_at'] <= $now) {
+            $error = 'This invite has expired.';
+            include 'views/pages/accept-invite.php';
+            return;
+        }
+        
+        if (!$this->session->isLoggedIn()) {
+            $error = 'Please log in to accept this invite.';
+            include 'views/pages/accept-invite.php';
+            return;
+        }
+        
+        $this->redirect('/accept-invite/' . $inviteCode);
+    }
+
+    private function handleAjaxInviteAccept($inviteCode) {
+        header('Content-Type: application/json');
+        
+        try {
+            if (!$this->session->isLoggedIn()) {
+                throw new AuthenticationException('Please log in to accept invites');
+            }
+            
+            $inviteRepo = new ServerInviteRepository();
+            $invite = $inviteRepo->getByCode($inviteCode);
+            
+            if (!$invite) {
+                throw new NotFoundException('Invite not found or expired');
+            }
+            
+            $now = date('Y-m-d H:i:s');
+            if ($invite['expires_at'] && $invite['expires_at'] <= $now) {
+                throw new ValidationException('This invite has expired');
+            }
+            
+            $serverId = $invite['server_id'];
+            $userId = $this->session->getUserId();
+            $membershipRepo = new UserServerMembershipRepository();
+            $existingMembership = $membershipRepo->getUserServerMembership($userId, $serverId);
+            
+            if ($existingMembership) {
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'You are already a member of this server',
+                    'redirect' => '/server/' . $serverId
+                ]);
+                return;
+            }
+            
+            $this->db->beginTransaction();
+            try {
+                $membershipRepo->createMembership($userId, $serverId);
+                $this->db->commit();
+                
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Successfully joined the server!',
+                    'redirect' => '/server/' . $serverId
+                ]);
+                return;
+            } catch (Exception $e) {
+                $this->db->rollback();
+                throw $e;
+            }
+            
+        } catch (Exception $e) {
+            http_response_code($e instanceof AuthenticationException ? 401 : 
+                            ($e instanceof NotFoundException ? 404 : 400));
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
 }

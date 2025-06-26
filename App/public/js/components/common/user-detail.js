@@ -310,7 +310,6 @@ class UserDetailModal {
         try {
             const userApi = await import('../../api/user-api.js').then(module => module.default);
             
-            // Get user profile data
             console.log('Fetching user profile for user ID:', this.currentUserId, 'server ID:', this.currentServerId);
             const userData = await userApi.getUserProfile(this.currentUserId, this.currentServerId);
             console.log('User profile API response:', userData);
@@ -319,7 +318,6 @@ class UserDetailModal {
                 const errorMessage = userData?.message || 'Failed to fetch user data';
                 console.error('User profile API error:', errorMessage);
                 
-                // If we get a 404 error, it means the user ID doesn't exist in the database
                 if (userData?.error?.code === 404) {
                     console.warn('User not found. User might not exist in the database.');
                     this.showErrorState(userData?.message || 'User not found');
@@ -329,17 +327,14 @@ class UserDetailModal {
                 throw new Error(errorMessage);
             }
             
-            // Check for data in the expected format
             if (!userData.data || !userData.data.user) {
                 console.error('User profile API returned unexpected format:', userData);
                 throw new Error('Unexpected data format from server');
             }
             
-            // Check if this is another user (not the current user) to get mutual data
             const currentUserId = document.getElementById('app-container')?.dataset.userId;
             if (currentUserId && this.currentUserId !== currentUserId) {
                 try {
-                    // Get mutual relations
                     console.log('Fetching mutual relations for user ID:', this.currentUserId);
                     const mutualData = await userApi.getMutualRelations(this.currentUserId);
                     console.log('Mutual relations API response:', mutualData);
@@ -355,7 +350,6 @@ class UserDetailModal {
                     }
                 } catch (error) {
                     console.error('Error fetching mutual data:', error);
-                    // Continue even if mutual data fails to load
                     userData.data.mutualData = {
                         mutual_friend_count: 0,
                         mutual_server_count: 0
@@ -386,7 +380,6 @@ class UserDetailModal {
 
         const isSelf = document.getElementById('app-container')?.dataset.userId === user.id?.toString();
 
-        // Create a fade-in effect for all containers
         const containers = [
             this.nameElement,
             this.discriminatorElement,
@@ -399,7 +392,6 @@ class UserDetailModal {
             this.mutualFriendsElement
         ];
         
-        // First remove any skeleton loading elements
         containers.forEach(container => {
             if (container) {
                 const skeletonElements = container.querySelectorAll('.skeleton-loading');
@@ -409,9 +401,7 @@ class UserDetailModal {
             }
         });
         
-        // Small delay to let fade-out happen before updating content
         setTimeout(() => {
-            // Reset banner opacity if it was set during loading
             if (this.banner && this.banner.style.opacity !== '1') {
                 this.banner.style.opacity = '1';
             }
@@ -514,7 +504,6 @@ class UserDetailModal {
                 }
             }
 
-            // Update the rest of the UI as before
             this.updateMutualInfo(userData, isSelf);
             this.updateMessageSection(user, isSelf);
             this.updateActionButtons(userData);
@@ -718,7 +707,6 @@ class UserDetailModal {
         try {
             const chatApi = await import('../../api/chat-api.js').then(module => module.default);
 
-            // Step 1: Get or create the DM room
             const dmRoomData = await chatApi.createDirectMessageRoom(this.currentUserId);
             
             if (!dmRoomData.success || !dmRoomData.room_id) {
@@ -727,10 +715,7 @@ class UserDetailModal {
 
             const roomId = dmRoomData.room_id;
 
-            // Step 2: Send the message using the correct method and parameters
             await chatApi.sendMessage(roomId, content, 'direct');
-
-            // Hide the modal and optionally show a success toast
             this.hide();
             if (window.showToast) {
                 window.showToast('Message sent!', 'success');

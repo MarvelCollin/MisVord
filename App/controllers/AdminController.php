@@ -321,9 +321,6 @@ class AdminController extends BaseController
         return $this->success(['stats' => $stats]);
     }
     
-    /**
-     * Get user growth statistics for charts
-     */
     public function getUserGrowthStats()
     {
         $this->requireAdmin();
@@ -360,9 +357,6 @@ class AdminController extends BaseController
         ]);
     }
     
-    /**
-     * Get message activity statistics for charts
-     */
     public function getMessageActivityStats()
     {
         $this->requireAdmin();
@@ -399,9 +393,6 @@ class AdminController extends BaseController
         ]);
     }
     
-    /**
-     * Get server growth statistics for charts
-     */
     public function getServerGrowthStats()
     {
         $this->requireAdmin();
@@ -488,4 +479,6 @@ class AdminController extends BaseController
             exit;
         }
     }
+
+
 }

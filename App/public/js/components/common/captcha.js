@@ -1,6 +1,3 @@
-/**
- * Simple Text-based Captcha Implementation
- */
 export class TextCaptcha {
     constructor(containerId, options = {}) {
         this.container = document.getElementById(containerId);

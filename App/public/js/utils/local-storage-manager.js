@@ -1,147 +1,264 @@
 /**
  * Local Storage Manager for Server Groups
  */
-export class LocalStorageManager {
-    static KEYS = {
-        SERVER_GROUPS: 'misvord_server_groups'
-    };
-    
-    /**
-     * Save server groups to local storage
-     * @param {Array} groups - Array of group objects
-     */
-    static saveServerGroups(groups) {
-        localStorage.setItem(this.KEYS.SERVER_GROUPS, JSON.stringify(groups));
+class LocalStorageManager {
+    constructor() {
+        this.keys = {
+            USER_PREFERENCES: 'misvord_user_preferences',
+            THEME_SETTINGS: 'misvord_theme_settings',
+            SERVER_GROUPS: 'misvord_server_groups',
+            COLLAPSED_CATEGORIES: 'misvord_collapsed_categories',
+            DRAFT_MESSAGES: 'misvord_draft_messages'
+        };
     }
-    
-    /**
-     * Get server groups from local storage
-     * @returns {Array} Array of group objects
-     */
+
+    get(key, defaultValue = null) {
+        try {
+            const item = localStorage.getItem(key);
+            if (item === null) return defaultValue;
+            return JSON.parse(item);
+        } catch (error) {
+            console.error('Error reading from localStorage:', error);
+            return defaultValue;
+        }
+    }
+
+    set(key, value) {
+        try {
+            localStorage.setItem(key, JSON.stringify(value));
+            return true;
+        } catch (error) {
+            console.error('Error writing to localStorage:', error);
+            return false;
+        }
+    }
+
+    remove(key) {
+        try {
+            localStorage.removeItem(key);
+            return true;
+        } catch (error) {
+            console.error('Error removing from localStorage:', error);
+            return false;
+        }
+    }
+
+    clear() {
+        try {
+            Object.values(this.keys).forEach(key => {
+                localStorage.removeItem(key);
+            });
+            return true;
+        } catch (error) {
+            console.error('Error clearing localStorage:', error);
+            return false;
+        }
+    }
+
+    getUserPreferences() {
+        return this.get(this.keys.USER_PREFERENCES, {
+            notifications: true,
+            soundEnabled: true,
+            compactMode: false,
+            showTimestamps: true
+        });
+    }
+
+    setUserPreferences(preferences) {
+        const current = this.getUserPreferences();
+        const updated = { ...current, ...preferences };
+        return this.set(this.keys.USER_PREFERENCES, updated);
+    }
+
+    getThemeSettings() {
+        return this.get(this.keys.THEME_SETTINGS, {
+            theme: 'dark',
+            fontSize: 'medium',
+            accentColor: 'blue'
+        });
+    }
+
+    setThemeSettings(settings) {
+        const current = this.getThemeSettings();
+        const updated = { ...current, ...settings };
+        return this.set(this.keys.THEME_SETTINGS, updated);
+    }
+
+    getServerGroups() {
+        return this.get(this.keys.SERVER_GROUPS, {});
+    }
+
+    setServerGroups(groups) {
+        return this.set(this.keys.SERVER_GROUPS, groups);
+    }
+
+    addServerToGroup(serverId, groupName) {
+        const groups = this.getServerGroups();
+        if (!groups[groupName]) {
+            groups[groupName] = [];
+        }
+        if (!groups[groupName].includes(serverId)) {
+            groups[groupName].push(serverId);
+            return this.setServerGroups(groups);
+        }
+        return true;
+    }
+
+    removeServerFromGroup(serverId, groupName) {
+        const groups = this.getServerGroups();
+        if (groups[groupName]) {
+            groups[groupName] = groups[groupName].filter(id => id !== serverId);
+            if (groups[groupName].length === 0) {
+                delete groups[groupName];
+            }
+            return this.setServerGroups(groups);
+        }
+        return true;
+    }
+
+    getCollapsedCategories() {
+        return this.get(this.keys.COLLAPSED_CATEGORIES, []);
+    }
+
+    setCollapsedCategories(categories) {
+        return this.set(this.keys.COLLAPSED_CATEGORIES, categories);
+    }
+
+    toggleCategoryCollapsed(categoryId) {
+        const collapsed = this.getCollapsedCategories();
+        const index = collapsed.indexOf(categoryId);
+        
+        if (index > -1) {
+            collapsed.splice(index, 1);
+        } else {
+            collapsed.push(categoryId);
+        }
+        
+        return this.setCollapsedCategories(collapsed);
+    }
+
+    getDraftMessage(channelId) {
+        const drafts = this.get(this.keys.DRAFT_MESSAGES, {});
+        return drafts[channelId] || '';
+    }
+
+    setDraftMessage(channelId, content) {
+        const drafts = this.get(this.keys.DRAFT_MESSAGES, {});
+        if (content.trim()) {
+            drafts[channelId] = content;
+        } else {
+            delete drafts[channelId];
+        }
+        return this.set(this.keys.DRAFT_MESSAGES, drafts);
+    }
+
+    clearDraftMessage(channelId) {
+        return this.setDraftMessage(channelId, '');
+    }
+
     static getServerGroups() {
-        const groups = localStorage.getItem(this.KEYS.SERVER_GROUPS);
-        return groups ? JSON.parse(groups) : [];
+        const manager = new LocalStorageManager();
+        return manager.get('misvord_server_groups_v2', []);
     }
-    
-    /**
-     * Add a new server group
-     * @param {string} name - Group name
-     * @returns {string} New group ID
-     */
+
+    static setServerGroups(groups) {
+        const manager = new LocalStorageManager();
+        return manager.set('misvord_server_groups_v2', groups);
+    }
+
     static addServerGroup(name) {
         const groups = this.getServerGroups();
+        const groupId = Date.now().toString();
         const newGroup = {
-            id: 'group_' + Date.now(),
+            id: groupId,
             name: name,
             servers: [],
             collapsed: false
         };
-        
         groups.push(newGroup);
-        this.saveServerGroups(groups);
-        return newGroup.id;
+        this.setServerGroups(groups);
+        return groupId;
     }
-    
-    /**
-     * Rename a server group
-     * @param {string} groupId - Group ID to rename
-     * @param {string} newName - New name for the group
-     */
+
+    static removeServerGroup(groupId) {
+        const groups = this.getServerGroups();
+        const updatedGroups = groups.filter(group => group.id !== groupId);
+        return this.setServerGroups(updatedGroups);
+    }
+
     static renameServerGroup(groupId, newName) {
         const groups = this.getServerGroups();
         const group = groups.find(g => g.id === groupId);
-        
-        if (group && newName && newName.trim()) {
-            group.name = newName.trim();
-            this.saveServerGroups(groups);
-        }
-    }
-    
-    /**
-     * Remove a server group
-     * @param {string} groupId - Group ID to remove
-     */
-    static removeServerGroup(groupId) {
-        let groups = this.getServerGroups();
-        groups = groups.filter(group => group.id !== groupId);
-        this.saveServerGroups(groups);
-    }
-    
-    /**
-     * Add server to a group
-     * @param {string} groupId - Group ID
-     * @param {string} serverId - Server ID to add
-     */
-    static addServerToGroup(groupId, serverId) {
-        const groups = this.getServerGroups();
-        const group = groups.find(g => g.id === groupId);
-        
-        if (group && !group.servers.includes(serverId)) {
-            this.removeServerFromAllGroups(serverId);
-            
-            group.servers.push(serverId);
-            this.saveServerGroups(groups);
-        }
-    }
-    
-    /**
-     * Remove server from all groups
-     * @param {string} serverId - Server ID to remove
-     */
-    static removeServerFromAllGroups(serverId) {
-        const groups = this.getServerGroups();
-        groups.forEach(group => {
-            group.servers = group.servers.filter(id => id !== serverId);
-        });
-        this.saveServerGroups(groups);
-    }
-    
-    /**
-     * Get the group containing a specific server
-     * @param {string} serverId - Server ID to find
-     * @returns {Object|null} - The group object or null if not found
-     */
-    static getServerGroup(serverId) {
-        const groups = this.getServerGroups();
-        return groups.find(group => group.servers.includes(serverId)) || null;
-    }
-    
-    /**
-     * Set group collapsed state
-     * @param {string} groupId - Group ID to set
-     * @param {boolean} isCollapsed - Whether the group should be collapsed
-     */
-    static setGroupCollapsed(groupId, isCollapsed) {
-        const groups = this.getServerGroups();
-        const group = groups.find(g => g.id === groupId);
-        
         if (group) {
-            group.collapsed = isCollapsed;
-            this.saveServerGroups(groups);
-        }
-    }
-    
-    /**
-     * Toggle group collapsed state
-     * @param {string} groupId - Group ID to toggle
-     * @returns {boolean} New collapsed state
-     */
-    static toggleGroupCollapsed(groupId) {
-        const groups = this.getServerGroups();
-        const group = groups.find(g => g.id === groupId);
-        
-        if (group) {
-            group.collapsed = !group.collapsed;
-            this.saveServerGroups(groups);
-            return group.collapsed;
+            group.name = newName;
+            return this.setServerGroups(groups);
         }
         return false;
     }
-    
-    /**
-     * Clear all server groups (for testing)
-     */
-    static clearAllGroups() {
-        localStorage.removeItem(this.KEYS.SERVER_GROUPS);
+
+    static addServerToGroup(groupId, serverId) {
+        const groups = this.getServerGroups();
+        const group = groups.find(g => g.id === groupId);
+        if (group && !group.servers.includes(serverId)) {
+            group.servers.push(serverId);
+            return this.setServerGroups(groups);
+        }
+        return false;
+    }
+
+    static removeServerFromGroup(groupId, serverId) {
+        const groups = this.getServerGroups();
+        const group = groups.find(g => g.id === groupId);
+        if (group) {
+            group.servers = group.servers.filter(id => id !== serverId);
+            return this.setServerGroups(groups);
+        }
+        return false;
+    }
+
+    static removeServerFromAllGroups(serverId) {
+        const groups = this.getServerGroups();
+        let updated = false;
+        groups.forEach(group => {
+            const originalLength = group.servers.length;
+            group.servers = group.servers.filter(id => id !== serverId);
+            if (group.servers.length !== originalLength) {
+                updated = true;
+            }
+        });
+        if (updated) {
+            return this.setServerGroups(groups);
+        }
+        return false;
+    }
+
+    static getServerGroup(serverId) {
+        const groups = this.getServerGroups();
+        return groups.find(group => group.servers.includes(serverId));
+    }
+
+    static setGroupCollapsed(groupId, collapsed) {
+        const groups = this.getServerGroups();
+        const group = groups.find(g => g.id === groupId);
+        if (group) {
+            group.collapsed = collapsed;
+            return this.setServerGroups(groups);
+        }
+        return false;
+    }
+
+    static toggleGroupCollapsed(groupId) {
+        const groups = this.getServerGroups();
+        const group = groups.find(g => g.id === groupId);
+        if (group) {
+            group.collapsed = !group.collapsed;
+            return this.setServerGroups(groups);
+        }
+        return false;
     }
 }
+
+const localStorageManager = new LocalStorageManager();
+
+export { LocalStorageManager };
+export default localStorageManager;

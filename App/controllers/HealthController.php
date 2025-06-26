@@ -32,9 +32,8 @@ class HealthController extends BaseController
                 ];
                 $health['status'] = 'degraded';
             }            try {
-                $socketHost = 'socket';  // Use Docker service name
-                $socketPort = $_ENV['SOCKET_PORT'] ?? '1002';
-
+                $socketHost = 'socket';
+                $socketPort = getenv('SOCKET_PORT') ?: '1002';
                 $socketUrl = "http://{$socketHost}:{$socketPort}/health";
                 $context = stream_context_create([
                     'http' => [
@@ -69,9 +68,9 @@ class HealthController extends BaseController
 
             // Check essential directories
             $directories = [
-                'logs' => __DIR__ . '/../logs',
-                'storage' => __DIR__ . '/../storage',
-                'views' => __DIR__ . '/../views'
+                'storage' => '/var/www/html/storage',
+                'logs' => '/var/www/html/logs',
+                'public' => '/var/www/html/public'
             ];
 
             foreach ($directories as $name => $path) {

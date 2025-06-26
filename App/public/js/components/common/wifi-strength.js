@@ -63,27 +63,25 @@ class WiFiStrength {
   
   async getIPDetails(ip) {
     try {
-      const response = await fetch(`https://ipapi.co/${ip}/json/`, {
-        method: 'GET',
-        cache: 'no-cache'
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        this.clientInfo = {
-          ...this.clientInfo,
-          city: data.city,
-          region: data.region,
-          country: data.country_name,
-          org: data.org,
-          isp: data.org
-        };
-        
-        if (data.org && this.networkName === 'Unknown') {
-          const ispMatch = data.org.match(/^AS\d+\s+(.+)$/);
-          this.networkName = ispMatch ? ispMatch[1] : data.org;
+      if (this.networkName === 'Unknown') {
+        const connection = navigator.connection || 
+                          navigator.mozConnection || 
+                          navigator.webkitConnection;
+        if (connection && connection.type) {
+          this.networkName = connection.type.toUpperCase();
+        } else {
+          this.networkName = 'Network Connection';
         }
       }
+      
+      this.clientInfo = {
+        ...this.clientInfo,
+        city: 'Local',
+        region: 'Local',
+        country: 'Local Network',
+        org: 'Local ISP',
+        isp: 'Local ISP'
+      };
     } catch (error) {
       console.log('Could not fetch IP details');
     }
@@ -152,7 +150,6 @@ class WiFiStrength {
       4: 'text-[#43b581]'
     };
     
-    // Special case for offline state
     if (!this.isOnline) {
       Object.values(strengthClasses).forEach(cls => {
         icon.classList.remove(cls);
@@ -275,11 +272,8 @@ class WiFiStrength {
   }
   
   setupNetworkMonitoring() {
-    // Check initial online status
     this.isOnline = navigator.onLine;
     this.updateAllIcons();
-    
-    // Setup offline/online event listeners
     window.addEventListener('online', () => {
       this.isOnline = true;
       this.updateStrength(2, 0);
@@ -293,7 +287,6 @@ class WiFiStrength {
       this.updateAllIcons();
     });
     
-    // Monitor connection info changes
     const connectionInfo = navigator.connection || 
                            navigator.mozConnection || 
                            navigator.webkitConnection;
@@ -306,8 +299,6 @@ class WiFiStrength {
         }
       });
     }
-    
-    // Start regular quality checks if online
     if (this.isOnline) {
       this.measureNetworkQuality();
       
@@ -318,7 +309,6 @@ class WiFiStrength {
       }, 5000);
     }
     
-    // Verify connection status regularly
     setInterval(() => {
       const currentOnline = navigator.onLine;
       if (this.isOnline !== currentOnline) {
@@ -337,12 +327,9 @@ class WiFiStrength {
     if (!this.isOnline) return;
     
     try {
-      // Start timing for ping
       const startTime = Date.now();
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
-      
-      // Use a random URL parameter to avoid caching
       const response = await fetch('/api/health/ping?' + Date.now(), {
         method: 'GET',
         cache: 'no-cache',
@@ -360,14 +347,10 @@ class WiFiStrength {
         return;
       }
       
-      // Calculate client-side round-trip latency
       const endTime = Date.now();
       const latency = endTime - startTime;
       
-      // Update strength based on actual measured latency
       this.updateStrengthFromLatency(latency);
-      
-      // Get additional connection info from browser API if available
       const connectionInfo = navigator.connection || 
                              navigator.mozConnection || 
                              navigator.webkitConnection;
@@ -376,7 +359,6 @@ class WiFiStrength {
         this.effectiveType = connectionInfo.effectiveType || 'unknown';
         this.downlink = connectionInfo.downlink || 0;
         
-        // Adjust strength based on connection type
         if (connectionInfo.downlink < 1) {
           this.updateStrength(Math.min(this.strength, 2), latency);
         }

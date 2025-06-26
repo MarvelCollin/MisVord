@@ -328,22 +328,31 @@ class ChatAPI {
             
             if (response.data) {
                 console.log('🗑️ API: response.data contents:', response.data);
+                console.log('🗑️ API: response.data.target_type:', response.data.target_type);
+                console.log('🗑️ API: response.data.target_id:', response.data.target_id);
             }
             if (response.socket_data) {
                 console.log('🗑️ API: response.socket_data contents:', response.socket_data);
+                console.log('🗑️ API: response.socket_data.target_type:', response.socket_data.target_type);
+                console.log('🗑️ API: response.socket_data.target_id:', response.socket_data.target_id);
             }
             
             if (response && response.data) {
                 const messageData = response.data;
                 console.log('🗑️ API: Sending socket delete with data:', messageData);
+                console.log('🗑️ API: target_type being passed:', messageData.target_type);
+                console.log('🗑️ API: target_id being passed:', messageData.target_id);
                 this.sendDirectSocketDelete(messageId, messageData.target_type, messageData.target_id);
             } else {
                 console.warn('🗑️ API: No data field in response, checking response structure:', response);
                 if (response && response.socket_data) {
                     console.log('🗑️ API: Using socket_data instead:', response.socket_data);
+                    console.log('🗑️ API: socket_data target_type:', response.socket_data.target_type);
+                    console.log('🗑️ API: socket_data target_id:', response.socket_data.target_id);
                     this.sendDirectSocketDelete(messageId, response.socket_data.target_type, response.socket_data.target_id);
                 } else {
                     console.error('🗑️ API: NO TARGET INFO FOUND! Cannot send socket event');
+                    console.log('🗑️ API: Full response structure:', JSON.stringify(response, null, 2));
                 }
             }
             

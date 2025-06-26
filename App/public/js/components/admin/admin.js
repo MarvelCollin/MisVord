@@ -150,7 +150,6 @@ class AdminManager {
     const mockDataRange = document.getElementById('mock-data-range').value;
     const mockDataTrend = document.getElementById('mock-data-trend').value;
     
-    // Save the previous config to detect changes
     const previousConfig = { ...this.chartConfig };
     
     const config = {
@@ -164,7 +163,6 @@ class AdminManager {
     if (window.overviewManager) {
       window.overviewManager.updateChartConfig(config);
       
-      // Only show toast if there was an actual change
       if (previousConfig.useMockData !== config.useMockData) {
         showToast(`Chart data source changed to ${useMockData ? 'mock data' : 'real data'}`, "success");
       } else if (config.useMockData && 
@@ -184,18 +182,15 @@ class AdminManager {
     if (show) {
       modal.classList.remove('hidden');
       
-      // Get current chart config from the overview manager
       if (window.overviewManager && window.overviewManager.chartConfig) {
         console.log("Initializing chart config modal with:", window.overviewManager.chartConfig);
         
         const { useMockData, mockDataRange, mockDataTrend } = window.overviewManager.chartConfig;
         
-        // Set the checkbox state
         const mockDataCheckbox = document.getElementById('use-mock-data');
         if (mockDataCheckbox) {
           mockDataCheckbox.checked = useMockData === true;
           
-          // Update the toggle switch UI to match the state
           const toggleSwitch = mockDataCheckbox.closest('.toggle-switch');
           if (toggleSwitch) {
             const dot = toggleSwitch.querySelector('.dot');
@@ -211,7 +206,6 @@ class AdminManager {
           }
         }
         
-        // Set the dropdown values
         const rangeSelect = document.getElementById('mock-data-range');
         if (rangeSelect) {
           rangeSelect.value = mockDataRange || 'medium';
@@ -222,7 +216,6 @@ class AdminManager {
           trendSelect.value = mockDataTrend || 'random';
         }
         
-        // Show/hide the mock data settings based on the checkbox
         const mockDataSettings = document.getElementById('mock-data-settings');
         if (mockDataSettings) {
           if (useMockData) {
@@ -267,7 +260,6 @@ class AdminManager {
     
     this.currentSection = section;
     
-    // Show skeletons for the active section first
     if (section === "overview") {
       if (window.overviewManager) {
         window.overviewManager.showInitialSkeletons();
@@ -300,7 +292,6 @@ class AdminManager {
       }, 10);
     } else if (section === "nitro") {
       if (window.nitroManager) {
-        // Check if nitroManager has a showSkeletons or showInitialSkeletons method
         if (typeof window.nitroManager.showInitialSkeletons === 'function') {
           window.nitroManager.showInitialSkeletons();
         }
@@ -440,7 +431,6 @@ class AdminManager {
   }
 
   initUserBanActions() {
-    // Add event listeners for the ban and unban buttons
     document.addEventListener('click', (e) => {
       const banButton = e.target.closest('.ban-user');
       const unbanButton = e.target.closest('.unban-user');
@@ -480,7 +470,6 @@ class AdminManager {
         
         if (data.success) {
           showToast(`User ${isUnban ? 'unbanned' : 'banned'} successfully`, "success");
-          // Reload the users table
           window.userManager.loadUsers();
         } else {
           showToast(data.message || `Failed to ${action} user`, "error");
@@ -493,7 +482,6 @@ class AdminManager {
   }
   
   showDiscordConfirmation(title, message, confirmCallback) {
-    // Use existing confirm-modal if it exists
     const confirmModal = document.getElementById('confirm-modal');
     if (confirmModal) {
       const confirmTitle = document.getElementById('confirm-title');
@@ -524,7 +512,6 @@ class AdminManager {
       return;
     }
     
-    // Create a new Discord-styled confirmation modal if needed
     const modal = document.createElement('div');
     modal.id = 'discord-confirm-modal';
     modal.className = 'fixed inset-0 flex items-center justify-center z-50';

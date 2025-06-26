@@ -239,6 +239,8 @@ class ImageCutter {
                 ? 'Drag to move • Use slider to resize • 1:1 aspect ratio' 
                 : 'Drag to move • Use slider to resize • 2:1 aspect ratio';
             controlsSection.appendChild(infoText);
+            
+            console.log('Creating slider for type:', this.options.type);
 
             const sliderContainer = document.createElement('div');
             sliderContainer.style.cssText = `
@@ -247,6 +249,9 @@ class ImageCutter {
                 gap: 10px;
                 color: #b9bbbe;
                 font-size: 14px;
+                visibility: visible;
+                opacity: 1;
+                width: 100%;
             `;
 
             const sliderLabel = document.createElement('span');
@@ -268,7 +273,11 @@ class ImageCutter {
                 cursor: pointer;
                 -webkit-appearance: none;
                 appearance: none;
+                display: block;
+                visibility: visible;
             `;
+            
+            console.log('Slider created for type:', this.options.type, 'Value:', this.sizeSlider.value);
 
             const sliderStyle = document.createElement('style');
             sliderStyle.textContent = `
@@ -340,6 +349,11 @@ class ImageCutter {
 
             controlsSection.appendChild(sliderContainer);
             modalContent.appendChild(controlsSection);
+            
+            console.log('Controls section appended. Type:', this.options.type);
+            console.log('Slider container children:', sliderContainer.children.length);
+            console.log('Controls section visible:', controlsSection.style.display !== 'none');
+            console.log('Size slider exists:', !!this.sizeSlider);
 
             const buttonContainer = document.createElement('div');
             buttonContainer.style.cssText = `
@@ -421,6 +435,8 @@ class ImageCutter {
     updateCropSize(percentage) {
         if (!this.image || !this.image.complete) return;
         
+        console.log('updateCropSize called with:', percentage, 'for type:', this.options.type);
+        
         const { width: imgWidth, height: imgHeight } = this.image;
         const scale = percentage / 100;
         
@@ -429,10 +445,12 @@ class ImageCutter {
         if (this.options.type === 'profile') {
             const maxSize = Math.min(imgWidth, imgHeight);
             newWidth = newHeight = maxSize * scale;
+            console.log('Profile resize - maxSize:', maxSize, 'newSize:', newWidth);
         } else {
             const maxSize = Math.min(imgWidth, imgHeight * 2);
             newWidth = maxSize * scale;
             newHeight = newWidth / 2;
+            console.log('Banner resize - maxSize:', maxSize, 'newWidth:', newWidth, 'newHeight:', newHeight);
         }
         
         const centerX = this.cropArea.x + this.cropArea.width / 2;
@@ -444,6 +462,8 @@ class ImageCutter {
             width: newWidth,
             height: newHeight
         };
+        
+        console.log('New crop area:', this.cropArea);
         
         this.updateCropOverlay();
         
@@ -642,6 +662,8 @@ class ImageCutter {
     calculateInitialCrop() {
         const { width: imgWidth, height: imgHeight } = this.image;
         
+        console.log('calculateInitialCrop for type:', this.options.type, 'Image size:', imgWidth, 'x', imgHeight);
+        
         let cropSize = Math.min(imgWidth, imgHeight) * 0.7;
         
         if (this.options.type === 'profile') {
@@ -651,6 +673,7 @@ class ImageCutter {
                 width: cropSize,
                 height: cropSize
             };
+            console.log('Profile crop area set:', this.cropArea);
         } else {
             cropSize = Math.min(imgWidth, imgHeight * 2) * 0.7;
             this.cropArea = {
@@ -659,6 +682,7 @@ class ImageCutter {
                 width: cropSize,
                 height: cropSize / 2
             };
+            console.log('Banner crop area set:', this.cropArea);
         }
     }
 
@@ -761,8 +785,6 @@ class ImageCutter {
         this.isDragging = false;
     }
 
-
-
     getCroppedImage() {
         const canvas = document.createElement('canvas');
         const { width, height, x, y } = this.cropArea;
@@ -800,13 +822,33 @@ class ImageCutter {
         }
         
         this.options.type = type;
+        console.log('Type set to:', type);
+        
         if (this.overlay) {
             this.overlay.style.borderRadius = type === 'profile' ? '50%' : '0';
+        }
+        
+        const infoText = this.modal?.querySelector('.image-cutter-modal-content span');
+        if (infoText) {
+            infoText.textContent = type === 'profile' 
+                ? 'Drag to move • Use slider to resize • 1:1 aspect ratio' 
+                : 'Drag to move • Use slider to resize • 2:1 aspect ratio';
         }
         
         if (this.image.src) {
             this.calculateInitialCrop();
             this.updateImageDisplay();
+            
+            if (this.sizeSlider && this.image) {
+                const { width: imgWidth, height: imgHeight } = this.image;
+                const maxSize = type === 'profile' ? Math.min(imgWidth, imgHeight) : Math.min(imgWidth, imgHeight * 2);
+                const currentSize = this.cropArea.width;
+                const percentage = Math.round((currentSize / maxSize) * 100);
+                this.sizeSlider.value = percentage;
+                if (this.sizeValueDisplay) {
+                    this.sizeValueDisplay.textContent = percentage + '%';
+                }
+            }
         }
     }
 
@@ -978,6 +1020,22 @@ class ImageCutter {
         } catch (error) {
             console.error('Error cleaning up failed modal:', error);
         }
+    }
+
+    testBannerSlider() {
+        console.log('=== BANNER SLIDER DEBUG ===');
+        console.log('Current type:', this.options.type);
+        console.log('Slider exists:', !!this.sizeSlider);
+        console.log('Slider visible:', this.sizeSlider ? this.sizeSlider.style.display !== 'none' : 'N/A');
+        console.log('Slider value:', this.sizeSlider ? this.sizeSlider.value : 'N/A');
+        console.log('Modal active:', this.isActive);
+        console.log('Image loaded:', this.image && this.image.complete);
+        
+        if (this.sizeSlider) {
+            console.log('Slider parent:', this.sizeSlider.parentElement);
+            console.log('Controls section exists:', !!document.querySelector('.image-cutter-modal-content'));
+        }
+        console.log('=== END DEBUG ===');
     }
 }
 
