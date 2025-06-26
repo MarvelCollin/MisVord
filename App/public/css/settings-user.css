@@ -1053,5 +1053,153 @@ button:active {
     background-color: white;
 }
 
+/* Voice & Video Settings Styles */
+.voice-video-tabs {
+    display: flex;
+    border-bottom: 1px solid #40444b;
+    margin-bottom: 1.5rem;
+}
+
+.voice-tab {
+    background: none;
+    border: none;
+    color: #b9bbbe;
+    padding: 12px 16px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+}
+
+.voice-tab:hover {
+    color: #dcddde;
+    background-color: #40444b;
+}
+
+.voice-tab.active {
+    color: #5865f2;
+    border-bottom-color: #5865f2;
+}
+
+.tab-content {
+    animation: fadeIn 0.2s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.volume-control {
+    position: relative;
+}
+
+.volume-slider {
+    width: 100%;
+    height: 8px;
+    border-radius: 4px;
+    background: #40444b;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    cursor: pointer;
+}
+
+.volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #5865f2;
+    cursor: pointer;
+    border: 2px solid #ffffff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.volume-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #5865f2;
+    cursor: pointer;
+    border: 2px solid #ffffff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.volume-indicator {
+    margin-top: 8px;
+    height: 4px;
+    background: #40444b;
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.volume-level {
+    height: 100%;
+    background: linear-gradient(90deg, #43b581 0%, #faa61a 70%, #f04747 100%);
+    width: 0%;
+    border-radius: 2px;
+    transition: width 0.1s ease;
+}
+
+.mic-visualizer {
+    height: 40px;
+    display: flex;
+    align-items: center;
+}
+
+.visualizer-bars {
+    display: flex;
+    align-items: end;
+    gap: 2px;
+    height: 100%;
+    width: 100%;
+}
+
+.visualizer-bars .bar {
+    background: #40444b;
+    width: 4px;
+    height: 8px;
+    border-radius: 2px;
+    transition: all 0.1s ease;
+}
+
+.visualizer-bars .bar.active {
+    background: #5865f2;
+    height: 100%;
+}
+
+.visualizer-bars .bar.medium {
+    background: #faa61a;
+    height: 60%;
+}
+
+.visualizer-bars .bar.high {
+    background: #f04747;
+    height: 80%;
+}
+
+#mic-test-btn.recording {
+    background-color: #f04747;
+}
+
+#mic-test-btn.recording:hover {
+    background-color: #d73939;
+}
+
+#debug-info {
+    max-height: 300px;
+    overflow-y: auto;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+#debug-info div {
+    margin-bottom: 4px;
+    padding: 2px 0;
+}
+
 
 

@@ -243,18 +243,15 @@ class ChatSection {
                 const moreBtn = e.target.closest('.message-action-more');
                 
                 if (reactionBtn) {
-                    console.log("Reaction button clicked in chat-section.js");
                     const messageContent = reactionBtn.closest('.message-content');
                     const messageId = messageContent.dataset.messageId;
                     
-                    if (window.emojiSelector && typeof window.emojiSelector.showMenu === 'function') {
+                    if (window.emojiSocketHandler && typeof window.emojiSocketHandler.showMenu === 'function') {
                         const rect = reactionBtn.getBoundingClientRect();
                         const x = rect.left + window.scrollX;
                         const y = rect.bottom + window.scrollY + 5;
-                        console.log(`Directly showing emoji menu at ${x},${y} for message ${messageId}`);
-                        window.emojiSelector.showMenu(messageId, x, y);
+                        window.emojiSocketHandler.showMenu(messageId, x, y);
                     } else {
-                        console.error("Emoji selector not available or missing showMenu method");
                         this.showEmojiPicker(messageId, reactionBtn);
                     }
                 } else if (replyBtn) {
@@ -761,16 +758,12 @@ class ChatSection {
     }
     
     showEmojiPicker(messageId, targetElement) {
-        console.log('Show emoji picker for message:', messageId);
-        
-        if (!window.emojiSelector) {
-            console.error('Emoji selector not available');
+        if (!window.emojiSocketHandler) {
             this.showNotification('Emoji picker not loaded', 'error');
             return;
         }
         
         if (!targetElement) {
-            console.error('Target element not provided');
             return;
         }
         
@@ -778,7 +771,7 @@ class ChatSection {
         const x = rect.left + window.scrollX;
         const y = rect.bottom + window.scrollY + 5;
         
-        const menuWidth = 280;
+        const menuWidth = 250;
         const menuHeight = 200;
         
         const viewportWidth = window.innerWidth;
@@ -793,7 +786,7 @@ class ChatSection {
             adjustedY = rect.top + window.scrollY - menuHeight - 5;
         }
         
-        window.emojiSelector.showMenu(messageId, adjustedX, adjustedY);
+        window.emojiSocketHandler.showMenu(messageId, adjustedX, adjustedY);
         
         const event = new CustomEvent('emoji-menu-requested', {
             detail: { messageId, x: adjustedX, y: adjustedY }

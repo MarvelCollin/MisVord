@@ -22,8 +22,8 @@ if (!document.body.classList.contains('settings-page') &&
     import('./messaging/chat-section.js').catch(err => {
         console.debug('Chat section not loaded: ', err.message);
     });
-    import('./messaging/emoji.js').catch(err => {
-        console.debug('Emoji component not loaded: ', err.message);
+    import('./messaging/chat-socket-handler.js').catch(err => {
+        console.debug('Chat socket handler not loaded: ', err.message);
     });
 }
 

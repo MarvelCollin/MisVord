@@ -51,6 +51,8 @@ function initUserSettingsPage() {
         initPasswordChangeForms();
     } else if (activeSection === 'connections') {
         initConnectionToggles();
+    } else if (activeSection === 'voice') {
+        initVoiceVideoSection();
     }
     
     initCloseButton();
@@ -1307,6 +1309,20 @@ function getStatusDisplayName(status) {
         'offline': 'Invisible'
     };
     return statusMap[status] || 'Online';
+}
+
+function initVoiceVideoSection() {
+    import('/public/js/components/settings/mic-video-check.js')
+        .then(module => {
+            module.initVoiceVideoSettings();
+            
+            window.addEventListener('beforeunload', () => {
+                module.destroyVoiceVideoSettings();
+            });
+        })
+        .catch(err => {
+            console.error('Error loading voice video settings:', err);
+        });
 }
 
 function initConnectionToggles() {
