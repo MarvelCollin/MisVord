@@ -71,17 +71,17 @@ class MessageController extends BaseController
                     'emoji' => $emoji,
                     'user_id' => $userId,
                     'username' => $username,
-                    'socket_event' => 'reaction-added',
-                    'socket_data' => [
-                        'message_id' => $messageId,
-                        'user_id' => $userId,
+                'socket_event' => 'reaction-added',
+                'socket_data' => [
+                    'message_id' => $messageId,
+                    'user_id' => $userId,
                         'username' => $username,
                         'emoji' => $emoji,
                         'target_type' => $targetType,
                         'target_id' => $targetId
-                    ],
-                    'client_should_emit_socket' => true
-                ], 'Reaction added successfully');
+                ],
+                'client_should_emit_socket' => true
+            ], 'Reaction added successfully');
             } else {
                 throw new Exception('Failed to save reaction');
             }
@@ -136,22 +136,22 @@ class MessageController extends BaseController
             }
 
             if ($reaction->delete()) {
-                return $this->success([
-                    'message_id' => $messageId,
-                    'emoji' => $emoji,
-                    'user_id' => $userId,
+            return $this->success([
+                'message_id' => $messageId,
+                'emoji' => $emoji,
+                'user_id' => $userId,
                     'username' => $username,
-                    'socket_event' => 'reaction-removed',
-                    'socket_data' => [
-                        'message_id' => $messageId,
-                        'user_id' => $userId,
+                'socket_event' => 'reaction-removed',
+                'socket_data' => [
+                    'message_id' => $messageId,
+                    'user_id' => $userId,
                         'username' => $username,
                         'emoji' => $emoji,
                         'target_type' => $targetType,
                         'target_id' => $targetId
-                    ],
-                    'client_should_emit_socket' => true
-                ], 'Reaction removed successfully');
+                ],
+                'client_should_emit_socket' => true
+            ], 'Reaction removed successfully');
             } else {
                 throw new Exception('Failed to remove reaction');
             }
@@ -206,8 +206,8 @@ class MessageController extends BaseController
                 'message_id' => $messageId,
                 'socket_event' => 'message-pinned',
                 'socket_data' => [
-                    'message_id' => $messageId,
-                    'user_id' => $userId
+                'message_id' => $messageId,
+                'user_id' => $userId
                 ],
                 'client_should_emit_socket' => true
             ], 'Message pinned successfully');

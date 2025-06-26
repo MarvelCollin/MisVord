@@ -30,16 +30,12 @@ class VoiceVideoSettings {
             const saved = localStorage.getItem('misvord_audio_settings');
             return saved ? JSON.parse(saved) : {
                 inputVolume: 50,
-                outputVolume: 75,
-                inputDevice: 'default',
-                outputDevice: 'default'
+                outputVolume: 75
             };
         } catch {
             return {
                 inputVolume: 50,
-                outputVolume: 75,
-                inputDevice: 'default',
-                outputDevice: 'default'
+                outputVolume: 75
             };
         }
     }
@@ -69,51 +65,76 @@ class VoiceVideoSettings {
                 this.addDebugInfo('WARNING: No real input devices detected!');
             }
             
+            this.addDebugInfo('=== DETECTED INPUT DEVICES ===');
             this.devices.input.forEach((device, index) => {
-                this.addDebugInfo(`Input ${index + 1}: ${device.label || 'Unnamed device'} (${device.deviceId.slice(0, 8)}...)`);
+                this.addDebugInfo(`Input ${index + 1}: ${device.label || 'Unnamed device'}`);
+                this.addDebugInfo(`  Device ID: ${device.deviceId.slice(0, 12)}...`);
+                this.addDebugInfo(`  Group ID: ${device.groupId.slice(0, 8)}...`);
             });
             
+            this.addDebugInfo('=== DETECTED OUTPUT DEVICES ===');
             this.devices.output.forEach((device, index) => {
-                this.addDebugInfo(`Output ${index + 1}: ${device.label || 'Unnamed device'} (${device.deviceId.slice(0, 8)}...)`);
+                this.addDebugInfo(`Output ${index + 1}: ${device.label || 'Unnamed device'}`);
+                this.addDebugInfo(`  Device ID: ${device.deviceId.slice(0, 12)}...`);
+                this.addDebugInfo(`  Group ID: ${device.groupId.slice(0, 8)}...`);
             });
             
-            this.populateDeviceSelects();
-            this.checkBluetoothWarning();
+            this.displayCurrentDevices();
         } catch (error) {
             this.addDebugInfo(`REAL device access failed: ${error.message}`);
             this.addDebugInfo('This means no mock data - real hardware access required');
         }
     }
 
-    populateDeviceSelects() {
-        const inputSelect = document.getElementById('input-device-select');
-        const outputSelect = document.getElementById('output-device-select');
-        
-        if (inputSelect) {
-            inputSelect.innerHTML = '<option value="default">Default</option>';
-            this.devices.input.forEach(device => {
-                const option = document.createElement('option');
-                option.value = device.deviceId;
-                option.textContent = device.label || `Microphone ${device.deviceId.slice(0, 5)}`;
-                if (device.deviceId === this.settings.inputDevice) {
-                    option.selected = true;
-                }
-                inputSelect.appendChild(option);
-            });
+    displayCurrentDevices() {
+        this.displayCurrentInputDevice();
+        this.displayCurrentOutputDevice();
+    }
+
+    displayCurrentInputDevice() {
+        const inputDisplay = document.getElementById('current-input-device');
+        if (inputDisplay) {
+            // Show default microphone device
+            const defaultInputDevice = this.devices.input[0];
+            if (defaultInputDevice) {
+                inputDisplay.innerHTML = `
+                    <i class="fas fa-microphone mr-2 text-green-400"></i>
+                    <span>${defaultInputDevice.label || 'Default Microphone'}</span>
+                `;
+                this.addDebugInfo(`Displaying input device: ${defaultInputDevice.label}`);
+            } else {
+                inputDisplay.innerHTML = `
+                    <i class="fas fa-microphone mr-2 text-red-400"></i>
+                    <span>No microphone detected</span>
+                `;
+            }
         }
-        
-        if (outputSelect) {
-            outputSelect.innerHTML = '<option value="default">Default</option>';
-            this.devices.output.forEach(device => {
-                const option = document.createElement('option');
-                option.value = device.deviceId;
-                option.textContent = device.label || `Speaker ${device.deviceId.slice(0, 5)}`;
-                if (device.deviceId === this.settings.outputDevice) {
-                    option.selected = true;
-                }
-                outputSelect.appendChild(option);
-            });
+    }
+
+    displayCurrentOutputDevice() {
+        const outputDisplay = document.getElementById('current-output-device');
+        if (outputDisplay) {
+            // Show default speaker device
+            const defaultOutputDevice = this.devices.output[0];
+            if (defaultOutputDevice) {
+                outputDisplay.innerHTML = `
+                    <i class="fas fa-headphones mr-2 text-blue-400"></i>
+                    <span>${defaultOutputDevice.label || 'Default Speakers'}</span>
+                `;
+                this.addDebugInfo(`Displaying output device: ${defaultOutputDevice.label}`);
+            } else {
+                outputDisplay.innerHTML = `
+                    <i class="fas fa-headphones mr-2 text-red-400"></i>
+                    <span>No speakers detected</span>
+                `;
+            }
         }
+    }
+
+    getDeviceName(type, deviceId) {
+        const devices = type === 'input' ? this.devices.input : this.devices.output;
+        const device = devices.find(d => d.deviceId === deviceId);
+        return device ? device.label || 'Unnamed Device' : 'Unknown Device';
     }
 
     checkBluetoothWarning() {
@@ -143,8 +164,7 @@ class VoiceVideoSettings {
 
         const inputVolumeSlider = document.getElementById('input-volume');
         const outputVolumeSlider = document.getElementById('output-volume');
-        const inputDeviceSelect = document.getElementById('input-device-select');
-        const outputDeviceSelect = document.getElementById('output-device-select');
+        // Device selectors removed - now using display-only elements
         const micTestBtn = document.getElementById('mic-test-btn');
 
         if (inputVolumeSlider) {
@@ -167,30 +187,51 @@ class VoiceVideoSettings {
             });
         }
 
-        if (inputDeviceSelect) {
-            inputDeviceSelect.addEventListener('change', (e) => {
-                this.settings.inputDevice = e.target.value;
-                this.saveSettings();
-                this.checkBluetoothWarning();
-                // Restart monitoring if active to use new device
-                if (this.micTest.isActive) {
-                    this.stopRealTimeMonitoring();
-                    setTimeout(() => this.startRealTimeMonitoring(), 100);
-                }
-            });
-        }
-
-        if (outputDeviceSelect) {
-            outputDeviceSelect.addEventListener('change', (e) => {
-                this.settings.outputDevice = e.target.value;
-                this.saveSettings();
-                this.checkBluetoothWarning();
-            });
-        }
+        // Device displays are now read-only - no change events needed
 
         if (micTestBtn) {
             micTestBtn.addEventListener('click', () => this.toggleMicTest());
         }
+
+        // Add device test functionality
+        const deviceTestBtn = document.getElementById('test-devices-btn');
+        if (deviceTestBtn) {
+            deviceTestBtn.addEventListener('click', () => this.testCurrentDevices());
+        }
+    }
+
+    async testCurrentDevices() {
+        this.addDebugInfo('=== TESTING CURRENT DEVICE CONFIGURATION ===');
+        
+        // Test default input device access
+        try {
+            const constraints = { audio: true }; // Use default device
+            
+            const testStream = await navigator.mediaDevices.getUserMedia(constraints);
+            const track = testStream.getAudioTracks()[0];
+            
+            this.addDebugInfo(`✅ INPUT DEVICE TEST PASSED`);
+            this.addDebugInfo(`Device: ${track.label}`);
+            this.addDebugInfo(`Device ID: ${track.getSettings().deviceId}`);
+            this.addDebugInfo(`Sample Rate: ${track.getSettings().sampleRate}Hz`);
+            
+            // Cleanup test stream
+            testStream.getTracks().forEach(track => track.stop());
+            
+        } catch (error) {
+            this.addDebugInfo(`❌ INPUT DEVICE TEST FAILED: ${error.message}`);
+        }
+
+        // Test output device support
+        this.addDebugInfo(`✅ OUTPUT DEVICE DETECTED`);
+        this.addDebugInfo(`Using System Default Output Device`);
+        this.addDebugInfo(`Browser: ${navigator.userAgent.split(' ')[0]}`);
+        
+        if (this.devices.output.length > 0) {
+            this.addDebugInfo(`Available Output: ${this.devices.output[0].label}`);
+        }
+
+        this.addDebugInfo('=== DEVICE TEST COMPLETE ===');
     }
 
     switchTab(tabName) {
@@ -375,8 +416,7 @@ class VoiceVideoSettings {
             // Real-time monitoring like Discord
             const constraints = {
                 audio: {
-                    deviceId: this.settings.inputDevice !== 'default' ? 
-                        { exact: this.settings.inputDevice } : undefined,
+                    // Always use default device since selection is removed
                     sampleRate: 44100,
                     channelCount: 1,
                     echoCancellation: false,  // DISABLE for real-time monitoring
@@ -390,8 +430,15 @@ class VoiceVideoSettings {
             
             const tracks = this.micTest.testStream.getAudioTracks();
             if (tracks.length > 0) {
-                this.addDebugInfo(`Real-time monitoring from: ${tracks[0].label}`);
-                this.addDebugInfo(`Monitoring capabilities: ${JSON.stringify(tracks[0].getCapabilities())}`);
+                const track = tracks[0];
+                this.addDebugInfo(`=== ACTIVE INPUT DEVICE ===`);
+                this.addDebugInfo(`Device: ${track.label}`);
+                this.addDebugInfo(`Device ID: ${track.getSettings().deviceId || 'default'}`);
+                this.addDebugInfo(`Sample Rate: ${track.getSettings().sampleRate}Hz`);
+                this.addDebugInfo(`Channel Count: ${track.getSettings().channelCount}`);
+                this.addDebugInfo(`Echo Cancellation: ${track.getSettings().echoCancellation}`);
+                this.addDebugInfo(`Noise Suppression: ${track.getSettings().noiseSuppression}`);
+                this.addDebugInfo(`Auto Gain Control: ${track.getSettings().autoGainControl}`);
             }
 
             // Create AudioContext for real-time processing
@@ -428,6 +475,7 @@ class VoiceVideoSettings {
             this.addDebugInfo('REAL-TIME audio monitoring active - you should hear yourself immediately!');
             this.addDebugInfo(`Input gain: ${inputGain.toFixed(2)} (${this.settings.inputVolume}%)`);
             this.addDebugInfo(`Output gain: ${outputGain.toFixed(2)} (${this.settings.outputVolume}%)`);
+            this.addDebugInfo('Using system default output device');
             
             // Start visualizer
             this.startVisualizer();
@@ -484,6 +532,8 @@ class VoiceVideoSettings {
 
 
 
+
+
     async restartAudioContext() {
         await this.startVolumeMonitoring();
     }
@@ -497,8 +547,8 @@ class VoiceVideoSettings {
             `Audio Context State: ${this.audioContext?.state || 'Not initialized'}`,
             `Real Input Devices: ${this.devices.input.length}`,
             `Real Output Devices: ${this.devices.output.length}`,
-            `Selected Input: ${this.settings.inputDevice}`,
-            `Selected Output: ${this.settings.outputDevice}`,
+            `Active Input: ${this.devices.input[0]?.label || 'System Default'}`,
+            `Active Output: ${this.devices.output[0]?.label || 'System Default'}`,
             `Real-Time Monitoring: ${this.micTest.isActive ? 'ACTIVE - You should hear yourself!' : 'Idle'}`,
             `Test Stream Active: ${this.micTest.testStream?.active || false}`,
             `Real Audio Tracks: ${this.micTest.testStream?.getAudioTracks().length || 0}`,

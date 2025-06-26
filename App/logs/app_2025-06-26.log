@@ -6,3 +6,23 @@
 [2025-06-26 08:38:01] DEBUG [8f1fcc] DB Query: SELECT * FROM message_reactions LIMIT 1 - Duration: 45.70ms - Context: {"bindings":[],"result_count":1,"db_query":"SELECT * FROM message_reactions LIMIT 1","db_duration":0.04570293426513672}
 [2025-06-26 08:38:01] DEBUG [8f1fcc] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
 [2025-06-26 08:38:01] INFO [8f1fcc] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-26 08:55:05] DEBUG [927268] Controller instantiated - Context: {"controller":"ChatController","request_uri":"","request_method":"POST","is_ajax":"no"}
+[2025-06-26 08:55:05] DEBUG [927268] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-26 08:55:05] INFO [927268] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-26 08:55:05] DEBUG [927268] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-26 08:55:05] INFO [927268] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-26 08:55:05] DEBUG [927268] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-26 08:55:05] INFO [927268] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-26 08:55:05] DEBUG [927268] DB Query: SELECT * FROM channels WHERE  id = ? LIMIT 1 - Duration: 49.18ms - Context: {"bindings":["1"],"found":true,"db_query":"SELECT * FROM channels WHERE  id = ? LIMIT 1","db_duration":0.04917502403259277}
+[2025-06-26 08:55:05] DEBUG [927268] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-26 08:55:05] INFO [927268] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-26 08:55:05] DEBUG [927268] DB Query: SELECT * FROM user_server_memberships WHERE  user_id = ? AND server_id = ? LIMIT 1 - Duration: 51.91ms - Context: {"bindings":[1,1],"found":true,"db_query":"SELECT * FROM user_server_memberships WHERE  user_id = ? AND server_id = ? LIMIT 1","db_duration":0.0519099235534668}
+[2025-06-26 08:55:05] DEBUG [927268] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-26 08:55:05] INFO [927268] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-26 08:55:05] DEBUG [927268] DB Query: INSERT INTO messages (`content`, `user_id`, `message_type`, `attachment_url`, `sent_at`, `updated_at... - Duration: 70.45ms - Context: {"table":"messages","data":{"content":"Test message with potential reactions","user_id":1,"message_type":"text","attachment_url":null,"sent_at":"2025-06-26 08:55:05","updated_at":"2025-06-26 08:55:05","created_at":"2025-06-26 08:55:05"},"insert_id":"142","affected_rows":1,"db_query":"INSERT INTO messages (`content`, `user_id`, `message_type`, `attachment_url`, `sent_at`, `updated_at`, `created_at`) VALUES (?, ?, ?, ?, ?, ?, ?)","db_duration":0.07044792175292969}
+[2025-06-26 08:55:05] DEBUG [927268] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-26 08:55:05] INFO [927268] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-26 08:55:05] DEBUG [927268] DB Query: INSERT INTO channel_messages (`channel_id`, `message_id`) VALUES (?, ?) - Duration: 67.89ms - Context: {"table":"channel_messages","data":{"channel_id":"1","message_id":"142"},"insert_id":"13","affected_rows":1,"db_query":"INSERT INTO channel_messages (`channel_id`, `message_id`) VALUES (?, ?)","db_duration":0.06788897514343262}
+[2025-06-26 08:55:05] DEBUG [927268] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-06-26 08:55:05] INFO [927268] Database connected successfully - Context: {"database":"misvord"}
+[2025-06-26 08:55:05] DEBUG [927268] DB Query: SELECT * FROM users WHERE  id = ? LIMIT 1 - Duration: 45.33ms - Context: {"bindings":[1],"found":true,"db_query":"SELECT * FROM users WHERE  id = ? LIMIT 1","db_duration":0.04533219337463379}

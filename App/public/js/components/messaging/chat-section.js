@@ -1300,6 +1300,7 @@ class ChatSection {
         
         const existingMessageElement = document.querySelector(`[data-message-id="${msg.id}"]`);
         if (existingMessageElement) {
+            console.log('Message already exists, preserving existing reactions:', msg.id);
             return;
         }
         
@@ -1683,9 +1684,18 @@ class ChatSection {
             io.removeAllListeners('user-stop-typing-dm');
             
             io.on('new-channel-message', function(data) {
-                console.log('Received channel message:', data);
+                console.log('🔥 Received channel message:', data);
+                console.log('🔥 Data structure analysis:', {
+                    hasId: !!data.id,
+                    hasUserId: !!data.userId,
+                    hasUser_id: !!data.user_id,
+                    hasReactions: !!(data.reactions && data.reactions.length > 0),
+                    reactionsCount: data.reactions ? data.reactions.length : 0,
+                    messageData: data
+                });
+                
                 if (self.chatType === 'channel' && data.channelId == self.targetId) {
-                    const messageId = data.id || `${data.userId}-${data.timestamp}`;
+                    const messageId = data.id || `${data.userId || data.user_id}-${data.timestamp}`;
                     data.id = messageId;
                     
                     // Check if message already exists in DOM (loaded from database)
@@ -1698,7 +1708,7 @@ class ChatSection {
                     if (!self.processedMessageIds.has(messageId)) {
                         self.processedMessageIds.add(messageId);
                         
-                        if (data.userId != self.userId) {
+                        if ((data.userId || data.user_id) != self.userId) {
                             self.addMessage(data);
                             
                             // Process reactions if they exist in the socket data
@@ -1721,9 +1731,18 @@ class ChatSection {
             });
             
             io.on('user-message-dm', function(data) {
-                console.log('Received DM message:', data);
+                console.log('🔥 Received DM message:', data);
+                console.log('🔥 DM Data structure analysis:', {
+                    hasId: !!data.id,
+                    hasUserId: !!data.userId,
+                    hasUser_id: !!data.user_id,
+                    hasReactions: !!(data.reactions && data.reactions.length > 0),
+                    reactionsCount: data.reactions ? data.reactions.length : 0,
+                    messageData: data
+                });
+                
                 if ((self.chatType === 'direct' || self.chatType === 'dm') && data.roomId == self.targetId) {
-                    const messageId = data.id || `${data.userId}-${data.timestamp}`;
+                    const messageId = data.id || `${data.userId || data.user_id}-${data.timestamp}`;
                     data.id = messageId;
                     
                     // Check if message already exists in DOM (loaded from database)
@@ -1736,7 +1755,7 @@ class ChatSection {
                     if (!self.processedMessageIds.has(messageId)) {
                         self.processedMessageIds.add(messageId);
                         
-                        if (data.userId != self.userId) {
+                        if ((data.userId || data.user_id) != self.userId) {
                             self.addMessage(data);
                             
                             // Process reactions if they exist in the socket data

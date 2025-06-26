@@ -287,4 +287,11 @@ class ServerRepository extends Repository {
             
         return $result;
     }
+    
+    public function countPublicServers() {
+        $query = new Query();
+        return $query->table('servers')
+            ->where('is_public', 1)
+            ->count();
+    }
 }

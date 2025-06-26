@@ -159,10 +159,27 @@ class ChatAPI {
             });
             
             console.log('📥 API Response:', response);
+            console.log('🔍 Response analysis:', {
+                hasSocketData: !!response.socket_data,
+                hasMessage: !!(response.socket_data && response.socket_data.message),
+                messageReactions: response.socket_data?.message?.reactions,
+                reactionsCount: response.socket_data?.message?.reactions?.length || 0,
+                fullResponse: response
+            });
             
             if (response && response.success !== false) {
                 console.log('✅ API success, sending socket message...');
-                this.sendDirectSocketMessage(targetId, content, chatType, options);
+                
+                // Use the actual message data from the server response which includes reactions
+                if (response.socket_data && response.socket_data.message) {
+                    const serverMessage = response.socket_data.message;
+                    console.log('🎯 Using server message data with reactions:', serverMessage);
+                    this.sendDirectSocketMessageWithServerData(targetId, chatType, response.socket_data);
+                } else {
+                    console.log('⚠️ No server message data, using fallback method');
+                    // Fallback to old method if no server data
+                    this.sendDirectSocketMessage(targetId, content, chatType, options);
+                }
             } else {
                 console.warn('⚠️ API response indicates failure:', response);
             }
@@ -171,6 +188,78 @@ class ChatAPI {
         } catch (error) {
             console.error('❌ Error sending message to database:', error);
             throw error;
+        }
+    }
+
+    sendDirectSocketMessageWithServerData(targetId, chatType, socketData) {
+        console.log('🔌 sendDirectSocketMessageWithServerData called:', { targetId, chatType, socketData });
+        console.log('🔍 Server message data analysis:', {
+            hasMessage: !!socketData.message,
+            messageId: socketData.message?.id,
+            messageReactions: socketData.message?.reactions,
+            reactionsCount: socketData.message?.reactions?.length || 0,
+            serverSocketData: socketData
+        });
+        
+        if (!window.globalSocketManager) {
+            console.error('❌ globalSocketManager not available');
+            return false;
+        }
+        
+        if (!window.globalSocketManager.isReady()) {
+            console.error('❌ Socket not ready');
+            return false;
+        }
+        
+        if (!window.globalSocketManager.io) {
+            console.error('❌ Socket IO not available');
+            return false;
+        }
+        
+        const io = window.globalSocketManager.io;
+        
+        try {
+            let eventName;
+            
+            if (chatType === 'channel') {
+                eventName = 'new-channel-message';
+                // Use the complete message data from server including reactions
+                const messageData = {
+                    ...socketData.message, // This includes ID, reactions, etc.
+                    channelId: targetId,
+                    userId: socketData.message.user_id, // Use message user_id
+                    user_id: socketData.message.user_id, // Also include user_id field
+                    username: socketData.message.username || socketData.username,
+                    timestamp: socketData.timestamp,
+                    content: socketData.message.content,
+                    messageType: socketData.message.message_type || socketData.messageType
+                };
+                
+                console.log(`🚀 Emitting ${eventName} with server data:`, messageData);
+                io.emit(eventName, messageData);
+            } 
+            else if (chatType === 'direct' || chatType === 'dm') {
+                eventName = 'user-message-dm';
+                // Use the complete message data from server including reactions
+                const messageData = {
+                    ...socketData.message, // This includes ID, reactions, etc.
+                    roomId: targetId,
+                    userId: socketData.message.user_id, // Use message user_id
+                    user_id: socketData.message.user_id, // Also include user_id field
+                    username: socketData.message.username || socketData.username,
+                    timestamp: socketData.timestamp,
+                    content: socketData.message.content,
+                    messageType: socketData.message.message_type || socketData.messageType
+                };
+                
+                console.log(`🚀 Emitting ${eventName} with server data:`, messageData);
+                io.emit(eventName, messageData);
+            }
+            
+            return true;
+        } catch (e) {
+            console.error('❌ Failed to send socket message with server data:', e);
+            return false;
         }
     }
 

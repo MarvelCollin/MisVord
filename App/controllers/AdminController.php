@@ -325,35 +325,21 @@ class AdminController extends BaseController
     {
         $this->requireAdmin();
         
+        // Get simple overall user statistics
+        $totalUsers = $this->userRepository->count();
+        $onlineUsers = $this->userRepository->countByStatus('online');
+        $offlineUsers = $this->userRepository->countByStatus('offline');
+        $bannedUsers = $this->userRepository->countByStatus('banned');
         
-        $dailyStats = $this->userRepository->getRegistrationStatsByDay(14);
-        
-        
-        $daily = [];
-        foreach ($dailyStats as $date => $count) {
-            $daily[] = [
-                'label' => $date,
-                'value' => $count
-            ];
-        }
-        
-        
-        $weeklyStats = $this->userRepository->getRegistrationStatsByWeek(8);
-        
-        
-        $weekly = [];
-        foreach ($weeklyStats as $weekRange => $count) {
-            $weekly[] = [
-                'label' => $weekRange,
-                'value' => $count
-            ];
-        }
+        $data = [
+            ['label' => 'Online', 'value' => $onlineUsers],
+            ['label' => 'Offline', 'value' => $offlineUsers],
+            ['label' => 'Banned', 'value' => $bannedUsers]
+        ];
         
         return $this->success([
-            'data' => [
-                'daily' => $daily,
-                'weekly' => $weekly
-            ]
+            'data' => $data,
+            'total' => $totalUsers
         ]);
     }
     
@@ -361,35 +347,20 @@ class AdminController extends BaseController
     {
         $this->requireAdmin();
         
+        // Get simple message statistics by type or recent activity
+        $totalMessages = $this->messageRepository->count();
+        $todayMessages = $this->messageRepository->countToday();
+        $thisWeekMessages = $totalMessages; // You can implement countThisWeek if needed
         
-        $dailyStats = $this->messageRepository->getMessageStatsByDay(14);
-        
-        
-        $daily = [];
-        foreach ($dailyStats as $date => $count) {
-            $daily[] = [
-                'label' => $date,
-                'value' => $count
-            ];
-        }
-        
-        
-        $weeklyStats = $this->messageRepository->getMessageStatsByWeek(8);
-        
-        
-        $weekly = [];
-        foreach ($weeklyStats as $weekRange => $count) {
-            $weekly[] = [
-                'label' => $weekRange,
-                'value' => $count
-            ];
-        }
+        $data = [
+            ['label' => 'Total Messages', 'value' => $totalMessages],
+            ['label' => 'Today', 'value' => $todayMessages],
+            ['label' => 'Remaining', 'value' => max(0, $totalMessages - $todayMessages)]
+        ];
         
         return $this->success([
-            'data' => [
-                'daily' => $daily,
-                'weekly' => $weekly
-            ]
+            'data' => $data,
+            'total' => $totalMessages
         ]);
     }
     
@@ -397,25 +368,122 @@ class AdminController extends BaseController
     {
         $this->requireAdmin();
         
+        // Get simple server statistics
+        $totalServers = $this->serverRepository->count();
+        $publicServers = $this->serverRepository->countPublicServers();
+        $privateServers = $totalServers - $publicServers;
         
-        $dailyStats = $this->serverRepository->getCreationStatsByDay(14);
-        
-        
-        $growth = [];
-        foreach ($dailyStats as $date => $count) {
-            $growth[] = [
-                'label' => $date,
-                'value' => $count
-            ];
-        }
+        $data = [
+            ['label' => 'Public Servers', 'value' => $publicServers],
+            ['label' => 'Private Servers', 'value' => $privateServers]
+        ];
         
         return $this->success([
-            'data' => [
-                'growth' => $growth
-            ]
+            'data' => $data,
+            'total' => $totalServers
         ]);
     }
     
+    public function createSampleData()
+    {
+        $this->requireAdmin();
+        
+        try {
+            // Create sample users with different creation dates
+            for ($i = 0; $i < 5; $i++) {
+                $date = date('Y-m-d H:i:s', strtotime("-$i days"));
+                for ($j = 0; $j < rand(1, 5); $j++) {
+                    $userData = [
+                        'username' => 'SampleUser' . time() . rand(1000, 9999),
+                        'email' => 'sample' . time() . rand(1000, 9999) . '@test.com',
+                        'password' => password_hash('password123', PASSWORD_DEFAULT),
+                        'discriminator' => str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT),
+                        'status' => 'offline',
+                        'created_at' => $date,
+                        'updated_at' => $date
+                    ];
+                    $this->userRepository->create($userData);
+                }
+            }
+            
+            // Create sample servers
+            for ($i = 0; $i < 3; $i++) {
+                $date = date('Y-m-d H:i:s', strtotime("-$i days"));
+                $serverData = [
+                    'name' => 'Sample Server ' . time() . rand(100, 999),
+                    'description' => 'A sample server for testing',
+                    'owner_id' => 1, // Assuming admin user ID is 1
+                    'is_public' => 1,
+                    'category' => 'General',
+                    'created_at' => $date,
+                    'updated_at' => $date
+                ];
+                $this->serverRepository->create($serverData);
+            }
+            
+            // Create sample messages
+            for ($i = 0; $i < 7; $i++) {
+                $date = date('Y-m-d H:i:s', strtotime("-$i days"));
+                for ($j = 0; $j < rand(1, 10); $j++) {
+                    $messageData = [
+                        'user_id' => 1,
+                        'content' => 'Sample message content ' . rand(1000, 9999),
+                        'message_type' => 'text',
+                        'sent_at' => $date,
+                        'created_at' => $date,
+                        'updated_at' => $date
+                    ];
+                    $this->messageRepository->create($messageData);
+                }
+            }
+            
+            return $this->success([], 'Sample data created successfully');
+            
+        } catch (Exception $e) {
+            return $this->serverError('Error creating sample data: ' . $e->getMessage());
+        }
+    }
+
+    public function debugChartData()
+    {
+        $this->requireAdmin();
+        
+        // Test data fetching directly
+        $userCount = $this->userRepository->count();
+        $serverCount = $this->serverRepository->count();
+        $messageCount = $this->messageRepository->count();
+        
+        $dailyUserStats = $this->userRepository->getRegistrationStatsByDay(7);
+        $dailyMessageStats = $this->messageRepository->getMessageStatsByDay(7);
+        $dailyServerStats = $this->serverRepository->getCreationStatsByDay(7);
+        
+        return $this->success([
+            'debug' => [
+                'counts' => [
+                    'users' => $userCount,
+                    'servers' => $serverCount,
+                    'messages' => $messageCount
+                ],
+                'raw_stats' => [
+                    'users_daily' => $dailyUserStats,
+                    'messages_daily' => $dailyMessageStats,
+                    'servers_daily' => $dailyServerStats
+                ],
+                'formatted_stats' => [
+                    'users_daily' => array_map(function($date, $count) {
+                        return ['label' => $date, 'value' => $count];
+                    }, array_keys($dailyUserStats), $dailyUserStats),
+                    'messages_daily' => array_map(function($date, $count) {
+                        return ['label' => $date, 'value' => $count];
+                    }, array_keys($dailyMessageStats), $dailyMessageStats),
+                    'servers_daily' => array_map(function($date, $count) {
+                        return ['label' => $date, 'value' => $count];
+                    }, array_keys($dailyServerStats), $dailyServerStats)
+                ]
+            ]
+        ]);
+    }
+
     public function toggleUserBan($userId) {
         $this->requireAdmin();
         

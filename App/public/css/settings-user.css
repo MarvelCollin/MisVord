@@ -1093,6 +1093,7 @@ button:active {
 
 .volume-control {
     position: relative;
+    margin: 10px 0;
 }
 
 .volume-slider {
@@ -1104,6 +1105,18 @@ button:active {
     -webkit-appearance: none;
     appearance: none;
     cursor: pointer;
+    position: relative;
+    z-index: 10;
+    padding: 6px 0; /* Larger click area */
+    box-sizing: border-box;
+}
+
+.volume-slider:hover {
+    background: #4a4e55;
+}
+
+.volume-slider:active {
+    background: #4a4e55;
 }
 
 .volume-slider::-webkit-slider-thumb {
@@ -1116,6 +1129,20 @@ button:active {
     cursor: pointer;
     border: 2px solid #ffffff;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    position: relative;
+    z-index: 20;
+    transition: all 0.2s ease;
+}
+
+.volume-slider::-webkit-slider-thumb:hover {
+    background: #4752c4;
+    transform: scale(1.1);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+}
+
+.volume-slider::-webkit-slider-thumb:active {
+    background: #3c45a5;
+    transform: scale(1.05);
 }
 
 .volume-slider::-moz-range-thumb {
@@ -1126,6 +1153,35 @@ button:active {
     cursor: pointer;
     border: 2px solid #ffffff;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    position: relative;
+    z-index: 20;
+    transition: all 0.2s ease;
+}
+
+.volume-slider::-moz-range-thumb:hover {
+    background: #4752c4;
+    transform: scale(1.1);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+}
+
+.volume-slider::-moz-range-thumb:active {
+    background: #3c45a5;
+    transform: scale(1.05);
+}
+
+/* Firefox specific fixes */
+.volume-slider::-moz-range-track {
+    background: #40444b;
+    height: 8px;
+    border-radius: 4px;
+    border: none;
+}
+
+.volume-slider::-moz-range-progress {
+    background: #5865f2;
+    height: 8px;
+    border-radius: 4px;
+    border: none;
 }
 
 .volume-indicator {
@@ -1134,6 +1190,9 @@ button:active {
     background: #40444b;
     border-radius: 2px;
     overflow: hidden;
+    position: relative;
+    z-index: 5;
+    pointer-events: none; /* Prevent indicator from blocking slider clicks */
 }
 
 .volume-level {
@@ -1199,6 +1258,49 @@ button:active {
 #debug-info div {
     margin-bottom: 4px;
     padding: 2px 0;
+}
+
+/* Ensure both volume sliders work identically */
+#input-volume, #output-volume {
+    touch-action: none; /* Better mobile interaction */
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+#input-volume:focus, #output-volume:focus {
+    outline: 2px solid #5865f2;
+    outline-offset: 2px;
+}
+
+/* Ensure volume controls don't interfere with each other */
+.volume-control:nth-child(1) .volume-slider {
+    position: relative;
+    z-index: 15;
+}
+
+.volume-control:nth-child(2) .volume-slider {
+    position: relative;
+    z-index: 15;
+}
+
+/* Better mobile touch targets */
+@media (max-width: 768px) {
+    .volume-slider {
+        height: 12px;
+        padding: 8px 0;
+    }
+    
+    .volume-slider::-webkit-slider-thumb {
+        width: 24px;
+        height: 24px;
+    }
+    
+    .volume-slider::-moz-range-thumb {
+        width: 24px;
+        height: 24px;
+    }
 }
 
 

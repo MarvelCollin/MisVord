@@ -295,16 +295,22 @@ ob_start();
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                             <div class="bg-discord-darker rounded-lg p-6">
                                 <h3 class="text-lg font-medium mb-4">Input Device</h3>
-                                <select id="input-device-select" class="w-full bg-discord-dark border border-gray-600 rounded-md px-3 py-2 text-white">
-                                    <option value="default">Default</option>
-                                </select>
+                                <div class="w-full bg-discord-dark border border-gray-600 rounded-md px-3 py-2 text-white">
+                                    <div id="current-input-device" class="text-discord-lighter">
+                                        <i class="fas fa-microphone mr-2"></i>
+                                        <span>Detecting device...</span>
+                                    </div>
+                                </div>
                             </div>
 
                             <div class="bg-discord-darker rounded-lg p-6">
                                 <h3 class="text-lg font-medium mb-4">Output Device</h3>
-                                <select id="output-device-select" class="w-full bg-discord-dark border border-gray-600 rounded-md px-3 py-2 text-white">
-                                    <option value="default">Default</option>
-                                </select>
+                                <div class="w-full bg-discord-dark border border-gray-600 rounded-md px-3 py-2 text-white">
+                                    <div id="current-output-device" class="text-discord-lighter">
+                                        <i class="fas fa-headphones mr-2"></i>
+                                        <span>Detecting device...</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -395,6 +401,16 @@ ob_start();
                     <div id="debugging-content" class="tab-content hidden">
                         <div class="bg-discord-darker rounded-lg p-6">
                             <h3 class="text-lg font-medium mb-4">Debug Information</h3>
+                            
+                            <div class="mb-4">
+                                <button id="test-devices-btn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md transition-colors">
+                                    Test Device Configuration
+                                </button>
+                                <p class="text-sm text-discord-lighter mt-2">
+                                    Click to verify that your selected input and output devices are working correctly.
+                                </p>
+                            </div>
+                            
                             <div id="debug-info" class="bg-discord-dark rounded p-4 font-mono text-sm">
                                 <div>Loading debug information...</div>
                             </div>
