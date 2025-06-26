@@ -556,9 +556,9 @@ input:checked + .slider:before {
 
 /* Close button */
 .close-button {
-  position: absolute;
-  top: var(--discord-spacing-xl);
-  right: var(--discord-spacing-xl);
+  position: fixed;
+  top: 16px;
+  right: 16px;
   display: flex;
   align-items: center;
   background: none;
@@ -907,11 +907,6 @@ a:active {
     margin: 0 auto;
     height: calc(100vh - 2 * var(--discord-spacing-sm));
   }
-  
-  .close-button {
-    top: 8px;
-    right: 8px;
-  }
 }
 
 @media (max-width: 768px) {
@@ -935,21 +930,11 @@ a:active {
   .p-10 {
     padding: var(--discord-spacing-lg);
   }
-  
-  .close-button {
-    top: 8px;
-    right: 8px;
-  }
 }
 
 @media (min-width: 1400px) {
   .flex.min-h-screen {
     max-width: 1300px;
-  }
-  
-  .close-button {
-    top: 12px;
-    right: 12px;
   }
 }
 

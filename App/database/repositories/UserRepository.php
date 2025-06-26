@@ -180,6 +180,7 @@ class UserRepository extends Repository {
         $query = new Query();
         $results = $query->table(User::getTable())
             ->where('status', '!=', 'bot')
+            ->where('email', '!=', 'admin@admin.com')
             ->orderBy('created_at', 'DESC')
             ->limit($limit)
             ->offset($offset)
@@ -212,6 +213,7 @@ class UserRepository extends Repository {
                   ->orWhereLike('display_name', "%$query%");
             })
             ->where('status', '!=', 'bot')
+            ->where('email', '!=', 'admin@admin.com')
             ->orderBy('created_at', 'DESC')
             ->limit($limit)
             ->offset($offset)
@@ -240,6 +242,7 @@ class UserRepository extends Repository {
                   ->orWhereLike('display_name', "%$query%");
             })
             ->where('status', '!=', 'bot')
+            ->where('email', '!=', 'admin@admin.com')
             ->count();
     }
     
@@ -386,6 +389,7 @@ class UserRepository extends Repository {
         $query = new Query();
         return $query->table(User::getTable())
             ->where('status', '!=', 'bot')
+            ->where('email', '!=', 'admin@admin.com')
             ->count();
     }
     

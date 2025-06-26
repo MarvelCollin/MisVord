@@ -1876,13 +1876,17 @@ class ChatSection {
             
             const params = new URLSearchParams({ offset, limit });
             const apiChatType = this.chatType === 'direct' ? 'dm' : this.chatType;
-            const response = await fetch(
-                `/api/chat/${apiChatType}/${this.targetId}/messages?${params.toString()}`
-            );
             
-            console.log('Response received:', response);
+            // Start fetching messages
+            const messagesPromise = fetch(`/api/chat/${apiChatType}/${this.targetId}/messages?${params.toString()}`)
+                .then(response => response.json());
+                
+            // Prepare for batch fetching of reactions
+            const reactionPromises = [];
+            const messagesToProcess = [];
             
-            const data = await response.json();
+            // Get the message data
+            const data = await messagesPromise;
             
             let messages = [];
             
@@ -1895,17 +1899,59 @@ class ChatSection {
             }
             
             if (messages && messages.length > 0) {
-                // Track message IDs for reaction loading
+                // Pre-fetch reactions for all messages while still showing skeletons
                 const messageIds = messages.map(msg => {
                     this.processedMessageIds.add(msg.id);
                     return msg.id;
                 });
                 
-                // Render messages first to get DOM ready
+                // Fetch all reactions in parallel
+                const batchSize = 5;
+                for (let i = 0; i < messageIds.length; i += batchSize) {
+                    const batch = messageIds.slice(i, i + batchSize);
+                    for (const messageId of batch) {
+                        if (window.ChatAPI) {
+                            reactionPromises.push(
+                                window.ChatAPI.getMessageReactions(messageId)
+                                .then(reactions => {
+                                    messagesToProcess.push({
+                                        messageId,
+                                        reactions
+                                    });
+                                })
+                                .catch(err => console.error(`Error fetching reactions for message ${messageId}:`, err))
+                            );
+                        }
+                    }
+                    // Add a small delay between batches to prevent overloading the server
+                    if (i + batchSize < messageIds.length) {
+                        await new Promise(resolve => setTimeout(resolve, 50));
+                    }
+                }
+                
+                // Wait for all reaction requests to complete or timeout after 500ms
+                await Promise.race([
+                    Promise.all(reactionPromises),
+                    new Promise(resolve => setTimeout(resolve, 500))
+                ]);
+                
+                // Process all fetched reactions
+                messagesToProcess.forEach(item => {
+                    const message = messages.find(m => m.id === item.messageId);
+                    if (message) {
+                        message.reactions = item.reactions || [];
+                    }
+                });
+                
+                // Now render messages with reactions already loaded
                 this.renderMessages(messages);
                 
-                // Preload reactions while skeletons are still showing
-                this.preloadReactions(messageIds);
+                // Update any messages that finished loading after rendering
+                messagesToProcess.forEach(item => {
+                    if (window.emojiReactions && item.reactions?.length > 0) {
+                        window.emojiReactions.updateReactionsDisplay(item.messageId, item.reactions);
+                    }
+                });
                 
                 this.scrollToBottom();
             } else {
@@ -1918,46 +1964,6 @@ class ChatSection {
             this.hideLoadingIndicator();
             console.error('Failed to load messages:', error);
             this.showErrorMessage(`Failed to load messages: ${error.message}`);
-        }
-    }
-    
-    // Preload reactions for multiple messages at once
-    preloadReactions(messageIds) {
-        if (!window.emojiReactions || !messageIds.length) return;
-        
-        console.log(`🔄 Preloading reactions for ${messageIds.length} messages`);
-        
-        // Create skeleton reaction containers while data loads
-        messageIds.forEach(messageId => {
-            const messageElement = document.querySelector(`.message-content[data-message-id="${messageId}"]`);
-            if (messageElement) {
-                // Add reaction placeholder if not exists
-                if (!messageElement.querySelector('.message-reactions-container')) {
-                    const reactionSkeleton = document.createElement('div');
-                    reactionSkeleton.className = 'message-reactions-container reaction-skeleton';
-                    reactionSkeleton.innerHTML = '<div class="reaction-loading-pulse"></div>';
-                    
-                    const messageContent = messageElement.querySelector('.message-main-text') || messageElement;
-                    if (messageContent.parentElement) {
-                        messageContent.parentElement.appendChild(reactionSkeleton);
-                    } else {
-                        messageElement.appendChild(reactionSkeleton);
-                    }
-                }
-            }
-        });
-        
-        // Load reactions in batches to avoid too many parallel requests
-        const batchSize = 5;
-        for (let i = 0; i < messageIds.length; i += batchSize) {
-            const batch = messageIds.slice(i, i + batchSize);
-            batch.forEach(messageId => {
-                setTimeout(() => {
-                    if (window.emojiReactions) {
-                        window.emojiReactions.loadMessageReactions(messageId);
-                    }
-                }, i * 20); // Stagger the requests slightly
-            });
         }
     }
     
@@ -2014,8 +2020,18 @@ class ChatSection {
         messageText.appendChild(contentBar1);
         messageText.appendChild(contentBar2);
         
+        // Add a reaction skeleton to the message
+        const reactionContainer = document.createElement('div');
+        reactionContainer.className = 'message-reactions-container reaction-skeleton';
+        reactionContainer.innerHTML = '<div class="reaction-loading-pulse"></div>';
+        
         contentArea.appendChild(headerInfo);
         contentArea.appendChild(messageText);
+        
+        // Only add reaction skeleton to some messages to simulate realistic loading
+        if (Math.random() > 0.6) {
+            contentArea.appendChild(reactionContainer);
+        }
         
         groupWrapper.appendChild(avatarWrapper);
         groupWrapper.appendChild(contentArea);

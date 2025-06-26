@@ -82,6 +82,11 @@ class AdminController extends BaseController
                 // Convert to array if it's an object
                 $userData = is_object($user) && method_exists($user, 'toArray') ? $user->toArray() : (array)$user;
                 
+                // Skip admin user
+                if (isset($userData['email']) && $userData['email'] === 'admin@admin.com') {
+                    continue;
+                }
+                
                 // Ensure all critical fields exist
                 $normalizedUsers[] = [
                     'id' => $userData['id'] ?? null,
@@ -96,6 +101,14 @@ class AdminController extends BaseController
                     'created_at' => $userData['created_at'] ?? null,
                     'updated_at' => $userData['updated_at'] ?? null
                 ];
+            }
+            
+            // Adjust total count to exclude admin
+            if (!empty($query) && $query !== 'admin' && $total > 0) {
+                $total = count($normalizedUsers);
+            } else {
+                $total--; // Subtract admin from total count
+                if ($total < 0) $total = 0;
             }
             
             if ($this->isApiRoute() || $this->isAjaxRequest()) {
@@ -130,6 +143,11 @@ class AdminController extends BaseController
             
             // Convert to array if it's an object
             $userData = is_object($user) && method_exists($user, 'toArray') ? $user->toArray() : (array)$user;
+            
+            // Prevent accessing admin user details
+            if (isset($userData['email']) && $userData['email'] === 'admin@admin.com') {
+                return $this->forbidden('Access to admin user details is restricted');
+            }
             
             // Ensure all critical fields exist
             $normalizedUser = [
@@ -458,6 +476,11 @@ class AdminController extends BaseController
             
             if (!$user) {
                 return $this->error("User not found", 404);
+            }
+            
+            // Prevent banning admin user
+            if (isset($user->email) && $user->email === 'admin@admin.com') {
+                return $this->forbidden("Cannot modify admin user status");
             }
             
             $currentStatus = $user->status;
