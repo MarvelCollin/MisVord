@@ -61,7 +61,6 @@ ob_start();
                 My Account
             </a>
             <a href="?section=connections" class="sidebar-item <?php echo $section === 'connections' ? 'active' : ''; ?>">
-                <i class="fas fa-link text-gray-400 mr-2"></i>
                 Connections
             </a>
             
@@ -73,7 +72,6 @@ ob_start();
                 Nitro
             </a>
             <a href="?section=voice" class="sidebar-item <?php echo $section === 'voice' ? 'active' : ''; ?>">
-                <i class="fas fa-microphone text-gray-400 mr-2"></i>
                 Voice & Video
             </a>
             <a href="?section=text" class="sidebar-item <?php echo $section === 'text' ? 'active' : ''; ?>">
@@ -280,16 +278,16 @@ ob_start();
 
                     <div class="voice-video-tabs mb-6">
                         <button class="voice-tab active" data-tab="voice">
-                            <i class="fas fa-microphone mr-2"></i>Voice
+                            Voice
                         </button>
                         <button class="voice-tab" data-tab="video">
-                            <i class="fas fa-video mr-2"></i>Video
+                            Video
                         </button>
                         <button class="voice-tab" data-tab="soundboard">
-                            <i class="fas fa-music mr-2"></i>Soundboard
+                            Soundboard
                         </button>
                         <button class="voice-tab" data-tab="debugging">
-                            <i class="fas fa-bug mr-2"></i>Debugging
+                            Debugging
                         </button>
                     </div>
 

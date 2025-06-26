@@ -25,6 +25,9 @@ if (!document.body.classList.contains('settings-page') &&
     import('./messaging/chat-socket-handler.js').catch(err => {
         console.debug('Chat socket handler not loaded: ', err.message);
     });
+    import('./messaging/emoji.js').catch(err => {
+        console.debug('Emoji reactions not loaded: ', err.message);
+    });
 }
 
 import './common/user-detail.js';

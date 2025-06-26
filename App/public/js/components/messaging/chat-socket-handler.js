@@ -1,10 +1,10 @@
 class EmojiSocketHandler {
     constructor() {
         this.emojiList = [
-            '👍', '❤️', '🅰️', '🇾', '🇹', '2️⃣', '🅰️', '🇩', '🇲',
-            '🇮', '🇪', '🇵', '🇸', '❤️', '1️⃣', '👨‍💻', '🇲', '💙',
-            '🔼', '🧡', '🇼', '🙏', '🤍', '🇳', '👋', 
-            '🇧', '😂', '😭', '🇧', '6️⃣', '🌴'
+            '👍', '❤️', '😂', '😭', '😮', '😡', '🎉', '🔥',
+            '💯', '👀', '😊', '🤔', '👋', '✨', '😍', '🥰',
+            '😘', '😁', '🙄', '🤩', '🤣', '😎', '🙏', '💙',
+            '🧡', '💚', '💛', '💜', '🖤', '🤍', '💯', '🌟'
         ];
         this.activeMessageId = null;
         this.initialized = false;
@@ -79,32 +79,93 @@ class EmojiSocketHandler {
             .message-reactions {
                 display: flex;
                 flex-wrap: wrap;
-                gap: 4px;
-                margin-top: 4px;
+                gap: 3px;
+                margin-top: 6px;
+                margin-bottom: 2px;
+                max-width: 100%;
             }
             
             .message-reaction {
                 display: inline-flex;
                 align-items: center;
-                background: #36393f;
+                background: rgba(79, 84, 92, 0.16);
+                border: 1px solid rgba(79, 84, 92, 0.24);
                 border-radius: 12px;
-                padding: 2px 6px;
+                padding: 3px 6px;
                 cursor: pointer;
-                font-size: 14px;
+                font-size: 13px;
                 user-select: none;
+                transition: all 0.15s ease;
+                min-height: 24px;
+                position: relative;
+                overflow: hidden;
+            }
+            
+            .message-reaction:hover {
+                background: rgba(79, 84, 92, 0.24);
+                border-color: rgba(79, 84, 92, 0.32);
+                transform: scale(1.05);
             }
             
             .message-reaction.user-reacted {
-                background: #4e5d94;
+                background: rgba(88, 101, 242, 0.15);
+                border-color: rgba(88, 101, 242, 0.3);
+                color: #5865f2;
+            }
+            
+            .message-reaction.user-reacted:hover {
+                background: rgba(88, 101, 242, 0.2);
+                border-color: rgba(88, 101, 242, 0.4);
             }
             
             .reaction-emoji {
-                font-size: 16px;
-                margin-right: 4px;
+                font-size: 14px;
+                margin-right: 3px;
+                line-height: 1;
             }
             
             .reaction-count {
-                font-size: 12px;
+                font-size: 11px;
+                font-weight: 500;
+                line-height: 1;
+                color: #b9bbbe;
+            }
+            
+            .message-reaction.user-reacted .reaction-count {
+                color: #5865f2;
+            }
+            
+            .message-item {
+                position: relative;
+            }
+            
+            .message-item:hover .message-action-reaction {
+                opacity: 1;
+                visibility: visible;
+            }
+            
+            .message-action-reaction {
+                position: absolute;
+                right: 16px;
+                top: -12px;
+                background: #2f3136;
+                border: 1px solid rgba(79, 84, 92, 0.48);
+                border-radius: 6px;
+                padding: 6px 8px;
+                cursor: pointer;
+                opacity: 0;
+                visibility: hidden;
+                transition: all 0.15s ease;
+                z-index: 100;
+                font-size: 16px;
+                line-height: 1;
+                color: #b9bbbe;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            }
+            
+            .message-action-reaction:hover {
+                background: #36393f;
+                color: #dcddde;
             }
         `;
         document.head.appendChild(style);
@@ -129,6 +190,64 @@ class EmojiSocketHandler {
                               y || 100);
             };
         }
+
+        this.setupMessageObserver();
+    }
+
+    setupMessageObserver() {
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                mutation.addedNodes.forEach((node) => {
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        const messages = node.classList?.contains('message-item') ? 
+                            [node] : node.querySelectorAll?.('.message-item') || [];
+                        
+                        messages.forEach(message => {
+                            this.addReactionButtonToMessage(message);
+                            const messageId = message.dataset.messageId;
+                            if (messageId) {
+                                this.loadReactions(messageId);
+                            }
+                        });
+                    }
+                });
+            });
+        });
+
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+
+        document.querySelectorAll('.message-item').forEach(message => {
+            this.addReactionButtonToMessage(message);
+            const messageId = message.dataset.messageId;
+            if (messageId) {
+                this.loadReactions(messageId);
+            }
+        });
+    }
+
+    addReactionButtonToMessage(messageElement) {
+        if (messageElement.querySelector('.message-action-reaction')) {
+            return;
+        }
+
+        const reactionButton = document.createElement('div');
+        reactionButton.className = 'message-action-reaction';
+        reactionButton.innerHTML = '😀';
+        reactionButton.title = 'Add reaction';
+
+        reactionButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const messageId = messageElement.dataset.messageId;
+            if (messageId) {
+                const rect = reactionButton.getBoundingClientRect();
+                this.showMenu(messageId, rect.left - 100, rect.bottom + 5);
+            }
+        });
+
+        messageElement.appendChild(reactionButton);
     }
 
     showMenu(messageId, x, y) {
@@ -224,11 +343,66 @@ class EmojiSocketHandler {
         try {
             const messageReactions = document.querySelector(`.message-reactions[data-message-id="${messageId}"]`);
             const existingReaction = messageReactions?.querySelector(`.message-reaction[data-emoji="${emoji}"]`);
+            const isRemoving = existingReaction && existingReaction.getAttribute('data-user-reacted') === 'true';
             
-            if (existingReaction && existingReaction.getAttribute('data-user-reacted') === 'true') {
+            if (isRemoving) {
                 await window.ChatAPI.removeReaction(messageId, emoji);
+                
+                if (window.globalSocketManager && window.globalSocketManager.io) {
+                    const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+                    const isChannelMessage = messageElement?.closest('.channel-messages');
+                    const isDMMessage = messageElement?.closest('.dm-messages');
+                    
+                    const socketData = {
+                        message_id: messageId,
+                        emoji: emoji,
+                        user_id: document.querySelector('meta[name="user-id"]')?.content,
+                        username: document.querySelector('meta[name="username"]')?.content
+                    };
+                    
+                    if (isChannelMessage) {
+                        const channelId = messageElement.dataset.channelId || window.currentChannelId;
+                        socketData.target_type = 'channel';
+                        socketData.target_id = channelId;
+                        socketData.channelId = channelId;
+                    } else if (isDMMessage) {
+                        const roomId = messageElement.dataset.roomId || window.currentRoomId;
+                        socketData.target_type = 'dm';
+                        socketData.target_id = roomId;
+                        socketData.roomId = roomId;
+                    }
+                    
+                    window.globalSocketManager.io.emit('reaction-removed', socketData);
+                }
             } else {
                 await window.ChatAPI.addReaction(messageId, emoji);
+                
+                if (window.globalSocketManager && window.globalSocketManager.io) {
+                    const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+                    const isChannelMessage = messageElement?.closest('.channel-messages');
+                    const isDMMessage = messageElement?.closest('.dm-messages');
+                    
+                    const socketData = {
+                        message_id: messageId,
+                        emoji: emoji,
+                        user_id: document.querySelector('meta[name="user-id"]')?.content,
+                        username: document.querySelector('meta[name="username"]')?.content
+                    };
+                    
+                    if (isChannelMessage) {
+                        const channelId = messageElement.dataset.channelId || window.currentChannelId;
+                        socketData.target_type = 'channel';
+                        socketData.target_id = channelId;
+                        socketData.channelId = channelId;
+                    } else if (isDMMessage) {
+                        const roomId = messageElement.dataset.roomId || window.currentRoomId;
+                        socketData.target_type = 'dm';
+                        socketData.target_id = roomId;
+                        socketData.roomId = roomId;
+                    }
+                    
+                    window.globalSocketManager.io.emit('reaction-added', socketData);
+                }
             }
             
             const reactionEvent = new CustomEvent('reaction-updated', {
@@ -379,12 +553,18 @@ if (document.readyState !== 'loading') {
     initEmojiSocketHandler();
 }
 
-if (window.globalSocketManager && window.globalSocketManager.io) {
-    window.globalSocketManager.io.on('reaction-added', (data) => {
-        emojiSocketHandler.handleReactionAdded(data);
-    });
-    
-    window.globalSocketManager.io.on('reaction-removed', (data) => {
-        emojiSocketHandler.handleReactionRemoved(data);
-    });
+function setupReactionSocketListeners() {
+    if (window.globalSocketManager && window.globalSocketManager.io) {
+        window.globalSocketManager.io.on('reaction-added', (data) => {
+            emojiSocketHandler.handleReactionAdded(data);
+        });
+        
+        window.globalSocketManager.io.on('reaction-removed', (data) => {
+            emojiSocketHandler.handleReactionRemoved(data);
+        });
+    } else {
+        setTimeout(setupReactionSocketListeners, 100);
+    }
 }
+
+setupReactionSocketListeners();
