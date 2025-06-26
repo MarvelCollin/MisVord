@@ -9,9 +9,15 @@ class VoiceVideoSettings {
             inputGainNode: null,
             outputGainNode: null
         };
+        this.videoTest = {
+            isActive: false,
+            videoStream: null,
+            videoElement: null
+        };
         this.devices = {
             input: [],
-            output: []
+            output: [],
+            video: []
         };
         this.settings = this.loadSettings();
         this.visualizerInterval = null;
@@ -30,12 +36,16 @@ class VoiceVideoSettings {
             const saved = localStorage.getItem('misvord_audio_settings');
             return saved ? JSON.parse(saved) : {
                 inputVolume: 50,
-                outputVolume: 75
+                outputVolume: 75,
+                cameraEnabled: true,
+                videoQuality: 'hd'
             };
         } catch {
             return {
                 inputVolume: 50,
-                outputVolume: 75
+                outputVolume: 75,
+                cameraEnabled: true,
+                videoQuality: 'hd'
             };
         }
     }
@@ -57,9 +67,11 @@ class VoiceVideoSettings {
             
             this.devices.input = devices.filter(device => device.kind === 'audioinput');
             this.devices.output = devices.filter(device => device.kind === 'audiooutput');
+            this.devices.video = devices.filter(device => device.kind === 'videoinput');
             
             this.addDebugInfo(`Found ${this.devices.input.length} real input devices`);
             this.addDebugInfo(`Found ${this.devices.output.length} real output devices`);
+            this.addDebugInfo(`Found ${this.devices.video.length} real video devices`);
             
             if (this.devices.input.length === 0) {
                 this.addDebugInfo('WARNING: No real input devices detected!');

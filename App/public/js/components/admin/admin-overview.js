@@ -8,7 +8,6 @@ export class OverviewManager {
       servers: []
     };
     
-    this.currentChartPeriod = "daily";
     this.init();
   }
 
@@ -265,14 +264,6 @@ export class OverviewManager {
   }
 
   setupChartControls() {
-    const periodSwitcher = document.getElementById('chart-period-switcher');
-    if (periodSwitcher) {
-      periodSwitcher.addEventListener('change', (e) => {
-        this.currentChartPeriod = e.target.value;
-        this.renderAllCharts();
-      });
-    }
-    
     const refreshBtn = document.getElementById('refresh-charts');
     if (refreshBtn) {
       refreshBtn.addEventListener('click', () => {
@@ -288,19 +279,13 @@ export class OverviewManager {
         "X-Requested-With": "XMLHttpRequest"
       }
     })
-      .then(response => {
-        console.log("Users Growth Status:", response.status);
-        return response.json();
-      })
+      .then(response => response.json())
       .then(data => {
-        console.log("Users Growth Response:", data);
-        
         let chartData = [];
         
         if (data.success && data.data) {
           chartData = data.data || [];
         } else {
-          console.log("Using sample user data");
           chartData = [
             { label: 'Online', value: 5 },
             { label: 'Offline', value: 25 },
@@ -308,15 +293,12 @@ export class OverviewManager {
           ];
         }
         
-        console.log("Users Chart Data:", chartData);
-        
         this.chartData.users = chartData;
         this.renderUserChart();
         this.hideChartLoading('users-chart');
       })
       .catch(error => {
-        console.error("User growth error:", error);
-        showToast("Error loading user growth data", "error");
+        showToast("Error loading user statistics", "error");
         
         this.chartData.users = [
           { label: 'Online', value: 5 },
@@ -333,19 +315,13 @@ export class OverviewManager {
         "X-Requested-With": "XMLHttpRequest"
       }
     })
-      .then(response => {
-        console.log("Messages Activity Status:", response.status);
-        return response.json();
-      })
+      .then(response => response.json())
       .then(data => {
-        console.log("Messages Activity Response:", data);
-        
         let chartData = [];
         
         if (data.success && data.data) {
           chartData = data.data || [];
         } else {
-          console.log("Using sample message data");
           chartData = [
             { label: 'Total Messages', value: 150 },
             { label: 'Today', value: 25 },
@@ -353,15 +329,12 @@ export class OverviewManager {
           ];
         }
         
-        console.log("Messages Chart Data:", chartData);
-        
         this.chartData.messages = chartData;
         this.renderMessageChart();
         this.hideChartLoading('messages-chart');
       })
       .catch(error => {
-        console.error("Message activity error:", error);
-        showToast("Error loading message activity data", "error");
+        showToast("Error loading message statistics", "error");
         
         this.chartData.messages = [
           { label: 'Total Messages', value: 150 },
@@ -378,34 +351,25 @@ export class OverviewManager {
         "X-Requested-With": "XMLHttpRequest"
       }
     })
-      .then(response => {
-        console.log("Servers Growth Status:", response.status);
-        return response.json();
-      })
+      .then(response => response.json())
       .then(data => {
-        console.log("Servers Growth Response:", data);
-        
         let chartData = [];
         
         if (data.success && data.data) {
           chartData = data.data || [];
         } else {
-          console.log("Using sample server data");
           chartData = [
             { label: 'Public Servers', value: 8 },
             { label: 'Private Servers', value: 4 }
           ];
         }
         
-        console.log("Servers Chart Data:", chartData);
-        
         this.chartData.servers = chartData;
         this.renderServerChart();
         this.hideChartLoading('servers-chart');
       })
       .catch(error => {
-        console.error("Server growth error:", error);
-        showToast("Error loading server growth data", "error");
+        showToast("Error loading server statistics", "error");
         
         this.chartData.servers = [
           { label: 'Public Servers', value: 8 },
@@ -425,16 +389,12 @@ export class OverviewManager {
   renderUserChart() {
     const chartContainer = document.getElementById('users-chart');
     if (!chartContainer) {
-      console.error("Users chart container not found");
       return;
     }
     
     const data = this.chartData.users;
     
-    console.log("Rendering Users Chart with data:", data);
-    
     if (!data || data.length === 0) {
-      console.log("No users chart data available");
       chartContainer.innerHTML = '<div class="text-center text-discord-lighter p-4">No data available</div>';
       return;
     }
@@ -772,15 +732,10 @@ export class OverviewManager {
   }
 
   formatAxisLabel(label) {
-    if (this.currentChartPeriod === 'daily') {
-      if (label.includes('-')) {
-        const parts = label.split('-');
-        return parts[2] || label;
-      }
-      return label;
-    } else {
-      return label.substring(0, 5);
+    if (label.length > 10) {
+      return label.substring(0, 8) + '...';
     }
+    return label;
   }
 
   showTooltip(event, text) {
