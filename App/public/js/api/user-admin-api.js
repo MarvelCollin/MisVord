@@ -135,12 +135,12 @@ class UserAdminAPI {
 
     async listUsers(page = 1, limit = 10, query = '') {
         try {
-            let url = `${this.baseURL}/users?page=${page}&limit=${limit}`;
-            
+        let url = `${this.baseURL}/users?page=${page}&limit=${limit}`;
+        
             if (query && query.trim() !== '') {
                 url += `&q=${encodeURIComponent(query.trim())}`;
-            }
-            
+        }
+        
             const response = await fetch(url, {
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',

@@ -648,7 +648,7 @@ class ChatAPI {
         try {
             const response = await this.makeRequest(url);
             console.log(`✅ Received reactions for message ${messageId}:`, response);
-            return response.reactions || [];
+            return response.data?.reactions || response.reactions || [];
         } catch (error) {
             console.error(`❌ Failed to fetch reactions for message ${messageId}:`, error);
             throw error;

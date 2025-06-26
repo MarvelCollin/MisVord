@@ -86,8 +86,8 @@ export class UserManager {
             `).join('')}
           </tbody>
         </table>
-      </div>
-    `;
+        </div>
+      `;
   }
   
   getUserGridSkeleton() {
@@ -110,8 +110,8 @@ export class UserManager {
                     <div>
                       <div class="skeleton mb-2" style="width: 100px; height: 20px;"></div>
                       <div class="skeleton" style="width: 60px; height: 16px;"></div>
-                    </div>
-                  </div>
+            </div>
+          </div>
                 </td>
                 <td>
                   <div class="grid grid-cols-2 gap-2">
@@ -119,15 +119,15 @@ export class UserManager {
                     <div class="skeleton" style="width: 90%; height: 16px;"></div>
                     <div class="skeleton" style="width: 90%; height: 16px;"></div>
                     <div class="skeleton" style="width: 90%; height: 16px;"></div>
-                  </div>
+          </div>
                 </td>
                 <td><div class="skeleton" style="width: 80px; height: 30px;"></div></td>
               </tr>
             `).join('')}
           </tbody>
         </table>
-      </div>
-    `;
+        </div>
+      `;
   }
 
   initUserManagement() {
@@ -402,7 +402,7 @@ export class UserManager {
       `;
       return;
     }
-
+    
     // Create container for table overflow
     const tableContainer = document.createElement('div');
     tableContainer.className = 'user-table-container';
@@ -487,9 +487,9 @@ export class UserManager {
         <td>${email}</td>
         <td>
           <span class="user-badge inline-flex items-center px-2 py-1 rounded-md text-xs" style="${statusStyle}">
-            <span class="badge-status ${statusClass}"></span>
-            ${user.status || 'offline'}
-          </span>
+              <span class="badge-status ${statusClass}"></span>
+              ${user.status || 'offline'}
+            </span>
         </td>
         <td>${createdAt}</td>
         <td>
@@ -588,12 +588,12 @@ export class UserManager {
             <div class="user-avatar-sm mr-3">${avatarContent}</div>
             <div>
               <div class="font-medium flex items-center">
-                ${username}
+              ${username}
                 <span class="badge-status ${statusClass} ml-2"></span>
-              </div>
-              <div class="text-discord-lighter text-xs">#${discriminator}</div>
             </div>
+            <div class="text-discord-lighter text-xs">#${discriminator}</div>
           </div>
+        </div>
         </td>
         <td>
           <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
