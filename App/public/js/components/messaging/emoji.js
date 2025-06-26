@@ -13,8 +13,8 @@ class EmojiReactions {
         this.menu = null;
         this.activeMessageId = null;
         this.loadingReactions = new Set();
-        this.debounceTimers = new Map();
         this.loadedMessageIds = new Set();
+        this.debounceTimers = new Map();
     }
 
     init() {
@@ -149,9 +149,11 @@ class EmojiReactions {
                         
                         messages.forEach(message => {
                             const messageId = message.dataset.messageId;
-                            if (messageId && !this.currentReactions[messageId] && !message.querySelector('.message-reactions-container')) {
-                                // Only load reactions if we don't have them cached and no reactions container exists
-                                this.loadMessageReactions(messageId);
+                            if (messageId) {
+                                this.updateReactionButtonState(message, messageId);
+                                if (/^\d+$/.test(String(messageId))) {
+                                    this.loadMessageReactions(messageId);
+                                }
                             }
                         });
                     }
@@ -164,11 +166,13 @@ class EmojiReactions {
             subtree: true
         });
 
-        // Load reactions for existing messages only if they don't have reactions already
         document.querySelectorAll('.message-content').forEach(message => {
             const messageId = message.dataset.messageId;
-            if (messageId && !this.currentReactions[messageId] && !message.querySelector('.message-reactions-container')) {
-                this.loadMessageReactions(messageId);
+            if (messageId) {
+                this.updateReactionButtonState(message, messageId);
+                if (/^\d+$/.test(String(messageId))) {
+                    this.loadMessageReactions(messageId);
+                }
             }
         });
 
@@ -250,12 +254,16 @@ class EmojiReactions {
     async toggleReaction(messageId, emoji) {
         this.hideEmojiPicker();
         
+        if (!/^\d+$/.test(String(messageId))) {
+            return;
+        }
+        
         try {
             const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
             const reactionsContainer = messageElement?.querySelector('.message-reactions-container');
             const existingReaction = reactionsContainer?.querySelector(`[data-emoji="${emoji}"]`);
             const isUserReacted = existingReaction?.classList.contains('user-reacted');
-
+            
             if (isUserReacted) {
                 await this.removeReaction(messageId, emoji);
             } else {
@@ -268,8 +276,15 @@ class EmojiReactions {
 
     async addReaction(messageId, emoji) {
         try {
-            await window.ChatAPI.addReaction(messageId, emoji);
-            this.emitReactionSocket('reaction-added', messageId, emoji);
+            const response = await window.ChatAPI.addReaction(messageId, emoji);
+            const currentUserId = document.querySelector('meta[name="user-id"]')?.content || window.globalSocketManager?.userId;
+            const currentUsername = window.globalSocketManager?.username || 'You';
+            this.handleReactionAdded({
+                message_id: messageId,
+                emoji: emoji,
+                user_id: currentUserId,
+                username: currentUsername
+            });
         } catch (error) {
             console.error('Error adding reaction:', error);
         }
@@ -277,40 +292,16 @@ class EmojiReactions {
 
     async removeReaction(messageId, emoji) {
         try {
-            await window.ChatAPI.removeReaction(messageId, emoji);
-            this.emitReactionSocket('reaction-removed', messageId, emoji);
+            const response = await window.ChatAPI.removeReaction(messageId, emoji);
+            const currentUserId = document.querySelector('meta[name="user-id"]')?.content || window.globalSocketManager?.userId;
+            this.handleReactionRemoved({
+                message_id: messageId,
+                emoji: emoji,
+                user_id: currentUserId
+            });
         } catch (error) {
             console.error('Error removing reaction:', error);
         }
-    }
-
-    emitReactionSocket(eventType, messageId, emoji) {
-        if (!window.globalSocketManager?.io) return;
-
-        const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
-        const isChannelMessage = messageElement?.closest('.channel-messages');
-        const isDMMessage = messageElement?.closest('.dm-messages');
-
-        const socketData = {
-            message_id: messageId,
-            emoji: emoji,
-            user_id: document.querySelector('meta[name="user-id"]')?.content,
-            username: document.querySelector('meta[name="username"]')?.content
-        };
-
-        if (isChannelMessage) {
-            const channelId = messageElement.dataset.channelId || window.currentChannelId;
-            socketData.target_type = 'channel';
-            socketData.target_id = channelId;
-            socketData.channelId = channelId;
-        } else if (isDMMessage) {
-            const roomId = messageElement.dataset.roomId || window.currentRoomId;
-            socketData.target_type = 'dm';
-            socketData.target_id = roomId;
-            socketData.roomId = roomId;
-        }
-
-        window.globalSocketManager.io.emit(eventType, socketData);
     }
 
     async loadMessageReactions(messageId) {
@@ -342,14 +333,19 @@ class EmojiReactions {
         }
     }
 
-    updateReactionsDisplay(messageId, reactions) {
+    updateReactionsDisplay(messageId, reactions, retryCount = 0) {
         const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
-        if (!messageElement) return;
+        if (!messageElement) {
+            if (retryCount < 5) {
+                // Try again shortly – message bubble might not be in the DOM yet
+                setTimeout(() => {
+                    this.updateReactionsDisplay(messageId, reactions, retryCount + 1);
+                }, 300);
+            }
+            return;
+        }
 
-        const existingReactions = this.currentReactions[messageId] || [];
-        const reactionsChanged = JSON.stringify(existingReactions) !== JSON.stringify(reactions);
-        
-        if (!reactionsChanged) return;
+        // Always re-render to ensure UI sync (simpler and avoids stale checks)
 
         let reactionsContainer = messageElement.querySelector('.message-reactions-container');
         
@@ -499,7 +495,21 @@ class EmojiReactions {
         this.currentReactions[message_id] = this.currentReactions[message_id].filter(r => 
             !(r.emoji === emoji && String(r.user_id) === String(user_id)));
         
+        // Always update display, removing the equality check
         this.updateReactionsDisplay(message_id, this.currentReactions[message_id]);
+    }
+
+    updateReactionButtonState(messageElement, messageId) {
+        const reactionButton = messageElement.querySelector('.message-action-reaction');
+        if (reactionButton) {
+            if (!/^\d+$/.test(String(messageId))) {
+                reactionButton.style.pointerEvents = 'none';
+                reactionButton.style.opacity = '0.4';
+            } else {
+                reactionButton.style.pointerEvents = '';
+                reactionButton.style.opacity = '';
+            }
+        }
     }
 }
 

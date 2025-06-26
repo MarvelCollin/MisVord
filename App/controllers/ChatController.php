@@ -1084,95 +1084,11 @@ class ChatController extends BaseController
         
         $input = $this->getInput();
         $input = $this->sanitize($input);
-        
         $this->validate($input, ['emoji' => 'required']);
         $emoji = $input['emoji'];
         
         try {
             require_once __DIR__ . '/../database/models/MessageReaction.php';
-            
-            $existingReaction = MessageReaction::findByMessageAndUser($messageId, $userId, $emoji);
-            if ($existingReaction) {
-                return $this->success(['reaction' => 'Already exists']);
-            }
-            
-            $reaction = new MessageReaction([
-                'message_id' => $messageId,
-                'user_id' => $userId,
-                'emoji' => $emoji
-            ]);
-            
-            if ($reaction->save()) {
-                require_once __DIR__ . '/../database/models/ChannelMessage.php';
-                
-                $targetId = null;
-                $targetType = 'channel';
-                
-                $channelMessage = ChannelMessage::findByMessageId($messageId);
-                if ($channelMessage) {
-                    $targetId = $channelMessage->channel_id;
-                    $targetType = 'channel';
-                } else {
-                    $query = new Query();
-                    $chatRoomMessage = $query->table('chat_room_messages')
-                        ->where('message_id', $messageId)
-                        ->first();
-                    if ($chatRoomMessage) {
-                        $targetId = $chatRoomMessage['room_id'];
-                        $targetType = 'dm';
-                    }
-                }
-                
-                return $this->success([
-                    'reaction' => [
-                        'id' => $reaction->id,
-                        'message_id' => $reaction->message_id,
-                        'user_id' => $reaction->user_id,
-                        'emoji' => $reaction->emoji
-                    ],
-                    'socket_event' => 'reaction-added',
-                    'socket_data' => [
-                        'message_id' => $messageId,
-                        'emoji' => $emoji,
-                        'user_id' => $userId,
-                        'username' => $username,
-                        'target_type' => $targetType,
-                        'target_id' => $targetId
-                    ],
-                    'client_should_emit_socket' => true
-                ]);
-            } else {
-                throw new Exception('Failed to save reaction');
-            }
-        } catch (Exception $e) {
-            return $this->serverError('Failed to add reaction: ' . $e->getMessage());
-        }
-    }
-    
-    public function removeReaction($messageId) {
-        $this->requireAuth();
-        $userId = $this->getCurrentUserId();
-        $username = $_SESSION['username'] ?? 'Unknown User';
-        
-        $message = $this->messageRepository->find($messageId);
-        if (!$message) {
-            return $this->notFound('Message not found');
-        }
-        
-        $input = $this->getInput();
-        $input = $this->sanitize($input);
-        
-        $this->validate($input, ['emoji' => 'required']);
-        $emoji = $input['emoji'];
-        
-        try {
-            require_once __DIR__ . '/../database/models/MessageReaction.php';
-            
-            $reaction = MessageReaction::findByMessageAndUser($messageId, $userId, $emoji);
-            if (!$reaction) {
-                return $this->notFound('Reaction not found');
-            }
-            
             require_once __DIR__ . '/../database/models/ChannelMessage.php';
             
             $targetId = null;
@@ -1193,12 +1109,12 @@ class ChatController extends BaseController
                 }
             }
             
-            if ($reaction->delete()) {
+            $existingReaction = MessageReaction::findByMessageAndUser($messageId, $userId, $emoji);
+            
+            if ($existingReaction) {
+                $existingReaction->delete();
                 return $this->success([
-                    'message_id' => $messageId,
-                    'user_id' => $userId,
-                    'emoji' => $emoji,
-                    'socket_event' => 'reaction-removed',
+                    'action' => 'removed',
                     'socket_data' => [
                         'message_id' => $messageId,
                         'emoji' => $emoji,
@@ -1206,14 +1122,34 @@ class ChatController extends BaseController
                         'username' => $username,
                         'target_type' => $targetType,
                         'target_id' => $targetId
-                    ],
-                    'client_should_emit_socket' => true
+                    ]
                 ]);
             } else {
-                throw new Exception('Failed to remove reaction');
+                $reaction = new MessageReaction([
+                    'message_id' => $messageId,
+                    'user_id' => $userId,
+                    'emoji' => $emoji
+                ]);
+                $reaction->save();
+                
+                return $this->success([
+                    'action' => 'added',
+                    'socket_data' => [
+                        'message_id' => $messageId,
+                        'emoji' => $emoji,
+                        'user_id' => $userId,
+                        'username' => $username,
+                        'target_type' => $targetType,
+                        'target_id' => $targetId
+                    ]
+                ]);
             }
         } catch (Exception $e) {
-            return $this->serverError('Failed to remove reaction: ' . $e->getMessage());
+            return $this->serverError('Failed to toggle reaction');
         }
+    }
+    
+    public function removeReaction($messageId) {
+        return $this->addReaction($messageId);
     }
 }

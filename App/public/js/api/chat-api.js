@@ -406,31 +406,77 @@ class ChatAPI {
         }
     }
 
-    sendDirectSocketReaction(messageId, emoji, action, userId, targetType, targetId) {
-        if (!window.globalSocketManager || !window.globalSocketManager.isReady() || !window.globalSocketManager.io) {
+    emitReaction(socketData) {
+        if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
             return false;
         }
         
-        const username = window.globalSocketManager.username;
-        const eventName = action === 'add' ? 'reaction-added' : 'reaction-removed';
+        const eventName = socketData.action === 'added' ? 'reaction-added' : 'reaction-removed';
+        let targetRoom = null;
+        
+        if (socketData.target_type === 'channel') {
+            targetRoom = `channel-${socketData.target_id}`;
+        } else if (socketData.target_type === 'dm' || socketData.target_type === 'direct') {
+            targetRoom = `dm-room-${socketData.target_id}`;
+        }
         
         try {
-            window.globalSocketManager.io.emit(eventName, {
-                message_id: messageId,
-                emoji: emoji,
-                user_id: userId,
-                username: username,
-                target_type: targetType,
-                target_id: targetId,
-                timestamp: Date.now()
-            });
+            if (targetRoom) {
+                window.globalSocketManager.io.to(targetRoom).emit(eventName, socketData);
+            } else {
+                window.globalSocketManager.io.emit(eventName, socketData);
+            }
             return true;
         } catch (e) {
             return false;
         }
     }
     
+    async addReaction(messageId, emoji) {
+        if (!messageId || !emoji) {
+            throw new Error('Message ID and emoji are required');
+        }
+        
+        const url = `/api/messages/${messageId}/reactions`;
+        
+        try {
+            const response = await this.makeRequest(url, {
+                method: 'POST',
+                body: JSON.stringify({ emoji })
+            });
+            
+            if (response && response.socket_data) {
+                response.socket_data.action = response.action;
+                this.emitReaction(response.socket_data);
+            } else {
+                throw new Error('No socket data in response');
+            }
+            
+            return response;
+        } catch (error) {
+            throw error;
+        }
+    }
+    
+    async removeReaction(messageId, emoji) {
+        return this.addReaction(messageId, emoji);
+    }
 
+    async getMessageTarget(messageId) {
+        try {
+            const response = await this.makeRequest(`/api/messages/${messageId}`);
+            if (response && response.data && response.data.message) {
+                // Extract target info from message response
+                return {
+                    target_type: 'channel', // Default, would need backend enhancement
+                    target_id: null
+                };
+            }
+        } catch (error) {
+            console.warn('Failed to get message target:', error);
+        }
+        return null;
+    }
 
     emitSocketEvent(eventName, data) {
         console.warn('⚠️ DEPRECATED: emitSocketEvent is deprecated. Use direct socket emission instead.');
@@ -651,68 +697,6 @@ class ChatAPI {
         } catch (error) {
             console.error(`Error fetching reactions for message ${messageId}:`, error);
             return [];
-        }
-    }
-    
-    async addReaction(messageId, emoji) {
-        if (!messageId || !emoji) {
-            throw new Error('Message ID and emoji are required');
-        }
-        
-        const url = `/api/messages/${messageId}/reactions`;
-        
-        try {
-            const response = await this.makeRequest(url, {
-                method: 'POST',
-                body: JSON.stringify({ emoji })
-            });
-            
-            if (response && response.socket_data) {
-                const userId = window.globalSocketManager?.userId;
-                this.sendDirectSocketReaction(
-                    messageId, 
-                    emoji, 
-                    'add', 
-                    userId, 
-                    response.socket_data.target_type, 
-                    response.socket_data.target_id
-                );
-            }
-            
-            return response;
-        } catch (error) {
-            throw error;
-        }
-    }
-    
-    async removeReaction(messageId, emoji) {
-        if (!messageId || !emoji) {
-            throw new Error('Message ID and emoji are required');
-        }
-        
-        const url = `/api/messages/${messageId}/reactions`;
-        
-        try {
-            const response = await this.makeRequest(url, {
-                method: 'DELETE',
-                body: JSON.stringify({ emoji })
-            });
-            
-            if (response && response.socket_data) {
-                const userId = window.globalSocketManager?.userId;
-                this.sendDirectSocketReaction(
-                    messageId, 
-                    emoji, 
-                    'remove', 
-                    userId, 
-                    response.socket_data.target_type, 
-                    response.socket_data.target_id
-                );
-            }
-            
-            return response;
-        } catch (error) {
-            throw error;
         }
     }
 }

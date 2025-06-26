@@ -1077,11 +1077,14 @@ class ChatSection {
             
             if (response && response.data && response.data.message) {
                 const serverMessage = response.data.message;
-                console.log('Server confirmed message:', serverMessage);
                 const tempMessageElement = document.querySelector(`[data-message-id="${messageId}"]`);
                 if (tempMessageElement) {
                     tempMessageElement.setAttribute('data-message-id', serverMessage.id);
-                    console.log('Updated temp message with server ID:', serverMessage.id);
+                    const reactionButton = tempMessageElement.querySelector('.message-action-reaction');
+                    if (reactionButton) {
+                        reactionButton.style.pointerEvents = '';
+                        reactionButton.style.opacity = '';
+                    }
                 }
             } else {
                 console.warn('⚠️ Unexpected response format:', response);

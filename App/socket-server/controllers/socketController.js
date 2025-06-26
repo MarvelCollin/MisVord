@@ -28,8 +28,8 @@ function setup(io) {
         client.on('user-message-dm', (data) => forwardEvent(io, client, 'user-message-dm', data, `dm-room-${data.roomId}`));
         client.on('message-updated', (data) => forwardEvent(io, client, 'message-updated', data, getTargetRoom(data)));
         client.on('message-deleted', (data) => forwardEvent(io, client, 'message-deleted', data, getTargetRoom(data)));
-        client.on('reaction-added', (data) => forwardEvent(io, client, 'reaction-added', data, null));
-        client.on('reaction-removed', (data) => forwardEvent(io, client, 'reaction-removed', data, null));
+        client.on('reaction-added', (data) => forwardEvent(io, client, 'reaction-added', data, getTargetRoom(data)));
+        client.on('reaction-removed', (data) => forwardEvent(io, client, 'reaction-removed', data, getTargetRoom(data)));
         client.on('message-pinned', (data) => forwardEvent(io, client, 'message-pinned', data, null));
         
         client.on('check-voice-meeting', (data) => handleCheckVoiceMeeting(io, client, data));
