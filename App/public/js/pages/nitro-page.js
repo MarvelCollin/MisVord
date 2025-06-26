@@ -17,6 +17,114 @@ function initNitroPage() {
     setTimeout(() => initMagicalEffects(), 1000);
     setTimeout(() => initCounterAnimations(), 1100);
     setTimeout(() => initWaveEffects(), 1200);
+    setTimeout(() => initMatrixEffect(), 1300);
+    setTimeout(() => initCosmicParticles(), 1400);
+    setTimeout(() => initHologramEffect(), 1500);
+}
+
+function initMatrixEffect() {
+    const matrixContainer = document.querySelector('.matrix-effect');
+    if (!matrixContainer) return;
+
+    const chars = '01ɴɪᴛʀᴏ◆◇◈◉★☆✦✧';
+    const columns = Math.floor(window.innerWidth / 20);
+    
+    for (let i = 0; i < columns; i++) {
+        setTimeout(() => {
+            createMatrixColumn(matrixContainer, i * 20, chars);
+        }, i * 200);
+    }
+
+    setInterval(() => {
+        if (Math.random() < 0.3) {
+            const randomColumn = Math.floor(Math.random() * columns);
+            createMatrixColumn(matrixContainer, randomColumn * 20, chars);
+        }
+    }, 3000);
+}
+
+function createMatrixColumn(container, x, chars) {
+    const char = document.createElement('div');
+    char.className = 'matrix-char';
+    char.textContent = chars[Math.floor(Math.random() * chars.length)];
+    char.style.left = x + 'px';
+    char.style.animationDelay = Math.random() * 2 + 's';
+    char.style.animationDuration = (Math.random() * 8 + 6) + 's';
+    char.style.fontSize = (Math.random() * 8 + 12) + 'px';
+    char.style.opacity = Math.random() * 0.7 + 0.3;
+    
+    container.appendChild(char);
+    
+    setTimeout(() => {
+        if (char.parentNode) {
+            char.parentNode.removeChild(char);
+        }
+    }, 15000);
+}
+
+function initCosmicParticles() {
+    const particleField = document.querySelector('.particle-field');
+    if (!particleField) return;
+
+    const colors = ['#8b5cf6', '#3b82f6', '#ec4899', '#10b981', '#f59e0b'];
+    
+    for (let i = 0; i < 30; i++) {
+        setTimeout(() => {
+            createCosmicParticle(particleField, colors);
+        }, i * 500);
+    }
+
+    setInterval(() => {
+        if (Math.random() < 0.4) {
+            createCosmicParticle(particleField, colors);
+        }
+    }, 2000);
+}
+
+function createCosmicParticle(container, colors) {
+    const particle = document.createElement('div');
+    particle.className = 'cosmic-particle';
+    
+    const size = Math.random() * 6 + 2;
+    particle.style.width = size + 'px';
+    particle.style.height = size + 'px';
+    particle.style.background = `radial-gradient(circle, ${colors[Math.floor(Math.random() * colors.length)]}, transparent)`;
+    particle.style.left = Math.random() * 100 + '%';
+    particle.style.top = '100%';
+    particle.style.animationDelay = Math.random() * 5 + 's';
+    particle.style.animationDuration = (Math.random() * 15 + 10) + 's';
+    particle.style.opacity = Math.random() * 0.8 + 0.2;
+    
+    container.appendChild(particle);
+    
+    setTimeout(() => {
+        if (particle.parentNode) {
+            particle.parentNode.removeChild(particle);
+        }
+    }, 25000);
+}
+
+function initHologramEffect() {
+    const hologramElements = document.querySelectorAll('.hologram-effect');
+    
+    hologramElements.forEach((element, index) => {
+        setTimeout(() => {
+            element.addEventListener('mouseenter', function() {
+                this.style.filter = 'hue-rotate(45deg) saturate(1.2)';
+                this.style.background = `linear-gradient(45deg, 
+                    rgba(139, 92, 246, 0.15), 
+                    rgba(59, 130, 246, 0.15), 
+                    rgba(236, 72, 153, 0.15), 
+                    rgba(16, 185, 129, 0.15)
+                )`;
+            });
+            
+            element.addEventListener('mouseleave', function() {
+                this.style.filter = '';
+                this.style.background = '';
+            });
+        }, index * 100);
+    });
 }
 
 function initFloatingParticles() {
@@ -25,10 +133,10 @@ function initFloatingParticles() {
 
     setInterval(() => {
         createFloatingParticle(heroSection);
-    }, 2500);
+    }, 1500);
 
-    for (let i = 0; i < 15; i++) {
-        setTimeout(() => createFloatingParticle(heroSection), i * 800 + Math.random() * 600);
+    for (let i = 0; i < 25; i++) {
+        setTimeout(() => createFloatingParticle(heroSection), i * 600 + Math.random() * 400);
     }
 }
 
@@ -38,10 +146,15 @@ function createFloatingParticle(container) {
     particle.style.left = Math.random() * 100 + '%';
     particle.style.animationDelay = Math.random() * 3 + 's';
     particle.style.opacity = '0';
+    particle.style.zIndex = '5';
+    
+    const colors = ['rgba(139, 92, 246, 0.8)', 'rgba(59, 130, 246, 0.8)', 'rgba(236, 72, 153, 0.8)', 'rgba(16, 185, 129, 0.8)', 'rgba(245, 158, 11, 0.8)'];
+    particle.style.background = `radial-gradient(circle, ${colors[Math.floor(Math.random() * colors.length)]}, transparent)`;
+    
     container.appendChild(particle);
     
     setTimeout(() => {
-        particle.style.transition = 'opacity 0.5s ease-in-out';
+        particle.style.transition = 'opacity 0.8s ease-in-out';
         particle.style.opacity = '1';
     }, 100);
 
@@ -52,15 +165,15 @@ function createFloatingParticle(container) {
                 if (particle.parentNode) {
                     particle.parentNode.removeChild(particle);
                 }
-            }, 500);
+            }, 800);
         }
-    }, 12000);
+    }, 18000);
 }
 
 function initScrollAnimations() {
     const observerOptions = {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px'
+        threshold: 0.15,
+        rootMargin: '0px 0px -80px 0px'
     };
 
     const observer = new IntersectionObserver((entries) => {
@@ -69,21 +182,20 @@ function initScrollAnimations() {
                 setTimeout(() => {
                     entry.target.classList.add('revealed');
                     
-                    if (entry.target.classList.contains('pricing-card')) {
-                        setTimeout(() => animatePricingCard(entry.target), 200);
+                    if (entry.target.classList.contains('nitro-card-hover')) {
+                        setTimeout(() => animatePricingCard(entry.target), 300);
                     }
                     
                     if (entry.target.classList.contains('perk-item')) {
-                        setTimeout(() => animatePerkItem(entry.target), 300);
+                        setTimeout(() => animatePerkItem(entry.target), 200);
                     }
-                }, index * 150);
+                }, index * 200);
             }
         });
     }, observerOptions);
 
-    const elementsToAnimate = document.querySelectorAll('.nitro-card-hover, .flex.gap-4.group, .bg-discord-light, .bg-discord-darker');
+    const elementsToAnimate = document.querySelectorAll('.scroll-reveal');
     elementsToAnimate.forEach((el, index) => {
-        el.classList.add('scroll-reveal');
         if (index % 2 === 0) {
             el.classList.add('slide-left');
         } else {
@@ -91,7 +203,7 @@ function initScrollAnimations() {
         }
         setTimeout(() => {
             observer.observe(el);
-        }, index * 200);
+        }, index * 150);
     });
 }
 
@@ -99,15 +211,17 @@ function animatePricingCard(card) {
     const features = card.querySelectorAll('li');
     features.forEach((feature, index) => {
         setTimeout(() => {
-            feature.style.transition = 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
-            feature.style.transform = 'translateX(10px)';
-            feature.style.opacity = '1';
-            feature.style.color = '#8b5cf6';
+            feature.style.transition = 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
+            feature.style.transform = 'translateX(15px) scale(1.02)';
+            feature.style.background = 'linear-gradient(90deg, rgba(139, 92, 246, 0.1), transparent)';
+            feature.style.borderRadius = '8px';
+            feature.style.padding = '8px';
             setTimeout(() => {
                 feature.style.transform = '';
-                feature.style.color = '';
-            }, 400);
-        }, (index * 200) + 300);
+                feature.style.background = '';
+                feature.style.padding = '';
+            }, 600);
+        }, (index * 150) + 200);
     });
 }
 
@@ -115,11 +229,13 @@ function animatePerkItem(item) {
     const icon = item.querySelector('i');
     if (icon) {
         setTimeout(() => {
-            icon.style.animation = 'magical-sparkle 1.2s ease-out';
+            icon.style.animation = 'magical-sparkle 1.5s ease-out';
+            icon.style.filter = 'drop-shadow(0 0 20px rgba(139, 92, 246, 0.8))';
             setTimeout(() => {
                 icon.style.animation = '';
-            }, 1200);
-        }, 400);
+                icon.style.filter = '';
+            }, 1500);
+        }, 300);
     }
 }
 
@@ -147,9 +263,9 @@ function initDynamicBackgrounds() {
         width: 100%;
         height: 100%;
         pointer-events: none;
-        z-index: 0;
-        opacity: 0.8;
-        transition: opacity 0.3s ease;
+        z-index: 2;
+        opacity: 0.6;
+        transition: opacity 0.4s ease;
     `;
     heroSection.insertBefore(backgroundGradient, heroSection.firstChild);
 
@@ -161,15 +277,15 @@ function initDynamicBackgrounds() {
         }
         lastUpdate = now;
 
-        mouseX += (targetX - mouseX) * 0.1;
-        mouseY += (targetY - mouseY) * 0.1;
+        mouseX += (targetX - mouseX) * 0.08;
+        mouseY += (targetY - mouseY) * 0.08;
 
         backgroundGradient.style.background = `
             radial-gradient(circle at ${mouseX * 100}% ${mouseY * 100}%, 
-            rgba(139, 92, 246, 0.4) 0%, 
-            rgba(59, 130, 246, 0.25) 25%, 
-            rgba(236, 72, 153, 0.15) 50%, 
-            rgba(16, 185, 129, 0.1) 75%, 
+            rgba(139, 92, 246, 0.5) 0%, 
+            rgba(59, 130, 246, 0.3) 25%, 
+            rgba(236, 72, 153, 0.2) 50%, 
+            rgba(16, 185, 129, 0.15) 75%, 
             transparent 90%)
         `;
 
@@ -195,15 +311,15 @@ function initDynamicBackgrounds() {
                 const cardCenterX = rect.left + rect.width / 2;
                 const cardCenterY = rect.top + rect.height / 2;
                 
-                const deltaX = (e.clientX - cardCenterX) / 25;
-                const deltaY = (e.clientY - cardCenterY) / 25;
+                const deltaX = (e.clientX - cardCenterX) / 20;
+                const deltaY = (e.clientY - cardCenterY) / 20;
                 
                 if (rect.top < window.innerHeight && rect.bottom > 0) {
-                    card.style.transition = 'transform 0.2s ease-out';
-                    card.style.transform = `perspective(1000px) rotateY(${deltaX * 0.08}deg) rotateX(${-deltaY * 0.08}deg)`;
+                    card.style.transition = 'transform 0.3s ease-out';
+                    card.style.transform = `perspective(1200px) rotateY(${deltaX * 0.1}deg) rotateX(${-deltaY * 0.1}deg) translateZ(10px)`;
                 }
             });
-        }, 8);
+        }, 10);
     });
 
     document.addEventListener('mouseleave', () => {
@@ -216,18 +332,19 @@ function initDynamicBackgrounds() {
 }
 
 function initMagicalEffects() {
-    const sparkleElements = document.querySelectorAll('.nitro-card-hover, .nitro-subscribe-btn, #redeem-code-btn');
+    const sparkleElements = document.querySelectorAll('.nitro-card-hover, .nitro-subscribe-btn, #redeem-code-btn, .perk-item');
     
     sparkleElements.forEach((element, index) => {
         setTimeout(() => {
             element.addEventListener('click', createBurstEffect);
-        }, index * 100);
+            element.addEventListener('mouseenter', createSparkleEffect);
+        }, index * 50);
     });
 }
 
 function createSparkleEffect(e) {
     const rect = e.target.getBoundingClientRect();
-    const sparkleCount = 8;
+    const sparkleCount = 12;
     
     for (let i = 0; i < sparkleCount; i++) {
         setTimeout(() => {
@@ -235,27 +352,28 @@ function createSparkleEffect(e) {
             sparkle.style.position = 'absolute';
             sparkle.style.left = Math.random() * rect.width + 'px';
             sparkle.style.top = Math.random() * rect.height + 'px';
-            sparkle.style.width = '4px';
-            sparkle.style.height = '4px';
-            sparkle.style.background = '#8b5cf6';
+            sparkle.style.width = Math.random() * 6 + 3 + 'px';
+            sparkle.style.height = sparkle.style.width;
+            sparkle.style.background = `hsl(${Math.random() * 60 + 260}, 80%, 70%)`;
             sparkle.style.borderRadius = '50%';
             sparkle.style.pointerEvents = 'none';
             sparkle.style.zIndex = '1000';
             sparkle.style.opacity = '0';
-            sparkle.style.animation = 'magical-sparkle 1s ease-out forwards';
+            sparkle.style.animation = 'magical-sparkle 1.2s ease-out forwards';
             
+            e.target.style.position = 'relative';
             e.target.appendChild(sparkle);
             
             setTimeout(() => {
                 sparkle.style.opacity = '1';
-            }, 50);
+            }, 30);
             
             setTimeout(() => {
                 if (sparkle.parentNode) {
                     sparkle.parentNode.removeChild(sparkle);
                 }
-            }, 1000);
-        }, i * 150);
+            }, 1200);
+        }, i * 100);
     }
 }
 
@@ -264,28 +382,30 @@ function createBurstEffect(e) {
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
     
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < 16; i++) {
         setTimeout(() => {
             const particle = document.createElement('div');
-            const angle = (i / 12) * Math.PI * 2;
-            const velocity = 50 + Math.random() * 30;
+            const angle = (i / 16) * Math.PI * 2;
+            const velocity = 60 + Math.random() * 40;
             
             particle.style.position = 'absolute';
             particle.style.left = centerX + 'px';
             particle.style.top = centerY + 'px';
-            particle.style.width = '6px';
-            particle.style.height = '6px';
-            particle.style.background = `hsl(${Math.random() * 60 + 260}, 70%, 60%)`;
+            particle.style.width = Math.random() * 8 + 4 + 'px';
+            particle.style.height = particle.style.width;
+            particle.style.background = `hsl(${Math.random() * 80 + 240}, 80%, 60%)`;
             particle.style.borderRadius = '50%';
             particle.style.pointerEvents = 'none';
             particle.style.zIndex = '1000';
             particle.style.opacity = '0';
+            particle.style.filter = 'drop-shadow(0 0 5px currentColor)';
             
+            e.target.style.position = 'relative';
             e.target.appendChild(particle);
             
             setTimeout(() => {
                 particle.style.opacity = '1';
-            }, 20);
+            }, 10);
             
             const endX = centerX + Math.cos(angle) * velocity;
             const endY = centerY + Math.sin(angle) * velocity;
@@ -294,14 +414,14 @@ function createBurstEffect(e) {
                 { transform: `translate(0, 0) scale(1)`, opacity: 1 },
                 { transform: `translate(${endX - centerX}px, ${endY - centerY}px) scale(0)`, opacity: 0 }
             ], {
-                duration: 800,
+                duration: 1000,
                 easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)'
             }).onfinish = () => {
                 if (particle.parentNode) {
                     particle.parentNode.removeChild(particle);
                 }
             };
-        }, i * 80);
+        }, i * 50);
     }
 }
 
@@ -433,31 +553,35 @@ function initCodeInput() {
                     setTimeout(() => {
                         redeemBtn.classList.add('animate-pulse');
                         if (iconElement) {
-                            iconElement.style.transition = 'all 0.5s ease-in-out';
+                            iconElement.style.transition = 'all 0.8s ease-in-out';
                             iconElement.style.color = '#8b5cf6';
-                            iconElement.style.animation = 'magical-sparkle 1.5s ease-out';
+                            iconElement.style.animation = 'magical-sparkle 2s ease-out';
+                            iconElement.style.filter = 'drop-shadow(0 0 10px #8b5cf6)';
                         }
                         if (container) {
-                            container.style.transition = 'all 0.5s ease-in-out';
-                            container.style.boxShadow = '0 0 30px rgba(139, 92, 246, 0.6)';
+                            container.style.transition = 'all 0.8s ease-in-out';
+                            container.style.boxShadow = '0 0 40px rgba(139, 92, 246, 0.8)';
+                            container.style.transform = 'scale(1.02)';
                         }
                     }, 200);
                     
                     setTimeout(() => {
                         redeemBtn.classList.remove('animate-pulse');
                         if (iconElement) iconElement.style.animation = '';
-                    }, 1500);
+                    }, 2000);
                 } else {
                     if (iconElement) {
-                        iconElement.style.transition = 'all 0.3s ease-in-out';
+                        iconElement.style.transition = 'all 0.5s ease-in-out';
                         iconElement.style.color = '';
+                        iconElement.style.filter = '';
                     }
                     if (container) {
-                        container.style.transition = 'all 0.3s ease-in-out';
+                        container.style.transition = 'all 0.5s ease-in-out';
                         container.style.boxShadow = '';
+                        container.style.transform = '';
                     }
                 }
-            }, 150);
+            }, 100);
         }
     });
 
@@ -472,23 +596,23 @@ function initCodeInput() {
         
         setTimeout(() => {
             createBurstEffect({ target: codeInput.parentElement });
-        }, 200);
+        }, 300);
     });
     
     codeInput.addEventListener('focus', function() {
         const container = document.getElementById('code-input-container');
         if (container) {
             setTimeout(() => {
-                container.style.transition = 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
-                container.style.transform = 'scale(1.03)';
-                container.style.boxShadow = '0 15px 35px rgba(139, 92, 246, 0.4)';
+                container.style.transition = 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
+                container.style.transform = 'scale(1.05) translateY(-5px)';
+                container.style.boxShadow = '0 20px 50px rgba(139, 92, 246, 0.5)';
                 
                 setTimeout(() => {
                     createRippleEffect({ 
                         clientX: container.getBoundingClientRect().left + container.offsetWidth / 2,
                         clientY: container.getBoundingClientRect().top + container.offsetHeight / 2
                     }, container);
-                }, 200);
+                }, 300);
             }, 100);
         }
     });
@@ -497,10 +621,10 @@ function initCodeInput() {
         const container = document.getElementById('code-input-container');
         if (container) {
             setTimeout(() => {
-                container.style.transition = 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+                container.style.transition = 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
                 container.style.transform = '';
                 container.style.boxShadow = '';
-            }, 50);
+            }, 100);
         }
     });
 }

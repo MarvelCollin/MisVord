@@ -764,7 +764,7 @@ class ChatSection {
     }
     
     showEmojiPicker(messageId, targetElement) {
-        if (!window.emojiSocketHandler) {
+        if (!window.emojiReactions) {
             this.showNotification('Emoji picker not loaded', 'error');
             return;
         }
@@ -773,31 +773,8 @@ class ChatSection {
             return;
         }
         
-        const rect = targetElement.getBoundingClientRect();
-        const x = rect.left + window.scrollX;
-        const y = rect.bottom + window.scrollY + 5;
-        
-        const menuWidth = 250;
-        const menuHeight = 200;
-        
-        const viewportWidth = window.innerWidth;
-        let adjustedX = x;
-        if (x + menuWidth > viewportWidth) {
-            adjustedX = viewportWidth - menuWidth - 10;
-        }
-        
-        const viewportHeight = window.innerHeight;
-        let adjustedY = y;
-        if (y + menuHeight > viewportHeight) {
-            adjustedY = rect.top + window.scrollY - menuHeight - 5;
-        }
-        
-        window.emojiSocketHandler.showMenu(messageId, adjustedX, adjustedY);
-        
-        const event = new CustomEvent('emoji-menu-requested', {
-            detail: { messageId, x: adjustedX, y: adjustedY }
-        });
-        document.dispatchEvent(event);
+        // Use the emoji reactions system's showEmojiPicker method
+        window.emojiReactions.showEmojiPicker(messageId, targetElement);
     }
     
     replyToMessage(messageId) {
@@ -1057,7 +1034,7 @@ class ChatSection {
                 user_id: this.userId,
                 userId: this.userId,
                 username: this.username,
-                avatar_url: document.querySelector('meta[name="user-avatar"]')?.content || '/assets/main-logo.png',
+                avatar_url: document.querySelector('meta[name="user-avatar"]')?.content || '/public/assets/main-logo.png',
                 sent_at: timestamp,
                 timestamp: timestamp,
                 isLocalOnly: true,
@@ -1395,7 +1372,7 @@ class ChatSection {
             content: message.content || message.message?.content || '',
             user_id: message.userId || message.user_id || '',
             username: message.username || message.message?.username || 'Unknown User',
-            avatar_url: message.avatar_url || message.message?.avatar_url || '/assets/main-logo.png',
+            avatar_url: message.avatar_url || message.message?.avatar_url || '/public/assets/main-logo.png',
             sent_at: message.timestamp || message.sent_at || Date.now(),
             isLocalOnly: message.isLocalOnly || false,
             reply_message_id: message.reply_message_id || null,
@@ -1630,11 +1607,11 @@ class ChatSection {
         avatarContainer.className = 'message-avatar';
         
         const avatar = document.createElement('img');
-        avatar.src = message.avatar_url || '/assets/main-logo.png';
+        avatar.src = message.avatar_url || '/public/assets/main-logo.png';
         avatar.alt = `${message.username}'s avatar`;
         avatar.onerror = function() {
             this.onerror = null;
-            this.src = '/assets/main-logo.png';
+            this.src = '/public/assets/main-logo.png';
         };
         
         avatarContainer.appendChild(avatar);
@@ -1697,9 +1674,9 @@ class ChatSection {
                 replyContent.setAttribute('aria-label', `Jump to reply from ${message.reply_data.username}`);
                 
                 const replyAvatar = document.createElement('img');
-                replyAvatar.src = message.reply_data.avatar_url || '/assets/main-logo.png';
+                replyAvatar.src = message.reply_data.avatar_url || '/public/assets/main-logo.png';
                 replyAvatar.className = 'reply-avatar';
-                replyAvatar.onerror = function() { this.src = '/assets/main-logo.png'; };
+                replyAvatar.onerror = function() { this.src = '/public/assets/main-logo.png'; };
 
                 const replyUsername = document.createElement('span');
                 replyUsername.className = 'reply-username';
@@ -2471,7 +2448,7 @@ class ChatSection {
             content: 'TEST MESSAGE - If you see this, the system works!',
             user_id: this.userId,
             username: 'TEST USER',
-            avatar_url: '/assets/main-logo.png',
+            avatar_url: '/public/assets/main-logo.png',
             sent_at: Date.now()
         };
         
