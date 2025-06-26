@@ -318,20 +318,50 @@ export class UserManager {
       .then(response => {
         if (response.success) {
           // Get users and normalize them
-          let users = response.data.users || [];
-          if (Array.isArray(users)) {
-            users = users.map(user => window.userAdminAPI.normalizeUser(user));
-          } else {
-            console.error("Unexpected users data structure:", users);
-            users = [];
+          let users = [];
+          let pagination = { total: 0, page: this.currentUserPage, limit: this.usersPerPage, pages: 1 };
+          
+          // Extract users from response
+          if (response.data && response.data.users) {
+            users = response.data.users;
+            pagination = response.data.pagination || pagination;
+          } else if (Array.isArray(response.users)) {
+            users = response.users;
+            pagination = response.pagination || pagination;
+          } else if (Array.isArray(response)) {
+            users = response;
+          } else if (typeof response === 'object') {
+            users = Object.values(response).filter(item => typeof item === 'object');
           }
           
-          const total = response.data.pagination?.total || 0;
-          const showing = users.length;
-          
-
-          
-          this.renderUsers(users, total, showing);
+          // Ensure each user has all required properties
+          if (users && Array.isArray(users)) {
+            users = users.map(user => {
+              // Use normalizeUser if available, or do basic normalization
+              if (window.userAdminAPI.normalizeUser) {
+                return window.userAdminAPI.normalizeUser(user);
+              } else {
+                return {
+                  id: user.id || 'N/A',
+                  username: user.username || 'Unknown User',
+                  discriminator: user.discriminator || '0000',
+                  email: user.email || 'No Email',
+                  status: user.status || 'offline',
+                  display_name: user.display_name || user.username || 'Unknown User',
+                  created_at: user.created_at || null,
+                  ...user
+                };
+              }
+            });
+            
+            const total = pagination.total || users.length;
+            const showing = users.length;
+            
+            this.renderUsers(users, total, showing);
+          } else {
+            console.error("Unexpected users data format:", users);
+            showToast("Unexpected data format received from server", "error");
+          }
         } else {
           showToast(response.message || "Failed to load users", "error");
         }

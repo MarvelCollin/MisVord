@@ -143,12 +143,12 @@ class UserAdminAPI {
 
     async listUsers(page = 1, limit = 10, query = '') {
         try {
-        let url = `${this.baseURL}/users?page=${page}&limit=${limit}`;
-        
+            let url = `${this.baseURL}/users?page=${page}&limit=${limit}`;
+            
             if (query && query.trim() !== '') {
                 url += `&q=${encodeURIComponent(query.trim())}`;
-        }
-        
+            }
+            
             const response = await fetch(url, {
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
@@ -159,10 +159,47 @@ class UserAdminAPI {
             const data = await this.parseResponse(response);
             
             if (!response.ok) {
-                throw new Error(data.message || `HTTP error! status: ${response.status}`);
+                throw new Error(data.message || data.error || `HTTP error! status: ${response.status}`);
             }
             
-            return data;
+            // Normalize the response structure
+            let result = {
+                success: true,
+                message: "Users loaded successfully"
+            };
+            
+            // Extract users from wherever they might be in the response
+            let users = [];
+            if (data.data && data.data.users) {
+                users = data.data.users;
+            } else if (data.users) {
+                users = data.users;
+            }
+            
+            // Normalize each user object
+            users = Array.isArray(users) ? users.map(user => this.normalizeUser(user)) : [];
+            
+            // Extract pagination from wherever it might be
+            let pagination = {};
+            if (data.data && data.data.pagination) {
+                pagination = data.data.pagination;
+            } else if (data.pagination) {
+                pagination = data.pagination;
+            } else {
+                pagination = {
+                    total: users.length,
+                    page: page,
+                    limit: limit,
+                    pages: Math.ceil(users.length / limit)
+                };
+            }
+            
+            result.data = {
+                users: users,
+                pagination: pagination
+            };
+            
+            return result;
         } catch (error) {
             console.error('Error listing users:', error);
             throw error;
@@ -172,7 +209,35 @@ class UserAdminAPI {
     async getUser(userId) {
         try {
             const response = await fetch(`${this.baseURL}/users/${userId}`);
-            return await response.json();
+            const data = await this.parseResponse(response);
+            
+            if (!response.ok) {
+                throw new Error(data.message || data.error || `HTTP error! status: ${response.status}`);
+            }
+            
+            let user = null;
+            
+            // Extract user from wherever it might be in the response
+            if (data.data && data.data.user) {
+                user = data.data.user;
+            } else if (data.user) {
+                user = data.user;
+            } else if (typeof data === 'object' && !data.hasOwnProperty('success')) {
+                user = data;
+            }
+            
+            // Normalize the user object
+            if (user) {
+                user = this.normalizeUser(user);
+                
+                return {
+                    success: true,
+                    message: "User details loaded successfully",
+                    user: user
+                };
+            }
+            
+            throw new Error("User data not found in response");
         } catch (error) {
             console.error('Error getting user:', error);
             throw error;

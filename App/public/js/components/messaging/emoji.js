@@ -319,6 +319,16 @@ class EmojiReactions {
         // Only load reactions once per message ID
         if (this.loadedMessageIds.has(messageId)) {
             console.log(`⏭️ Skipping reactions load - already loaded for message ID: ${messageId}`);
+            
+            // Remove any leftover skeletons
+            const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+            if (messageElement) {
+                const skeleton = messageElement.querySelector('.reaction-skeleton');
+                if (skeleton) {
+                    skeleton.remove();
+                }
+            }
+            
             return;
         }
         
@@ -334,8 +344,23 @@ class EmojiReactions {
             clearTimeout(this.debounceTimers.get(messageId));
         }
 
+        // Ensure the message has a skeleton reaction placeholder while loading
+        const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+        if (messageElement && !messageElement.querySelector('.message-reactions-container')) {
+            const reactionSkeleton = document.createElement('div');
+            reactionSkeleton.className = 'message-reactions-container reaction-skeleton';
+            reactionSkeleton.innerHTML = '<div class="reaction-loading-pulse"></div>';
+            
+            const messageContent = messageElement.querySelector('.message-main-text') || messageElement;
+            if (messageContent.parentElement) {
+                messageContent.parentElement.appendChild(reactionSkeleton);
+            } else {
+                messageElement.appendChild(reactionSkeleton);
+            }
+        }
+
         console.log(`⏰ Setting debounce timer for message ID: ${messageId}`);
-        // Debounce the loading to prevent rapid successive calls
+        // Use a shorter debounce for better UX
         const timer = setTimeout(async () => {
             console.log(`🚀 Executing reactions load for message ID: ${messageId}`);
             this.loadingReactions.add(messageId);
@@ -348,12 +373,20 @@ class EmojiReactions {
                 this.loadedMessageIds.add(messageId);
             } catch (error) {
                 console.error(`❌ Error loading reactions for message ID: ${messageId}`, error);
+                
+                // Remove skeleton on error
+                if (messageElement) {
+                    const skeleton = messageElement.querySelector('.reaction-skeleton');
+                    if (skeleton) {
+                        skeleton.remove();
+                    }
+                }
             } finally {
                 this.loadingReactions.delete(messageId);
                 this.debounceTimers.delete(messageId);
                 console.log(`✅ Completed reactions loading process for message ID: ${messageId}`);
             }
-        }, 100); // 100ms debounce
+        }, 50); // Faster debounce for better UX
 
         this.debounceTimers.set(messageId, timer);
     }

@@ -67,40 +67,90 @@ class AdminController extends BaseController
         $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 10;
         $query = isset($_GET['q']) ? trim($_GET['q']) : '';
         
-        if (!empty($query)) {
-            $users = $this->userRepository->search($query, $page, $limit);
-            $total = $this->userRepository->countSearch($query);
-        } else {
-            $users = $this->userRepository->paginate($page, $limit);
-            $total = $this->userRepository->countRegularUsers();
+        try {
+            if (!empty($query)) {
+                $users = $this->userRepository->search($query, $page, $limit);
+                $total = $this->userRepository->countSearch($query);
+            } else {
+                $users = $this->userRepository->paginate($page, $limit);
+                $total = $this->userRepository->countRegularUsers();
+            }
+            
+            // Ensure consistent user structure
+            $normalizedUsers = [];
+            foreach ($users as $user) {
+                // Convert to array if it's an object
+                $userData = is_object($user) && method_exists($user, 'toArray') ? $user->toArray() : (array)$user;
+                
+                // Ensure all critical fields exist
+                $normalizedUsers[] = [
+                    'id' => $userData['id'] ?? null,
+                    'username' => $userData['username'] ?? 'Unknown User',
+                    'discriminator' => $userData['discriminator'] ?? '0000',
+                    'email' => $userData['email'] ?? '',
+                    'status' => $userData['status'] ?? 'offline',
+                    'display_name' => $userData['display_name'] ?? $userData['username'] ?? 'Unknown User',
+                    'avatar_url' => $userData['avatar_url'] ?? null,
+                    'banner_url' => $userData['banner_url'] ?? null,
+                    'bio' => $userData['bio'] ?? '',
+                    'created_at' => $userData['created_at'] ?? null,
+                    'updated_at' => $userData['updated_at'] ?? null
+                ];
+            }
+            
+            if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                return $this->success([
+                    'users' => $normalizedUsers,
+                    'pagination' => [
+                        'total' => $total,
+                        'page' => $page,
+                        'limit' => $limit,
+                        'pages' => ceil($total / $limit)
+                    ]
+                ]);
+            }
+            
+            return $normalizedUsers;
+        } catch (Exception $e) {
+            error_log("Error loading users in admin controller: " . $e->getMessage());
+            return $this->serverError("Failed to load users: " . $e->getMessage());
         }
-        
-        if ($this->isApiRoute() || $this->isAjaxRequest()) {
-            return $this->success([
-                'users' => $users,
-                'pagination' => [
-                    'total' => $total,
-                    'page' => $page,
-                    'limit' => $limit,
-                    'pages' => ceil($total / $limit)
-                ]
-            ]);
-        }
-        
-        return $users;
     }
     
     public function getUser($id)
     {
         $this->requireAdmin();
         
-        $user = $this->userRepository->find($id);
-        
-        if (!$user) {
-            return $this->notFound('User not found');
+        try {
+            $user = $this->userRepository->find($id);
+            
+            if (!$user) {
+                return $this->notFound('User not found');
+            }
+            
+            // Convert to array if it's an object
+            $userData = is_object($user) && method_exists($user, 'toArray') ? $user->toArray() : (array)$user;
+            
+            // Ensure all critical fields exist
+            $normalizedUser = [
+                'id' => $userData['id'] ?? null,
+                'username' => $userData['username'] ?? 'Unknown User',
+                'discriminator' => $userData['discriminator'] ?? '0000',
+                'email' => $userData['email'] ?? '',
+                'status' => $userData['status'] ?? 'offline',
+                'display_name' => $userData['display_name'] ?? $userData['username'] ?? 'Unknown User',
+                'avatar_url' => $userData['avatar_url'] ?? null,
+                'banner_url' => $userData['banner_url'] ?? null,
+                'bio' => $userData['bio'] ?? '',
+                'created_at' => $userData['created_at'] ?? null,
+                'updated_at' => $userData['updated_at'] ?? null
+            ];
+            
+            return $this->success(['user' => $normalizedUser]);
+        } catch (Exception $e) {
+            error_log("Error getting user details in admin controller: " . $e->getMessage());
+            return $this->serverError("Failed to load user details: " . $e->getMessage());
         }
-        
-        return $this->success(['user' => $user]);
     }
     
     public function searchUsers()
